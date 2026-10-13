@@ -6,6 +6,7 @@ import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import {
   applyMargin,
@@ -38,7 +39,11 @@ function configuredProviderRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function setup(options?: { balance?: number | Error; row?: unknown }) {
+function setup(options?: {
+  balance?: number | Error;
+  resolveModelKey?: ReturnType<typeof vi.fn>;
+  row?: unknown;
+}) {
   const balance = options?.balance ?? 42;
   const row =
     options && 'row' in options ? options.row : configuredProviderRow();
@@ -50,9 +55,10 @@ function setup(options?: { balance?: number | Error; row?: unknown }) {
   };
   const validateModelForOrg = vi.fn(async () => row);
   const selectModel = vi.fn();
+  const resolveModelKey = options?.resolveModelKey ?? vi.fn();
   const logger = { error: vi.fn(), warn: vi.fn() };
   const estimateService = new AgentGenerationEstimateService(
-    { resolveModelKey: vi.fn(), selectModel } as never,
+    { resolveModelKey, selectModel } as never,
     { validateModelForOrg } as never,
     logger as never,
     testModelCreditQuote({ findOne: async () => row } as never),
@@ -65,6 +71,7 @@ function setup(options?: { balance?: number | Error; row?: unknown }) {
       estimateService,
     ),
     logger,
+    resolveModelKey,
     selectModel,
     validateModelForOrg,
   };
@@ -144,7 +151,7 @@ describe('AgentGenerationCostToolHandler', () => {
 
   it('returns unavailable with a reason for a bad request and still returns the balance', async () => {
     const { handler, validateModelForOrg } = setup({ balance: 9 });
-    const result = await handler.execute({ type: 'music' }, ctx);
+    const result = await handler.execute({ type: 'voice' }, ctx);
     expect(validateModelForOrg).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       creditsUsed: 0,
@@ -159,6 +166,37 @@ describe('AgentGenerationCostToolHandler', () => {
       },
       success: true,
     });
+  });
+
+  it('quotes Auto music as the registry default and an explicit Lyria key the same way', async () => {
+    const resolveModelKey = vi.fn(async () => ({
+      key: MODEL_KEYS.FAL_LYRIA3_PRO,
+    }));
+    const { handler, selectModel } = setup({
+      resolveModelKey,
+      row: configuredProviderRow({
+        category: ModelCategory.MUSIC,
+        cost: 27,
+        key: MODEL_KEYS.FAL_LYRIA3_PRO,
+        provider: 'fal',
+        providerCostUsd: 0.08,
+      }),
+    });
+    const auto = await handler.execute({ type: 'music' }, ctx);
+    const explicit = await handler.execute(
+      { modelKey: MODEL_KEYS.FAL_LYRIA3_PRO, outputs: 1, type: 'music' },
+      ctx,
+    );
+    expect(selectModel).not.toHaveBeenCalled();
+    expect(resolveModelKey).toHaveBeenCalledWith({
+      category: ModelCategory.MUSIC,
+      organizationId: 'org-1',
+    });
+    expect(auto.data?.estimate).toEqual({
+      credits: applyMargin(0.08, 1),
+      status: 'estimated',
+    });
+    expect(explicit.data?.estimate).toEqual(auto.data?.estimate);
   });
 
   it('reports MODEL_UNAVAILABLE when the model is missing', async () => {

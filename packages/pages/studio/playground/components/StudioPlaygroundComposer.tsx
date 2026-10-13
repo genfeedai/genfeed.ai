@@ -306,19 +306,39 @@ export default function StudioPlaygroundComposer({
     settings: displaySettings,
     type,
   });
-  // Only explicitly selected models can be quoted before Auto has routed.
+  // Image and video Auto stay unpriced until routing picks a model. Music
+  // Auto quotes the catalog default already loaded for this type. With no
+  // default flagged, the request omits the key and the server resolves the
+  // registry music default.
+  const isMusicAuto =
+    type === 'music' && isAutoStudioModelKey(settings.modelKey);
+  const quoteModelKey = isMusicAuto
+    ? models.find(
+        (model) => model.isDefault && model.category === ModelCategory.MUSIC,
+      )?.key
+    : displaySettings.modelKey;
+  const quotedModel = models.find((model) => model.key === quoteModelKey);
   const isServerPricedModel =
     !isLoadingModels &&
-    !isAutoStudioModelKey(settings.modelKey) &&
-    selectedModel !== undefined &&
-    selectedModel.key === displaySettings.modelKey &&
-    selectedModel.provider !== 'crun';
+    quotedModel?.provider !== 'crun' &&
+    (isMusicAuto ||
+      (quotedModel !== undefined &&
+        quotedModel.key === displaySettings.modelKey &&
+        !isAutoStudioModelKey(settings.modelKey)));
+  const quoteDuration =
+    type === 'music'
+      ? normalizeMusicSettings(quoteModelKey, {
+          duration: displaySettings.duration,
+          instrumental: displaySettings.instrumental,
+          lyrics: displaySettings.lyrics,
+        }).duration
+      : costPromptData.duration;
   // The server quote admission charges; Studio never recalculates it.
   const serverEstimate = useStudioGenerationEstimate(
     isServerPricedModel
       ? buildStudioGenerationQuoteRequest({
           aspectRatio: displaySettings.aspectRatio,
-          duration: costPromptData.duration,
+          duration: quoteDuration,
           editSize: hasEditMask ? 'source' : displaySettings.editSize,
           referenceUrls: attachedAssets
             .filter(
@@ -333,7 +353,7 @@ export default function StudioPlaygroundComposer({
             ),
           height: costPromptData.height,
           isAudioEnabled: displaySettings.isAudioEnabled,
-          modelKey: displaySettings.modelKey,
+          modelKey: quoteModelKey,
           outputs: costPromptData.outputs,
           resolution: costPromptData.resolution,
           type,
@@ -342,13 +362,17 @@ export default function StudioPlaygroundComposer({
       : null,
   );
   const estimate: StudioGenerationCostEstimate =
-    type !== 'image' && type !== 'image-edit' && type !== 'video'
+    type !== 'image' &&
+    type !== 'image-edit' &&
+    type !== 'video' &&
+    type !== 'music'
       ? { credits: null, status: 'unavailable' }
       : isLoadingModels
         ? { credits: null, status: 'loading' }
-        : isAutoStudioModelKey(settings.modelKey)
+        : isAutoStudioModelKey(settings.modelKey) && type !== 'music'
           ? { credits: null, status: 'auto' }
-          : !selectedModel || selectedModel.key !== displaySettings.modelKey
+          : !isMusicAuto &&
+              (!selectedModel || selectedModel.key !== displaySettings.modelKey)
             ? {
                 credits: null,
                 status: 'unavailable',
@@ -1133,7 +1157,9 @@ export default function StudioPlaygroundComposer({
                 <StudioGenerationSummary
                   crunQuote={crunQuote}
                   estimate={estimate}
-                  isEstimateHidden={isAutoView}
+                  // Music Auto is one catalog default with a tariff, so its
+                  // price stays visible. Image and video Auto hide it.
+                  isEstimateHidden={isAutoView && type !== 'music'}
                   model={selectedModel}
                   type={type}
                   isDisabled={isGenerating}

@@ -24,6 +24,7 @@ import {
 const ESTIMATE_CATEGORIES = [
   ModelCategory.IMAGE,
   ModelCategory.IMAGE_EDIT,
+  ModelCategory.MUSIC,
   ModelCategory.VIDEO,
 ] as const;
 type EstimateCategory = (typeof ESTIMATE_CATEGORIES)[number];
@@ -46,7 +47,9 @@ export class EstimateGenerationCreditsDto {
   @IsNotEmpty()
   @ValidateIf(
     (dto: EstimateGenerationCreditsDto) =>
-      !dto.modelKey && dto.category !== ModelCategory.IMAGE_EDIT,
+      !dto.modelKey &&
+      dto.category !== ModelCategory.IMAGE_EDIT &&
+      dto.category !== ModelCategory.MUSIC,
   )
   @ApiProperty({
     description:
@@ -58,7 +61,7 @@ export class EstimateGenerationCreditsDto {
 
   @IsIn(ESTIMATE_CATEGORIES)
   @ApiProperty({
-    description: 'Image, image edit or video',
+    description: 'Image, image edit, music or video',
     enum: ESTIMATE_CATEGORIES,
     example: ModelCategory.IMAGE,
   })
@@ -77,10 +80,11 @@ export class EstimateGenerationCreditsDto {
   @IsNumber()
   @IsOptional()
   @Min(1)
-  @Max(60)
+  @Max(90)
   @ApiProperty({
-    description: 'Duration in seconds for video generation',
-    maximum: 60,
+    description:
+      'Duration in seconds. Video uses the submitted length; music sends it only when the model bills by time, up to the music generation cap.',
+    maximum: 90,
     minimum: 1,
     required: false,
   })

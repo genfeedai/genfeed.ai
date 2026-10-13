@@ -54,6 +54,7 @@ export class AgentGenerationCostToolHandler {
     const type =
       params.type === 'image' ||
       params.type === 'image-edit' ||
+      params.type === 'music' ||
       params.type === 'video'
         ? params.type
         : null;
@@ -78,8 +79,9 @@ export class AgentGenerationCostToolHandler {
       });
     }
 
-    // Auto never prices here: the model, and so the quote, is not chosen yet.
-    if (isAutoStudioModelKey(modelKey.value)) {
+    // Image and video Auto never price here: the model is not chosen yet.
+    // Music Auto quotes the registry default, which the estimate resolves.
+    if (type !== 'music' && isAutoStudioModelKey(modelKey.value)) {
       return this.result(balance, { credits: null, status: 'auto' });
     }
 
@@ -100,7 +102,10 @@ export class AgentGenerationCostToolHandler {
       // Studio submits the toggle as false unless it is switched on.
       isAudioEnabled:
         type === 'video' ? params.isAudioEnabled === true : undefined,
-      modelKey: modelKey.value,
+      modelKey:
+        type === 'music' && isAutoStudioModelKey(modelKey.value)
+          ? undefined
+          : modelKey.value,
       outputs: outputs.value ?? 1,
       resolution: resolvedResolution,
       type,

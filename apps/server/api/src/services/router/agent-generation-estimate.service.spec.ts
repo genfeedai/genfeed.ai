@@ -4,10 +4,14 @@ import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-generation-credits.dto';
 import { ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import {
+  applyMargin,
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
+  DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  setRuntimeMarginMultiplier,
 } from '@genfeedai/pricing';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { validate } from 'class-validator';
@@ -302,6 +306,48 @@ describe('AgentGenerationEstimateService', () => {
       unavailable(AgentGenerationQuoteUnavailableReason.ERROR),
     );
     expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+  it('quotes Auto music as the registry default and Lyria from its existing tariff', async () => {
+    setRuntimeMarginMultiplier(1);
+    resolveModelKey.mockResolvedValue({ key: MODEL_KEYS.FAL_LYRIA3_PRO });
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      category: ModelCategory.MUSIC,
+      cost: 27,
+      key: MODEL_KEYS.FAL_LYRIA3_PRO,
+      pricingType: 'flat',
+      provider: 'fal',
+      providerCostUsd: 0.08,
+    });
+    const auto = await service.estimate({
+      category: 'music',
+      organizationId: 'org-1',
+      outputs: 1,
+    });
+    const explicit = await service.estimate({
+      category: 'music',
+      modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+      organizationId: 'org-1',
+      outputs: 1,
+    });
+    expect(selectModel).not.toHaveBeenCalled();
+    expect(resolveModelKey).toHaveBeenCalledTimes(1);
+    expect(resolveModelKey).toHaveBeenCalledWith({
+      category: ModelCategory.MUSIC,
+      organizationId: 'org-1',
+    });
+    expect(explicit).toEqual(auto);
+    expect(explicit).toEqual({
+      credits: applyMargin(0.08, 1),
+      isAvailable: true,
+      modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+    });
+    const dto = Object.assign(new EstimateGenerationCreditsDto(), {
+      category: 'music',
+      outputs: 1,
+    });
+    expect(await validate(dto)).toEqual([]);
+    setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
   });
   it('requires a prompt only when the server must route', async () => {
     expect(

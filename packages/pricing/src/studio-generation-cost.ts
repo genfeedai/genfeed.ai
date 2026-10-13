@@ -49,8 +49,9 @@ export interface StudioGenerationQuoteInput {
  * The selectors Studio submits, shaped as a server quote request. This only
  * chooses which settings are sent; every credit amount comes from the server
  * quote that admission charges (`POST /router/estimate-generation-credits`).
- * Returns `null` when there is no concrete model to quote (Auto, or a type
- * the server does not price).
+ * Returns `null` when there is no concrete model to quote (Auto for image or
+ * video, or a type the server does not price). Music Auto omits `modelKey`
+ * so the server resolves the registry music default, which already has a tariff.
  */
 export function buildStudioGenerationQuoteRequest({
   aspectRatio,
@@ -65,8 +66,23 @@ export function buildStudioGenerationQuoteRequest({
   type,
   width,
 }: StudioGenerationQuoteInput): AgentGenerationQuoteRequest | null {
-  if (type !== 'image' && type !== 'image-edit' && type !== 'video')
+  if (
+    type !== 'image' &&
+    type !== 'image-edit' &&
+    type !== 'video' &&
+    type !== 'music'
+  )
     return null;
+  if (type === 'music') {
+    const concreteModelKey =
+      modelKey && !isAutoStudioModelKey(modelKey) ? modelKey : undefined;
+    return {
+      category: 'music',
+      ...(concreteModelKey ? { modelKey: concreteModelKey } : {}),
+      ...(duration !== undefined ? { duration } : {}),
+      ...(outputs !== undefined ? { outputs } : {}),
+    };
+  }
   if (!modelKey || isAutoStudioModelKey(modelKey)) return null;
 
   const base = {

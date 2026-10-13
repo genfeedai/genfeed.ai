@@ -10,7 +10,7 @@ import type { GenerationExecutionDimensions } from '../billing/generation-credit
 export interface AgentGenerationQuoteRequest {
   /** Aspect ratio the Agent request will execute with; drives dimensions. */
   aspectRatio?: string;
-  category: 'image' | 'image-edit' | 'video';
+  category: 'image' | 'image-edit' | 'music' | 'video';
   duration?: number;
   /** Video audio toggle; admission prices it as the `audio` selector. */
   isAudioEnabled?: boolean;
@@ -19,7 +19,7 @@ export interface AgentGenerationQuoteRequest {
   modelKey?: string;
   outputs?: number;
   prioritize?: RouterPriority;
-  /** Required only when the server must route (no `modelKey`). */
+  /** Required only when the server must route an image or video (no `modelKey`). */
   prompt?: string;
   quality?: string;
   /** Source URLs already selected by the caller; quoting never fetches them. */

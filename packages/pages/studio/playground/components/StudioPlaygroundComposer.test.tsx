@@ -1016,6 +1016,70 @@ describe('StudioPlaygroundComposer', () => {
     );
   });
 
+  it('quotes Auto and Lyria 3 Pro through the catalog music default, without a duration', () => {
+    advancedModeMocks.isAdvancedMode = false;
+    try {
+      const lyria = {
+        category: ModelCategory.MUSIC,
+        isActive: true,
+        isDefault: true,
+        key: MODEL_KEYS.FAL_LYRIA3_PRO,
+        label: 'Lyria 3 Pro',
+        provider: ModelProvider.FAL,
+      } as IModel;
+      estimateMocks.resolve.mockReturnValue({
+        credits: 8,
+        status: 'estimated',
+      });
+      const props = {
+        ...baseProps,
+        models: [lyria],
+        prompt: 'A warm soundtrack',
+        type: 'music' as const,
+      };
+      const { rerender } = render(
+        <StudioPlaygroundComposer
+          {...props}
+          settings={{ ...settings, modelKey: AUTO_MODEL_OPTION_VALUE }}
+        />,
+      );
+
+      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          category: 'music',
+          modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+          outputs: 1,
+        }),
+      );
+      expect(estimateMocks.resolve.mock.lastCall?.[0]).not.toHaveProperty(
+        'duration',
+      );
+      expect(screen.getByText('~8')).toBeVisible();
+      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+        hasDuration: false,
+      });
+
+      rerender(
+        <StudioPlaygroundComposer
+          {...props}
+          settings={{ ...settings, modelKey: MODEL_KEYS.FAL_LYRIA3_PRO }}
+        />,
+      );
+      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          category: 'music',
+          modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+        }),
+      );
+      expect(estimateMocks.resolve.mock.lastCall?.[0]).not.toHaveProperty(
+        'duration',
+      );
+      expect(screen.getByText('~8')).toBeVisible();
+    } finally {
+      advancedModeMocks.isAdvancedMode = true;
+    }
+  });
+
   it('reconciles external music settings without mounting Output, idempotently', () => {
     const onSettingsChange = vi.fn();
     const musicSettings = {

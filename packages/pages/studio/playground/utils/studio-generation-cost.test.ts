@@ -53,7 +53,7 @@ describe('buildStudioGenerationQuoteRequest', () => {
     });
   });
 
-  it('never quotes Auto or a type the server does not price', () => {
+  it('never quotes Auto image or a type the server does not price', () => {
     for (const modelKey of [undefined, '', 'auto', '__auto_model__'])
       expect(
         buildStudioGenerationQuoteRequest({
@@ -64,9 +64,43 @@ describe('buildStudioGenerationQuoteRequest', () => {
     expect(
       buildStudioGenerationQuoteRequest({
         modelKey: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
-        type: 'music',
+        type: 'avatar',
       }),
     ).toBeNull();
+  });
+
+  it('quotes music through the existing tariff, including Auto as the registry default', () => {
+    expect(
+      buildStudioGenerationQuoteRequest({
+        modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+        outputs: 2,
+        type: 'music',
+      }),
+    ).toEqual({
+      category: 'music',
+      modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+      outputs: 2,
+    });
+    expect(
+      buildStudioGenerationQuoteRequest({
+        duration: 30,
+        modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        outputs: 1,
+        type: 'music',
+      }),
+    ).toEqual({
+      category: 'music',
+      duration: 30,
+      modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+      outputs: 1,
+    });
+    expect(
+      buildStudioGenerationQuoteRequest({
+        modelKey: '__auto_model__',
+        outputs: 1,
+        type: 'music',
+      }),
+    ).toEqual({ category: 'music', outputs: 1 });
   });
 
   it('quotes a video as one clip at the submitted resolution', () => {
