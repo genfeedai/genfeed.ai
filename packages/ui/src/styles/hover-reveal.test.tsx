@@ -36,6 +36,18 @@ describe('hoverRevealClassName', () => {
     expect(open).not.toContain('[@media(hover:hover)]:pointer-events-none');
   });
 
+  it('names preset and breakpoint variants as complete class tokens', () => {
+    const named = hoverRevealClassName({ at: 'lg', group: 'preset' });
+
+    expect(named).toContain('[@media(hover:hover)]:lg:opacity-0');
+    expect(named).toContain(
+      '[@media(hover:hover)]:lg:group-hover/preset:opacity-100',
+    );
+    expect(named).toContain(
+      '[@media(hover:hover)]:lg:group-focus-within/preset:pointer-events-auto',
+    );
+  });
+
   it('hides a resting label on touch and while its paired action is revealed', () => {
     const classes = hoverConcealClassName({ focus: 'group-visible' }).split(
       ' ',
