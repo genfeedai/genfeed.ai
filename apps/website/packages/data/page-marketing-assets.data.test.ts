@@ -56,7 +56,9 @@ describe('page illustration coverage', () => {
         MARKETING_ASSETS.integration,
       );
     }
-    expect(getPageMarketingAsset('/vs/*').src).toContain('page-comparison');
+    expect(getPageMarketingAsset('/vs/*').src).toContain(
+      '/assets/site/pages/comparison.webp',
+    );
   });
 
   it('keeps an explicit fallback for unknown routes', () => {
