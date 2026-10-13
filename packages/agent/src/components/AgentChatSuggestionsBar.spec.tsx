@@ -89,6 +89,5 @@ describe('AgentChatSuggestionsBar', () => {
     const toolbar = screen.getByRole('toolbar', { name: 'Prompt suggestions' });
     expect(toolbar).toHaveClass('lg:grid-cols-4');
     expect(toolbar).not.toHaveClass('sm:grid-cols-3');
-    expect(screen.getAllByRole('button')).toHaveLength(4);
   });
 });

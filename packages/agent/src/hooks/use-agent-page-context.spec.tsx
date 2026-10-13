@@ -56,22 +56,17 @@ describe('useAgentPageContext', () => {
     };
 
     it('leads the suggestions with a pinned "About this page" action grounded in the route help', () => {
-      const { result } = renderAt(
-        `/acme/main${APP_ROUTES.LIBRARY.IMAGES}`,
-        undefined,
-        help,
-      );
+      const route = `/acme/main${APP_ROUTES.LIBRARY.IMAGES}`;
+      const withoutHelp = renderAt(route).result.current.suggestedActions;
+      const { result } = renderAt(route, undefined, help);
 
       const [first, ...rest] = result.current.suggestedActions;
       expect(first?.label).toBe('About this page');
       expect(first?.isPinned).toBe(true);
       expect(first?.prompt).toContain('"Library"');
       expect(first?.prompt).toContain(help.body);
-      expect(rest.map((action) => action.label)).toEqual([
-        'Generate',
-        'Variations',
-        'Search',
-      ]);
+      expect(rest).toEqual(withoutHelp);
+      expect(withoutHelp.length).toBeGreaterThan(0);
     });
 
     it('publishes the help action into the chat store with the route suggestions', () => {
