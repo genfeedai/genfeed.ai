@@ -1,10 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import type { Readable } from 'node:stream';
 import type {
   ServerYoutubeUploader,
   YoutubeUploadPostInput,
 } from '@api/server.dependencies';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
@@ -19,8 +17,11 @@ import {
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { HttpService } from '@nestjs/axios';
 import { Injectable, Optional } from '@nestjs/common';
 import { google, type youtube_v3 } from 'googleapis';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class YoutubeUploadService implements ServerYoutubeUploader {
@@ -28,7 +29,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
   private readonly youtubeAPI: ReturnType<typeof google.youtube>;
 
   constructor(
-    private readonly fileQueueService: FileQueueService,
+    private readonly httpService: HttpService,
     private readonly tagResolutionService: TagResolutionService,
     private readonly authService: YoutubeAuthService,
     private readonly loggerService: LoggerService,
@@ -39,21 +40,6 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
     this.youtubeAPI = google.youtube({ version: 'v3' });
-  }
-
-  private resolveFilePath(videoId: string, outputPath: unknown): string {
-    if (typeof outputPath === 'string' && outputPath.length > 0) {
-      return outputPath;
-    }
-
-    return path.join(
-      process.cwd(),
-      'public',
-      'tmp',
-      'videos',
-      videoId,
-      'file-0.mp4',
-    );
   }
 
   /**
@@ -70,6 +56,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
   ): Promise<string> {
     const url = `${this.constructorName} uploadVideo ${videoId}`;
 
+    let mediaStream: Readable | undefined;
     try {
       this.loggerService.log(`${url} started`);
 
@@ -79,7 +66,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         credentialId,
       );
 
-      let sourceStorageKey: string | undefined;
+      let sourceUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
       if (this.configService.isAuthorizedMediaDeliveryEnabled) {
         if (!this.authorizedMediaUrls)
           throw new Error('Authorized media issuer is unavailable');
@@ -92,29 +79,16 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
           !['VIDEO', 'VIDEO_EDIT', 'AVATAR'].includes(source.category)
         )
           throw new Error('YouTube source video is unavailable');
-        sourceStorageKey = requireStoredMediaKey(source);
+        requireStoredMediaKey(source);
+        const sources = await this.authorizedMediaUrls.issueServerPublish(
+          organizationId,
+          [videoId],
+        );
+        const authorizedUrl = sources.get(videoId);
+        if (!authorizedUrl)
+          throw new Error('YouTube source video is unavailable');
+        sourceUrl = authorizedUrl;
       }
-      const downloadJob = await this.fileQueueService.processFile({
-        ingredientId: videoId,
-        organizationId: organizationId || 'system',
-        params: {
-          type: 'videos',
-          ...(sourceStorageKey
-            ? { sourceStorageKey }
-            : {
-                url: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
-              }),
-        },
-        type: 'download-file',
-        userId: 'system',
-      });
-
-      const result = await this.fileQueueService.waitForJob(
-        downloadJob.jobId,
-        30_000,
-      );
-
-      const filePath = this.resolveFilePath(videoId, result?.outputPath);
 
       const tagLabels = await this.tagResolutionService.resolveTagLabels(
         post.tags || [],
@@ -168,10 +142,18 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
 
       const playlistId = readChannelSettingString(settings, 'playlistId');
 
+      const mediaResponse = await firstValueFrom(
+        this.httpService.get<Readable>(sourceUrl, {
+          responseType: 'stream',
+          timeout: 30_000,
+        }),
+      );
+      mediaStream = mediaResponse.data;
+
       const insertParams: youtube_v3.Params$Resource$Videos$Insert = {
         auth: auth as unknown as youtube_v3.Params$Resource$Videos$Insert['auth'],
         media: {
-          body: fs.createReadStream(filePath),
+          body: mediaStream,
         },
         part: ['snippet', 'status'],
         requestBody: {
@@ -197,12 +179,14 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
 
       this.loggerService.log(`${url} completed`, { youtubeVideoId });
 
-      fs.unlinkSync(filePath);
-
       return youtubeVideoId;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(`${url} failed`, {
+        error: getErrorMessage(error),
+      });
       throw error;
+    } finally {
+      mediaStream?.destroy();
     }
   }
 

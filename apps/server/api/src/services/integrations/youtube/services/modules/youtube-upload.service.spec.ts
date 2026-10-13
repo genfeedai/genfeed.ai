@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import { Readable } from 'node:stream';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
@@ -7,7 +7,9 @@ import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-re
 import { PostStatus, PostVisibility } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { of, throwError } from 'rxjs';
 
 // Mock googleapis
 const mockVideosInsert = vi.fn();
@@ -22,16 +24,6 @@ vi.mock('googleapis', () => ({
   },
 }));
 
-// Mock node:fs
-vi.mock('node:fs', () => ({
-  createReadStream: vi.fn().mockReturnValue('mock-read-stream'),
-  default: {
-    createReadStream: vi.fn().mockReturnValue('mock-read-stream'),
-    unlinkSync: vi.fn(),
-  },
-  unlinkSync: vi.fn(),
-}));
-
 // Mock htmlToText
 vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((html: string) => html || ''),
@@ -39,6 +31,8 @@ vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
 
 describe('YoutubeUploadService', () => {
   let service: YoutubeUploadService;
+  let mediaStream: Readable;
+  let httpService: { get: ReturnType<typeof vi.fn> };
   let fileQueueService: {
     processFile: ReturnType<typeof vi.fn>;
     waitForJob: ReturnType<typeof vi.fn>;
@@ -76,6 +70,8 @@ describe('YoutubeUploadService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mediaStream = Readable.from([Buffer.from('original video')]);
+    httpService = { get: vi.fn().mockReturnValue(of({ data: mediaStream })) };
 
     fileQueueService = {
       processFile: vi.fn().mockResolvedValue({ jobId: 'job-123' }),
@@ -103,6 +99,7 @@ describe('YoutubeUploadService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         YoutubeUploadService,
+        { provide: HttpService, useValue: httpService },
         { provide: FileQueueService, useValue: fileQueueService },
         { provide: TagResolutionService, useValue: tagResolutionService },
         { provide: YoutubeAuthService, useValue: authService },
@@ -120,6 +117,15 @@ describe('YoutubeUploadService', () => {
     service = module.get<YoutubeUploadService>(YoutubeUploadService);
   });
 
+  it('streams the original video without reading another container’s file path', async () => {
+    await service.uploadVideo(orgId, brandId, videoId, createPost());
+    expect(mockVideosInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ media: { body: mediaStream } }),
+      {},
+    );
+    expect(fileQueueService.processFile).not.toHaveBeenCalled();
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -135,8 +141,10 @@ describe('YoutubeUploadService', () => {
       brandId,
       undefined,
     );
-    expect(fileQueueService.processFile).toHaveBeenCalled();
-    expect(fileQueueService.waitForJob).toHaveBeenCalledWith('job-123', 30_000);
+    expect(httpService.get).toHaveBeenCalledWith(
+      `https://api.test.com/ingredients/videos/${videoId}`,
+      { responseType: 'stream', timeout: 30_000 },
+    );
     expect(mockVideosInsert.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         auth: mockAuth,
@@ -238,12 +246,12 @@ describe('YoutubeUploadService', () => {
     ).rejects.toThrow('Failed to upload video');
   });
 
-  it('should delete the local file after successful upload', async () => {
+  it('closes the source stream after successful upload', async () => {
     const post = createPost();
 
     await service.uploadVideo(orgId, brandId, videoId, post);
 
-    expect(fs.unlinkSync).toHaveBeenCalledWith('/tmp/test-video.mp4');
+    expect(mediaStream.destroyed).toBe(true);
   });
 
   it('should use default title when post.label is empty', async () => {
@@ -263,6 +271,7 @@ describe('YoutubeUploadService', () => {
       service.uploadVideo(orgId, brandId, videoId, post),
     ).rejects.toThrow('Upload failed');
     expect(loggerService.error).toHaveBeenCalled();
+    expect(mediaStream.destroyed).toBe(true);
   });
 
   it('should handle empty tags array', async () => {
@@ -273,14 +282,14 @@ describe('YoutubeUploadService', () => {
     expect(tagResolutionService.resolveTagLabels).toHaveBeenCalledWith([]);
   });
 
-  it('should use fallback file path when waitForJob returns no outputPath', async () => {
-    fileQueueService.waitForJob.mockResolvedValueOnce({});
-    const post = createPost();
-
-    await service.uploadVideo(orgId, brandId, videoId, post);
-
-    // Should use fallback path constructed from videoId
-    expect(fs.createReadStream).toHaveBeenCalled();
+  it('does not publish when the source download fails', async () => {
+    httpService.get.mockReturnValueOnce(
+      throwError(() => new Error('Source unavailable')),
+    );
+    await expect(
+      service.uploadVideo(orgId, brandId, videoId, createPost()),
+    ).rejects.toThrow('Source unavailable');
+    expect(mockVideosInsert).not.toHaveBeenCalled();
   });
 
   describe('channel target settings', () => {
@@ -398,7 +407,7 @@ describe('YoutubeUploadService', () => {
     });
   });
 
-  it('queues the scoped canonical video key without storing a signed URL', async () => {
+  it('streams the authorized original without persisting a signed URL in a job', async () => {
     const key = 'ingredients/videos/random%2Fsource?.mp4';
     const readSources = vi
       .fn()
@@ -406,20 +415,24 @@ describe('YoutubeUploadService', () => {
     Object.defineProperty(service, 'configService', {
       value: { isAuthorizedMediaDeliveryEnabled: true },
     });
+    const sourceUrl = 'https://api.test.com/media/original?grant=opaque';
+    const issueServerPublish = vi
+      .fn()
+      .mockResolvedValue(new Map([[videoId, sourceUrl]]));
     Object.defineProperty(service, 'authorizedMediaUrls', {
-      value: { readSources },
+      value: { readSources, issueServerPublish },
     });
     await service.uploadVideo(orgId, brandId, videoId, createPost());
     expect(readSources).toHaveBeenCalledWith(orgId, [videoId]);
-    expect(fileQueueService.processFile).toHaveBeenCalledWith(
-      expect.objectContaining({
-        organizationId: orgId,
-        params: { type: 'videos', sourceStorageKey: key },
-      }),
-    );
+    expect(issueServerPublish).toHaveBeenCalledWith(orgId, [videoId]);
+    expect(httpService.get).toHaveBeenCalledWith(sourceUrl, {
+      responseType: 'stream',
+      timeout: 30_000,
+    });
+    expect(fileQueueService.processFile).not.toHaveBeenCalled();
   });
 
-  it('fails before queueing or publishing a missing enabled source', async () => {
+  it('fails before downloading or publishing a missing enabled source', async () => {
     Object.defineProperty(service, 'configService', {
       value: { isAuthorizedMediaDeliveryEnabled: true },
     });
@@ -430,6 +443,7 @@ describe('YoutubeUploadService', () => {
       service.uploadVideo(orgId, brandId, videoId, createPost()),
     ).rejects.toThrow();
     expect(fileQueueService.processFile).not.toHaveBeenCalled();
+    expect(httpService.get).not.toHaveBeenCalled();
     expect(mockVideosInsert).not.toHaveBeenCalled();
   });
 });
