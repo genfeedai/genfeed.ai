@@ -80,8 +80,11 @@ describe('Table', () => {
     const action = screen.getByTestId('action-button');
     expect(action).toHaveClass('size-11', 'lg:size-8', '[&_svg]:size-3.5');
     expect(action.closest('td')?.firstElementChild).toHaveClass(
-      'group-focus-within:opacity-100',
-      'group-focus-within:translate-x-0',
+      'opacity-100',
+      'pointer-events-auto',
+      '[@media(hover:hover)]:lg:opacity-0',
+      '[@media(hover:hover)]:lg:group-focus-within:opacity-100',
+      '[@media(hover:hover)]:lg:group-focus-within:translate-x-0',
       'transition-[opacity,transform]',
     );
   });
