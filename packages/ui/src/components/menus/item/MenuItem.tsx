@@ -6,6 +6,7 @@ import type { MenuItemProps } from '@genfeedai/props/navigation/menu.props';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import Badge from '@ui/display/badge/Badge';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
@@ -56,6 +57,9 @@ export default function MenuItem({
     return null;
   })();
 
+  // The whole row drives the icon, so pointing anywhere on it animates it.
+  const { hoverProps, icon: hoverIcon } = useHoverAnimatedIcon(renderedIcon);
+
   const iconWrapperClass = cn(
     'relative flex items-center justify-center transition-[color,background-color,border-color] duration-200',
     isIconVariant
@@ -78,7 +82,7 @@ export default function MenuItem({
   );
 
   const iconNode = renderedIcon ? (
-    <span className={iconWrapperClass}>{renderedIcon}</span>
+    <span className={iconWrapperClass}>{hoverIcon}</span>
   ) : null;
 
   const baseClasses = isIconVariant
@@ -206,8 +210,16 @@ export default function MenuItem({
         href={href}
         onClick={onClick}
         prefetch={false}
-        onFocus={prefetchHref}
-        onMouseEnter={prefetchHref}
+        onBlur={hoverProps.onBlur}
+        onFocus={(event) => {
+          prefetchHref();
+          hoverProps.onFocus(event);
+        }}
+        onMouseEnter={(event) => {
+          prefetchHref();
+          hoverProps.onMouseEnter(event);
+        }}
+        onMouseLeave={hoverProps.onMouseLeave}
         className={contentClasses}
         aria-label={accessibleLabel}
       >
@@ -218,6 +230,7 @@ export default function MenuItem({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         onClick={onClick}
+        {...hoverProps}
         className={cn(contentClasses, 'cursor-pointer')}
         ariaLabel={accessibleLabel}
       >

@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Inbox, LayoutDashboard } from 'lucide-react';
+import { Gauge, Mail } from 'lucide-react';
 
 /**
  * Messages module nav (#5502): Overview and a conversation-first Inbox.
@@ -22,8 +22,8 @@ export const MESSAGES_MENU_ITEMS: MenuItemConfig[] = [
     isPrimary: true,
     label: 'Overview',
     matchPaths: [APP_ROUTES.MESSAGES.OVERVIEW],
-    outline: LayoutDashboard,
-    solid: LayoutDashboard,
+    outline: Gauge,
+    solid: Gauge,
   },
   {
     group: '',
@@ -32,8 +32,8 @@ export const MESSAGES_MENU_ITEMS: MenuItemConfig[] = [
     isPrimary: true,
     label: 'Inbox',
     matchPaths: [APP_ROUTES.MESSAGES.ROOT],
-    outline: Inbox,
-    solid: Inbox,
+    outline: Mail,
+    solid: Mail,
   },
 ];
 

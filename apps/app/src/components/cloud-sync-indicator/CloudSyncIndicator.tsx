@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { Cloud, CloudOff } from 'lucide-react';
+import { CloudOff, CloudSync } from 'lucide-react';
 import { useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { useCloudSession } from '@/hooks/useCloudSession';
@@ -58,12 +58,14 @@ export default function CloudSyncIndicator() {
           withWrapper={false}
           className="relative inline-flex size-8 items-center justify-center rounded-md bg-transparent transition-colors hover:bg-hover cursor-pointer"
           ariaLabel={isConnected ? 'Cloud connected' : 'Cloud disconnected'}
+          icon={
+            isConnected ? (
+              <CloudSync className="size-4 text-foreground/56" />
+            ) : (
+              <CloudOff className="size-4 text-foreground/56" />
+            )
+          }
         >
-          {isConnected ? (
-            <Cloud className="size-4 text-foreground/56" />
-          ) : (
-            <CloudOff className="size-4 text-foreground/56" />
-          )}
           <span
             className={cn(
               'absolute top-1 right-1 size-2 rounded-full border border-background',

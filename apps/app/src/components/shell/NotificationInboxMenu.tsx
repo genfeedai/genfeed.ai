@@ -76,8 +76,8 @@ export default function NotificationInboxMenu() {
               ? translate('open')
               : translate('openCount', { count: unreadCount })
           }
+          icon={<Bell aria-hidden="true" className="size-4" />}
         >
-          <Bell aria-hidden="true" className="size-4" />
           {unreadCount ? (
             <span
               aria-hidden="true"

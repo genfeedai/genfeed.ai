@@ -652,14 +652,14 @@ describe('AppRail', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Analytics' }));
     expect(onNavigate).toHaveBeenCalledTimes(2);
   });
-  it('renders Library with the images icon', () => {
+  it('renders Library with the library icon', () => {
     render(<AppRail orgSlug="acme" />);
 
     const libraryLink = screen.getByRole('link', { name: 'Library' });
     const icon = libraryLink.querySelector('svg');
 
     expect(icon).not.toBeNull();
-    expect(icon?.classList.toString()).toMatch(/lucide-images/);
+    expect(icon?.classList.toString()).toMatch(/lucide-library-big/);
     expect(icon?.classList.toString()).not.toMatch(/lucide-briefcase/);
   });
 

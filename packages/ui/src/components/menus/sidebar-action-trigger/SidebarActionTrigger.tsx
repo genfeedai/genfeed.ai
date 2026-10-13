@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Kbd } from '@genfeedai/ui';
+import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -25,11 +26,14 @@ export default function SidebarActionTrigger({
   className,
   testId,
 }: SidebarActionTriggerProps): ReactElement {
+  const { hoverProps, icon: hoverIcon } = useHoverAnimatedIcon(icon);
+
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}
+      {...hoverProps}
       ariaLabel={ariaLabel ?? label}
       data-testid={testId}
       className={cn(
@@ -40,7 +44,7 @@ export default function SidebarActionTrigger({
       )}
     >
       <span className="flex size-4 shrink-0 items-center justify-center text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78">
-        {icon}
+        {hoverIcon}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200">
         {label}

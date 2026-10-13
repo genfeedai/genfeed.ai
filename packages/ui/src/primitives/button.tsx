@@ -4,10 +4,12 @@ import { Slot } from '@radix-ui/react-slot';
 import BrandMark from '@ui/primitives/brand-mark';
 import type {
   ButtonHTMLAttributes,
+  FocusEvent,
   MouseEvent,
   ReactElement,
   ReactNode,
 } from 'react';
+import { useHoverAnimatedIcon } from './animated-icons/use-hover-animated-icon';
 import {
   type ButtonStyleProps,
   buttonVariants,
@@ -82,6 +84,35 @@ function Button({
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : 'button';
+  // An icon button animates its icon when the whole button is pointed at.
+  const { hoverProps, icon: hoverIcon } = useHoverAnimatedIcon(icon, {
+    defaultSizeClassName: 'size-4',
+  });
+  const {
+    onBlur: ownOnBlur,
+    onFocus: ownOnFocus,
+    onMouseEnter: ownOnMouseEnter,
+    onMouseLeave: ownOnMouseLeave,
+    ...restProps
+  } = props;
+  const interactionProps = {
+    onBlur: (event: FocusEvent<HTMLButtonElement>) => {
+      hoverProps.onBlur(event);
+      ownOnBlur?.(event);
+    },
+    onFocus: (event: FocusEvent<HTMLButtonElement>) => {
+      hoverProps.onFocus(event);
+      ownOnFocus?.(event);
+    },
+    onMouseEnter: (event: MouseEvent<HTMLButtonElement>) => {
+      hoverProps.onMouseEnter(event);
+      ownOnMouseEnter?.(event);
+    },
+    onMouseLeave: (event: MouseEvent<HTMLButtonElement>) => {
+      hoverProps.onMouseLeave(event);
+      ownOnMouseLeave?.(event);
+    },
+  };
   const isButtonDisabled = disabled || isDisabled || isLoading;
   const resolvedVariant = resolveButtonVariant(variant);
   // Product buttons use title case (first letter of each word). PUBLIC
@@ -98,7 +129,7 @@ function Button({
     <>
       {/* The spinner is decorative: its "Loading" label must not join the
           button's accessible name while an action is pending. */}
-      {isLoading ? <Spinner aria-hidden="true" /> : icon}
+      {isLoading ? <Spinner aria-hidden="true" /> : hoverIcon}
       {isLoading && !icon ? null : (children ?? label)}
     </>
   );
@@ -117,7 +148,8 @@ function Button({
         onMouseDown={onMouseDown}
         ref={ref}
         type={type}
-        {...props}
+        {...interactionProps}
+        {...restProps}
       >
         {content}
       </Comp>
@@ -136,7 +168,8 @@ function Button({
         onMouseDown={onMouseDown}
         ref={ref}
         type={type}
-        {...props}
+        {...interactionProps}
+        {...restProps}
       >
         {content}
       </Comp>

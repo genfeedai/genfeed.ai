@@ -1,5 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { LayoutDashboard } from 'lucide-react';
+import { Gauge } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 import { ANALYTICS_MENU_ITEMS } from './analytics-menu-items.config';
 import { AUTOMATION_MENU_ITEMS } from './automation-menu-items.config';
@@ -22,8 +22,8 @@ describe('PUBLISHING_MENU_ITEMS', () => {
       expect(items.find((item) => item.href === href)).toEqual(
         expect.objectContaining({
           label: 'Overview',
-          outline: LayoutDashboard,
-          solid: LayoutDashboard,
+          outline: Gauge,
+          solid: Gauge,
         }),
       );
     },

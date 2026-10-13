@@ -1,3 +1,4 @@
+import { findAnimatedIcon } from '@ui/primitives/animated-icons/animated-icon.registry';
 import { describe, expect, it } from 'vitest';
 import {
   ADMIN_RAIL_APP,
@@ -10,6 +11,15 @@ import {
 } from './app-rail.registry';
 
 describe('app rail registry', () => {
+  it('gives every rail icon an animated twin, so every one reacts to hover', () => {
+    for (const app of [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP]) {
+      expect(
+        findAnimatedIcon(app.icon),
+        `${app.id} uses an icon with no animated twin`,
+      ).toBeDefined();
+    }
+  });
+
   it('keeps the core loop and the launcher apps in the contracted order (#5502)', () => {
     expect(APP_RAIL_REGISTRY.map((app) => app.id)).toEqual([
       'workspace',

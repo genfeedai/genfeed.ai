@@ -184,6 +184,17 @@
       }
     },
     {
+      "includes": ["packages/ui/src/primitives/animated-icons/icons/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noStaticElementInteractions": "off",
+            "noSvgWithoutTitle": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "apps/app/src/components/**",
         "apps/app/src/hooks/**",

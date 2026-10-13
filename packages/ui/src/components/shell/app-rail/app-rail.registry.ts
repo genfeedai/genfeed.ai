@@ -10,21 +10,21 @@ import type {
   AppRailScope,
   AppRailScopedRouteOptions,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
+import { GalleryHorizontalStart } from '@ui/primitives/animated-icons/custom-lucide';
 import {
-  Calendar,
-  ChartNoAxesColumn,
+  BotMessageSquare,
+  CalendarDays,
+  ChartPie,
   Clapperboard,
-  Film,
-  Home,
-  Images,
-  Layers,
+  House,
+  LibraryBig,
   MessageSquare,
+  Radar,
+  Rocket,
   Scissors,
   ShieldCheck,
   Sparkles,
-  Terminal,
-  TrendingUp,
-  Wand2,
+  SquarePlay,
   Workflow,
 } from 'lucide-react';
 
@@ -48,7 +48,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: ['/workspace', '/overview'],
     description: 'workspace.description',
-    icon: Home,
+    icon: House,
     group: 'daily',
     id: 'workspace',
     label: 'workspace.label',
@@ -57,7 +57,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: ['/agent'],
     description: 'agent.description',
-    icon: Terminal,
+    icon: BotMessageSquare,
     group: 'daily',
     id: 'agent',
     label: 'agent.label',
@@ -68,7 +68,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: ['/library'],
     description: 'library.description',
-    icon: Images,
+    icon: LibraryBig,
     group: 'daily',
     id: 'library',
     label: 'library.label',
@@ -78,7 +78,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: ['/publishing'],
     description: 'publishing.description',
-    icon: Calendar,
+    icon: CalendarDays,
     group: 'daily',
     id: 'publishing',
     organizationModule: 'publishing',
@@ -89,7 +89,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: ['/analytics'],
     description: 'analytics.description',
-    icon: ChartNoAxesColumn,
+    icon: ChartPie,
     group: 'daily',
     id: 'analytics',
     organizationModule: 'analytics',
@@ -102,7 +102,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: [APP_ROUTES.STUDIO.PLAYGROUND],
     description: 'playground.description',
-    icon: Wand2,
+    icon: Sparkles,
     group: 'app',
     id: 'playground',
     isBrandAware: true,
@@ -127,7 +127,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: [APP_ROUTES.STUDIO.TURBO],
     description: 'turbo.description',
-    icon: Layers,
+    icon: Rocket,
     group: 'app',
     id: 'turbo',
     isBrandAware: true,
@@ -140,7 +140,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: [APP_ROUTES.STUDIO.MOTION],
     description: 'motion.description',
-    icon: Sparkles,
+    icon: SquarePlay,
     group: 'app',
     id: 'motion',
     isBrandAware: true,
@@ -153,7 +153,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: [APP_ROUTES.STUDIO.CLIPS],
     description: 'clips.description',
-    icon: Scissors,
+    icon: GalleryHorizontalStart,
     group: 'app',
     id: 'clips',
     isBrandAware: true,
@@ -166,7 +166,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: [APP_ROUTES.STUDIO.EDITOR],
     description: 'editor.description',
-    icon: Film,
+    icon: Scissors,
     group: 'app',
     id: 'editor',
     isBrandAware: true,
@@ -201,7 +201,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: ['/discovery'],
     description: 'discovery.description',
-    icon: TrendingUp,
+    icon: Radar,
     group: 'app',
     id: 'discovery',
     organizationModule: 'discovery',
