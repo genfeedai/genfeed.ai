@@ -13,9 +13,11 @@ import {
   APP_ROUTES,
   PUBLISHING_POSTS_QUERY_KEYS,
 } from '@genfeedai/contracts/constants';
+import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import {
   Calendar,
   ChartColumn,
+  CircleHelp,
   ClipboardCheck,
   FileText,
   Film,
@@ -50,6 +52,20 @@ function createScheduleTodaysTweetsAction(iconClassName: string) {
     label: SCHEDULE_TODAYS_TWEETS_LABEL,
     prompt: SCHEDULE_TODAYS_TWEETS_PROMPT,
   } satisfies SuggestedAction;
+}
+
+// "About this page" lives in the agent, not the topbar: the route's help copy
+// grounds the prompt, and the agent (which also sees the route and visible
+// page context) explains the page and proposes next steps instead of
+// reciting a static blurb.
+function createPageHelpAction(help: PageHelpContent): SuggestedAction {
+  return {
+    icon: createElement(CircleHelp, { className: 'size-5 text-foreground/50' }),
+    id: 'page-help',
+    isPinned: true,
+    label: 'About this page',
+    prompt: `Explain this page to me: "${help.title}". ${help.body} Tell me what I can do here and suggest the single best next step for my brand, then offer to do it.`,
+  };
 }
 
 const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
@@ -646,9 +662,13 @@ function normalizeAgentContextPathname(rawPathname: string): string {
 /**
  * Reads the current pathname and syncs contextual suggested actions
  * and placeholder text into the agent chat store.
- * Optionally filters actions by user role.
+ * Optionally filters actions by user role. When the host resolves route help
+ * copy, an "About this page" action leads the suggestions.
  */
-export function useAgentPageContext(role?: MemberRole): PageContextConfig {
+export function useAgentPageContext(
+  role?: MemberRole,
+  pageHelp?: PageHelpContent | null,
+): PageContextConfig {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const postsView = searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW);
@@ -685,14 +705,16 @@ export function useAgentPageContext(role?: MemberRole): PageContextConfig {
     }));
     const routeActions = filterActionsByRole(base.suggestedActions, role);
     const pinned = routeActions.filter((action) => action.isPinned);
+    const routeSuggestions = (
+      personalized.length > 0 ? [...pinned, ...personalized] : routeActions
+    ).slice(0, 3);
     return {
       ...base,
-      suggestedActions: (personalized.length > 0
-        ? [...pinned, ...personalized]
-        : routeActions
-      ).slice(0, 3),
+      suggestedActions: pageHelp
+        ? [createPageHelpAction(pageHelp), ...routeSuggestions]
+        : routeSuggestions,
     };
-  }, [contextPathname, role, selectedBrand?.agentConfig]);
+  }, [contextPathname, pageHelp, role, selectedBrand?.agentConfig]);
 
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;

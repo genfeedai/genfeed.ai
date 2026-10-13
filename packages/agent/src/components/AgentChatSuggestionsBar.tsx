@@ -1,4 +1,5 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import { type ReactElement, useMemo } from 'react';
 
@@ -51,13 +52,20 @@ export function AgentChatSuggestionsBar({
         onSend(action.prompt);
       }}
       isDisabled={isReadOnly}
-      maxSuggestions={3}
+      maxSuggestions={4}
       variant={hasDescriptions && layout !== 'dock' ? 'cards' : 'chips'}
       className={
         layout === 'dock'
           ? 'justify-start'
           : layout === 'equal' && !hasDescriptions
-            ? 'grid grid-cols-1 sm:grid-cols-3 [&>button]:w-full [&>button]:max-w-none'
+            ? cn(
+                'grid grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
+                // A fourth tile (the leading "About this page" action) gets
+                // its own column instead of orphaning onto a second row.
+                normalized.length > 3
+                  ? 'sm:grid-cols-2 lg:grid-cols-4'
+                  : 'sm:grid-cols-3',
+              )
             : undefined
       }
     />

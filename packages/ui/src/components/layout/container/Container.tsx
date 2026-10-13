@@ -1,13 +1,11 @@
 'use client';
 
-import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import { deferredLogger } from '@genfeedai/services/core/deferred-logger';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
-import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import type { ReactNode } from 'react';
@@ -27,7 +25,7 @@ const ContainerInsetContext = createContext(false);
  *
  * **Module-local chrome** (sibling surfaces + primary tools) always renders
  * through {@link SectionTopbar}: full-bleed `border-b`, one fixed right-cluster
- * order — Help, `refresh`, tabs, `iconActions` (ghost), `right` (controls then
+ * order — `refresh`, tabs, `iconActions` (ghost), `right` (controls then
  * the primary action last). Put Refresh in `refresh`, never inside `right`.
  * One app-wide pattern, not a Discovery-only flourish. Sources:
  * - explicit `headerTabs` (preferred for local nav)
@@ -58,7 +56,6 @@ export default function Container({
   iconActionsPlacement,
   isTopbarPinned = false,
   topbarFooter,
-  help,
   children,
   bodyClassName,
   fullWidth = true,
@@ -70,19 +67,12 @@ export default function Container({
   const hasLeft = Boolean(left);
   const hasLeading = Boolean(leading);
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
-  const routeHelp = usePageHelp();
-  // Nested containers never repeat the page-level help trigger.
-  const resolvedHelp = isNested ? null : help === undefined ? routeHelp : help;
-  const helpNode = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
 
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
   const hasHeaderRight =
-    Boolean(right) ||
-    Boolean(refresh) ||
-    Boolean(iconActions) ||
-    Boolean(helpNode);
+    Boolean(right) || Boolean(refresh) || Boolean(iconActions);
   const hasBodyTabs = Boolean(tabs && tabs.length > 0);
   // Prefer explicit headerTabs. Body tabs + primary actions used to render as
   // a right-only bar with an orphan strip underneath — always promote.
@@ -225,7 +215,6 @@ export default function Container({
           </div>
         ) : undefined
       }
-      help={resolvedHelp}
       refresh={refresh}
       iconActions={iconActions}
       iconActionsPlacement={iconActionsPlacement}

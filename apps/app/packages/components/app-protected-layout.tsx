@@ -63,7 +63,6 @@ import AssetGateGuard from './asset-gate-guard';
 import GlobalTaskComposer from './GlobalTaskComposer';
 import ImpersonationBanner from './impersonation-banner';
 import { useSettingsCommandsRegistration } from './settings-search/use-settings-commands-registration';
-import { usePageHelp } from './use-page-help';
 import {
   isProtectedEditorCanvasRoute,
   isProtectedWorkspaceRoute,
@@ -453,7 +452,6 @@ function AppLayoutWithDynamicMenu({
   // Registry seeds parent as :brandSlug / :orgSlug; prefer live display names.
   // Agent conversation: Agent / <thread title, 25 chars>.
   const rawPathname = usePathname();
-  const pageHelp = usePageHelp(rawPathname);
   const layoutBreadcrumb = useMemo(() => {
     const breadcrumb = workspaceShellRoute?.breadcrumb;
     if (!breadcrumb) {
@@ -544,7 +542,6 @@ function AppLayoutWithDynamicMenu({
           bannerComponent={shellBanner}
           breadcrumb={layoutBreadcrumb}
           brandSlug={brandSlug}
-          pageHelp={pageHelp}
           currentApp={currentApp}
           menuComponent={menuComponent}
           railComponent={railComponent}
