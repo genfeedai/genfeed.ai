@@ -22,6 +22,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import { patchBrandWithLearningFenced } from '@api/collections/brands/services/brand-learning-mutation.util';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
+import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import {
   type BrandRelocationActingUser,
   type BrandRelocationPreview,
@@ -127,6 +128,7 @@ export class BrandsService extends BaseService<
     private readonly brandLifecycleService: BrandLifecycleService,
     private readonly heygenIdentityService: HeyGenIdentityService,
     public readonly brandAccessService: BrandAccessService,
+    private readonly brandOsRevisionsService: BrandOsRevisionsService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -234,6 +236,8 @@ export class BrandsService extends BaseService<
           );
     }
 
+    await this.seedDefaultStyleKit(brand, resolvedOrganizationId);
+
     // Invalidate brand list cache so the new brand is immediately visible
     if (resolvedOrganizationId) {
       await this.cacheInvalidationService.invalidate(
@@ -249,6 +253,30 @@ export class BrandsService extends BaseService<
     await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
 
     return brand;
+  }
+
+  /**
+   * Every brand starts with the Genfeed default style kit as a DRAFT so branded
+   * generation always has an identity. Best effort: a failure is logged and the
+   * kit is created on first use instead, never blocking brand creation.
+   */
+  private async seedDefaultStyleKit(
+    brand: BrandDocument,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      await this.brandOsRevisionsService.ensureBaselineDraft(
+        organizationId,
+        brand.id,
+      );
+    } catch (error: unknown) {
+      this.logger.warn('Default style kit seed failed; deferred to first use', {
+        brandId: brand.id,
+        error,
+        operation: 'create',
+        service: this.constructorName,
+      });
+    }
   }
 
   async findForOrganization(

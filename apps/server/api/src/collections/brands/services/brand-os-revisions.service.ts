@@ -10,8 +10,12 @@ import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
+  buildGenfeedDefaultKitDraft,
+  isGenfeedDefaultKitDraft,
+  stripGenfeedDefaultKit,
 } from '@genfeedai/helpers';
 import {
+  type Brand,
   type BrandOsRevision,
   BrandOsRevisionStatus,
   Prisma,
@@ -126,19 +130,7 @@ export class BrandOsRevisionsService {
       if (existing && !sourcePreviewTokenHash) return this.toRevision(existing);
       const draft = this.normalize(
         content ??
-          buildBrandKitDraftFromBrand({
-            ...brand,
-            ...(await this.assets.resolveBrandKitAssets(
-              brandId,
-              organizationId,
-            )),
-            agentConfig: this.legacyAgentConfig(brand.agentConfig),
-            referenceImages: Array.isArray(brand.referenceImages)
-              ? brand.referenceImages.filter(
-                  (value): value is string => typeof value === 'string',
-                )
-              : [],
-          }),
+          (await this.buildCurrentBrandContent(brand, organizationId, brandId)),
         organizationId,
         brandId,
       );
@@ -156,6 +148,64 @@ export class BrandOsRevisionsService {
     });
   }
 
+  /**
+   * Returns the revision a branded generation should resolve for a brand,
+   * creating the starting DRAFT when none is live: the Genfeed default style kit
+   * for a brand with no revisions, or a draft of the brand's own fields once the
+   * default was superseded. Never touches existing live revisions.
+   */
+  async ensureBaselineDraft(
+    organizationId: string,
+    brandId: string,
+  ): Promise<IBrandOsRevision> {
+    return this.prisma.$transaction(async (tx) => {
+      const brand = await this.lockBrand(tx, organizationId, brandId);
+      const rows = await tx.brandOsRevision.findMany({
+        orderBy: { version: 'desc' },
+        where: { brandId, isDeleted: false, organizationId },
+      });
+      const live = rows.filter(
+        (row) => row.status !== BrandOsRevisionStatus.SUPERSEDED,
+      );
+      const approved = live.find(
+        (row) => row.status === BrandOsRevisionStatus.APPROVED,
+      );
+      const existing = approved ?? live[0];
+      if (existing) return this.toRevision(existing);
+      const content =
+        rows.length === 0
+          ? buildGenfeedDefaultKitDraft({
+              description: brand.description,
+              id: brandId,
+              label: brand.label,
+              organization: organizationId,
+            })
+          : await this.buildCurrentBrandContent(brand, organizationId, brandId);
+      return this.createDraft(
+        tx,
+        organizationId,
+        brandId,
+        this.normalize(content, organizationId, brandId),
+      );
+    });
+  }
+
+  /**
+   * Retires the Genfeed default style kit once the owner brings their own input.
+   * Earlier receipts keep the revision they were bound to.
+   */
+  async supersedeDefaultKit(
+    organizationId: string,
+    brandId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const write = async (tx: Prisma.TransactionClient): Promise<void> => {
+      await this.lockBrand(tx, organizationId, brandId);
+      await this.supersedeDefaultKitRows(tx, organizationId, brandId);
+    };
+    await (transaction ? write(transaction) : this.prisma.$transaction(write));
+  }
+
   async create(
     organizationId: string,
     brandId: string,
@@ -167,6 +217,8 @@ export class BrandOsRevisionsService {
       tx: Prisma.TransactionClient,
     ): Promise<IBrandOsRevision> => {
       await this.lockBrand(tx, organizationId, brandId);
+      if (!isGenfeedDefaultKitDraft(normalized))
+        await this.supersedeDefaultKitRows(tx, organizationId, brandId);
       return this.createDraft(tx, organizationId, brandId, normalized);
     };
     return transaction ? write(transaction) : this.prisma.$transaction(write);
@@ -212,12 +264,17 @@ export class BrandOsRevisionsService {
           delete field.confidence;
         }
       }
+      const persisted =
+        isGenfeedDefaultKitDraft(previous) &&
+        isGenfeedDefaultKitDraft(normalized)
+          ? stripGenfeedDefaultKit(normalized)
+          : normalized;
       if (row.status === BrandOsRevisionStatus.APPROVED)
-        return this.createDraft(tx, organizationId, brandId, normalized);
+        return this.createDraft(tx, organizationId, brandId, persisted);
       return this.toRevision(
         await tx.brandOsRevision.update({
           data: {
-            content: toPrismaJson(normalized),
+            content: toPrismaJson(persisted),
             generationRulesReviewHash: null,
             updatedAt: new Date(
               Math.max(Date.now(), row.updatedAt.getTime() + 1),
@@ -253,6 +310,11 @@ export class BrandOsRevisionsService {
         throw new ConflictException(
           'This revision changed. Reload it before approving.',
         );
+      if (isGenfeedDefaultKitDraft(row.content as unknown as IBrandKitDraft))
+        throw new ConflictException({
+          code: 'brand_kit_default_requires_edit',
+          message: 'Edit the Genfeed default style kit before approving it.',
+        });
       const content = this.normalize(
         row.content as unknown as IBrandKitDraft,
         organizationId,
@@ -319,6 +381,55 @@ export class BrandOsRevisionsService {
           where: { brandId, id, isDeleted: false, organizationId },
         }),
       );
+    });
+  }
+
+  private async buildCurrentBrandContent(
+    brand: Brand,
+    organizationId: string,
+    brandId: string,
+  ): Promise<IBrandKitDraft> {
+    return buildBrandKitDraftFromBrand({
+      ...brand,
+      ...(await this.assets.resolveBrandKitAssets(brandId, organizationId)),
+      agentConfig: this.legacyAgentConfig(brand.agentConfig),
+      referenceImages: Array.isArray(brand.referenceImages)
+        ? brand.referenceImages.filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [],
+    });
+  }
+
+  private async supersedeDefaultKitRows(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    brandId: string,
+  ): Promise<void> {
+    const drafts = await tx.brandOsRevision.findMany({
+      select: { content: true, id: true },
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
+        status: BrandOsRevisionStatus.DRAFT,
+      },
+    });
+    const ids = drafts
+      .filter((row) =>
+        isGenfeedDefaultKitDraft(row.content as unknown as IBrandKitDraft),
+      )
+      .map((row) => row.id);
+    if (ids.length === 0) return;
+    await tx.brandOsRevision.updateMany({
+      data: { status: BrandOsRevisionStatus.SUPERSEDED },
+      where: {
+        brandId,
+        id: { in: ids },
+        isDeleted: false,
+        organizationId,
+        status: BrandOsRevisionStatus.DRAFT,
+      },
     });
   }
 
