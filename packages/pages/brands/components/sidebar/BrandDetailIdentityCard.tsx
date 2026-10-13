@@ -341,7 +341,7 @@ export default function BrandDetailIdentityCard({
             className="w-fit"
           >
             <Link href={orgHref('/settings/integrations')}>
-              Reconnect HeyGen
+              {translate('reconnectHeygen')}
             </Link>
           </Button>
         ) : null}

@@ -5709,6 +5709,7 @@
     "avatarDescription": "Used by agents and workflows when no brand override exists.",
     "noAvatars": "No avatar ingredients are available yet. Mark an image as an avatar from its ingredient page first.",
     "voiceLabel": "Default Voice",
+    "reconnectHeygen": "Reconnect HeyGen",
     "reselectVoice": "Reselect this voice to verify its connection.",
     "reselectAvatar": "Reselect this avatar to verify its connection.",
     "summary": "Current avatar: {avatar}. Current voice: {voice}. These values are used only when a brand does not define its own identity defaults.",
