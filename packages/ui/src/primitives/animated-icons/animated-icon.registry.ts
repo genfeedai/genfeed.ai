@@ -1,977 +1,863 @@
-import {
-  AArrowUp,
-  Activity,
-  Archive,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  AtSign,
-  AudioLines,
-  BadgePercent,
-  Ban,
-  Bell,
-  Binary,
-  Blocks,
-  Bold,
-  Bookmark,
-  BookmarkCheck,
-  BookText,
-  Bot,
-  BotMessageSquare,
-  Box,
-  Brain,
-  BriefcaseBusiness,
-  Building2,
-  CalendarDays,
-  Captions,
-  ChartColumnIncreasing,
-  ChartLine,
-  ChartPie,
-  ChartScatter,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  CircleCheck,
-  CircleDollarSign,
-  CircleQuestionMark,
-  Clapperboard,
-  ClipboardCheck,
-  CloudSync,
-  Cog,
-  Copy,
-  Cpu,
-  CreditCard,
-  Download,
-  Expand,
-  ExternalLink,
-  Eye,
-  FilePenLine,
-  FileStack,
-  FileText,
-  Film,
-  Flame,
-  FolderOpen,
-  Frame,
-  Gauge,
-  Gavel,
-  GraduationCap,
-  Grip,
-  HandCoins,
-  HandHeart,
-  History,
-  House,
-  IdCard,
-  Italic,
-  Key,
-  Layers,
-  LayoutGrid,
-  LibraryBig,
-  Link as LinkIcon,
-  Lock,
-  LockKeyhole,
-  Mail,
-  MailCheck,
-  Maximize2,
-  MessageSquare,
-  MessageSquareText,
-  Mic,
-  Newspaper,
-  Palette,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Pause,
-  PenTool,
-  Play,
-  PlugZap,
-  Plus,
-  Quote,
-  Radar,
-  Radio,
-  RefreshCcw,
-  RefreshCw,
-  Rocket,
-  RotateCcw,
-  Route,
-  ScanFace,
-  Scissors,
-  Search,
-  Send,
-  Server,
-  ServerCrash,
-  Settings,
-  Shapes,
-  ShieldCheck,
-  SlidersHorizontal,
-  Smile,
-  Sparkles,
-  SquareActivity,
-  SquarePen,
-  SquarePlay,
-  Telescope,
-  Terminal,
-  Thermometer,
-  TrendingUp,
-  Upload,
-  User,
-  UserCheck,
-  UserPlus,
-  UserRoundPlus,
-  Users,
-  UsersRound,
-  Wallet,
-  Waypoints,
-  Webhook,
-  Workflow,
-  Wrench,
-  X,
-  Zap,
-} from 'lucide-react';
 import { lazy } from 'react';
 import type { AnimatedIconComponent } from './animated-icon.types';
-import { GalleryHorizontalStart, PostCard } from './custom-lucide';
 
 type IconLoader = () => Promise<{ default: AnimatedIconComponent }>;
 
 /**
- * lucide-animated draws the same Lucide glyphs with Motion keyframes. Each
- * animated icon loads on first hover (see `useHoverAnimatedIcon`), so Motion
- * never reaches a page until someone points at an icon that has one.
+ * Animated twins, keyed by the Lucide icon's `displayName` (aliases such as
+ * Home/House share one). Keying by name keeps lucide-react out of this module:
+ * no icon component is pulled into a page just because it renders a Button,
+ * and tests that mock lucide-react are unaffected.
  *
- * Keys are the lucide-react components themselves, so only a glyph that is the
- * same icon in both sets swaps. Navigation and rail icons are chosen from this
- * list on purpose: pick an icon with a twin where the meaning allows it.
+ * Each twin loads on first hover (see `useHoverAnimatedIcon`). Twins come from
+ * the lucide-animated registry or are drawn on Lucide's geometry in
+ * `create-animated-icon.tsx`; navigation icons are chosen from this list.
  */
 export const ANIMATED_ICON_LOADERS: ReadonlyArray<
-  readonly [unknown, IconLoader]
+  readonly [string, IconLoader]
 > = [
   [
-    AArrowUp,
+    'AArrowUp',
     () =>
       import('./icons/a-arrow-up').then((module) => ({
         default: module.AArrowUpIcon,
       })),
   ],
   [
-    Activity,
+    'Activity',
     () =>
       import('./icons/activity').then((module) => ({
         default: module.ActivityIcon,
       })),
   ],
   [
-    Archive,
+    'Archive',
     () =>
       import('./icons/archive').then((module) => ({
         default: module.ArchiveIcon,
       })),
   ],
   [
-    ArrowLeft,
+    'ArrowLeft',
     () =>
       import('./icons/arrow-left').then((module) => ({
         default: module.ArrowLeftIcon,
       })),
   ],
   [
-    ArrowRight,
+    'ArrowRight',
     () =>
       import('./icons/arrow-right').then((module) => ({
         default: module.ArrowRightIcon,
       })),
   ],
   [
-    ArrowUp,
+    'ArrowUp',
     () =>
       import('./icons/arrow-up').then((module) => ({
         default: module.ArrowUpIcon,
       })),
   ],
   [
-    AtSign,
+    'AtSign',
     () =>
       import('./icons/at-sign').then((module) => ({
         default: module.AtSignIcon,
       })),
   ],
   [
-    AudioLines,
+    'AudioLines',
     () =>
       import('./icons/audio-lines').then((module) => ({
         default: module.AudioLinesIcon,
       })),
   ],
   [
-    BadgePercent,
+    'BadgePercent',
     () =>
       import('./icons/badge-percent').then((module) => ({
         default: module.BadgePercentIcon,
       })),
   ],
   [
-    Ban,
+    'Ban',
     () => import('./icons/ban').then((module) => ({ default: module.BanIcon })),
   ],
   [
-    Bell,
+    'Bell',
     () =>
       import('./icons/bell').then((module) => ({ default: module.BellIcon })),
   ],
   [
-    Binary,
+    'Binary',
     () =>
       import('./icons/binary').then((module) => ({
         default: module.BinaryIcon,
       })),
   ],
   [
-    Blocks,
+    'Blocks',
     () =>
       import('./icons/blocks').then((module) => ({
         default: module.BlocksIcon,
       })),
   ],
   [
-    Bold,
+    'Bold',
     () =>
       import('./icons/bold').then((module) => ({ default: module.BoldIcon })),
   ],
   [
-    BookText,
-    () =>
-      import('./icons/book-text').then((module) => ({
-        default: module.BookTextIcon,
-      })),
-  ],
-  [
-    BookmarkCheck,
-    () =>
-      import('./icons/bookmark-check').then((module) => ({
-        default: module.BookmarkCheckIcon,
-      })),
-  ],
-  [
-    Bookmark,
+    'Bookmark',
     () =>
       import('./icons/bookmark').then((module) => ({
         default: module.BookmarkIcon,
       })),
   ],
   [
-    BotMessageSquare,
+    'BookmarkCheck',
+    () =>
+      import('./icons/bookmark-check').then((module) => ({
+        default: module.BookmarkCheckIcon,
+      })),
+  ],
+  [
+    'BookText',
+    () =>
+      import('./icons/book-text').then((module) => ({
+        default: module.BookTextIcon,
+      })),
+  ],
+  [
+    'Bot',
+    () => import('./icons/bot').then((module) => ({ default: module.BotIcon })),
+  ],
+  [
+    'BotMessageSquare',
     () =>
       import('./icons/bot-message-square').then((module) => ({
         default: module.BotMessageSquareIcon,
       })),
   ],
   [
-    Bot,
-    () => import('./icons/bot').then((module) => ({ default: module.BotIcon })),
-  ],
-  [
-    Box,
+    'Box',
     () => import('./icons/box').then((module) => ({ default: module.BoxIcon })),
   ],
   [
-    Brain,
+    'Brain',
     () =>
       import('./icons/brain').then((module) => ({ default: module.BrainIcon })),
   ],
   [
-    BriefcaseBusiness,
+    'BriefcaseBusiness',
     () =>
       import('./icons/briefcase-business').then((module) => ({
         default: module.BriefcaseBusinessIcon,
       })),
   ],
   [
-    Building2,
+    'BuildingComplex',
     () =>
       import('./icons/building-2').then((module) => ({
         default: module.Building2Icon,
       })),
   ],
   [
-    CalendarDays,
+    'CalendarDays',
     () =>
       import('./icons/calendar-days').then((module) => ({
         default: module.CalendarDaysIcon,
       })),
   ],
   [
-    Captions,
+    'Captions',
     () =>
       import('./icons/captions').then((module) => ({
         default: module.CaptionsIcon,
       })),
   ],
   [
-    ChartColumnIncreasing,
+    'ChartColumnIncreasing',
     () =>
       import('./icons/chart-column-increasing').then((module) => ({
         default: module.ChartColumnIncreasingIcon,
       })),
   ],
   [
-    ChartLine,
+    'ChartLine',
     () =>
       import('./icons/chart-line').then((module) => ({
         default: module.ChartLineIcon,
       })),
   ],
   [
-    ChartPie,
+    'ChartPie',
     () =>
       import('./icons/chart-pie').then((module) => ({
         default: module.ChartPieIcon,
       })),
   ],
   [
-    ChartScatter,
+    'ChartScatter',
     () =>
       import('./icons/chart-scatter').then((module) => ({
         default: module.ChartScatterIcon,
       })),
   ],
   [
-    Check,
+    'Check',
     () =>
       import('./icons/check').then((module) => ({ default: module.CheckIcon })),
   ],
   [
-    ChevronLeft,
+    'ChevronLeft',
     () =>
       import('./icons/chevron-left').then((module) => ({
         default: module.ChevronLeftIcon,
       })),
   ],
   [
-    ChevronRight,
+    'ChevronRight',
     () =>
       import('./icons/chevron-right').then((module) => ({
         default: module.ChevronRightIcon,
       })),
   ],
   [
-    ChevronUp,
+    'ChevronUp',
     () =>
       import('./icons/chevron-up').then((module) => ({
         default: module.ChevronUpIcon,
       })),
   ],
   [
-    CircleCheck,
+    'CircleCheck',
     () =>
       import('./icons/circle-check').then((module) => ({
         default: module.CircleCheckIcon,
       })),
   ],
   [
-    CircleDollarSign,
+    'CircleDollarSign',
     () =>
       import('./icons/circle-dollar-sign').then((module) => ({
         default: module.CircleDollarSignIcon,
       })),
   ],
   [
-    CircleQuestionMark,
+    'CircleQuestionMark',
     () =>
       import('./icons/circle-help').then((module) => ({
         default: module.CircleHelpIcon,
       })),
   ],
   [
-    Clapperboard,
+    'Clapperboard',
     () =>
       import('./icons/clap').then((module) => ({ default: module.ClapIcon })),
   ],
   [
-    ClipboardCheck,
+    'ClipboardCheck',
     () =>
       import('./icons/clipboard-check').then((module) => ({
         default: module.ClipboardCheckIcon,
       })),
   ],
   [
-    CloudSync,
+    'CloudSync',
     () =>
       import('./icons/cloud-sync').then((module) => ({
         default: module.CloudSyncIcon,
       })),
   ],
   [
-    Cog,
+    'Cog',
     () => import('./icons/cog').then((module) => ({ default: module.CogIcon })),
   ],
   [
-    Copy,
+    'Copy',
     () =>
       import('./icons/copy').then((module) => ({ default: module.CopyIcon })),
   ],
   [
-    Cpu,
+    'Cpu',
     () => import('./icons/cpu').then((module) => ({ default: module.CpuIcon })),
   ],
   [
-    CreditCard,
+    'CreditCard',
     () =>
       import('./icons/credit-card').then((module) => ({
         default: module.CreditCardIcon,
       })),
   ],
   [
-    Download,
+    'Download',
     () =>
       import('./icons/download').then((module) => ({
         default: module.DownloadIcon,
       })),
   ],
   [
-    Expand,
+    'Expand',
     () =>
       import('./icons/expand').then((module) => ({
         default: module.ExpandIcon,
       })),
   ],
   [
-    ExternalLink,
+    'ExternalLink',
     () =>
       import('./icons/external-link').then((module) => ({
         default: module.ExternalLinkIcon,
       })),
   ],
   [
-    Eye,
+    'Eye',
     () => import('./icons/eye').then((module) => ({ default: module.EyeIcon })),
   ],
   [
-    FilePenLine,
+    'FaceSlightlySmiling',
+    () =>
+      import('./icons/smile').then((module) => ({ default: module.SmileIcon })),
+  ],
+  [
+    'FilePenLine',
     () =>
       import('./icons/file-pen-line').then((module) => ({
         default: module.FilePenLineIcon,
       })),
   ],
   [
-    FileStack,
+    'FileStack',
     () =>
       import('./icons/file-stack').then((module) => ({
         default: module.FileStackIcon,
       })),
   ],
   [
-    FileText,
+    'FileText',
     () =>
       import('./icons/file-text').then((module) => ({
         default: module.FileTextIcon,
       })),
   ],
   [
-    Film,
+    'Film',
     () =>
       import('./icons/film').then((module) => ({ default: module.FilmIcon })),
   ],
   [
-    Flame,
+    'Flame',
     () =>
       import('./icons/flame').then((module) => ({ default: module.FlameIcon })),
   ],
   [
-    FolderOpen,
+    'FolderOpen',
     () =>
       import('./icons/folder-open').then((module) => ({
         default: module.FolderOpenIcon,
       })),
   ],
   [
-    Frame,
+    'Frame',
     () =>
       import('./icons/frame').then((module) => ({ default: module.FrameIcon })),
   ],
   [
-    GalleryHorizontalStart,
+    'GalleryHorizontalStart',
     () =>
       import('./icons/gallery-horizontal-start').then((module) => ({
         default: module.GalleryHorizontalStartIcon,
       })),
   ],
   [
-    Gauge,
+    'Gauge',
     () =>
       import('./icons/gauge').then((module) => ({ default: module.GaugeIcon })),
   ],
   [
-    Gavel,
+    'Gavel',
     () =>
       import('./icons/gavel').then((module) => ({ default: module.GavelIcon })),
   ],
   [
-    GraduationCap,
+    'GraduationCap',
     () =>
       import('./icons/graduation-cap').then((module) => ({
         default: module.GraduationCapIcon,
       })),
   ],
   [
-    Grip,
+    'Grip',
     () =>
       import('./icons/grip').then((module) => ({ default: module.GripIcon })),
   ],
   [
-    HandCoins,
+    'HandCoins',
     () =>
       import('./icons/hand-coins').then((module) => ({
         default: module.HandCoinsIcon,
       })),
   ],
   [
-    HandHeart,
+    'HandHeart',
     () =>
       import('./icons/hand-heart').then((module) => ({
         default: module.HandHeartIcon,
       })),
   ],
   [
-    History,
-    () =>
-      import('./icons/history').then((module) => ({
-        default: module.HistoryIcon,
-      })),
-  ],
-  [
-    House,
+    'House',
     () =>
       import('./icons/house').then((module) => ({ default: module.HouseIcon })),
   ],
   [
-    IdCard,
+    'IdCard',
     () =>
       import('./icons/id-card').then((module) => ({
         default: module.IdCardIcon,
       })),
   ],
   [
-    Italic,
+    'Italic',
     () =>
       import('./icons/italic').then((module) => ({
         default: module.ItalicIcon,
       })),
   ],
   [
-    Key,
+    'Key',
     () => import('./icons/key').then((module) => ({ default: module.KeyIcon })),
   ],
   [
-    Layers,
+    'Layers',
     () =>
       import('./icons/layers').then((module) => ({
         default: module.LayersIcon,
       })),
   ],
   [
-    LayoutGrid,
+    'LayoutGrid',
     () =>
       import('./icons/layout-grid').then((module) => ({
         default: module.LayoutGridIcon,
       })),
   ],
   [
-    LibraryBig,
+    'LibraryBig',
     () =>
       import('./icons/library-big').then((module) => ({
         default: module.LibraryBigIcon,
       })),
   ],
   [
-    LinkIcon,
+    'Link',
     () =>
       import('./icons/link').then((module) => ({ default: module.LinkIcon })),
   ],
   [
-    LockKeyhole,
+    'Lock',
+    () =>
+      import('./icons/lock').then((module) => ({ default: module.LockIcon })),
+  ],
+  [
+    'LockKeyhole',
     () =>
       import('./icons/lock-keyhole').then((module) => ({
         default: module.LockKeyholeIcon,
       })),
   ],
   [
-    Lock,
+    'Mail',
     () =>
-      import('./icons/lock').then((module) => ({ default: module.LockIcon })),
+      import('./icons/mail').then((module) => ({ default: module.MailIcon })),
   ],
   [
-    MailCheck,
+    'MailCheck',
     () =>
       import('./icons/mail-check').then((module) => ({
         default: module.MailCheckIcon,
       })),
   ],
   [
-    Mail,
-    () =>
-      import('./icons/mail').then((module) => ({ default: module.MailIcon })),
-  ],
-  [
-    Maximize2,
+    'Maximize2',
     () =>
       import('./icons/maximize-2').then((module) => ({
         default: module.Maximize2Icon,
       })),
   ],
   [
-    MessageSquareText,
-    () =>
-      import('./icons/message-square-text').then((module) => ({
-        default: module.MessageSquareTextIcon,
-      })),
-  ],
-  [
-    MessageSquare,
+    'MessageSquare',
     () =>
       import('./icons/message-square').then((module) => ({
         default: module.MessageSquareIcon,
       })),
   ],
   [
-    Mic,
+    'MessageSquareText',
+    () =>
+      import('./icons/message-square-text').then((module) => ({
+        default: module.MessageSquareTextIcon,
+      })),
+  ],
+  [
+    'Mic',
     () => import('./icons/mic').then((module) => ({ default: module.MicIcon })),
   ],
   [
-    Newspaper,
+    'Newspaper',
     () =>
       import('./icons/newspaper').then((module) => ({
         default: module.NewspaperIcon,
       })),
   ],
   [
-    Palette,
+    'Palette',
     () =>
       import('./icons/palette').then((module) => ({
         default: module.PaletteIcon,
       })),
   ],
   [
-    PanelLeftClose,
+    'PanelLeftClose',
     () =>
       import('./icons/panel-left-close').then((module) => ({
         default: module.PanelLeftCloseIcon,
       })),
   ],
   [
-    PanelLeftOpen,
+    'PanelLeftOpen',
     () =>
       import('./icons/panel-left-open').then((module) => ({
         default: module.PanelLeftOpenIcon,
       })),
   ],
   [
-    Pause,
+    'Pause',
     () =>
       import('./icons/pause').then((module) => ({ default: module.PauseIcon })),
   ],
   [
-    PenTool,
+    'PenTool',
     () =>
       import('./icons/pen-tool').then((module) => ({
         default: module.PenToolIcon,
       })),
   ],
   [
-    Play,
+    'Play',
     () =>
       import('./icons/play').then((module) => ({ default: module.PlayIcon })),
   ],
   [
-    PlugZap,
+    'PlugZap',
     () =>
       import('./icons/plug-zap').then((module) => ({
         default: module.PlugZapIcon,
       })),
   ],
   [
-    Plus,
+    'Plus',
     () =>
       import('./icons/plus').then((module) => ({ default: module.PlusIcon })),
   ],
   [
-    PostCard,
+    'PostCard',
     () =>
       import('./icons/post-card').then((module) => ({
         default: module.PostCardIcon,
       })),
   ],
   [
-    Quote,
+    'Quote',
     () =>
       import('./icons/quote').then((module) => ({ default: module.QuoteIcon })),
   ],
   [
-    Radar,
+    'Radar',
     () =>
       import('./icons/radar').then((module) => ({ default: module.RadarIcon })),
   ],
   [
-    Radio,
+    'Radio',
     () =>
       import('./icons/radio').then((module) => ({ default: module.RadioIcon })),
   ],
   [
-    RefreshCcw,
+    'RefreshCcw',
     () =>
       import('./icons/refresh-ccw').then((module) => ({
         default: module.RefreshCCWIcon,
       })),
   ],
   [
-    RefreshCw,
+    'RefreshCw',
     () =>
       import('./icons/refresh-cw').then((module) => ({
         default: module.RefreshCWIcon,
       })),
   ],
   [
-    Rocket,
+    'Rocket',
     () =>
       import('./icons/rocket').then((module) => ({
         default: module.RocketIcon,
       })),
   ],
   [
-    RotateCcw,
+    'RotateCcw',
     () =>
       import('./icons/rotate-ccw').then((module) => ({
         default: module.RotateCCWIcon,
       })),
   ],
   [
-    Route,
+    'RotateCcwClock',
+    () =>
+      import('./icons/history').then((module) => ({
+        default: module.HistoryIcon,
+      })),
+  ],
+  [
+    'Route',
     () =>
       import('./icons/route').then((module) => ({ default: module.RouteIcon })),
   ],
   [
-    ScanFace,
+    'ScanFace',
     () =>
       import('./icons/scan-face').then((module) => ({
         default: module.ScanFaceIcon,
       })),
   ],
   [
-    Scissors,
+    'Scissors',
     () =>
       import('./icons/scissors').then((module) => ({
         default: module.ScissorsIcon,
       })),
   ],
   [
-    Search,
+    'Search',
     () =>
       import('./icons/search').then((module) => ({
         default: module.SearchIcon,
       })),
   ],
   [
-    Send,
+    'Send',
     () =>
       import('./icons/send').then((module) => ({ default: module.SendIcon })),
   ],
   [
-    ServerCrash,
-    () =>
-      import('./icons/server-crash').then((module) => ({
-        default: module.ServerCrashIcon,
-      })),
-  ],
-  [
-    Server,
+    'Server',
     () =>
       import('./icons/server').then((module) => ({
         default: module.ServerIcon,
       })),
   ],
   [
-    Settings,
+    'ServerCrash',
+    () =>
+      import('./icons/server-crash').then((module) => ({
+        default: module.ServerCrashIcon,
+      })),
+  ],
+  [
+    'Settings',
     () =>
       import('./icons/settings').then((module) => ({
         default: module.SettingsIcon,
       })),
   ],
   [
-    Shapes,
+    'Shapes',
     () =>
       import('./icons/shapes').then((module) => ({
         default: module.ShapesIcon,
       })),
   ],
   [
-    ShieldCheck,
+    'ShieldCheck',
     () =>
       import('./icons/shield-check').then((module) => ({
         default: module.ShieldCheckIcon,
       })),
   ],
   [
-    SlidersHorizontal,
+    'SlidersHorizontal',
     () =>
       import('./icons/sliders-horizontal').then((module) => ({
         default: module.SlidersHorizontalIcon,
       })),
   ],
   [
-    Smile,
-    () =>
-      import('./icons/smile').then((module) => ({ default: module.SmileIcon })),
-  ],
-  [
-    Sparkles,
+    'Sparkles',
     () =>
       import('./icons/sparkles').then((module) => ({
         default: module.SparklesIcon,
       })),
   ],
   [
-    SquareActivity,
+    'SquareActivity',
     () =>
       import('./icons/square-activity').then((module) => ({
         default: module.SquareActivityIcon,
       })),
   ],
   [
-    SquarePen,
+    'SquarePen',
     () =>
       import('./icons/square-pen').then((module) => ({
         default: module.SquarePenIcon,
       })),
   ],
   [
-    SquarePlay,
+    'SquarePlay',
     () =>
       import('./icons/square-play').then((module) => ({
         default: module.SquarePlayIcon,
       })),
   ],
   [
-    Telescope,
+    'Telescope',
     () =>
       import('./icons/telescope').then((module) => ({
         default: module.TelescopeIcon,
       })),
   ],
   [
-    Terminal,
+    'Terminal',
     () =>
       import('./icons/terminal').then((module) => ({
         default: module.TerminalIcon,
       })),
   ],
   [
-    Thermometer,
+    'Thermometer',
     () =>
       import('./icons/thermometer').then((module) => ({
         default: module.ThermometerIcon,
       })),
   ],
   [
-    TrendingUp,
+    'TrendingUp',
     () =>
       import('./icons/trending-up').then((module) => ({
         default: module.TrendingUpIcon,
       })),
   ],
   [
-    Upload,
+    'Upload',
     () =>
       import('./icons/upload').then((module) => ({
         default: module.UploadIcon,
       })),
   ],
   [
-    UserCheck,
+    'User',
+    () =>
+      import('./icons/user').then((module) => ({ default: module.UserIcon })),
+  ],
+  [
+    'UserCheck',
     () =>
       import('./icons/user-check').then((module) => ({
         default: module.UserCheckIcon,
       })),
   ],
   [
-    UserPlus,
+    'UserPlus',
     () =>
       import('./icons/user-plus').then((module) => ({
         default: module.UserPlusIcon,
       })),
   ],
   [
-    UserRoundPlus,
+    'UserRoundPlus',
     () =>
       import('./icons/user-round-plus').then((module) => ({
         default: module.UserRoundPlusIcon,
       })),
   ],
   [
-    User,
+    'Users',
     () =>
-      import('./icons/user').then((module) => ({ default: module.UserIcon })),
+      import('./icons/users').then((module) => ({ default: module.UsersIcon })),
   ],
   [
-    UsersRound,
+    'UsersRound',
     () =>
       import('./icons/users-round').then((module) => ({
         default: module.UsersRoundIcon,
       })),
   ],
   [
-    Users,
-    () =>
-      import('./icons/users').then((module) => ({ default: module.UsersIcon })),
-  ],
-  [
-    Wallet,
+    'Wallet',
     () =>
       import('./icons/wallet').then((module) => ({
         default: module.WalletIcon,
       })),
   ],
   [
-    Waypoints,
+    'Waypoints',
     () =>
       import('./icons/waypoints').then((module) => ({
         default: module.WaypointsIcon,
       })),
   ],
   [
-    Webhook,
+    'Webhook',
     () =>
       import('./icons/webhook').then((module) => ({
         default: module.WebhookIcon,
       })),
   ],
   [
-    Workflow,
+    'Workflow',
     () =>
       import('./icons/workflow').then((module) => ({
         default: module.WorkflowIcon,
       })),
   ],
   [
-    Wrench,
+    'Wrench',
     () =>
       import('./icons/wrench').then((module) => ({
         default: module.WrenchIcon,
       })),
   ],
-  [X, () => import('./icons/x').then((module) => ({ default: module.XIcon }))],
   [
-    Zap,
+    'X',
+    () => import('./icons/x').then((module) => ({ default: module.XIcon })),
+  ],
+  [
+    'Zap',
     () => import('./icons/zap').then((module) => ({ default: module.ZapIcon })),
   ],
 ];
 
-const ANIMATED_ICONS: ReadonlyMap<unknown, AnimatedIconComponent> = new Map(
-  ANIMATED_ICON_LOADERS.map(([icon, load]) => [icon, lazy(load)]),
+const ANIMATED_ICONS: ReadonlyMap<string, AnimatedIconComponent> = new Map(
+  ANIMATED_ICON_LOADERS.map(([name, load]) => [name, lazy(load)]),
 );
 
-/** The animated twin of a lucide-react icon, when one exists. */
+function iconName(icon: unknown): string | undefined {
+  if (
+    typeof icon !== 'function' &&
+    (typeof icon !== 'object' || icon === null)
+  ) {
+    return undefined;
+  }
+  const { displayName } = icon as { displayName?: unknown };
+  return typeof displayName === 'string' ? displayName : undefined;
+}
+
+/** The animated twin of a Lucide icon component, when one exists. */
 export function findAnimatedIcon(
   icon: unknown,
 ): AnimatedIconComponent | undefined {
-  return ANIMATED_ICONS.get(icon);
+  const name = iconName(icon);
+  return name ? ANIMATED_ICONS.get(name) : undefined;
 }
 
 export const ANIMATED_ICON_COUNT = ANIMATED_ICON_LOADERS.length;
