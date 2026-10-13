@@ -87,7 +87,12 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
   ) : undefined;
 
   return (
-    <Container label="Clips" titleVisibility="sr-only" right={topbarActions}>
+    <Container
+      label="Clips"
+      moduleChrome
+      right={topbarActions}
+      titleVisibility="sr-only"
+    >
       <div className="flex w-full flex-col gap-4">
         <p className="text-sm text-muted-foreground">{t('description')}</p>
 
