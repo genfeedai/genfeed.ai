@@ -20,7 +20,10 @@ import {
   PostAccountLearningService,
   type PostAccountLearningSession,
 } from '@api/collections/posts/services/post-account-learning.service';
-import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
+import {
+  type PostDraftGenerationOptions,
+  PostDraftGenerationService,
+} from '@api/collections/posts/services/post-draft-generation.service';
 import {
   extractPostGenerationLabel,
   parsePostGenerationContent,
@@ -699,11 +702,13 @@ export class PostGenerationService {
     dto: PostDraftGenerationInput,
     identity: GenerationMetadata,
     resolveApiKey?: TextDispatchKeyResolver,
+    options?: PostDraftGenerationOptions,
   ): Promise<PostDraftGenerationResult> {
     return this.postDraftGenerationService.generateDraftText(
       dto,
       identity,
       resolveApiKey,
+      options,
     );
   }
 
