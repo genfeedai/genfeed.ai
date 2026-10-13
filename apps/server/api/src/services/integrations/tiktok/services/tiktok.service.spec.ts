@@ -334,6 +334,142 @@ describe('TiktokService', () => {
     });
   });
 
+  describe('uploadImage', () => {
+    const arrangeUpload = () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        asCredential({ accessToken: 'test-token' }),
+      );
+
+      vi.spyOn(service, 'getCreatorInfo').mockResolvedValue({
+        comment_disabled: false,
+        creator_avatar_url: '',
+        creator_nickname: 'Test',
+        creator_username: 'test',
+        duet_disabled: false,
+        max_video_post_duration_sec: 600,
+        privacy_level_options: ['SELF_ONLY', 'PUBLIC_TO_EVERYONE'],
+        stitch_disabled: false,
+      });
+
+      (httpService.post as Mock).mockReturnValue(
+        of({
+          data: { data: { publish_id: 'test-id' } },
+          status: 200,
+        }),
+      );
+
+      vi.spyOn(service, 'getPublishStatus').mockResolvedValue({
+        publicly_available_post_id: ['post-123'],
+        status: 'PUBLISH_COMPLETE',
+      } as unknown as import('@genfeedai/contracts/interfaces').ITikTokPublishStatusData);
+    };
+
+    const photoPostInfo = () =>
+      (
+        (httpService.post as Mock).mock.calls[0][1] as {
+          post_info: { description: string; title: string };
+        }
+      ).post_info;
+
+    const publishPhoto = (post: TikTokPublishPost) =>
+      service.uploadImage(
+        'org-id',
+        'account-id',
+        ['https://cdn.genfeed.ai/photo.jpg'],
+        post,
+        false,
+        { musicUsageAccepted: true, privacyLevel: 'private' },
+      );
+
+    it('sends the converted creator caption without promotional text', async () => {
+      arrangeUpload();
+
+      await publishPhoto(
+        buildMockPost({
+          description: '<p>My own caption</p>',
+          label: 'Internal title',
+        }),
+      );
+
+      expect(httpService.post).toHaveBeenCalledWith(
+        'https://open.tiktokapis.com/v2/post/publish/content/init/',
+        expect.objectContaining({
+          media_type: 'PHOTO',
+          post_mode: 'DIRECT_POST',
+        }),
+        expect.any(Object),
+      );
+      expect(photoPostInfo()).toMatchObject({
+        auto_add_music: true,
+        brand_content_toggle: false,
+        brand_organic_toggle: false,
+        description: 'My own caption',
+        disable_comment: true,
+        privacy_level: 'SELF_ONLY',
+        title: 'My own caption',
+      });
+      expect(JSON.stringify(photoPostInfo())).not.toContain(
+        'this will be a #funny photo',
+      );
+      expect(JSON.stringify(photoPostInfo())).not.toContain(
+        'Check out this photo!',
+      );
+    });
+
+    it('uses the creator label as the title when the converted description is empty', async () => {
+      arrangeUpload();
+
+      await publishPhoto(
+        buildMockPost({
+          description: '<p></p>',
+          label: 'Pier at dusk',
+        }),
+      );
+
+      expect(photoPostInfo()).toMatchObject({
+        description: '',
+        title: 'Pier at dusk',
+      });
+    });
+
+    it('uses the converted description as the title when the label is empty', async () => {
+      arrangeUpload();
+
+      await publishPhoto(
+        buildMockPost({
+          description: '<p>Only the caption</p>',
+          label: '',
+        }),
+      );
+
+      expect(photoPostInfo()).toMatchObject({
+        description: 'Only the caption',
+        title: 'Only the caption',
+      });
+    });
+
+    it('sends an empty description and title when the creator supplied neither', async () => {
+      arrangeUpload();
+
+      await publishPhoto(
+        buildMockPost({
+          description: null,
+          label: null,
+        }),
+      );
+
+      expect(photoPostInfo()).toMatchObject({
+        description: '',
+        title: '',
+      });
+      const payload = JSON.stringify(
+        (httpService.post as Mock).mock.calls[0][1],
+      );
+      expect(payload).not.toContain('this will be a #funny photo');
+      expect(payload).not.toContain('Check out this photo!');
+    });
+  });
+
   describe('channel target settings', () => {
     /**
      * The composer's choices only reach TikTok through the publish body, so
