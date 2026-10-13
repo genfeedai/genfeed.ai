@@ -464,8 +464,8 @@ describe('Branded text generation seam (real Postgres)', () => {
 
     const longAgo = new Date(Date.now() - 60 * 60 * 1000);
     await sql.query(
-      `UPDATE branded_generation_receipts SET "updatedAt" = $2, projection = jsonb_set(projection::jsonb, '{updatedAt}', to_jsonb($3::text)) WHERE id = $1`,
-      [stuck.id, longAgo, longAgo.toISOString()],
+      `UPDATE branded_generation_receipts SET "updatedAt" = ($2::timestamptz AT TIME ZONE 'UTC'), projection = jsonb_set(projection::jsonb, '{updatedAt}', to_jsonb($2::text)) WHERE id = $1`,
+      [stuck.id, longAgo.toISOString()],
     );
     const swept = await receipts.recoverExpiredDispatchesSystem({ limit: 10 });
     expect(swept).toEqual({ blocked: [stuck.id], skipped: [] });
