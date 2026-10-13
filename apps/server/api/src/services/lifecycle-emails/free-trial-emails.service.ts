@@ -147,23 +147,23 @@ export class FreeTrialEmailsService {
     const organizationUrl = `${appUrl}/${encodeURIComponent(organization.slug)}/~`;
     const creditsUrl = `${organizationUrl}${APP_ROUTES.SETTINGS.CREDITS}`;
     const plansUrl = `${organizationUrl}${APP_ROUTES.SETTINGS.SUBSCRIPTION}`;
-    const destinationUrl =
-      definition.action === 'plans' ? plansUrl : creditsUrl;
-    const paragraphs = [
-      ...definition.paragraphs,
-      definition.action === 'plans'
-        ? `Prefer a one-off pack? Buy credits: ${creditsUrl}`
-        : `Compare plans: ${plansUrl}`,
-    ];
+    const isPlansAction = definition.action === 'plans';
+    const destinationUrl = isPlansAction ? plansUrl : creditsUrl;
+    // The other path is a button, never a URL pasted into the copy. It links
+    // straight to the app: click tracking records the primary action only.
+    const secondaryAction = isPlansAction
+      ? { label: 'Buy credits', url: creditsUrl }
+      : { label: 'Compare plans', url: plansUrl };
     const html = buildSystemEmailHtml({
       action: { label: definition.actionLabel, url: destinationUrl },
       appUrl,
-      bodyHtml: paragraphs
+      bodyHtml: definition.paragraphs
         .map((paragraph) => buildSystemEmailParagraph(paragraph))
         .join(''),
       footerNote:
         'Manage these emails in your Genfeed notification preferences.',
       preheader: definition.paragraphs[0],
+      secondaryAction,
       title: definition.subject,
     }).replaceAll(
       `href="${escapeSystemEmailHtml(destinationUrl)}"`,
