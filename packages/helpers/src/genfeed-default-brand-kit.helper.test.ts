@@ -3,6 +3,7 @@ import { GENFEED_DEFAULT_KIT_SOURCE_ID } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
   buildGenfeedDefaultKitDraft,
+  hasOwnBrandVoice,
   isGenfeedDefaultKitDraft,
   stripGenfeedDefaultKit,
 } from './genfeed-default-brand-kit.helper';
@@ -62,5 +63,36 @@ describe('genfeed default brand kit', () => {
     const own = buildGenfeedDefaultKitDraft(brand);
     own.evidence = [{ label: 'Website', sourceType: 'website' }];
     expect(isGenfeedDefaultKitDraft(own)).toBe(false);
+  });
+
+  describe('hasOwnBrandVoice', () => {
+    it.each([
+      [undefined],
+      [null],
+      [{}],
+      [{ voice: {} }],
+      [{ voice: { tone: '  ', audience: [] } }],
+      [
+        {
+          voice: {
+            audience: ['General audience'],
+            style: 'Friendly and informative',
+            tone: 'Professional',
+          },
+        },
+      ],
+    ])('treats %j as no own voice', (agentConfig) => {
+      expect(hasOwnBrandVoice(agentConfig)).toBe(false);
+    });
+
+    it.each([
+      [{ voice: { tone: 'Dry and technical' } }],
+      [{ voice: { style: 'Short sentences' } }],
+      [{ voice: { audience: ['Indie founders'] } }],
+      [{ voice: { doNotSoundLike: ['A press release'] } }],
+      [{ voice: { sampleOutput: 'Ship it.' } }],
+    ])('detects %j as own voice', (agentConfig) => {
+      expect(hasOwnBrandVoice(agentConfig)).toBe(true);
+    });
   });
 });

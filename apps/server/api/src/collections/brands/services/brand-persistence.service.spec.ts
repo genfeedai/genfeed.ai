@@ -1,5 +1,4 @@
 import type { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
-import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { LinksService } from '@api/collections/links/services/links.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -40,9 +39,6 @@ describe('BrandPersistenceService', () => {
   let brandAssetAutofillService: {
     fillFromWebsite: ReturnType<typeof vi.fn>;
   };
-  let brandOsRevisionsService: {
-    supersedeDefaultKit: ReturnType<typeof vi.fn>;
-  };
 
   beforeEach(() => {
     brandsService = {
@@ -70,9 +66,6 @@ describe('BrandPersistenceService', () => {
     brandAssetAutofillService = {
       fillFromWebsite: vi.fn().mockResolvedValue(undefined),
     };
-    brandOsRevisionsService = {
-      supersedeDefaultKit: vi.fn().mockResolvedValue(undefined),
-    };
 
     service = new BrandPersistenceService(
       loggerService as unknown as LoggerService,
@@ -81,7 +74,6 @@ describe('BrandPersistenceService', () => {
       organizationsService as unknown as OrganizationsService,
       new BrandDataMapper(),
       brandAssetAutofillService as unknown as BrandAssetAutofillService,
-      brandOsRevisionsService as unknown as BrandOsRevisionsService,
     );
   });
 
@@ -259,44 +251,6 @@ describe('BrandPersistenceService', () => {
       } as IExtractedBrandData);
 
       expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
-    });
-
-    it('retires the Genfeed default style kit once website guidance is saved', async () => {
-      brandsService.findOne.mockResolvedValue({
-        agentConfig: {},
-        id: 'brand_1',
-      });
-
-      await service.updateBrandGuidance('brand_1', 'org_1', {
-        scrapedAt: new Date(),
-        sourceUrl: 'https://acme.com',
-      } as IExtractedBrandData);
-
-      expect(brandOsRevisionsService.supersedeDefaultKit).toHaveBeenCalledWith(
-        'org_1',
-        'brand_1',
-      );
-    });
-
-    it('keeps saved guidance when retiring the default style kit fails', async () => {
-      brandsService.findOne.mockResolvedValue({
-        agentConfig: {},
-        id: 'brand_1',
-      });
-      brandOsRevisionsService.supersedeDefaultKit.mockRejectedValueOnce(
-        new Error('locked'),
-      );
-
-      await expect(
-        service.updateBrandGuidance('brand_1', 'org_1', {
-          scrapedAt: new Date(),
-          sourceUrl: 'https://acme.com',
-        } as IExtractedBrandData),
-      ).resolves.toBeUndefined();
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        'Default style kit could not be retired',
-        expect.objectContaining({ brandId: 'brand_1' }),
-      );
     });
 
     it('merges the extracted voice into the agent config patch', async () => {

@@ -167,3 +167,41 @@ export function stripGenfeedDefaultKit(
   Reflect.deleteProperty(stripped, 'generationRules');
   return stripped;
 }
+
+/** Values the signup analysis writes when it finds nothing about the brand. */
+const SYSTEM_DEFAULT_VOICE_VALUES: ReadonlySet<string> = new Set([
+  'friendly and informative',
+  'general audience',
+  'professional',
+]);
+
+function isOwnVoiceText(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 && !SYSTEM_DEFAULT_VOICE_VALUES.has(normalized);
+}
+
+/**
+ * True once the owner (or a scan of their site) has put voice into the brand.
+ * Voice the signup analysis defaulted on its own does not count, so a brand
+ * nobody has described keeps the Genfeed default style kit.
+ */
+export function hasOwnBrandVoice(agentConfig: unknown): boolean {
+  const voice =
+    agentConfig && typeof agentConfig === 'object'
+      ? Reflect.get(agentConfig, 'voice')
+      : undefined;
+  if (!voice || typeof voice !== 'object') return false;
+  for (const key of ['tone', 'style', 'sampleOutput'])
+    if (isOwnVoiceText(Reflect.get(voice, key))) return true;
+  for (const key of [
+    'audience',
+    'values',
+    'messagingPillars',
+    'doNotSoundLike',
+  ]) {
+    const entries = Reflect.get(voice, key);
+    if (Array.isArray(entries) && entries.some(isOwnVoiceText)) return true;
+  }
+  return false;
+}

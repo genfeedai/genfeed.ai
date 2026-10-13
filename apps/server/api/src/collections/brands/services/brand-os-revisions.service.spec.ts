@@ -1120,21 +1120,45 @@ describe('BrandOsRevisionsService', () => {
       expect(other.rows.every((item) => item.status === 'DRAFT')).toBe(true);
     });
 
-    it('replaces only a live default draft when supersedeDefaultKit runs', async () => {
-      const { service, rows } = harness([
-        seedRow('seed-1', 1),
-        row('own', 2),
-        row('approved', 3, BrandOsRevisionStatus.APPROVED),
-      ]);
-      await service.supersedeDefaultKit(ORG, BRAND);
+    it('starts a brand that already has its own voice from its own fields', async () => {
+      const { service, rows } = harness([], {
+        voice: { tone: 'Dry and technical' },
+      });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(rows).toHaveLength(1);
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+      expect(result.content.sourceType).toBe('current_brand');
+    });
+
+    it('keeps the default kit for a brand whose voice is only the signup default', async () => {
+      const { service } = harness([], {
+        voice: { audience: ['General audience'], tone: 'Professional' },
+      });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(true);
+    });
+
+    it('swaps an unedited default kit for the brand own draft once it gains its own voice', async () => {
+      const { service, rows } = harness([seedRow()], {
+        voice: { tone: 'Dry and technical' },
+      });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
       const byId = Object.fromEntries(
         rows.map((item) => [item.id, item.status]),
       );
-      expect(byId).toEqual({
-        approved: BrandOsRevisionStatus.APPROVED,
-        own: BrandOsRevisionStatus.DRAFT,
-        'seed-1': BrandOsRevisionStatus.SUPERSEDED,
+      expect(byId['seed-1']).toBe(BrandOsRevisionStatus.SUPERSEDED);
+      expect(result.id).not.toBe('seed-1');
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+    });
+
+    it('never touches an owner-edited draft even when the brand has its own voice', async () => {
+      const edited = row('own', 2);
+      const { service, rows } = harness([seedRow(), edited], {
+        voice: { tone: 'Dry and technical' },
       });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(result.id).toBe('own');
+      expect(rows).toHaveLength(2);
     });
 
     it('drops the default marker and seeded rules when the owner edits the draft', async () => {
