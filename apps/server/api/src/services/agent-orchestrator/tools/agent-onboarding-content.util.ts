@@ -185,9 +185,11 @@ export async function createOnboardingBrandDraft(
               },
             },
           ],
-          description: isComplete
-            ? `Review your draft. Nothing has been published.${isProvisional ? ' Written in a provisional style until you approve your own brand kit.' : ''}`
-            : `Your tweet is ready. ${image.error ?? 'The image could not be generated.'}`,
+          description: `${
+            isComplete
+              ? 'Review your draft. Nothing has been published.'
+              : `Your tweet is ready. ${image.error ?? 'The image could not be generated.'}`
+          }${isProvisional ? ' Written in a provisional style until you approve your own brand kit.' : ''}`,
           data: draft
             ? {
                 isProvisional,

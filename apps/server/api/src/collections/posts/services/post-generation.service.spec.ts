@@ -296,7 +296,7 @@ Tweet 3: Tech innovation is changing the world.`,
     ).resolves.toBe(result);
     expect(
       mockPostDraftGenerationService.generateDraftText,
-    ).toHaveBeenCalledWith(dto, identity, resolver);
+    ).toHaveBeenCalledWith(dto, identity, resolver, undefined);
   });
 
   it('should be defined', () => {
