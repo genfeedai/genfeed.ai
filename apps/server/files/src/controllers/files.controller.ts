@@ -383,7 +383,8 @@ export class FilesController {
   @Get('job/:jobId')
   async getJobStatus(@Param('jobId') jobId: string) {
     try {
-      // Try to find the job in all queues (in parallel for better performance)
+      // BullMQ ids are local to each queue. A numeric id can exist on more
+      // than one of them; returning the first hit reports the wrong job.
       const [videoJob, imageJob, fileJob, youtubeJob] = await Promise.all([
         this.videoQueueService.getJob(jobId),
         this.imageQueueService.getJob(jobId),
@@ -391,7 +392,16 @@ export class FilesController {
         this.youtubeQueueService.getJob(jobId),
       ]);
 
-      const job = videoJob || imageJob || fileJob || youtubeJob;
+      const jobs = [videoJob, imageJob, fileJob, youtubeJob].filter(
+        (candidate) => candidate != null,
+      );
+      if (jobs.length > 1) {
+        throw new HttpException(
+          'Job ID is ambiguous across processing queues',
+          HttpStatus.CONFLICT,
+        );
+      }
+      const job = jobs[0];
 
       if (!job) {
         throw new HttpException('Job not found', HttpStatus.NOT_FOUND);

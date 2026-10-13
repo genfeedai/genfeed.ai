@@ -274,14 +274,14 @@ describe('FilesController', () => {
 
     mockJob.getState.mockResolvedValue('waiting');
 
-    mockVideoQueueService.getJob.mockResolvedValue(mockJob);
+    mockVideoQueueService.getJob.mockResolvedValue(null);
 
     mockImageQueueService.addImageToVideoJob.mockResolvedValue(mockJob);
     mockImageQueueService.addKenBurnsJob.mockResolvedValue(mockJob);
     mockImageQueueService.addPortraitBlurJob.mockResolvedValue(mockJob);
     mockImageQueueService.addResizeImageJob.mockResolvedValue(mockJob);
     mockImageQueueService.addSplitScreenJob.mockResolvedValue(mockJob);
-    mockImageQueueService.getJob.mockResolvedValue(mockJob);
+    mockImageQueueService.getJob.mockResolvedValue(null);
     mockImageQueueService.getJobCounts.mockResolvedValue({
       active: 1,
       completed: 50,
@@ -296,7 +296,7 @@ describe('FilesController', () => {
     mockFileQueueService.addPrepareFilesJob.mockResolvedValue(mockJob);
     mockFileQueueService.addUploadToS3Job.mockResolvedValue(mockJob);
     mockFileQueueService.addWatermarkJob.mockResolvedValue(mockJob);
-    mockFileQueueService.getJob.mockResolvedValue(mockJob);
+    mockFileQueueService.getJob.mockResolvedValue(null);
     mockFileQueueService.getJobCounts.mockResolvedValue({
       active: 0,
       completed: 75,
@@ -305,7 +305,7 @@ describe('FilesController', () => {
     });
 
     mockYoutubeQueueService.addUploadJob.mockResolvedValue(mockJob);
-    mockYoutubeQueueService.getJob.mockResolvedValue(mockJob);
+    mockYoutubeQueueService.getJob.mockResolvedValue(null);
 
     mockS3Service.copyFile.mockResolvedValue(undefined);
     mockS3Service.generateS3Key.mockImplementation(
@@ -1007,6 +1007,30 @@ describe('FilesController', () => {
       const result = await controller.getJobStatus('job_123');
 
       expect(result.jobId).toBe('job_123');
+    });
+
+    it('rejects a legacy id shared by a failed video job and a completed download', async () => {
+      const videoJob = {
+        failedReason: 'spawn yt-dlp ENOENT',
+        getState: vi.fn().mockResolvedValue('failed'),
+        id: '1',
+      };
+      const downloadJob = {
+        getState: vi.fn().mockResolvedValue('completed'),
+        id: '1',
+        returnvalue: { outputPath: '/tmp/upload.mp4', success: true },
+      };
+      mockVideoQueueService.getJob.mockResolvedValueOnce(videoJob);
+      mockImageQueueService.getJob.mockResolvedValueOnce(null);
+      mockFileQueueService.getJob.mockResolvedValueOnce(downloadJob);
+      mockYoutubeQueueService.getJob.mockResolvedValueOnce(null);
+
+      await expect(controller.getJobStatus('1')).rejects.toMatchObject({
+        message: 'Job ID is ambiguous across processing queues',
+        status: 409,
+      });
+      expect(videoJob.getState).not.toHaveBeenCalled();
+      expect(downloadJob.getState).not.toHaveBeenCalled();
     });
 
     it('should throw 404 if job not found in any queue', async () => {

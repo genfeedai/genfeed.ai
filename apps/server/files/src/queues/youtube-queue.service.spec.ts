@@ -84,6 +84,9 @@ describe('YoutubeQueueService', () => {
             delay: 2000,
             type: 'exponential',
           },
+          jobId: expect.stringMatching(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+          ),
           priority: JOB_PRIORITY.HIGH,
         },
       );
@@ -106,6 +109,9 @@ describe('YoutubeQueueService', () => {
             delay: 2000,
             type: 'exponential',
           },
+          jobId: expect.stringMatching(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+          ),
           priority: JOB_PRIORITY.LOW,
         },
       );
@@ -160,6 +166,9 @@ describe('YoutubeQueueService', () => {
             delay: 2000,
             type: 'exponential',
           },
+          jobId: expect.stringMatching(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+          ),
           priority: JOB_PRIORITY.HIGH,
         },
       );

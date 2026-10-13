@@ -277,9 +277,9 @@ RUN node -r tsconfig-paths/register \
 # ==================================================
 FROM node:24-slim AS production
 
-# Install system dependencies for Bun, FFmpeg, the tesseract OCR engine used by
-# media perception (#4879), and the pinned Remotion Chrome Headless Shell
-# downloaded in the dependency layer.
+# Install system dependencies for Bun, FFmpeg (yt-dlp merges with it), the
+# tesseract OCR engine used by media perception (#4879), and the pinned
+# Remotion Chrome Headless Shell downloaded in the dependency layer.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -375,9 +375,21 @@ RUN mkdir -p /certs && \
         https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o /certs/rds-ca.pem && \
     chmod 444 /certs/rds-ca.pem
 
+# The files service spawns `yt-dlp`. Distro packages lag the YouTube extractor,
+# so pin the upstream linux/amd64 standalone release. The unified server image
+# is published for linux/amd64 only. The runtime-user check fails the build
+# if that binary cannot execute.
+RUN curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 \
+      --retry-max-time 180 --connect-timeout 10 --max-time 180 \
+      -o /usr/local/bin/yt-dlp \
+      https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux \
+    && echo "58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a  /usr/local/bin/yt-dlp" | sha256sum -c - \
+    && chmod 755 /usr/local/bin/yt-dlp
+
 # Switch to non-root user
 USER appuser
 ENV HOME=/home/appuser
+RUN yt-dlp --version && ffmpeg -version > /dev/null
 
 # No EXPOSE or HEALTHCHECK — each compose service defines its own
 # Default CMD prints usage — each compose service overrides with command:

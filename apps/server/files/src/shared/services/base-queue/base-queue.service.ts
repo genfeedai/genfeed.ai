@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { JobConfig } from '@files/shared/interfaces/job-config.interface';
 import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
@@ -86,7 +87,9 @@ export abstract class BaseQueueService<T extends BaseJobDataWithPriority> {
       {
         attempts: config.attempts,
         backoff: { delay: config.delay, type: 'exponential' },
-        ...(jobId ? { jobId } : {}),
+        // BullMQ ids are per queue. A generated id cannot collide with another
+        // queue's counter; an explicit id stays so idempotent enqueues reuse it.
+        jobId: jobId || randomUUID(),
         priority: data.priority || config.defaultPriority,
         ...(config.removeOnComplete
           ? { removeOnComplete: config.removeOnComplete }
@@ -129,6 +132,7 @@ export abstract class BaseQueueService<T extends BaseJobDataWithPriority> {
         attempts: config.attempts,
         backoff: { delay: config.delay, type: 'exponential' },
         delay: delayMs,
+        jobId: randomUUID(),
         priority: data.priority || config.defaultPriority,
       } as Parameters<QueueAdd>[2],
     );
