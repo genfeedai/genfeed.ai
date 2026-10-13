@@ -37,4 +37,8 @@ export interface UseHoverAnimatedIconOptions {
 export interface HoverAnimatedIcon {
   hoverProps: AnimatedIconHoverProps;
   icon: ReactNode;
+  /** True when the icon has an animated twin and motion is allowed to run. */
+  isAnimatable: boolean;
+  start: () => void;
+  stop: () => void;
 }

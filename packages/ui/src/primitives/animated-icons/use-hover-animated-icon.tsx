@@ -89,14 +89,19 @@ export function useHoverAnimatedIcon(
     [start, stop],
   );
 
+  const isAnimatable = Boolean(Animated);
+
   if (!Animated || !isArmed || !isValidElement<{ className?: string }>(icon)) {
-    return { hoverProps, icon };
+    return { hoverProps, icon, isAnimatable, start, stop };
   }
 
   const { className } = icon.props;
 
   return {
     hoverProps,
+    isAnimatable,
+    start,
+    stop,
     icon: (
       <Suspense fallback={icon}>
         <Animated
