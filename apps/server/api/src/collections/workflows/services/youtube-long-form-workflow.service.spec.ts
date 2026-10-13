@@ -290,6 +290,7 @@ describe('YoutubeLongFormWorkflowService', () => {
             outputType: 'article',
           },
           persistence: 'account',
+          sourceArtifact: { artifactId: 'artifact-source' },
         },
         { organizationId: 'org-1', userId: 'user-1' },
       ),
