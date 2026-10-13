@@ -25,6 +25,7 @@ export * from './formatting/duration/duration.helper';
 export * from './generation-context.helper';
 export * from './generation-controls.helper';
 export * from './generation-eta.helper';
+export * from './genfeed-default-brand-kit.helper';
 export * from './integrations/connect-genfeed.helper';
 export * from './integrations/external-connection-request.helper';
 export * from './media/cdn/cdn.helper';

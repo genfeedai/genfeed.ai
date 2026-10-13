@@ -1,6 +1,7 @@
 import {
   assertBrandIdentityAssetsAvailable,
   projectApprovedBrandIdentitySnapshot,
+  projectProvisionalBrandIdentitySnapshot,
 } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { hashBrandIdentitySnapshotV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
@@ -82,27 +83,80 @@ export class BrandIdentitySnapshotService {
           revision,
           new Date().toISOString(),
         );
-        const ids = [
-          ...new Set(
-            snapshot.generationRules.assets.map((asset) => asset.assetId),
-          ),
-        ];
-        const assets = ids.length
-          ? await tx.asset.findMany({
-              where: {
-                id: { in: ids },
-                parentType: AssetParent.BRAND,
-                parentOrgId: actor.organizationId,
-                parentBrandId: actor.brandId,
-                isDeleted: false,
-              },
-              take: 64,
-            })
-          : [];
-        assertBrandIdentityAssetsAvailable(snapshot, assets);
+        await this.assertAssets(tx, actor, snapshot);
         return snapshot;
       },
       { isolationLevel: 'ReadCommitted', maxWait: 5000, timeout: 10000 },
     );
+  }
+
+  /**
+   * Captures one explicit DRAFT revision as a provisional identity. The caller
+   * names the revision; "latest draft" is never inferred here. The result is
+   * bound to the revision id, version and content hash and carries no approval.
+   */
+  async previewProvisional(
+    actor: BrandedGenerationActorV1,
+    draftRevisionId: string,
+  ): Promise<BrandIdentitySnapshotV1> {
+    if (
+      ![
+        actor.actorId,
+        actor.organizationId,
+        actor.brandId,
+        draftRevisionId,
+      ].every((id) => learningContractIdSchema.safeParse(id).success)
+    )
+      throw new BadRequestException('receipt_query_invalid');
+    return this.prisma.$transaction(
+      async (tx) => {
+        await this.access.assertBrand(actor, tx);
+        await tx.$queryRaw(
+          Prisma.sql`SELECT "id" FROM "brands" WHERE "id" = ${actor.brandId} AND "organizationId" = ${actor.organizationId} AND "isDeleted" = false FOR SHARE`,
+        );
+        await this.access.assertBrand(actor, tx);
+        const revision = await tx.brandOsRevision.findFirst({
+          where: {
+            id: draftRevisionId,
+            organizationId: actor.organizationId,
+            brandId: actor.brandId,
+            isDeleted: false,
+            status: BrandOsRevisionStatus.DRAFT,
+          },
+        });
+        if (!revision)
+          throw new ConflictException('brand_identity_unavailable');
+        const snapshot = projectProvisionalBrandIdentitySnapshot(
+          revision,
+          new Date().toISOString(),
+        );
+        await this.assertAssets(tx, actor, snapshot);
+        return snapshot;
+      },
+      { isolationLevel: 'ReadCommitted', maxWait: 5000, timeout: 10000 },
+    );
+  }
+
+  private async assertAssets(
+    tx: Prisma.TransactionClient,
+    actor: BrandedGenerationActorV1,
+    snapshot: BrandIdentitySnapshotV1,
+  ): Promise<void> {
+    const ids = [
+      ...new Set(snapshot.generationRules.assets.map((asset) => asset.assetId)),
+    ];
+    const assets = ids.length
+      ? await tx.asset.findMany({
+          where: {
+            id: { in: ids },
+            parentType: AssetParent.BRAND,
+            parentOrgId: actor.organizationId,
+            parentBrandId: actor.brandId,
+            isDeleted: false,
+          },
+          take: 64,
+        })
+      : [];
+    assertBrandIdentityAssetsAvailable(snapshot, assets);
   }
 }

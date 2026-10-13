@@ -11,6 +11,7 @@ import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
   buildBrandKitDraftFromWebsiteScrape,
+  buildGenfeedDefaultKitDraft,
 } from '@genfeedai/helpers';
 import {
   type Brand,
@@ -186,6 +187,27 @@ function harness(initial: BrandOsRevision[] = []) {
             (row) =>
               !row.isDeleted && row.status === BrandOsRevisionStatus.APPROVED,
           ) ?? null,
+      ),
+      findMany: vi.fn(
+        async (args: { where?: { status?: BrandOsRevisionStatus } }) =>
+          state.rows.filter(
+            (row) =>
+              !row.isDeleted &&
+              (args.where?.status === undefined ||
+                row.status === args.where.status),
+          ),
+      ),
+      updateMany: vi.fn(
+        async (args: {
+          data: Partial<BrandOsRevision>;
+          where: { id?: { in: string[] } };
+        }) => {
+          const targets = state.rows.filter((row) =>
+            args.where.id?.in.includes(row.id),
+          );
+          for (const row of targets) Object.assign(row, args.data);
+          return { count: targets.length };
+        },
       ),
       create: vi.fn(async (args: Prisma.BrandOsRevisionCreateArgs) => {
         const data = args.data as Prisma.BrandOsRevisionUncheckedCreateInput;
@@ -383,6 +405,31 @@ describe('BrandOsScanService durable bounded scan', () => {
     h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(complete);
     expect((await h.service.start(h.input)).status).toBe('ready');
     expect(h.state.rows[0].status).toBe('DRAFT');
+  });
+  it('retires the Genfeed default style kit when a scan produces the owner draft', async () => {
+    const seed: BrandOsRevision = {
+      ...approved(),
+      approvedAt: null,
+      content: storedJson(
+        buildGenfeedDefaultKitDraft({ id: BRAND, label: 'Acme' }),
+      ),
+      id: 'seed-1',
+      status: BrandOsRevisionStatus.DRAFT,
+      version: 1,
+    };
+    const h = harness([seed]);
+    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(envelope());
+    await h.service.start(h.input);
+    const byId = Object.fromEntries(
+      h.state.rows.map((row) => [row.id, row.status]),
+    );
+    expect(byId['seed-1']).toBe(BrandOsRevisionStatus.SUPERSEDED);
+    expect(
+      h.state.rows.some(
+        (row) =>
+          row.id !== 'seed-1' && row.status === BrandOsRevisionStatus.DRAFT,
+      ),
+    ).toBe(true);
   });
   it('accepts ordinary monkey/design/author query keys', async () => {
     const h = harness();
