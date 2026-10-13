@@ -35,7 +35,7 @@ describe('OAuth callback profile import contract', () => {
   it.each(OAUTH_PROFILE_IMPORT_PROVIDERS)(
     'routes %s callback profile and avatar through updateExternalProfile',
     (platform) => {
-      const source = readFileSync(
+      const controllerSource = readFileSync(
         path.join(
           API_SRC,
           'services/integrations',
@@ -45,7 +45,22 @@ describe('OAuth callback profile import contract', () => {
         ),
         'utf8',
       );
+      // YouTube verify delegates profile persistence so the controller stays
+      // under the complexity limit. The contract follows that call.
+      const source =
+        platform === Platform.YOUTUBE
+          ? `${controllerSource}\n${readFileSync(
+              path.join(
+                API_SRC,
+                'services/integrations/youtube/utils/youtube-oauth-verify-completion.util.ts',
+              ),
+              'utf8',
+            )}`
+          : controllerSource;
 
+      if (platform === Platform.YOUTUBE) {
+        expect(controllerSource).toContain('completeYoutubeOAuthVerification');
+      }
       expect(source).toContain('updateExternalProfile');
       expect(source).toMatch(/\bavatarUrl\b/);
     },
