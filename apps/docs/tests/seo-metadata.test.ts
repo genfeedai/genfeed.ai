@@ -116,14 +116,20 @@ describe('docs SEO metadata', () => {
     expect(body).toContain('Sitemap: https://docs.genfeed.ai/sitemap.xml');
   });
 
-  it('keeps an authored H1 out of the Swagger-owned reference page', () => {
+  it('gives the reference page one authored h1 and demotes the Swagger title', () => {
     const source = fs.readFileSync(apiReferencePath, 'utf8');
+    const swaggerSource = fs.readFileSync(
+      fileURLToPath(new URL('../components/SwaggerUI.tsx', import.meta.url)),
+      'utf8',
+    );
 
-    // The 2026-08-24 watchdog recorded `API Reference` in the fetched DOM, then
-    // `Genfeed.ai API 0.1.66 OAS 3.0` as a second H1 after Swagger hydrated.
-    // Removing the authored MDX H1 leaves the rendered Swagger document H1.
+    // Raw HTML has no Swagger title (the widget is client-only). One markdown
+    // h1 is the document heading. SwaggerUI demotes its OpenAPI title so
+    // hydration does not add a second h1.
     expect(source).toContain('<SwaggerUI />');
-    expect(source.match(/^# /gm) ?? []).toHaveLength(0);
+    expect(source.match(/^# /gm) ?? []).toEqual(['# API Reference']);
+    expect(swaggerSource).toContain('.info h1.title');
+    expect(swaggerSource).toContain("createElement('p')");
   });
 
   it('builds a complete Open Graph card for every docs route', () => {
