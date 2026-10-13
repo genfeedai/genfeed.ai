@@ -4,6 +4,7 @@ import type {
   BrandedGenerationDispatchRecoveryV1,
 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
 import { BRANDED_GENERATION_DISPATCH_WINDOW_MS } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { z } from 'zod';
@@ -90,3 +91,26 @@ export const mutationSchema = z.strictObject({
     ),
   expectedRevision: z.number().int().nonnegative().max(2147483647),
 });
+
+/**
+ * Resolved receipts past the dispatch window, oldest first, across tenants. Each
+ * one is then mutated inside its own organization and brand scope.
+ */
+export function findExpiredResolvedReceipts(
+  prisma: PrismaService,
+  cutoff: Date,
+  limit: number,
+  excludeIds: readonly string[] = [],
+) {
+  // tenant-scope-ignore: scheduled sweep recovers every tenant's stale receipts
+  return prisma.brandedGenerationReceipt.findMany({
+    orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+    take: limit,
+    where: {
+      isDeleted: false,
+      state: 'resolved',
+      updatedAt: { lt: cutoff },
+      ...(excludeIds.length ? { id: { notIn: [...excludeIds] } } : {}),
+    },
+  });
+}

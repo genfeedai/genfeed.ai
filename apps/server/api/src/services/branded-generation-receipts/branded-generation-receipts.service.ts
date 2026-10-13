@@ -35,6 +35,7 @@ import {
 import {
   blockExpiredDispatches,
   dispatchWindowCutoff,
+  findExpiredResolvedReceipts,
   mutationSchema,
   recordReceiptEvent,
 } from '@api/services/branded-generation-receipts/branded-generation-recovery.util';
@@ -798,18 +799,12 @@ export class BrandedGenerationReceiptsService {
   }): Promise<BrandedGenerationDispatchRecoveryV1> {
     this.limit(query.limit);
     const cutoff = dispatchWindowCutoff(query.now);
-    const rows = await this.prisma.brandedGenerationReceipt.findMany({
-      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-      take: query.limit,
-      where: {
-        isDeleted: false,
-        state: 'resolved',
-        updatedAt: { lt: cutoff },
-        ...(query.excludeIds?.length
-          ? { id: { notIn: [...query.excludeIds] } }
-          : {}),
-      },
-    });
+    const rows = await findExpiredResolvedReceipts(
+      this.prisma,
+      cutoff,
+      query.limit,
+      query.excludeIds,
+    );
     return blockExpiredDispatches(rows, (row) =>
       this.blockExpired(
         {
