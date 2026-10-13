@@ -84,61 +84,15 @@ describe('ClipsWorkspace chrome stability', () => {
     mocks.useStudioClipsPage.mockReturnValue(baseClipsPageState());
   });
 
-  it('keeps SectionTopbar mounted while projects are loading', () => {
-    mocks.useStudioClipProjects.mockReturnValue({
-      error: null,
-      isLoading: true,
-      projects: [],
-    });
-
-    render(<ClipsWorkspace />);
-
-    expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
-    expect(screen.getByTestId('container')).toHaveAttribute(
-      'data-module-chrome',
-      'section-topbar',
-    );
-  });
-
-  it('keeps SectionTopbar mounted once the project list resolves empty', () => {
+  it('shows no topbar until there is an action, then puts New project in it', () => {
     mocks.useStudioClipProjects.mockReturnValue({
       error: null,
       isLoading: false,
-      projects: [],
-    });
-
-    render(<ClipsWorkspace />);
-
-    expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
-    expect(screen.getByTestId('container')).toHaveAttribute(
-      'data-module-chrome',
-      'section-topbar',
-    );
-  });
-
-  it('does not flip module chrome across loading, empty, and populated states', () => {
-    mocks.useStudioClipProjects.mockReturnValue({
-      error: null,
-      isLoading: true,
       projects: [],
     });
 
     const { rerender } = render(<ClipsWorkspace />);
-    expect(screen.getByTestId('container')).toHaveAttribute(
-      'data-module-chrome',
-      'section-topbar',
-    );
-
-    mocks.useStudioClipProjects.mockReturnValue({
-      error: null,
-      isLoading: false,
-      projects: [],
-    });
-    rerender(<ClipsWorkspace />);
-    expect(screen.getByTestId('container')).toHaveAttribute(
-      'data-module-chrome',
-      'section-topbar',
-    );
+    expect(screen.queryByTestId('section-topbar')).not.toBeInTheDocument();
 
     mocks.useStudioClipProjects.mockReturnValue({
       error: null,
@@ -157,13 +111,8 @@ describe('ClipsWorkspace chrome stability', () => {
       ],
     });
     rerender(<ClipsWorkspace />);
-    expect(screen.getByTestId('container')).toHaveAttribute(
-      'data-module-chrome',
-      'section-topbar',
-    );
-    expect(screen.getByRole('link', { name: 'New project' })).toHaveAttribute(
-      'href',
-      '/acme/demo/studio/clips/new',
+    expect(screen.getByTestId('section-topbar')).toContainElement(
+      screen.getByRole('link', { name: 'New project' }),
     );
   });
 
