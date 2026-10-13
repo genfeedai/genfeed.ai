@@ -285,6 +285,7 @@ Tweet 3: Tech innovation is changing the world.`,
       brandId,
       prompt: 'Launch',
       platform: CredentialPlatform.TWITTER,
+      requestKey: '7b1f6a3e-2c54-4d0e-9a8b-3f1c2d4e5a60',
     };
     const resolver = vi.fn();
     const result = { description: 'Draft', model: DEFAULT_MINI_TEXT_MODEL };
