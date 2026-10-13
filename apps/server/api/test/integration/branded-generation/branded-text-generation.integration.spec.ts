@@ -501,92 +501,126 @@ describe('Branded text generation seam (real Postgres)', () => {
     expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
   }, 120000);
 
-  it('blocks a receipt stuck in resolved past the dispatch window without a member session', async () => {
-    const s = await seed();
-    const { seam, openRouter } = buildSeam();
-    const requestKey = randomUUID();
-    const value: BrandedGenerationInputV1 = {
-      schemaVersion: 1,
-      actorId: s.owner,
-      organizationId: s.source,
-      brandId: s.brand,
-      requestKey,
-      candidateIndex: 0,
-      surface: 'api',
-      contentType: 'post',
-      format: 'text',
-      mode: 'approved_brand',
-      originalPrompt: 'Write one post about the launch',
-      provider: 'openrouter',
-      model: 'openai/gpt-4o-mini',
-      generationParameters: { maxTokens: 500, temperature: 0.8 },
-      platform: 'twitter',
-      objective: 'engagement',
-      knowledgeSourceIds: [],
-      knowledgeSpaceIds: [],
-    };
-    const request = (): BrandedTextGenerationRequestV1 => ({
-      input: value,
-      initiatingActor: { userId: s.owner, organizationId: s.source },
-      privateLearning: baselinePrivateLearning,
-      resolveApiKey: async () => undefined,
-      acceptText: () => true,
-      persistText: async (text) => {
-        const post = await prisma.post.create({
-          data: {
-            id: randomUUID(),
+  it.each([false, true])(
+    'blocks a receipt stuck in resolved past the dispatch window without a member session (deleted brand: %s)',
+    async (deletedBrand) => {
+      const s = await seed();
+      const { seam, openRouter } = buildSeam();
+      const requestKey = randomUUID();
+      const value: BrandedGenerationInputV1 = {
+        schemaVersion: 1,
+        actorId: s.owner,
+        organizationId: s.source,
+        brandId: s.brand,
+        requestKey,
+        candidateIndex: 0,
+        surface: 'api',
+        contentType: 'post',
+        format: 'text',
+        mode: 'approved_brand',
+        originalPrompt: 'Write one post about the launch',
+        provider: 'openrouter',
+        model: 'openai/gpt-4o-mini',
+        generationParameters: { maxTokens: 500, temperature: 0.8 },
+        platform: 'twitter',
+        objective: 'engagement',
+        knowledgeSourceIds: [],
+        knowledgeSpaceIds: [],
+      };
+      const request = (): BrandedTextGenerationRequestV1 => ({
+        input: value,
+        initiatingActor: { userId: s.owner, organizationId: s.source },
+        privateLearning: baselinePrivateLearning,
+        resolveApiKey: async () => undefined,
+        acceptText: () => true,
+        persistText: async (text) => {
+          const post = await prisma.post.create({
+            data: {
+              id: randomUUID(),
+              userId: s.owner,
+              organizationId: s.source,
+              brandId: s.brand,
+              description: text,
+            },
+          });
+          return { postId: post.id };
+        },
+      });
+
+      // A credit hold that never lands leaves the receipt resolved, with no dispatch.
+      await expect(
+        seam.generate({
+          ...request(),
+          admitDispatch: async () => {
+            throw new Error('hold rejected');
+          },
+        }),
+      ).rejects.toThrow('hold rejected');
+      expect(openRouter.chatCompletion).not.toHaveBeenCalled();
+      const stuck = await prisma.brandedGenerationReceipt.findFirstOrThrow({
+        where: { organizationId: s.source, brandId: s.brand, requestKey },
+      });
+      expect(stuck.state).toBe('resolved');
+
+      if (deletedBrand) {
+        await prisma.brand.updateMany({
+          where: { id: s.brand, organizationId: s.source, isDeleted: false },
+          data: { isDeleted: true },
+        });
+        await prisma.member.updateMany({
+          where: {
             userId: s.owner,
             organizationId: s.source,
-            brandId: s.brand,
-            description: text,
+            isDeleted: false,
           },
+          data: { isDeleted: true },
         });
-        return { postId: post.id };
-      },
-    });
+        await expect(
+          receipts.blockBeforeDispatch(
+            { actorId: s.owner, brandId: s.brand, organizationId: s.source },
+            stuck.id,
+            {
+              operationKey: 'member-recovery-denied',
+              expectedRevision: stuck.revision,
+            },
+            'dispatch_window_expired',
+          ),
+        ).rejects.toThrow('receipt_access_denied');
+      }
 
-    // A credit hold that never lands leaves the receipt resolved, with no dispatch.
-    await expect(
-      seam.generate({
-        ...request(),
-        admitDispatch: async () => {
-          throw new Error('hold rejected');
-        },
-      }),
-    ).rejects.toThrow('hold rejected');
-    expect(openRouter.chatCompletion).not.toHaveBeenCalled();
-    const stuck = await prisma.brandedGenerationReceipt.findFirstOrThrow({
-      where: { organizationId: s.source, brandId: s.brand, requestKey },
-    });
-    expect(stuck.state).toBe('resolved');
+      // Inside the window nothing is recovered.
+      await expect(
+        receipts.recoverExpiredDispatchesSystem({ limit: 10 }),
+      ).resolves.toEqual({ blocked: [], skipped: [] });
 
-    // Inside the window nothing is recovered.
-    await expect(
-      receipts.recoverExpiredDispatchesSystem({ limit: 10 }),
-    ).resolves.toEqual({ blocked: [], skipped: [] });
+      const longAgo = new Date(Date.now() - 60 * 60 * 1000);
+      await sql.query(
+        `UPDATE branded_generation_receipts SET "updatedAt" = ($2::timestamptz AT TIME ZONE 'UTC'), projection = jsonb_set(projection::jsonb, '{updatedAt}', to_jsonb($3::text)) WHERE id = $1`,
+        [stuck.id, longAgo.toISOString(), longAgo.toISOString()],
+      );
+      const swept = await receipts.recoverExpiredDispatchesSystem({
+        limit: 10,
+      });
+      expect(swept).toEqual({ blocked: [stuck.id], skipped: [] });
+      const blocked = await prisma.brandedGenerationReceipt.findFirstOrThrow({
+        where: { id: stuck.id },
+      });
+      expect(blocked.state).toBe('blocked');
 
-    const longAgo = new Date(Date.now() - 60 * 60 * 1000);
-    await sql.query(
-      `UPDATE branded_generation_receipts SET "updatedAt" = ($2::timestamptz AT TIME ZONE 'UTC'), projection = jsonb_set(projection::jsonb, '{updatedAt}', to_jsonb($3::text)) WHERE id = $1`,
-      [stuck.id, longAgo.toISOString(), longAgo.toISOString()],
-    );
-    const swept = await receipts.recoverExpiredDispatchesSystem({ limit: 10 });
-    expect(swept).toEqual({ blocked: [stuck.id], skipped: [] });
-    const blocked = await prisma.brandedGenerationReceipt.findFirstOrThrow({
-      where: { id: stuck.id },
-    });
-    expect(blocked.state).toBe('blocked');
-
-    // The sweep is idempotent and the same request key now answers stopped.
-    await expect(
-      receipts.recoverExpiredDispatchesSystem({ limit: 10 }),
-    ).resolves.toEqual({ blocked: [], skipped: [] });
-    const replay = await seam.generate(request());
-    expect(replay).toMatchObject({
-      hasNewDispatch: false,
-      kind: 'stopped',
-      reasonCode: 'dispatch_window_expired',
-    });
-    expect(openRouter.chatCompletion).not.toHaveBeenCalled();
-  }, 120000);
+      // The sweep is idempotent and the same request key now answers stopped.
+      await expect(
+        receipts.recoverExpiredDispatchesSystem({ limit: 10 }),
+      ).resolves.toEqual({ blocked: [], skipped: [] });
+      if (!deletedBrand) {
+        const replay = await seam.generate(request());
+        expect(replay).toMatchObject({
+          hasNewDispatch: false,
+          kind: 'stopped',
+          reasonCode: 'dispatch_window_expired',
+        });
+      }
+      expect(openRouter.chatCompletion).not.toHaveBeenCalled();
+    },
+    120000,
+  );
 });

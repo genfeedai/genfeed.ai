@@ -125,7 +125,7 @@ export class BrandedGenerationReceiptsService {
   ) {
     const rows = await tx.$queryRaw<
       Array<{ id: string }>
-    >`SELECT id FROM brands WHERE id=${actor.brandId} AND "organizationId"=${actor.organizationId} AND "isDeleted"=false FOR KEY SHARE`;
+    >`SELECT id FROM brands WHERE id=${actor.brandId} AND "organizationId"=${actor.organizationId} AND ("isDeleted"=false OR ${isSystem}) FOR KEY SHARE`;
     if (!rows.length) throw new ForbiddenException('receipt_access_denied');
     return isSystem
       ? { isOwnerOrAdmin: true }
