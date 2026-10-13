@@ -653,6 +653,10 @@ const UI_TEST_MESSAGES = {
       generate: 'Generate draft',
       generating: 'Generating…',
       failed: 'Could not generate a draft. Please try again.',
+      savedReady: 'Draft saved with your approved brand kit.',
+      savedNeedsReview:
+        'Draft saved in a provisional style until you approve your own brand kit.',
+      viewReceipt: 'View receipt',
       platform: 'Channel',
       account: 'Publishing account',
       noAccount: 'Draft only — connect an account later',
