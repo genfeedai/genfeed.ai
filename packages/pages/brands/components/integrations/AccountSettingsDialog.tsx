@@ -44,12 +44,12 @@ function AccountSettingsSections({
     useState<AccountSettingsSection>('postingTimes');
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-h-0 flex-col gap-4">
       {sections.length > 1 ? (
         <Tabs
           activeTab={activeSection}
           ariaLabel={translate('settings')}
-          listClassName="mr-auto"
+          listClassName="mr-auto shrink-0"
           onTabChange={(id) => setActiveSection(id as AccountSettingsSection)}
           tabs={sections.map((section) => ({
             id: section,
@@ -58,23 +58,28 @@ function AccountSettingsSections({
         />
       ) : null}
 
-      {activeSection === 'postingTimes' ? (
-        <CredentialPostingTimesEditor
-          credentialId={connection.credentialId}
-          initialTimes={connection.postingTimes}
-        />
-      ) : null}
-      {activeSection === 'import' ? (
-        <AccountHistoryImportPanel brandId={brandId} connection={connection} />
-      ) : null}
-      {activeSection === 'health' ? (
-        <SocialWarmupProgram
-          connection={connection}
-          health={health}
-          onOverrideRequest={onOverrideRequest}
-          onReconnect={() => onReconnect(connection)}
-        />
-      ) : null}
+      <div className="min-h-0 overflow-y-auto">
+        {activeSection === 'postingTimes' ? (
+          <CredentialPostingTimesEditor
+            credentialId={connection.credentialId}
+            initialTimes={connection.postingTimes}
+          />
+        ) : null}
+        {activeSection === 'import' ? (
+          <AccountHistoryImportPanel
+            brandId={brandId}
+            connection={connection}
+          />
+        ) : null}
+        {activeSection === 'health' ? (
+          <SocialWarmupProgram
+            connection={connection}
+            health={health}
+            onOverrideRequest={onOverrideRequest}
+            onReconnect={() => onReconnect(connection)}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -93,8 +98,8 @@ export default function AccountSettingsDialog({
 
   return (
     <Dialog open={Boolean(connection)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-h-[90dvh] max-w-2xl overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>
             {connection
               ? translate('settingsDialogTitle', {
