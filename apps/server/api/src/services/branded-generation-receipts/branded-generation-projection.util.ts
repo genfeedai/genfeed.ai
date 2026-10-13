@@ -396,6 +396,14 @@ export function assertBrandedGenerationResolutionV1(
   )
     throw new BadRequestException('receipt_resolution_scope_mismatch');
   if (
+    current.mode === 'provisional_brand' &&
+    resolution.snapshot &&
+    (resolution.snapshot.approval !== 'provisional' ||
+      (retainedInput?.draftRevisionId !== undefined &&
+        resolution.snapshot.revisionId !== retainedInput.draftRevisionId))
+  )
+    throw new BadRequestException('receipt_resolution_scope_mismatch');
+  if (
     resolution.status === 'resolved' &&
     resolution.originalPromptHash !== current.prompts.original.contentHash
   )

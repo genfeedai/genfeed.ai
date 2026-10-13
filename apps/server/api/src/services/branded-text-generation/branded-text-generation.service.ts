@@ -154,7 +154,7 @@ export class BrandedTextGenerationService {
     input: BrandedGenerationInputV1,
     format: 'text' | 'thread',
   ): GenerationParameters {
-    if (input.mode !== 'approved_brand')
+    if (input.mode !== 'approved_brand' && input.mode !== 'provisional_brand')
       throw new BadRequestException('brand_mode_unsupported');
     if (input.format !== format)
       throw new BadRequestException('brand_format_unsupported');
@@ -361,12 +361,20 @@ export class BrandedTextGenerationService {
     ];
     let snapshot: BrandIdentitySnapshotV1 | null = null;
     try {
-      snapshot = await this.snapshots.preview(actor);
+      snapshot =
+        input.mode === 'provisional_brand' && input.draftRevisionId
+          ? await this.snapshots.previewProvisional(
+              actor,
+              input.draftRevisionId,
+            )
+          : await this.snapshots.preview(actor);
     } catch (error) {
       if (!(error instanceof ConflictException)) throw error;
       const code = error.message;
       if (RECOVERABLE_SNAPSHOT_FAILURES.has(code)) return blocked(null, [code]);
       if (code !== 'brand_identity_unavailable') throw error;
+      if (input.mode === 'provisional_brand')
+        return blocked(null, ['no_draft_revision']);
       return this.harness.resolveSnapshotBriefWithRecipe(
         input,
         null,
