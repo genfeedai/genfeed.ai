@@ -6,7 +6,6 @@ import type {
 import { CardVariant } from '@genfeedai/contracts';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
 import type { MouseEvent, ReactNode } from 'react';
 
@@ -98,8 +97,6 @@ interface ContainerBaseProps {
   isTopbarPinned?: boolean;
   /** Row rendered inside the pinned module bar, under the filters. */
   topbarFooter?: ReactNode;
-  /** Explicit help popover; `null` hides the route-level help for this page. */
-  help?: PageHelpContent | null;
 }
 
 /**

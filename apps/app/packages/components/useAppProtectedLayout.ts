@@ -64,6 +64,7 @@ import {
   isPersonalSettingsPage as computeIsPersonalSettingsPage,
   resolveSettingsScope,
 } from './app-protected-layout.settings-scope';
+import { usePageHelp } from './use-page-help';
 import { useOpenTaskComposer } from './useOpenTaskComposer';
 
 const AUTOMATION_WORKFLOW_RESERVED = new Set([
@@ -266,8 +267,9 @@ export function useAppProtectedLayout(
   const bootstrapRole = initialBootstrap?.accessState?.memberRole;
   const role = bootstrapRole !== undefined ? bootstrapRole : contextRole;
 
-  // Sync route context into the agent store
-  useAgentPageContext(role ?? undefined);
+  // Sync route context (and route help copy) into the agent store
+  const pageHelp = usePageHelp(rawPathname);
+  useAgentPageContext(role ?? undefined, pageHelp);
 
   const handleNavigate = useCallback(
     (path: string) => {

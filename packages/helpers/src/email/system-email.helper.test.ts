@@ -140,6 +140,49 @@ describe('buildSystemEmailHtml link safety', () => {
     expect(html).toContain('Review post');
   });
 
+  it('renders a secondary button beside the action', () => {
+    const html = buildSystemEmailHtml({
+      action: { label: 'Choose a plan', url: 'https://app.genfeed.ai/plans' },
+      bodyHtml: buildSystemEmailParagraph('Body.'),
+      secondaryAction: {
+        label: 'Buy credits',
+        url: 'https://app.genfeed.ai/credits',
+      },
+      title: 'Notice',
+    });
+
+    expect(html).toContain('href="https://app.genfeed.ai/credits"');
+    expect(html.indexOf('Choose a plan')).toBeLessThan(
+      html.indexOf('Buy credits'),
+    );
+  });
+
+  it('drops an untrusted secondary target but keeps the action', () => {
+    const html = buildSystemEmailHtml({
+      action: { label: 'Choose a plan', url: 'https://app.genfeed.ai/plans' },
+      bodyHtml: buildSystemEmailParagraph('Body.'),
+      secondaryAction: { label: 'Buy credits', url: 'javascript:alert(1)' },
+      title: 'Notice',
+    });
+
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('Buy credits');
+    expect(html).toContain('Choose a plan');
+  });
+
+  it('renders no buttons when only a secondary action is given', () => {
+    const html = buildSystemEmailHtml({
+      bodyHtml: buildSystemEmailParagraph('Body.'),
+      secondaryAction: {
+        label: 'Buy credits',
+        url: 'https://app.genfeed.ai/credits',
+      },
+      title: 'Notice',
+    });
+
+    expect(html).not.toContain('Buy credits');
+  });
+
   it('falls back to the default app url when appUrl is untrusted', () => {
     const html = buildSystemEmailHtml({
       appUrl: 'javascript:alert(1)',

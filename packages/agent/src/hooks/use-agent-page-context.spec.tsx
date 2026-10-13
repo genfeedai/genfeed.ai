@@ -6,6 +6,7 @@ import { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-conte
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { MemberRole } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,11 +25,15 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ selectedBrand: brandRef.current }),
 }));
 
-function renderAt(href: string, role?: MemberRole) {
+function renderAt(
+  href: string,
+  role?: MemberRole,
+  pageHelp?: PageHelpContent | null,
+) {
   const [pathname = '/', query = ''] = href.split('?');
   pathnameRef.current = pathname;
   searchParamsRef.current = new URLSearchParams(query);
-  return renderHook(() => useAgentPageContext(role));
+  return renderHook(() => useAgentPageContext(role, pageHelp));
 }
 
 describe('useAgentPageContext', () => {
@@ -42,6 +47,48 @@ describe('useAgentPageContext', () => {
 
     expect(result.current.placeholder).toBe('Ask me anything...');
     expect(result.current.suggestedActions).toHaveLength(3);
+  });
+
+  describe('page help', () => {
+    const help: PageHelpContent = {
+      body: 'Browse and organize every image and video you have made.',
+      title: 'Library',
+    };
+
+    it('leads the suggestions with a pinned "About this page" action grounded in the route help', () => {
+      const route = `/acme/main${APP_ROUTES.LIBRARY.IMAGES}`;
+      const withoutHelp = renderAt(route).result.current.suggestedActions;
+      const { result } = renderAt(route, undefined, help);
+
+      const [first, ...rest] = result.current.suggestedActions;
+      expect(first?.label).toBe('About this page');
+      expect(first?.isPinned).toBe(true);
+      expect(first?.prompt).toContain('"Library"');
+      expect(first?.prompt).toContain(help.body);
+      expect(rest).toEqual(withoutHelp);
+      expect(withoutHelp.length).toBeGreaterThan(0);
+    });
+
+    it('publishes the help action into the chat store with the route suggestions', () => {
+      renderAt(`/acme/main${APP_ROUTES.LIBRARY.IMAGES}`, undefined, help);
+
+      expect(
+        useAgentChatStore.getState().pageContext?.suggestedActions[0]?.label,
+      ).toBe('About this page');
+    });
+
+    it('adds no help action when the route has no help copy', () => {
+      const { result } = renderAt(
+        `/acme/main${APP_ROUTES.LIBRARY.IMAGES}`,
+        undefined,
+        null,
+      );
+
+      expect(
+        result.current.suggestedActions.map((action) => action.label),
+      ).not.toContain('About this page');
+      expect(result.current.suggestedActions).toHaveLength(3);
+    });
   });
 
   it('resolves a mapped route after stripping the org and brand segments', () => {

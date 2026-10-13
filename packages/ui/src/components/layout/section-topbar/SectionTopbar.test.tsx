@@ -59,14 +59,13 @@ describe('SectionTopbar', () => {
   );
 
   it.each(['visible', 'sr-only'] as const)(
-    'defaults to search left and Help, ghosts, filters, primary order with %s titles',
+    'defaults to search left and ghosts, filters, primary order with %s titles',
     (titleVisibility) => {
       render(
         <SectionTopbar
           title="Publishing"
           titleVisibility={titleVisibility}
           leading={<input aria-label="Search posts" />}
-          help={{ title: 'About Publishing', body: 'Publishing help.' }}
           iconActions={
             <>
               <button type="button">Ghost action</button>
@@ -87,7 +86,6 @@ describe('SectionTopbar', () => {
       );
       const controls = [
         search,
-        screen.getByRole('button', { name: 'About this page' }),
         screen.getByRole('button', { name: 'Ghost action' }),
         screen.getByRole('button', { name: 'Refresh' }),
         screen.getByRole('button', { name: 'Filter' }),
@@ -351,7 +349,7 @@ describe('SectionTopbar', () => {
     );
   });
 
-  it('clusters Help and ghost actions before the bordered controls by default', () => {
+  it('clusters Refresh before the bordered controls by default', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
@@ -360,12 +358,10 @@ describe('SectionTopbar', () => {
         titleVisibility="sr-only"
         actions={<button type="button">Filter</button>}
         refresh={<button type="button">Refresh</button>}
-        help={{ title: 'About Activities', body: 'What changed.' }}
       />,
     );
 
     const actions = screen.getByTestId('section-topbar-actions');
-    const helpSlot = screen.getByTestId('section-topbar-help');
     const refresh = screen.getByRole('button', { name: 'Refresh' });
     const filter = screen.getByRole('button', { name: 'Filter' });
     expect(
@@ -374,69 +370,12 @@ describe('SectionTopbar', () => {
     ).toBeTruthy();
 
     expect(actions).toHaveClass('justify-end');
-    expect(
-      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
-    ).toBe(helpSlot);
-    expect(
-      helpSlot.compareDocumentPosition(refresh) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('renders a help trigger beside ghost actions that opens a popover with the given title and body', () => {
-    render(
-      <SectionTopbar
-        title="Trending Content"
-        iconActions={<button type="button">Refresh</button>}
-        help={{ title: 'About Trending', body: 'How this page works.' }}
-      />,
-    );
-
-    const actionsSlot = screen.getByTestId('section-topbar-actions');
-    const helpTrigger = screen.getByRole('button', {
-      name: 'About this page',
-    });
-    const refresh = screen.getByRole('button', { name: 'Refresh' });
-    const helpSlot = screen.getByTestId('section-topbar-help');
-    expect(actionsSlot).toContainElement(helpTrigger);
-    expect(
-      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
-    ).toBe(helpSlot);
-    expect(
-      helpTrigger.compareDocumentPosition(refresh) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-
-    fireEvent.click(helpTrigger);
-
-    expect(screen.getByText('About Trending')).toBeInTheDocument();
-    expect(screen.getByText('How this page works.')).toBeInTheDocument();
-  });
-
-  it('right-aligns Help when it is the only breadcrumb toolbar control', () => {
-    navigationState.hasCanonicalBreadcrumb = true;
-    render(
-      <SectionTopbar
-        title="Overview"
-        help={{ title: 'About Overview', body: 'Workspace guidance.' }}
-      />,
-    );
-
-    const helpSlot = screen.getByTestId('section-topbar-help');
-    const actionsSlot = screen.getByTestId('section-topbar-actions');
-    expect(actionsSlot).toContainElement(helpSlot);
-    expect(
-      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
-    ).toBe(helpSlot);
-    expect(actionsSlot).toHaveClass('shrink-0');
-    expect(helpSlot).toHaveClass('shrink-0');
-    expect(actionsSlot.parentElement).toHaveClass('justify-end');
-    expect(helpSlot).toContainElement(
-      screen.getByRole('button', { name: 'About this page' }),
+    expect(screen.getByTestId('section-topbar-icon-actions')).toContainElement(
+      refresh,
     );
   });
 
-  it('enforces the right-cluster order: Help, Refresh, tabs, ghost actions, controls, primary', () => {
+  it('enforces the right-cluster order: Refresh, tabs, ghost actions, controls, primary', () => {
     navigationState.hasCanonicalBreadcrumb = true;
     // Props are passed in a deliberately scrambled order: slot position, not
     // JSX order, decides where each control lands.
@@ -452,17 +391,10 @@ describe('SectionTopbar', () => {
         tabs={<a href="/content">All content</a>}
         iconActions={<button type="button">Mark all read</button>}
         refresh={<button type="button">Refresh</button>}
-        help={{ title: 'About Content', body: 'Content guidance.' }}
       />,
     );
 
-    const leadActions = screen.getByTestId('section-topbar-icon-actions');
-    const helpSlot = screen.getByTestId('section-topbar-help');
-    expect(leadActions.firstElementChild).toBe(helpSlot);
-    expect(helpSlot.parentElement).toHaveClass('flex', 'items-center', 'gap-1');
-
     const ordered = [
-      screen.getByRole('button', { name: 'About this page' }),
       screen.getByRole('button', { name: 'Refresh' }),
       screen.getByRole('link', { name: 'All content' }),
       screen.getByRole('button', { name: 'Mark all read' }),
@@ -477,21 +409,17 @@ describe('SectionTopbar', () => {
     }
   });
 
-  it('keeps Refresh right after Help even when the title is visible', () => {
+  it('keeps Refresh in the lead cluster even when the title is visible', () => {
     render(
       <SectionTopbar
         title="Content"
         titleVisibility="visible"
         iconActions={<button type="button">Ghost</button>}
         refresh={<button type="button">Refresh</button>}
-        help={{ title: 'About Content', body: 'Content guidance.' }}
       />,
     );
 
     const leadActions = screen.getByTestId('section-topbar-icon-actions');
-    expect(leadActions.firstElementChild).toBe(
-      screen.getByTestId('section-topbar-help'),
-    );
     expect(leadActions).toContainElement(
       screen.getByRole('button', { name: 'Refresh' }),
     );
@@ -564,23 +492,11 @@ describe('SectionTopbar', () => {
     render(
       <InspectorToggleHost>
         <InspectorToggleFallback />
-        <SectionTopbar
-          help={{ title: 'About Overview', body: 'Workspace guidance.' }}
-          title="Overview"
-          titleVisibility="sr-only"
-        />
+        <SectionTopbar title="Overview" titleVisibility="sr-only" />
       </InspectorToggleHost>,
     );
 
     expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
     expect(screen.queryByTestId('content-inspector-fallback')).toBeNull();
-  });
-
-  it('omits the help trigger when the help prop is not provided', () => {
-    render(<SectionTopbar title="Trending Content" />);
-
-    expect(
-      screen.queryByRole('button', { name: 'About this page' }),
-    ).not.toBeInTheDocument();
   });
 });

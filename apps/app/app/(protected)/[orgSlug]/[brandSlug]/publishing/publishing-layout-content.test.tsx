@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom/vitest';
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { PageHelpProvider } from '@contexts/ui/page-help-context';
 import type {
   ModalArticleProps,
   ModalNewsletterProps,
@@ -117,13 +116,11 @@ describe('PublishingLayoutContent', () => {
     );
   });
 
-  it('puts existing search left and Help, refresh, queue, filters, New post on the right', () => {
+  it('puts existing search left and refresh, queue, filters, New post on the right', () => {
     render(
-      <PageHelpProvider help={{ title: 'Publishing', body: 'Publishing help' }}>
-        <PublishingLayoutContent>
-          <ToolbarFixture />
-        </PublishingLayoutContent>
-      </PageHelpProvider>,
+      <PublishingLayoutContent>
+        <ToolbarFixture />
+      </PublishingLayoutContent>,
     );
     const search = screen.getByRole('textbox', { name: 'Search posts' });
     expect(screen.getByTestId('section-topbar-leading')).toContainElement(
@@ -131,7 +128,6 @@ describe('PublishingLayoutContent', () => {
     );
     const controls = [
       search,
-      screen.getByRole('button', { name: 'About this page' }),
       screen.getByRole('button', { name: /refresh/i }),
       screen.getByRole('link', { name: 'Approval queue' }),
       screen.getByRole('button', { name: 'Filter posts' }),

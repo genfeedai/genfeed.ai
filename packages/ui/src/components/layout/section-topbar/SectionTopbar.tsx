@@ -1,6 +1,5 @@
 'use client';
 
-import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
@@ -8,7 +7,6 @@ import ContextInspectorToggle, {
   InspectorTogglePlacement,
   useSectionInspectorToggle,
 } from '@ui/layout/context-inspector-toggle/ContextInspectorToggle';
-import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
@@ -17,13 +15,13 @@ import HelpPopover from '@ui/layout/help-popover/HelpPopover';
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
  * - the right cluster has ONE fixed order, enforced here by slot so a page
- *   cannot get it wrong: Help, Refresh (`refresh`), tabs (`tabs`), ghost
+ *   cannot get it wrong: Refresh (`refresh`), tabs (`tabs`), ghost
  *   actions (`iconActions`, then the details toggle), controls, primary action
  *   last (`actions`). With `iconActionsPlacement="after-controls"` the ghost
  *   group moves to the end instead.
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
- * - when title is visible: title row (Help, Refresh, ghost actions, controls),
+ * - when title is visible: title row (Refresh, ghost actions, controls),
  *   then the tab strip under it
  *
  * Prefer this over hand-rolled toolbars. Pages may render it directly, or let
@@ -40,7 +38,6 @@ export default function SectionTopbar({
   leading,
   tabs,
   titleVisibility = 'auto',
-  help,
   forceVisible = false,
   className,
 }: SectionTopbarProps) {
@@ -53,33 +50,19 @@ export default function SectionTopbar({
         : !hasCanonicalBreadcrumb;
   const hasLeading = Boolean(leading);
   const hasTabs = Boolean(tabs);
-  const routeHelp = usePageHelp();
-  const resolvedHelp = help === undefined ? routeHelp : help;
-  const helpTrigger = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
   const hasActions =
-    Boolean(actions) ||
-    Boolean(iconActions) ||
-    Boolean(refresh) ||
-    Boolean(helpTrigger);
+    Boolean(actions) || Boolean(iconActions) || Boolean(refresh);
   const isBarVisible =
     forceVisible || hasVisibleTitle || hasLeading || hasTabs || hasActions;
   const { markPlaced, renderToggle } = useSectionInspectorToggle(isBarVisible);
   const inspectorToggle = renderToggle ? <ContextInspectorToggle /> : null;
 
-  // Help, then Refresh: always the first two controls of the right cluster.
+  // Refresh: always the first control of the right cluster.
   const leadActionsNode = (
     <div
       className="flex shrink-0 items-center gap-1 empty:hidden"
       data-testid="section-topbar-icon-actions"
     >
-      {helpTrigger ? (
-        <div
-          data-testid="section-topbar-help"
-          className="flex shrink-0 items-center"
-        >
-          {helpTrigger}
-        </div>
-      ) : null}
       {refresh}
     </div>
   );

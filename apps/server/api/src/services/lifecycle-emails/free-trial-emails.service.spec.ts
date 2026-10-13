@@ -126,9 +126,26 @@ describe('FreeTrialEmailsService', () => {
     );
     const [{ html }] = queueEmail.mock.calls[0];
     expect(html).toContain('href="{{emailActionUrl}}"');
+    expect(html).toContain('>Choose a plan</a>');
+    // The other path is a secondary button, not a URL pasted into the copy.
     expect(html).toContain(
-      'https://app.genfeed.ai/acme%20studio/~/settings/credits',
+      'href="https://app.genfeed.ai/acme%20studio/~/settings/credits"',
     );
+    expect(html).toContain('>Buy credits</a>');
+    expect(html).not.toContain('Prefer a one-off pack');
+    expect(html).not.toMatch(/<p[^>]*>[^<]*https?:\/\//);
+  });
+
+  it('offers plans as the secondary button on the credits-low notice', async () => {
+    await service.sendTrialCreditsLow('org-1', at(10));
+
+    const [{ html }] = queueEmail.mock.calls[0];
+    expect(html).toContain('>Get more credits</a>');
+    expect(html).toContain(
+      'href="https://app.genfeed.ai/acme%20studio/~/settings/subscription"',
+    );
+    expect(html).toContain('>Compare plans</a>');
+    expect(html).not.toMatch(/<p[^>]*>[^<]*https?:\/\//);
   });
 
   it('queues each notice once per organization', async () => {
