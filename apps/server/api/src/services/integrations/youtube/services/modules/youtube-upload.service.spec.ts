@@ -121,9 +121,56 @@ describe('YoutubeUploadService', () => {
     await service.uploadVideo(orgId, brandId, videoId, createPost());
     expect(mockVideosInsert).toHaveBeenCalledWith(
       expect.objectContaining({ media: { body: mediaStream } }),
-      {},
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(fileQueueService.processFile).not.toHaveBeenCalled();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('aborts a continuously streaming upload at the total deadline', async () => {
+    const nativeTimeout = AbortSignal.timeout.bind(AbortSignal);
+    const deadline = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockImplementation(() => nativeTimeout(20));
+    let chunks = 0;
+    mediaStream = Readable.from(
+      (async function* () {
+        while (true) {
+          yield Buffer.from('video chunk');
+          await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+      })(),
+    );
+    httpService.get.mockReturnValueOnce(of({ data: mediaStream }));
+    mockVideosInsert.mockImplementationOnce(
+      (_params, options: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          const signal = options.signal;
+          if (!signal) {
+            reject(new Error('Missing upload deadline'));
+            return;
+          }
+          mediaStream.on('data', () => {
+            chunks += 1;
+          });
+          signal.addEventListener('abort', () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    );
+
+    await expect(
+      service.uploadVideo(orgId, brandId, videoId, createPost()),
+    ).rejects.toMatchObject({ name: 'TimeoutError' });
+    expect(deadline).toHaveBeenCalledWith(10 * 60_000);
+    expect(httpService.get.mock.calls[0]?.[1]?.signal).toBe(
+      mockVideosInsert.mock.calls[0]?.[1]?.signal,
+    );
+    expect(chunks).toBeGreaterThan(0);
+    expect(mediaStream.destroyed).toBe(true);
   });
 
   it('should be defined', () => {
@@ -143,7 +190,11 @@ describe('YoutubeUploadService', () => {
     );
     expect(httpService.get).toHaveBeenCalledWith(
       `https://api.test.com/ingredients/videos/${videoId}`,
-      { responseType: 'stream', timeout: 30_000 },
+      {
+        responseType: 'stream',
+        signal: expect.any(AbortSignal),
+        timeout: 30_000,
+      },
     );
     expect(mockVideosInsert.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
@@ -427,6 +478,7 @@ describe('YoutubeUploadService', () => {
     expect(issueServerPublish).toHaveBeenCalledWith(orgId, [videoId]);
     expect(httpService.get).toHaveBeenCalledWith(sourceUrl, {
       responseType: 'stream',
+      signal: expect.any(AbortSignal),
       timeout: 30_000,
     });
     expect(fileQueueService.processFile).not.toHaveBeenCalled();

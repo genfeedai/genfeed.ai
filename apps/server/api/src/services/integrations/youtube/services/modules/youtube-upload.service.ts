@@ -142,9 +142,11 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
 
       const playlistId = readChannelSettingString(settings, 'playlistId');
 
+      const uploadSignal = AbortSignal.timeout(10 * 60_000);
       const mediaResponse = await firstValueFrom(
         this.httpService.get<Readable>(sourceUrl, {
           responseType: 'stream',
+          signal: uploadSignal,
           timeout: 30_000,
         }),
       );
@@ -165,7 +167,9 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
           status: statusConfig,
         },
       };
-      const res = await this.youtubeAPI.videos.insert(insertParams, {});
+      const res = await this.youtubeAPI.videos.insert(insertParams, {
+        signal: uploadSignal,
+      });
 
       if (!res.data?.id) {
         throw new Error('Failed to upload video');
