@@ -419,11 +419,10 @@ describe('WorkflowEngineAdapterService', () => {
   });
 
   describe('executor registration logging', () => {
-    it('logs one summary at bootstrap instead of a line per executor', () => {
+    it('logs one summary at bootstrap instead of a line per registered executor', () => {
       const executor = vi.fn();
       loggerService.debug.mockClear();
 
-      service.registerExecutor('ai-enhance', executor);
       service.registerExecutor('ai-enhance', executor);
 
       expect(loggerService.debug).not.toHaveBeenCalled();
