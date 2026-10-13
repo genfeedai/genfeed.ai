@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { ClipboardList, Clock, Inbox, LayoutDashboard } from 'lucide-react';
+import { Activity, ClipboardCheck, Gauge, Mail } from 'lucide-react';
 
 /** Label after which dynamic credential items are inserted */
 export const PUBLISHING_INSERT_AFTER_LABEL = 'Posts';
@@ -15,8 +15,8 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.WORKSPACE.OVERVIEW,
     label: 'Overview',
     matchPaths: [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
-    outline: LayoutDashboard,
-    solid: LayoutDashboard,
+    outline: Gauge,
+    solid: Gauge,
   },
   {
     group: AppMenuGroup.Root,
@@ -28,24 +28,24 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.WORKSPACE.INBOX_RECENT,
       APP_ROUTES.WORKSPACE.INBOX_ALL,
     ],
-    outline: Inbox,
-    solid: Inbox,
+    outline: Mail,
+    solid: Mail,
   },
   {
     group: AppMenuGroup.Root,
     href: APP_ROUTES.WORKSPACE.TASKS,
     label: 'Tasks',
     matchPaths: [APP_ROUTES.WORKSPACE.TASKS],
-    outline: ClipboardList,
-    solid: ClipboardList,
+    outline: ClipboardCheck,
+    solid: ClipboardCheck,
   },
   {
     group: AppMenuGroup.Root,
     href: APP_ROUTES.WORKSPACE.ACTIVITY,
     label: 'Activity',
     matchPaths: [APP_ROUTES.WORKSPACE.ACTIVITY],
-    outline: Clock,
-    solid: Clock,
+    outline: Activity,
+    solid: Activity,
   },
 ];
 

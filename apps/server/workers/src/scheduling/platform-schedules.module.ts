@@ -15,6 +15,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
+import { CronBrandedDispatchRecoveryModule } from '@workers/crons/branded-dispatch-recovery/cron.branded-dispatch-recovery.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronCreditsModule } from '@workers/crons/credits/cron.credits.module';
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
@@ -88,6 +89,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CronMediaPerceptionModule,
     CronModelDeprecationModule,
     CronModelWatcherModule,
+    CronBrandedDispatchRecoveryModule,
     CronOAuthClientCleanupModule,
     CronPatternExtractionModule,
     CronPostsModule,

@@ -1,3 +1,4 @@
+import { BRANDED_DISPATCH_RECOVERY_SCHEDULE } from '@workers/crons/branded-dispatch-recovery/branded-dispatch-recovery.constants';
 import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
@@ -21,6 +22,7 @@ export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
 export const PLATFORM_SCHEDULED_TASKS = {
   PROACTIVE_AGENT_STRATEGIES: 'proactive-agent-strategies',
   ANALYTICS_SYNC: 'analytics-sync',
+  BRANDED_DISPATCH_RECOVERY: 'branded-dispatch-recovery',
   CONTENT_LEARNING_RECONCILE: 'content-learning-reconcile',
   CONTENT_LEARNING_RETENTION: 'content-learning-retention',
   CONTENT_LOOP_AUTOPILOT: 'content-loop-autopilot',
@@ -167,6 +169,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: {
     pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.BRANDED_DISPATCH_RECOVERY]: {
+    pattern: BRANDED_DISPATCH_RECOVERY_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP]: {

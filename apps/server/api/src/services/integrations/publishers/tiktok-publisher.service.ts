@@ -8,7 +8,11 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TIKTOK_APP_HANDOFF_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  TargetExecutionState,
+  TikTokPublishStatus,
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -35,6 +39,7 @@ export class TikTokPublisherService extends BasePublisherService {
     isPending?: boolean;
     postId?: string;
     publishId?: string;
+    status?: string;
   } {
     if (
       response === null ||
@@ -50,9 +55,11 @@ export class TikTokPublisherService extends BasePublisherService {
       isPending?: unknown;
       post_id?: unknown;
       publish_id?: unknown;
+      status?: unknown;
     };
 
     return {
+      status: typeof data.status === 'string' ? data.status : undefined,
       isPending: data.isPending === true ? true : undefined,
       postId: typeof data.post_id === 'string' ? data.post_id : undefined,
       publishId:
@@ -160,6 +167,20 @@ export class TikTokPublisherService extends BasePublisherService {
         });
         return {
           executionState: TargetExecutionState.PUBLISHING,
+          externalId: publishId,
+          platform: this.platform,
+          success: true,
+          url: '',
+        };
+      }
+
+      if (
+        responseData.status === TikTokPublishStatus.PUBLISH_COMPLETE &&
+        !postId &&
+        publishId
+      ) {
+        return {
+          executionState: TargetExecutionState.PUBLISHED,
           externalId: publishId,
           platform: this.platform,
           success: true,

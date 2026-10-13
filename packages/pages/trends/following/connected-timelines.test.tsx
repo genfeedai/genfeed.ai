@@ -50,9 +50,6 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
 }));
-vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
-  usePageHelp: () => null,
-}));
 vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
   default: () => null,
 }));

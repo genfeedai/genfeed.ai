@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/client": "workspace:*",
+    "@genfeedai/contracts": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@hookform/resolvers": "5.9.1",
@@ -28,6 +29,7 @@
     "fullcalendar": "7.1.1",
     "html-react-parser": "6.1.8",
     "lucide-react": "1.55.0",
+    "motion": "14.1.0",
     "next-intl": "4.14.9",
     "react-color": "2.19.3",
     "react-day-picker": "10.0.2",
@@ -37,8 +39,7 @@
     "temporal-polyfill": "1.0.5",
     "tippy.js": "6.3.7",
     "vaul": "1.1.2",
-    "zustand": "5.0.15",
-    "@genfeedai/contracts": "workspace:*"
+    "zustand": "5.0.15"
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {

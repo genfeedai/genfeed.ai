@@ -128,6 +128,7 @@ export function usePostDetailMedia({
                 ingredients: uniqueIngredients,
               });
             }
+            await fetchPost(true);
           } finally {
             setIsSavingIngredients(false);
           }
@@ -142,6 +143,7 @@ export function usePostDetailMedia({
       post,
       sortedChildren,
       getPostsService,
+      fetchPost,
       handleUpdateChild,
       setPost,
       setSelectedIngredients,

@@ -10,6 +10,8 @@ export interface SystemEmailOptions {
   preheader?: string;
   bodyHtml: string;
   action?: SystemEmailAction;
+  /** Secondary-style button beside the action; dropped without an action. */
+  secondaryAction?: SystemEmailAction;
   footerNote?: string;
   /** Rendered in the footer, never in the message body. */
   unsubscribeUrl?: string;
@@ -30,6 +32,7 @@ const EMAIL_COLORS = {
   card: '#0A0A0A',
   primary: '#EDEDED',
   primaryForeground: '#0A0A0A',
+  secondary: '#161616',
   textMuted: '#949494',
   textPrimary: '#EDEDED',
   textSecondary: '#A1A1A1',
@@ -73,6 +76,23 @@ export function buildSystemEmailParagraph(text: string): string {
   return `<p style="margin:0 0 16px;color:${EMAIL_COLORS.textSecondary};font-size:15px;line-height:24px;">${escapeSystemEmailHtml(text)}</p>`;
 }
 
+type EmailButtonVariant = 'primary' | 'secondary';
+
+// 44px tall: the touch-target floor for mail clients on phones. The secondary
+// button trades 1px of padding for its border so both buttons match.
+const EMAIL_BUTTON_STYLES: Record<EmailButtonVariant, string> = {
+  primary: `background:${EMAIL_COLORS.primary};border:1px solid ${EMAIL_COLORS.primary};color:${EMAIL_COLORS.primaryForeground};`,
+  secondary: `background:${EMAIL_COLORS.secondary};border:1px solid ${EMAIL_COLORS.border};color:${EMAIL_COLORS.textPrimary};`,
+};
+
+function buildEmailButton(
+  label: string,
+  url: string,
+  variant: EmailButtonVariant,
+): string {
+  return `<a href="${escapeSystemEmailHtml(url)}" style="${EMAIL_BUTTON_STYLES[variant]}border-radius:6px;display:inline-block;font-size:14px;font-weight:600;line-height:20px;margin:0 8px 8px 0;padding:11px 16px;text-decoration:none;">${escapeSystemEmailHtml(label)}</a>`;
+}
+
 function buildFooterLink(label: string, url: string): string {
   return `<a href="${escapeSystemEmailHtml(url)}" style="color:${EMAIL_COLORS.textSecondary};text-decoration:underline;">${label}</a>`;
 }
@@ -95,10 +115,25 @@ export function buildSystemEmailHtml(input: SystemEmailOptions): string {
   const actionUrl = input.action
     ? sanitizeSystemEmailUrl(input.action.url)
     : null;
-  const action =
+  const secondaryUrl = input.secondaryAction
+    ? sanitizeSystemEmailUrl(input.secondaryAction.url)
+    : null;
+  const buttons =
     input.action && actionUrl
-      ? `<tr><td style="padding:8px 32px 32px;"><a href="${escapeSystemEmailHtml(actionUrl)}" style="background:${EMAIL_COLORS.primary};border-radius:6px;color:${EMAIL_COLORS.primaryForeground};display:inline-block;font-size:14px;font-weight:600;line-height:20px;padding:10px 16px;text-decoration:none;">${escapeSystemEmailHtml(input.action.label)}</a></td></tr>`
-      : '<tr><td style="padding:0 0 16px;"></td></tr>';
+      ? [
+          buildEmailButton(input.action.label, actionUrl, 'primary'),
+          input.secondaryAction && secondaryUrl
+            ? buildEmailButton(
+                input.secondaryAction.label,
+                secondaryUrl,
+                'secondary',
+              )
+            : '',
+        ].join('')
+      : null;
+  const action = buttons
+    ? `<tr><td style="padding:8px 32px 24px;">${buttons}</td></tr>`
+    : '<tr><td style="padding:0 0 16px;"></td></tr>';
   // Same rule as the action: a misconfigured unsubscribe URL loses the link,
   // never becomes an arbitrary scheme.
   const unsubscribeUrl = input.unsubscribeUrl
@@ -137,7 +172,7 @@ export function buildSystemEmailHtml(input: SystemEmailOptions): string {
                   </tr>
                   <tr>
                     <td style="padding:32px 32px 16px;">
-                      <h1 style="color:${EMAIL_COLORS.textPrimary};font-size:24px;font-weight:600;letter-spacing:0;line-height:32px;margin:0;">${escapeSystemEmailHtml(input.title)}</h1>
+                      <h1 style="color:${EMAIL_COLORS.textPrimary};font-size:24px;font-weight:600;letter-spacing:-0.02em;line-height:32px;margin:0;">${escapeSystemEmailHtml(input.title)}</h1>
                     </td>
                   </tr>
                   <tr>

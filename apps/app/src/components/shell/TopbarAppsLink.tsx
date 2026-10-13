@@ -8,6 +8,7 @@ import {
 import { cn } from '@genfeedai/helpers';
 import type { TopbarAppsLinkProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
@@ -24,6 +25,10 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
   const translate = useTranslations('common.appRail');
   const { orgSlug: resolvedOrgSlug } = useOrgUrl();
   const effectiveOrgSlug = orgSlug ?? resolvedOrgSlug;
+  // The button is `asChild`, so it never sees the icon: drive it from here.
+  const { hoverProps, icon } = useHoverAnimatedIcon(
+    <LayoutGrid aria-hidden="true" className="size-4" />,
+  );
 
   if (!effectiveOrgSlug) return null;
 
@@ -44,6 +49,7 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
       data-testid="topbar-apps-link"
       tooltip={translate('launcher')}
       withWrapper={false}
+      {...hoverProps}
     >
       <Link
         aria-current={isActive ? 'page' : undefined}
@@ -51,7 +57,7 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
         href={storeHref}
         prefetch={false}
       >
-        <LayoutGrid aria-hidden="true" className="size-4" />
+        {icon}
       </Link>
     </Button>
   );

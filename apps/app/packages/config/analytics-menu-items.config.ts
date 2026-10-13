@@ -1,15 +1,15 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { PostCard } from '@ui/primitives/animated-icons/custom-lucide';
 import {
-  AtSign,
-  Building2,
-  FileText,
+  BriefcaseBusiness,
+  ChartScatter,
   Flame,
-  FlaskConical,
-  LayoutDashboard,
-  Magnet,
-  ScanSearch,
-  Sparkles,
+  Gauge,
+  Quote,
+  SquareActivity,
+  Telescope,
+  UsersRound,
   Zap,
 } from 'lucide-react';
 
@@ -40,8 +40,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Overview',
     matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-    outline: LayoutDashboard,
-    solid: LayoutDashboard,
+    outline: Gauge,
+    solid: Gauge,
   },
   {
     group: '',
@@ -49,16 +49,16 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     hrefScope: 'brand',
     label: 'Posts',
     matchPaths: [APP_ROUTES.ANALYTICS.POSTS],
-    outline: FileText,
-    solid: FileText,
+    outline: PostCard,
+    solid: PostCard,
   },
   {
     group: '',
     href: APP_ROUTES.ANALYTICS.ACCOUNTS,
     label: 'Accounts',
     matchPaths: [APP_ROUTES.ANALYTICS.ACCOUNTS],
-    outline: AtSign,
-    solid: AtSign,
+    outline: UsersRound,
+    solid: UsersRound,
   },
   {
     group: '',
@@ -67,8 +67,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     isFounderOnly: true,
     label: 'Brands',
     matchPaths: [APP_ROUTES.ANALYTICS.BRANDS],
-    outline: Building2,
-    solid: Building2,
+    outline: BriefcaseBusiness,
+    solid: BriefcaseBusiness,
   },
   {
     group: '',
@@ -87,8 +87,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     isFounderOnly: true,
     label: 'Insights',
     matchPaths: [APP_ROUTES.ANALYTICS.INSIGHTS],
-    outline: Sparkles,
-    solid: Sparkles,
+    outline: Telescope,
+    solid: Telescope,
   },
   {
     group: 'Intelligence',
@@ -97,8 +97,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     isFounderOnly: true,
     label: 'Hooks',
     matchPaths: [APP_ROUTES.ANALYTICS.HOOKS],
-    outline: Magnet,
-    solid: Magnet,
+    outline: Quote,
+    solid: Quote,
   },
   {
     group: 'Intelligence',
@@ -106,8 +106,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     isFounderOnly: true,
     label: 'Outliers',
     matchPaths: [APP_ROUTES.ANALYTICS.OUTLIERS],
-    outline: ScanSearch,
-    solid: ScanSearch,
+    outline: ChartScatter,
+    solid: ChartScatter,
   },
   {
     group: 'Intelligence',
@@ -127,8 +127,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     isFounderOnly: true,
     label: 'Performance Lab',
     matchPaths: [APP_ROUTES.ANALYTICS.PERFORMANCE_LAB],
-    outline: FlaskConical,
-    solid: FlaskConical,
+    outline: SquareActivity,
+    solid: SquareActivity,
   },
 ];
 

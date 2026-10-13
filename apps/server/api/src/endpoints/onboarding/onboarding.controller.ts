@@ -1,7 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
-import { StarterAssetsDto } from '@api/endpoints/onboarding/dto/starter-assets.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -127,82 +125,5 @@ export class OnboardingController {
   })
   setPrefix(@Body() dto: SetPrefixDto, @CurrentUser() user: User) {
     return this.onboardingService.setPrefix(user, dto.prefix);
-  }
-
-  @Get('proactive-workspace')
-  @ApiOperation({
-    description:
-      'Returns the prepared proactive onboarding workspace for an invited lead.',
-    summary: 'Get proactive workspace',
-  })
-  getProactiveWorkspace(@CurrentUser() user: User) {
-    return this.onboardingService.getProactiveWorkspace(user);
-  }
-
-  @Post('proactive-claim')
-  @HttpCode(200)
-  @ApiOperation({
-    description:
-      'Claims the prepared proactive onboarding workspace for the current invited user.',
-    summary: 'Claim proactive workspace',
-  })
-  claimProactiveWorkspace(@CurrentUser() user: User) {
-    return this.onboardingService.claimProactiveWorkspace(user);
-  }
-
-  /**
-   * Generate AI preview image during onboarding
-   */
-  @Post('generate-preview')
-  @HttpCode(200)
-  @ApiOperation({
-    description:
-      'Generates an AI preview image based on the brand data and selected content type. Deducts onboarding credits.',
-    summary: 'Generate AI preview image during onboarding',
-  })
-  @ApiResponse({
-    description: 'Preview image generated successfully',
-    schema: {
-      properties: {
-        imageUrl: { type: 'string' },
-        prompt: { type: 'string' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  @ApiResponse({
-    description: 'Brand not found or insufficient credits',
-    status: 402,
-  })
-  generatePreview(@Body() dto: GeneratePreviewDto, @CurrentUser() user: User) {
-    return this.onboardingService.generateOnboardingPreview(dto, user);
-  }
-
-  /**
-   * Queue the starter post + ad draft for the new brand's domain loading
-   * step. Generation runs in the background (workers app) — this returns as
-   * soon as the job is queued, never after generation completes.
-   */
-  @Post('starter-assets')
-  @HttpCode(202)
-  @ApiOperation({
-    description:
-      'Queues the starter post + ad draft for a brand. Generation runs in the background.',
-    summary: 'Queue onboarding starter assets',
-  })
-  @ApiResponse({
-    description: 'Starter asset generation queued',
-    schema: {
-      properties: { queued: { type: 'boolean' } },
-      type: 'object',
-    },
-    status: 202,
-  })
-  generateStarterAssets(
-    @Body() dto: StarterAssetsDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.onboardingService.enqueueStarterAssets(dto, user);
   }
 }

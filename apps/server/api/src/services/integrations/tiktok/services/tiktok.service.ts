@@ -326,16 +326,14 @@ export class TiktokService {
       this.RETRY_DELAY_MS,
     );
 
-    if (statusData?.publicly_available_post_id?.[0]) {
-      this.loggerService.log(
-        `${context} success - got post_id: ${statusData.publicly_available_post_id[0]}`,
-      );
+    if (statusData?.status === TikTokPublishStatus.PUBLISH_COMPLETE) {
+      this.loggerService.log(`${context} publish completed`);
       return {
         ...res.data,
         data: {
           ...res.data.data,
           isPending: false,
-          post_id: statusData.publicly_available_post_id[0],
+          post_id: statusData.publicly_available_post_id?.[0],
           publish_id: publishId,
           status: statusData.status,
         },
@@ -900,6 +898,7 @@ export class TiktokService {
   ): Promise<ITikTokPublishStatusData | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
+    let lastData: ITikTokPublishStatusData | null = null;
     try {
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const res = await firstValueFrom(
@@ -917,17 +916,19 @@ export class TiktokService {
           ),
         );
 
-        const data = res.data?.data || {};
+        const raw: ITikTokPublishStatusData = res.data?.data || {};
+        const data = {
+          ...raw,
+          publicly_available_post_id:
+            raw.publicaly_available_post_id ?? raw.publicly_available_post_id,
+        };
+        lastData = data;
         this.loggerService.log(`${url} attempt ${attempt + 1}`, {
           publicly_available_post_id: data.publicly_available_post_id,
           status: data.status,
         });
 
-        // Check if the post is published and has a publicly available ID
-        if (
-          data.status === TikTokPublishStatus.PUBLISH_COMPLETE &&
-          data.publicly_available_post_id?.length > 0
-        ) {
+        if (data.status === TikTokPublishStatus.PUBLISH_COMPLETE) {
           return data;
         }
 
@@ -944,30 +945,14 @@ export class TiktokService {
         }
       }
 
-      // If we've exhausted all attempts without getting post_id, log final attempt
-      const finalRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/post/publish/status/fetch/`,
-          {
-            publish_id: publishId,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': this.contentType,
-            },
-          },
-        ),
-      );
-
       this.loggerService.warn(
-        `${url} max attempts (${maxAttempts}) reached without getting publicly_available_post_id`,
+        `${url} max attempts (${maxAttempts}) reached while processing`,
         {
-          finalStatus: finalRes.data?.data?.status,
-          fullResponse: finalRes.data,
+          finalStatus: lastData?.status,
+          publishId,
         },
       );
-      return finalRes.data?.data || null;
+      return lastData;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

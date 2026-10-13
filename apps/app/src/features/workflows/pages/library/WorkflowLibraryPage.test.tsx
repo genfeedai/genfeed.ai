@@ -142,9 +142,6 @@ vi.mock('@ui/layout/container/Container', () => ({
           </a>
         ))}
         {leading}
-        <button type="button" aria-label="Page help">
-          Help
-        </button>
         {right}
       </header>
       {children}
@@ -165,18 +162,6 @@ vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
       {actions}
     </header>
   ),
-}));
-
-vi.mock('@ui/layout/help-popover/HelpPopover', () => ({
-  default: () => (
-    <button type="button" aria-label="Page help">
-      Help
-    </button>
-  ),
-}));
-
-vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
-  usePageHelp: () => ({ body: 'Workflow help', title: 'Workflows' }),
 }));
 
 vi.mock('@ui/primitives/searchbar', () => ({
@@ -350,19 +335,17 @@ describe('WorkflowLibraryPage card semantics', () => {
     ];
   });
 
-  it('keeps one toolbar with search on the left and help before new workflow', () => {
+  it('keeps one toolbar with search on the left and new workflow after it', () => {
     render(<WorkflowLibraryPage />);
 
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
     const toolbar = screen.getByTestId('section-topbar');
     const search = screen.getByPlaceholderText('Search workflows...');
-    const help = screen.getByRole('button', { name: 'Page help' });
     const newWorkflow = screen.getAllByRole('link', {
       name: 'New Workflow',
     })[0];
 
     expect(toolbar).toContainElement(search);
-    expect(toolbar).toContainElement(help);
     expect(toolbar).toContainElement(newWorkflow);
     expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
       'href',
@@ -373,10 +356,7 @@ describe('WorkflowLibraryPage card semantics', () => {
       '/acme/brand/automation/workflows?view=templates',
     );
     expect(
-      search.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      help.compareDocumentPosition(newWorkflow) &
+      search.compareDocumentPosition(newWorkflow) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

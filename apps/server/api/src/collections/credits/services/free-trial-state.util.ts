@@ -59,7 +59,7 @@ export function paidCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
 /**
  * Credits an operator granted on purpose: a superadmin comp
  * (`ActivitySource.SUPERADMIN`), proactive-onboarding seeding
- * (`ProactiveOnboardingService`) and warm-up preparation or handoff grants
+ * and warm-up preparation or handoff grants
  * (`creditWarmupWallet`, reference type `warmup-account`). An operator comp
  * never expires, so it exempts the organization from the trial exactly like
  * a purchase.

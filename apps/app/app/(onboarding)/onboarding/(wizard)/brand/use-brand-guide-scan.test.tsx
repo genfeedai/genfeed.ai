@@ -12,8 +12,6 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   getBrandOsScan: vi.fn(),
   startBrandOsScan: vi.fn(),
-  scrape: vi.fn(),
-  queueStarterAssets: vi.fn(),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -79,8 +77,6 @@ beforeEach(() => {
   );
 });
 afterEach(() => {
-  expect(mocks.scrape).not.toHaveBeenCalled();
-  expect(mocks.queueStarterAssets).not.toHaveBeenCalled();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });

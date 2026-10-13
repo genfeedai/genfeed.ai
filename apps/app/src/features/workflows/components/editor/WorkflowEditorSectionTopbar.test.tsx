@@ -96,7 +96,6 @@ describe('WorkflowEditorSectionTopbar', () => {
     expect(topbar).toContainElement(
       screen.getByRole('button', { name: 'Run' }),
     );
-    expect(screen.queryByTestId('section-topbar-help')).not.toBeInTheDocument();
   });
 
   it('keeps dense actions on one row and moves Archive into overflow', () => {

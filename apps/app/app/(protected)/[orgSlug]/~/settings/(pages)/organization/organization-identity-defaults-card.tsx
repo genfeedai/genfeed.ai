@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,
@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -342,6 +343,18 @@ export default function OrganizationIdentityDefaultsCard() {
           <p role="status" className="text-xs text-muted-foreground">
             {heygen.error}
           </p>
+        ) : null}
+        {heygen.isReconnectRequired ? (
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            className="w-fit"
+          >
+            <Link href={orgHref('/settings/integrations')}>
+              {translate('reconnectHeygen')}
+            </Link>
+          </Button>
         ) : null}
         {orgDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
         !orgDefaultVoiceRef.connection ? (

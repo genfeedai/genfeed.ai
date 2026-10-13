@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Flag, LayoutDashboard, Rows3 } from 'lucide-react';
+import { PostCard } from '@ui/primitives/animated-icons/custom-lucide';
+import { Gauge, Route } from 'lucide-react';
 
 /**
  * Posts owns social posts, articles, and newsletters with type and status
@@ -13,16 +14,16 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     isExactMatch: true,
     label: 'Overview',
     matchPaths: [APP_ROUTES.PUBLISHING.OVERVIEW, APP_ROUTES.PUBLISHING.ROOT],
-    outline: LayoutDashboard,
-    solid: LayoutDashboard,
+    outline: Gauge,
+    solid: Gauge,
   },
   {
     group: '',
     href: APP_ROUTES.PUBLISHING.POSTS,
     label: 'Posts',
     matchPaths: [APP_ROUTES.PUBLISHING.POSTS],
-    outline: Rows3,
-    solid: Rows3,
+    outline: PostCard,
+    solid: PostCard,
   },
   {
     group: '',
@@ -34,7 +35,7 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
       APP_ROUTES.PUBLISHING.CAMPAIGNS_NEW,
     ],
-    outline: Flag,
-    solid: Flag,
+    outline: Route,
+    solid: Route,
   },
 ];

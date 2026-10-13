@@ -2,7 +2,6 @@ import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import type { WorkspaceShellBreadcrumbMetadata } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import type { TopbarProps } from '@props/navigation/topbar.props';
-import type { PageHelpContent } from '@props/ui/layout/page-help.props';
 import type { ComponentType, ReactNode } from 'react';
 
 export interface AppLayoutProps {
@@ -36,6 +35,4 @@ export interface AppLayoutProps {
    * creates a document scrollbar on top of the thread scroller.
    */
   lockViewportHeight?: boolean;
-  /** Route-level "About this page" copy resolved by the host app. */
-  pageHelp?: PageHelpContent | null;
 }

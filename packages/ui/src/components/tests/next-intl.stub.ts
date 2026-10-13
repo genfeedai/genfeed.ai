@@ -391,6 +391,22 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
+    youtubePublishing: {
+      sectionLabel: 'YouTube publishing settings',
+      title: 'Post to YouTube',
+      privacy: 'Privacy',
+      choosePrivacy: 'Choose privacy',
+      private: 'Private',
+      unlisted: 'Unlisted',
+      public: 'Public',
+      madeForKids: 'Made for kids',
+      save: 'Save YouTube settings',
+      saving: 'Saving…',
+      saved: 'YouTube settings saved',
+      refreshFailed:
+        'YouTube settings saved, but the view could not refresh. Reload to see the latest settings.',
+      saveFailed: 'Could not save YouTube settings.',
+    },
     tiktokPublishing: {
       connectAccount: 'Connect a TikTok account before posting.',
       capabilitiesUnavailable:
@@ -614,6 +630,7 @@ const UI_TEST_MESSAGES = {
       },
       viewAria: 'Inspector view',
       tiktokSettings: 'TikTok settings',
+      youtubeSettings: 'YouTube settings',
       tiktokReady: 'Ready',
       tiktokNeedsSettings: 'Needs settings',
       performance: 'Performance',

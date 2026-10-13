@@ -153,14 +153,13 @@ describe('Container', () => {
     ).toBe(`${pinned.offsetHeight}px`);
   });
 
-  it('places Help and Refresh before the filters in the right cluster', () => {
+  it('places Refresh before the filters in the right cluster', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
       <Container
         label="Activities"
         titleVisibility="sr-only"
-        help={{ title: 'About Activities', body: 'Recent actions.' }}
         right={<button type="button">Filter</button>}
         refresh={<button type="button">Refresh</button>}
       >
@@ -169,7 +168,6 @@ describe('Container', () => {
     );
 
     const actions = screen.getByTestId('section-topbar-actions');
-    const help = screen.getByTestId('section-topbar-help');
     const refresh = screen.getByRole('button', { name: 'Refresh' });
     const headerActions = screen.getByTestId('container-header-actions');
     expect(
@@ -180,18 +178,12 @@ describe('Container', () => {
 
     expect(actions).toHaveClass('justify-end');
     expect(screen.getByTestId('section-topbar-icon-actions')).toContainElement(
-      help,
-    );
-    expect(screen.getByTestId('section-topbar-icon-actions')).toContainElement(
       refresh,
     );
     expect(headerActions).toContainElement(
       screen.getByRole('button', { name: 'Filter' }),
     );
     expect(headerActions.className).not.toMatch(/\bflex-1\b/);
-    expect(
-      help.compareDocumentPosition(refresh) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
   });
 
   it('pins breadcrumb-only actions to the right via SectionTopbar module chrome', () => {

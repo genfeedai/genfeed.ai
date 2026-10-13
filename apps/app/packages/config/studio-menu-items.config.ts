@@ -3,13 +3,13 @@ import type {
   AppContext,
   MenuItemConfig,
 } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { GalleryHorizontalStart } from '@ui/primitives/animated-icons/custom-lucide';
 import {
   Clapperboard,
-  Film,
-  Layers,
+  Rocket,
   Scissors,
   Sparkles,
-  Wand2,
+  SquarePlay,
 } from 'lucide-react';
 
 /**
@@ -38,8 +38,8 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       label: APP_DISPLAY_LABELS.playground,
       organizationModule: 'playground',
       matchPaths: [APP_ROUTES.STUDIO.PLAYGROUND],
-      outline: Wand2,
-      solid: Wand2,
+      outline: Sparkles,
+      solid: Sparkles,
     },
   ],
   storyboard: [
@@ -63,8 +63,8 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       label: APP_DISPLAY_LABELS.turbo,
       organizationModule: 'turbo',
       matchPaths: [APP_ROUTES.STUDIO.TURBO, APP_ROUTES.STUDIO.TURBO_NEW],
-      outline: Layers,
-      solid: Layers,
+      outline: Rocket,
+      solid: Rocket,
     },
   ],
   motion: [
@@ -74,8 +74,8 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       label: APP_DISPLAY_LABELS.motion,
       organizationModule: 'motion',
       matchPaths: [APP_ROUTES.STUDIO.MOTION],
-      outline: Sparkles,
-      solid: Sparkles,
+      outline: SquarePlay,
+      solid: SquarePlay,
     },
   ],
   clips: [
@@ -85,8 +85,8 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       label: APP_DISPLAY_LABELS.clips,
       organizationModule: 'clips',
       matchPaths: [APP_ROUTES.STUDIO.CLIPS, APP_ROUTES.STUDIO.CLIPS_NEW],
-      outline: Scissors,
-      solid: Scissors,
+      outline: GalleryHorizontalStart,
+      solid: GalleryHorizontalStart,
     },
   ],
   // The Remotion timeline, the finishing surface video apps hand off to.
@@ -97,8 +97,8 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       label: APP_DISPLAY_LABELS.editor,
       organizationModule: 'editor',
       matchPaths: [APP_ROUTES.STUDIO.EDITOR, APP_ROUTES.STUDIO.EDITOR_NEW],
-      outline: Film,
-      solid: Film,
+      outline: Scissors,
+      solid: Scissors,
     },
   ],
 };

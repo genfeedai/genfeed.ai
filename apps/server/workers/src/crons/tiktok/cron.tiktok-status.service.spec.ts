@@ -2,7 +2,11 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
 
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import {
   buildTiktokStatusReconcileDefinition,
@@ -133,6 +137,34 @@ async function reconcile(
 }
 
 describe('CronTiktokStatusService', () => {
+  it('finalizes a completed private post without inventing a public URL or changing its audience', async () => {
+    const harness = createHarness();
+    const post = makeTiktokPost({ visibility: PostVisibility.PRIVATE });
+    harness.postsService.findOne.mockResolvedValue(post);
+    harness.tiktokService.getPublishStatus.mockResolvedValue({
+      status: 'PUBLISH_COMPLETE',
+    });
+    harness.schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    await reconcile(harness.registeredActions);
+    expect(
+      harness.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      post,
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'publish-1',
+        url: '',
+        visibility: PostVisibility.PRIVATE,
+      }),
+      expect.any(String),
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(
+      harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
+    ).toHaveBeenCalledOnce();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -215,6 +247,48 @@ describe('CronTiktokStatusService', () => {
     ).toHaveBeenCalledOnce();
     expect(
       harness.publishEventWebhookService.emitLegacyPostPublished,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('disconnects the credential and fails the post on an auth error', async () => {
+    const harness = createHarness();
+    const post = makeTiktokPost();
+    harness.postsService.findOne.mockResolvedValue(post);
+    harness.tiktokService.getPublishStatus.mockRejectedValue(
+      Object.assign(new Error('expired'), {
+        response: { data: { error: 'access_token_invalid' } },
+      }),
+    );
+    harness.schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+
+    await reconcile(harness.registeredActions);
+
+    expect(harness.credentialsService.patch).toHaveBeenCalledWith('cred-1', {
+      isConnected: false,
+    });
+    expect(
+      harness.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      post,
+      expect.objectContaining({ executionState: TargetExecutionState.FAILED }),
+      expect.any(String),
+      expect.anything(),
+      undefined,
+    );
+  });
+
+  it('leaves the post pending on a transient error', async () => {
+    const harness = createHarness();
+    harness.postsService.findOne.mockResolvedValue(makeTiktokPost());
+    harness.tiktokService.getPublishStatus.mockRejectedValue(
+      new Error('socket hang up'),
+    );
+
+    await reconcile(harness.registeredActions);
+
+    expect(harness.credentialsService.patch).not.toHaveBeenCalled();
+    expect(
+      harness.schedulerPublishStateService.transitionPost,
     ).not.toHaveBeenCalled();
   });
 

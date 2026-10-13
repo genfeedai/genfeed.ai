@@ -4,6 +4,7 @@ import {
   PostStatus,
   ReviewDecision,
 } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -61,6 +62,12 @@ vi.mock('@ui/posts/tiktok-publishing/TikTokPublishingSettings', () => ({
     }, [onReadinessChange]);
 
     return <div>TikTok publishing settings</div>;
+  },
+}));
+
+vi.mock('@ui/posts/youtube-publishing/YouTubePublishingSettings', () => ({
+  default: function YouTubePublishingSettingsStub() {
+    return <div>YouTube publishing settings</div>;
   },
 }));
 
@@ -322,6 +329,41 @@ describe('PostDetailSidebar', () => {
       'Ready',
     );
     expect(onTikTokReadinessChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('shows YouTube settings for unpublished YouTube posts only', () => {
+    function buildPost(platform: CredentialPlatform): IPost {
+      return {
+        category: PostCategory.VIDEO,
+        id: 'post-1',
+        ingredients: [{ id: 'video-1' }],
+        platform,
+        status: PostStatus.DRAFT,
+      } as unknown as IPost;
+    }
+    const { unmount } = render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={buildPost(CredentialPlatform.YOUTUBE)}
+        onPublishNow={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('inspector-youtube')).toBeInTheDocument();
+    expect(screen.getByText('YouTube publishing settings')).toBeVisible();
+    unmount();
+
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={buildPost(CredentialPlatform.TWITTER)}
+        onPublishNow={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByText('YouTube publishing settings'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the published state with a view link and no publish button', () => {
