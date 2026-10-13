@@ -13,7 +13,7 @@
     "ora": "9.4.1",
     "react": "19.3.0",
     "socket.io-client": "4.8.4",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "description": "Unified CLI for Genfeed.ai - Generate, schedule, analyze, and publish AI content from your terminal",
   "devDependencies": {
@@ -24,12 +24,12 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
-    "@types/bun": "1.4.2",
+    "@types/bun": "1.4.3",
     "@types/node": "22.20.1",
     "@types/react": "19.3.0",
     "@typescript/native": "npm:typescript@7.0.2",
-    "@vitest/coverage-v8": "5.0.3",
-    "vitest": "5.0.3"
+    "@vitest/coverage-v8": "5.0.4",
+    "vitest": "5.0.4"
   },
   "engines": {
     "node": ">=22.12.0"

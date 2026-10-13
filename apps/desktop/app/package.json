@@ -52,7 +52,7 @@
     ]
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite": "0.5.9",
     "node-pty": "1.1.0"
   },
   "description": "GenFeed \u2014 Electron native app for content creation",
