@@ -258,9 +258,6 @@
     "watermarkError": "Could not create the watermarked download. Configure watermark text or a logo in Brand Settings → Brand Kit, then try again.",
     "errorTitle": "Download failed"
   },
-  "sectionTopbar": {
-    "help": "About this page"
-  },
   "generationStatus": {
     "asset": "asset",
     "submitting": "Submitting {asset}…",

@@ -55,60 +55,6 @@ describe('OnboardingService', () => {
     http.get.mockRejectedValue(new Error('down'));
     await expect(service.getInstallReadiness()).rejects.toThrow('down');
   });
-
-  it('generatePreview POSTs brand and content type', async () => {
-    const preview = { imageUrl: 'https://cdn/preview.png' };
-    http.post.mockResolvedValue(axiosResponse(preview));
-
-    const result = await service.generatePreview('brand_1', 'social');
-
-    expect(http.post).toHaveBeenCalledWith('generate-preview', {
-      brandId: 'brand_1',
-      contentType: 'social',
-    });
-    expect(result).toEqual(preview);
-  });
-
-  it('generatePreview rethrows failures', async () => {
-    http.post.mockRejectedValue(new Error('down'));
-    await expect(service.generatePreview('brand_1', 'ads')).rejects.toThrow(
-      'down',
-    );
-  });
-
-  it('getProactiveWorkspace GETs the workspace payload', async () => {
-    const workspace = { prepPercent: 40, proactiveStatus: 'preparing' };
-    http.get.mockResolvedValue(axiosResponse(workspace));
-
-    const result = await service.getProactiveWorkspace();
-
-    expect(http.get).toHaveBeenCalledWith('proactive-workspace', {
-      signal: undefined,
-    });
-    expect(result).toEqual(workspace);
-  });
-
-  it('getProactiveWorkspace rethrows failures', async () => {
-    http.get.mockRejectedValue(new Error('down'));
-    await expect(service.getProactiveWorkspace()).rejects.toThrow('down');
-  });
-
-  it('claimProactiveWorkspace POSTs the claim', async () => {
-    const workspace = { proactiveStatus: 'claimed', success: true };
-    http.post.mockResolvedValue(axiosResponse(workspace));
-
-    const result = await service.claimProactiveWorkspace();
-
-    expect(http.post).toHaveBeenCalledWith('proactive-claim', undefined, {
-      signal: undefined,
-    });
-    expect(result).toEqual(workspace);
-  });
-
-  it('claimProactiveWorkspace rethrows failures', async () => {
-    http.post.mockRejectedValue(new Error('down'));
-    await expect(service.claimProactiveWorkspace()).rejects.toThrow('down');
-  });
 });
 
 describe('UserOnboardingService', () => {

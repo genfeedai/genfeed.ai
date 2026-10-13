@@ -72,4 +72,22 @@ describe('AgentChatSuggestionsBar', () => {
       '[&>button]:max-w-none',
     );
   });
+
+  it('gives four new-conversation actions four desktop columns', () => {
+    render(
+      <AgentChatSuggestionsBar
+        isReadOnly={false}
+        layout="equal"
+        onSend={vi.fn()}
+        suggestedActions={[
+          ...suggestedActions,
+          { label: 'About this page', prompt: 'Explain this page' },
+        ].slice(0, 4)}
+      />,
+    );
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Prompt suggestions' });
+    expect(toolbar).toHaveClass('lg:grid-cols-4');
+    expect(toolbar).not.toHaveClass('sm:grid-cols-3');
+  });
 });

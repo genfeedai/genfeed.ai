@@ -3,9 +3,14 @@ import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandGenerationRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import { buildBrandKitDraftFromBrand } from '@genfeedai/helpers';
+import {
+  buildBrandKitDraftFromBrand,
+  buildGenfeedDefaultKitDraft,
+  isGenfeedDefaultKitDraft,
+} from '@genfeedai/helpers';
 import {
   type BrandOsRevision,
   BrandOsRevisionStatus,
@@ -72,6 +77,17 @@ function row(
   };
 }
 
+function seedRow(id = 'seed-1', version = 1): BrandOsRevision {
+  return {
+    ...row(id, version),
+    content: buildGenfeedDefaultKitDraft({
+      description: null,
+      id: BRAND,
+      label: 'Acme',
+    }) as unknown as Prisma.JsonValue,
+  };
+}
+
 function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
   const rows = structuredClone(initial);
   let counter = Math.max(0, ...rows.map((item) => item.version));
@@ -82,6 +98,8 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
       const actual: unknown = Reflect.get(record, key);
       if (value && typeof value === 'object' && 'not' in value)
         return actual !== value.not;
+      if (value && typeof value === 'object' && 'in' in value)
+        return Array.isArray(value.in) && value.in.includes(actual);
       return actual === value;
     });
   const tx = {
@@ -1038,4 +1056,159 @@ describe('BrandOsRevisionsService', () => {
       await expect(service.list(ORG, BRAND)).resolves.toHaveLength(1);
     },
   );
+
+  describe('Genfeed default style kit', () => {
+    it('seeds one DRAFT from the default kit for a brand with no revisions, once', async () => {
+      const { service, rows } = harness();
+      const first = await service.ensureBaselineDraft(ORG, BRAND);
+      const second = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(second.id).toBe(first.id);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        status: BrandOsRevisionStatus.DRAFT,
+        version: 1,
+      });
+      const content = first.content;
+      expect(isGenfeedDefaultKitDraft(content)).toBe(true);
+      expect(content.sourceType).toBe('system');
+      expect(content.fields.label?.currentValue).toBe('Acme');
+      expect(content.fields.voiceTone?.currentValue).toBe('Bold and punchy');
+      expect(content.fields.fontFamily?.currentValue).toBe('Satoshi');
+      expect(
+        brandGenerationRulesV1Schema.safeParse(content.generationRules).success,
+      ).toBe(true);
+      expect(content.generationRules?.facts).toEqual([]);
+      expect(content.generationRules?.assets).toEqual([]);
+    });
+
+    it('returns an existing approved or live revision without writing', async () => {
+      const approved = row('approved', 1, BrandOsRevisionStatus.APPROVED);
+      const { service, rows, tx } = harness([approved, row('draft', 2)]);
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(result.id).toBe('approved');
+      expect(rows).toHaveLength(2);
+      expect(tx.brandOsRevision.create).not.toHaveBeenCalled();
+    });
+
+    it('builds a draft from the brand own fields once the default was superseded', async () => {
+      const superseded = {
+        ...seedRow(),
+        status: BrandOsRevisionStatus.SUPERSEDED,
+      };
+      const { service, rows } = harness([superseded]);
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(rows).toHaveLength(2);
+      expect(result.status).toBe(BrandOsRevisionStatus.DRAFT);
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+      expect(result.content.sourceType).toBe('current_brand');
+    });
+
+    it('supersedes the default kit when another draft is created, never the other way', async () => {
+      const { service, rows } = harness([seedRow()]);
+      await service.create(ORG, BRAND, draft());
+      expect(rows.map((item) => item.status)).toEqual([
+        BrandOsRevisionStatus.SUPERSEDED,
+        BrandOsRevisionStatus.DRAFT,
+      ]);
+
+      const other = harness([row('own', 1)]);
+      await other.service.create(
+        ORG,
+        BRAND,
+        buildGenfeedDefaultKitDraft({ id: BRAND, label: 'Acme' }),
+      );
+      expect(other.rows.every((item) => item.status === 'DRAFT')).toBe(true);
+    });
+
+    it('starts a brand that already has its own voice from its own fields', async () => {
+      const { service, rows } = harness([], {
+        voice: { tone: 'Dry and technical' },
+      });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(rows).toHaveLength(1);
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+      expect(result.content.sourceType).toBe('current_brand');
+    });
+
+    it('keeps the default kit for a brand whose voice is only the signup default', async () => {
+      const { service } = harness([], {
+        voice: { audience: ['General audience'], tone: 'Professional' },
+      });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(true);
+    });
+
+    it('swaps an unedited default kit for the brand own draft once it gains its own voice', async () => {
+      const { service, rows } = harness([seedRow()], {
+        voice: { tone: 'Dry and technical' },
+      });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      const byId = Object.fromEntries(
+        rows.map((item) => [item.id, item.status]),
+      );
+      expect(byId['seed-1']).toBe(BrandOsRevisionStatus.SUPERSEDED);
+      expect(result.id).not.toBe('seed-1');
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+    });
+
+    it('never touches an owner-edited draft even when the brand has its own voice', async () => {
+      const edited = row('own', 2);
+      const { service, rows } = harness([seedRow(), edited], {
+        voice: { tone: 'Dry and technical' },
+      });
+      const result = await service.ensureBaselineDraft(ORG, BRAND);
+      expect(result.id).toBe('own');
+      expect(rows).toHaveLength(2);
+    });
+
+    it('drops the default marker and seeded rules when the owner edits the draft', async () => {
+      const { service, rows } = harness([seedRow()]);
+      const content = structuredClone(
+        rows[0].content,
+      ) as unknown as IBrandKitDraft;
+      if (content.fields.voiceTone)
+        content.fields.voiceTone.currentValue = 'Calm';
+      const result = await service.update(
+        ORG,
+        BRAND,
+        'seed-1',
+        content,
+        TIMESTAMP.toISOString(),
+      );
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+      expect(result.content.generationRules).toBeUndefined();
+      expect(result.content.sourceType).toBe('manual');
+    });
+
+    it('refuses to approve an unedited default kit, then allows the owner version', async () => {
+      const { service, rows } = harness([seedRow()]);
+      await expect(
+        service.approve(ORG, BRAND, 'seed-1', USER, TIMESTAMP.toISOString()),
+      ).rejects.toMatchObject({
+        response: { code: 'brand_kit_default_requires_edit' },
+      });
+      expect(rows[0].status).toBe(BrandOsRevisionStatus.DRAFT);
+
+      const content = structuredClone(
+        rows[0].content,
+      ) as unknown as IBrandKitDraft;
+      if (content.fields.voiceTone)
+        content.fields.voiceTone.currentValue = 'Calm';
+      const edited = await service.update(
+        ORG,
+        BRAND,
+        'seed-1',
+        content,
+        TIMESTAMP.toISOString(),
+      );
+      const approved = await service.approve(
+        ORG,
+        BRAND,
+        'seed-1',
+        USER,
+        edited.updatedAt,
+      );
+      expect(approved.status).toBe(BrandOsRevisionStatus.APPROVED);
+    });
+  });
 });

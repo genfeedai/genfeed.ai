@@ -1018,7 +1018,7 @@ describe('proxy', () => {
       },
     );
 
-    it.each(['/onboarding/post-signup', '/onboarding/proactive'])(
+    it.each(['/onboarding/post-signup'])(
       'keeps the mode-agnostic wizard route %s reachable for a signed-in Community user',
       async (pathname) => {
         mockIncompleteUser();

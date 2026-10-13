@@ -316,35 +316,6 @@ function installReadinessPayload() {
   };
 }
 
-function proactiveWorkspacePayload() {
-  return {
-    brand: {
-      colors: ['#111827', '#f9fafb'],
-      id: 'brand-1',
-      name: 'Brand 1',
-      voiceTone: 'clear, direct, practical',
-    },
-    claimedAt: new Date().toISOString(),
-    organization: {
-      id: 'mock-org-id-e2e-test',
-      label: 'Test Organization',
-    },
-    outputs: [
-      {
-        description: 'A launch-ready social draft prepared for testing.',
-        id: 'post-1',
-        label: 'Launch draft',
-        platform: 'tiktok',
-      },
-    ],
-    prepPercent: 100,
-    prepStage: 'ready',
-    proactiveStatus: 'ready',
-    success: true,
-    summary: 'Your starter workspace is ready.',
-  };
-}
-
 function getMockApiPort(): number {
   const endpoint = new URL(playwrightApiEndpoint);
   const isLocalEndpoint =
@@ -395,14 +366,6 @@ async function startMockApiServer(): Promise<Server | null> {
 
     if (url.startsWith('/v1/onboarding/install-readiness')) {
       jsonResponse(response, installReadinessPayload());
-      return;
-    }
-
-    if (
-      url.startsWith('/v1/onboarding/proactive-workspace') ||
-      url.startsWith('/v1/onboarding/proactive-claim')
-    ) {
-      jsonResponse(response, proactiveWorkspacePayload());
       return;
     }
 

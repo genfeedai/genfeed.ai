@@ -8,7 +8,10 @@ import {
   brandIdentitySnapshotV1Schema,
 } from '@genfeedai/contracts/api-types/contracts';
 import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
-import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type {
+  BrandGenerationRulesV1,
+  BrandIdentitySnapshotV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import {
   type Asset,
   type BrandOsRevision,
@@ -29,6 +32,84 @@ const savedContent = z
     generationRules: brandGenerationRulesV1Schema,
   })
   .passthrough();
+const provisionalContent = savedContent.extend({
+  generationRules: brandGenerationRulesV1Schema.optional(),
+});
+const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
+const DRAFT_FIELDS_EVIDENCE_ID = 'draft_fields';
+
+function draftString(
+  fields: z.infer<typeof provisionalContent>['fields'],
+  key: string,
+): string | undefined {
+  const value = fields[key]?.currentValue;
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+/**
+ * A draft without saved generation rules (for example a website scan) still
+ * has a palette and font in its fields. Those become non-blocking style rules;
+ * nothing here ever requires a hard check.
+ */
+function synthesizeProvisionalRules(
+  fields: z.infer<typeof provisionalContent>['fields'],
+): BrandGenerationRulesV1 {
+  const evidenceIds = [DRAFT_FIELDS_EVIDENCE_ID];
+  const palette = (
+    [
+      ['primaryColor', 'palette_primary', 'Primary'],
+      ['secondaryColor', 'palette_secondary', 'Secondary'],
+      ['backgroundColor', 'palette_background', 'Background'],
+    ] as const
+  ).flatMap(([key, id, usage]) => {
+    const color = draftString(fields, key);
+    return color && HEX_COLOR.test(color)
+      ? [
+          {
+            color: color.toUpperCase(),
+            evidenceIds,
+            id,
+            required: false,
+            usage,
+          },
+        ]
+      : [];
+  });
+  const family = draftString(fields, 'fontFamily');
+  return {
+    assets: [],
+    avoid: [],
+    evidence: [
+      {
+        id: DRAFT_FIELDS_EVIDENCE_ID,
+        label: 'Draft brand kit fields',
+        sourceType: 'system',
+      },
+    ],
+    examples: [],
+    facts: [],
+    mandatory: [],
+    palette,
+    schemaVersion: 1,
+    typography: family
+      ? [
+          {
+            availability: 'unknown',
+            evidenceIds,
+            family: family.slice(0, 512),
+            id: 'type_body',
+            required: false,
+            role: 'body',
+            style: 'normal',
+            weight: 400,
+          },
+        ]
+      : [],
+  };
+}
+
 export function projectApprovedBrandIdentitySnapshot(
   revision: BrandOsRevision,
   resolvedAt: string,
@@ -50,55 +131,99 @@ export function projectApprovedBrandIdentitySnapshot(
         revision.generationRulesReviewHash
     )
       throw new Error('Invalid reviewed identity');
-    const value = (key: string) => content.fields[key]?.currentValue;
-    const snapshot = {
-      schemaVersion: 1 as const,
-      organizationId: revision.organizationId,
-      brandId: revision.brandId,
-      revisionId: revision.id,
-      revisionVersion: revision.version,
-      approval: 'approved' as const,
+    return buildIdentitySnapshot(
+      revision,
+      content,
+      content.generationRules,
+      'approved',
       resolvedAt,
-      identity: {
-        name: value('label'),
-        ...(value('description') === undefined
-          ? {}
-          : { description: value('description') }),
-      },
-      voice: {
-        ...(value('voiceTone') === undefined
-          ? {}
-          : { tone: value('voiceTone') }),
-        ...(value('voiceStyle') === undefined
-          ? {}
-          : { style: value('voiceStyle') }),
-        audience:
-          value('voiceAudience') === undefined ? [] : value('voiceAudience'),
-        values: value('voiceValues') === undefined ? [] : value('voiceValues'),
-        messagingPillars:
-          value('voiceMessagingPillars') === undefined
-            ? []
-            : value('voiceMessagingPillars'),
-        avoid:
-          value('voiceDoNotSoundLike') === undefined
-            ? []
-            : value('voiceDoNotSoundLike'),
-        ...(value('voiceSampleOutput') === undefined
-          ? {}
-          : { sample: value('voiceSampleOutput') }),
-        ...(value('promptGuidelines') === undefined
-          ? {}
-          : { guidelines: value('promptGuidelines') }),
-      },
-      generationRules: content.generationRules,
-      diagnostics: [],
-    };
-    // Validate canonical bounds and types before hashing; never stringify/filter saved values.
-    const parsed = brandIdentitySnapshotV1Schema.parse({
-      ...snapshot,
-      contentHash: `sha256:${'0'.repeat(64)}`,
-    });
-    return { ...parsed, contentHash: hashBrandIdentitySnapshotV1(parsed) };
+    );
+  } catch {
+    throw new ConflictException('brand_identity_integrity_failed');
+  }
+}
+
+function buildIdentitySnapshot(
+  revision: BrandOsRevision,
+  content: { fields: z.infer<typeof savedContent>['fields'] },
+  generationRules: BrandGenerationRulesV1,
+  approval: 'approved' | 'provisional',
+  resolvedAt: string,
+): BrandIdentitySnapshotV1 {
+  const value = (key: string) => content.fields[key]?.currentValue;
+  const snapshot = {
+    schemaVersion: 1 as const,
+    organizationId: revision.organizationId,
+    brandId: revision.brandId,
+    revisionId: revision.id,
+    revisionVersion: revision.version,
+    approval,
+    resolvedAt,
+    identity: {
+      name: value('label'),
+      ...(value('description') === undefined
+        ? {}
+        : { description: value('description') }),
+    },
+    voice: {
+      ...(value('voiceTone') === undefined ? {} : { tone: value('voiceTone') }),
+      ...(value('voiceStyle') === undefined
+        ? {}
+        : { style: value('voiceStyle') }),
+      audience:
+        value('voiceAudience') === undefined ? [] : value('voiceAudience'),
+      values: value('voiceValues') === undefined ? [] : value('voiceValues'),
+      messagingPillars:
+        value('voiceMessagingPillars') === undefined
+          ? []
+          : value('voiceMessagingPillars'),
+      avoid:
+        value('voiceDoNotSoundLike') === undefined
+          ? []
+          : value('voiceDoNotSoundLike'),
+      ...(value('voiceSampleOutput') === undefined
+        ? {}
+        : { sample: value('voiceSampleOutput') }),
+      ...(value('promptGuidelines') === undefined
+        ? {}
+        : { guidelines: value('promptGuidelines') }),
+    },
+    generationRules,
+    diagnostics: [],
+  };
+  // Validate canonical bounds and types before hashing; never stringify/filter saved values.
+  const parsed = brandIdentitySnapshotV1Schema.parse({
+    ...snapshot,
+    contentHash: `sha256:${'0'.repeat(64)}`,
+  });
+  return { ...parsed, contentHash: hashBrandIdentitySnapshotV1(parsed) };
+}
+
+/**
+ * Projects a DRAFT revision for provisional generation. The result is bound to
+ * the exact revision id, version and content hash and is never approved: it
+ * carries no approval authority and cannot reach a ready or compliant state.
+ */
+export function projectProvisionalBrandIdentitySnapshot(
+  revision: BrandOsRevision,
+  resolvedAt: string,
+): BrandIdentitySnapshotV1 {
+  try {
+    if (revision.status !== BrandOsRevisionStatus.DRAFT || revision.isDeleted)
+      throw new Error('Invalid draft');
+    const content = provisionalContent.parse(revision.content);
+    if (
+      content.brandId !== revision.brandId ||
+      content.organizationId !== revision.organizationId
+    )
+      throw new Error('Invalid draft scope');
+    return buildIdentitySnapshot(
+      revision,
+      content,
+      content.generationRules ?? synthesizeProvisionalRules(content.fields),
+      'provisional',
+      resolvedAt,
+    );
   } catch {
     throw new ConflictException('brand_identity_integrity_failed');
   }

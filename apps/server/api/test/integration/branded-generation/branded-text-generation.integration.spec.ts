@@ -19,6 +19,7 @@ import type {
   BrandedGenerationInputV1,
   BrandGenerationRulesV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { buildGenfeedDefaultKitDraft } from '@genfeedai/helpers';
 import {
   BrandOsRevisionStatus,
   PrismaClient,
@@ -396,5 +397,107 @@ describe('Branded text generation seam (real Postgres)', () => {
     });
     expect(foreign.receipt.state).toBe('failed');
     expect(openRouter.chatCompletion).toHaveBeenCalledTimes(2);
+  }, 120000);
+
+  it('generates provisionally from the Genfeed default kit and never reaches ready', async () => {
+    const s = await seed();
+    const { seam, openRouter } = buildSeam();
+    const draftId = randomUUID();
+    await prisma.brandOsRevision.create({
+      data: {
+        id: draftId,
+        organizationId: s.source,
+        brandId: s.fallback,
+        version: 1,
+        status: BrandOsRevisionStatus.DRAFT,
+        content: toPrismaJson({
+          ...buildGenfeedDefaultKitDraft({
+            id: s.fallback,
+            label: 'Fallback brand',
+            organization: s.source,
+          }),
+          brandId: s.fallback,
+          organizationId: s.source,
+        }),
+      },
+    });
+    const value: BrandedGenerationInputV1 = {
+      schemaVersion: 1,
+      actorId: s.owner,
+      organizationId: s.source,
+      brandId: s.fallback,
+      requestKey: randomUUID(),
+      candidateIndex: 0,
+      surface: 'onboarding',
+      contentType: 'post',
+      format: 'text',
+      mode: 'provisional_brand',
+      draftRevisionId: draftId,
+      originalPrompt: 'Introduce the brand in one post',
+      provider: 'openrouter',
+      model: 'openai/gpt-4o-mini',
+      generationParameters: { maxTokens: 500, temperature: 0.8 },
+      platform: 'twitter',
+      objective: 'engagement',
+      knowledgeSourceIds: [],
+      knowledgeSpaceIds: [],
+    };
+    const request = (input: BrandedGenerationInputV1) => ({
+      input,
+      initiatingActor: {
+        userId: input.actorId,
+        organizationId: input.organizationId,
+      },
+      privateLearning: baselinePrivateLearning,
+      resolveApiKey: async () => undefined,
+      acceptText: () => true,
+      persistText: async (text: string) => {
+        const post = await prisma.post.create({
+          data: {
+            id: randomUUID(),
+            userId: s.owner,
+            organizationId: input.organizationId,
+            brandId: input.brandId,
+            description: text,
+          },
+        });
+        return { postId: post.id };
+      },
+    });
+
+    const completed = await seam.generate(request(value));
+    if (completed.kind !== 'completed')
+      throw new Error(`Provisional generation stopped: ${completed.kind}`);
+    expect(completed.receipt.snapshot).toMatchObject({
+      approval: 'provisional',
+      revisionId: draftId,
+    });
+    expect(completed.receipt.state).toBe('needs_review');
+    expect(completed.receipt.compliance).toBe('unverified');
+    expect(completed.receipt.artifact?.id).toBe(completed.postId);
+    const sent = openRouter.chatCompletion.mock.calls[0][0].messages;
+    expect(sent[0].content).toContain('provisional');
+    expect(sent[0].content).not.toContain('## Approved Brand Voice');
+
+    // Replay returns the saved post without another provider call.
+    const replay = await seam.generate(request(value));
+    expect(replay).toMatchObject({ hasNewDispatch: false, kind: 'completed' });
+    expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
+
+    // A draft that belongs to another brand blocks before dispatch.
+    const blocked = await seam.generate(
+      request({
+        ...value,
+        brandId: s.brand,
+        draftRevisionId: draftId,
+        requestKey: randomUUID(),
+      }),
+    );
+    expect(blocked).toMatchObject({
+      hasNewDispatch: false,
+      kind: 'stopped',
+      reasonCode: 'no_draft_revision',
+    });
+    expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
   }, 120000);
 });

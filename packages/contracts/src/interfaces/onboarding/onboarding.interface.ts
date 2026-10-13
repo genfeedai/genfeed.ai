@@ -170,66 +170,6 @@ export interface IConfirmBrandDataRequest {
   audience?: string;
 }
 
-export interface IGeneratePreviewRequest {
-  brandId: string;
-  contentType: 'ads' | 'social';
-}
-
-export interface IGeneratePreviewResponse {
-  imageUrl: string;
-  prompt: string;
-}
-
-/** Tweet and ad drafted during the domain loading step. */
-export interface IOnboardingStarterAssetsResponse {
-  adImageUrl: string | null;
-  postId: string | null;
-  tweet: string | null;
-}
-
-/**
- * Background-job status for starter-asset generation, persisted on
- * `brand.agentConfig.onboardingStarterAssets` (mirrors the `signupPrefill`
- * marker) so the domain loading step never has to block on the queue.
- */
-export interface IOnboardingStarterAssetsMarker {
-  status: 'running' | 'completed' | 'failed';
-  startedAt?: string;
-  completedAt?: string;
-  error?: string;
-  result?: IOnboardingStarterAssetsResponse;
-}
-
-export interface IProactivePreparationStatus {
-  proactiveStatus: string;
-  prepPercent: number;
-  prepStage: string;
-  inviteEligible: boolean;
-  generatedAssetCount: number;
-  claimedAt?: string;
-  paymentMadeAt?: string;
-  brand?: {
-    id: string;
-    name: string;
-    colors: string[];
-    voiceTone?: string;
-  };
-  organization?: {
-    id: string;
-    label?: string | null;
-  };
-  turboRun?: {
-    id: string;
-    platforms: string[];
-    completedPosts: number;
-    totalPosts: number;
-  };
-  invitation?: {
-    email: string;
-    invitedAt: string;
-  };
-}
-
 export type OnboardingContentType = 'ads' | 'social';
 
 export interface IBrandOnboardingScanRequest {

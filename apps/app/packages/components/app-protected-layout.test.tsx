@@ -672,6 +672,7 @@ describe('AppProtectedLayout', () => {
 
       expect(useAgentPageContext).toHaveBeenLastCalledWith(
         memberRole ?? undefined,
+        null,
       );
     },
   );
@@ -687,7 +688,10 @@ describe('AppProtectedLayout', () => {
         </AppProtectedLayout>,
       );
 
-      expect(useAgentPageContext).toHaveBeenLastCalledWith(role ?? undefined);
+      expect(useAgentPageContext).toHaveBeenLastCalledWith(
+        role ?? undefined,
+        null,
+      );
     },
   );
 

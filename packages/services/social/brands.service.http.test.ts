@@ -544,35 +544,6 @@ describe('BrandsService HTTP methods', () => {
     );
   });
 
-  it('scrape POSTs the setup request and returns the envelope', async () => {
-    const setup = { status: 'queued', success: true };
-    http.post.mockResolvedValue(axiosResponse(setup));
-
-    const result = await service.scrape(brandId, { url: 'https://acme.dev' });
-
-    expect(http.post).toHaveBeenCalledWith(`/${brandId}/scrape`, {
-      url: 'https://acme.dev',
-    });
-    expect(result).toEqual(setup);
-  });
-
-  it('renameWithOrganizationSync PATCHes with the sync flag', async () => {
-    http.patch.mockResolvedValue(
-      axiosResponse(resourceDocument({ label: 'Acme' }, { id: brandId })),
-    );
-
-    const result = await service.renameWithOrganizationSync(brandId, 'Acme', {
-      description: 'desc',
-    });
-
-    expect(http.patch).toHaveBeenCalledWith(`/${brandId}`, {
-      description: 'desc',
-      label: 'Acme',
-      syncOrganizationName: true,
-    });
-    expect(result).toBeInstanceOf(Brand);
-  });
-
   it('addReferenceImages POSTs the image batch', async () => {
     const outcome = { count: 1, success: true };
     http.post.mockResolvedValue(axiosResponse(outcome));

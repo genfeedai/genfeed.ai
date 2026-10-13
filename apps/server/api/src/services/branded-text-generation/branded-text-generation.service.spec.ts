@@ -102,7 +102,7 @@ function setup() {
     fail: vi.fn(),
     recordValidation: vi.fn(),
   };
-  const snapshots = { preview: vi.fn() };
+  const snapshots = { preview: vi.fn(), previewProvisional: vi.fn() };
   const material = { describePostArtifact: vi.fn() };
   const validator = { preflightBrandCapabilities: vi.fn() };
   const validation = { validateReceipt: vi.fn() };
@@ -529,6 +529,63 @@ describe('BrandedTextGenerationService', () => {
       expect(h.receipts.recordResolution).not.toHaveBeenCalled();
       expect(h.receipts.recordCompiledResolution).not.toHaveBeenCalled();
       expect(h.openRouter.chatCompletion).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('provisional mode', () => {
+    const provisionalInput: BrandedGenerationInputV1 = {
+      ...input,
+      draftRevisionId: 'draft-1',
+      mode: 'provisional_brand',
+    };
+
+    it('resolves the explicitly named draft and never the approved revision', async () => {
+      arrangeHappyPath(h);
+      h.snapshots.previewProvisional.mockResolvedValue(snapshot);
+      h.request.input = provisionalInput;
+
+      const outcome = await h.service.generate(h.request);
+
+      expect(h.snapshots.previewProvisional).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: 'brand-a' }),
+        'draft-1',
+      );
+      expect(h.snapshots.preview).not.toHaveBeenCalled();
+      expect(h.openRouter.chatCompletion).toHaveBeenCalledTimes(1);
+      expect(outcome.kind).toBe('completed');
+    });
+
+    it('blocks before any dispatch when the named draft is no longer available', async () => {
+      h.receipts.create.mockResolvedValue(written(receipt('created')));
+      h.receipts.recordResolution.mockResolvedValue(
+        written(receipt('blocked', { revision: 1 })),
+      );
+      h.snapshots.previewProvisional.mockRejectedValue(
+        new ConflictException('brand_identity_unavailable'),
+      );
+      h.request.input = provisionalInput;
+
+      const outcome = await h.service.generate(h.request);
+
+      expect(compileSnapshotBriefResolution).toHaveBeenCalledWith(
+        provisionalInput,
+        null,
+        expect.anything(),
+        {},
+        [],
+        [],
+        [],
+        ['no_draft_revision'],
+      );
+      expect(h.harness.resolveSnapshotBriefWithRecipe).not.toHaveBeenCalled();
+      expect(h.openRouter.chatCompletion).not.toHaveBeenCalled();
+      expect(outcome.kind).toBe('stopped');
+    });
+
+    it('keeps approved requests off the provisional preview', async () => {
+      arrangeHappyPath(h);
+      await h.service.generate(h.request);
+      expect(h.snapshots.previewProvisional).not.toHaveBeenCalled();
     });
   });
 

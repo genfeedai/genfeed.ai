@@ -24,6 +24,7 @@ export * from './free-trial.constant';
 export * from './funnel-events.constant';
 export * from './gallery.constant';
 export * from './generation-dimensions.constant';
+export * from './genfeed-default-brand-kit.constant';
 export * from './heygen-error-codes.constant';
 export * from './image-edit-models.constant';
 export * from './library.constant';

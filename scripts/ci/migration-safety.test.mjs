@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   checkMigrations,
   destructiveOperations,
+  prismaEnums,
   prismaTables,
   sqlTokens,
   validateContract,
@@ -16,6 +17,20 @@ const schema = `model Example {
   payload Json @default("{}")
   mapped String @map("oldField")
   @@map("examples")
+}
+`;
+
+const enumSchema = `${schema}
+enum ExampleStatus {
+  ACTIVE // comment
+  ARCHIVED
+}
+
+enum MappedState {
+  ON
+  OFF
+
+  @@map("mapped_state")
 }
 `;
 
@@ -70,6 +85,54 @@ test('treats table and column renames as contracts that retire the old name', ()
     ),
     'v0.2.0',
   );
+});
+
+test('treats enum type renames as contracts that retire the old type name', () => {
+  const { operations } = destructiveOperations(`
+    ALTER TYPE "LegacyStatus" RENAME TO "CurrentStatus";
+    ALTER TYPE public.legacy_kind RENAME TO current_kind;
+    ALTER TYPE "Status" RENAME VALUE 'OLD' TO 'NEW';
+    ALTER TYPE "Status" ADD VALUE IF NOT EXISTS 'EXTRA';
+    ALTER TYPE "Composite" RENAME ATTRIBUTE "a" TO "b";
+  `);
+  assert.deepEqual(operations, [
+    { type: 'rename-enum', enumName: 'LegacyStatus' },
+    { type: 'rename-enum', enumName: 'legacy_kind' },
+  ]);
+});
+
+test('an unmarked enum type rename is rejected and a marked one passes', () => {
+  const sql = 'ALTER TYPE "ExampleStatus" RENAME TO "ExampleState";';
+  assert.throws(() => validateContract(sql), /requires exactly one/);
+  assert.throws(
+    () => validateContract(sql, enumSchema),
+    /requires exactly one/,
+  );
+  assert.equal(validateContract(marker + sql), 'v0.2.0');
+});
+
+test('a marker cannot excuse an enum type still used by the prior generated client', () => {
+  for (const name of ['ExampleStatus', 'mapped_state']) {
+    assert.throws(
+      () =>
+        validateContract(
+          `${marker}ALTER TYPE "${name}" RENAME TO "renamed";`,
+          enumSchema,
+        ),
+      /Prisma client is incompatible with rename-enum/,
+    );
+  }
+  assert.equal(
+    validateContract(
+      `${marker}ALTER TYPE "RetiredStatus" RENAME TO "renamed";`,
+      enumSchema,
+    ),
+    'v0.2.0',
+  );
+  assert.deepEqual([...prismaEnums(enumSchema)].sort(), [
+    'ExampleStatus',
+    'mapped_state',
+  ]);
 });
 
 test('comments, string literals, defaults, and constraints do not invent contracts or markers', () => {

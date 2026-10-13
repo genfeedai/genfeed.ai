@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom/vitest';
-import { PageHelpProvider } from '@genfeedai/contexts/ui/page-help-context';
 import { Platform, Timeframe } from '@genfeedai/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -341,13 +340,7 @@ describe('DiscoveryTrends', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const content = (
-      <PageHelpProvider
-        help={{ title: 'Trends', body: 'Browse saved trends.' }}
-      >
-        <DiscoveryTrends />
-      </PageHelpProvider>
-    );
+    const content = <DiscoveryTrends />;
 
     const rendered = render(
       <QueryClientProvider client={queryClient}>
@@ -367,9 +360,6 @@ describe('DiscoveryTrends', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(
-      screen.getAllByRole('button', { name: 'About this page' }),
-    ).toHaveLength(1);
     expect(screen.getByTestId('socials-platform-filter')).toBeInTheDocument();
     expect(screen.getByTestId('container')).toBeInTheDocument();
     expect(await screen.findByText('AI video')).toBeInTheDocument();
