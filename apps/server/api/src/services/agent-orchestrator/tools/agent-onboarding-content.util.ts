@@ -1,10 +1,18 @@
 import { randomUUID } from 'node:crypto';
-import type { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
+
+/** The saved first tweet and the receipt that records how it was written. */
+export interface OnboardingTweetDraft {
+  postId: string;
+  receiptId: string;
+  /** `needs_review` means written from an unapproved (provisional) identity. */
+  receiptState: string;
+  requestKey: string;
+  text: string;
+}
 
 type OnboardingContentDeps = {
   brandId: string;
@@ -17,9 +25,14 @@ type OnboardingContentDeps = {
   checkOnboardingStatus: (
     ctx: ToolExecutionContext,
   ) => Promise<AgentToolResult>;
-  contentGeneratorService: ContentGeneratorService;
   ctx: ToolExecutionContext;
   direction: string;
+  generateTweet: (input: {
+    brandId: string;
+    ctx: ToolExecutionContext;
+    direction: string;
+    previousRequestKey?: string;
+  }) => Promise<OnboardingTweetDraft>;
   generateImage: (
     prompt: string,
     ctx: ToolExecutionContext,
@@ -41,13 +54,14 @@ type OnboardingContentDeps = {
       isByokEnabled?: boolean;
     } | null,
   ) => { isImageReady: boolean };
+  previousRequestKey?: string;
   retryTweet?: string;
 };
 
 export async function createOnboardingBrandDraft(
   deps: OnboardingContentDeps,
 ): Promise<AgentToolResult> {
-  const { brandId, ctx, direction, retryTweet } = deps;
+  const { brandId, ctx, direction, previousRequestKey, retryTweet } = deps;
   try {
     if (isSelfHostedDeployment()) {
       const settings = await deps.organizationSettingsService?.findOne({
@@ -97,39 +111,19 @@ export async function createOnboardingBrandDraft(
       }
     };
     let tweet = retryTweet;
+    let draft: OnboardingTweetDraft | undefined;
     if (!tweet) {
       await reportProgress(`Writing a tweet for ${brandName}…`, 0.1);
-      const generated =
-        await deps.contentGeneratorService.generateContentWorkflow(
-          ctx.userId,
-          ctx.organizationId,
-          {
-            additionalContext: [
-              'Write one standalone tweet, at most 280 characters. Use the saved brand voice and audience. Do not invent claims, customer quotes, metrics, discounts, or URLs.',
-              ...(direction
-                ? [`Apply these requested changes: ${direction}`]
-                : []),
-            ],
-            brandId,
-            platform: ContentIntelligencePlatform.TWITTER,
-            topic:
-              'Introduce the brand with a useful, specific post grounded in its saved offering.',
-            variationsCount: 1,
-          },
-          true,
-        );
-      tweet = generated[0]?.content?.trim();
+      draft = await deps.generateTweet({
+        brandId,
+        ctx,
+        direction,
+        previousRequestKey,
+      });
+      tweet = draft.text.trim();
       if (!tweet) throw new Error('The text generator returned no draft.');
-      if (tweet.length > 280) {
-        return {
-          creditsUsed: 0,
-          error:
-            'The draft exceeded the tweet length limit. Ask for a shorter version; no image was generated.',
-          isBillingDelegated: true,
-          success: false,
-        };
-      }
     }
+    const isProvisional = draft ? draft.receiptState !== 'ready' : false;
 
     await reportProgress(`Creating an image for ${brandName}…`, 0.5);
     const image = await deps.generateImage(
@@ -145,10 +139,24 @@ export async function createOnboardingBrandDraft(
       data: {
         images,
         isComplete,
-        message: isComplete
-          ? `The image and tweet for ${brandName} are ready for review. Ask whether the user likes them; do not offer connection until approval.`
-          : `The tweet is ready, but the image failed: ${image.error ?? 'Image unavailable'}. Keep the tweet visible. Do not claim the full draft is ready.`,
+        message: `${
+          isComplete
+            ? `The image and tweet for ${brandName} are ready for review. Ask whether the user likes them; do not offer connection until approval.`
+            : `The tweet is ready, but the image failed: ${image.error ?? 'Image unavailable'}. Keep the tweet visible. Do not claim the full draft is ready.`
+        }${
+          isProvisional
+            ? ' The tweet is a provisional draft in the Genfeed default style until the user approves their own brand kit; say so plainly.'
+            : ''
+        } The image is not checked against the brand kit.`,
         tweets: [tweet],
+        ...(draft
+          ? {
+              isProvisional,
+              postId: draft.postId,
+              receiptId: draft.receiptId,
+              requestKey: draft.requestKey,
+            }
+          : {}),
       },
       isBillingDelegated: true,
       nextActions: [
@@ -172,14 +180,22 @@ export async function createOnboardingBrandDraft(
               label: isComplete ? 'Try another version' : 'Retry image',
               payload: {
                 prompt: isComplete
-                  ? 'Create another version of the image and tweet for my brand, with a different creative angle. Show it for review before connecting an account.'
+                  ? `Create another version of the image and tweet for my brand, with a different creative angle, using generate_onboarding_content${draft ? ` with previousRequestKey set to ${draft.requestKey}` : ''}. Show it for review before connecting an account.`
                   : `Retry only the image using generate_onboarding_content with retryTweet set to this exact tweet: ${tweet}`,
               },
             },
           ],
           description: isComplete
-            ? 'Review your draft. Nothing has been published.'
+            ? `Review your draft. Nothing has been published.${isProvisional ? ' Written in a provisional style until you approve your own brand kit.' : ''}`
             : `Your tweet is ready. ${image.error ?? 'The image could not be generated.'}`,
+          data: draft
+            ? {
+                isProvisional,
+                postId: draft.postId,
+                receiptId: draft.receiptId,
+                requestKey: draft.requestKey,
+              }
+            : undefined,
           id: `onboarding-content-${randomUUID()}`,
           images,
           platform: 'twitter',

@@ -1,11 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import { AGENT_CREATED_BRAND_VISUAL_DEFAULTS } from '@api/collections/brands/constants/agent-created-brand.constant';
-import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -32,7 +33,10 @@ import {
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { completeAgentOnboarding } from '@api/services/agent-orchestrator/tools/agent-onboarding-completion.util';
-import { createOnboardingBrandDraft } from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
+import {
+  createOnboardingBrandDraft,
+  type OnboardingTweetDraft,
+} from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -41,6 +45,7 @@ import {
 } from '@genfeedai/config';
 import {
   ByokProvider,
+  Platform,
   Status,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -80,6 +85,9 @@ import {
  * instead of on provider count. Provider capability semantics elsewhere are
  * unchanged.
  */
+const UUID_V4_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const IMAGE_CAPABLE_ONBOARDING_PROVIDERS: readonly string[] = [
   ByokProvider.FAL,
   ByokProvider.LEONARDOAI,
@@ -122,7 +130,7 @@ export class AgentOnboardingToolHandler {
     private readonly brandsService: AgentBrandsServiceLike,
     private readonly postsService: PostsService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly contentGeneratorService: ContentGeneratorService,
+    private readonly postGenerationService: PostGenerationService,
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
     private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
@@ -746,6 +754,18 @@ export class AgentOnboardingToolHandler {
     const direction =
       readOptionalString(params.direction)?.slice(0, 2000) ?? '';
     const retryTweet = readOptionalString(params.retryTweet);
+    const previousRequestKey = readOptionalString(params.previousRequestKey);
+    if (
+      params.previousRequestKey != null &&
+      (previousRequestKey === undefined ||
+        !UUID_V4_PATTERN.test(previousRequestKey))
+    ) {
+      return {
+        creditsUsed: 0,
+        error: 'Provide the requestKey of the version being replaced.',
+        success: false,
+      };
+    }
     if (
       params.retryTweet != null &&
       (typeof params.retryTweet !== 'string' || (retryTweet?.length ?? 0) > 280)
@@ -770,9 +790,9 @@ export class AgentOnboardingToolHandler {
       brandId,
       brandsService: this.brandsService,
       checkOnboardingStatus: (next) => this.checkOnboardingStatus(next),
-      contentGeneratorService: this.contentGeneratorService,
       ctx,
       direction,
+      generateTweet: (input) => this.generateOnboardingTweet(input),
       generateImage: (prompt, next) =>
         this.generateOnboardingImage(prompt, next),
       loggerService: this.loggerService,
@@ -780,8 +800,53 @@ export class AgentOnboardingToolHandler {
       publishProgress: (data) => this.publishToolProgress(data),
       resolveProviderReadiness: (settings) =>
         this.resolveProviderReadiness(settings),
+      previousRequestKey,
       retryTweet,
     });
+  }
+
+  /**
+   * The first tweet is a receipt-backed draft: the server decides whether it is
+   * written from the approved kit or provisionally, saves it as a DRAFT post,
+   * and links a regeneration to the version it replaces.
+   */
+  private async generateOnboardingTweet(input: {
+    brandId: string;
+    ctx: ToolExecutionContext;
+    direction: string;
+    previousRequestKey?: string;
+  }): Promise<OnboardingTweetDraft> {
+    const requestKey = randomUUID();
+    const result = await this.postGenerationService.generateDraftText(
+      {
+        brandId: input.brandId,
+        platform: Platform.TWITTER,
+        prompt: [
+          'Introduce the brand with a useful, specific post grounded in its saved offering.',
+          ...(input.direction
+            ? [`Apply these requested changes: ${input.direction}`]
+            : []),
+        ].join(' '),
+        requestKey,
+      },
+      {
+        brandId: input.brandId,
+        organizationId: input.ctx.organizationId,
+        userId: input.ctx.userId,
+      },
+      undefined,
+      {
+        parentRequestId: input.previousRequestKey,
+        surface: 'onboarding',
+      },
+    );
+    return {
+      postId: result.postId,
+      receiptId: result.brandedReceipt.id,
+      receiptState: result.brandedReceipt.state,
+      requestKey,
+      text: result.description,
+    };
   }
 
   /**

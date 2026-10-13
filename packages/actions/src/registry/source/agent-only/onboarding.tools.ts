@@ -184,6 +184,12 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
           type: 'string',
           maxLength: 2000,
         },
+        previousRequestKey: {
+          description:
+            'The requestKey returned with the version being replaced. Pass it when creating another version so the new draft is linked to it.',
+          type: 'string',
+          maxLength: 36,
+        },
         retryTweet: {
           description:
             'Retry only the image for this exact previously generated tweet; reuse the text without another text generation.',
