@@ -1,9 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailBannerProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Sparkles, Upload } from 'lucide-react';
 import Image from 'next/image';
 
@@ -31,9 +33,10 @@ export default function BrandDetailBanner({
       />
 
       <div
-        className={
-          'absolute inset-0 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100' /* design-system-allow-content-color */
-        }
+        className={cn(
+          'absolute inset-0 bg-black/50 transition-opacity' /* design-system-allow-content-color */,
+          hoverRevealClassName(),
+        )}
       >
         <div className="absolute top-2 right-2 flex gap-1.5">
           <Button

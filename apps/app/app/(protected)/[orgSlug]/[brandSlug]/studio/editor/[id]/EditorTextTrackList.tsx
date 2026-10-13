@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { EditorTextTrackListProps } from '@props/studio/editor-text-track-list.props';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 
 function EditorTextTrackList({
   textTracks,
@@ -48,7 +49,7 @@ function EditorTextTrackList({
               size={ButtonSize.XS}
               onClick={() => onDeleteTrack(track.id)}
               isDisabled={isReadOnly}
-              className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 text-destructive"
+              className={`absolute right-2 top-2 text-destructive ${hoverRevealClassName()}`}
             >
               Delete
             </Button>

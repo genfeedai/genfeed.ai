@@ -117,10 +117,12 @@ describe('IngredientsMediaGrid', () => {
     expect(uploaded).toHaveClass('pointer-events-none');
     expect(generated).toHaveClass(
       'pointer-events-none',
-      'opacity-0',
-      'group-hover:opacity-100',
-      'group-focus-within:opacity-100',
+      'opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-hover:opacity-100',
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
     );
+    expect(generated).not.toHaveClass('opacity-0');
   });
 
   it('shows each card’s tags above its origin, never intercepting a click', () => {

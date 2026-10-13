@@ -498,10 +498,18 @@ describe('AppLayout', () => {
     expect(expandToggle.querySelectorAll('svg')).toHaveLength(1);
     const logo = expandToggle.querySelector('img');
     expect(logo?.getAttribute('src')).toContain('logo.svg');
-    expect(logo?.parentElement).toHaveClass('group-hover:opacity-0');
-    expect(expandToggle.querySelector('svg')?.parentElement).toHaveClass(
+    expect(logo?.parentElement).toHaveClass(
       'opacity-0',
-      'group-hover:opacity-100',
+      '[@media(hover:hover)]:opacity-100',
+      '[@media(hover:hover)]:group-hover:opacity-0',
+    );
+    expect(expandToggle.querySelector('svg')?.parentElement).toHaveClass(
+      'opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-hover:opacity-100',
+    );
+    expect(expandToggle.querySelector('svg')?.parentElement).not.toHaveClass(
+      'opacity-0',
     );
 
     fireEvent.click(expandToggle);

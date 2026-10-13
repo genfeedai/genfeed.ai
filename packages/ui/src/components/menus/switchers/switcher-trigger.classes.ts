@@ -1,3 +1,8 @@
+import {
+  hoverRevealClassName,
+  hoverRevealOpenClassName,
+} from '@ui/styles/hover-reveal';
+
 /**
  * Shared chrome for org + brand labeled switchers so the topbar / sidebar
  * header don't drift (different px, gap, avatar size, label weight).
@@ -39,16 +44,15 @@ export const SWITCHER_COMPOSITE_CLEAR_CLASSNAME = [
   'hover:bg-foreground/[0.06] hover:text-foreground',
   'focus-visible:outline-none focus-visible:ring-0',
   'disabled:cursor-not-allowed disabled:opacity-50',
-  // Touch / no-hover: always on
-  'opacity-100 border-foreground/[0.08]',
-  // Fine pointer: hide until chip hover / focus-within
-  '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:border-transparent',
-  '[@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-hover:border-foreground/[0.08]',
-  '[@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-focus-within:border-foreground/[0.08]',
+  'border-foreground/[0.08]',
+  hoverRevealClassName(),
+  '[@media(hover:hover)]:border-transparent',
+  '[@media(hover:hover)]:group-hover:border-foreground/[0.08]',
+  '[@media(hover:hover)]:group-focus-within:border-foreground/[0.08]',
 ].join(' ');
 
 /** Force clear visible (e.g. dropdown open) on fine-pointer devices. */
 export const SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME = [
-  '[@media(hover:hover)]:opacity-100',
+  hoverRevealOpenClassName(),
   '[@media(hover:hover)]:border-foreground/[0.08]',
 ].join(' ');

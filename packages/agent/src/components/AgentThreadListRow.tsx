@@ -15,6 +15,10 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
 import {
+  hoverConcealClassName,
+  hoverRevealClassName,
+} from '@ui/styles/hover-reveal';
+import {
   ArchiveX,
   CornerDownRight,
   Ellipsis,
@@ -274,9 +278,7 @@ export function AgentThreadListRow({
           <span
             className={cn(
               'absolute inset-0 flex items-center justify-center text-2xs tabular-nums text-foreground/36 transition-opacity',
-              shouldShowActions
-                ? 'opacity-0'
-                : 'opacity-100 group-hover:opacity-0 group-focus-within:opacity-0 [@media(hover:none)]:opacity-0',
+              shouldShowActions ? 'opacity-0' : hoverConcealClassName(),
             )}
           >
             {relativeTime}
@@ -300,8 +302,8 @@ export function AgentThreadListRow({
               className={cn(
                 'pointer-events-auto size-7 rounded-md p-1 text-foreground/42 transition-opacity hover:bg-foreground/[0.06] hover:text-foreground/78',
                 shouldShowActions
-                  ? 'opacity-100'
-                  : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100',
+                  ? 'pointer-events-auto opacity-100'
+                  : hoverRevealClassName(),
               )}
               onClick={(event) => {
                 event.stopPropagation();

@@ -5,6 +5,7 @@ import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -84,7 +85,7 @@ export default function ParentsList({
                   withWrapper={false}
                   variant={ButtonVariant.UNSTYLED}
                   onClick={() => onRemoveParent(parent.id)}
-                  className="absolute right-1 top-1 rounded-md bg-destructive p-0.5 text-destructive-foreground opacity-0 transition-opacity hover:bg-destructive/80 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                  className={`absolute right-1 top-1 rounded-md bg-destructive p-0.5 text-destructive-foreground transition-opacity hover:bg-destructive/80 ${hoverRevealClassName()}`}
                   ariaLabel="Remove parent"
                 >
                   <X className="size-3" />
