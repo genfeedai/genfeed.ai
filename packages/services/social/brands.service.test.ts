@@ -415,6 +415,11 @@ describe('BrandsService', () => {
       expect(mockGet).toHaveBeenCalledWith(
         `/${mockBrandId}/brand-kit/brand-os`,
       );
+
+      mockGet.mockResolvedValue({ data: { data: null } });
+      await expect(
+        service.getClaimedBrandOsDraft(mockBrandId),
+      ).resolves.toBeNull();
     });
 
     it('posts selected asset candidates and unwraps the import result', async () => {

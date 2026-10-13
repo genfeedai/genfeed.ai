@@ -447,13 +447,14 @@ export default function BrandKitReviewCard({
     void getBrandsService()
       .then((service) => service.getClaimedBrandOsDraft(brandId))
       .then((handoff) => {
+        if (!handoff) return;
         isBrandOsDraftRef.current = true;
         setDraft(handoff.draft);
         initializeDraftReview(handoff.draft);
         onBrandOsDraftLoaded?.();
       })
-      .catch(() => {
-        // A missing claimed draft is the normal settings-page state.
+      .catch((error: unknown) => {
+        logger.error('Failed to read claimed Brand OS draft', error);
       });
   }, [
     brandId,

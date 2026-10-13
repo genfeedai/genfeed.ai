@@ -857,7 +857,7 @@ export class BrandsService extends BaseService<
   async readClaimedBrandOsPreview(
     brandId: string,
     organizationId: string,
-  ): Promise<IBrandOsDraftHandoff> {
+  ): Promise<IBrandOsDraftHandoff | null> {
     const brand = (await this.delegate.findFirst({
       where: scopedWhere(organizationId, { id: brandId }),
     })) as BrandDocument | null;

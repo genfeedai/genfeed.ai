@@ -2,7 +2,6 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type {
   BrandKitFieldKey,
@@ -190,15 +189,14 @@ export class BrandOsPreviewService {
   async readClaimedPreview(
     organizationId: string,
     brand: BrandDocument,
-  ): Promise<IBrandOsDraftHandoff> {
+  ): Promise<IBrandOsDraftHandoff | null> {
     const revision = await this.revisions.findClaimed(
       organizationId,
       String(brand.id),
     );
-    if (!revision)
-      throw new NotFoundException({
-        message: 'No claimed Brand OS draft is available for this brand.',
-      });
+    // Brand Kit reads this on every open. No claimed draft is the normal
+    // case, so absence is an empty success rather than a 404.
+    if (!revision) return null;
     return { draft: revision.content, id: String(brand.id), status: 'claimed' };
   }
 

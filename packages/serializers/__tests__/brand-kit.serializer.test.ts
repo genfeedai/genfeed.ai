@@ -85,6 +85,12 @@ describe('Brand Kit JSON:API contract', () => {
     });
   });
 
+  it('serializes a missing claimed handoff as an empty success', () => {
+    expect(BrandOsDraftHandoffSerializer.serialize(null)).toEqual({
+      data: null,
+    });
+  });
+
   it('serializes the tenant-bound handoff without exposing its bearer token', () => {
     const output = BrandOsDraftHandoffSerializer.serialize({
       draft: { ...previewDraft, brandId: 'brand-1', id: 'brand-1' },

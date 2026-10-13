@@ -1,7 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { BrandOsRevisionStatus } from '@genfeedai/contracts';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
@@ -274,16 +273,16 @@ describe('BrandOsPreviewService', () => {
     });
     await expect(
       service.readClaimedPreview('org-2', brand),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).resolves.toBeNull();
     await expect(
       service.readClaimedPreview('org-1', {
         ...brand,
         id: 'brand-2',
       } as BrandDocument),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).resolves.toBeNull();
   });
 
-  it('treats preview Redis outage as recoverable and missing durable claims as not found', async () => {
+  it('treats preview Redis outage as recoverable and a missing claim as empty', async () => {
     redisService.getPublisher.mockReturnValue(null);
 
     await expect(
@@ -291,7 +290,7 @@ describe('BrandOsPreviewService', () => {
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
     await expect(
       service.readClaimedPreview('org-1', brand),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).resolves.toBeNull();
   });
   it('keeps the token reserved and retryable when persistence fails', async () => {
     const preview = await service.createPreview({
@@ -348,7 +347,7 @@ describe('BrandOsPreviewService', () => {
     redisService.getPublisher.mockReturnValue(null);
     await expect(
       service.readClaimedPreview('org-1', brand),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).resolves.toBeNull();
     await expect(
       service.claimPreview(preview.previewToken, 'org-1', brand),
     ).resolves.toEqual(claimed);

@@ -343,6 +343,51 @@ describe('BrandKitReviewCard', () => {
     );
   });
 
+  it('treats a missing claimed draft as an empty review, not a failure', async () => {
+    const onLoaded = vi.fn();
+    mocks.getClaimedBrandOsDraft.mockResolvedValue(null);
+
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        loadClaimedBrandOsDraft
+        onBrandOsDraftLoaded={onLoaded}
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(mocks.getClaimedBrandOsDraft).toHaveBeenCalledWith('brand-1');
+    });
+    expect(onLoaded).not.toHaveBeenCalled();
+    expect(mocks.loggerError).not.toHaveBeenCalled();
+    expect(screen.getByTestId('brand-kit-review-card')).not.toHaveAttribute(
+      'data-brand-os-state',
+    );
+  });
+
+  it('logs a claimed-draft read failure without blocking the review card', async () => {
+    mocks.getClaimedBrandOsDraft.mockRejectedValue(new Error('network'));
+
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        loadClaimedBrandOsDraft
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        'Failed to read claimed Brand OS draft',
+        expect.any(Error),
+      );
+    });
+    expect(screen.getByTestId('brand-kit-review-card')).toBeInTheDocument();
+  });
+
   it('scans, reviews editable fields, and applies selected fields', async () => {
     render(
       <BrandKitReviewCard

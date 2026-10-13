@@ -1351,6 +1351,15 @@ describe('BrandsService', () => {
       );
     });
 
+    it('returns an empty handoff when the tenant brand has no claimed draft', async () => {
+      delegate.findFirst.mockResolvedValue(brand);
+      brandOsPreviewService.readClaimedPreview.mockResolvedValue(null);
+
+      await expect(
+        service.readClaimedBrandOsPreview(brandId, organizationId),
+      ).resolves.toBeNull();
+    });
+
     it('does not consume or read a preview when the tenant brand is absent', async () => {
       delegate.findFirst.mockResolvedValue(null);
 

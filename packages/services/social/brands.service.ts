@@ -384,10 +384,13 @@ export class BrandsService extends BaseService<Brand> {
 
   public async getClaimedBrandOsDraft(
     id: string,
-  ): Promise<IBrandOsDraftHandoff> {
-    return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/brand-kit/brand-os`)
-      .then((res) => deserializeResource<IBrandOsDraftHandoff>(res.data));
+  ): Promise<IBrandOsDraftHandoff | null> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${id}/brand-kit/brand-os`,
+    );
+    return response.data.data === null
+      ? null
+      : deserializeResource<IBrandOsDraftHandoff>(response.data);
   }
 
   public async startBrandOsScan(

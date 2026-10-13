@@ -1296,6 +1296,26 @@ describe('BrandsController', () => {
       expect(result).toEqual({ data: handoff });
     });
 
+    it('serializes a missing claimed draft as an empty success', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.readClaimedBrandOsPreview.mockResolvedValue(null);
+
+      const result = await agentConfigController.readClaimedBrandOsPreview(
+        mockRequest,
+        mockUser,
+        brandId,
+      );
+
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        BrandOsDraftHandoffSerializer,
+        null,
+      );
+      expect(result).toEqual({ data: null });
+    });
+
     it('does not consume the token without organization context', async () => {
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,

@@ -451,6 +451,9 @@ describe('BrandsService HTTP methods', () => {
     );
     await service.getClaimedBrandOsDraft(brandId);
     expect(http.get).toHaveBeenCalledWith(`/${brandId}/brand-kit/brand-os`);
+
+    http.get.mockResolvedValue(axiosResponse({ data: null }));
+    await expect(service.getClaimedBrandOsDraft(brandId)).resolves.toBeNull();
   });
 
   it('importBrandKitAssets POSTs the import request', async () => {
