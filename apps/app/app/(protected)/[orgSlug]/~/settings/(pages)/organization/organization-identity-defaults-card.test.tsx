@@ -286,6 +286,21 @@ describe('OrganizationIdentityDefaultsCard', () => {
     expect(mocks.push).toHaveBeenCalledWith('/org/brand/library/voices');
   });
 
+  it('offers a reconnect link when HeyGen rejects the saved credentials', async () => {
+    const credentialsInvalid = {
+      errors: [{ code: 'HEYGEN_CREDENTIALS_INVALID', status: '502' }],
+    };
+    mocks.getOrganizationsService.mockResolvedValue({
+      fetchAvatarPage: vi.fn().mockRejectedValue(credentialsInvalid),
+      fetchVoices: vi.fn().mockRejectedValue(credentialsInvalid),
+      patchSettings: mocks.patchSettings,
+    });
+    render(<OrganizationIdentityDefaultsCard />);
+
+    const link = await screen.findByRole('link', { name: 'Reconnect HeyGen' });
+    expect(link).toHaveAttribute('href', '/org/settings/integrations');
+  });
+
   it('falls back to the CDN placeholder when the avatar has no image', () => {
     render(<OrganizationIdentityDefaultsCard />);
 

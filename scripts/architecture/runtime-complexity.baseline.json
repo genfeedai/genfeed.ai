@@ -96,12 +96,6 @@
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
   },
   {
-    "actual": 276,
-    "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
-    "metric": "method-lines",
-    "symbol": "ProactiveOnboardingService.prepareBrand"
-  },
-  {
     "actual": 198,
     "file": "apps/server/api/src/endpoints/public/services/public-youtube-clips.service.ts",
     "metric": "method-lines",
@@ -244,12 +238,6 @@
     "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts",
     "metric": "method-lines",
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
-  },
-  {
-    "actual": 209,
-    "file": "apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts",
-    "metric": "method-lines",
-    "symbol": "CronTiktokStatusService.checkPostStatus"
   },
   {
     "actual": 33,

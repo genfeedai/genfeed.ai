@@ -53,9 +53,6 @@ const mocks = vi.hoisted(() => ({
   patchMe: vi.fn(),
   updateOnboarding: vi.fn(),
   clearCache: vi.fn(),
-  rename: vi.fn(),
-  scrape: vi.fn(),
-  starter: vi.fn(),
   updateAccountType: vi.fn(),
   search: new URLSearchParams(),
 }));
@@ -92,15 +89,7 @@ vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
 }));
 vi.mock('@services/social/brands.service', () => ({
   BrandsService: {
-    getInstance: () => ({
-      renameWithOrganizationSync: mocks.rename,
-      scrape: mocks.scrape,
-    }),
-  },
-}));
-vi.mock('@services/onboarding/onboarding.service', () => ({
-  OnboardingService: {
-    getInstance: () => ({ queueStarterAssets: mocks.starter }),
+    getInstance: () => ({}),
   },
 }));
 vi.mock('@services/organization/organizations.service', () => ({
@@ -317,9 +306,6 @@ async function enabledContinue() {
 function assertNoAutomaticWrites({ isScanAllowed = false } = {}) {
   if (!isScanAllowed) expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
   for (const fn of [
-    mocks.rename,
-    mocks.scrape,
-    mocks.starter,
     mocks.updateAccountType,
     mocks.updateOnboarding,
     mocks.patchSettings,
@@ -440,7 +426,6 @@ describe('membership-scoped saved guide wizard', () => {
       ),
     );
     expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
-    expect(mocks.starter).not.toHaveBeenCalled();
   });
   it('reopens persisted history and URL without a scan POST', async () => {
     mocks.getBrandOsScan.mockResolvedValue(marker());
@@ -519,7 +504,6 @@ describe('membership-scoped saved guide wizard', () => {
     );
     expect(mocks.scope.refreshBrands).toHaveBeenCalledTimes(1);
     expect(mocks.push).not.toHaveBeenCalled();
-    expect(mocks.starter).not.toHaveBeenCalled();
   });
   it('keeps saved manual review available after scan GET failure without exposing remote errors', async () => {
     mocks.getBrandOsScan.mockRejectedValueOnce(

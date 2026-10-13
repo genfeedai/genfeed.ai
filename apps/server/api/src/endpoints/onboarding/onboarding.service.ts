@@ -1,20 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
-import { StarterAssetsDto } from '@api/endpoints/onboarding/dto/starter-assets.dto';
 import type {
   InstallReadinessResponse,
   OnboardingWorkspaceContext,
 } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
-import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
-import { OnboardingStarterAssetsQueueService } from '@api/endpoints/onboarding/services/onboarding-starter-assets-queue.service';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -24,7 +18,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
  * OnboardingService
  *
  * Genuine onboarding actions only: workspace resolution/provisioning, status +
- * install readiness, preview generation, and the organization prefix.
+ * install readiness, and the organization prefix.
  *
  * The resource-shaped brand/user writes that briefly lived here (brand setup +
  * scrape, brand rename→org cascade, reference images, funnel completion) were
@@ -40,14 +34,11 @@ export class OnboardingService {
 
   constructor(
     private readonly loggerService: LoggerService,
-    private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
     private readonly userSetupService: UserSetupService,
-    private readonly onboardingPreviewService: OnboardingPreviewService,
     private readonly onboardingReadinessService: OnboardingReadinessService,
-    private readonly onboardingStarterAssetsQueueService: OnboardingStarterAssetsQueueService,
   ) {}
 
   private getEntityId(record: unknown): string {
@@ -184,99 +175,6 @@ export class OnboardingService {
     const workspace = await this.ensureOnboardingWorkspace(user);
 
     return this.onboardingReadinessService.getInstallReadiness(user, workspace);
-  }
-
-  async getProactiveWorkspace(_user: User): Promise<{
-    success: boolean;
-    proactiveStatus: string;
-    prepPercent: number;
-    prepStage: string;
-    brand?: unknown;
-    organization?: unknown;
-    outputs: unknown[];
-    summary: string;
-  }> {
-    // This metadata had no writers, so this endpoint always returned this
-    // exact error. Preserve that behavior in this strictly subtractive cleanup;
-    // a live proactive-workspace replacement is separate product work.
-    throw new HttpException(
-      {
-        detail: 'Missing proactive onboarding context',
-        title: 'Bad Request',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  async claimProactiveWorkspace(_user: User): Promise<{
-    success: boolean;
-    proactiveStatus: string;
-    prepPercent: number;
-    prepStage: string;
-    brand?: unknown;
-    organization?: unknown;
-    outputs: unknown[];
-    summary: string;
-    claimedAt?: Date;
-  }> {
-    // Preserve the pre-cleanup response contract; see getProactiveWorkspace.
-    throw new HttpException(
-      {
-        detail: 'Missing proactive onboarding context',
-        title: 'Bad Request',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  /**
-   * Queue the starter post + ad draft for the new brand. Generation runs in
-   * the workers app off `ONBOARDING_STARTER_ASSETS_QUEUE` — this only
-   * validates brand ownership and enqueues, so the domain loading step can
-   * return immediately instead of blocking on generation.
-   */
-  async enqueueStarterAssets(
-    dto: StarterAssetsDto,
-    user: User,
-  ): Promise<{ queued: boolean }> {
-    const organizationId = user.organizationId?.toString();
-    const userId = (user.userId ?? user.id)?.toString();
-    if (!organizationId || !userId) {
-      throw new HttpException(
-        {
-          detail: 'Missing organization or user context',
-          title: 'Bad Request',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const brand = await this.brandsService.findOne(
-      { id: dto.brandId, isDeleted: false, organizationId },
-      'none',
-    );
-    if (!brand) {
-      throw new NotFoundException('Brand', dto.brandId);
-    }
-
-    await this.onboardingStarterAssetsQueueService.enqueue({
-      brandId: dto.brandId,
-      organizationId,
-      userId,
-      ...(dto.websiteUrl ? { websiteUrl: dto.websiteUrl } : {}),
-    });
-
-    return { queued: true };
-  }
-
-  /**
-   * Generate an AI preview image during onboarding
-   */
-  async generateOnboardingPreview(
-    dto: GeneratePreviewDto,
-    user: User,
-  ): Promise<{ imageUrl: string; prompt: string }> {
-    return this.onboardingPreviewService.generateOnboardingPreview(dto, user);
   }
 
   /**

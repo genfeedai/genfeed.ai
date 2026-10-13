@@ -224,7 +224,6 @@ export const APP_ROUTES = {
     FIRST_SYSTEM: '/onboarding/first-system',
     POSITIONING: '/onboarding/positioning',
     POST_SIGNUP: '/onboarding/post-signup',
-    PROACTIVE: '/onboarding/proactive',
     PROVIDERS: '/onboarding/providers',
     ROOT: '/onboarding',
     SUCCESS: '/onboarding/success',

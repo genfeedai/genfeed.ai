@@ -329,6 +329,25 @@ describe('TikTokPublisherService', () => {
   });
 
   describe('publish', () => {
+    it('recognizes a completed private publish without a public ID', async () => {
+      const context = createPublishContext(mockVideoPost);
+      tiktokService.uploadVideo.mockResolvedValue({
+        data: {
+          status: 'PUBLISH_COMPLETE',
+          publish_id: 'private-publish',
+          isPending: false,
+        },
+      });
+      expect(await service.publish(context)).toEqual(
+        expect.objectContaining({
+          success: true,
+          executionState: TargetExecutionState.PUBLISHED,
+          externalId: 'private-publish',
+          url: '',
+        }),
+      );
+    });
+
     describe('video posts', () => {
       it('should publish a video successfully with immediate post_id', async () => {
         const context = createPublishContext(mockVideoPost);

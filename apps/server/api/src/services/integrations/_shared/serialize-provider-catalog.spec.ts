@@ -3,7 +3,13 @@ import {
   serializeProviderCatalog,
   throwProviderCatalogError,
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
-import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { z } from 'zod';
 
@@ -82,8 +88,8 @@ function capture(error: unknown): HttpException {
 
 describe('throwProviderCatalogError', () => {
   it.each([
-    [401, HttpStatus.FAILED_DEPENDENCY, 'provider_config'],
-    [403, HttpStatus.FAILED_DEPENDENCY, 'provider_config'],
+    [401, HttpStatus.BAD_GATEWAY, 'provider_config'],
+    [403, HttpStatus.BAD_GATEWAY, 'provider_config'],
     [400, HttpStatus.BAD_GATEWAY, 'provider_rejected'],
     [429, HttpStatus.SERVICE_UNAVAILABLE, 'provider_unavailable'],
     [503, HttpStatus.SERVICE_UNAVAILABLE, 'provider_unavailable'],
@@ -94,6 +100,80 @@ describe('throwProviderCatalogError', () => {
       code,
       title: 'Failed to fetch HeyGen voices',
     });
+  });
+
+  it('never relays a provider 401 or 403 as a client auth status', () => {
+    for (const providerStatus of [401, 403]) {
+      const status = capture(
+        axiosFailure({ status: providerStatus }),
+      ).getStatus();
+      expect(status).not.toBe(HttpStatus.UNAUTHORIZED);
+      expect(status).not.toBe(HttpStatus.FORBIDDEN);
+    }
+  });
+
+  it('answers rejected provider credentials with a 502 and the caller stable code', () => {
+    for (const providerStatus of [401, 403]) {
+      try {
+        throwProviderCatalogError(
+          'Failed to fetch HeyGen voices',
+          axiosFailure({
+            message: 'sk-secret rejected',
+            status: providerStatus,
+          }),
+          { credentialsInvalidCode: 'HEYGEN_CREDENTIALS_INVALID' },
+        );
+      } catch (thrown) {
+        const httpError = thrown as HttpException;
+        expect(httpError.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+        expect(httpError.getResponse()).toMatchObject({
+          code: 'HEYGEN_CREDENTIALS_INVALID',
+          title: 'Failed to fetch HeyGen voices',
+        });
+        expect(JSON.stringify(httpError.getResponse())).not.toContain(
+          'sk-secret',
+        );
+        continue;
+      }
+      throw new Error('expected throwProviderCatalogError to throw');
+    }
+  });
+
+  it('reclassifies our own 401 or 403 failures so they cannot log the user out', () => {
+    for (const error of [
+      new UnauthorizedException('Session expired'),
+      new ForbiddenException('Forbidden'),
+    ]) {
+      try {
+        throwProviderCatalogError('Failed to fetch HeyGen voices', error, {
+          credentialsInvalidCode: 'HEYGEN_CREDENTIALS_INVALID',
+        });
+      } catch (thrown) {
+        const httpError = thrown as HttpException;
+        expect(httpError.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+        expect(httpError.getResponse()).toMatchObject({
+          code: 'HEYGEN_CREDENTIALS_INVALID',
+        });
+        continue;
+      }
+      throw new Error('expected throwProviderCatalogError to throw');
+    }
+  });
+
+  it('keeps the category code for other failures even with a stable code', () => {
+    try {
+      throwProviderCatalogError(
+        'Failed to fetch HeyGen voices',
+        axiosFailure({ status: 422 }),
+        { credentialsInvalidCode: 'HEYGEN_CREDENTIALS_INVALID' },
+      );
+    } catch (thrown) {
+      expect((thrown as HttpException).getResponse()).toMatchObject({
+        code: 'provider_rejected',
+      });
+      return;
+    }
+    throw new Error('expected throwProviderCatalogError to throw');
   });
 
   it('maps timeouts to a gateway timeout', () => {
@@ -168,7 +248,7 @@ describe('describeProviderCatalogError', () => {
       errorCode: undefined,
       errorName: 'AxiosError',
       providerStatus: 401,
-      status: HttpStatus.FAILED_DEPENDENCY,
+      status: HttpStatus.BAD_GATEWAY,
     });
     expect(JSON.stringify(diagnostics)).not.toContain('sk-secret');
   });

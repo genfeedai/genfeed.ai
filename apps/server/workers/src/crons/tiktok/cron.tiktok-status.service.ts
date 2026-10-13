@@ -13,6 +13,7 @@ import {
   CredentialPlatform,
   PostVisibility,
   TargetExecutionState,
+  TikTokPublishStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
@@ -304,115 +305,145 @@ export class CronTiktokStatusService implements OnModuleInit {
         status: statusData?.status,
       });
 
-      // Check if moderation complete and post_id available
-      if (statusData?.status === 'PUBLISH_COMPLETE' && hasPostId) {
-        const postId = String(statusData.publicly_available_post_id?.[0]);
-        const postUrl = `https://www.tiktok.com/@${credential.externalHandle}/video/${postId}`;
-
-        // Update post with real post_id and mark as PUBLIC
-        const transitioned = await this.applyStatusTransition(
+      // Completion is independent of public availability.
+      if (statusData?.status === TikTokPublishStatus.PUBLISH_COMPLETE) {
+        await this.completePublishedPost({
+          externalHandle: credential.externalHandle,
+          hasPostId,
+          now,
           post,
-          'published',
-          `TikTok moderation completed - post ${postId} is live`,
-          { externalPostId: postId, postUrl },
           provenance,
-        );
-        if (transitioned) {
-          void this.publishEventWebhookService.emitLegacyPostPublished({
-            externalProviderId: postId,
-            occurredAt: now,
-            platform: CredentialPlatform.TIKTOK,
-            post,
-            url: postUrl,
-          });
-        }
-
-        this.logger.log(`${url} post ${post.id} verified and published`, {
-          postId,
+          publicPostId: statusData.publicly_available_post_id?.[0],
           publishId,
-          url: postUrl,
+          url,
         });
         return;
       }
 
       // Note: If status === 'FAILED', getPublishStatus() throws an error which is caught
       // in the catch block below and handled by markPostFailed()
-
-      // If PUBLISH_COMPLETE but no post_id, log and wait for next cron run
-      if (statusData?.status === 'PUBLISH_COMPLETE' && !hasPostId) {
-        const pendingSince = new Date(post.updatedAt);
-        const hoursPending = Math.round(
-          (now.getTime() - pendingSince.getTime()) / (60 * 60 * 1000),
-        );
-        this.logger.log(
-          `${url} post ${post.id} is PUBLISH_COMPLETE but no post_id yet - will retry next cron run`,
-          { hoursPending, publishId },
-        );
-      }
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, { fallback: () => '' });
-      this.logger.error(`${url} failed for post ${post.id}`, {
-        error: getErrorMessage(error, { fallback: () => undefined }),
+      await this.handleStatusCheckError(
+        post,
+        error,
         publishId,
-      });
-
-      // Check if this is a TikTok moderation failure (thrown by getPublishStatus when status === 'FAILED')
-      if (errorMessage.startsWith('TikTok publish failed:')) {
-        const failReason =
-          errorMessage.replace('TikTok publish failed: ', '') ||
-          'TikTok moderation rejected the post';
-        await this.markPostFailed(post, failReason, provenance);
-        return;
-      }
-
-      // Check if this is an auth error - mark credential as disconnected and fail the post
-      if (this.isAuthError(error)) {
-        const errorCode = this.getErrorCode(error);
-        this.logger.warn(
-          `${url} auth error for post ${post.id} - marking credential as disconnected`,
-          { errorCode },
-        );
-
-        // Mark credential as disconnected (TiktokService.refreshToken should have done this already,
-        // but we do it here as a safety net)
-        if (
-          (
-            post as unknown as {
-              credential?: {
-                id?: string;
-                accessToken?: string;
-                isConnected?: boolean;
-              };
-            }
-          ).credential?.id
-        ) {
-          try {
-            const credentialId = post.credential?.id;
-            if (!credentialId) {
-              return;
-            }
-            await this.credentialsService.patch(credentialId, {
-              isConnected: false,
-            });
-          } catch (patchError: unknown) {
-            this.logger.error(
-              `${url} failed to mark credential as disconnected`,
-              patchError,
-            );
-          }
-        }
-
-        // Mark post as failed with clear message
-        await this.markPostFailed(
-          post,
-          'TikTok authentication expired - please reconnect your TikTok account',
-          provenance,
-        );
-        return;
-      }
-
-      // Don't mark as failed on transient errors - will retry next cron run
+        provenance,
+        url,
+      );
     }
+  }
+
+  /**
+   * Record a verified TikTok publish: transition the post and emit the webhook.
+   */
+  private async completePublishedPost({
+    externalHandle,
+    hasPostId,
+    now,
+    post,
+    provenance,
+    publicPostId,
+    publishId,
+    url,
+  }: {
+    externalHandle?: string;
+    hasPostId: boolean;
+    now: Date;
+    post: TiktokPost;
+    provenance: SystemWorkflowProvenance;
+    publicPostId?: string;
+    publishId: string;
+    url: string;
+  }): Promise<void> {
+    const postId = String(publicPostId ?? publishId);
+    const postUrl = hasPostId
+      ? `https://www.tiktok.com/@${externalHandle}/video/${postId}`
+      : '';
+
+    // Retain the publish ID when TikTok withholds a public video ID.
+    const transitioned = await this.applyStatusTransition(
+      post,
+      'published',
+      `TikTok publish completed${hasPostId ? ` - post ${postId}` : ''}`,
+      { externalPostId: postId, postUrl },
+      provenance,
+    );
+    if (transitioned) {
+      void this.publishEventWebhookService.emitLegacyPostPublished({
+        externalProviderId: postId,
+        occurredAt: now,
+        platform: CredentialPlatform.TIKTOK,
+        post,
+        url: postUrl,
+      });
+    }
+
+    this.logger.log(`${url} post ${post.id} verified and published`, {
+      postId,
+      publishId,
+      url: postUrl,
+    });
+  }
+
+  /**
+   * Fail the post on a moderation rejection or an auth error; transient errors
+   * are left for the next cron run.
+   */
+  private async handleStatusCheckError(
+    post: TiktokPost,
+    error: unknown,
+    publishId: string,
+    provenance: SystemWorkflowProvenance,
+    url: string,
+  ): Promise<void> {
+    const errorMessage = getErrorMessage(error, { fallback: () => '' });
+    this.logger.error(`${url} failed for post ${post.id}`, {
+      error: getErrorMessage(error, { fallback: () => undefined }),
+      publishId,
+    });
+
+    // Check if this is a TikTok moderation failure (thrown by getPublishStatus when status === 'FAILED')
+    if (errorMessage.startsWith('TikTok publish failed:')) {
+      const failReason =
+        errorMessage.replace('TikTok publish failed: ', '') ||
+        'TikTok moderation rejected the post';
+      await this.markPostFailed(post, failReason, provenance);
+      return;
+    }
+
+    // Check if this is an auth error - mark credential as disconnected and fail the post
+    if (this.isAuthError(error)) {
+      const errorCode = this.getErrorCode(error);
+      this.logger.warn(
+        `${url} auth error for post ${post.id} - marking credential as disconnected`,
+        { errorCode },
+      );
+
+      // Mark credential as disconnected (TiktokService.refreshToken should have done this already,
+      // but we do it here as a safety net)
+      const credentialId = post.credential?.id;
+      if (credentialId) {
+        try {
+          await this.credentialsService.patch(credentialId, {
+            isConnected: false,
+          });
+        } catch (patchError: unknown) {
+          this.logger.error(
+            `${url} failed to mark credential as disconnected`,
+            patchError,
+          );
+        }
+      }
+
+      // Mark post as failed with clear message
+      await this.markPostFailed(
+        post,
+        'TikTok authentication expired - please reconnect your TikTok account',
+        provenance,
+      );
+    }
+
+    // Don't mark as failed on transient errors - will retry next cron run
   }
 
   /**
@@ -540,7 +571,7 @@ export class CronTiktokStatusService implements OnModuleInit {
             publicationDate: publishedAt,
             publishedAt,
             url: String(input.postUrl ?? ''),
-            visibility: PostVisibility.PUBLIC,
+            visibility: post.visibility ?? PostVisibility.PUBLIC,
             workflowExecutionId: provenance.executionId,
           }
         : {

@@ -1,7 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
-import { StarterAssetsDto } from '@api/endpoints/onboarding/dto/starter-assets.dto';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
@@ -32,12 +30,8 @@ describe('OnboardingController', () => {
           provide: OnboardingService,
           useValue: {
             checkPrefixAvailable: vi.fn(),
-            claimProactiveWorkspace: vi.fn(),
-            enqueueStarterAssets: vi.fn(),
-            generateOnboardingPreview: vi.fn(),
             getInstallReadiness: vi.fn(),
             getOnboardingStatus: vi.fn(),
-            getProactiveWorkspace: vi.fn(),
             setPrefix: vi.fn(),
           },
         },
@@ -88,18 +82,6 @@ describe('OnboardingController', () => {
       Reflect.getMetadata(
         SKIP_ROLES_KEY,
         OnboardingController.prototype.setPrefix,
-      ),
-    ).toBeUndefined();
-    expect(
-      Reflect.getMetadata(
-        SKIP_ROLES_KEY,
-        OnboardingController.prototype.generatePreview,
-      ),
-    ).toBeUndefined();
-    expect(
-      Reflect.getMetadata(
-        SKIP_ROLES_KEY,
-        OnboardingController.prototype.claimProactiveWorkspace,
       ),
     ).toBeUndefined();
   });
@@ -155,110 +137,6 @@ describe('OnboardingController', () => {
         dto.prefix,
       );
       expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('getProactiveWorkspace', () => {
-    it('should return the prepared proactive workspace summary', async () => {
-      const mockResponse = {
-        outputs: [{ _id: 'post_1' }],
-        proactiveStatus: 'started',
-        success: true,
-      };
-
-      onboardingService.getProactiveWorkspace.mockResolvedValue(
-        mockResponse as never,
-      );
-
-      const result = await controller.getProactiveWorkspace(mockUser);
-
-      expect(onboardingService.getProactiveWorkspace).toHaveBeenCalledWith(
-        mockUser,
-      );
-      expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('claimProactiveWorkspace', () => {
-    it('should claim a prepared proactive workspace for the invited user', async () => {
-      const mockResponse = {
-        outputs: [{ _id: 'post_1' }],
-        proactiveStatus: 'started',
-        success: true,
-      };
-
-      onboardingService.claimProactiveWorkspace.mockResolvedValue(
-        mockResponse as never,
-      );
-
-      const result = await controller.claimProactiveWorkspace(mockUser);
-
-      expect(onboardingService.claimProactiveWorkspace).toHaveBeenCalledWith(
-        mockUser,
-      );
-      expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('generatePreview', () => {
-    it('should generate preview image successfully', async () => {
-      const dto: GeneratePreviewDto = {
-        brandId: 'brand_123',
-        contentType: 'social',
-      } as GeneratePreviewDto;
-
-      const mockResponse = {
-        imageUrl: 'https://cdn.example.com/preview.png',
-        prompt: 'Generated prompt',
-      };
-
-      onboardingService.generateOnboardingPreview.mockResolvedValue(
-        mockResponse as never,
-      );
-
-      const result = await controller.generatePreview(dto, mockUser);
-
-      expect(onboardingService.generateOnboardingPreview).toHaveBeenCalledWith(
-        dto,
-        mockUser,
-      );
-      expect(result.imageUrl).toBe('https://cdn.example.com/preview.png');
-      expect(result.prompt).toBe('Generated prompt');
-    });
-
-    it('should propagate insufficient credits error', async () => {
-      const dto: GeneratePreviewDto = {
-        brandId: 'brand_456',
-        contentType: 'ads',
-      } as GeneratePreviewDto;
-
-      const error = new Error('Insufficient credits');
-      onboardingService.generateOnboardingPreview.mockRejectedValue(error);
-
-      await expect(controller.generatePreview(dto, mockUser)).rejects.toThrow(
-        'Insufficient credits',
-      );
-    });
-  });
-
-  describe('generateStarterAssets', () => {
-    it('queues starter asset generation and returns immediately', async () => {
-      const dto: StarterAssetsDto = {
-        brandId: 'brand_123',
-        websiteUrl: 'https://acme.com',
-      } as StarterAssetsDto;
-
-      onboardingService.enqueueStarterAssets.mockResolvedValue({
-        queued: true,
-      });
-
-      const result = await controller.generateStarterAssets(dto, mockUser);
-
-      expect(onboardingService.enqueueStarterAssets).toHaveBeenCalledWith(
-        dto,
-        mockUser,
-      );
-      expect(result).toEqual({ queued: true });
     });
   });
 });

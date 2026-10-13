@@ -105,6 +105,36 @@ describe('HeyGen catalogue recovery', () => {
     expect(result.current.voices).toEqual([]);
     expect(result.current.error).toContain('voices');
   });
+  it('flags a reconnect when HeyGen rejects the credentials, then clears it on retry', async () => {
+    const credentialsInvalid = {
+      errors: [
+        {
+          code: 'HEYGEN_CREDENTIALS_INVALID',
+          detail: 'Reconnect the integration in Settings and try again.',
+          status: '502',
+        },
+      ],
+    };
+    mocks.voices.mockRejectedValueOnce(credentialsInvalid);
+    const { result } = renderHook(() => useHeyGenCatalog());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isReconnectRequired).toBe(true);
+    expect(result.current.error).toContain('Reconnect HeyGen');
+    expect(result.current.voices).toEqual([]);
+    act(() => result.current.retry());
+    await waitFor(() => expect(result.current.isReconnectRequired).toBe(false));
+    await waitFor(() => expect(result.current.voices).toEqual([voice]));
+    expect(result.current.error).toBeNull();
+  });
+  it('does not ask for a reconnect on a plain outage or an unrelated 502', async () => {
+    mocks.voices.mockRejectedValue({
+      errors: [{ code: 'provider_unavailable', status: '502' }],
+    });
+    const { result } = renderHook(() => useHeyGenCatalog());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isReconnectRequired).toBe(false);
+    expect(result.current.error).toContain('voices');
+  });
   it('clears the old private catalogue immediately and ignores its aborted response after an organization switch', async () => {
     let resolveOld: ((value: HeyGenCatalogVoice[]) => void) | undefined;
     mocks.voices
