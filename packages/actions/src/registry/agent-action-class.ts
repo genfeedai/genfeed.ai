@@ -84,6 +84,7 @@ export function getVisualGenerationReviewType(
 /** Creates or rewrites brand context the Agent should not silently change. */
 const BRAND_CONTEXT_TOOL_NAMES = new Set<string>([
   'save_brand_voice_profile',
+  'save_content_agent',
   'capture_memory',
   'capture_knowledge',
   'update_strategy_state',

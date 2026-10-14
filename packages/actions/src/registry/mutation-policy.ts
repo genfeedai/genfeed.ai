@@ -171,6 +171,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   retry_knowledge_ingestion: 'direct',
   rollback_skill: 'direct',
   save_brand_voice_profile: 'direct',
+  save_content_agent: 'direct',
   save_dashboard_layout: 'direct',
   schedule_post: 'direct',
   select_ingredient: 'direct',

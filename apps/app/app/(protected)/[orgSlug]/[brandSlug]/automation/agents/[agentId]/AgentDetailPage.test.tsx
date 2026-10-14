@@ -19,9 +19,16 @@ vi.mock('./AgentActivitySection', () => ({
   default: () => <div data-testid="agent-activity-section" />,
 }));
 
-vi.mock('../../autopilot/AgentStrategyDialog', () => ({
-  default: ({ isOpen }: { isOpen: boolean }) =>
-    isOpen ? <div>Agent schedule dialog</div> : null,
+const openConversation = vi.hoisted(() => vi.fn());
+
+vi.mock('../open-content-agent-conversation', () => ({
+  buildContentAgentUpdatePrompt: (input: {
+    brandId?: string;
+    id: string;
+    label: string;
+  }) =>
+    `Update the content agent "${input.label}" (id: ${input.id}). Brand id: ${input.brandId}.`,
+  useOpenContentAgentConversation: () => openConversation,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -286,12 +293,14 @@ describe('AgentDetailPage', () => {
     expect(actions).toHaveTextContent('Deactivate');
   });
 
-  it('opens schedule settings on the agent instead of a separate Autopilot desk', () => {
+  it('opens schedule changes in the agent conversation', () => {
     render(<AgentDetailPage agentId="strategy-1" />);
 
-    expect(screen.queryByText('Agent schedule dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
-    expect(screen.getByText('Agent schedule dialog')).toBeVisible();
+    expect(openConversation).toHaveBeenCalledWith(
+      'Update the content agent "Content agent" (id: strategy-1). Brand id: brand-1.',
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows opportunity context when opened from the publishing inbox', () => {

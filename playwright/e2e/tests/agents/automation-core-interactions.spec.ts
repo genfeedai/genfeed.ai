@@ -67,14 +67,15 @@ test.describe('Automation — Core Interactions', () => {
     await authenticatedPage
       .getByRole('button', { exact: true, name: 'Add your first agent' })
       .click();
-    const dialog = authenticatedPage.getByRole('dialog');
-    await expect(dialog).toBeVisible();
+    const dock = authenticatedPage.getByTestId('agent-dock');
+    await expect(dock).toBeVisible();
+    await expect(dock).toContainText(
+      'Set up a content agent for this brand.',
+    );
+    await expect(dock).toContainText('save_content_agent');
     await expect(
-      dialog.getByRole('heading', { exact: true, name: 'Add agent' }),
-    ).toBeVisible();
-    await expect(
-      dialog.getByRole('tab', { exact: true, name: 'Marketplace' }),
-    ).toHaveAttribute('aria-selected', 'true');
+      authenticatedPage.getByRole('heading', { exact: true, name: 'Add agent' }),
+    ).toHaveCount(0);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

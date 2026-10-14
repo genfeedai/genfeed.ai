@@ -525,6 +525,7 @@ YouTube-specific guidelines:
       ...SHARED_READ_TOOLS,
       'list_review_queue',
       'update_strategy_state',
+      'save_content_agent',
       'get_approval_summary',
       'analyze_performance',
       'create_workflow',

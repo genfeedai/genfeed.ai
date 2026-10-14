@@ -504,6 +504,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'rollback_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'save_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
+  { name: 'save_content_agent', surfaces: ['agent'], toolset: 'engagement' },
   { name: 'save_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
   {
     name: 'save_onboarding_answers',

@@ -17,7 +17,6 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
-import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import type {
   AgentStrategyWorkflowBinding,
@@ -41,9 +40,11 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
-import AgentStrategyDialog from '../../autopilot/AgentStrategyDialog';
-import { buildPayload } from '../../autopilot/build-agent-strategy-payload';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
+import {
+  buildContentAgentUpdatePrompt,
+  useOpenContentAgentConversation,
+} from '../open-content-agent-conversation';
 import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
 import AgentActivitySection from './AgentActivitySection';
 import AgentDetailNeedsYou from './AgentDetailNeedsYou';
@@ -185,27 +186,20 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     }
   }, [agentId, getService, notificationsService, refresh, refreshExecutions]);
 
-  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
-  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+  const openContentAgentConversation = useOpenContentAgentConversation();
 
-  const handlePolicySubmit = useCallback(
-    async (form: AgentStrategyFormState) => {
-      setIsSavingPolicy(true);
-      try {
-        const service = await getService();
-        await service.update(agentId, buildPayload(form));
-        notificationsService.success('Agent schedule updated');
-        setIsPolicyOpen(false);
-        await refresh();
-      } catch (error) {
-        logger.error('Failed to save agent schedule', { error });
-        notificationsService.error('Failed to save agent schedule');
-      } finally {
-        setIsSavingPolicy(false);
-      }
-    },
-    [agentId, getService, notificationsService, refresh],
-  );
+  const handleOpenSchedule = useCallback(() => {
+    if (!strategy) {
+      return;
+    }
+    openContentAgentConversation(
+      buildContentAgentUpdatePrompt({
+        brandId: strategy.brandId ?? collectionScope.brandId,
+        id: strategy.id,
+        label: strategy.label,
+      }),
+    );
+  }, [collectionScope.brandId, openContentAgentConversation, strategy]);
 
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [workflowBinding, setWorkflowBinding] =
@@ -291,7 +285,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         icon: <Clock className="size-4" />,
         id: 'schedule',
         label: translate('schedule'),
-        onSelect: () => setIsPolicyOpen(true),
+        onSelect: handleOpenSchedule,
       },
       {
         id: 'toggle-active',
@@ -299,7 +293,14 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         onSelect: handleToggle,
       },
     ];
-  }, [detail, handleOpenWorkflow, handleToggle, strategy, translate]);
+  }, [
+    detail,
+    handleOpenSchedule,
+    handleOpenWorkflow,
+    handleToggle,
+    strategy,
+    translate,
+  ]);
 
   if (!isReady || isStrategyLoading) {
     return (
@@ -488,14 +489,6 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
                   : 'text-success',
             },
           ]}
-        />
-
-        <AgentStrategyDialog
-          initialStrategy={strategy}
-          isOpen={isPolicyOpen}
-          isSubmitting={isSavingPolicy}
-          onOpenChange={setIsPolicyOpen}
-          onSubmit={handlePolicySubmit}
         />
 
         <AgentWorkflowRunDialog

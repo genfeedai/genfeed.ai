@@ -57,8 +57,11 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import AddAgentDialog, { type AddAgentMode } from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
+import {
+  buildContentAgentSetupPrompt,
+  useOpenContentAgentConversation,
+} from './open-content-agent-conversation';
 import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';
 
 /** Per-viewer list/grid preference key for this collection. */
@@ -361,19 +364,22 @@ export default function AgentHubPage() {
   const [isLoadingBinding, setIsLoadingBinding] = useState(false);
   const [isSubmittingWorkflow, setIsSubmittingWorkflow] = useState(false);
   const addIntent = searchParams.get('add');
-  const initialAddMode: AddAgentMode =
-    addIntent === 'custom' ? 'custom' : 'library';
-  const [addMode, setAddMode] = useState<AddAgentMode>(initialAddMode);
-  const [isAddAgentOpen, setIsAddAgentOpen] = useState(Boolean(addIntent));
+  const openContentAgentConversation = useOpenContentAgentConversation();
 
   useEffect(() => {
-    if (!addIntent) {
+    if (!addIntent || !brandId) {
       return;
     }
 
-    setAddMode(addIntent === 'custom' ? 'custom' : 'library');
-    setIsAddAgentOpen(true);
-  }, [addIntent]);
+    openContentAgentConversation(buildContentAgentSetupPrompt(brandId));
+    router.replace(pathname, { scroll: false });
+  }, [
+    addIntent,
+    brandId,
+    openContentAgentConversation,
+    pathname,
+    router,
+  ]);
 
   useVisiblePolling(refresh, { intervalMs: AGENT_HUB_POLL_INTERVAL_MS });
 
@@ -473,24 +479,12 @@ export default function AgentHubPage() {
     [getService, href, notificationsService, refresh, router, selectedStrategy],
   );
 
-  const handleOpenAddAgent = useCallback((mode: AddAgentMode) => {
-    setAddMode(mode);
-    setIsAddAgentOpen(true);
-  }, []);
-
-  const handleAgentCreated = useCallback(async () => {
-    await refresh();
-  }, [refresh]);
-
-  const handleAddAgentOpenChange = useCallback(
-    (isOpen: boolean) => {
-      setIsAddAgentOpen(isOpen);
-      if (!isOpen && addIntent) {
-        router.replace(pathname, { scroll: false });
-      }
-    },
-    [addIntent, pathname, router],
-  );
+  const handleOpenAddAgent = useCallback(() => {
+    if (!brandId) {
+      return;
+    }
+    openContentAgentConversation(buildContentAgentSetupPrompt(brandId));
+  }, [brandId, openContentAgentConversation]);
 
   const hasStrategies = strategies.length > 0;
   // A failed poll keeps showing the agents already loaded; only a failure
@@ -515,7 +509,7 @@ export default function AgentHubPage() {
             icon={<UserPlus className="size-4" />}
             isDisabled={!isBrandReady || !brandId}
             label="Add agent"
-            onClick={() => handleOpenAddAgent('library')}
+            onClick={handleOpenAddAgent}
             variant={ButtonVariant.DEFAULT}
           />
         )
@@ -537,7 +531,7 @@ export default function AgentHubPage() {
             variant={ButtonVariant.DEFAULT}
             icon={<UserPlus className="size-4" />}
             isDisabled={!isBrandReady || !brandId}
-            onClick={() => handleOpenAddAgent('library')}
+            onClick={handleOpenAddAgent}
           />
         </div>
       ) : (
@@ -633,13 +627,6 @@ export default function AgentHubPage() {
         isSubmitting={isSubmittingWorkflow}
         onOpenChange={setWorkflowDialogOpen}
         onSubmit={handleSubmitWorkflow}
-      />
-
-      <AddAgentDialog
-        initialMode={addMode}
-        isOpen={isAddAgentOpen}
-        onCreated={handleAgentCreated}
-        onOpenChange={handleAddAgentOpenChange}
       />
     </Container>
   );

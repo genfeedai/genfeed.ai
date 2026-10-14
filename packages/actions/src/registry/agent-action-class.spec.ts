@@ -65,6 +65,9 @@ describe('getAgentActionClass', () => {
     expect(getAgentActionClass('update_strategy_state')).toBe(
       AGENT_ACTION_CLASS.BRAND_CONTEXT,
     );
+    expect(getAgentActionClass('save_content_agent')).toBe(
+      AGENT_ACTION_CLASS.BRAND_CONTEXT,
+    );
     expect(getAgentActionClass('create_brand')).toBe(
       AGENT_ACTION_CLASS.BRAND_CONTEXT,
     );

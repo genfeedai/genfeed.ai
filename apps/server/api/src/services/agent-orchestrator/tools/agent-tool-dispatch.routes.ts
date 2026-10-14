@@ -361,6 +361,8 @@ function dispatchGrowthFamily(
       return handlers.proactiveHandler.getApprovalSummary(ctx);
     case 'analyze_performance':
       return handlers.proactiveHandler.analyzePerformance(params, ctx);
+    case 'save_content_agent':
+      return handlers.proactiveHandler.saveContentAgent(params, ctx);
     case 'update_strategy_state':
       return handlers.proactiveHandler.updateStrategyState(params, ctx);
     default:

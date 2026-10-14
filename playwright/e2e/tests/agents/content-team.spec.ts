@@ -44,7 +44,7 @@ test.describe('Agents — Content Team', () => {
     ).toBeVisible();
   });
 
-  test('Add agent query opens the agent library dialog', async ({
+  test('Add agent query opens the setup conversation', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
@@ -54,24 +54,18 @@ test.describe('Agents — Content Team', () => {
       },
     );
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/agents\?add=library$/,
+    const dock = authenticatedPage.getByTestId('agent-dock');
+    await expect(dock).toBeVisible();
+    await expect(dock).toContainText(
+      'Set up a content agent for this brand.',
     );
-    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
-
-    const dialog = authenticatedPage.getByRole('dialog');
-    await expect(
-      dialog.getByRole('tab', { name: 'Marketplace', exact: true }),
-    ).toHaveAttribute('aria-selected', 'true');
-    await dialog.getByTestId('activate-linkedin-copywriter').click();
-
-    await expect
-      .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(brandPath(APP_ROUTES.AUTOMATION.AGENTS));
-    await expect(authenticatedPage.getByRole('dialog')).toBeHidden();
+    await expect(dock).toContainText('save_content_agent');
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.has('add'))
       .toBe(false);
+    await expect(
+      authenticatedPage.getByRole('heading', { exact: true, name: 'Add agent' }),
+    ).toHaveCount(0);
   });
 
   test('new Program query opens the Creator Studio Program template', async ({

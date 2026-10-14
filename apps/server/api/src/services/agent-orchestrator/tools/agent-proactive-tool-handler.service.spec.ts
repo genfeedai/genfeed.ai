@@ -1,7 +1,12 @@
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { Platform } from '@genfeedai/contracts';
+import {
+  AgentAutonomyMode,
+  AgentRunFrequency,
+  AgentType,
+  Platform,
+} from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 const context: ToolExecutionContext = {
@@ -228,5 +233,222 @@ describe('AgentProactiveToolHandler', () => {
       error: 'batch creation failed',
       success: false,
     });
+  });
+
+  const principal = {
+    isApiKey: false,
+    organizationId: 'org-1',
+    scopes: [] as string[],
+    userId: 'user-1',
+  };
+
+  function saveHandler(input: {
+    create?: ReturnType<typeof vi.fn>;
+    findFirst?: ReturnType<typeof vi.fn>;
+    findOneById?: ReturnType<typeof vi.fn>;
+    patch?: ReturnType<typeof vi.fn>;
+    withPrisma?: boolean;
+    withService?: boolean;
+  }) {
+    const prisma =
+      input.withPrisma === false
+        ? undefined
+        : {
+            brand: {
+              findFirst:
+                input.findFirst ?? vi.fn().mockResolvedValue({ id: 'brand-1' }),
+            },
+          };
+    const service =
+      input.withService === false
+        ? undefined
+        : {
+            create:
+              input.create ??
+              vi.fn().mockResolvedValue({
+                brandId: 'brand-1',
+                id: 'strategy-1',
+                label: 'Launch writer',
+              }),
+            findOneById:
+              input.findOneById ??
+              vi.fn().mockResolvedValue({
+                brandId: 'brand-1',
+                id: 'strategy-1',
+                label: 'Launch writer',
+              }),
+            patch:
+              input.patch ??
+              vi.fn().mockResolvedValue({
+                brandId: 'brand-1',
+                id: 'strategy-1',
+                label: 'Launch writer',
+              }),
+          };
+    return new AgentProactiveToolHandler(
+      { error: vi.fn() } as never,
+      {} as never,
+      undefined,
+      undefined,
+      undefined,
+      prisma as never,
+      service as never,
+    );
+  }
+
+  it('creates a supervised content agent for the authenticated brand', async () => {
+    const create = vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'strategy-1',
+      label: 'Launch writer',
+    });
+    const handler = saveHandler({ create });
+
+    const result = await handler.saveContentAgent(
+      {
+        brandId: 'brand-1',
+        label: 'Launch writer',
+        organizationId: 'other-org',
+        platforms: ['x'],
+        userId: 'attacker',
+      },
+      { ...context, initiatingPrincipal: principal },
+    );
+
+    expect(result).toMatchObject({
+      data: {
+        autoPublishEnabled: false,
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        id: 'strategy-1',
+        mode: 'created',
+        scheduleBound: true,
+      },
+      success: true,
+    });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentType: AgentType.GENERAL,
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        brandId: 'brand-1',
+        dailyCreditBudget: 100,
+        isActive: true,
+        label: 'Launch writer',
+        organizationId: 'org-1',
+        platforms: [Platform.TWITTER],
+        postsPerWeek: 7,
+        publishPolicy: { autoPublishEnabled: false },
+        runFrequency: AgentRunFrequency.DAILY,
+        schedulePrincipal: principal,
+        userId: 'user-1',
+      }),
+    );
+  });
+
+  it('turns on auto-publish only when the caller explicitly allows it', async () => {
+    const create = vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'strategy-2',
+      label: 'Live writer',
+    });
+    const handler = saveHandler({ create });
+
+    await handler.saveContentAgent(
+      { autoPublish: true, brandId: 'brand-1', label: 'Live writer' },
+      { ...context, initiatingPrincipal: principal },
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+        publishPolicy: { autoPublishEnabled: true },
+      }),
+    );
+  });
+
+  it('rejects a schedule principal from another organization', async () => {
+    const create = vi.fn();
+    const handler = saveHandler({ create });
+
+    const result = await handler.saveContentAgent(
+      { brandId: 'brand-1', label: 'Launch writer' },
+      {
+        ...context,
+        initiatingPrincipal: { ...principal, organizationId: 'other-org' },
+      },
+    );
+
+    expect(result).toMatchObject({ success: false });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when persistence is unavailable', async () => {
+    const withoutPrisma = saveHandler({ withPrisma: false });
+    const withoutService = saveHandler({ withService: false });
+
+    await expect(
+      withoutPrisma.saveContentAgent(
+        { brandId: 'brand-1', label: 'Launch writer' },
+        context,
+      ),
+    ).resolves.toMatchObject({
+      error: 'Content agent save is unavailable',
+      success: false,
+    });
+    await expect(
+      withoutService.saveContentAgent(
+        { brandId: 'brand-1', label: 'Launch writer' },
+        context,
+      ),
+    ).resolves.toMatchObject({
+      error: 'Content agent save is unavailable',
+      success: false,
+    });
+  });
+
+  it('updates only the fields the caller provided', async () => {
+    const patch = vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'strategy-1',
+      label: 'Launch writer',
+    });
+    const handler = saveHandler({ patch });
+
+    const result = await handler.saveContentAgent(
+      { postsPerWeek: 3, strategyId: 'strategy-1' },
+      { ...context, initiatingPrincipal: principal },
+    );
+
+    expect(result).toMatchObject({
+      data: { id: 'strategy-1', mode: 'updated' },
+      success: true,
+    });
+    expect(result.data).not.toHaveProperty('autonomyMode');
+    const update = patch.mock.calls[0]?.[1] as Record<string, unknown>;
+    expect(update).toMatchObject({
+      postsPerWeek: 3,
+      schedulePrincipal: principal,
+    });
+    expect(update).not.toHaveProperty('autonomyMode');
+    expect(update).not.toHaveProperty('publishPolicy');
+    expect(update).not.toHaveProperty('label');
+  });
+
+  it('rejects an update that moves the agent to another brand', async () => {
+    const patch = vi.fn();
+    const handler = saveHandler({
+      findFirst: vi.fn().mockResolvedValue({ id: 'brand-2' }),
+      patch,
+    });
+
+    const result = await handler.saveContentAgent(
+      { brandId: 'brand-2', postsPerWeek: 3, strategyId: 'strategy-1' },
+      { ...context, brandId: undefined },
+    );
+
+    expect(result).toMatchObject({
+      error: 'brandId does not match this content agent',
+      success: false,
+    });
+    expect(patch).not.toHaveBeenCalled();
   });
 });

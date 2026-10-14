@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   refresh: vi.fn(),
   runNow: vi.fn(),
+  openConversation: vi.fn(),
   runWorkflow: vi.fn(),
   setActive: vi.fn(),
   strategies: [] as unknown[],
@@ -143,29 +144,10 @@ vi.mock('./AgentWorkflowRunDialog', () => ({
     ) : null,
 }));
 
-vi.mock('./AddAgentDialog', () => ({
-  default: ({
-    initialMode,
-    isOpen,
-    onCreated,
-    onOpenChange,
-  }: {
-    initialMode: string;
-    isOpen: boolean;
-    onCreated: () => Promise<void>;
-    onOpenChange: (open: boolean) => void;
-  }) =>
-    isOpen ? (
-      <div>
-        <p>Add agent dialog ({initialMode})</p>
-        <button type="button" onClick={() => onCreated()}>
-          Finish add agent
-        </button>
-        <button type="button" onClick={() => onOpenChange(false)}>
-          Close add agent
-        </button>
-      </div>
-    ) : null,
+vi.mock('./open-content-agent-conversation', () => ({
+  buildContentAgentSetupPrompt: (brandId: string) =>
+    `Set up a content agent for this brand. Brand id: ${brandId}.`,
+  useOpenContentAgentConversation: () => mocks.openConversation,
 }));
 
 const MINUTE_MS = 60_000;
@@ -236,6 +218,7 @@ function getVisibleActions(row: HTMLElement) {
 describe('AgentHubPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.openConversation.mockReset();
     window.localStorage.clear();
     mocks.addIntent = null;
     mocks.isLoading = false;
@@ -262,18 +245,19 @@ describe('AgentHubPage', () => {
     mocks.setActive.mockResolvedValue(undefined);
   });
 
-  it('opens the requested add-agent mode from legacy deep links', () => {
+  it('opens the setup conversation from legacy add-agent links', () => {
     mocks.addIntent = 'custom';
 
     render(<AgentHubPage />);
 
-    expect(screen.getByText('Add agent dialog (custom)')).toBeVisible();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close add agent' }));
+    expect(mocks.openConversation).toHaveBeenCalledWith(
+      'Set up a content agent for this brand. Brand id: brand-one.',
+    );
     expect(mocks.replace).toHaveBeenCalledWith(
       '/org-one/brand-one/automation/agents',
       { scroll: false },
     );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows list skeletons inside All while loading, then the empty state', async () => {
@@ -312,10 +296,10 @@ describe('AgentHubPage', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Add your first agent' }),
     );
-    expect(screen.getByText('Add agent dialog (library)')).toBeVisible();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Finish add agent' }));
-    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    expect(mocks.openConversation).toHaveBeenCalledWith(
+      'Set up a content agent for this brand. Brand id: brand-one.',
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('replaces All with a retryable error when the list fails to load', () => {
