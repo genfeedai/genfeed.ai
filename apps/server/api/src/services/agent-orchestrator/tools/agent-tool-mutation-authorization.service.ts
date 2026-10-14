@@ -160,6 +160,16 @@ export class AgentToolMutationAuthorizationService {
       isMcpTextDraftCall(parameters)
     )
       effectivePolicy = 'direct';
+    // Auto and Plan skip the brand-context card, and a threadless run keeps
+    // the declared direct policy. Enabling auto-publish is the exception:
+    // the model must not remove the supervised lock without a confirmation.
+    if (
+      toolName === 'save_content_agent' &&
+      parameters.autoPublish === true &&
+      !context.approvedApprovalId
+    ) {
+      effectivePolicy = 'approval-required';
+    }
     if (
       isAvailableOnSurface &&
       !context.approvedApprovalId &&

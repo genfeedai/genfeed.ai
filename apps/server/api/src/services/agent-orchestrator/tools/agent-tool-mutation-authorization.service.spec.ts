@@ -17,6 +17,87 @@ import { type Prisma, WorkflowExecutionStatus } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 
+describe('AgentToolMutationAuthorizationService content agent auto-publish', () => {
+  function harness(mode?: 'auto') {
+    const approvals = {
+      createPending: vi
+        .fn()
+        .mockResolvedValue({ id: 'pending-id', status: 'PENDING' }),
+      findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
+    };
+    const service = new AgentToolMutationAuthorizationService(
+      {} as never,
+      approvals as never,
+      {
+        findOne: vi.fn().mockResolvedValue(mode ? { mode } : null),
+      } as never,
+    );
+    return { approvals, service };
+  }
+
+  it('saves a supervised content agent in auto mode without a confirmation card', async () => {
+    const { approvals, service } = harness('auto');
+    const result = await service.authorize(
+      'save_content_agent',
+      { brandId: 'brand-1', label: 'Launch writer' },
+      {
+        hostSupportsApproval: true,
+        organizationId: 'org',
+        threadId: 'thread',
+        userId: 'user',
+      },
+      {} as never,
+    );
+
+    expect(result).toEqual({ kind: 'execute' });
+    expect(approvals.createPending).not.toHaveBeenCalled();
+  });
+
+  it('requires confirmation before a content agent may publish on its own', async () => {
+    const { service } = harness('auto');
+    const result = await service.authorize(
+      'save_content_agent',
+      { autoPublish: true, brandId: 'brand-1', label: 'Live writer' },
+      {
+        hostSupportsApproval: true,
+        organizationId: 'org',
+        threadId: 'thread',
+        userId: 'user',
+      },
+      {} as never,
+    );
+
+    expect(result).toMatchObject({
+      kind: 'return',
+      result: {
+        approvalId: 'pending-id',
+        mutationPolicy: 'approval-required',
+        requiresConfirmation: true,
+      },
+    });
+  });
+
+  it('requires confirmation when a threadless run tries to enable auto-publish', async () => {
+    const { service } = harness();
+    const result = await service.authorize(
+      'save_content_agent',
+      { autoPublish: true, brandId: 'brand-1', label: 'Live writer' },
+      {
+        hostSupportsApproval: true,
+        isProactive: true,
+        organizationId: 'org',
+        userId: 'user',
+      },
+      {} as never,
+    );
+
+    expect(result).toMatchObject({
+      kind: 'return',
+      result: { requiresConfirmation: true },
+    });
+  });
+});
+
 describe('AgentToolMutationAuthorizationService trusted mode', () => {
   it('requires a stored pending approval id and returns a zero-credit confirmation card', async () => {
     const createPending = vi
