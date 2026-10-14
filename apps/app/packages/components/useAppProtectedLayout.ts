@@ -30,6 +30,7 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
+  isReleaseItemId,
   isReleaseItemVisible,
   resolveOrganizationModulePreferences,
 } from '@genfeedai/contracts/constants';
@@ -323,7 +324,10 @@ export function useAppProtectedLayout(
           (item) =>
             isStudioSurfaceEnabled(item.href, platformFlags) &&
             (!item.organizationModule ||
-              modulePreferences?.[item.organizationModule] === true),
+              // While preferences load, keep the always-released apps
+              // (Playground, Storyboard) so their nav does not flicker.
+              (modulePreferences?.[item.organizationModule] ??
+                !isReleaseItemId(item.organizationModule))),
         )
         .map(
           (item): MenuItemConfig => ({

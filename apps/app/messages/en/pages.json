@@ -4858,71 +4858,71 @@
         "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
       },
       "release_publishing": {
-        "label": "Publishing",
+        "label": "Release Publishing",
         "description": "Scheduling and publishing posts."
       },
       "release_analytics": {
-        "label": "Analytics",
+        "label": "Release Analytics",
         "description": "Performance and insights for published content."
       },
       "release_turbo": {
-        "label": "Turbo",
+        "label": "Release Turbo",
         "description": "Bulk content production."
       },
       "release_motion": {
-        "label": "Motion",
+        "label": "Release Motion",
         "description": "Animated visuals authored as code."
       },
       "release_clips": {
-        "label": "Clips",
+        "label": "Release Clips",
         "description": "Highlights cut from long videos and audio."
       },
       "release_editor": {
-        "label": "Editor",
+        "label": "Release Editor",
         "description": "Timeline editing for video projects."
       },
       "release_automation": {
-        "label": "Automation",
+        "label": "Release Automation",
         "description": "Workflows, agents and recurring programs."
       },
       "release_messages": {
-        "label": "Messages",
+        "label": "Release Messages",
         "description": "One inbox for DMs, replies and comments."
       },
       "release_discovery": {
-        "label": "Discovery",
+        "label": "Release Discovery",
         "description": "Trends, tracked sources and ads research."
       },
       "release_campaigns": {
-        "label": "Campaigns",
+        "label": "Release Campaigns",
         "description": "Campaign planning in Publishing."
       },
       "release_analytics_brands": {
-        "label": "Analytics: Brands",
+        "label": "Release Analytics Brands",
         "description": "Brand comparison page in Analytics."
       },
       "release_analytics_streaks": {
-        "label": "Analytics: Streaks",
+        "label": "Release Analytics Streaks",
         "description": "Posting streaks page in Analytics."
       },
       "release_analytics_insights": {
-        "label": "Analytics: Insights",
+        "label": "Release Analytics Insights",
         "description": "Insights page in Analytics."
       },
       "release_analytics_hooks": {
-        "label": "Analytics: Hooks",
+        "label": "Release Analytics Hooks",
         "description": "Hook performance page in Analytics."
       },
       "release_analytics_outliers": {
-        "label": "Analytics: Outliers",
+        "label": "Release Analytics Outliers",
         "description": "Outlier posts page in Analytics."
       },
       "release_analytics_breakouts": {
-        "label": "Analytics: Breakouts",
+        "label": "Release Analytics Breakouts",
         "description": "Breakout posts page in Analytics."
       },
       "release_analytics_performance_lab": {
-        "label": "Analytics: Performance Lab",
+        "label": "Release Analytics Performance Lab",
         "description": "Pattern mining page in Analytics."
       }
     },
