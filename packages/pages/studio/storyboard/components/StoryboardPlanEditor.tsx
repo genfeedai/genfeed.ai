@@ -155,6 +155,8 @@ export default function StoryboardPlanEditor({
           (candidate) => candidate.key === plan.videoModelKey,
         );
   const supportedDurations = model?.supportedDurationsSeconds ?? [];
+  // A new shot needs a supported length; until one resolves, adding is unavailable.
+  const hasShotDuration = supportedDurations.some((seconds) => seconds > 0);
   const timingDisabled =
     autosave.status === 'saving' || !model || !currentCapabilities;
   const isDisabled =
@@ -575,7 +577,9 @@ export default function StoryboardPlanEditor({
                       />
                       {next ? (
                         <StoryboardShotJoint
-                          canAddShot={plan.shots.length < MAX_SHOTS}
+                          canAddShot={
+                            plan.shots.length < MAX_SHOTS && hasShotDuration
+                          }
                           index={index}
                           interpolationAvailable={Boolean(
                             model?.hasInterpolation &&
@@ -600,7 +604,10 @@ export default function StoryboardPlanEditor({
                 icon={<Plus className="size-4" />}
                 variant={ButtonVariant.SECONDARY}
                 disabled={
-                  isDisabled || plan.shots.length >= MAX_SHOTS || timingDisabled
+                  isDisabled ||
+                  plan.shots.length >= MAX_SHOTS ||
+                  timingDisabled ||
+                  !hasShotDuration
                 }
                 onClick={() => addShot()}
               />
@@ -637,7 +644,12 @@ export default function StoryboardPlanEditor({
                     label={translate('addShot')}
                     icon={<Plus className="size-4" />}
                     variant={ButtonVariant.GHOST}
-                    disabled={isDisabled || timingDisabled}
+                    disabled={isDisabled || timingDisabled || !hasShotDuration}
+                    tooltip={
+                      hasShotDuration
+                        ? undefined
+                        : translate('durationUntilResolved')
+                    }
                     onClick={() => addShot()}
                   />
                 </div>
