@@ -320,7 +320,7 @@ describe('AvatarVideoGenerationService', () => {
     await h.service.generateAvatarVideo(
       {
         photoIngredientId: 'avatar-1',
-        audioUrl: 'https://cdn.example.com/audio.mp3',
+        heygenVoiceId: 'voice-1',
         text: 'Speech',
       },
       context,
@@ -1101,7 +1101,7 @@ describe('AvatarVideoGenerationService', () => {
       await service.generateAvatarVideo(
         {
           photoUrl: 'https://cdn.example.com/avatar.png',
-          audioUrl: 'https://cdn.example.com/audio.mp3',
+          heygenVoiceId: 'voice-1',
           text: 'Founder update',
         },
         context,
@@ -1209,9 +1209,18 @@ describe('AvatarVideoGenerationService', () => {
         id: 'brand-1',
       });
 
+      h.ingredientsService.findOne.mockResolvedValue({
+        category: IngredientCategory.AUDIO,
+        cdnUrl: 'https://cdn.example.com/voice.mp3',
+        id: 'narration-1',
+        status: IngredientStatus.UPLOADED,
+      });
+      h.videosService.prisma.ingredient.findFirst.mockResolvedValue({
+        metadata: { duration: null },
+      });
       await h.service.generateAvatarVideo(
         {
-          audioUrl: 'https://cdn.example.com/voice.mp3',
+          audioIngredientId: 'narration-1',
           photoUrl: 'https://cdn.example.com/avatar.png',
           text: '',
         },
@@ -1278,6 +1287,15 @@ describe('AvatarVideoGenerationService', () => {
         agentConfig: {},
         id: 'brand-1',
       });
+      h.ingredientsService.findOne.mockResolvedValue({
+        category: IngredientCategory.AUDIO,
+        cdnUrl: 'https://cdn.example.com/voice.mp3',
+        id: 'narration-1',
+        status: IngredientStatus.UPLOADED,
+      });
+      h.videosService.prisma.ingredient.findFirst.mockResolvedValue({
+        metadata: { duration: null },
+      });
       h.filesClient.probeMediaFromUrl.mockResolvedValue({
         durationSeconds: null,
       });
@@ -1285,7 +1303,7 @@ describe('AvatarVideoGenerationService', () => {
       await expect(
         h.service.generateAvatarVideo(
           {
-            audioUrl: 'https://cdn.example.com/voice.mp3',
+            audioIngredientId: 'narration-1',
             photoUrl: 'https://cdn.example.com/avatar.png',
             text: 'A script that must not size this hold',
           },
@@ -1358,7 +1376,7 @@ describe('AvatarVideoGenerationService', () => {
     await service.generateAvatarVideo(
       {
         photoUrl: 'https://cdn.example.com/avatar.png',
-        audioUrl: 'https://cdn.example.com/audio.mp3',
+        heygenVoiceId: 'voice-1',
         text: 'Create the founder update',
       },
       context,
@@ -1384,7 +1402,7 @@ describe('AvatarVideoGenerationService', () => {
       service.generateAvatarVideo(
         {
           photoUrl: 'https://cdn.example.com/avatar.png',
-          audioUrl: 'https://cdn.example.com/audio.mp3',
+          heygenVoiceId: 'voice-1',
           text: 'Create the founder update',
         },
         context,
