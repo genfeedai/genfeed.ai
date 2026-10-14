@@ -23,11 +23,12 @@ vi.mock('node:fs', () => ({
 describe('FilesMetadataController URL download', () => {
   const getVideoMetadata = vi.fn();
   const config = {
-    get: (key: string) =>
-      ({
-        GENFEEDAI_CDN_URL: 'http://minio:9000/bucket',
-        GENFEEDAI_MICROSERVICES_FILES_URL: 'http://files:3012',
-      })[key],
+    get: (key: string) => {
+      if (key === 'GENFEEDAI_CDN_URL') return 'http://minio:9000/bucket';
+      if (key === 'GENFEEDAI_MICROSERVICES_FILES_URL')
+        return 'http://files:3012';
+      return undefined;
+    },
   };
   const controller = new FilesMetadataController(
     { getVideoMetadata } as unknown as FFmpegService,

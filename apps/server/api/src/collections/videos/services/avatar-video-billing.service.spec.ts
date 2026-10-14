@@ -152,6 +152,21 @@ describe('AvatarVideoBillingService.fundLipSync', () => {
     });
     expect(funded.request).toEqual({ creditsConfig: { amount: 65 } });
   });
+
+  it('never probes a caller URL when its narration ID is outside the organization', async () => {
+    findFirst.mockResolvedValue(null);
+    await expect(
+      service.fundLipSync({
+        audioIngredientId: 'other-organization-audio',
+        audioUrl: 'https://caller.example/audio.mp3',
+        organizationId: 'org-1',
+        useCustomerKey: false,
+        userId: 'user-1',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(probeMediaFromUrl).not.toHaveBeenCalled();
+    expect(holdForService).not.toHaveBeenCalled();
+  });
 });
 
 describe('AvatarVideoBillingService.quoteRender', () => {

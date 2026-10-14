@@ -144,7 +144,7 @@ export class FilesMetadataController {
         await response.body?.cancel();
         throw new HttpException(
           'Media download failed',
-          response.status || HttpStatus.BAD_REQUEST,
+          response.ok ? HttpStatus.BAD_REQUEST : response.status,
         );
       }
       const limitBytes = 100 * 1024 * 1024;
