@@ -61,6 +61,20 @@ const mockOrgUrl = vi.hoisted(() => ({
   orgSlug: 'acme' as string | undefined,
 }));
 
+// Admin → Flags as the release migration leaves it.
+vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+  useFeatureFlagContext: () => ({
+    flags: {
+      release_analytics: true,
+      release_discovery: true,
+      release_publishing: true,
+      release_turbo: true,
+    },
+    isConfigured: true,
+    isReady: true,
+  }),
+}));
+
 vi.mock('@genfeedai/contracts', () => ({
   SettingsSurface: {
     BRAND: 'brand',
