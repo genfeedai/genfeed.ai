@@ -1,3 +1,4 @@
+import { isSystemBrandPrincipal } from '@api/authorization/brand-access/system-brand-principal.util';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -27,6 +28,9 @@ export class BrandAccessService {
     };
     if (!actor.organizationId || (isCloudDeployment() && !actor.userId)) {
       throw new ForbiddenException('Brand access denied');
+    }
+    if (isSystemBrandPrincipal(actor)) {
+      return { where: base, role: MemberRole.OWNER, brandIds: undefined };
     }
     if (!isCloudDeployment()) {
       return { where: base, role: null, brandIds: undefined };

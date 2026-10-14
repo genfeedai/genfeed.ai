@@ -12,5 +12,6 @@ describe('website robots.txt', () => {
     );
     expect(body).toContain('User-agent: GPTBot');
     expect(body).toContain('Sitemap: https://genfeed.ai/sitemap.xml');
+    expect(body).toContain('LLM-Context: https://genfeed.ai/llms.txt');
   });
 });

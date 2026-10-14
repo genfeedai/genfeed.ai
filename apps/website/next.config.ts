@@ -17,6 +17,7 @@ const config = createAppNextConfig({
           value: [
             '<https://genfeed.ai/sitemap.xml>; rel="sitemap"',
             '<https://genfeed.ai/llms.txt>; rel="describedby"; type="text/plain"',
+            '<https://genfeed.ai/llms.txt>; rel="llm-context"; type="text/plain"',
             '<https://genfeed.ai/llms-full.txt>; rel="describedby"; type="text/plain"',
             '<https://api.genfeed.ai/v1/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
           ].join(', '),
@@ -92,6 +93,11 @@ const config = createAppNextConfig({
         'https://api.genfeed.ai/.well-known/oauth-authorization-server',
       permanent: false,
       source: '/.well-known/oauth-authorization-server',
+    },
+    {
+      destination: '/llms.txt',
+      permanent: false,
+      source: '/.well-known/llm-context',
     },
   ],
   sentryProject: 'genfeed-ai',

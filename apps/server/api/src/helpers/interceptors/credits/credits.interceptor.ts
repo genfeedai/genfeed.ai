@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
+import { isBillableFailure } from '@api/helpers/utils/credits/billable-failure.util';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
@@ -48,7 +49,7 @@ export class CreditsInterceptor implements NestInterceptor {
     return next.handle().pipe(
       mergeMap((response: unknown) => this.settle(request, response)),
       catchError((error: unknown) =>
-        from(this.release(request)).pipe(
+        from(this.settleOrRelease(request, error)).pipe(
           mergeMap(() => throwError(() => error)),
         ),
       ),
@@ -158,6 +159,30 @@ export class CreditsInterceptor implements NestInterceptor {
     return config.reservationId
       ? `${prefix}:${config.reservationId}`
       : `${prefix}:${randomUUID()}`;
+  }
+
+  /**
+   * A failure that already incurred a known provider cost (the route finalized
+   * its charge before rethrowing) is charged; every other failure gives the
+   * reservation back. A charge that cannot be queued falls back to release so a
+   * hold is never left open.
+   */
+  private async settleOrRelease(
+    request: CreditsInterceptorRequest,
+    error: unknown,
+  ): Promise<void> {
+    if (isBillableFailure(error) && request.creditsConfig?.deferred !== true) {
+      try {
+        await this.settle(request, undefined);
+        return;
+      } catch (settleError: unknown) {
+        this.loggerService.error(
+          'Known-cost charge for a failed request could not be queued',
+          settleError,
+        );
+      }
+    }
+    await this.release(request);
   }
 
   /**

@@ -43,6 +43,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -627,6 +628,34 @@ Tweet 3: Tech innovation is changing the world.`,
       await expect(
         generationController.generateDraftText(request, dto, mockUser),
       ).rejects.toThrow('blocked');
+
+      expect(request.creditsConfig.deferred).toBe(true);
+    });
+
+    it('finalizes the known cost when the request stopped after a recorded provider attempt', async () => {
+      const stopped = new BrandedGenerationBlockedException(
+        422,
+        'channel_limit_exceeded',
+        'receipt-1',
+        { model: 'model-a' },
+      );
+      draftGeneration.generateDraftText.mockRejectedValue(stopped);
+      const request = deferredRequest();
+      await expect(
+        generationController.generateDraftText(request, dto, mockUser),
+      ).rejects.toBe(stopped);
+
+      expect(request.creditsConfig.deferred).toBe(false);
+    });
+
+    it('leaves the charge deferred (released) when the request stopped before any provider attempt', async () => {
+      draftGeneration.generateDraftText.mockRejectedValue(
+        new BrandedGenerationBlockedException(409, 'no_revision', 'receipt-1'),
+      );
+      const request = deferredRequest();
+      await expect(
+        generationController.generateDraftText(request, dto, mockUser),
+      ).rejects.toBeInstanceOf(BrandedGenerationBlockedException);
 
       expect(request.creditsConfig.deferred).toBe(true);
     });
