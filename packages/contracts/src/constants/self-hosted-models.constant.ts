@@ -468,7 +468,7 @@ export const SELF_HOSTED_MODELS = [
    * HeyGen photo animation: `POST /v3/videos` with `type: image`, which
    * Avatar IV renders from an arbitrary image. HeyGen's API price table has no
    * separate image row, so it bills at the Avatar IV photo-avatar rate of
-   * $2.31 per minute, $0.0385 per output second, at 720p and 1080p alike
+   * $2.31 per minute, $0.0385 per output second, with no resolution band
    * (help.heygen.com/en/articles/10060327-heygen-api-pricing-explained,
    * updated 2026-09-16, read 2026-10-14). The reviewed rate sheet carries the
    * same single rate with no selector, so the configured `providerCostUsd`
