@@ -1,5 +1,6 @@
 import { TurboProjectCreditsService } from '@api/collections/turbo-projects/services/turbo-project-credits.service';
 import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
+import { photoAnimationSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
 import type { ITurboProjectItemDispatch } from '@genfeedai/contracts/interfaces';
 import { ConflictException } from '@nestjs/common';
@@ -15,6 +16,8 @@ const dispatch: ITurboProjectItemDispatch = {
 
 describe('TurboProjectCreditsService', () => {
   const credits = {
+    deductCreditsFromOrganization: vi.fn(),
+    findReservationForWorkload: vi.fn(),
     releaseReservation: vi.fn(),
     reserveCredits: vi.fn(),
     settleReservation: vi.fn(),
@@ -76,7 +79,7 @@ describe('TurboProjectCreditsService', () => {
         organizationId: 'org-1',
         source: ActivitySource.VIDEO_GENERATION,
       }),
-    ).resolves.toBe('settled');
+    ).resolves.toEqual({ settledCredits: 0, state: 'settled' });
     await service.release({ dispatch: byok, organizationId: 'org-1' });
 
     expect(credits.reserveCredits).not.toHaveBeenCalled();
@@ -119,7 +122,7 @@ describe('TurboProjectCreditsService', () => {
         organizationId: 'org-1',
         source: ActivitySource.VIDEO_GENERATION,
       }),
-    ).resolves.toBe('released');
+    ).resolves.toEqual({ state: 'released' });
   });
 
   it('releases a failed line by its reservation', async () => {
@@ -131,6 +134,74 @@ describe('TurboProjectCreditsService', () => {
     expect(credits.releaseReservation).toHaveBeenCalledWith({
       organizationId: 'org-1',
       reservationId: 'reservation-1',
+    });
+  });
+
+  describe('per-second avatar lines (#6933)', () => {
+    // $0.0385/s at 3.33x: a 12 s clip holds 154 credits, 8 s costs 103.
+    const durationQuote = {
+      estimatedSeconds: 12,
+      snapshot: photoAnimationSnapshot(12),
+    };
+    const avatarDispatch: ITurboProjectItemDispatch = {
+      ...dispatch,
+      credits: 154,
+      model: 'heygen/avatar',
+      reservationId: 'reservation-1',
+      state: 'reserved',
+    };
+
+    it('keeps the frozen quote on the avatar hold', async () => {
+      credits.reserveCredits.mockResolvedValue({
+        id: 'reservation-1',
+        status: CreditReservationStatus.RESERVED,
+      });
+
+      await service.reserve({
+        actorUserId: 'user-1',
+        dispatch: { ...avatarDispatch, state: 'queued' },
+        durationQuote,
+        organizationId: 'org-1',
+      });
+
+      expect(credits.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 154,
+          metadata: { avatarDurationQuote: durationQuote },
+        }),
+      );
+    });
+
+    it('settles an avatar line to the measured clip length', async () => {
+      credits.findReservationForWorkload.mockResolvedValue({
+        amount: 154,
+        id: 'reservation-1',
+        metadata: { avatarDurationQuote: durationQuote },
+        settledAmount: null,
+        status: CreditReservationStatus.RESERVED,
+      });
+
+      await expect(
+        service.settle({
+          actorUserId: 'user-1',
+          clip: { durationSeconds: 8 },
+          description: 'Turbo idea avatar generation',
+          dispatch: avatarDispatch,
+          organizationId: 'org-1',
+          source: ActivitySource.VIDEO_GENERATION,
+        }),
+      ).resolves.toEqual({ settledCredits: 103, state: 'settled' });
+      expect(credits.findReservationForWorkload).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        workloadId: dispatch.key,
+        workloadType: 'turbo-project-idea',
+      });
+      expect(credits.settleReservation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actualAmount: 103,
+          reservationId: 'reservation-1',
+        }),
+      );
     });
   });
 });

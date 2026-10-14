@@ -1,9 +1,13 @@
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { settleReservationAtDuration } from '@api/collections/credits/services/reservation-duration-settlement';
+import type { AvatarDurationQuote } from '@api/collections/videos/services/avatar-video-generation.types';
 import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
 import { CreditReservationStatus } from '@genfeedai/contracts';
 import type { BrandRemixSceneQuote } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { ConflictException, Injectable } from '@nestjs/common';
+
+const SCENE_WORKLOAD_TYPE = 'brand-remix-scene';
 
 @Injectable()
 export class BrandRemixSceneBillingService {
@@ -22,7 +26,8 @@ export class BrandRemixSceneBillingService {
    * Hold the accepted amount for one stage immediately before dispatch.
    * Retries of the same accepted attempt reuse its hold; a hold that was
    * already released or expired is never reused, so released work cannot run
-   * again unbilled.
+   * again unbilled. A per-second clip's frozen quote is kept on the hold, so
+   * settlement re-prices it at the clip length HeyGen returns.
    */
   async reserve(
     organizationId: string,
@@ -30,6 +35,7 @@ export class BrandRemixSceneBillingService {
     operationId: string,
     line: BrandRemixSceneQuote['items'][number],
     imageReservationId?: string,
+    durationQuote?: AvatarDurationQuote,
   ) {
     const key = this.key(runId, operationId, line);
     const receiptKey = imageReservationId ? `generation:${key}` : key;
@@ -51,7 +57,10 @@ export class BrandRemixSceneBillingService {
           amount: line.credits,
           brandId,
           idempotencyKey: key,
-          workloadType: 'brand-remix-scene',
+          ...(durationQuote
+            ? { metadata: { avatarDurationQuote: durationQuote } }
+            : {}),
+          workloadType: SCENE_WORKLOAD_TYPE,
           workloadId: key,
           expiresAt: new Date(Date.now() + 8 * 24 * 60 * 60_000),
         });
@@ -101,7 +110,9 @@ export class BrandRemixSceneBillingService {
   /**
    * Charge an accepted stage once its provider output is usable. Settlement is
    * idempotent per key; a hold that expired or was released before the output
-   * arrived is recorded as released rather than charged again.
+   * arrived is recorded as released rather than charged again. A clip settles
+   * to its measured length (`clipDurationSeconds`): a shorter clip refunds the
+   * rest of the hold, a longer one is topped up.
    */
   async settle(
     organizationId: string,
@@ -109,6 +120,7 @@ export class BrandRemixSceneBillingService {
     operationId: string,
     line: BrandRemixSceneQuote['items'][number],
     image = false,
+    clipDurationSeconds?: number,
   ) {
     const { brandId, config } = await this.store.read(organizationId, runId);
     const pipeline = config.scenePipeline;
@@ -126,24 +138,65 @@ export class BrandRemixSceneBillingService {
     if (!actorUserId)
       throw new ConflictException('Missing durable settlement actor.');
     let state: 'settled' | 'released' = 'settled';
+    let settledAmount: number | undefined;
     if (line.credits > 0) {
       try {
-        await this.credits.settleReservation({
+        settledAmount = await this.settleLine(
           organizationId,
           actorUserId,
-          ...(receipt?.reservationId
-            ? { reservationId: receipt.reservationId }
-            : { idempotencyKey: key }),
-          actualAmount: line.credits,
           brandId,
-          description: `Remix ${line.stage}`,
-        });
+          key,
+          line,
+          image,
+          receipt?.reservationId,
+          clipDurationSeconds,
+        );
       } catch (error: unknown) {
         if (!(error instanceof UnsettleableReservationException)) throw error;
         state = 'released';
       }
     }
-    await this.writeReceipt(organizationId, runId, key, state);
+    await this.writeReceipt(organizationId, runId, key, state, settledAmount);
+  }
+  /** Settles one line's hold and returns what it was charged. */
+  private async settleLine(
+    organizationId: string,
+    actorUserId: string,
+    brandId: string | null | undefined,
+    key: string,
+    line: BrandRemixSceneQuote['items'][number],
+    image: boolean,
+    reservationId: string | undefined,
+    clipDurationSeconds: number | undefined,
+  ): Promise<number> {
+    if (line.stage === 'video' && !image) {
+      const settled = await settleReservationAtDuration(
+        { credits: this.credits },
+        {
+          actorUserId,
+          ...(clipDurationSeconds !== undefined
+            ? { actualSeconds: clipDurationSeconds }
+            : {}),
+          brandId,
+          description: `Remix ${line.stage}`,
+          fallbackCredits: line.credits,
+          organizationId,
+          ...(reservationId ? { reservationId } : {}),
+          workloadId: key,
+          workloadType: SCENE_WORKLOAD_TYPE,
+        },
+      );
+      return settled.settledCredits + settled.topUpCredits;
+    }
+    await this.credits.settleReservation({
+      organizationId,
+      actorUserId,
+      ...(reservationId ? { reservationId } : { idempotencyKey: key }),
+      actualAmount: line.credits,
+      brandId,
+      description: `Remix ${line.stage}`,
+    });
+    return line.credits;
   }
   /**
    * Return the hold of a stage whose provider output definitively failed or
@@ -184,6 +237,7 @@ export class BrandRemixSceneBillingService {
     runId: string,
     key: string,
     state: 'settled' | 'released',
+    settledAmount?: number,
   ) {
     const { config } = await this.store.read(organizationId, runId);
     if (!config.scenePipeline) return;
@@ -192,7 +246,13 @@ export class BrandRemixSceneBillingService {
       scenePipeline: {
         ...config.scenePipeline,
         receipts: config.scenePipeline.receipts.map((receipt) =>
-          receipt.key === key ? { ...receipt, state } : receipt,
+          receipt.key === key
+            ? {
+                ...receipt,
+                state,
+                ...(settledAmount !== undefined ? { settledAmount } : {}),
+              }
+            : receipt,
         ),
       },
     });

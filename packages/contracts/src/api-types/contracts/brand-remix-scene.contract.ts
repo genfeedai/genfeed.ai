@@ -55,7 +55,10 @@ export const brandRemixSceneQuoteSchema = z
     inputHash: id,
     createdAt: timestamp,
     expiresAt: timestamp,
-    total: z.number().nonnegative().max(50),
+    // Uncapped: photo animation is priced per second (#6920), so a
+    // multi-scene ad legitimately quotes hundreds of credits. The wallet hold
+    // at dispatch is the spend guard, not a fixed ceiling on the quote.
+    total: z.number().finite().nonnegative(),
     items: z
       .array(
         z
@@ -183,6 +186,8 @@ export const brandRemixScenePipelineSchema = z
             operationId: id.optional(),
             actorUserId: id.optional(),
             amount: z.number().nonnegative(),
+            /** What the stage was charged at settlement, including any clip overrun. */
+            settledAmount: z.number().nonnegative().optional(),
             billingMode: z.enum(['platform', 'byok']),
             state: z.enum(['reserved', 'settled', 'released', 'uncertain']),
           })

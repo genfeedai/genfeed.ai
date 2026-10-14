@@ -1,5 +1,6 @@
 import type { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { photoAnimationSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -140,6 +141,16 @@ function fixture() {
     },
   });
 }
+const CLIP_DURATION_QUOTE = {
+  estimatedSeconds: 2,
+  snapshot: photoAnimationSnapshot(2),
+};
+const ACCEPTED_CLIP_PRICE = {
+  billingMode: 'platform' as const,
+  credits: CLIP_DURATION_QUOTE.snapshot.credits,
+  durationQuote: CLIP_DURATION_QUOTE,
+  modelKey: 'heygen/avatar',
+};
 describe('canonical generated still to avatar boundary', () => {
   let config = fixture();
   const store = { fence: vi.fn(), save: vi.fn() };
@@ -165,7 +176,7 @@ describe('canonical generated still to avatar boundary', () => {
     avatars.generateAvatarVideo.mockImplementation(
       async (_input, _actor, placeholder, _scope, creditFence) => {
         await placeholder('clip');
-        await creditFence();
+        await creditFence(ACCEPTED_CLIP_PRICE);
         return { ingredientId: 'clip' };
       },
     );
@@ -210,7 +221,15 @@ describe('canonical generated still to avatar boundary', () => {
     );
     expect(config.scenePipeline?.scenes.scene.video.assetId).toBe('clip');
     expect(config.scenePipeline?.scenes.scene.video.state).toBe('submitted');
-    expect(billing.reserve).toHaveBeenCalledOnce();
+    // The clip hold keeps the frozen per-second quote it settles against.
+    expect(billing.reserve).toHaveBeenCalledExactlyOnceWith(
+      'org',
+      'run',
+      'operation',
+      expect.objectContaining({ key: 'scene-video-1' }),
+      undefined,
+      CLIP_DURATION_QUOTE,
+    );
     // Accepted work is charged only once the provider output is usable.
     expect(billing.settle).not.toHaveBeenCalled();
   });
@@ -341,15 +360,51 @@ describe('canonical generated still to avatar boundary', () => {
       audioCodec: 'aac',
     });
     await expect(service.step('org', 'run', 'operation')).resolves.toBe(true);
+    // The clip settles to the length it actually ran.
     expect(billing.settle).toHaveBeenCalledWith(
       'org',
       'run',
       'operation',
       expect.objectContaining({ key: 'scene-video-1' }),
       false,
+      6,
     );
     expect(config.scenePipeline?.scenes.scene.video.state).toBe('ready');
     expect(config.scenePipeline?.scenes.scene.actualDurationSeconds).toBe(6);
+  });
+  it('bills a clip that ran past 20 seconds at its real length and asks for repair', async () => {
+    const submitted = config.scenePipeline;
+    if (!submitted) throw new Error('missing pipeline');
+    submitted.scenes.scene.video = {
+      attempt: 1,
+      state: 'submitted',
+      assetId: 'clip',
+      groupId: 'clip-group',
+    };
+    prisma.ingredient.findFirst.mockResolvedValueOnce({
+      id: 'clip',
+      status: 'GENERATED',
+      s3Key: 'ingredients/avatars/clip.mp4',
+      metadata: {},
+    });
+    files.probeMediaFromUrl.mockResolvedValueOnce({
+      durationSeconds: 25,
+      width: 1080,
+      height: 1920,
+      audioCodec: 'aac',
+    });
+    await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
+      'need repair',
+    );
+    expect(billing.settle).toHaveBeenCalledExactlyOnceWith(
+      'org',
+      'run',
+      'operation',
+      expect.objectContaining({ key: 'scene-video-1' }),
+      false,
+      25,
+    );
+    expect(config.scenePipeline?.scenes.scene.video.state).toBe('failed');
   });
   it('marks a dispatch that failed before any placeholder as a repairable failure', async () => {
     avatars.generateAvatarVideo.mockRejectedValueOnce(

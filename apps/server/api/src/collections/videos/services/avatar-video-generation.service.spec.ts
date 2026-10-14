@@ -584,6 +584,118 @@ describe('AvatarVideoGenerationService', () => {
     expect(creditsUtilsService.bindReservationOutput).not.toHaveBeenCalled();
   });
 
+  it('hands the frozen per-second quote to a caller that holds the credits itself', async () => {
+    const { service, brandsService, creditsUtilsService } = createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+    const onCreditsPrepared = vi.fn();
+
+    await service.generateAvatarVideo(
+      {
+        heygenVoiceId: 'voice-1',
+        photoUrl: 'https://cdn.example.com/avatar.png',
+        text: 'Speech',
+      },
+      context,
+      undefined,
+      { groupId: 'scene-group', groupIndex: 0, settleCreditsExternally: true },
+      onCreditsPrepared,
+    );
+
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    // The caller stores it on its own hold and settles to the real clip.
+    expect(onCreditsPrepared).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        billingMode: 'platform',
+        durationQuote: expect.objectContaining({
+          estimatedSeconds: 1,
+          snapshot: expect.objectContaining({
+            modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+          }),
+        }),
+      }),
+    );
+  });
+
+  describe('remix-run avatar variants (#6933)', () => {
+    const variantScope = {
+      groupId: 'run-1',
+      groupIndex: 0,
+      isByokBypass: false,
+      settleCreditsExternally: false,
+    };
+
+    it('holds the variant on its own render hold with the frozen quote', async () => {
+      const { service, brandsService, creditsUtilsService } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+
+      await service.generateAvatarVideo(
+        {
+          heygenVoiceId: 'voice-1',
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          text: 'Speech',
+        },
+        context,
+        undefined,
+        variantScope,
+        async () => undefined,
+      );
+
+      expect(creditsUtilsService.reserveCredits).toHaveBeenCalledOnce();
+      // The webhook settles this hold to the duration HeyGen returns.
+      expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            avatarDurationQuote: expect.objectContaining({
+              estimatedSeconds: 1,
+            }),
+          }),
+          reservationId: 'service-pool-1',
+          workloadId: 'avatar-ingredient-1',
+        }),
+      );
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('releases the variant hold when HeyGen fails the render', async () => {
+      const { service, brandsService, creditsUtilsService, heygenService } =
+        createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      heygenService.generatePhotoAvatarVideo.mockRejectedValue(
+        new HeyGenSubmissionRejectedError(),
+      );
+
+      await expect(
+        service.generateAvatarVideo(
+          {
+            heygenVoiceId: 'voice-1',
+            photoUrl: 'https://cdn.example.com/avatar.png',
+            text: 'Speech',
+          },
+          context,
+          undefined,
+          variantScope,
+          async () => undefined,
+        ),
+      ).rejects.toThrow();
+
+      expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+        organizationId: 'test-object-id',
+        reservationId: 'service-pool-1',
+      });
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
   it('binds the hold before HeyGen sees the render id', async () => {
     const { service, brandsService, creditsUtilsService, metadataService } =
       createService();

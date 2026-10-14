@@ -287,19 +287,21 @@ export class BrandRemixSceneGenerationService {
         fail,
       );
     let actualDurationSeconds = saved.actualDurationSeconds;
+    let clipDurationSeconds: number | undefined;
     if (stageName === 'video') {
-      const clipDurationSeconds = await this.probeCompletedClip(
-        found,
-        reconcileOnly,
-      );
-      if (!clipDurationSeconds) {
-        // The provider delivered a clip, so its cost is incurred.
+      const clip = await this.probeCompletedClip(found, reconcileOnly);
+      clipDurationSeconds = clip.durationSeconds;
+      if (!clip.isUsable) {
+        // The provider delivered a clip, so its cost is incurred at the
+        // length it ran, even when that length needs a repair.
         if (acceptedLine)
           await this.billing.settle(
             organizationId,
             runId,
             operationId,
             acceptedLine,
+            false,
+            clipDurationSeconds,
           );
         await this.patch(
           organizationId,
@@ -325,6 +327,7 @@ export class BrandRemixSceneGenerationService {
         operationId,
         acceptedLine,
         isImageHold,
+        clipDurationSeconds,
       );
     await this.patch(
       organizationId,
@@ -400,17 +403,19 @@ export class BrandRemixSceneGenerationService {
     return 'undispatched';
   }
   /**
-   * The duration of a completed clip that has speech and a supported size,
-   * or undefined when it needs repair.
+   * The measured duration of a completed clip, and whether it is usable: it
+   * has speech, a supported size and runs at most 20 seconds. An unusable
+   * clip needs repair but still reports the length it ran, which it is
+   * billed at.
    */
   private async probeCompletedClip(
     clip: { s3Key?: string | null },
     reconcileOnly: boolean,
-  ): Promise<number | undefined> {
+  ): Promise<{ durationSeconds?: number; isUsable: boolean }> {
     const url =
       readIngredientMediaUrl(clip) ??
       (clip.s3Key ? this.mediaUrls.buildUrl(clip.s3Key) : undefined);
-    if (!url) return undefined;
+    if (!url) return { isUsable: false };
     let probe: Awaited<ReturnType<FilesClientService['probeMediaFromUrl']>>;
     try {
       probe = await this.files.probeMediaFromUrl(url, 'video');
@@ -419,17 +424,22 @@ export class BrandRemixSceneGenerationService {
       // nobody resumes, so the clip is recorded as needing repair rather
       // than blocking the run.
       if (!reconcileOnly) throw error;
-      return undefined;
+      return { isUsable: false };
     }
-    if (
-      !probe.durationSeconds ||
-      probe.durationSeconds > 20 ||
-      !probe.width ||
-      !probe.height ||
-      !probe.audioCodec
-    )
-      return undefined;
-    return probe.durationSeconds;
+    const durationSeconds =
+      probe.durationSeconds && probe.durationSeconds > 0
+        ? probe.durationSeconds
+        : undefined;
+    return {
+      ...(durationSeconds ? { durationSeconds } : {}),
+      isUsable: Boolean(
+        durationSeconds &&
+          durationSeconds <= 20 &&
+          probe.width &&
+          probe.height &&
+          probe.audioCodec,
+      ),
+    };
   }
   private async resetUndispatched(
     organizationId: string,
@@ -773,8 +783,15 @@ export class BrandRemixSceneGenerationService {
         settleCreditsExternally: true,
         isByokBypass: line.billingMode === 'byok',
       },
-      async () => {
-        await this.billing.reserve(organizationId, runId, operationId, line);
+      async (price) => {
+        await this.billing.reserve(
+          organizationId,
+          runId,
+          operationId,
+          line,
+          undefined,
+          price.durationQuote,
+        );
       },
     );
     await this.patch(organizationId, runId, operationId, sceneId, stageName, {

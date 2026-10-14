@@ -66,6 +66,11 @@ export interface AvatarGenerationPrice {
   credits: number;
   /** The catalog row the render is priced and recorded as. */
   modelKey: string;
+  /**
+   * The frozen per-second admission quote. A caller that holds the credits
+   * itself stores it on its hold so settlement re-prices the real clip.
+   */
+  durationQuote?: AvatarDurationQuote;
 }
 
 /** The engine model chosen for a render and the look evidence that prices it. */
@@ -92,7 +97,6 @@ export interface AvatarRenderQuote {
 }
 
 export interface AvatarGenerationFunding extends AvatarGenerationPrice {
-  durationQuote?: AvatarDurationQuote;
   engine?: HeyGenAvatarEngine;
   heygenApiKey?: string;
   elevenLabsApiKey?: string;

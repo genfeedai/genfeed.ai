@@ -111,13 +111,23 @@ export class AvatarVideoGenerationService {
     );
   }
 
-  /** The price a run-level caller accepted, without the pinned keys. */
+  /**
+   * The price a run-level caller accepted, without the pinned keys. The frozen
+   * per-second quote rides along so the caller's own hold settles to the clip
+   * length HeyGen returns.
+   */
   private acceptedPrice({
     billingMode,
     credits,
+    durationQuote,
     modelKey,
   }: AvatarGenerationFunding): AvatarGenerationPrice {
-    return { billingMode, credits, modelKey };
+    return {
+      billingMode,
+      credits,
+      modelKey,
+      ...(durationQuote ? { durationQuote } : {}),
+    };
   }
 
   /** Pin provider keys and the engine row before reserving. */

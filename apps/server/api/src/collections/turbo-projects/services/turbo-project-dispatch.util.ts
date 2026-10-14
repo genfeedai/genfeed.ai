@@ -88,7 +88,8 @@ export function ideaPromptText(idea: TurboIdea): string {
 }
 
 export function ideaSpeechText(idea: TurboIdea): string {
-  return (idea.speechText ?? idea.caption ?? '').trim();
+  // A blank script falls back to the caption rather than pricing silence.
+  return idea.speechText?.trim() || (idea.caption ?? '').trim();
 }
 
 function parseQuoteLine(value: unknown): ITurboProjectQuoteLine | null {
@@ -187,6 +188,7 @@ export function parseTurboProjectItemDispatch(
     return null;
   }
   const reservationId = readNonEmptyString(record?.reservationId);
+  const settledCredits = record?.settledCredits;
   return {
     attempt,
     billingMode: billingMode as TurboProjectBillingMode,
@@ -195,6 +197,11 @@ export function parseTurboProjectItemDispatch(
     model,
     state: state as ITurboProjectItemDispatch['state'],
     ...(reservationId ? { reservationId } : {}),
+    ...(typeof settledCredits === 'number' &&
+    Number.isFinite(settledCredits) &&
+    settledCredits >= 0
+      ? { settledCredits }
+      : {}),
   };
 }
 
