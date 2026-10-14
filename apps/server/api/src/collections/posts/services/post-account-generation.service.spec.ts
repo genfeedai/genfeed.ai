@@ -70,6 +70,7 @@ describe('PostAccountGenerationService', () => {
   const activityRecorder = { record: vi.fn(), update: vi.fn() };
   const registry = { resolveModelKey: vi.fn() };
   const billing = {
+    assertBatchSize: vi.fn(),
     queuedApiKey: vi.fn(),
     bindDispatch: vi.fn(),
     releaseDispatch: vi.fn(),
@@ -159,6 +160,7 @@ describe('PostAccountGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    billing.assertBatchSize.mockReset();
     for (const method of Object.values(queue))
       method.mockReset().mockResolvedValue(undefined);
     billing.queuedApiKey
@@ -366,6 +368,27 @@ describe('PostAccountGenerationService', () => {
         '/brands/brand-1',
         expect.objectContaining({ event: 'account-generation-progress' }),
       );
+    });
+
+    it('rejects an oversized legacy fee-free job before resolving keys or dispatching', async () => {
+      await service.start(dto, identity);
+      const data = queue.enqueue.mock.calls[0][0] as AccountGenerationJobData;
+      data.dto = { ...data.dto, count: 51 };
+      data.run.funding = { creditsPerDispatch: 0, poolReservationId: null };
+      data.run.isByok = true;
+      billing.assertBatchSize.mockImplementationOnce(() => {
+        throw new HttpException('account_generation_batch_limit', 400);
+      });
+      await expect(runner.process(data)).rejects.toMatchObject({ status: 400 });
+      expect(billing.assertBatchSize).toHaveBeenCalledWith(51, 0);
+      expect(billing.queuedApiKey).not.toHaveBeenCalled();
+      expect(seam.generate).not.toHaveBeenCalled();
+      expect(
+        [...store.values()].every(
+          (post) => post.targetExecutionState === TargetExecutionState.FAILED,
+        ),
+      ).toBe(true);
+      expect(queue.release).toHaveBeenCalled();
     });
 
     it('stops a queued BYOK run when its key becomes unavailable', async () => {

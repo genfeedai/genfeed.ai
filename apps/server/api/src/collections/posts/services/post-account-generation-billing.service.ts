@@ -19,6 +19,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   ServiceUnavailableException,
@@ -27,6 +28,7 @@ import {
 const DESCRIPTION = 'Account text generation';
 /** A run has no fixed size, so its pool outlives the standard hold by this much per dispatch. */
 const DISPATCH_WINDOW_MS = 2 * 60 * 1000;
+const MAX_UNFUNDED_DISPATCHES = 50;
 
 /**
  * Funding of one account or thread generation run (#5786). The run takes ONE
@@ -61,6 +63,7 @@ export class PostAccountGenerationBillingService {
     );
     const apiKey = textDispatchApiKey(dispatch, model);
     if (dispatch) {
+      this.assertBatchSize(dispatchCount, 0);
       return { apiKey, creditsPerDispatch: 0, poolReservationId: null };
     }
     const pricedModel = await this.models.findOne({
@@ -86,6 +89,7 @@ export class PostAccountGenerationBillingService {
         'account_generation_pricing_invalid',
       );
     if (creditsPerDispatch <= 0) {
+      this.assertBatchSize(dispatchCount, 0);
       return { apiKey, creditsPerDispatch: 0, poolReservationId: null };
     }
     const total = creditsPerDispatch * dispatchCount;
@@ -131,6 +135,15 @@ export class PostAccountGenerationBillingService {
       }
       throw error;
     }
+  }
+
+  assertBatchSize(dispatchCount: number, creditsPerDispatch: number): void {
+    if (creditsPerDispatch <= 0 && dispatchCount > MAX_UNFUNDED_DISPATCHES)
+      throw new BadRequestException({
+        code: 'account_generation_batch_limit',
+        message:
+          'BYOK and free-model batches are limited to 50 posts. Split larger requests into smaller batches.',
+      });
   }
 
   async queuedApiKey(

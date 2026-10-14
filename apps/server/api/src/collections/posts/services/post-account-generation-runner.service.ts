@@ -27,6 +27,10 @@ export class PostAccountGenerationRunnerService {
   async process(data: AccountGenerationJobData): Promise<void> {
     let pending = data;
     try {
+      this.billing.assertBatchSize(
+        data.dto.format === 'thread' ? 1 : data.dto.count,
+        data.run.funding.creditsPerDispatch,
+      );
       await this.queue.renew(data.run.scope.organizationId, data.run.runId);
       const context = await this.accounts.resolve({
         brandId: data.run.identity.brandId,

@@ -30,7 +30,7 @@ export class GenerateAccountPostDto {
   @Max(Number.MAX_SAFE_INTEGER)
   @ApiProperty({
     description:
-      'Number of posts to generate. There is no fixed cap: the run refuses when the credit balance cannot cover every dispatch.',
+      'Number of posts to generate. Credit-funded batches are capped by the available balance; BYOK and free-model batches allow up to 50 posts per request. Threads allow 2–9 posts.',
     example: 1,
     minimum: 1,
     required: true,
