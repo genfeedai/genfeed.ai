@@ -4769,7 +4769,7 @@
   },
   "adminFlags": {
     "title": "Flags",
-    "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection.",
+    "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection. Releases decide which cloud organizations see each module or page.",
     "sections": {
       "modules": {
         "title": "Modules",
@@ -4778,6 +4778,10 @@
       "platform": {
         "title": "Platform",
         "description": "Features across the app shell, independent of any module."
+      },
+      "releases": {
+        "title": "Releases",
+        "description": "On releases the item to every cloud organization. Off keeps it preview-only: only organizations on release preview (Admin → Organization) see it and can start work in it. Self-hosted always sees everything. New items start off."
       }
     },
     "flags": {
@@ -4852,6 +4856,74 @@
       "desktop_local_workspace": {
         "label": "Desktop local workspace",
         "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
+      },
+      "release_publishing": {
+        "label": "Publishing",
+        "description": "Scheduling and publishing posts."
+      },
+      "release_analytics": {
+        "label": "Analytics",
+        "description": "Performance and insights for published content."
+      },
+      "release_turbo": {
+        "label": "Turbo",
+        "description": "Bulk content production."
+      },
+      "release_motion": {
+        "label": "Motion",
+        "description": "Animated visuals authored as code."
+      },
+      "release_clips": {
+        "label": "Clips",
+        "description": "Highlights cut from long videos and audio."
+      },
+      "release_editor": {
+        "label": "Editor",
+        "description": "Timeline editing for video projects."
+      },
+      "release_automation": {
+        "label": "Automation",
+        "description": "Workflows, agents and recurring programs."
+      },
+      "release_messages": {
+        "label": "Messages",
+        "description": "One inbox for DMs, replies and comments."
+      },
+      "release_discovery": {
+        "label": "Discovery",
+        "description": "Trends, tracked sources and ads research."
+      },
+      "release_campaigns": {
+        "label": "Campaigns",
+        "description": "Campaign planning in Publishing."
+      },
+      "release_analytics_brands": {
+        "label": "Analytics: Brands",
+        "description": "Brand comparison page in Analytics."
+      },
+      "release_analytics_streaks": {
+        "label": "Analytics: Streaks",
+        "description": "Posting streaks page in Analytics."
+      },
+      "release_analytics_insights": {
+        "label": "Analytics: Insights",
+        "description": "Insights page in Analytics."
+      },
+      "release_analytics_hooks": {
+        "label": "Analytics: Hooks",
+        "description": "Hook performance page in Analytics."
+      },
+      "release_analytics_outliers": {
+        "label": "Analytics: Outliers",
+        "description": "Outlier posts page in Analytics."
+      },
+      "release_analytics_breakouts": {
+        "label": "Analytics: Breakouts",
+        "description": "Breakout posts page in Analytics."
+      },
+      "release_analytics_performance_lab": {
+        "label": "Analytics: Performance Lab",
+        "description": "Pattern mining page in Analytics."
       }
     },
     "inactiveUnderParent": "Off while {parent} is off.",

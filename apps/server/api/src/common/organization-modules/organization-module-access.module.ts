@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { OrganizationModuleGuard } from '@api/common/organization-modules/organization-module.guard';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { OrganizationModuleExecutionInterceptor } from '@api/common/organization-modules/organization-module-execution.interceptor';
@@ -6,7 +7,7 @@ import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [OrganizationPaidAccessModule, PrismaModule],
+  imports: [OrganizationPaidAccessModule, PlatformSettingsModule, PrismaModule],
   providers: [
     OrganizationModuleAccessService,
     OrganizationModuleGuard,

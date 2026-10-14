@@ -1897,7 +1897,8 @@ model PlatformSetting {
   systemEventsEnabledAt            DateTime?
   isEmailVerificationRequired      Boolean   @default(false)
   // Module and feature flags (#5468), e.g. {"studio":false}. Only an explicit
-  // false turns one off; missing keys are on.
+  // false turns one off; missing keys are on. Release flags
+  // ({"release_motion":true}) are the exception: missing means preview-only.
   flags                            Json      @default("{}")
   // Workflows pinned to every organization's templates Featured row (#5511),
   // in display order. Written only by the superadmin pin endpoints; only the

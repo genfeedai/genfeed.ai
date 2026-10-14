@@ -54,6 +54,16 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    label: 'Releases',
+    settings: [
+      {
+        key: 'isReleasePreviewEnabled',
+        label: 'Release Preview (sees unreleased modules)',
+        type: 'boolean',
+      },
+    ],
+  },
+  {
     label: 'Limits',
     settings: [
       { key: 'seatsLimit', label: 'Seats Limit', type: 'number' },

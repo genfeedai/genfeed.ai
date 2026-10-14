@@ -1,11 +1,13 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
-  isReleasePreviewActive,
+  isReleaseItemVisible,
   ORGANIZATION_MODULES,
   type OrganizationModuleAccess,
   type OrganizationModuleAccessInput,
+  type ReleaseItemId,
   resolveOrganizationModuleAccess,
 } from '@genfeedai/contracts/constants';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -16,6 +18,7 @@ export class OrganizationModuleAccessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly paidAccess: OrganizationPaidAccessService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   /** Optional background fills must not turn a saved-data read into new work. */
@@ -33,19 +36,29 @@ export class OrganizationModuleAccessService {
   }
 
   /**
-   * #5502 whether the organization sees unreleased (founder-only) work:
-   * self-hosted, or a cloud organization on release preview.
+   * Whether `itemId` is released to the organization: self-hosted, a cloud
+   * organization on release preview, or released in Admin → Flags.
    */
-  async isReleasePreviewActive(organizationId: string): Promise<boolean> {
+  async isReleased(
+    organizationId: string,
+    itemId: ReleaseItemId,
+  ): Promise<boolean> {
     if (!hasOrganizationBilling()) return true;
-    const settings = await this.prisma.organizationSetting.findUnique({
-      where: { organizationId },
-      select: { isReleasePreviewEnabled: true },
-    });
-    return isReleasePreviewActive({
-      hasOrganizationBilling: true,
-      isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
-    });
+    const [settings, { flags }] = await Promise.all([
+      this.prisma.organizationSetting.findUnique({
+        where: { organizationId },
+        select: { isReleasePreviewEnabled: true },
+      }),
+      this.platformSettings.getFeatureSettings(),
+    ]);
+    return isReleaseItemVisible(
+      itemId,
+      {
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
+      },
+      flags,
+    );
   }
 
   async assertAccess(
@@ -64,19 +77,32 @@ export class OrganizationModuleAccessService {
         select: { id: true },
       });
       if (!organization) this.reject(moduleId, 'unavailable');
-      const settings = await this.prisma.organizationSetting.findUnique({
-        where: { organizationId },
-        select: { isReleasePreviewEnabled: true, moduleOverrides: true },
-      });
+      const [settings, platformState] = await Promise.all([
+        this.prisma.organizationSetting.findUnique({
+          where: { organizationId },
+          select: { isReleasePreviewEnabled: true },
+        }),
+        this.platformSettings.getFeatureSettingsState(),
+      ]);
       const isBilling = hasOrganizationBilling();
+      // Unread releases must not pass for unreleased: retry instead.
+      if (isBilling && !platformState.isResolved)
+        this.reject(moduleId, 'unavailable');
+      const { flags } = platformState.settings;
       const input: OrganizationModuleAccessInput = {
         moduleId,
         operation,
         hasOrganizationBilling: isBilling,
         hasPaidSubscription: null,
-        isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
+        isReleased: isReleaseItemVisible(
+          moduleId,
+          {
+            hasOrganizationBilling: isBilling,
+            isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
+          },
+          flags,
+        ),
         isSettingsLoaded: Boolean(settings),
-        moduleOverrides: settings?.moduleOverrides,
       };
       access = resolveOrganizationModuleAccess(input);
       if (
@@ -110,30 +136,24 @@ export class OrganizationModuleAccessService {
     throw new HttpException(
       {
         code:
-          reason === 'disabled'
-            ? 'ORGANIZATION_MODULE_DISABLED'
-            : reason === 'subscription-required'
-              ? 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED'
-              : reason === 'unreleased'
-                ? 'ORGANIZATION_MODULE_UNRELEASED'
-                : 'ORGANIZATION_MODULE_UNAVAILABLE',
+          reason === 'subscription-required'
+            ? 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED'
+            : reason === 'unreleased'
+              ? 'ORGANIZATION_MODULE_UNRELEASED'
+              : 'ORGANIZATION_MODULE_UNAVAILABLE',
         moduleId,
         title:
           reason === 'subscription-required'
             ? 'Active subscription required'
-            : reason === 'disabled'
-              ? 'Module disabled'
-              : reason === 'unreleased'
-                ? 'Module not released'
-                : 'Module access unavailable',
+            : reason === 'unreleased'
+              ? 'Module not released'
+              : 'Module access unavailable',
         detail:
-          reason === 'disabled'
-            ? `${label} is disabled for this organization. An owner or admin can enable it in organization settings.`
-            : reason === 'subscription-required'
-              ? `${label} requires an active paid subscription. Existing data remains readable and exportable.`
-              : reason === 'unreleased'
-                ? `${label} is not released yet. Existing data remains readable and exportable.`
-                : 'Module access could not be verified. Try again before starting new work.',
+          reason === 'subscription-required'
+            ? `${label} requires an active paid subscription. Existing data remains readable and exportable.`
+            : reason === 'unreleased'
+              ? `${label} is not released yet. Existing data remains readable and exportable.`
+              : 'Module access could not be verified. Try again before starting new work.',
       },
       reason === 'unavailable'
         ? HttpStatus.SERVICE_UNAVAILABLE

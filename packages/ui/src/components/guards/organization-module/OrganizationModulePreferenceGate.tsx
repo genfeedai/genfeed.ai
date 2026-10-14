@@ -5,6 +5,7 @@ import {
   APP_ROUTES,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
+import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { OrganizationModulePreferenceGateProps } from '@genfeedai/props/guards/organization-module-preference-gate.props';
 import { Button } from '@ui/primitives/button';
@@ -28,9 +29,11 @@ function OrganizationModulePreferenceBody({
     useBrand();
   const { orgHref } = useOrgUrl();
   const t = useTranslations('common.settings.organizationModules');
+  const { flags: platformFlags } = useFeatureFlagContext();
   const access = resolveOrganizationModulePresentationAccess(
     settingsLoading ? null : settings,
     moduleId,
+    platformFlags,
   );
   const mounted = useRef(true);
   const retrying = useRef(false);

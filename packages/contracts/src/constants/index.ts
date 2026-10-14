@@ -65,6 +65,7 @@ export * from './public-articles.constant';
 export * from './publishing-campaigns-routes.constant';
 export * from './publishing-posts-routes.constant';
 export * from './publishing-quota.constant';
+export * from './release-items.constant';
 export * from './routes.constant';
 export * from './self-hosted-models.constant';
 export * from './settings-scope.constant';
