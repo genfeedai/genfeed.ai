@@ -2,7 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { VoiceProvider } from '@genfeedai/contracts';
-import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
+import { getVoiceSpeechModel } from '@genfeedai/contracts/constants';
+import type {
+  HeyGenAvatarRef,
+  HeyGenSpeechVoice,
+} from '@genfeedai/contracts/interfaces';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,
@@ -15,8 +19,10 @@ import {
 } from '@helpers/voice/heygen-identity.helper';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
+import { useHeyGenSpeechVoices } from '@hooks/data/integrations/use-heygen-speech-voices';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import type { StudioPlaygroundType } from '@pages/studio/playground/types';
 import { resolveStudioAssetUrl } from '@pages/studio/playground/utils/studio-playground-asset';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useMemo } from 'react';
@@ -30,6 +36,12 @@ export interface StudioIdentityOption {
   disabled?: boolean;
 }
 
+export interface UseStudioPlaygroundIdentitiesParams {
+  /** Chosen speech model; narrows Voice options to the providers it can speak. */
+  modelKey?: string;
+  type: StudioPlaygroundType;
+}
+
 export interface UseStudioPlaygroundIdentitiesReturn {
   retry: () => void;
   hasMoreAvatars: boolean;
@@ -37,6 +49,12 @@ export interface UseStudioPlaygroundIdentitiesReturn {
   loadMoreAvatars: () => Promise<void>;
   avatarOptions: readonly StudioIdentityOption[];
   error: string | null;
+  /** Whether the workspace has its own HeyGen connection for voice clones. */
+  hasHeyGenPersonalConnection: boolean;
+  /** HeyGen Voice voices exist for the workspace, whatever model is chosen. */
+  hasHeyGenSpeechVoices: boolean;
+  /** HeyGen Voice voices were fetched successfully for this organization. */
+  isHeyGenSpeechLoaded: boolean;
   isLoadingIdentities: boolean;
   voiceOptions: readonly StudioIdentityOption[];
 }
@@ -45,9 +63,46 @@ function getVoiceName(voice: Voice): string {
   return voice.metadataLabel || voice.externalVoiceId || voice.id;
 }
 
-export function useStudioPlaygroundIdentities(): UseStudioPlaygroundIdentitiesReturn {
+function toCatalogVoiceOption(voice: Voice): StudioIdentityOption {
+  return {
+    label: `${getVoiceName(voice)} (${voice.provider})`,
+    value: encodeCatalogVoiceValue(
+      voice.provider as VoiceProvider,
+      String(voice.externalVoiceId),
+    ),
+    preview: voice.sampleAudioUrl || undefined,
+    voiceRef: buildDefaultVoiceRefFromVoice(voice) ?? {
+      source: 'catalog' as const,
+      provider: voice.provider as VoiceProvider,
+      externalVoiceId: String(voice.externalVoiceId),
+    },
+  };
+}
+
+function toSpeechVoiceOption(voice: HeyGenSpeechVoice): StudioIdentityOption {
+  return {
+    label: `${voice.name} (HeyGen Voice · ${voice.ownership})`,
+    value: heyGenVoiceValue(voice),
+    voiceRef: {
+      source: 'catalog',
+      provider: VoiceProvider.HEYGEN,
+      externalVoiceId: voice.voiceId,
+      label: voice.name,
+      ownership: voice.ownership,
+    },
+  };
+}
+
+export function useStudioPlaygroundIdentities({
+  modelKey,
+  type,
+}: UseStudioPlaygroundIdentitiesParams): UseStudioPlaygroundIdentitiesReturn {
   const { organizationId } = useBrand();
-  const heygen = useHeyGenCatalog();
+  const isVoiceType = type === 'voice';
+  // Avatar video uses HeyGen's stock catalogue; Voice uses HeyGen Voice
+  // speech voices instead. Each surface fetches only its own source.
+  const heygen = useHeyGenCatalog({ isEnabled: !isVoiceType });
+  const heygenSpeech = useHeyGenSpeechVoices({ isEnabled: isVoiceType });
   const { avatars, isLoading: isLoadingAvatars } =
     useAvatarImages(organizationId);
   const { isLoading: isLoadingVoices, voices } = useVoiceCatalog({
@@ -74,45 +129,54 @@ export function useStudioPlaygroundIdentities(): UseStudioPlaygroundIdentitiesRe
     [avatars, heygen.avatars],
   );
 
-  const voiceOptions = useMemo<StudioIdentityOption[]>(
-    () => [
+  const voiceOptions = useMemo<StudioIdentityOption[]>(() => {
+    if (isVoiceType) {
+      const speakingProvider = getVoiceSpeechModel(modelKey)?.voiceProvider;
+      return [
+        ...voices
+          .filter(
+            (voice) =>
+              Boolean(voice.externalVoiceId || voice.isCloned) &&
+              voice.provider === VoiceProvider.ELEVENLABS,
+          )
+          .map(toCatalogVoiceOption),
+        ...heygenSpeech.voices.map(toSpeechVoiceOption),
+      ].filter(
+        (option) =>
+          !speakingProvider || option.voiceRef?.provider === speakingProvider,
+      );
+    }
+
+    return [
       ...voices
         .filter(
           (voice) =>
             Boolean(voice.externalVoiceId || voice.isCloned) &&
             voice.provider !== VoiceProvider.HEYGEN,
         )
-        .map((voice) => ({
-          label: `${getVoiceName(voice)} (${voice.provider})`,
-          value: encodeCatalogVoiceValue(
-            voice.provider as VoiceProvider,
-            String(voice.externalVoiceId),
-          ),
-          preview: voice.sampleAudioUrl || undefined,
-          voiceRef: buildDefaultVoiceRefFromVoice(voice) ?? {
-            source: 'catalog' as const,
-            provider: voice.provider as VoiceProvider,
-            externalVoiceId: String(voice.externalVoiceId),
-          },
-        })),
+        .map(toCatalogVoiceOption),
       ...heygen.voices.map((voice) => ({
         label: `${voice.name} (HeyGen · ${voice.ownership})`,
         value: heyGenVoiceValue(voice),
         preview: voice.preview || undefined,
         voiceRef: heyGenDefaultVoice(voice),
       })),
-    ],
-    [voices, heygen.voices],
-  );
+    ];
+  }, [heygen.voices, heygenSpeech.voices, isVoiceType, modelKey, voices]);
+  const identitySource = isVoiceType ? heygenSpeech : heygen;
   return {
-    retry: heygen.retry,
+    retry: identitySource.retry,
     hasMoreAvatars: heygen.hasMoreAvatars,
     isLoadingMoreAvatars: heygen.isLoadingMoreAvatars,
     loadMoreAvatars: heygen.loadMoreAvatars,
     avatarOptions,
-    error: heygen.error,
+    error: identitySource.error,
+    hasHeyGenPersonalConnection: heygenSpeech.hasPersonalConnection,
+    hasHeyGenSpeechVoices: heygenSpeech.voices.length > 0,
+    isHeyGenSpeechLoaded: heygenSpeech.isLoaded,
     voiceOptions,
-    isLoadingIdentities:
-      isLoadingAvatars || isLoadingVoices || heygen.isLoading,
+    isLoadingIdentities: isVoiceType
+      ? isLoadingVoices || heygenSpeech.isLoading
+      : isLoadingAvatars || isLoadingVoices || heygen.isLoading,
   };
 }

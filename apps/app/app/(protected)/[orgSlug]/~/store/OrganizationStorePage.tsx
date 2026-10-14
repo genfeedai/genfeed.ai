@@ -7,9 +7,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   isNativeSecondaryAppId,
-  isReleasePreviewActive,
   isWorkflowLibraryVisible,
-  listStoreNativeAppIds,
   type NativeSecondaryAppId,
   resolveNativeAppAvailability,
   resolveOrganizationModulePresentationAccess,
@@ -42,8 +40,11 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.provider';
-import StoreAppThumbnail from './StoreAppThumbnail';
-import { STORE_APP_CATALOG, STORE_CATEGORY_IDS } from './store-app-catalog';
+import StoreAppThumbnail from '@/components/store/StoreAppThumbnail';
+import {
+  STORE_APP_CATALOG,
+  STORE_CATEGORY_IDS,
+} from '@/components/store/store-app-catalog';
 
 const ALL_FILTER = 'all';
 
@@ -61,8 +62,8 @@ function isAppOpenable(app: StoreAppEntry): boolean {
  * Store v1 at `/:orgSlug/~/store` (#5502): native apps a member installs into
  * their own setup. Installing is a presentation preference; organization,
  * subscription and release access still decide what the member can open, and
- * the server rechecks every new piece of work. Founder-only experiments are
- * listed only for the founder.
+ * the server rechecks every new piece of work. Apps switched off for the
+ * platform or not released to the organization are not listed.
  */
 export default function OrganizationStorePage() {
   const translate = useTranslations('common.store');
@@ -78,59 +79,58 @@ export default function OrganizationStorePage() {
   const [filter, setFilter] = useState<StoreFilterId>(ALL_FILTER);
   const brandSlug = selectedBrand?.slug?.trim() || undefined;
   const isLoading = settingsLoading || installedApps.status === 'loading';
-  // Founder-only apps are listed where unreleased work is visible: self-hosted
-  // or a cloud organization on release preview.
-  const isReleasePreview = isReleasePreviewActive(
-    settingsLoading ? null : settings,
-  );
 
-  const apps = useMemo<StoreAppEntry[]>(() => {
-    const listedAppIds = new Set(listStoreNativeAppIds(isReleasePreview));
-    return APP_RAIL_REGISTRY.flatMap((app) => {
-      const appId = app.id;
-      if (!isNativeSecondaryAppId(appId) || !listedAppIds.has(appId)) {
-        return [];
-      }
-      const isEnabled = isAppRailItemEnabled(app, flags, isConfigured);
-      const state = resolveNativeAppAvailability({
-        appId,
-        installedAppIds: installedApps.installedAppIds,
-        isFounderOperator: isReleasePreview,
-        organizationAccess:
-          !isEnabled || !app.organizationModule
-            ? { isAllowed: false, reason: 'unavailable' }
-            : resolveOrganizationModulePresentationAccess(
-                settings,
-                app.organizationModule,
-              ),
-        pinnedAppIds,
-      });
-      return [
-        {
+  const apps = useMemo<StoreAppEntry[]>(
+    () =>
+      APP_RAIL_REGISTRY.flatMap((app) => {
+        const appId = app.id;
+        if (
+          !isNativeSecondaryAppId(appId) ||
+          !app.organizationModule ||
+          !isAppRailItemEnabled(app, flags, isConfigured)
+        ) {
+          return [];
+        }
+        const state = resolveNativeAppAvailability({
           appId,
-          description: translateRail(app.description),
-          icon: app.icon,
-          isInstalled: installedApps.installedAppIds.includes(appId),
-          label: translateRail(app.label),
-          openHref: getAppRailHref(app, {
-            brandAwareSlug: brandSlug,
-            orgSlug,
-          }),
-          state,
-        },
-      ];
-    });
-  }, [
-    brandSlug,
-    flags,
-    installedApps.installedAppIds,
-    isConfigured,
-    isReleasePreview,
-    orgSlug,
-    pinnedAppIds,
-    settings,
-    translateRail,
-  ]);
+          installedAppIds: installedApps.installedAppIds,
+          organizationAccess: resolveOrganizationModulePresentationAccess(
+            settingsLoading ? null : settings,
+            app.organizationModule,
+            flags,
+          ),
+          pinnedAppIds,
+        });
+        if (state === 'unreleased') {
+          return [];
+        }
+        return [
+          {
+            appId,
+            description: translateRail(app.description),
+            icon: app.icon,
+            isInstalled: installedApps.installedAppIds.includes(appId),
+            label: translateRail(app.label),
+            openHref: getAppRailHref(app, {
+              brandAwareSlug: brandSlug,
+              orgSlug,
+            }),
+            state,
+          },
+        ];
+      }),
+    [
+      brandSlug,
+      flags,
+      installedApps.installedAppIds,
+      isConfigured,
+      orgSlug,
+      pinnedAppIds,
+      settings,
+      settingsLoading,
+      translateRail,
+    ],
+  );
 
   // Only shelves that hold an app the member can see get a chip, so a shelf
   // that is empty for this member never offers an empty filter.
@@ -532,12 +532,6 @@ function StoreAppAccessNote({
           <Link className={linkClassName} href={subscriptionHref}>
             {translate('viewPlans')}
           </Link>
-        </p>
-      );
-    case 'founder-only':
-      return (
-        <p className="mt-1 text-xs text-muted-foreground">
-          {translate('founderOnly')}
         </p>
       );
     case 'unavailable':

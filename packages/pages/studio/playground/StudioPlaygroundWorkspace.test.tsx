@@ -6,6 +6,7 @@ import {
 import {
   IngredientCategory,
   IngredientStatus,
+  ModelCategory,
   RouterPriority,
 } from '@genfeedai/contracts';
 import {
@@ -167,6 +168,7 @@ const mocks = vi.hoisted(() => ({
   isHydrated: { value: true },
   setType: vi.fn(),
   updateSettings: vi.fn(),
+  modelsHook: vi.fn(),
 }));
 
 const characterMentionMocks = vi.hoisted(() => ({
@@ -365,7 +367,10 @@ vi.mock(
 );
 
 vi.mock('@pages/studio/playground/hooks/useStudioPlaygroundModels', () => ({
-  useStudioPlaygroundModels: () => mocks.models.value,
+  useStudioPlaygroundModels: (...args: unknown[]) => {
+    mocks.modelsHook(...args);
+    return mocks.models.value;
+  },
 }));
 
 vi.mock('@pages/studio/playground/hooks/useStudioPlaygroundHandoff', () => ({
@@ -2228,31 +2233,40 @@ describe('StudioPlaygroundWorkspace', () => {
     );
   });
 
-  it.each(['voice'] as const)(
-    'preserves the saved model for %s without model selection in simple mode',
-    async (type) => {
-      mocks.type.value = type;
-      mocks.advancedMode.value = {
-        isAdvancedMode: false,
-        isLoaded: true,
-        setAdvancedMode: vi.fn(),
-      };
-      mocks.settings.mockReturnValue({
-        resetSettings: vi.fn(),
-        settings: { modelKey: 'saved-identity-model' },
-        setType: mocks.setType,
-        type,
-        updateSettings: vi.fn(),
-      });
+  it('returns a hidden saved speech model to Auto for voice in simple mode', async () => {
+    mocks.type.value = 'voice';
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: MODEL_KEYS.HEYGEN_VOICE },
+      setType: mocks.setType,
+      type: 'voice',
+      updateSettings: vi.fn(),
+    });
 
-      render(<StudioPlaygroundWorkspace />);
-      await act(async () => {});
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
 
-      expect(mocks.updateSettings).not.toHaveBeenCalledWith(
-        expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
-      );
-    },
-  );
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
+    });
+  });
+
+  it('loads the speech model catalogue for voice', async () => {
+    mocks.type.value = 'voice';
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.modelsHook).toHaveBeenLastCalledWith(
+      ModelCategory.VOICE,
+      expect.anything(),
+    );
+  });
 
   it('keeps an Agent handoff model in simple mode', async () => {
     mocks.advancedMode.value = {

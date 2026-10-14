@@ -165,9 +165,9 @@ const STUDIO_PLAYGROUND_TYPE_CONFIGS: Record<
       hasInstrumentalToggle: false,
       hasLook: false,
       hasLyrics: false,
-      // The chosen catalog voice *is* the model — `/voices/generate` takes a
-      // `voiceId`, never a router model key.
-      hasModelSelection: false,
+      // Voice picks both a catalog voice and a speech model (ElevenLabs or
+      // HeyGen Voice); the model must be able to speak the voice's provider.
+      hasModelSelection: true,
       hasOutputs: false,
       hasReferences: false,
       hasSpeech: true,
@@ -176,7 +176,7 @@ const STUDIO_PLAYGROUND_TYPE_CONFIGS: Record<
     elementsType: 'voice',
     ingredientCategory: IngredientCategory.VOICE,
     label: 'Voice',
-    modelCategory: null,
+    modelCategory: ModelCategory.VOICE,
     resourceSegment: 'voices',
     type: 'voice',
   },

@@ -30,8 +30,8 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
-  isReleasePreviewActive,
-  ORGANIZATION_MODULES,
+  isReleaseItemId,
+  isReleaseItemVisible,
   resolveOrganizationModulePreferences,
 } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
@@ -302,12 +302,21 @@ export function useAppProtectedLayout(
     () =>
       resolveOrganizationModulePreferences(
         settingsLoading ? null : organizationSettings,
+        platformFlags,
       ),
-    [organizationSettings, settingsLoading],
+    [organizationSettings, platformFlags, settingsLoading],
   );
-  // #5502 founder-only destinations stay hidden until release preview is known.
-  const isReleasePreview =
-    !settingsLoading && isReleasePreviewActive(organizationSettings);
+  // Unreleased destinations stay hidden until the organization is known.
+  const isReleased = useCallback(
+    (item: MenuItemConfig) =>
+      !item.releaseItemId ||
+      isReleaseItemVisible(
+        item.releaseItemId,
+        settingsLoading ? null : organizationSettings,
+        platformFlags,
+      ),
+    [organizationSettings, platformFlags, settingsLoading],
+  );
   const studioMenuItems = useMemo(
     () =>
       (studioApp ? STUDIO_APP_MENU_ITEMS[studioApp] : [])
@@ -315,8 +324,10 @@ export function useAppProtectedLayout(
           (item) =>
             isStudioSurfaceEnabled(item.href, platformFlags) &&
             (!item.organizationModule ||
-              modulePreferences?.[item.organizationModule] === true ||
-              !ORGANIZATION_MODULES[item.organizationModule].isToggleable),
+              // While preferences load, keep the always-released apps
+              // (Playground, Storyboard) so their nav does not flicker.
+              (modulePreferences?.[item.organizationModule] ??
+                !isReleaseItemId(item.organizationModule))),
         )
         .map(
           (item): MenuItemConfig => ({
@@ -329,15 +340,13 @@ export function useAppProtectedLayout(
 
   const publishingMenuItems = useMemo(
     () =>
-      PUBLISHING_MENU_ITEMS.filter(
-        (item) => !item.isFounderOnly || isReleasePreview,
-      ).map(
+      PUBLISHING_MENU_ITEMS.filter(isReleased).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [isReleasePreview, taskContextSearchParams],
+    [isReleased, taskContextSearchParams],
   );
 
   const libraryMenuItems = useMemo(
@@ -376,14 +385,14 @@ export function useAppProtectedLayout(
   const analyticsMenuItems = useMemo(
     () =>
       getAnalyticsMenuItemsForScope(brandSlug)
-        .filter((item) => !item.isFounderOnly || isReleasePreview)
+        .filter(isReleased)
         .map(
           (item): MenuItemConfig => ({
             ...item,
             href: withTaskContextHref(item.href, taskContextSearchParams),
           }),
         ),
-    [brandSlug, isReleasePreview, taskContextSearchParams],
+    [brandSlug, isReleased, taskContextSearchParams],
   );
 
   const discoveryMenuItems = useMemo(

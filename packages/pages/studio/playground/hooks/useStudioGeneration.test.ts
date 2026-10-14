@@ -2,6 +2,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   RouterPriority,
+  VoiceProvider,
 } from '@genfeedai/contracts';
 import {
   LIBRARY_ASSETS_REFRESH_EVENT,
@@ -699,13 +700,33 @@ describe('useStudioGeneration failures', () => {
 });
 
 describe('useStudioGeneration inline voice', () => {
+  const elevenLabsRef = {
+    externalVoiceId: 'voice-1',
+    provider: VoiceProvider.ELEVENLABS,
+    source: 'catalog',
+  } as const;
+  const heyGenRef = {
+    externalVoiceId: 'clone-1',
+    ownership: 'private',
+    provider: VoiceProvider.HEYGEN,
+    source: 'catalog',
+  } as const;
+
+  function voiceSettings(
+    overrides: Partial<ReturnType<typeof getDefaultStudioPlaygroundSettings>>,
+  ) {
+    return {
+      ...getDefaultStudioPlaygroundSettings('voice'),
+      prioritize: RouterPriority.QUALITY,
+      voiceId: 'voice-1',
+      voiceRef: elevenLabsRef,
+      ...overrides,
+    };
+  }
+
   it('lands a finished card with no socket phase', async () => {
     const { result } = renderStudioGeneration({
-      settings: {
-        ...getDefaultStudioPlaygroundSettings('voice'),
-        prioritize: RouterPriority.BALANCED,
-        voiceId: 'voice-1',
-      },
+      settings: voiceSettings({ modelKey: AUTO_MODEL_OPTION_VALUE }),
       type: 'voice',
     });
 
@@ -721,6 +742,102 @@ describe('useStudioGeneration inline voice', () => {
       status: IngredientStatus.GENERATED,
       url: 'https://a/v.mp3',
     });
+  });
+
+  it('asks the server to route Auto for the voice provider', async () => {
+    const { result } = renderStudioGeneration({
+      settings: voiceSettings({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        voiceId: 'clone-1',
+        voiceRef: heyGenRef,
+      }),
+      type: 'voice',
+    });
+
+    await act(async () => {
+      await result.current.submit('Hello from Genfeed');
+    });
+
+    expect(mockVoicesGenerate).toHaveBeenCalledExactlyOnceWith({
+      autoSelectModel: true,
+      prioritize: RouterPriority.QUALITY,
+      speed: 1,
+      text: 'Hello from Genfeed',
+      voiceId: 'clone-1',
+      voiceProvider: VoiceProvider.HEYGEN,
+    });
+  });
+
+  it('sends the explicit speech model with the voice provider', async () => {
+    const { result } = renderStudioGeneration({
+      models: [
+        makeModel(MODEL_KEYS.ELEVENLABS_V4),
+        makeModel(MODEL_KEYS.HEYGEN_VOICE),
+      ],
+      settings: voiceSettings({
+        modelKey: MODEL_KEYS.HEYGEN_VOICE,
+        voiceId: 'clone-1',
+        voiceRef: heyGenRef,
+      }),
+      type: 'voice',
+    });
+
+    await act(async () => {
+      await result.current.submit('Hello from HeyGen');
+    });
+
+    expect(mockVoicesGenerate).toHaveBeenCalledExactlyOnceWith({
+      model: MODEL_KEYS.HEYGEN_VOICE,
+      speed: 1,
+      text: 'Hello from HeyGen',
+      voiceId: 'clone-1',
+      voiceProvider: VoiceProvider.HEYGEN,
+    });
+  });
+
+  it('refuses a voice from another provider than the selected speech model', async () => {
+    const { result } = renderStudioGeneration({
+      models: [
+        makeModel(MODEL_KEYS.ELEVENLABS_V4),
+        makeModel(MODEL_KEYS.HEYGEN_VOICE),
+      ],
+      settings: voiceSettings({
+        modelKey: MODEL_KEYS.HEYGEN_VOICE,
+        voiceRef: elevenLabsRef,
+      }),
+      type: 'voice',
+    });
+
+    await act(async () => {
+      await result.current.submit('Mismatch');
+    });
+
+    expect(mockVoicesGenerate).not.toHaveBeenCalled();
+    expect(mockNotificationsError).toHaveBeenCalledWith(
+      'Pick a voice that matches the selected speech model',
+    );
+  });
+
+  it.each([
+    ['no voice', { voiceId: undefined, voiceRef: undefined }],
+    ['a voice with no provider', { voiceRef: undefined }],
+  ])('blocks generation with %s', async (_label, overrides) => {
+    const { result } = renderStudioGeneration({
+      settings: voiceSettings({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        ...overrides,
+      }),
+      type: 'voice',
+    });
+
+    await act(async () => {
+      await result.current.submit('Hello');
+    });
+
+    expect(mockVoicesGenerate).not.toHaveBeenCalled();
+    expect(mockNotificationsError).toHaveBeenCalledWith(
+      'Pick a voice before generating',
+    );
   });
 });
 

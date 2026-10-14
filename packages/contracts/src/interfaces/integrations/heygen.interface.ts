@@ -54,6 +54,26 @@ export interface HeyGenCatalogVoice {
   connection: HeyGenConnectionRef;
 }
 
+/**
+ * A HeyGen Voice (`heygen-voice-1`) voice from `GET /v3/models/audio/voices`,
+ * listed only when `ACTIVE`. `private` voices are clones in the workspace's own
+ * HeyGen account; `public` voices are the ones HeyGen offers every workspace.
+ */
+export interface HeyGenSpeechVoice {
+  voiceId: string;
+  name: string;
+  /** `instant` or `professional` clone; null for HeyGen's public voices. */
+  mode: string | null;
+  language: string | null;
+  ownership: 'private' | 'public';
+}
+
+export interface HeyGenSpeechVoiceCatalog {
+  voices: HeyGenSpeechVoice[];
+  /** Whether the workspace has its own HeyGen connection for private clones. */
+  hasPersonalConnection: boolean;
+}
+
 /** Internal only: never serialize this receipt through ingredient attributes. */
 export interface HeyGenGenerationProvider {
   version: 1;

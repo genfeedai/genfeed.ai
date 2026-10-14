@@ -69,6 +69,14 @@ const { default: OrganizationStorePage } = await import(
   './OrganizationStorePage'
 );
 
+/** Admin → Flags as the release migration leaves it. */
+const RELEASED_FLAGS = {
+  release_analytics: true,
+  release_discovery: true,
+  release_publishing: true,
+  release_turbo: true,
+};
+
 function card(appId: string): HTMLElement {
   return screen.getByTestId(`store-app-${appId}`);
 }
@@ -89,7 +97,7 @@ describe('OrganizationStorePage (#5502)', () => {
       moduleOverrides: {},
     };
     mocks.brand.settingsLoading = false;
-    mocks.flags = {};
+    mocks.flags = RELEASED_FLAGS;
     mocks.installed.installedAppIds = ['playground'];
     mocks.installed.pendingAppIds = [];
     mocks.installed.status = 'ready';
@@ -97,7 +105,7 @@ describe('OrganizationStorePage (#5502)', () => {
     mocks.uninstall.mockResolvedValue(true);
   });
 
-  it('lists released apps for customers and omits founder-only experiments', () => {
+  it('lists released apps for customers and omits unreleased ones', () => {
     render(<OrganizationStorePage />);
 
     expect(
@@ -239,12 +247,20 @@ describe('OrganizationStorePage (#5502)', () => {
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
   });
 
-  it('reports apps switched off by the platform as unavailable', () => {
-    mocks.flags = { studio: true, studio_storyboard: false };
+  it('does not list apps switched off by the platform', () => {
+    mocks.flags = { ...RELEASED_FLAGS, studio: true, studio_storyboard: false };
     render(<OrganizationStorePage />);
 
-    expect(appState('storyboard')).toBe('unavailable');
+    expect(screen.queryByTestId('store-app-storyboard')).toBeNull();
     expect(appState('playground')).toBe('installed');
+  });
+
+  it('lists an app once it is released in Admin → Flags', () => {
+    mocks.flags = { ...RELEASED_FLAGS, release_clips: true };
+    render(<OrganizationStorePage />);
+
+    expect(card('clips')).toBeInTheDocument();
+    expect(screen.queryByTestId('store-app-motion')).toBeNull();
   });
 
   it('shows the workflow library only while Automation is installed and eligible', () => {

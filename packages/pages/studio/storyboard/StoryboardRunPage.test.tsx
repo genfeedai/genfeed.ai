@@ -48,6 +48,11 @@ vi.mock('@pages/studio/storyboard/hooks/use-storyboard-run', () => ({
   },
 }));
 
+// The composer pulls in the Agent chat store, which this suite does not exercise.
+vi.mock('@pages/studio/storyboard/components/StoryboardPromptBar', () => ({
+  default: () => null,
+}));
+
 vi.mock('@pages/studio/storyboard/components/StoryboardRunPanel', () => ({
   default: (props: StoryboardRunPanelProps) => {
     mocks.panelProps = props;

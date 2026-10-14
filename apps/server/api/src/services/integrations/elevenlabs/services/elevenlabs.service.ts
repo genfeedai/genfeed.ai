@@ -10,6 +10,8 @@ import { Injectable } from '@nestjs/common';
 
 export type ElevenLabsSpeechOptions = {
   languageCode?: string;
+  /** Catalog-selected model id; the platform `elevenlabsModel` setting otherwise. */
+  modelId?: string;
   speed?: number;
 };
 
@@ -101,10 +103,7 @@ export class ElevenLabsService {
   ): Promise<ElevenLabsAudioWithTimestampsResponse> {
     const client = this.getClient(apiKeyOverride);
     return (await client.textToSpeech.convertWithTimestamps(voiceId, {
-      modelId:
-        (
-          await this.platformSettingsService.getFeatureSettings()
-        ).elevenlabsModel ?? undefined,
+      modelId: await this.speechModelId(options),
       outputFormat: 'mp3_44100_128',
       text,
       ...this.speechOptions(options),
@@ -132,6 +131,7 @@ export class ElevenLabsService {
 
     try {
       this.loggerService.log(`${url} started`, {
+        modelId: options?.modelId,
         textLength: text.length,
         voiceId,
       });
@@ -141,10 +141,7 @@ export class ElevenLabsService {
       const audioResponse = (await client.textToSpeech.convertWithTimestamps(
         voiceId,
         {
-          modelId:
-            (
-              await this.platformSettingsService.getFeatureSettings()
-            ).elevenlabsModel ?? undefined,
+          modelId: await this.speechModelId(options),
           outputFormat: 'mp3_44100_128',
           text,
           ...this.speechOptions(options),
@@ -195,6 +192,16 @@ export class ElevenLabsService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  private async speechModelId(
+    options?: ElevenLabsSpeechOptions,
+  ): Promise<string | undefined> {
+    if (options?.modelId) return options.modelId;
+    return (
+      (await this.platformSettingsService.getFeatureSettings())
+        .elevenlabsModel ?? undefined
+    );
   }
 
   private speechOptions(options?: ElevenLabsSpeechOptions) {

@@ -442,6 +442,44 @@ describe('StudioPlaygroundComposer', () => {
       expect(generationSetupPopoverMocks.props.models).toEqual(engines);
     });
 
+    it('offers the speech models for Voice in Advanced and none in Auto', () => {
+      const speechModels = [
+        { key: MODEL_KEYS.ELEVENLABS_V4, label: 'Eleven v4' } as IModel,
+        { key: MODEL_KEYS.HEYGEN_VOICE, label: 'HeyGen Voice' } as IModel,
+      ];
+      advancedModeMocks.isAdvancedMode = true;
+      const view = render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={speechModels}
+          prompt="Say hello"
+          settings={settings}
+          type="voice"
+        />,
+      );
+
+      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+        hasModelSelection: true,
+      });
+      expect(generationSetupPopoverMocks.props.models).toEqual(speechModels);
+
+      advancedModeMocks.isAdvancedMode = false;
+      view.rerender(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={speechModels}
+          prompt="Say hello"
+          settings={settings}
+          type="voice"
+        />,
+      );
+
+      expect(generationSetupPopoverMocks.props.models).toEqual([]);
+      expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
+        isEnabled: false,
+      });
+    });
+
     it('turning Advanced off saves it and returns the model to Auto', () => {
       const onSettingsChange = vi.fn();
       render(

@@ -1,4 +1,4 @@
-import type { VoiceProvider } from '@genfeedai/contracts';
+import type { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@genfeedai/models/elements/external-voice.model';
 import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -19,10 +19,19 @@ export interface CatalogFindParams {
 }
 
 export interface GenerateVoiceParams {
+  /** Let the server route to the best speech model for `voiceProvider`. */
+  autoSelectModel?: boolean;
+  /** Explicit VOICE speech model key; its provider must match `voiceProvider`. */
+  model?: string;
+  /** Auto routing priority; ignored when `model` is set. */
+  prioritize?: RouterPriority;
   /** Speech speed multiplier, 0.5-2.0. */
   speed?: number;
   text: string;
+  /** The voice's id in its own provider's catalog. */
   voiceId: string;
+  /** Which voice catalog `voiceId` belongs to. */
+  voiceProvider: VoiceProvider;
 }
 
 export class VoicesService extends IngredientsService<Voice> {
@@ -67,9 +76,16 @@ export class VoicesService extends IngredientsService<Voice> {
       'POST /voices/generate',
       this.instance
         .post<JsonApiResponseDocument>('/generate', {
+          ...(params.model
+            ? { model: params.model }
+            : {
+                autoSelectModel: params.autoSelectModel,
+                prioritize: params.prioritize,
+              }),
           speed: params.speed,
           text: params.text,
           voiceId: params.voiceId,
+          voiceProvider: params.voiceProvider,
           waitForCompletion: true,
         })
         .then((res) => this.mapOne(res.data)),

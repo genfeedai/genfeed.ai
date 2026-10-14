@@ -394,6 +394,29 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, adopt, scope],
   );
+  /**
+   * Drafts the plan from the saved brief, or revises it when `instruction` is
+   * set. Callers flush pending plan and source edits first so the persisted
+   * revision this reads is the one the draft is based on.
+   */
+  const draftPlan = useCallback(
+    async (instruction?: string) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const persisted = latestRun.current;
+      if (!persisted) throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      if (activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      return adopt(
+        await service.draftStoryboardPlan(brandId, runId, {
+          expectedRevision: persisted.config.revision,
+          ...(instruction ? { instruction } : {}),
+        }),
+      );
+    },
+    [brandId, runId, getService, adopt, scope],
+  );
   return {
     transport,
     reread: transport?.read,
@@ -405,5 +428,6 @@ export function useDurableStoryboardRun(runId: string) {
     saveSource,
     resetPlan,
     approvePlan,
+    draftPlan,
   };
 }

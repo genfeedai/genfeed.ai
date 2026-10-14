@@ -4,7 +4,6 @@ import {
   isNativeAppLaunchable,
   isNativeSecondaryAppId,
   NATIVE_SECONDARY_APP_IDS,
-  ORGANIZATION_MODULES,
   resolveNativeAppAvailability,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -172,19 +171,14 @@ function isLauncherAppAvailable(
   app: AppRailItemConfig,
   {
     installedAppIds,
-    isFounderOperator,
     moduleAccess,
-  }: Pick<
-    AppRailProps,
-    'installedAppIds' | 'isFounderOperator' | 'moduleAccess'
-  >,
+  }: Pick<AppRailProps, 'installedAppIds' | 'moduleAccess'>,
 ): boolean {
   if (!isNativeSecondaryAppId(app.id)) return false;
   return isNativeAppLaunchable(
     resolveNativeAppAvailability({
       appId: app.id,
       installedAppIds: installedAppIds ?? NATIVE_SECONDARY_APP_IDS,
-      isFounderOperator: isFounderOperator === true,
       organizationAccess:
         moduleAccess === undefined || !app.organizationModule
           ? { isAllowed: true, reason: null }
@@ -203,7 +197,6 @@ export function AppRail({
   header,
   installedAppIds,
   isAssetGateLocked = false,
-  isFounderOperator,
   moduleAccess,
   modulePreferences,
   onNavigate,
@@ -228,15 +221,13 @@ export function AppRail({
       if (app.group === 'app') {
         return isLauncherAppAvailable(app, {
           installedAppIds,
-          isFounderOperator,
           moduleAccess,
         });
       }
       return (
         !app.organizationModule ||
         modulePreferences === undefined ||
-        modulePreferences?.[app.organizationModule] === true ||
-        !ORGANIZATION_MODULES[app.organizationModule].isToggleable
+        modulePreferences?.[app.organizationModule] === true
       );
     });
     return showAdmin ? [...visible, ADMIN_RAIL_APP] : visible;
@@ -244,7 +235,6 @@ export function AppRail({
     flags,
     installedAppIds,
     isConfigured,
-    isFounderOperator,
     moduleAccess,
     modulePreferences,
     showAdmin,

@@ -821,7 +821,8 @@ export class HeyGenService {
     return data;
   }
 
-  private async getCatalog(
+  /** Every page of a HeyGen `/v3` catalog, or the page holding `findId`. */
+  public async getCatalog(
     path: string,
     apiKey: string,
     limit: number,

@@ -4,7 +4,6 @@ import type {
 } from '../../constants/organization-modules.constant';
 import type {
   NativeAppContextualEntry,
-  NativeAppReleaseEligibility,
   NativeSecondaryAppId,
 } from '../../types/native-app';
 
@@ -15,7 +14,6 @@ export interface NativeAppCatalogEntry {
   /** The organization module whose access governs new work in this app. */
   organizationModuleId: OrganizationModuleId;
   purpose: string;
-  releaseEligibility: NativeAppReleaseEligibility;
   /** Actions on existing content that open this app with its source. */
   contextualEntries: readonly NativeAppContextualEntry[];
 }
@@ -24,8 +22,6 @@ export interface NativeAppAvailabilityInput {
   appId: NativeSecondaryAppId;
   /** From `resolveOrganizationModulePresentationAccess`; null is unresolved. */
   organizationAccess: OrganizationModuleAccess | null | undefined;
-  /** Existing operator authorization (platform super admin), never an email. */
-  isFounderOperator: boolean;
   installedAppIds: readonly string[];
   pinnedAppIds: readonly string[];
 }

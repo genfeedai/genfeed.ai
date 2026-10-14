@@ -61,6 +61,20 @@ const mockOrgUrl = vi.hoisted(() => ({
   orgSlug: 'acme' as string | undefined,
 }));
 
+// Admin → Flags as the release migration leaves it.
+vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+  useFeatureFlagContext: () => ({
+    flags: {
+      release_analytics: true,
+      release_discovery: true,
+      release_publishing: true,
+      release_turbo: true,
+    },
+    isConfigured: true,
+    isReady: true,
+  }),
+}));
+
 vi.mock('@genfeedai/contracts', () => ({
   SettingsSurface: {
     BRAND: 'brand',
@@ -300,7 +314,6 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         installedAppIds: ['playground', 'turbo'],
-        isFounderOperator: false,
         moduleAccess: expect.objectContaining({
           playground: { isAllowed: true, reason: null },
           clips: { isAllowed: false, reason: 'unreleased' },
@@ -318,23 +331,31 @@ describe('AppProtectedRail', () => {
     installedApps.status = 'ready';
   });
 
-  it('opens founder-only apps to an organization on release preview', () => {
+  it('opens unreleased apps to an organization on release preview', () => {
     brandContextState.settings = {
       hasOrganizationBilling: true,
       isReleasePreviewEnabled: true,
-      moduleOverrides: {},
+      moduleOverrides: { clips: true },
     };
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ isFounderOperator: true }),
+      expect.objectContaining({
+        moduleAccess: expect.objectContaining({
+          clips: { isAllowed: true, reason: null },
+        }),
+      }),
     );
   });
 
-  it('keeps founder-only apps closed to a super admin without release preview', () => {
+  it('keeps unreleased apps closed to a super admin without release preview', () => {
     mockAccessState.isSuperAdmin = true;
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ isFounderOperator: false }),
+      expect.objectContaining({
+        moduleAccess: expect.objectContaining({
+          clips: { isAllowed: false, reason: 'unreleased' },
+        }),
+      }),
     );
   });
 

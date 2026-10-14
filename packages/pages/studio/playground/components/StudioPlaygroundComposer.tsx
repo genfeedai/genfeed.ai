@@ -1024,8 +1024,8 @@ export default function StudioPlaygroundComposer({
               triggerLabel={setupLabel}
               inputControls={inputControls}
               referenceCount={crunReferenceCount ?? attachedAssets.length}
-              // Every type keeps the Auto/Advanced layout; Avatar and Voice
-              // just have no model to choose in Advanced.
+              // Every type keeps the Auto/Advanced layout; Avatar just has
+              // no model to choose in Advanced.
               advancedMode={{
                 isEnabled: isAdvancedMode,
                 onChange: handleAdvancedModeChange,

@@ -242,16 +242,16 @@ describe('getStudioPlaygroundTypeConfig', () => {
     );
   });
 
-  it('picks a catalog voice instead of a router model', () => {
+  it('picks a catalog voice together with a speech model', () => {
     const config = getStudioPlaygroundTypeConfig('voice');
 
     expect(config.ingredientCategory).toBe(IngredientCategory.VOICE);
-    expect(config.modelCategory).toBeNull();
+    expect(config.modelCategory).toBe(ModelCategory.VOICE);
     expect(config.capabilities).toMatchObject({
       hasBrandEnrichment: false,
       hasIdentity: true,
       hasLook: false,
-      hasModelSelection: false,
+      hasModelSelection: true,
       hasSpeech: true,
     });
   });

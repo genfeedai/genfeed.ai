@@ -54,6 +54,10 @@ import {
 } from '@pages/studio/playground/utils/studio-playground-session';
 import { buildStudioPromptData } from '@pages/studio/playground/utils/studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
+import {
+  resolveSpeakingVoiceProvider,
+  resolveSpeechVoiceProvider,
+} from '@pages/studio/playground/utils/studio-voice-selection';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { getPersistedVideoIngredientIds } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
@@ -685,7 +689,10 @@ export function useStudioGeneration({
         return false;
       }
 
-      if (type === 'voice' && !settings.voiceId) {
+      if (
+        type === 'voice' &&
+        (!settings.voiceId || !resolveSpeechVoiceProvider(settings.voiceRef))
+      ) {
         notificationsService.error('Pick a voice before generating');
         return false;
       }
@@ -1035,8 +1042,19 @@ export function useStudioGeneration({
           }
 
           case 'voice': {
-            if (!settings.voiceId) {
+            // `voiceProvider` says which catalog `voiceId` belongs to; without
+            // it the server cannot tell an ElevenLabs id from a HeyGen one.
+            const voiceProvider = resolveSpeechVoiceProvider(settings.voiceRef);
+            if (!settings.voiceId || !voiceProvider) {
               notificationsService.error('Pick a voice before generating');
+              break;
+            }
+
+            const speakingProvider = resolveSpeakingVoiceProvider(modelKey);
+            if (speakingProvider && speakingProvider !== voiceProvider) {
+              notificationsService.error(
+                'Pick a voice that matches the selected speech model',
+              );
               break;
             }
 
@@ -1044,9 +1062,13 @@ export function useStudioGeneration({
             // Text-to-speech runs inline on the API and returns the finished
             // ingredient, so there is no socket phase to wait on.
             const voice = await service.generate({
+              ...(modelKey
+                ? { model: modelKey }
+                : { autoSelectModel: true, prioritize: settings.prioritize }),
               speed: 1,
               text: promptData.speech?.trim() || promptText.trim(),
               voiceId: settings.voiceId,
+              voiceProvider,
             });
 
             if (activeBrandRef.current !== brandId) return false;

@@ -1,8 +1,12 @@
+import { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
+import { SPEECH_VOICE_PROVIDERS } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -32,10 +36,53 @@ export class GenerateVoiceDto {
 
   @IsString()
   @ApiProperty({
-    description: 'ElevenLabs voice ID to use for speech synthesis',
+    description:
+      'Voice to speak with: an ElevenLabs voice id from the Genfeed voice catalog, or a HeyGen Voice id from /heygen/speech-voices',
     required: true,
   })
   readonly voiceId!: string;
+
+  @IsIn(SPEECH_VOICE_PROVIDERS)
+  @IsOptional()
+  @ApiProperty({
+    default: VoiceProvider.ELEVENLABS,
+    description: 'The voice catalog `voiceId` belongs to',
+    enum: SPEECH_VOICE_PROVIDERS,
+    required: false,
+  })
+  readonly voiceProvider?: VoiceProvider;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(128)
+  @ApiProperty({
+    description:
+      'Speech model key; it must speak voices from `voiceProvider`. Omitted, the router picks one.',
+    required: false,
+  })
+  readonly model?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Route to the best speech model for the voice. If true, `model` is ignored.',
+    required: false,
+  })
+  readonly autoSelectModel?: boolean;
+
+  @IsEnum(RouterPriority)
+  @IsOptional()
+  @ApiProperty({
+    default: RouterPriority.BALANCED,
+    description:
+      'Priority for auto model routing: quality, speed, cost, or balanced.',
+    enum: RouterPriority,
+    enumName: 'RouterPriority',
+    required: false,
+  })
+  readonly prioritize?: RouterPriority;
 
   @IsString()
   @IsOptional()

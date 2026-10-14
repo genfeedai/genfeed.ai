@@ -459,6 +459,62 @@ describe('RouterService', () => {
         });
       });
 
+      it('routes Auto among the speech models that can speak the chosen voice', async () => {
+        const speechKeys = [
+          MODEL_KEYS.ELEVENLABS_V4,
+          MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
+          MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+        ];
+        modelsService.findAllActive.mockResolvedValue(
+          [...speechKeys, MODEL_KEYS.HEYGEN_VOICE].map((key) => {
+            const row = SELF_HOSTED_MODELS.find((model) => model.key === key);
+            if (!row) throw new Error(`The catalog must carry ${key}`);
+            return createMockModel({ ...row, category: ModelCategory.VOICE });
+          }),
+        );
+        modelsService.findBillablePricingProfile.mockImplementation(
+          async (key: string) =>
+            billableProfile({
+              key,
+              provider: key.split('/')[0],
+              requiresReviewedRates: true,
+              reviewedPricing: {
+                currency: 'USD',
+                isFree: false,
+                rates: [
+                  {
+                    component: 'output',
+                    unit: 'character',
+                    unitPriceUsd: 0.00008,
+                    when: {},
+                  },
+                ],
+                reviewStatus: 'approved',
+                sourceUrl: 'https://example.test/rates',
+                verifiedAt: '2026-10-14T09:00:00.000Z',
+                version: 'rate-v1',
+              },
+            }),
+        );
+        const route = (prioritize: 'quality' | 'speed' | 'cost') =>
+          service.selectModel({
+            category: ModelCategory.VOICE,
+            eligibleModelKeys: speechKeys,
+            prioritize,
+            prompt: 'Read this script aloud',
+          });
+
+        await expect(route('quality')).resolves.toMatchObject({
+          selectedModel: MODEL_KEYS.ELEVENLABS_V4,
+        });
+        await expect(route('speed')).resolves.toMatchObject({
+          selectedModel: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+        });
+        await expect(route('cost')).resolves.toMatchObject({
+          selectedModel: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+        });
+      });
+
       it('does not quote categories admitted outside the media quote', async () => {
         modelsService.findAllActive.mockResolvedValue([
           createMockModel({ category: ModelCategory.TEXT, key: 'text/model' }),

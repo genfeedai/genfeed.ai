@@ -281,6 +281,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(recommendedUltra.map((entry) => entry.key).sort()).toEqual(
       [
         AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
+        MODEL_KEYS.ELEVENLABS_V4,
         MODEL_KEYS.FAL_LYRIA3_PRO,
         MODEL_KEYS.HEYGEN_AVATAR_V,
         MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,

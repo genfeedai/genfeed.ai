@@ -13,6 +13,7 @@ import type {
   VisualCodeJson,
   VisualCodeQuoteRequest,
 } from '@genfeedai/contracts/interfaces';
+import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type {
   MotionPreset,
   MotionPresetId,
@@ -76,8 +77,10 @@ function MotionWorkspace() {
     settings: organizationSettings,
     settingsLoading,
   } = useBrand();
+  const { flags: platformFlags } = useFeatureFlagContext();
   const modulePreferences = resolveOrganizationModulePreferences(
     settingsLoading ? null : organizationSettings,
+    platformFlags,
   );
   const isModuleWorkEnabled = Boolean(
     organizationId && modulePreferences?.motion === true,

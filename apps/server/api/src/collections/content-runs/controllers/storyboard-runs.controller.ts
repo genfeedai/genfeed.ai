@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import {
   ApproveStoryboardPlanDto,
   CreateStoryboardRunDto,
+  DraftStoryboardPlanDto,
   ListStoryboardRunsDto,
   ReplaceStoryboardCharacterDto,
   ResetStoryboardPlanDto,
@@ -186,6 +187,21 @@ export class StoryboardRunsController {
       request,
       StoryboardRunSerializer,
       await this.runs.resetPlan(user.organizationId, brandId, runId, body),
+    );
+  }
+
+  @Post(':runId/plan/draft')
+  async draftPlan(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: DraftStoryboardPlanDto,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.runs.draftPlan(user.organizationId, brandId, runId, body),
     );
   }
 

@@ -4,16 +4,12 @@ import {
   CORE_APP_IDS,
   isNativeSecondaryAppId,
   isWorkflowLibraryVisible,
-  listStoreNativeAppIds,
   NATIVE_SECONDARY_APP_IDS,
   NATIVE_SECONDARY_APPS,
   normalizeInstalledAppIds,
   resolveNativeAppAvailability,
 } from './native-apps.constant';
-import {
-  ORGANIZATION_MODULE_IDS,
-  ORGANIZATION_MODULES,
-} from './organization-modules.constant';
+import { ORGANIZATION_MODULE_IDS } from './organization-modules.constant';
 
 const ALLOWED = { isAllowed: true, reason: null } as const;
 
@@ -21,7 +17,6 @@ function availability(overrides: Partial<NativeAppAvailabilityInput> = {}) {
   return resolveNativeAppAvailability({
     appId: 'playground',
     installedAppIds: [],
-    isFounderOperator: false,
     organizationAccess: ALLOWED,
     pinnedAppIds: [],
     ...overrides,
@@ -48,16 +43,6 @@ describe('native apps catalog (#5502)', () => {
     }
   });
 
-  it('restricts the unfinished specialist apps to the founder', () => {
-    const founderOnly = NATIVE_SECONDARY_APP_IDS.filter(
-      (appId) =>
-        NATIVE_SECONDARY_APPS[appId].releaseEligibility === 'founder-only',
-    );
-    expect(founderOnly.sort()).toEqual(
-      ['automation', 'clips', 'editor', 'messages', 'motion'].sort(),
-    );
-  });
-
   it('governs each app by its organization module', () => {
     for (const appId of NATIVE_SECONDARY_APP_IDS) {
       expect(ORGANIZATION_MODULE_IDS).toContain(
@@ -65,15 +50,6 @@ describe('native apps catalog (#5502)', () => {
       );
     }
     expect(NATIVE_SECONDARY_APPS.turbo.organizationModuleId).toBe('turbo');
-  });
-
-  it('marks an app founder-only exactly when its module is founder-only', () => {
-    for (const appId of NATIVE_SECONDARY_APP_IDS) {
-      const app = NATIVE_SECONDARY_APPS[appId];
-      expect(app.releaseEligibility === 'founder-only').toBe(
-        ORGANIZATION_MODULES[app.organizationModuleId].isFounderOnly,
-      );
-    }
   });
 
   it('opens Edit and Clip in their specialist apps', () => {
@@ -85,21 +61,6 @@ describe('native apps catalog (#5502)', () => {
     expect(isNativeSecondaryAppId('studio')).toBe(false);
     expect(isNativeSecondaryAppId('toString')).toBe(false);
     expect(isNativeSecondaryAppId(undefined)).toBe(false);
-  });
-});
-
-describe('listStoreNativeAppIds', () => {
-  it('omits founder-only experiments from the customer catalog', () => {
-    expect(listStoreNativeAppIds(false)).toEqual([
-      'playground',
-      'storyboard',
-      'turbo',
-      'discovery',
-    ]);
-  });
-
-  it('lists every native app for the founder', () => {
-    expect(listStoreNativeAppIds(true)).toEqual(NATIVE_SECONDARY_APP_IDS);
   });
 });
 
@@ -149,15 +110,14 @@ describe('resolveNativeAppAvailability', () => {
     ).toBe('unavailable');
   });
 
-  it('reports an unreleased module as founder-only', () => {
+  it('reports an unreleased module as unreleased', () => {
     expect(
       availability({
         appId: 'motion',
         installedAppIds: ['motion'],
-        isFounderOperator: true,
         organizationAccess: { isAllowed: false, reason: 'unreleased' },
       }),
-    ).toBe('founder-only');
+    ).toBe('unreleased');
   });
 
   it('treats unresolved organization access as unavailable', () => {
@@ -170,29 +130,17 @@ describe('resolveNativeAppAvailability', () => {
     ).toBe('unavailable');
   });
 
-  it('keeps founder-only apps closed to customers despite organization access', () => {
+  it('opens a released app within organization access', () => {
     expect(
       availability({
         appId: 'motion',
         installedAppIds: ['motion'],
-        pinnedAppIds: ['motion'],
-      }),
-    ).toBe('founder-only');
-  });
-
-  it('opens founder-only apps to the founder only within organization access', () => {
-    expect(
-      availability({
-        appId: 'motion',
-        installedAppIds: ['motion'],
-        isFounderOperator: true,
       }),
     ).toBe('installed');
     expect(
       availability({
         appId: 'motion',
         installedAppIds: ['motion'],
-        isFounderOperator: true,
         organizationAccess: { isAllowed: false, reason: 'disabled' },
       }),
     ).toBe('organization-disabled');
@@ -206,7 +154,7 @@ describe('isWorkflowLibraryVisible', () => {
     expect(isWorkflowLibraryVisible('not-installed')).toBe(false);
     expect(isWorkflowLibraryVisible('subscription-required')).toBe(false);
     expect(isWorkflowLibraryVisible('organization-disabled')).toBe(false);
-    expect(isWorkflowLibraryVisible('founder-only')).toBe(false);
+    expect(isWorkflowLibraryVisible('unreleased')).toBe(false);
     expect(isWorkflowLibraryVisible('unavailable')).toBe(false);
   });
 });

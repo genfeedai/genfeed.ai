@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "zod": "4.6.5",
+    "zod": "4.6.7",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed.ai shared client models and schemas",

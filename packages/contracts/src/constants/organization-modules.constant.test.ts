@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  findNewlyEnabledUnreleasedModules,
-  isReleasePreviewActive,
+  isOrganizationModuleOffered,
   ORGANIZATION_MODULE_IDS,
-  ORGANIZATION_MODULES,
   type OrganizationModuleAccessInput,
   organizationModuleOverridesSchema,
   resolveOrganizationModuleAccess,
@@ -13,17 +11,22 @@ import {
 
 const cloud: OrganizationModuleAccessInput = {
   moduleId: 'playground',
-  moduleOverrides: {},
   isSettingsLoaded: true,
   hasOrganizationBilling: true,
   hasPaidSubscription: false,
-  // A release-preview organization, so founder-only modules follow their own
-  // module rules; the unreleased path is asserted on its own below.
-  isReleasePreviewEnabled: true,
+  isReleased: true,
   operation: 'write',
 };
 
-const FOUNDER_ONLY_MODULE_IDS = [
+/** Releases the migration stores: the modules released before this change. */
+const RELEASED = {
+  release_analytics: true,
+  release_discovery: true,
+  release_publishing: true,
+  release_turbo: true,
+};
+
+const UNRELEASED_MODULE_IDS = [
   'motion',
   'clips',
   'editor',
@@ -31,25 +34,16 @@ const FOUNDER_ONLY_MODULE_IDS = [
   'messages',
 ] as const;
 
-describe('founder-only release gate (#5502)', () => {
-  it('marks exactly the unreleased specialist modules founder-only', () => {
-    expect(
-      ORGANIZATION_MODULE_IDS.filter(
-        (moduleId) => ORGANIZATION_MODULES[moduleId].isFounderOnly,
-      ),
-    ).toEqual(FOUNDER_ONLY_MODULE_IDS);
-  });
-
-  it.each(FOUNDER_ONLY_MODULE_IDS)(
-    'refuses new %s work on cloud outside release preview, even when enabled and paid',
+describe('release gate', () => {
+  it.each(UNRELEASED_MODULE_IDS)(
+    'refuses new %s work while unreleased, even when paid',
     (moduleId) => {
       expect(
         resolveOrganizationModuleAccess({
           ...cloud,
           moduleId,
-          moduleOverrides: { [moduleId]: true },
           hasPaidSubscription: true,
-          isReleasePreviewEnabled: false,
+          isReleased: false,
         }),
       ).toEqual({ isAllowed: false, reason: 'unreleased' });
     },
@@ -61,155 +55,113 @@ describe('founder-only release gate (#5502)', () => {
         resolveOrganizationModuleAccess({
           ...cloud,
           moduleId: 'automation',
-          isReleasePreviewEnabled: false,
+          isReleased: false,
           operation,
         }),
       ).toEqual({ isAllowed: true, reason: null });
     }
   });
 
-  it('admits founder-only work in a release-preview organization by its own rules', () => {
-    expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId: 'automation',
-        moduleOverrides: { automation: true },
-        hasPaidSubscription: true,
-      }),
-    ).toEqual({ isAllowed: true, reason: null });
-  });
-
-  it('leaves self-hosted deployments without the release gate', () => {
-    expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId: 'motion',
-        hasOrganizationBilling: false,
-        isReleasePreviewEnabled: false,
-      }),
-    ).toEqual({ isAllowed: true, reason: null });
-  });
-
-  it('never releases released modules through the gate', () => {
-    expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId: 'playground',
-        isReleasePreviewEnabled: false,
-      }),
-    ).toEqual({ isAllowed: true, reason: null });
-  });
-
   it('hides unreleased modules from cloud navigation without preview', () => {
-    const preferences = resolveOrganizationModulePreferences({
+    const settings = {
       hasOrganizationBilling: true,
       moduleOverrides: { clips: true, automation: true, turbo: true },
-    });
+    };
+    const preferences = resolveOrganizationModulePreferences(
+      settings,
+      RELEASED,
+    );
     expect(preferences?.clips).toBe(false);
     expect(preferences?.automation).toBe(false);
     expect(preferences?.turbo).toBe(true);
     expect(
-      resolveOrganizationModulePreferences({
-        hasOrganizationBilling: true,
-        isReleasePreviewEnabled: true,
-        moduleOverrides: { clips: true },
+      resolveOrganizationModulePreferences(
+        { ...settings, isReleasePreviewEnabled: true },
+        RELEASED,
+      )?.clips,
+    ).toBe(true);
+    expect(
+      resolveOrganizationModulePreferences(settings, {
+        ...RELEASED,
+        release_clips: true,
       })?.clips,
     ).toBe(true);
     expect(
-      resolveOrganizationModulePresentationAccess(
-        { hasOrganizationBilling: true, moduleOverrides: { clips: true } },
-        'clips',
-      ),
+      resolveOrganizationModulePresentationAccess(settings, 'clips', RELEASED),
     ).toEqual({ isAllowed: false, reason: 'unreleased' });
   });
-});
 
-describe('newly enabled unreleased modules (#5502)', () => {
-  const base = {
-    hasOrganizationBilling: true,
-    isReleasePreviewEnabled: false,
-    previousOverrides: { motion: false, turbo: false },
-  };
-
-  it('reports founder-only modules switched from off to on', () => {
-    expect(
-      findNewlyEnabledUnreleasedModules({
-        ...base,
-        nextOverrides: { turbo: true, clips: true, motion: true },
-      }),
-    ).toEqual(['motion', 'clips']);
-  });
-
-  it('ignores stored values, preview organizations and self-hosted', () => {
-    expect(
-      findNewlyEnabledUnreleasedModules({
-        ...base,
-        nextOverrides: { motion: true },
-        previousOverrides: { motion: true },
-      }),
-    ).toEqual([]);
-    expect(
-      findNewlyEnabledUnreleasedModules({
-        ...base,
-        isReleasePreviewEnabled: true,
-        nextOverrides: { motion: true },
-      }),
-    ).toEqual([]);
-    expect(
-      findNewlyEnabledUnreleasedModules({
-        ...base,
-        hasOrganizationBilling: false,
-        nextOverrides: { motion: true },
-      }),
-    ).toEqual([]);
-  });
-
-  it('treats unreadable stored overrides as nothing switched on', () => {
-    expect(
-      findNewlyEnabledUnreleasedModules({
-        ...base,
-        nextOverrides: { editor: true },
-        previousOverrides: { editor: 'yes' },
-      }),
-    ).toEqual(['editor']);
-    expect(
-      findNewlyEnabledUnreleasedModules({ ...base, nextOverrides: undefined }),
-    ).toEqual([]);
-  });
-});
-
-describe('release preview navigation (#5502)', () => {
-  it('shows founder-only navigation on self-hosted and preview organizations only', () => {
-    expect(isReleasePreviewActive({ hasOrganizationBilling: false })).toBe(
-      true,
+  it('never gates Playground and Storyboard behind a release', () => {
+    const preferences = resolveOrganizationModulePreferences(
+      { hasOrganizationBilling: true, moduleOverrides: {} },
+      {},
     );
+    expect(preferences?.playground).toBe(true);
+    expect(preferences?.storyboard).toBe(true);
+    expect(preferences?.publishing).toBe(false);
+  });
+});
+
+describe('offered modules', () => {
+  const settings = { hasOrganizationBilling: true, moduleOverrides: {} };
+
+  it('offers only released modules whose platform switch is on', () => {
     expect(
-      isReleasePreviewActive({
-        hasOrganizationBilling: true,
-        isReleasePreviewEnabled: true,
+      ORGANIZATION_MODULE_IDS.filter((moduleId) =>
+        isOrganizationModuleOffered(moduleId, settings, RELEASED),
+      ),
+    ).toEqual([
+      'playground',
+      'storyboard',
+      'publishing',
+      'analytics',
+      'turbo',
+      'discovery',
+    ]);
+  });
+
+  it('drops a module switched off for the platform', () => {
+    expect(
+      isOrganizationModuleOffered('turbo', settings, {
+        ...RELEASED,
+        studio_turbo: false,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
-      isReleasePreviewActive({
-        hasOrganizationBilling: true,
-        isReleasePreviewEnabled: false,
+      isOrganizationModuleOffered('playground', settings, {
+        ...RELEASED,
+        studio: false,
       }),
     ).toBe(false);
   });
 
-  it('hides founder-only navigation while settings are unknown', () => {
-    expect(isReleasePreviewActive(null)).toBe(false);
-    expect(isReleasePreviewActive({})).toBe(false);
+  it('offers everything on self-hosted and on release preview', () => {
+    for (const audience of [
+      { hasOrganizationBilling: false },
+      { hasOrganizationBilling: true, isReleasePreviewEnabled: true },
+    ]) {
+      expect(
+        ORGANIZATION_MODULE_IDS.every((moduleId) =>
+          isOrganizationModuleOffered(moduleId, audience, {}),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('offers nothing while settings are unknown', () => {
+    expect(isOrganizationModuleOffered('playground', null, RELEASED)).toBe(
+      false,
+    );
   });
 });
 
 describe('organization module preference display', () => {
   it('resolves the settled server defaults independently of subscription eligibility', () => {
     expect(
-      resolveOrganizationModulePreferences({
-        hasOrganizationBilling: true,
-        moduleOverrides: {},
-      }),
+      resolveOrganizationModulePreferences(
+        { hasOrganizationBilling: true, moduleOverrides: {} },
+        RELEASED,
+      ),
     ).toEqual({
       playground: true,
       storyboard: true,
@@ -224,21 +176,24 @@ describe('organization module preference display', () => {
       discovery: true,
     });
   });
-  it('keeps explicit self-hosted choices and leaves subscription granting to admission', () => {
-    const preferences = resolveOrganizationModulePreferences({
-      hasOrganizationBilling: false,
-      moduleOverrides: { clips: false, automation: true },
-    });
+  it('honors explicit hides, including Playground and Storyboard', () => {
+    const preferences = resolveOrganizationModulePreferences(
+      {
+        hasOrganizationBilling: false,
+        moduleOverrides: {
+          clips: false,
+          automation: true,
+          playground: false,
+          storyboard: false,
+        },
+      },
+      {},
+    );
     expect(preferences?.clips).toBe(false);
     expect(preferences?.motion).toBe(true);
     expect(preferences?.automation).toBe(true);
-    expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId: 'automation',
-        moduleOverrides: { automation: true },
-      }).reason,
-    ).toBe('subscription-required');
+    expect(preferences?.playground).toBe(false);
+    expect(preferences?.storyboard).toBe(false);
   });
   it.each([
     null,
@@ -249,37 +204,26 @@ describe('organization module preference display', () => {
   ])(
     'does not guess a preference snapshot from unavailable data: %j',
     (settings) => {
-      expect(resolveOrganizationModulePreferences(settings)).toBeNull();
+      expect(
+        resolveOrganizationModulePreferences(settings, RELEASED),
+      ).toBeNull();
     },
   );
 });
 
-describe('organization module access', () => {
-  it.each(['playground', 'storyboard', 'publishing', 'analytics'] as const)(
-    'keeps %s accessible without a subscription',
-    (moduleId) => {
-      expect(
-        resolveOrganizationModuleAccess({ ...cloud, moduleId }).isAllowed,
-      ).toBe(true);
-    },
-  );
+describe('organization module admission', () => {
   it.each([
-    'motion',
-    'clips',
+    'playground',
+    'storyboard',
+    'publishing',
+    'analytics',
     'turbo',
-    'editor',
-    'automation',
-    'messages',
-  ] as const)('defaults %s off even on a paid plan', (moduleId) => {
+  ] as const)('admits released %s without a subscription', (moduleId) => {
     expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId,
-        hasPaidSubscription: true,
-      }),
-    ).toEqual({ isAllowed: false, reason: 'disabled' });
+      resolveOrganizationModuleAccess({ ...cloud, moduleId }).isAllowed,
+    ).toBe(true);
   });
-  it('defaults Discovery on but requires a paid subscription', () => {
+  it('requires a paid subscription for Discovery', () => {
     expect(
       resolveOrganizationModuleAccess({ ...cloud, moduleId: 'discovery' }),
     ).toEqual({ isAllowed: false, reason: 'subscription-required' });
@@ -292,28 +236,19 @@ describe('organization module access', () => {
     ).toBe(true);
   });
   it.each(['automation', 'messages', 'discovery'] as const)(
-    'never treats an enabled %s toggle as a subscription grant',
+    'treats unknown %s entitlement as unavailable',
     (moduleId) => {
-      const input = {
-        ...cloud,
-        moduleId,
-        moduleOverrides: { [moduleId]: true },
-      };
-      expect(resolveOrganizationModuleAccess(input).reason).toBe(
-        'subscription-required',
-      );
       expect(
-        resolveOrganizationModuleAccess({ ...input, hasPaidSubscription: null })
-          .reason,
+        resolveOrganizationModuleAccess({
+          ...cloud,
+          moduleId,
+          hasPaidSubscription: null,
+        }).reason,
       ).toBe('unavailable');
-      expect(
-        resolveOrganizationModuleAccess({ ...input, hasPaidSubscription: true })
-          .isAllowed,
-      ).toBe(true);
     },
   );
   it.each(ORGANIZATION_MODULE_IDS)(
-    'preserves existing %s reads and exports when disabled or entitlement is unknown',
+    'preserves existing %s reads and exports when entitlement is unknown',
     (moduleId) => {
       for (const operation of ['read', 'export'] as const) {
         expect(
@@ -322,29 +257,18 @@ describe('organization module access', () => {
             moduleId,
             isSettingsLoaded: false,
             hasPaidSubscription: null,
-            moduleOverrides: null,
+            isReleased: false,
             operation,
           }).isAllowed,
         ).toBe(true);
       }
     },
   );
-  it('blocks new work when settings are unresolved or persisted preferences are malformed', () => {
+  it('blocks new work when settings are unresolved', () => {
     expect(
       resolveOrganizationModuleAccess({ ...cloud, isSettingsLoaded: false })
         .reason,
     ).toBe('unavailable');
-    for (const moduleOverrides of [
-      null,
-      [],
-      'on',
-      { turbo: 'true' },
-      { unknown: true },
-    ]) {
-      expect(
-        resolveOrganizationModuleAccess({ ...cloud, moduleOverrides }).reason,
-      ).toBe('unavailable');
-    }
   });
   it.each(ORGANIZATION_MODULE_IDS)(
     'preserves self-hosted %s access without organization billing',
@@ -359,29 +283,10 @@ describe('organization module access', () => {
       ).toBe(true);
     },
   );
-  it('honors explicit self-hosted disable preferences and allows enabling credit-based surfaces', () => {
-    expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId: 'turbo',
-        hasOrganizationBilling: false,
-        moduleOverrides: { turbo: false },
-      }).reason,
-    ).toBe('disabled');
-    expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId: 'turbo',
-        moduleOverrides: { turbo: true },
-      }).isAllowed,
-    ).toBe(true);
-  });
-  it('rejects unknown module IDs, credit-only module overrides, nulls and coercion on writes', () => {
+  it('rejects unknown module IDs, nulls and coercion on writes', () => {
     for (const candidate of [
       null,
       [],
-      { playground: false },
-      { storyboard: false },
       { typo: true },
       { turbo: 1 },
       { clips: null },
@@ -393,15 +298,16 @@ describe('organization module access', () => {
     expect(
       organizationModuleOverridesSchema.parse({
         automation: true,
+        playground: false,
         turbo: false,
       }),
-    ).toEqual({ automation: true, turbo: false });
+    ).toEqual({ automation: true, playground: false, turbo: false });
   });
 });
 
-describe('readonly module creation presentation', () => {
+describe('module presentation', () => {
   it.each(['automation', 'messages', 'discovery'] as const)(
-    'requires a verified paid grant for %s even when enabled',
+    'requires a verified paid grant for %s even when shown',
     (moduleId) => {
       const settings = {
         hasOrganizationBilling: true,
@@ -409,23 +315,25 @@ describe('readonly module creation presentation', () => {
         moduleOverrides: { [moduleId]: true },
       };
       expect(
-        resolveOrganizationModulePresentationAccess(settings, moduleId),
+        resolveOrganizationModulePresentationAccess(settings, moduleId, {}),
       ).toEqual({ isAllowed: false, reason: 'unavailable' });
       expect(
         resolveOrganizationModulePresentationAccess(
           { ...settings, hasPaidModuleSubscription: false },
           moduleId,
+          {},
         ),
       ).toEqual({ isAllowed: false, reason: 'subscription-required' });
       expect(
         resolveOrganizationModulePresentationAccess(
           { ...settings, hasPaidModuleSubscription: true },
           moduleId,
+          {},
         ),
       ).toEqual({ isAllowed: true, reason: null });
     },
   );
-  it('does not accept malformed paid eligibility', () => {
+  it('does not accept malformed paid eligibility or overrides', () => {
     expect(
       resolveOrganizationModulePresentationAccess(
         {
@@ -434,10 +342,20 @@ describe('readonly module creation presentation', () => {
           hasPaidModuleSubscription: 'true',
         },
         'discovery',
+        RELEASED,
       ),
     ).toEqual({ isAllowed: false, reason: 'unavailable' });
+    for (const moduleOverrides of [null, [], 'on', { turbo: 'true' }]) {
+      expect(
+        resolveOrganizationModulePresentationAccess(
+          { hasOrganizationBilling: true, moduleOverrides },
+          'turbo',
+          RELEASED,
+        ),
+      ).toEqual({ isAllowed: false, reason: 'unavailable' });
+    }
   });
-  it('never lets paid eligibility override a disabled module', () => {
+  it('reports a module the organization hides as disabled, whatever its grant', () => {
     expect(
       resolveOrganizationModulePresentationAccess(
         {
@@ -446,6 +364,17 @@ describe('readonly module creation presentation', () => {
           hasPaidModuleSubscription: true,
         },
         'discovery',
+        RELEASED,
+      ),
+    ).toEqual({ isAllowed: false, reason: 'disabled' });
+    expect(
+      resolveOrganizationModulePresentationAccess(
+        {
+          hasOrganizationBilling: true,
+          moduleOverrides: { playground: false },
+        },
+        'playground',
+        {},
       ),
     ).toEqual({ isAllowed: false, reason: 'disabled' });
   });
@@ -454,33 +383,29 @@ describe('readonly module creation presentation', () => {
       resolveOrganizationModulePresentationAccess(
         { hasOrganizationBilling: false, moduleOverrides: {} },
         'automation',
+        {},
       ),
     ).toEqual({ isAllowed: true, reason: null });
     expect(
       resolveOrganizationModulePresentationAccess(
         { hasOrganizationBilling: true, moduleOverrides: {} },
         'playground',
+        {},
       ),
     ).toEqual({ isAllowed: true, reason: null });
   });
 });
 
 describe('existing work cancellation', () => {
-  it('allows stopping existing work while new Motion work remains disabled', () => {
+  it('allows stopping existing work while new Motion work is unreleased', () => {
     expect(
       resolveOrganizationModuleAccess({
         ...cloud,
         moduleId: 'motion',
+        isReleased: false,
         operation: 'cancel',
       }),
     ).toEqual({ isAllowed: true, reason: null });
-    expect(
-      resolveOrganizationModuleAccess({
-        ...cloud,
-        moduleId: 'motion',
-        operation: 'write',
-      }),
-    ).toEqual({ isAllowed: false, reason: 'disabled' });
   });
   it('does not require unavailable billing/settings to stop an already authorized job', () => {
     expect(

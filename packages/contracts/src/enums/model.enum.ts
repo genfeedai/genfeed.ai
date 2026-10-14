@@ -8,6 +8,8 @@ export enum ModelProvider {
   MUREKA = 'mureka',
   /** Direct integration — HeyGen avatar video, speech and model video. */
   HEYGEN = 'heygen',
+  /** Direct integration — ElevenLabs text-to-speech (`elevenlabs/eleven_*`). */
+  ELEVENLABS = 'elevenlabs',
   /** Direct integration — Higgsfield Soul, DoP, and Genjutsu. */
   HIGGSFIELD = 'higgsfield',
   GOOGLE = 'google',

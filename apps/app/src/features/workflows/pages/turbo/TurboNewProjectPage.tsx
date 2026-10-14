@@ -5,6 +5,7 @@ import {
   APP_ROUTES,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
+import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -38,9 +39,11 @@ import { createTurboProjectsApi } from './turbo-projects-api';
 export default function TurboNewProjectPage() {
   const t = useTranslations('pages.turboProjects');
   const { brandId, organizationId, settings, settingsLoading } = useBrand();
+  const { flags: platformFlags } = useFeatureFlagContext();
   const automationAccess = resolveOrganizationModulePresentationAccess(
     settingsLoading ? null : settings,
     'automation',
+    platformFlags,
   );
   const isWorkflowEnabled = automationAccess.isAllowed;
   const { href, orgHref } = useOrgUrl();
