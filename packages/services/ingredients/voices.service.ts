@@ -1,4 +1,5 @@
 import type { VoiceProvider } from '@genfeedai/contracts';
+import type { ElevenLabsAccountVoicePage } from '@genfeedai/contracts/interfaces';
 import type { ExternalVoice } from '@genfeedai/models/elements/external-voice.model';
 import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -15,6 +16,11 @@ export interface CatalogSyncResult {
 
 export interface CatalogFindParams {
   provider?: VoiceProvider;
+  search?: string;
+}
+
+export interface AccountVoicesFindParams {
+  pageToken?: string;
   search?: string;
 }
 
@@ -72,6 +78,47 @@ export class VoicesService extends IngredientsService<Voice> {
           voiceId: params.voiceId,
           waitForCompletion: true,
         })
+        .then((res) => this.mapOne(res.data)),
+    );
+  }
+
+  /** One page of the connected ElevenLabs account's voices. */
+  async findAccountVoices(
+    params: AccountVoicesFindParams = {},
+    signal?: AbortSignal,
+  ): Promise<ElevenLabsAccountVoicePage> {
+    return this.executeWithErrorHandling(
+      'GET /voices/elevenlabs/account',
+      this.instance
+        .get<{ data: ElevenLabsAccountVoicePage }>('/elevenlabs/account', {
+          params: {
+            ...(params.pageToken ? { pageToken: params.pageToken } : {}),
+            ...(params.search ? { search: params.search } : {}),
+          },
+          signal,
+        })
+        .then((res) => res.data.data),
+    );
+  }
+
+  /** Saves an organization reference to a connected-account voice. */
+  async importAccountVoice(externalVoiceId: string): Promise<Voice> {
+    return this.executeWithErrorHandling(
+      'POST /voices/elevenlabs/account/import',
+      this.instance
+        .post<JsonApiResponseDocument>('/elevenlabs/account/import', {
+          externalVoiceId,
+        })
+        .then((res) => this.mapOne(res.data)),
+    );
+  }
+
+  /** Removes the local reference; the ElevenLabs voice is untouched. */
+  async unlinkImportedVoice(id: string): Promise<Voice> {
+    return this.executeWithErrorHandling(
+      `DELETE /voices/imported/${id}`,
+      this.instance
+        .delete<JsonApiResponseDocument>(`/imported/${id}`)
         .then((res) => this.mapOne(res.data)),
     );
   }

@@ -57,6 +57,23 @@ describe('default-voice-ref.helper', () => {
       provider: VoiceProvider.GENFEED_AI,
       source: 'cloned',
     });
+
+    // An imported account voice is saved by its Library row, so its owning
+    // ElevenLabs connection survives reload and generation.
+    expect(
+      buildDefaultVoiceRefFromVoice({
+        externalVoiceId: 'account-ext',
+        id: 'voice-4',
+        metadataLabel: 'My ElevenLabs voice',
+        provider: VoiceProvider.ELEVENLABS,
+        voiceSource: 'imported',
+      }),
+    ).toEqual({
+      internalVoiceId: 'voice-4',
+      label: 'My ElevenLabs voice',
+      provider: VoiceProvider.ELEVENLABS,
+      source: 'cloned',
+    });
   });
 
   it('matches defaults by internal id and catalog provider/external id', () => {

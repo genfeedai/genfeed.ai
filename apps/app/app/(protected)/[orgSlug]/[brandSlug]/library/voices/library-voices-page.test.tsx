@@ -22,6 +22,7 @@ const mockQuery = {
 };
 const serviceMocks = vi.hoisted(() => ({
   deleteClonedVoice: vi.fn(),
+  unlinkImportedVoice: vi.fn(),
   loggerError: vi.fn(),
   notificationError: vi.fn(),
   notificationSuccess: vi.fn(),
@@ -74,6 +75,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/demo/FUDNEWS${path}`,
+    orgHref: (path: string) => `/demo/~${path}`,
   }),
 }));
 
@@ -118,6 +120,20 @@ vi.mock('@services/ingredients/voice-clone.service', () => ({
       deleteClonedVoice: serviceMocks.deleteClonedVoice,
     }),
   },
+}));
+
+vi.mock('@services/ingredients/voices.service', () => ({
+  VoicesService: {
+    getInstance: () => ({
+      unlinkImportedVoice: serviceMocks.unlinkImportedVoice,
+    }),
+  },
+}));
+
+vi.mock('./elevenlabs-account-voices-dialog', () => ({
+  default: ({ connectHref }: { connectHref: string }) => (
+    <div data-connect-href={connectHref} data-testid="account-voices-dialog" />
+  ),
 }));
 
 vi.mock('@services/organization/organizations.service', () => ({
@@ -664,5 +680,60 @@ describe('LibraryVoicesPage', () => {
         'Failed to delete voice',
       );
     });
+  });
+
+  it('unlinks an imported account voice without deleting it from ElevenLabs', async () => {
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    serviceMocks.unlinkImportedVoice.mockResolvedValue(undefined);
+    mockUseVoiceCatalog.mockReturnValue({
+      isLoading: false,
+      refresh,
+      voices: [
+        createVoice({
+          externalVoiceCatalogId: undefined,
+          externalVoiceId: 'account-voice-1',
+          id: 'voice-imported-1',
+          metadataLabel: 'Account Voice',
+          voiceSource: 'imported',
+        }),
+      ],
+    });
+
+    render(<LibraryVoicesPage />);
+
+    expect(screen.getByText('Imported')).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete Account Voice' }),
+    );
+
+    await waitFor(() => {
+      expect(serviceMocks.unlinkImportedVoice).toHaveBeenCalledWith(
+        'voice-imported-1',
+      );
+      expect(refresh).toHaveBeenCalled();
+    });
+    expect(serviceMocks.deleteClonedVoice).not.toHaveBeenCalled();
+  });
+
+  it('opens the ElevenLabs account import with the Integrations link', () => {
+    mockUseVoiceCatalog.mockReturnValue({
+      isLoading: false,
+      refresh: vi.fn(),
+      voices: [createVoice()],
+    });
+
+    render(<LibraryVoicesPage />);
+
+    expect(
+      screen.queryByTestId('account-voices-dialog'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Import from ElevenLabs' }),
+    );
+
+    expect(screen.getByTestId('account-voices-dialog')).toHaveAttribute(
+      'data-connect-href',
+      '/demo/~/settings/integrations',
+    );
   });
 });

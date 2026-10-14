@@ -28,6 +28,10 @@ function getVoiceSourceLabel(voice: Voice): string {
     return 'Cloned';
   }
 
+  if (voice.voiceSource === 'imported') {
+    return 'Imported';
+  }
+
   return 'Generated';
 }
 

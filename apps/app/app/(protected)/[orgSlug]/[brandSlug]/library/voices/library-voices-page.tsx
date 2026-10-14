@@ -26,13 +26,16 @@ import { useUploadModal } from '@providers/global-modals/global-modals.provider'
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
+import { VoicesService } from '@services/ingredients/voices.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
 import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import ElevenLabsAccountVoicesDialog from './elevenlabs-account-voices-dialog';
 import VoiceCatalogList from './voice-catalog-list';
 import VoiceLibraryRowItem from './voice-library-row-item';
 import VoiceLibrarySkeleton from './voice-library-skeleton';
@@ -40,7 +43,11 @@ import VoiceLibrarySkeleton from './voice-library-skeleton';
 const PAGE_SIZE = 12;
 
 function isVoiceRemovable(voice: Voice): boolean {
-  return voice.isCloned === true || voice.voiceSource === 'cloned';
+  return (
+    voice.isCloned === true ||
+    voice.voiceSource === 'cloned' ||
+    voice.voiceSource === 'imported'
+  );
 }
 
 function LibraryVoicesContent() {
@@ -51,7 +58,8 @@ function LibraryVoicesContent() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { closeUpload, openUpload } = useUploadModal();
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
+  const translateAccountVoices = useTranslations('pages.library.accountVoices');
   const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { brandId } = useCollectionScope();
   const selectedBrandState = selectedBrand as SelectedBrandState | undefined;
@@ -65,6 +73,9 @@ function LibraryVoicesContent() {
   const getVoiceCloneService = useAuthedService((token: string) =>
     VoiceCloneService.getInstance(token),
   );
+  const getVoicesService = useAuthedService((token: string) =>
+    VoicesService.getInstance(token),
+  );
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
   );
@@ -74,6 +85,7 @@ function LibraryVoicesContent() {
 
   const [isSavingOrgDefault, setIsSavingOrgDefault] = useState(false);
   const [isSavingBrandDefault, setIsSavingBrandDefault] = useState(false);
+  const [isAccountImportOpen, setIsAccountImportOpen] = useState(false);
 
   // The `?provider=` filter key is product language and may be lower-cased in a
   // shared link, while VoiceProvider mirrors the SCREAMING_SNAKE Prisma labels
@@ -240,8 +252,15 @@ function LibraryVoicesContent() {
   const handleDeleteVoice = useCallback(
     async (voice: Voice) => {
       try {
-        const service = await getVoiceCloneService();
-        await service.deleteClonedVoice(voice.id);
+        // An imported reference is unlinked locally; ElevenLabs keeps the
+        // voice. A Genfeed clone is deleted from its owning account.
+        if (voice.voiceSource === 'imported') {
+          const service = await getVoicesService();
+          await service.unlinkImportedVoice(voice.id);
+        } else {
+          const service = await getVoiceCloneService();
+          await service.deleteClonedVoice(voice.id);
+        }
 
         const needsOrgReset = matchesDefaultVoice(
           {
@@ -275,6 +294,7 @@ function LibraryVoicesContent() {
     },
     [
       getVoiceCloneService,
+      getVoicesService,
       notifications,
       orgDefaultVoiceRef,
       refreshVoices,
@@ -305,12 +325,35 @@ function LibraryVoicesContent() {
     ],
   );
 
+  const handleAccountVoiceImported = useCallback(() => {
+    refreshVoices().catch((error) => {
+      logger.error('Failed to refresh voices after import', error);
+    });
+  }, [refreshVoices]);
+
   return (
     <div className="space-y-4">
-      {!isLoadingVoices && !voicesError ? (
-        <p className="text-sm text-muted-foreground">
-          {voices.length} voice{voices.length === 1 ? '' : 's'} on this page
-        </p>
+      <div className="flex flex-wrap items-center gap-3">
+        {!isLoadingVoices && !voicesError ? (
+          <p className="text-sm text-muted-foreground">
+            {voices.length} voice{voices.length === 1 ? '' : 's'} on this page
+          </p>
+        ) : null}
+        <div className="ml-auto">
+          <Button
+            label={translateAccountVoices('open')}
+            onClick={() => setIsAccountImportOpen(true)}
+            variant={ButtonVariant.SECONDARY}
+          />
+        </div>
+      </div>
+
+      {isAccountImportOpen ? (
+        <ElevenLabsAccountVoicesDialog
+          connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+          onClose={() => setIsAccountImportOpen(false)}
+          onImported={handleAccountVoiceImported}
+        />
       ) : null}
 
       {voicesError && !isLoadingVoices ? (

@@ -11,7 +11,7 @@ export interface DefaultVoiceCandidate {
   isCloned?: boolean;
   metadataLabel?: string;
   sampleAudioUrl?: string | null;
-  voiceSource?: 'catalog' | 'cloned' | 'generated';
+  voiceSource?: 'catalog' | 'cloned' | 'generated' | 'imported';
 }
 
 export interface DefaultVoiceRef {
@@ -105,10 +105,13 @@ export function buildDefaultVoiceRefFromVoice(
     };
   }
 
+  // Imported account voices are organization references like clones: the
+  // server resolves their owning connection from the saved row.
   if (
     voice.isCloned ||
     voice.voiceSource === 'cloned' ||
-    voice.voiceSource === 'generated'
+    voice.voiceSource === 'generated' ||
+    voice.voiceSource === 'imported'
   ) {
     return {
       internalVoiceId: voice.id,

@@ -3114,7 +3114,37 @@
       "scopeChanged": "The Library scope changed. Review the current failures and try again.",
       "reviewUnavailable": "Saved inputs could not be opened in Studio. Inspect this asset for details."
     },
-    "scrollTable": "Scroll table horizontally"
+    "scrollTable": "Scroll table horizontally",
+    "accountVoices": {
+      "availability": {
+        "restricted": "Restricted",
+        "unavailable": "Unavailable"
+      },
+      "description": "Pick voices and clones from your connected ElevenLabs account. Importing saves a reference in your Library; nothing changes in ElevenLabs.",
+      "disconnected": {
+        "body": "Add your ElevenLabs API key in Integrations to browse your own voices and clones.",
+        "title": "Connect your ElevenLabs account"
+      },
+      "empty": "No voices in this ElevenLabs account match.",
+      "import": "Import",
+      "importError": "This voice could not be imported.",
+      "importSuccess": "{name} added to your Library",
+      "importVoice": "Import {name}",
+      "imported": "Imported",
+      "invalid": {
+        "body": "ElevenLabs rejected the saved API key. Update it in Integrations, then try again.",
+        "title": "Reconnect your ElevenLabs account"
+      },
+      "listLabel": "ElevenLabs account voices",
+      "loadError": "Your ElevenLabs voices could not be loaded.",
+      "loadMore": "Load more voices",
+      "loading": "Loading your ElevenLabs voices…",
+      "open": "Import from ElevenLabs",
+      "openIntegrations": "Open Integrations",
+      "retry": "Retry",
+      "searchLabel": "Search your ElevenLabs voices",
+      "title": "Import from your ElevenLabs account"
+    }
   },
   "onboarding": {
     "brand": {

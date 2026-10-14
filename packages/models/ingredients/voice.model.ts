@@ -10,7 +10,7 @@ export class Voice extends Ingredient {
   declare public isDefaultSelectable?: boolean;
   declare public providerData?: Record<string, unknown>;
   declare public isFeatured?: boolean;
-  declare public voiceSource?: 'catalog' | 'cloned' | 'generated';
+  declare public voiceSource?: 'catalog' | 'cloned' | 'generated' | 'imported';
   // FK to the ExternalVoice catalog entry this voice was generated/cloned from.
   // Catalog entries live in the ExternalVoice table, not in ingredients.
   declare public externalVoiceCatalogId?: string;
