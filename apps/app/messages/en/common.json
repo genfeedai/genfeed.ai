@@ -2474,6 +2474,26 @@
     "admin": {
       "label": "Admin",
       "description": "Platform management."
+    },
+    "adminOverview": {
+      "label": "Overview",
+      "description": "Dashboard, analytics and activity."
+    },
+    "adminContent": {
+      "label": "Content",
+      "description": "Posts, templates, prompts and generations."
+    },
+    "adminAutomation": {
+      "label": "AI & Automation",
+      "description": "Models, trainings, bots and workflows."
+    },
+    "adminConfiguration": {
+      "label": "Configuration",
+      "description": "Elements, presets, fonts and tags."
+    },
+    "adminAdministration": {
+      "label": "Administration",
+      "description": "Organizations, users, billing and flags."
     }
   },
   "windowChrome": {

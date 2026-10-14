@@ -13,13 +13,16 @@ export interface AppRailItemConfig {
   label: string;
   description: string;
   /** `daily` is the fixed core loop; `app` entries open from the Apps launcher. */
-  group: 'daily' | 'app' | 'admin';
+  /** `admin-category` entries replace the app loop while the admin chrome is up. */
+  group: 'daily' | 'app' | 'admin' | 'admin-category';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
   /** Platform switch for one Studio surface, under the `studio` module flag. */
   surfaceFlagKey?: PlatformStudioFlagKey;
   organizationModule?: OrganizationModuleId;
   isBrandAware?: boolean;
+  /** Admin menu `group` whose items this category icon opens in the sidebar. */
+  adminMenuGroup?: string;
   route: (orgSlug: string, brandSlug?: string) => string;
 }
 

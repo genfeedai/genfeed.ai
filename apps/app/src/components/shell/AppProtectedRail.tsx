@@ -140,6 +140,7 @@ function AppProtectedRailContent({
       brandAwareSlug={brandAwareAppSlug}
       brandSlug={effectiveBrandSlug}
       currentPath={pathname}
+      isAdminChrome={isAdminChrome}
       installedAppIds={
         installedApps.status === 'ready' ? installedApps.installedAppIds : []
       }

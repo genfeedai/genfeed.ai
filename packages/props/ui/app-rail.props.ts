@@ -64,6 +64,8 @@ export interface AppRailProps {
   preservedSearch?: string;
   /** Application-owned resolver for trusted shell launches. */
   resolveNavigation?: (href: string) => AppRailNavigationTarget;
+  /** Admin chrome: the rail lists admin categories instead of the app loop. */
+  isAdminChrome?: boolean;
   /** Include platform-admin navigation for users with platform access. */
   showAdmin?: boolean;
   /**

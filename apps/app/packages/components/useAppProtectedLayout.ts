@@ -44,6 +44,10 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useMenuItems } from '@hooks/ui/use-menu-items';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import {
+  ADMIN_RAIL_CATEGORIES,
+  getActiveAppId,
+} from '@ui/shell/app-rail/app-rail.registry';
+import {
   useParams,
   usePathname,
   useRouter,
@@ -432,16 +436,23 @@ export function useAppProtectedLayout(
     [settingsScope, taskContextSearchParams],
   );
 
+  // The rail picks the admin category; the sidebar lists only its pages.
+  const adminMenuGroup = ADMIN_RAIL_CATEGORIES.find(
+    (category) =>
+      category.id === getActiveAppId(ADMIN_RAIL_CATEGORIES, pathname),
+  )?.adminMenuGroup;
   const adminMenuItems = useMemo(
     () =>
-      ADMIN_MENU_ITEMS.map(
+      ADMIN_MENU_ITEMS.filter(
+        (item) => !adminMenuGroup || item.group === adminMenuGroup,
+      ).map(
         (item): MenuItemConfig => ({
           ...item,
           hrefScope: 'global',
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [taskContextSearchParams],
+    [adminMenuGroup, taskContextSearchParams],
   );
 
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
