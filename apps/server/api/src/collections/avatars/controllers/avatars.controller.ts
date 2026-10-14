@@ -159,12 +159,10 @@ export class AvatarsController {
   @Get('elevenlabs/voices')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getElevenlabsVoices(
-    @CurrentUser() user: User,
+    @CurrentUser() _user: User,
   ): Promise<JsonApiSingleResponse<ProviderVoicesAttributes<ElevenLabsVoice>>> {
     try {
-      const voices = await this.elevenlabsService.getVoices(
-        user.organizationId,
-      );
+      const voices = await this.elevenlabsService.getVoices();
 
       return serializeProviderCatalog({
         attributes: {

@@ -2,11 +2,12 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import type { ElevenLabsConnectionService } from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { ElevenLabsError } from '@elevenlabs/elevenlabs-js';
 import {
   IngredientStatus,
   VoiceCloneStatus,
@@ -14,7 +15,7 @@ import {
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 
 describe('VoiceCloneService', () => {
@@ -28,7 +29,21 @@ describe('VoiceCloneService', () => {
     userId,
   } as User;
   const request = {} as Request;
-  let byok: { resolveApiKey: ReturnType<typeof vi.fn> };
+  const personalBinding = {
+    credentialVersionId: 'credential-v1',
+    kind: 'byok' as const,
+    organizationId,
+    provider: 'elevenlabs' as const,
+  };
+  const platformBinding = {
+    ...personalBinding,
+    credentialVersionId: 'platform',
+    kind: 'platform' as const,
+  };
+  let connections: {
+    findPersonalConnection: ReturnType<typeof vi.fn>;
+    resolve: ReturnType<typeof vi.fn>;
+  };
   let elevenLabs: {
     cloneVoice: ReturnType<typeof vi.fn>;
     deleteVoice: ReturnType<typeof vi.fn>;
@@ -51,7 +66,16 @@ describe('VoiceCloneService', () => {
   let service: VoiceCloneService;
 
   beforeEach(() => {
-    byok = { resolveApiKey: vi.fn().mockResolvedValue({ apiKey: 'key' }) };
+    connections = {
+      findPersonalConnection: vi
+        .fn()
+        .mockResolvedValue({ apiKey: 'key', binding: personalBinding }),
+      resolve: vi.fn(async (_organizationId: string, kind: string) =>
+        kind === 'byok'
+          ? { apiKey: 'key', binding: personalBinding }
+          : { apiKey: 'platform-key', binding: platformBinding },
+      ),
+    };
     elevenLabs = {
       cloneVoice: vi.fn().mockResolvedValue({ voiceId: 'external-voice-1' }),
       deleteVoice: vi.fn(),
@@ -73,7 +97,7 @@ describe('VoiceCloneService', () => {
       patchAll: vi.fn(),
     };
     service = new VoiceCloneService(
-      byok as unknown as ByokService,
+      connections as unknown as ElevenLabsConnectionService,
       elevenLabs as unknown as ElevenLabsService,
       managedInferenceRuntime as unknown as ManagedInferenceRuntimeService,
       logger as unknown as LoggerService,
@@ -112,6 +136,13 @@ describe('VoiceCloneService', () => {
       expect.objectContaining({
         cloneStatus: VoiceCloneStatus.READY,
         externalVoiceId: 'external-voice-1',
+        providerData: {
+          elevenlabs: {
+            category: 'cloned',
+            connection: personalBinding,
+            version: 1,
+          },
+        },
         voiceProvider: VoiceProvider.ELEVENLABS,
       }),
     );
@@ -194,6 +225,76 @@ describe('VoiceCloneService', () => {
       'external-voice-1',
       'key',
     );
+    expect(voices.patchAll).toHaveBeenCalledWith(
+      { id: 'canonical-voice-1' },
+      { isDeleted: true },
+    );
+  });
+  it('clones on the platform account when no personal connection exists', async () => {
+    connections.findPersonalConnection.mockResolvedValue(undefined);
+    const file = { buffer: Buffer.from('audio') } as Express.Multer.File;
+
+    await service.clone(user, { name: 'Clone' }, file, request);
+
+    expect(elevenLabs.cloneVoice).toHaveBeenCalledWith(
+      'Clone',
+      [file.buffer],
+      expect.any(Object),
+      'platform-key',
+    );
+    expect(voices.patchAll).toHaveBeenCalledWith(
+      { id: ingredientId },
+      expect.objectContaining({
+        providerData: {
+          elevenlabs: {
+            category: 'cloned',
+            connection: platformBinding,
+            version: 1,
+          },
+        },
+      }),
+    );
+  });
+
+  it('deletes a bound clone through its own account, never the platform', async () => {
+    voices.findOne.mockResolvedValue({
+      externalVoiceId: 'external-voice-1',
+      id: 'canonical-voice-1',
+      providerData: {
+        elevenlabs: {
+          category: 'cloned',
+          connection: personalBinding,
+          version: 1,
+        },
+      },
+      voiceProvider: VoiceProvider.ELEVENLABS,
+    });
+    connections.resolve.mockRejectedValue(
+      new BadRequestException(
+        'Reconnect your ElevenLabs account to use this voice.',
+      ),
+    );
+
+    await expect(
+      service.deleteClonedVoice(user, ingredientId),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(connections.resolve).toHaveBeenCalledWith(organizationId, 'byok');
+    expect(elevenLabs.deleteVoice).not.toHaveBeenCalled();
+    expect(voices.patchAll).not.toHaveBeenCalled();
+  });
+
+  it('removes the local clone when ElevenLabs already deleted the voice', async () => {
+    voices.findOne.mockResolvedValue({
+      externalVoiceId: 'external-voice-1',
+      id: 'canonical-voice-1',
+      voiceProvider: VoiceProvider.ELEVENLABS,
+    });
+    elevenLabs.deleteVoice.mockRejectedValue(
+      new ElevenLabsError({ message: 'Not found', statusCode: 404 }),
+    );
+
+    await service.deleteClonedVoice(user, ingredientId);
+
     expect(voices.patchAll).toHaveBeenCalledWith(
       { id: 'canonical-voice-1' },
       { isDeleted: true },

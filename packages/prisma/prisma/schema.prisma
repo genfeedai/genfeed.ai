@@ -2359,7 +2359,10 @@ model Ingredient {
   qualityFeedback       String[]                 @default([])
   qualityStatus         QualityStatus            @default(UNRATED)
 
-  // Voice discriminator fields (only populated when category = VOICE)
+  // Voice discriminator fields (only populated when category = VOICE).
+  // Imported account voices (voiceSource 'imported') are unique on
+  // (organizationId, voiceProvider, externalVoiceId) via the partial index
+  // `ingredients_org_imported_voice_uidx`.
   voiceSource         String?
   voiceProvider       VoiceProvider?
   externalVoiceId     String?

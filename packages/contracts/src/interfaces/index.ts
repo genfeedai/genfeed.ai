@@ -230,6 +230,7 @@ export * from './integrations/ads-discovery.interface';
 export * from './integrations/ads-gateway.interface';
 export * from './integrations/ads-research.interface';
 export * from './integrations/connect-genfeed.interface';
+export * from './integrations/elevenlabs.interface';
 export * from './integrations/external-connection-request.interface';
 export * from './integrations/facebook.interface';
 export * from './integrations/ghost.interface';

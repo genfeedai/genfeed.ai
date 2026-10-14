@@ -33,7 +33,7 @@ function createMockLogger() {
 describe('ElevenLabsService', () => {
   let service: ElevenLabsService;
   let ttsConvertMock: ReturnType<typeof vi.fn>;
-  let voicesGetAllMock: ReturnType<typeof vi.fn>;
+  let voicesSearchMock: ReturnType<typeof vi.fn>;
   let voicesAddMock: ReturnType<typeof vi.fn>;
   let voicesDeleteMock: ReturnType<typeof vi.fn>;
   let forcedAlignmentMock: ReturnType<typeof vi.fn>;
@@ -42,7 +42,7 @@ describe('ElevenLabsService', () => {
 
   beforeEach(async () => {
     ttsConvertMock = vi.fn();
-    voicesGetAllMock = vi.fn();
+    voicesSearchMock = vi.fn();
     voicesAddMock = vi.fn();
     voicesDeleteMock = vi.fn();
     forcedAlignmentMock = vi.fn();
@@ -62,8 +62,8 @@ describe('ElevenLabsService', () => {
         textToSpeech: { convertWithTimestamps: ttsConvertMock },
         voices: {
           delete: voicesDeleteMock,
-          getAll: voicesGetAllMock,
           ivc: { create: voicesAddMock },
+          search: voicesSearchMock,
         },
       };
     });
@@ -99,17 +99,22 @@ describe('ElevenLabsService', () => {
   });
 
   describe('getVoices', () => {
-    it('should return mapped voices from ElevenLabs API', async () => {
-      voicesGetAllMock.mockResolvedValue({
-        voices: [
-          {
-            name: 'Rachel',
-            previewUrl: 'https://preview.com/rachel.mp3',
-            voiceId: 'voice1',
-          },
-          { name: 'Adam', previewUrl: null, voiceId: 'voice2' },
-        ],
-      });
+    it('should return mapped public voices from ElevenLabs API', async () => {
+      voicesSearchMock
+        .mockResolvedValueOnce({
+          hasMore: false,
+          voices: [
+            {
+              name: 'Rachel',
+              previewUrl: 'https://preview.com/rachel.mp3',
+              voiceId: 'voice1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          hasMore: false,
+          voices: [{ name: 'Adam', previewUrl: null, voiceId: 'voice2' }],
+        });
 
       const result = await service.getVoices();
       expect(result).toEqual([
@@ -122,15 +127,8 @@ describe('ElevenLabsService', () => {
       ]);
     });
 
-    it('should use API key override when provided', async () => {
-      voicesGetAllMock.mockResolvedValue({ voices: [] });
-
-      await service.getVoices(undefined, undefined, 'custom-key');
-      expect(ElevenLabsClient).toHaveBeenCalledWith({ apiKey: 'custom-key' });
-    });
-
     it('should propagate API errors', async () => {
-      voicesGetAllMock.mockRejectedValue(new Error('API rate limited'));
+      voicesSearchMock.mockRejectedValue(new Error('API rate limited'));
 
       await expect(service.getVoices()).rejects.toThrow('API rate limited');
       expect(logger.error).toHaveBeenCalled();

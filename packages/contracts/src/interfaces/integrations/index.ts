@@ -1,6 +1,7 @@
 export * from './ads-gateway.interface';
 export * from './ads-research.interface';
 export * from './connect-genfeed.interface';
+export * from './elevenlabs.interface';
 export * from './external-connection-request.interface';
 export * from './facebook.interface';
 export * from './ghost.interface';

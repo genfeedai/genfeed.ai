@@ -10,7 +10,8 @@ const forcedAlignmentCreate = vi.fn();
 const ivcCreate = vi.fn();
 const textToSpeechConvert = vi.fn();
 const voicesDelete = vi.fn();
-const voicesGetAll = vi.fn();
+const voicesGet = vi.fn();
+const voicesSearch = vi.fn();
 
 vi.mock('@elevenlabs/elevenlabs-js', () => ({
   ElevenLabsClient: function ElevenLabsClient(this: never, options: unknown) {
@@ -20,8 +21,9 @@ vi.mock('@elevenlabs/elevenlabs-js', () => ({
       textToSpeech: { convertWithTimestamps: textToSpeechConvert },
       voices: {
         delete: voicesDelete,
-        getAll: voicesGetAll,
+        get: voicesGet,
         ivc: { create: ivcCreate },
+        search: voicesSearch,
       },
     };
   },
@@ -67,7 +69,7 @@ function createHarness() {
 describe('ElevenLabsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    voicesGetAll.mockResolvedValue({ voices: [] });
+    voicesSearch.mockResolvedValue({ hasMore: false, voices: [] });
     textToSpeechConvert.mockResolvedValue({ audioBase64: 'AAAA' });
     ivcCreate.mockResolvedValue({ voiceId: 'voice-new' });
     voicesDelete.mockResolvedValue(undefined);
@@ -114,8 +116,8 @@ describe('ElevenLabsService', () => {
     it('builds a fresh uncached client for a BYOK override', async () => {
       const { getApiKey, service } = createHarness();
 
-      await service.getVoices(undefined, undefined, 'byok-key');
-      await service.getVoices(undefined, undefined, 'byok-key');
+      await service.searchAccountVoices('byok-key', {});
+      await service.searchAccountVoices('byok-key', {});
 
       expect(getApiKey).not.toHaveBeenCalled();
       expect(clientConstructor).toHaveBeenCalledTimes(2);
@@ -124,18 +126,29 @@ describe('ElevenLabsService', () => {
   });
 
   describe('getVoices', () => {
-    it('maps provider voices onto the domain shape', async () => {
+    it('reads only default and Voice Library voices for the shared catalog', async () => {
       const { service } = createHarness();
-      voicesGetAll.mockResolvedValue({
-        voices: [
-          {
-            name: 'Rachel',
-            previewUrl: 'https://cdn.test/rachel.mp3',
-            voiceId: 'v1',
-          },
-          { name: null, previewUrl: null, voiceId: 'v2' },
-        ],
-      });
+      voicesSearch.mockImplementation(
+        async (request: { voiceType: string; nextPageToken?: string }) => {
+          if (request.voiceType === 'default' && !request.nextPageToken) {
+            return {
+              hasMore: true,
+              nextPageToken: 'default-2',
+              voices: [
+                {
+                  name: 'Rachel',
+                  previewUrl: 'https://cdn.test/rachel.mp3',
+                  voiceId: 'v1',
+                },
+              ],
+            };
+          }
+          if (request.voiceType === 'default') {
+            return { hasMore: false, voices: [{ voiceId: 'v2' }] };
+          }
+          return { hasMore: false, voices: [{ voiceId: 'v1' }] };
+        },
+      );
 
       await expect(service.getVoices()).resolves.toEqual([
         {
@@ -145,17 +158,124 @@ describe('ElevenLabsService', () => {
         },
         { name: 'Untitled Voice', preview: undefined, voiceId: 'v2' },
       ]);
+      expect(voicesSearch.mock.calls.map(([request]) => request)).toEqual([
+        { pageSize: 100, voiceType: 'default' },
+        { nextPageToken: 'default-2', pageSize: 100, voiceType: 'default' },
+        { pageSize: 100, voiceType: 'community' },
+      ]);
     });
 
     it('logs and rethrows a provider failure', async () => {
       const { loggerService, service } = createHarness();
       const providerError = new Error('unauthorized');
-      voicesGetAll.mockRejectedValue(providerError);
+      voicesSearch.mockRejectedValue(providerError);
 
       await expect(service.getVoices()).rejects.toThrowError(providerError);
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
         providerError,
+      );
+    });
+  });
+
+  describe('searchAccountVoices', () => {
+    it('pages the connected account with its own key and next-page token', async () => {
+      const { getApiKey, service } = createHarness();
+      voicesSearch.mockResolvedValue({
+        hasMore: true,
+        nextPageToken: 'page-3',
+        voices: [
+          {
+            category: 'cloned',
+            name: 'Founder',
+            previewUrl: 'https://cdn.test/founder.mp3',
+            voiceId: 'clone-1',
+          },
+          {
+            category: 'professional',
+            fineTuning: { state: { eleven_multilingual_v2: 'fine_tuning' } },
+            name: 'Studio',
+            voiceId: 'pvc-1',
+          },
+        ],
+      });
+
+      const page = await service.searchAccountVoices('account-key', {
+        nextPageToken: 'page-2',
+        pageSize: 500,
+        search: 'founder',
+      });
+
+      expect(getApiKey).not.toHaveBeenCalled();
+      expect(clientConstructor).toHaveBeenCalledWith({ apiKey: 'account-key' });
+      expect(voicesSearch).toHaveBeenCalledWith({
+        nextPageToken: 'page-2',
+        pageSize: 100,
+        search: 'founder',
+        voiceType: 'non-default',
+      });
+      expect(page).toEqual({
+        hasMore: true,
+        nextPageToken: 'page-3',
+        voices: [
+          {
+            availability: 'available',
+            category: 'cloned',
+            name: 'Founder',
+            preview: 'https://cdn.test/founder.mp3',
+            restriction: null,
+            voiceId: 'clone-1',
+          },
+          {
+            availability: 'unavailable',
+            category: 'professional',
+            name: 'Studio',
+            preview: null,
+            restriction:
+              'This professional clone has not finished training in ElevenLabs.',
+            voiceId: 'pvc-1',
+          },
+        ],
+      });
+    });
+
+    it('ends pagination when the provider reports no more voices', async () => {
+      const { service } = createHarness();
+      voicesSearch.mockResolvedValue({
+        hasMore: false,
+        nextPageToken: 'stale',
+        voices: [],
+      });
+
+      await expect(
+        service.searchAccountVoices('account-key', {}),
+      ).resolves.toMatchObject({ hasMore: false, nextPageToken: null });
+    });
+  });
+
+  describe('isPublicCatalogVoice', () => {
+    it('accepts a voice the platform key reaches as a public voice', async () => {
+      const { service } = createHarness();
+      voicesSearch
+        .mockResolvedValueOnce({ hasMore: false, voices: [] })
+        .mockResolvedValueOnce({
+          hasMore: false,
+          voices: [{ voiceId: 'lib-1' }],
+        });
+
+      await expect(service.isPublicCatalogVoice('lib-1')).resolves.toBe(true);
+      expect(voicesSearch).toHaveBeenCalledWith({
+        pageSize: 1,
+        voiceIds: ['lib-1'],
+        voiceType: 'community',
+      });
+    });
+
+    it('rejects a private platform voice', async () => {
+      const { service } = createHarness();
+
+      await expect(service.isPublicCatalogVoice('private-1')).resolves.toBe(
+        false,
       );
     });
   });

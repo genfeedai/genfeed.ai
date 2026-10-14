@@ -78,6 +78,15 @@ export class ExternalVoiceCatalogService {
     });
   }
 
+  findActive(
+    provider: VoiceProvider,
+    externalId: string,
+  ): Promise<ExternalVoice | null> {
+    return this.prisma.externalVoice.findFirst({
+      where: { externalId, externalProvider: provider, isActive: true },
+    });
+  }
+
   findOne(id: string): Promise<ExternalVoice | null> {
     return this.prisma.externalVoice.findUnique({ where: { id } });
   }

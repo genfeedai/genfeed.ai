@@ -75,6 +75,8 @@ export class VoiceCreditsService {
       ActivitySource.VOICE_GENERATION,
       {
         brandId: params.brandId,
+        // A queue retry that finds the stored audio settles the same charge.
+        idempotencyKey: `voice-generation/${params.ingredientId}`,
         maxOverdraftCredits: credits,
         referenceId: params.ingredientId,
         referenceType: 'agent-media:voice-generation',

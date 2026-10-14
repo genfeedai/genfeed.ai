@@ -10,8 +10,10 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
+import { VoicesAccountController } from '@api/collections/voices/controllers/voices-account.controller';
 import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
+import { ElevenLabsAccountVoicesService } from '@api/collections/voices/services/elevenlabs-account-voices.service';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
@@ -36,6 +38,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     VoicesController,
+    VoicesAccountController,
     VoicesCatalogController,
     VoicesOperationsController,
   ],
@@ -61,6 +64,7 @@ import { Module } from '@nestjs/common';
     WorkflowsCoreModule,
   ],
   providers: [
+    ElevenLabsAccountVoicesService,
     ExternalVoiceCatalogService,
     VoiceCloneService,
     VoiceCreditsService,

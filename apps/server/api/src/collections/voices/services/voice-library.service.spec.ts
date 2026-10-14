@@ -61,7 +61,11 @@ describe('VoiceLibraryService', () => {
               ]),
             },
           ],
-          OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+          OR: [
+            { isCloned: true },
+            { externalVoiceCatalogId: { not: null } },
+            { voiceSource: 'imported' },
+          ],
           category: 'VOICE',
           isDeleted: false,
           isVoiceActive: { not: false },

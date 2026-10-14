@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
+import {
+  type ElevenLabsVoiceEligibility,
+  elevenLabsVoiceEligibility,
+} from '@api/services/integrations/elevenlabs/elevenlabs-voice-availability.util';
+import { type ElevenLabs, ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ApiKeyCategory, FileInputType } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -13,11 +17,31 @@ export type ElevenLabsSpeechOptions = {
   speed?: number;
 };
 
-type ElevenLabsVoice = {
-  name?: string | null;
-  previewUrl?: string | null;
+type ElevenLabsVoice = ElevenLabs.Voice;
+
+export interface ElevenLabsAccountCatalogVoice
+  extends ElevenLabsVoiceEligibility {
   voiceId: string;
-};
+  name: string;
+  category: string | null;
+  preview: string | null;
+}
+
+const ACCOUNT_VOICE_PAGE_SIZE_MAX = 100;
+const MAX_CATALOG_PAGES = 20;
+const PUBLIC_CATALOG_VOICE_TYPES = ['default', 'community'] as const;
+
+function toAccountCatalogVoice(
+  voice: ElevenLabsVoice,
+): ElevenLabsAccountCatalogVoice {
+  return {
+    ...elevenLabsVoiceEligibility(voice),
+    category: voice.category ?? null,
+    name: voice.name ?? 'Untitled Voice',
+    preview: voice.previewUrl ?? null,
+    voiceId: voice.voiceId,
+  };
+}
 
 type ElevenLabsAudioWithTimestampsResponse = {
   alignment?: {
@@ -60,28 +84,110 @@ export class ElevenLabsService {
     return this.client;
   }
 
-  public async getVoices(
-    _organizationId?: string,
-    _userId?: string,
-    apiKeyOverride?: string,
-  ): Promise<Array<{ voiceId: string; name: string; preview?: string }>> {
+  /**
+   * The shared reference catalog: ElevenLabs default and Voice Library voices
+   * reachable through the platform key. Personal and workspace voices of the
+   * platform account are private and never enter the shared catalog.
+   */
+  public async getVoices(): Promise<
+    Array<{ voiceId: string; name: string; preview?: string }>
+  > {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       this.loggerService.log(`${url} started`);
 
-      const client = this.getClient(apiKeyOverride);
-      const voices = await client.voices.getAll();
+      const client = this.getClient();
+      const voices: ElevenLabsVoice[] = [];
+      for (const voiceType of PUBLIC_CATALOG_VOICE_TYPES) {
+        let nextPageToken: string | undefined;
+        for (let page = 0; page < MAX_CATALOG_PAGES; page++) {
+          const response = await client.voices.search({
+            pageSize: ACCOUNT_VOICE_PAGE_SIZE_MAX,
+            voiceType,
+            ...(nextPageToken ? { nextPageToken } : {}),
+          });
+          voices.push(...response.voices);
+          if (!response.hasMore || !response.nextPageToken) break;
+          nextPageToken = response.nextPageToken;
+        }
+      }
 
-      return voices.voices.map((voice: ElevenLabsVoice) => ({
-        name: voice.name ?? 'Untitled Voice',
-        preview: voice.previewUrl ?? undefined,
-        voiceId: voice.voiceId,
-      }));
+      const seen = new Set<string>();
+      return voices
+        .filter((voice) => {
+          if (seen.has(voice.voiceId)) return false;
+          seen.add(voice.voiceId);
+          return true;
+        })
+        .map((voice) => ({
+          name: voice.name ?? 'Untitled Voice',
+          preview: voice.previewUrl ?? undefined,
+          voiceId: voice.voiceId,
+        }));
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * One page of the voices a connected account can use (personal, workspace,
+   * cloned and saved Voice Library voices). The caller supplies the account's
+   * key; there is no platform fallback.
+   */
+  public async searchAccountVoices(
+    apiKey: string,
+    params: { search?: string; nextPageToken?: string; pageSize?: number },
+  ): Promise<{
+    voices: ElevenLabsAccountCatalogVoice[];
+    hasMore: boolean;
+    nextPageToken: string | null;
+  }> {
+    const response = await this.getClient(apiKey).voices.search({
+      pageSize: Math.min(
+        Math.max(params.pageSize ?? 30, 1),
+        ACCOUNT_VOICE_PAGE_SIZE_MAX,
+      ),
+      voiceType: 'non-default',
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.nextPageToken ? { nextPageToken: params.nextPageToken } : {}),
+    });
+
+    return {
+      hasMore: Boolean(response.hasMore && response.nextPageToken),
+      nextPageToken: response.hasMore ? (response.nextPageToken ?? null) : null,
+      voices: response.voices.map(toAccountCatalogVoice),
+    };
+  }
+
+  /**
+   * Whether the platform key reaches this voice as a default or Voice Library
+   * voice — the shared-catalog eligibility, for voices not yet synced.
+   */
+  public async isPublicCatalogVoice(voiceId: string): Promise<boolean> {
+    const client = this.getClient();
+    for (const voiceType of PUBLIC_CATALOG_VOICE_TYPES) {
+      const response = await client.voices.search({
+        pageSize: 1,
+        voiceIds: [voiceId],
+        voiceType,
+      });
+      if (response.voices.some((voice) => voice.voiceId === voiceId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Reads one voice through the given account key; 404 when inaccessible. */
+  public async getAccountVoice(
+    apiKey: string,
+    voiceId: string,
+  ): Promise<ElevenLabsAccountCatalogVoice> {
+    return toAccountCatalogVoice(
+      await this.getClient(apiKey).voices.get(voiceId),
+    );
   }
 
   public async getSpeechModelId(): Promise<string> {

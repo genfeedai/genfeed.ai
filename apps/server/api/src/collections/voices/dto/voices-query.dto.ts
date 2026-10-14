@@ -136,8 +136,8 @@ export class VoicesQueryDto extends BaseQueryDto {
 
   @ApiProperty({
     description:
-      'Filter by canonical voice source (catalog, cloned, generated).',
-    enum: ['catalog', 'cloned', 'generated'],
+      'Filter by canonical voice source (catalog, cloned, generated, imported).',
+    enum: ['catalog', 'cloned', 'generated', 'imported'],
     isArray: true,
     required: false,
   })
@@ -157,6 +157,6 @@ export class VoicesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsArray()
-  @IsIn(['catalog', 'cloned', 'generated'], { each: true })
-  voiceSource?: Array<'catalog' | 'cloned' | 'generated'>;
+  @IsIn(['catalog', 'cloned', 'generated', 'imported'], { each: true })
+  voiceSource?: Array<'catalog' | 'cloned' | 'generated' | 'imported'>;
 }

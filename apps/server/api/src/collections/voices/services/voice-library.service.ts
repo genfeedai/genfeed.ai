@@ -57,7 +57,11 @@ export class VoiceLibraryService {
       const where: Record<string, unknown> = scopedWhere(
         tenant.organizationId,
         {
-          OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+          OR: [
+            { isCloned: true },
+            { externalVoiceCatalogId: { not: null } },
+            { voiceSource: 'imported' },
+          ],
           category: CategoryPrismaUtil.toIngredientCategory(
             IngredientCategory.VOICE,
           ),

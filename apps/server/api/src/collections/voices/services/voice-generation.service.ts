@@ -2,12 +2,19 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
+import { ElevenLabsAccountVoicesService } from '@api/collections/voices/services/elevenlabs-account-voices.service';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import { readSpeechReceipt } from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { toElevenLabsActionableError } from '@api/services/integrations/elevenlabs/elevenlabs-error.util';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import {
+  ElevenLabsConnectionService,
+  type ResolvedElevenLabsConnection,
+} from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -21,11 +28,15 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
+import type { ElevenLabsSpeechReceipt } from '@genfeedai/contracts/interfaces';
 import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
+  BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -57,6 +68,8 @@ export class VoiceGenerationService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
+    private readonly accountVoicesService: ElevenLabsAccountVoicesService,
+    private readonly connectionService: ElevenLabsConnectionService,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly loggerService: LoggerService,
     private readonly sharedService: SharedService,
@@ -130,10 +143,16 @@ export class VoiceGenerationService implements OnModuleInit {
       }
     }
 
-    await this.voiceCreditsService.assertOrganizationCanAfford(
+    const receipt = await this.bindSpeechRequest(
       user.organizationId,
-      1,
+      dto.voiceId,
     );
+    if (receipt.connection.kind === 'platform') {
+      await this.voiceCreditsService.assertOrganizationCanAfford(
+        user.organizationId,
+        1,
+      );
+    }
 
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
@@ -149,6 +168,10 @@ export class VoiceGenerationService implements OnModuleInit {
       },
     );
     const ingredientId = String(ingredientData.id);
+    await this.voicesService.patchAll(
+      { id: ingredientId, organizationId: user.organizationId },
+      { generationProvider: toPrismaJson(receipt) },
+    );
     await this.recordActivity(
       ingredientId,
       user.organizationId,
@@ -231,11 +254,12 @@ export class VoiceGenerationService implements OnModuleInit {
       },
       [PopulatePatterns.metadataFull],
     );
+    const receipt = readSpeechReceipt(existing?.generationProvider);
     if (
       (existing?.cdnUrl || existing?.s3Key) &&
       ['GENERATED', 'VALIDATED'].includes(String(existing.status).toUpperCase())
     ) {
-      await this.voiceCreditsService.settleBackgroundGenerationCredits({
+      await this.settleCredits(receipt, {
         brandId: existing.brandId ?? params.brandId,
         durationSeconds: Number(existing.duration) || 0,
         ingredientId: params.ingredientId,
@@ -251,10 +275,13 @@ export class VoiceGenerationService implements OnModuleInit {
       );
       return this.toActionResult(existing);
     }
-    const generated = await this.executeGeneration({
-      ...params,
-      brandId: existing?.brandId ?? undefined,
-    });
+    const generated = await this.executeGeneration(
+      {
+        ...params,
+        brandId: existing?.brandId ?? undefined,
+      },
+      receipt,
+    );
     await this.recordActivity(
       params.ingredientId,
       params.organizationId,
@@ -263,6 +290,101 @@ export class VoiceGenerationService implements OnModuleInit {
       'completed',
     );
     return this.toActionResult(generated);
+  }
+
+  /** Binds the voice and the account that will speak it, before any work. */
+  private async bindSpeechRequest(
+    organizationId: string,
+    voiceId: string,
+  ): Promise<ElevenLabsSpeechReceipt> {
+    const voice = await this.accountVoicesService.resolveSpeechVoice(
+      organizationId,
+      voiceId,
+    );
+    const connection = await this.connectionService.resolve(
+      organizationId,
+      voice.connectionKind,
+    );
+    return {
+      connection: connection.binding,
+      organizationId,
+      provider: 'elevenlabs',
+      state: 'accepted',
+      version: 1,
+      voice: {
+        externalVoiceId: voice.externalVoiceId,
+        ...(voice.internalVoiceId
+          ? { internalVoiceId: voice.internalVoiceId }
+          : {}),
+      },
+    };
+  }
+
+  /** The submitting account must still be the bound one. */
+  private async resolveBoundConnection(
+    receipt: ElevenLabsSpeechReceipt,
+  ): Promise<ResolvedElevenLabsConnection> {
+    const connection = await this.connectionService.resolve(
+      receipt.organizationId,
+      receipt.connection.kind,
+    );
+    if (
+      receipt.connection.kind === 'byok' &&
+      connection.binding.credentialVersionId !==
+        receipt.connection.credentialVersionId
+    ) {
+      throw new BadRequestException(
+        'The ElevenLabs connection changed after this voice was requested. Generate it again.',
+      );
+    }
+    return connection;
+  }
+
+  /**
+   * One-way claim on the paid provider call. A retry that finds the request
+   * already submitted without stored audio cannot know whether ElevenLabs
+   * produced (and billed) it, so it fails instead of sending it again.
+   */
+  private async claimSubmission(
+    params: VoiceGenerationParams,
+    receipt: ElevenLabsSpeechReceipt,
+    hasStoredReceipt: boolean,
+  ): Promise<void> {
+    const { count } = await this.voicesService.prisma.ingredient.updateMany({
+      data: {
+        generationProvider: toPrismaJson({ ...receipt, state: 'submitted' }),
+      },
+      where: {
+        generationProvider: hasStoredReceipt
+          ? { equals: 'accepted', path: ['state'] }
+          : { equals: Prisma.DbNull },
+        id: params.ingredientId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+    });
+    if (count === 0) {
+      throw new ConflictException(
+        'An earlier attempt of this voice generation has an unknown result, so it was not sent again. Generate it again.',
+      );
+    }
+  }
+
+  private async settleCredits(
+    receipt: ElevenLabsSpeechReceipt | undefined,
+    params: {
+      brandId?: string | null;
+      durationSeconds: number;
+      ingredientId: string;
+      organizationId: string;
+      userId: string;
+    },
+  ): Promise<void> {
+    // The connected account pays ElevenLabs directly for personal voices.
+    if (receipt?.connection.kind === 'byok') {
+      return;
+    }
+    await this.voiceCreditsService.settleBackgroundGenerationCredits(params);
   }
 
   private async recordActivity(
@@ -392,20 +514,36 @@ export class VoiceGenerationService implements OnModuleInit {
 
   private async executeGeneration(
     params: VoiceGenerationParams,
+    storedReceipt: ElevenLabsSpeechReceipt | undefined,
   ): Promise<IngredientDocument> {
+    let receipt = storedReceipt;
     let result: {
       audioUrl: string;
       duration: number;
       uploadResult: Record<string, unknown>;
     };
     try {
-      result = await this.elevenLabsService.generateAndUploadAudio(
-        params.voiceId,
-        await this.spokenText(params),
-        params.ingredientId,
+      // Jobs accepted before speech receipts existed bind at execution.
+      receipt ??= await this.bindSpeechRequest(
         params.organizationId,
-        params.userId,
+        params.voiceId,
       );
+      const connection = await this.resolveBoundConnection(receipt);
+      const text = await this.spokenText(params);
+      await this.claimSubmission(params, receipt, storedReceipt !== undefined);
+
+      try {
+        result = await this.elevenLabsService.generateAndUploadAudio(
+          receipt.voice.externalVoiceId,
+          text,
+          params.ingredientId,
+          params.organizationId,
+          params.userId,
+          connection.apiKey,
+        );
+      } catch (error: unknown) {
+        throw toElevenLabsActionableError(error);
+      }
 
       await this.voicesService.patchAll(
         {
@@ -415,6 +553,7 @@ export class VoiceGenerationService implements OnModuleInit {
         },
         {
           duration: result.duration,
+          generationProvider: toPrismaJson({ ...receipt, state: 'completed' }),
           // The object key is the stored identity; the URL is derived on read.
           ...(typeof result.uploadResult.s3Key === 'string'
             ? { s3Key: result.uploadResult.s3Key }
@@ -440,7 +579,7 @@ export class VoiceGenerationService implements OnModuleInit {
       'completed',
     );
 
-    await this.voiceCreditsService.settleBackgroundGenerationCredits({
+    await this.settleCredits(receipt, {
       brandId: params.brandId,
       durationSeconds: result.duration,
       ingredientId: params.ingredientId,
@@ -494,8 +633,9 @@ export class VoiceGenerationService implements OnModuleInit {
   ): Promise<never> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.error(`${url} voice generation failed`, error);
+    // A concurrent attempt that already stored audio keeps its result.
     await this.voicesService.patchAll(
-      { id: ingredientId, isDeleted: false, organizationId },
+      { id: ingredientId, isDeleted: false, organizationId, s3Key: null },
       { status: IngredientStatus.FAILED },
     );
     await this.recordActivity(

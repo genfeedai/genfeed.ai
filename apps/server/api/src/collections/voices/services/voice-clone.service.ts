@@ -3,16 +3,23 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import {
+  readSavedVoiceBinding,
+  savedVoiceProviderData,
+} from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { scopedWhere } from '@api/index';
-import { ByokService } from '@api/services/byok/byok.service';
+import {
+  classifyElevenLabsFailure,
+  toElevenLabsActionableError,
+} from '@api/services/integrations/elevenlabs/elevenlabs-error.util';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { ElevenLabsConnectionService } from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
-  ByokProvider,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
@@ -29,7 +36,7 @@ export class VoiceCloneService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    private readonly byokService: ByokService,
+    private readonly connectionService: ElevenLabsConnectionService,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly loggerService: LoggerService,
@@ -105,24 +112,22 @@ export class VoiceCloneService {
     const voiceRecord = voice as unknown as {
       id: string;
       externalVoiceId?: string;
+      providerData?: unknown;
       voiceProvider?: VoiceProvider;
     };
 
-    try {
-      if (
-        voiceRecord.externalVoiceId &&
-        voiceRecord.voiceProvider === VoiceProvider.ELEVENLABS
-      ) {
-        const byokKey = await this.byokService.resolveApiKey(
-          user.organizationId,
-          ByokProvider.ELEVENLABS,
-        );
-        await this.elevenLabsService.deleteVoice(
-          voiceRecord.externalVoiceId,
-          byokKey?.apiKey,
-        );
-      }
+    if (
+      voiceRecord.externalVoiceId &&
+      voiceRecord.voiceProvider === VoiceProvider.ELEVENLABS
+    ) {
+      await this.deleteRemoteElevenLabsVoice(
+        user.organizationId,
+        voiceRecord.externalVoiceId,
+        voiceRecord.providerData,
+      );
+    }
 
+    try {
       await this.voicesService.patchAll(
         { id: String(voiceRecord.id) },
         { isDeleted: true },
@@ -138,6 +143,41 @@ export class VoiceCloneService {
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Deletes the remote clone through the account that created it. A clone
+   * bound to the personal connection fails explicitly when that connection is
+   * gone rather than reaching the platform account.
+   */
+  private async deleteRemoteElevenLabsVoice(
+    organizationId: string,
+    externalVoiceId: string,
+    providerData: unknown,
+  ): Promise<void> {
+    const binding = readSavedVoiceBinding(providerData);
+    const connection = binding
+      ? await this.connectionService.resolve(
+          organizationId,
+          binding.connection.kind,
+        )
+      : ((await this.connectionService.findPersonalConnection(
+          organizationId,
+        )) ??
+        (await this.connectionService.resolve(organizationId, 'platform')));
+
+    try {
+      await this.elevenLabsService.deleteVoice(
+        externalVoiceId,
+        connection.apiKey,
+      );
+    } catch (error: unknown) {
+      // Already removed in ElevenLabs: only the local reference remains.
+      if (classifyElevenLabsFailure(error) === 'voice-unavailable') {
+        return;
+      }
+      throw toElevenLabsActionableError(error);
     }
   }
 
@@ -161,19 +201,25 @@ export class VoiceCloneService {
     dto: CloneVoiceDto,
     file: Express.Multer.File | undefined,
   ): Promise<IngredientDocument> {
-    const byokKey = await this.byokService.resolveApiKey(
-      user.organizationId,
-      ByokProvider.ELEVENLABS,
-    );
-    const result = await this.elevenLabsService.cloneVoice(
-      dto.name,
-      file ? [file.buffer] : [],
-      {
-        description: dto.description,
-        removeBackgroundNoise: dto.removeBackgroundNoise ?? true,
-      },
-      byokKey?.apiKey,
-    );
+    const connection =
+      (await this.connectionService.findPersonalConnection(
+        user.organizationId,
+      )) ??
+      (await this.connectionService.resolve(user.organizationId, 'platform'));
+    let result: { voiceId: string; name: string };
+    try {
+      result = await this.elevenLabsService.cloneVoice(
+        dto.name,
+        file ? [file.buffer] : [],
+        {
+          description: dto.description,
+          removeBackgroundNoise: dto.removeBackgroundNoise ?? true,
+        },
+        connection.apiKey,
+      );
+    } catch (error: unknown) {
+      throw toElevenLabsActionableError(error);
+    }
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} ElevenLabs voice cloned`, {
       name: dto.name,
@@ -201,6 +247,11 @@ export class VoiceCloneService {
         isCloned: true,
         isDefaultSelectable: true,
         isVoiceActive: true,
+        providerData: savedVoiceProviderData(
+          undefined,
+          connection.binding,
+          'cloned',
+        ),
         voiceProvider: VoiceProvider.ELEVENLABS,
         voiceSource: 'cloned',
       },

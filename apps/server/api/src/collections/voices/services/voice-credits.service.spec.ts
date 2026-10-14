@@ -10,6 +10,7 @@ import type { Request } from 'express';
 describe('VoiceCreditsService', () => {
   let creditsUtils: {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
+    deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
   };
   let service: VoiceCreditsService;
@@ -17,6 +18,7 @@ describe('VoiceCreditsService', () => {
   beforeEach(() => {
     creditsUtils = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+      deductCreditsFromOrganization: vi.fn(),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(5),
     };
     service = new VoiceCreditsService(
@@ -65,5 +67,26 @@ describe('VoiceCreditsService', () => {
     expect(request).toMatchObject({
       creditsConfig: { amount: VOICE_CLONE_CREDITS, deferred: false },
     });
+  });
+
+  it('settles background speech once per generated asset', async () => {
+    await service.settleBackgroundGenerationCredits({
+      durationSeconds: 90,
+      ingredientId: 'voice-asset-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    expect(creditsUtils.deductCreditsFromOrganization).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      26,
+      'Voice generation (TTS)',
+      expect.anything(),
+      expect.objectContaining({
+        idempotencyKey: 'voice-generation/voice-asset-1',
+        referenceId: 'voice-asset-1',
+      }),
+    );
   });
 });
