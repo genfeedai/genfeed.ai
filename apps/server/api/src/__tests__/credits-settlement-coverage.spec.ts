@@ -172,6 +172,15 @@ export class MeteredController {
       ].sort();
     }
 
+    /**
+     * Service-owned completion holds. `holdForService` always sets
+     * `settlement: 'completion'` and the caller binds the output itself.
+     * Clip avatar clips and workflow lip-sync use this instead of an HTTP route.
+     */
+    function serviceOwnedCompletionCollections(): string[] {
+      return collectionsCalling(/generationBilling\.holdForService\(/);
+    }
+
     function collectionsCalling(pattern: RegExp): string[] {
       return [
         ...new Set(
@@ -202,10 +211,16 @@ export class MeteredController {
       expect(offenders).toEqual([]);
     });
 
-    it('binds accepted outputs only where the route settles on completion, and vice versa', () => {
+    it('binds accepted outputs only where the hold settles on completion, and vice versa', () => {
+      const settledOnCompletion = [
+        ...new Set([
+          ...completionCollections(),
+          ...serviceOwnedCompletionCollections(),
+        ]),
+      ].sort();
       const binding = collectionsCalling(/generationBilling\.bindOutput\(/);
 
-      expect(binding).toEqual(completionCollections());
+      expect(binding).toEqual(settledOnCompletion);
     });
 
     it('keeps no per-model fallback price in a generation service', () => {
