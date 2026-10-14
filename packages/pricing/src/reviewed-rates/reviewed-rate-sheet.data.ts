@@ -1094,6 +1094,22 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:34.961Z',
   },
   {
+    endpoint: 'heygen/avatar',
+    provider: 'heygen',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0385,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl:
+      'https://help.heygen.com/en/articles/10060327-heygen-api-pricing-explained',
+    verifiedAt: '2026-10-14T00:00:00.000Z',
+  },
+  {
     endpoint: 'heygen/avatar-iv',
     provider: 'heygen',
     rates: [

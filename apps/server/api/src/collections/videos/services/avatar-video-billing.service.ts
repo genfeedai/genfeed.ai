@@ -201,9 +201,10 @@ export class AvatarVideoBillingService {
   }
 
   /**
-   * HeyGen bills photo animation at one per-second rate, so the row needs no
-   * reviewed selector. It must still be metered per second: a flat reading
-   * would bill one second as the whole clip, and zero would be a free render.
+   * HeyGen bills photo animation at one per-second rate with no selector, so
+   * the configured provider cost and the reviewed rate agree and either may
+   * price it. It must still be metered per second: a flat reading would bill
+   * one second as the whole clip, and zero would be a free render.
    */
   private async quotePhotoAnimation(
     estimatedSeconds: number,

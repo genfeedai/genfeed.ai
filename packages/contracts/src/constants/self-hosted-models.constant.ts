@@ -470,9 +470,10 @@ export const SELF_HOSTED_MODELS = [
    * separate image row, so it bills at the Avatar IV photo-avatar rate of
    * $2.31 per minute, $0.0385 per output second, at 720p and 1080p alike
    * (help.heygen.com/en/articles/10060327-heygen-api-pricing-explained,
-   * updated 2026-09-16, read 2026-10-14). One rate and no selector, so the
-   * configured `providerCostUsd` prices it at the estimated clip length and
-   * settlement re-prices it at the duration HeyGen returns.
+   * updated 2026-09-16, read 2026-10-14). The reviewed rate sheet carries the
+   * same single rate with no selector, so the configured `providerCostUsd`
+   * and the reviewed rate price a render identically: held at the estimated
+   * clip length, settled at the duration HeyGen returns.
    */
   {
     category: ModelCategory.AVATAR,

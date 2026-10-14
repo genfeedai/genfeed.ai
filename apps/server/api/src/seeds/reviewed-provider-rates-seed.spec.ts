@@ -534,6 +534,27 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
         status: 'unresolved',
       });
     });
+
+    it('seeds photo animation and prices it per second with no selector', async () => {
+      const { create, profile } = await seededProfile('heygen/avatar');
+      expect(create).toMatchObject({
+        endpoint: 'heygen/avatar',
+        provider: 'heygen',
+        reviewStatus: 'approved',
+        schemaFamily: 'heygen-image-v3',
+      });
+      expect(profile.requiredSelectorKeys).toEqual([]);
+
+      // $0.0385/s at 3.33x: 5 s is 65 credits, 12 s is 154.
+      expect(quote(profile, 'heygen/avatar', 5)).toMatchObject({
+        snapshot: { costSource: 'reviewed-provider', credits: 65 },
+        status: 'priced',
+      });
+      expect(quote(profile, 'heygen/avatar', 12)).toMatchObject({
+        snapshot: { credits: 154 },
+        status: 'priced',
+      });
+    });
   });
 
   it.each([
