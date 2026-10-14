@@ -1,14 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import { AgentScopeContextService } from '@api/agent-context/agent-scope-context.service';
 import {
   isTwitterPlatform,
   threadExpansionBlockReason,
 } from '@api/collections/posts/controllers/operations/posts-generation.helpers';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import {
   type PostCreateInput,
   PostsService,
 } from '@api/collections/posts/services/posts.service';
+import { BrandedContentActionsService } from '@api/endpoints/ai-actions/branded-content-actions.service';
+import type { BrandedPostsOutcomeV1 } from '@api/endpoints/ai-actions/branded-text-actions.types';
 import {
   type AddThreadPostsInput,
   FIRST_COMMENT_LABEL,
@@ -22,6 +24,7 @@ import {
   type ThreadReplyPlan,
 } from '@api/services/agent-orchestrator/tools/agent-thread-tool.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { resolveToolSchedulePrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   Platform,
@@ -36,6 +39,10 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type SavedThreadPost = { description: string; id: string; order: number };
 
+function stripMarkup(description: string | undefined): string {
+  return description?.replace(/<[^>]+>/g, ' ').trim() ?? '';
+}
+
 function failure(
   error: string,
   data?: Record<string, unknown>,
@@ -45,9 +52,10 @@ function failure(
 
 /**
  * X thread and first-comment agent tools (#6809). `draft_thread` only
- * proposes replies; `add_thread_posts` and `add_first_comment` are
- * approval-required and save drafts under a post the caller's organization
- * owns, mirroring the post composer (`handleAddThreadPosts`).
+ * proposes replies, written through the branded seam with a receipt (#5786);
+ * `add_thread_posts` and `add_first_comment` are approval-required and save
+ * drafts under a post the caller's organization owns, mirroring the post
+ * composer (`handleAddThreadPosts`).
  */
 @Injectable()
 export class AgentThreadToolHandler {
@@ -56,7 +64,7 @@ export class AgentThreadToolHandler {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly postsService: PostsService,
-    private readonly threadGenerationService: PostThreadGenerationService,
+    private readonly brandedContentActions: BrandedContentActionsService,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
   ) {}
@@ -86,7 +94,10 @@ export class AgentThreadToolHandler {
     }
   }
 
-  /** Proposes replies for an X post. Saves nothing. */
+  /**
+   * Proposes replies for an X post. Nothing is added to the post's thread; the
+   * proposal is recorded on a brand receipt whose id returns to the chat.
+   */
   async draftThread(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -101,17 +112,22 @@ export class AgentThreadToolHandler {
     }
     this.assertBrandScope(post, ctx);
 
-    let proposedPosts: string[];
+    const brandId = post.brandId ?? ctx.validatedScope?.brandId;
+    if (!brandId) return failure('A brand is required to draft a thread.');
+
+    let outcome: BrandedPostsOutcomeV1;
     try {
-      proposedPosts = await this.threadGenerationService.draftThread(
-        post,
-        { count: input.count, tone: input.tone },
-        {
-          brandId: post.brandId ?? ctx.validatedScope?.brandId ?? '',
+      outcome = await this.brandedContentActions.draftThreadReplies({
+        actor: resolveToolSchedulePrincipal(ctx) ?? {
           organizationId: ctx.organizationId,
           userId: ctx.userId,
         },
-      );
+        brandId,
+        count: input.count,
+        originalContent: stripMarkup(post.description),
+        requestKey: randomUUID(),
+        tone: input.tone ?? 'professional',
+      });
     } catch (error: unknown) {
       this.loggerService.error(
         `Thread draft failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -119,6 +135,14 @@ export class AgentThreadToolHandler {
       );
       return failure('Failed to draft the thread. Try again.');
     }
+    if (outcome.kind === 'failed') {
+      return failure(outcome.message, {
+        code: outcome.code,
+        ...(outcome.reasonCode ? { reasonCode: outcome.reasonCode } : {}),
+        ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
+      });
+    }
+    const { posts: proposedPosts, receiptId, receiptState } = outcome.result;
     if (proposedPosts.length === 0) {
       return failure(
         'No valid replies were generated. Try again or change the tone.',
@@ -128,17 +152,21 @@ export class AgentThreadToolHandler {
     return {
       creditsUsed: 0,
       data: {
-        isSaved: false,
+        isAddedToThread: false,
         nextStep:
           'Show the proposed posts to the user. Call add_thread_posts only with the posts they accept.',
         postId: input.postId,
         proposedPosts,
+        receiptId,
+        receiptState,
         requestedReplies: input.count - 1,
       },
       nextActions: [
         {
+          brandedReceipt: { id: receiptId, state: receiptState },
           contentFormat: 'thread',
-          description: 'Proposed replies. Nothing is saved until you accept.',
+          description:
+            'Proposed replies. Nothing is added to the thread until you accept.',
           id: `thread-draft-${input.postId}-${Date.now()}`,
           platform: Platform.TWITTER,
           textContent: proposedPosts[0],

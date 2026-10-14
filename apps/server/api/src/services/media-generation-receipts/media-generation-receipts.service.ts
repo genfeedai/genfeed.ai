@@ -1,3 +1,4 @@
+import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -8,6 +9,7 @@ import type {
 import type {
   LocatedMediaGenerationReceiptV1 as LocatedMediaReceipt,
   MediaGenerationReceiptAcceptanceV1,
+  MediaGenerationReceiptBrandV1,
   MediaGenerationReceiptKindV1,
   MediaGenerationReceiptOpenInputV1,
   MediaGenerationTerminalSignalV1,
@@ -25,9 +27,10 @@ import type {
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
   BrandedGenerationResolutionV1,
+  BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, Injectable } from '@nestjs/common';
+import { ConflictException, HttpException, Injectable } from '@nestjs/common';
 
 const COMPLETED_STATUSES: ReadonlySet<string> = new Set<string>([
   IngredientStatus.GENERATED,
@@ -68,8 +71,9 @@ const CHARGED_HOLD_STATUSES: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
- * Records Studio image and video generations as raw-mode generation receipts
- * (#6484, #5786). One receipt per output ingredient, keyed by the ingredient
+ * Records Studio image and video generations as generation receipts (#6484,
+ * #5786): raw when no brand applied, otherwise pinned to the approved or
+ * provisional revision the prompt was enhanced against. One receipt per output ingredient, keyed by the ingredient
  * id: opened when the output is admitted for dispatch, dispatched when the
  * provider accepts it, and settled from the ingredient's terminal status.
  *
@@ -84,6 +88,7 @@ export class MediaGenerationReceiptsService {
     private readonly prisma: PrismaService,
     private readonly receipts: BrandedGenerationReceiptsService,
     private readonly material: BrandedGenerationArtifactMaterialService,
+    private readonly snapshots: BrandIdentitySnapshotService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -171,6 +176,9 @@ export class MediaGenerationReceiptsService {
       ...(input.apiKeyId ? { apiKeyId: input.apiKeyId } : {}),
       ...(input.scopes ? { scopes: input.scopes } : {}),
     };
+    const snapshot = input.brand
+      ? await this.captureBrand(actor, input.brand)
+      : null;
     const request: BrandedGenerationInputV1 = {
       schemaVersion: 1,
       actorId: input.actorId,
@@ -181,7 +189,10 @@ export class MediaGenerationReceiptsService {
       surface: input.surface,
       contentType: input.mediaKind,
       format: input.mediaKind,
-      mode: 'raw',
+      mode: input.brand?.mode ?? 'raw',
+      ...(input.brand?.mode === 'provisional_brand'
+        ? { draftRevisionId: input.brand.revisionId }
+        : {}),
       originalPrompt: input.originalPrompt,
       provider: input.provider,
       model: input.model,
@@ -200,22 +211,47 @@ export class MediaGenerationReceiptsService {
       actor,
       receipt.id,
       this.mutation(receipt, 'resolve'),
-      this.rawResolution(input),
+      this.resolution(input, snapshot),
       input.enhancedPrompt,
     );
   }
 
-  /** Studio media applies no brand identity or learning; it is raw mode. */
-  private rawResolution(
+  /**
+   * Re-captures the pinned revision through the snapshot seam. A revision that
+   * changed since enhancement is never recorded as the one the prompt used.
+   */
+  private async captureBrand(
+    actor: BrandedGenerationActorV1,
+    brand: MediaGenerationReceiptBrandV1,
+  ): Promise<BrandIdentitySnapshotV1> {
+    const snapshot =
+      brand.mode === 'approved_brand'
+        ? await this.snapshots.preview(actor)
+        : await this.snapshots.previewProvisional(actor, brand.revisionId);
+    if (
+      snapshot.revisionId !== brand.revisionId ||
+      snapshot.revisionVersion !== brand.revisionVersion
+    )
+      throw new ConflictException('brand_identity_changed');
+    return snapshot;
+  }
+
+  /**
+   * A media output applies the pinned brand identity (when it has one) through
+   * enhancement only: no layers or learning are claimed, so a branded output
+   * is never marked compliant without a validation report.
+   */
+  private resolution(
     input: MediaGenerationReceiptOpenInputV1,
+    snapshot: BrandIdentitySnapshotV1 | null,
   ): BrandedGenerationResolutionV1 {
     return {
       schemaVersion: 1,
-      mode: 'raw',
+      mode: input.brand?.mode ?? 'raw',
       status: 'resolved',
       compiledPrompt: input.compiledPrompt,
       originalPromptHash: hashBrandedGenerationTextV1(input.originalPrompt),
-      snapshot: null,
+      snapshot,
       layers: [],
       diagnostics: [],
       learning: {

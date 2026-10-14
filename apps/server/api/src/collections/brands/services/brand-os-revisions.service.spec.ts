@@ -1251,6 +1251,66 @@ describe('BrandOsRevisionsService', () => {
       );
     });
 
+    it('refuses to approve an unedited default seeded by ensureInitial', async () => {
+      const { service, rows } = harness();
+      const seeded = await service.ensureInitial(ORG, BRAND);
+      expect(isGenfeedDefaultKitDraft(seeded.content)).toBe(true);
+      await expect(
+        service.approve(ORG, BRAND, seeded.id, USER, seeded.updatedAt),
+      ).rejects.toMatchObject({
+        response: { code: 'brand_kit_default_requires_edit' },
+        status: 409,
+      });
+      expect(rows[0].status).toBe(BrandOsRevisionStatus.DRAFT);
+    });
+
+    it('refuses to approve an unedited default seeded by the first history load', async () => {
+      const { service } = harness();
+      const [first] = await service.list(ORG, BRAND);
+      await expect(
+        service.approve(ORG, BRAND, first.id, USER, first.updatedAt),
+      ).rejects.toMatchObject({
+        response: { code: 'brand_kit_default_requires_edit' },
+      });
+    });
+
+    it('approves an ensureInitial-seeded default once the owner edits it', async () => {
+      const { service } = harness();
+      const seeded = await service.ensureInitial(ORG, BRAND);
+      const content = structuredClone(seeded.content);
+      if (content.fields.voiceTone)
+        content.fields.voiceTone.currentValue = 'Calm';
+      const edited = await service.update(
+        ORG,
+        BRAND,
+        seeded.id,
+        content,
+        seeded.updatedAt,
+      );
+      const approved = await service.approve(
+        ORG,
+        BRAND,
+        seeded.id,
+        USER,
+        edited.updatedAt,
+      );
+      expect(approved.status).toBe(BrandOsRevisionStatus.APPROVED);
+    });
+
+    it('approves an ensureInitial draft for a brand with its own voice', async () => {
+      const { service } = harness([], { voice: { tone: 'Dry and technical' } });
+      const seeded = await service.ensureInitial(ORG, BRAND);
+      expect(isGenfeedDefaultKitDraft(seeded.content)).toBe(false);
+      const approved = await service.approve(
+        ORG,
+        BRAND,
+        seeded.id,
+        USER,
+        seeded.updatedAt,
+      );
+      expect(approved.status).toBe(BrandOsRevisionStatus.APPROVED);
+    });
+
     it('refuses to approve an unedited default kit, then allows the owner version', async () => {
       const { service, rows } = harness([seedRow()]);
       await expect(

@@ -12,6 +12,7 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { BrandedPublishHoldService } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -440,6 +441,9 @@ export class WorkflowTrendPublishExecutorRegistrarService {
   private registerPublishExecutor(engine: WorkflowEngine): void {
     const postsService = this.postsService;
     const fanoutService = this.postAccountFanoutService;
+    const publishHold = this.prismaService
+      ? new BrandedPublishHoldService(this.prismaService)
+      : undefined;
     const executor = createPublishExecutor(
       async ({
         brandId,
@@ -462,6 +466,13 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           };
         }
 
+        // Text a branded receipt did not clear is saved as a draft, never
+        // scheduled unattended: a member approves it or the brand gets an
+        // approved kit first (#5786).
+        const hold = scheduledFor
+          ? await publishHold?.findHoldForText(organizationId, brandId, caption)
+          : null;
+        const scheduledSlot = hold ? null : scheduledFor;
         const postIds: string[] = [];
         const publishedPlatforms: SocialPlatform[] = [];
         const ingredients = this.helper.extractPublishIngredientIds(media);
@@ -482,7 +493,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         // SCHEDULED that the channel contract rejects (#5193). Filtering
         // before `create()` means a video-only platform in the fan-out is
         // skipped instead of creating a post the choke point then rejects.
-        const { eligible: targets, skipped } = scheduledFor
+        const { eligible: targets, skipped } = scheduledSlot
           ? filterTargetsByMediaCapability(
               resolvedTargets,
               toValidationMediaFromIngredientIds(ingredients, category),
@@ -514,8 +525,8 @@ export class WorkflowTrendPublishExecutorRegistrarService {
             label: this.helper.buildPostLabel(target.caption),
             organizationId: organizationId,
             platform: target.platform,
-            scheduledDate: scheduledFor ?? undefined,
-            targetExecutionState: scheduledFor
+            scheduledDate: scheduledSlot ?? undefined,
+            targetExecutionState: scheduledSlot
               ? TargetExecutionState.SCHEDULED
               : TargetExecutionState.DRAFT,
             userId: userId,
@@ -544,10 +555,11 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         }
 
         return {
+          ...(hold ? { holdReason: hold.reason } : {}),
           platforms: publishedPlatforms,
           postIds,
-          scheduledFor,
-          status: scheduledFor ? 'scheduled' : 'queued',
+          scheduledFor: scheduledSlot,
+          status: hold ? 'held' : scheduledFor ? 'scheduled' : 'queued',
         };
       },
     );

@@ -1,5 +1,8 @@
 import { getActionOriginContext } from '@api/action-origin/action-origin.context';
-import type { MediaGenerationReceiptOpenInputV1 } from '@api/services/media-generation-receipts/media-generation-receipts.types';
+import type {
+  MediaGenerationReceiptBrandV1,
+  MediaGenerationReceiptOpenInputV1,
+} from '@api/services/media-generation-receipts/media-generation-receipts.types';
 import { ActionOrigin } from '@genfeedai/contracts';
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 
@@ -48,5 +51,29 @@ export function resolveMediaGenerationReceiptPrompts(input: {
     originalPrompt,
     ...(enhancedPrompt !== undefined ? { enhancedPrompt } : {}),
     compiledPrompt: dispatched ?? enhancedPrompt ?? originalPrompt,
+  };
+}
+
+/**
+ * The brand pin a media receipt records. Only an applied enhancement was done
+ * against a brand revision; skipped and raw outputs carry no brand.
+ */
+export function resolveMediaGenerationReceiptBrand(
+  harness?: GenerationHarnessReceipt,
+): { brand?: MediaGenerationReceiptBrandV1 } {
+  if (
+    harness?.status !== 'applied' ||
+    !harness.brandMode ||
+    harness.brandMode === 'raw' ||
+    !harness.brandRevisionId ||
+    harness.brandRevisionVersion === undefined
+  )
+    return {};
+  return {
+    brand: {
+      mode: harness.brandMode,
+      revisionId: harness.brandRevisionId,
+      revisionVersion: harness.brandRevisionVersion,
+    },
   };
 }

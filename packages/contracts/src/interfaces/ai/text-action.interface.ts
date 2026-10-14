@@ -1,3 +1,6 @@
+/** Receipt states a finished text generation can report. */
+export type TextReceiptState = 'checking' | 'needs_review' | 'ready';
+
 /** Edit applied to a draft the user already wrote. */
 export type TextActionMode = 'proofread' | 'rewrite';
 
@@ -12,8 +15,10 @@ export interface TextActionResult {
   hasBrandVoice: boolean;
   /** Present when `hasBrandVoice` is false: how to define the voice. */
   voiceHint?: string;
-  /** Saved branded-generation receipt; absent when no voice context was applied. */
+  /** Saved branded-generation receipt; every server generation has one, a local run has none. */
   receiptId?: string;
+  /** `ready` on the approved brand kit, `needs_review` on the provisional draft. */
+  receiptState?: TextReceiptState;
   /** True when the same `requestKey` returned the original result without a new charge. */
   isReplayed: boolean;
 }
@@ -38,8 +43,10 @@ export interface ReplyVariantsResult {
   hasBrandVoice: boolean;
   /** Present when `hasBrandVoice` is false: how to define the voice. */
   voiceHint?: string;
-  /** Saved branded-generation receipt; absent when no voice context was applied. */
+  /** Saved branded-generation receipt; every server generation has one, a local run has none. */
   receiptId?: string;
+  /** `ready` on the approved brand kit, `needs_review` on the provisional draft. */
+  receiptState?: TextReceiptState;
   /** True when the same `requestKey` returned the original result without a new charge. */
   isReplayed: boolean;
 }

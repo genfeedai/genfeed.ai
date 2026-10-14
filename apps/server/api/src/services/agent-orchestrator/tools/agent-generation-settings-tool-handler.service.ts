@@ -1,10 +1,14 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
+import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { ActivitySource } from '@genfeedai/contracts';
-import { ENHANCE_PROMPT_CREDIT_COST } from '@genfeedai/contracts/constants';
+import {
+  ENHANCE_PROMPT_CREDIT_COST,
+  MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
+} from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   UpdateGenerationHarnessSettings,
@@ -58,16 +62,29 @@ export class AgentGenerationSettingsToolHandler {
     const requestedSkillSlugs = normalizeRequestedSkillSlugs(
       params.requestedSkillSlugs,
     );
-    const receipt = await this.enhancement.enhance({
-      ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
-      actorUserId: ctx.userId,
-      organizationId: ctx.organizationId,
-      brandId,
-      prompt: params.prompt,
-      contentType: params.contentType,
-      model: typeof params.model === 'string' ? params.model : undefined,
-      harness: params.harness,
-    });
+    let receipt: Awaited<ReturnType<MediaPromptEnhancementService['enhance']>>;
+    try {
+      receipt = await this.enhancement.enhance({
+        ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
+        actorUserId: ctx.userId,
+        organizationId: ctx.organizationId,
+        brandId,
+        prompt: params.prompt,
+        contentType: params.contentType,
+        model: typeof params.model === 'string' ? params.model : undefined,
+        harness: params.harness,
+      });
+    } catch (error: unknown) {
+      // A failed brand enhancement stops here: nothing is returned as an
+      // enhanced prompt and nothing is charged.
+      if (!(error instanceof MediaPromptBrandEnhancementException)) throw error;
+      return {
+        success: false,
+        creditsUsed: 0,
+        error: error.message,
+        data: { code: MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE },
+      };
+    }
     if (receipt.status !== 'applied') {
       return {
         success: true,

@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import type { AvatarVideoGenerationParams } from '@api/collections/videos/services/avatar-video-generation.types';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -8,17 +10,47 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { type CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
+import {
+  AvatarGenerationQuoteSerializer,
+  IngredientSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
+  HttpCode,
   HttpException,
   HttpStatus,
   Post,
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+/** Generation and its quote read the same body the same way. */
+function toAvatarVideoGenerationParams(
+  dto: CreateAvatarVideoDto,
+): AvatarVideoGenerationParams {
+  return {
+    aspectRatio: dto.aspectRatio,
+    audioUrl: dto.audioUrl,
+    autoSelectModel: dto.autoSelectModel,
+    avatarId: dto.avatarId,
+    avatarRef: dto.avatarRef,
+    voiceRef: dto.voiceRef,
+    audioIngredientId: dto.audioIngredientId,
+    clonedVoiceId: dto.clonedVoiceId,
+    elevenlabsVoiceId: dto.elevenlabsVoiceId,
+    heygenVoiceId: dto.heygenVoiceId,
+    model: dto.model,
+    photoUrl: dto.photoUrl,
+    photoIngredientId: dto.photoIngredientId,
+    prioritize: dto.prioritize,
+    text: dto.text ?? '',
+    useIdentity: dto.useIdentity,
+    voiceProvider: dto.voiceProvider,
+  };
+}
 
 @AutoSwagger()
 @Controller('videos')
@@ -28,6 +60,34 @@ export class AvatarVideoController {
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
     private readonly videosService: VideosService,
   ) {}
+
+  /**
+   * The credits `POST /videos/avatar` would hold for the same body, through
+   * the same identity admission and funding. Read-only: no hold, placeholder
+   * or provider render. BYOK renders quote 0 platform credits.
+   */
+  @Post('avatar/quote')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 60, scope: 'organization', windowMs: 60_000 })
+  @LogMethod({ logEnd: false, logError: true, logStart: false })
+  async quoteAvatarVideo(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() quoteAvatarVideoDto: CreateAvatarVideoDto,
+  ): Promise<JsonApiSingleResponse> {
+    const quote = await this.avatarVideoGenerationService.quote(
+      toAvatarVideoGenerationParams(quoteAvatarVideoDto),
+      {
+        brandId: user.brandId,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
+      },
+    );
+    return serializeSingle(request, AvatarGenerationQuoteSerializer, {
+      id: randomUUID(),
+      ...quote,
+    });
+  }
 
   @Post('avatar')
   // Admission and funding are owned by AvatarVideoGenerationService, so
@@ -41,25 +101,7 @@ export class AvatarVideoController {
     try {
       const result =
         await this.avatarVideoGenerationService.generateAvatarVideo(
-          {
-            aspectRatio: createAvatarVideoDto.aspectRatio,
-            audioUrl: createAvatarVideoDto.audioUrl,
-            autoSelectModel: createAvatarVideoDto.autoSelectModel,
-            avatarId: createAvatarVideoDto.avatarId,
-            avatarRef: createAvatarVideoDto.avatarRef,
-            voiceRef: createAvatarVideoDto.voiceRef,
-            audioIngredientId: createAvatarVideoDto.audioIngredientId,
-            clonedVoiceId: createAvatarVideoDto.clonedVoiceId,
-            elevenlabsVoiceId: createAvatarVideoDto.elevenlabsVoiceId,
-            heygenVoiceId: createAvatarVideoDto.heygenVoiceId,
-            model: createAvatarVideoDto.model,
-            photoUrl: createAvatarVideoDto.photoUrl,
-            photoIngredientId: createAvatarVideoDto.photoIngredientId,
-            prioritize: createAvatarVideoDto.prioritize,
-            text: createAvatarVideoDto.text ?? '',
-            useIdentity: createAvatarVideoDto.useIdentity,
-            voiceProvider: createAvatarVideoDto.voiceProvider,
-          },
+          toAvatarVideoGenerationParams(createAvatarVideoDto),
           {
             brandId: user.brandId,
             organizationId: user.organizationId,

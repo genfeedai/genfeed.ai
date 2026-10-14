@@ -6,13 +6,27 @@ generation through the saved receipt (#5786):
 create → resolve → dispatch → bind artifact → validate
 
 Callers today: `POST /posts/draft-generations` (`PostDraftGenerationService`,
+
 surface `api`, or `onboarding` for the agent first-content tool), account and
-thread generation (`POST /posts/account-generations`, see below), the agent text
-actions (`BrandedTextRunnerService`, surface `agent`) and breakout text output.
-There is no unreceipted draft path: the mode is decided on the server by
-`BrandedModeResolverService` (an approved revision wins; otherwise the brand's
-live DRAFT, created from the Genfeed default style kit when none exists, runs as
-`provisional_brand`). Provisional output always completes as `needs_review`.
+thread generation (`POST /posts/account-generations`), every agent
+text tool (surface `agent`) and breakout text output:
+
+- `refine_text` and `generate_reply_variants` (`BrandedTextActionsService`);
+- social `generate_content` and `draft_thread` replies
+  (`BrandedContentActionsService`), which return the receipt id to the chat.
+
+All agent tools run through `BrandedTextRunnerService`; none has an unreceipted
+fallback. There is no unreceipted draft path: the mode is decided on the server
+by `BrandedModeResolverService` (an approved revision wins; otherwise the
+brand's live DRAFT, created from the Genfeed default style kit when none
+exists, runs as `provisional_brand`). Provisional output always completes as
+`needs_review`.
+
+The receipt binds an artifact, so every completed agent generation also keeps
+its exact text as a DRAFT post (the receipt's artifact). The agent tools
+propose; they add nothing to a thread, schedule or publish until the user
+accepts through the approval-gated save tools.
+
 
 ## Guarantees
 
@@ -65,6 +79,7 @@ and propagates unchanged.
 `dispatch_window_expired` (409). Responses carry
 `meta.brandedGenerationReceiptId`.
 
+
 ## Account and thread runs
 
 `PostAccountGenerationService` (`POST /posts/account-generations`) makes **one
@@ -87,6 +102,20 @@ thread has two to nine posts).
   message, and `POST /posts/:postId/generation-retries` (new `requestKey`)
   retries it. Nothing is retried or charged automatically.
 - Provisional brands generate `needs_review` output, never compliant.
+
+
+## Media prompts
+
+Image and video generation (`MediaPromptEnhancementService`) resolves the same
+identity: `BrandedModeResolverService` picks the approved revision, else the
+live draft provisionally, and the snapshot seam pins it. The enhanced prompt and
+the media receipt carry the mode and revision; a branded output is never
+compliant without a validation report, so it completes as `needs_review`.
+A failed enhancement stops before any paid call with a typed 502
+(`MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED`) and never falls back to the raw
+prompt. The only raw path is the user's explicit `brandMode: 'raw'`, which skips
+brand work and records a raw receipt.
+
 
 ## The Genfeed system brand
 
@@ -121,6 +150,8 @@ Approving switches the next system generation to `approved_brand`.
 
 ## Not wired yet
 
-Content-intelligence, Studio media prompts, MCP, workflows, schedules, batches,
-desktop adapters and the internal surfaces that will generate on the system
-brand remain open on #5786.
+
+Content-intelligence, remaining workflow text/media generators and internal
+surfaces are tracked in #6963 and #6937. The agent `generate_content` article
+and newsletter types are not text-seam surfaces yet.
+

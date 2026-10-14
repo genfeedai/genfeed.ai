@@ -8,17 +8,15 @@ import type {
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { resolveAccountlessLearningReceipt } from '@api/services/branded-text-generation/accountless-learning-receipt.util';
+import { BrandedModeResolverService } from '@api/services/branded-text-generation/branded-mode-resolver.service';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
   PostCategory,
   PostFormat,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { TextReceiptState } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
-
-const NO_APPROVED_VOICE_REASON = 'no_approved_revision';
 
 const FAILURE_MESSAGES: Readonly<Record<string, string>> = {
   artifact_bind_failed: 'The result could not be saved. Try again.',
@@ -28,23 +26,28 @@ const FAILURE_MESSAGES: Readonly<Record<string, string>> = {
   provider_output_empty: 'The text provider returned nothing. Try again.',
 };
 
+/** A completed seam outcome is `ready`, `needs_review` or still `checking`; anything else reads as review. */
+function completedReceiptState(state: string): TextReceiptState {
+  return state === 'ready' || state === 'checking' ? state : 'needs_review';
+}
+
 /**
- * Runs one branded text generation for a text action (#4343, #4342). A brand
- * with an approved voice goes through the branded seam: one receipt-backed
- * provider call, the gate-normalized answer saved as a draft artifact, a
- * repeat of the same `requestKey` answered from the receipt without a new
- * call. A brand with no approved voice is written for without voice context
- * and says so; no other seam outcome falls back to an unbranded call.
+ * Runs one branded text generation for an agent text action (#4343, #4342,
+ * #5786). Every run goes through the branded seam: the server resolves the
+ * mode (the approved kit, else the brand's provisional draft), makes one
+ * receipt-backed provider call, saves the gate-normalized answer as the
+ * receipt's draft artifact, and answers a repeat of the same `requestKey` from
+ * the receipt without a new call. A stopped seam never falls back to an
+ * unreceipted call.
  */
 @Injectable()
 export class BrandedTextRunnerService {
   constructor(
     private readonly branded: BrandedTextGenerationService,
+    private readonly modeResolver: BrandedModeResolverService,
     private readonly posts: PostsService,
     private readonly learningDecisions: LearningDecisionService,
     private readonly modelRegistry: AgentChatModelRegistryService,
-    private readonly openRouter: OpenRouterService,
-    private readonly logger: LoggerService,
   ) {}
 
   async run(spec: BrandedTextRunSpecV1): Promise<BrandedTextRunOutcomeV1> {
@@ -53,6 +56,7 @@ export class BrandedTextRunnerService {
       DEFAULT_MINI_TEXT_MODEL,
     );
     const { actor, gate } = spec;
+    const brandMode = await this.modeResolver.resolve(actor, spec.brandId);
     const outcome = await this.branded.generate({
       initiatingActor: actor,
       input: {
@@ -65,15 +69,15 @@ export class BrandedTextRunnerService {
         surface: 'agent',
         contentType: spec.contentType,
         format: 'text',
-        mode: 'approved_brand',
-        originalPrompt: spec.promptFor(true),
+        ...brandMode,
+        originalPrompt: spec.prompt,
         provider: 'openrouter',
         model,
         generationParameters: spec.generation,
         platform: spec.platform,
         objective: 'engagement',
-        knowledgeSourceIds: [],
-        knowledgeSpaceIds: [],
+        knowledgeSourceIds: spec.knowledgeSourceIds ?? [],
+        knowledgeSpaceIds: spec.knowledgeSpaceIds ?? [],
       },
       privateLearning: await resolveAccountlessLearningReceipt(
         this.learningDecisions,
@@ -114,9 +118,6 @@ export class BrandedTextRunnerService {
     }
     if (outcome.kind === 'stopped') {
       const receiptId = outcome.receipt.id;
-      if (outcome.reasonCode === NO_APPROVED_VOICE_REASON) {
-        return this.writeWithoutVoice(spec, model);
-      }
       if (outcome.reasonCode === 'channel_limit_exceeded') {
         return { kind: 'rejected', receiptId };
       }
@@ -153,52 +154,10 @@ export class BrandedTextRunnerService {
     }
     return {
       kind: 'completed',
-      hasBrandVoice: true,
       hasNewDispatch: outcome.hasNewDispatch,
       isReplayed: !outcome.hasNewDispatch,
       receiptId: outcome.receipt.id,
-      text,
-    };
-  }
-
-  /** The brand has no approved voice: one plain provider call, no receipt. */
-  private async writeWithoutVoice(
-    spec: BrandedTextRunSpecV1,
-    model: string,
-  ): Promise<BrandedTextRunOutcomeV1> {
-    let raw: string;
-    try {
-      const response = await this.openRouter.chatCompletion({
-        max_tokens: spec.generation.maxTokens,
-        messages: [{ role: 'user', content: spec.promptFor(false) }],
-        model,
-        temperature: spec.generation.temperature,
-      });
-      raw = (response.choices?.[0]?.message?.content ?? '').trim();
-    } catch (error: unknown) {
-      this.logger.error(`${BrandedTextRunnerService.name} plain call failed`, {
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-      return {
-        kind: 'failed',
-        code: 'provider_unavailable',
-        message: 'The text provider is unavailable. Try again.',
-      };
-    }
-    if (!raw) {
-      return {
-        kind: 'failed',
-        code: 'provider_unavailable',
-        message: FAILURE_MESSAGES.provider_output_empty,
-      };
-    }
-    const text = spec.gate.normalize(raw);
-    if (text === null) return { kind: 'rejected' };
-    return {
-      kind: 'completed',
-      hasBrandVoice: false,
-      hasNewDispatch: true,
-      isReplayed: false,
+      receiptState: completedReceiptState(outcome.receipt.state),
       text,
     };
   }

@@ -112,12 +112,11 @@ function createWorkflowEngineAdapterForTest(
   );
   const content = new WorkflowContentExecutorRegistrarService(
     helper,
-    dependency(10),
-    dependency(11),
     dependency(12),
     dependency(18),
     dependency(39),
     dependency(43),
+    dependency(10),
   );
   const automation = new WorkflowAutomationExecutorRegistrarService(
     dependency(28),

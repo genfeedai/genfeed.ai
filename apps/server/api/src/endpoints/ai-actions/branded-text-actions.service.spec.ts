@@ -7,7 +7,6 @@ import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
-import { NO_BRAND_VOICE_HINT } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const requestKey = '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c';
@@ -47,25 +46,21 @@ function createService() {
     create: vi.fn().mockResolvedValue({ id: 'post-1' }),
     findOne: vi.fn().mockResolvedValue({ description: 'Saved text' }),
   };
-  const openRouter = {
-    chatCompletion: vi.fn().mockResolvedValue({
-      choices: [{ message: { content: '  Plain rewrite @ada https://a.co ' } }],
-    }),
+  const modeResolver = {
+    resolve: vi.fn().mockResolvedValue({ mode: 'approved_brand' }),
   };
-  const logger = { error: vi.fn() };
   const service = new BrandedTextActionsService(
     new BrandedTextRunnerService(
       branded as never,
+      modeResolver as never,
       posts as never,
       {} as never,
       {
         resolveModelKey: vi.fn().mockResolvedValue('openai/mini-text'),
       } as never,
-      openRouter as never,
-      logger as never,
     ),
   );
-  return { branded, logger, openRouter, posts, service };
+  return { branded, modeResolver, posts, service };
 }
 
 describe('BrandedTextActionsService', () => {
@@ -96,6 +91,7 @@ describe('BrandedTextActionsService', () => {
         mode: 'rewrite',
         platform: 'twitter',
         receiptId: 'receipt-1',
+        receiptState: 'ready',
         text: 'Fresh rewrite @ada https://a.co',
       },
     });
@@ -121,7 +117,10 @@ describe('BrandedTextActionsService', () => {
       '<draft>\nLaunch day @ada https://a.co\n</draft>',
     );
     expect(await seam.resolveApiKey('openai/mini-text')).toBeUndefined();
-    expect(ctx.openRouter.chatCompletion).not.toHaveBeenCalled();
+    expect(ctx.modeResolver.resolve).toHaveBeenCalledExactlyOnceWith(
+      request.actor,
+      'brand-1',
+    );
   });
 
   it('gates the provider answer on the channel limit and kept mentions and links', async () => {
@@ -215,7 +214,6 @@ describe('BrandedTextActionsService', () => {
       },
       'none',
     );
-    expect(ctx.openRouter.chatCompletion).not.toHaveBeenCalled();
   });
 
   it('refuses a replay whose saved draft no longer matches the receipt', async () => {
@@ -235,60 +233,68 @@ describe('BrandedTextActionsService', () => {
     });
   });
 
-  describe('a brand with no approved voice', () => {
+  describe('a brand with no approved kit', () => {
     beforeEach(() => {
+      ctx.modeResolver.resolve.mockResolvedValue({
+        draftRevisionId: 'draft-1',
+        mode: 'provisional_brand',
+      });
+    });
+
+    it('runs the seam on the provisional draft and reports the review state', async () => {
+      ctx.branded.generate.mockResolvedValue({
+        hasNewDispatch: true,
+        kind: 'completed',
+        postId: 'post-1',
+        receipt: receipt({ state: 'needs_review' }),
+        text: 'Fresh rewrite @ada https://a.co',
+      });
+
+      const outcome = await ctx.service.run(request);
+
+      expect(outcome).toMatchObject({
+        hasNewDispatch: true,
+        kind: 'completed',
+        result: { receiptId: 'receipt-1', receiptState: 'needs_review' },
+      });
+      const seam = ctx.branded.generate.mock
+        .calls[0][0] as BrandedTextGenerationRequestV1;
+      expect(seam.input).toMatchObject({
+        draftRevisionId: 'draft-1',
+        mode: 'provisional_brand',
+        surface: 'agent',
+      });
+    });
+
+    it('stops with the receipt and the reason when the seam cannot use the draft', async () => {
       ctx.branded.generate.mockResolvedValue({
         hasNewDispatch: false,
         kind: 'stopped',
         postId: null,
-        reasonCode: 'no_approved_revision',
-        receipt: receipt({ state: 'blocked' }),
-      });
-    });
-
-    it('edits once without voice context and says how to define one', async () => {
-      const outcome = await ctx.service.run(request);
-
-      expect(outcome).toEqual({
-        hasNewDispatch: true,
-        kind: 'completed',
-        result: {
-          hasBrandVoice: false,
-          isReplayed: false,
-          maxCharacters: 280,
-          mode: 'rewrite',
-          platform: 'twitter',
-          text: 'Plain rewrite @ada https://a.co',
-          voiceHint: NO_BRAND_VOICE_HINT,
-        },
-      });
-      expect(ctx.openRouter.chatCompletion).toHaveBeenCalledOnce();
-      const prompt = ctx.openRouter.chatCompletion.mock.calls[0][0].messages[0]
-        .content as string;
-      expect(prompt).toContain("author's own voice");
-      expect(prompt).not.toContain('brand voice');
-    });
-
-    it('applies the same gate to the unbranded answer', async () => {
-      ctx.openRouter.chatCompletion.mockResolvedValue({
-        choices: [{ message: { content: 'Plain rewrite without the link' } }],
+        reasonCode: 'no_draft_revision',
+        receipt: receipt({ id: 'receipt-4', state: 'blocked' }),
       });
 
-      expect(await ctx.service.run(request)).toMatchObject({
-        code: 'text_changed_meaning',
+      expect(await ctx.service.run(request)).toEqual({
+        code: 'blocked',
         kind: 'failed',
+        message:
+          'Your brand voice could not be applied (no_draft_revision). Nothing was written.',
+        reasonCode: 'no_draft_revision',
+        receiptId: 'receipt-4',
       });
     });
+  });
 
-    it('reports an unavailable provider without throwing', async () => {
-      ctx.openRouter.chatCompletion.mockRejectedValue(new Error('502'));
+  it('does not call the seam when the mode cannot be resolved', async () => {
+    ctx.modeResolver.resolve.mockRejectedValue(
+      new Error('Brand access denied'),
+    );
 
-      expect(await ctx.service.run(request)).toMatchObject({
-        code: 'provider_unavailable',
-        kind: 'failed',
-      });
-      expect(ctx.logger.error).toHaveBeenCalledOnce();
-    });
+    await expect(ctx.service.run(request)).rejects.toThrow(
+      'Brand access denied',
+    );
+    expect(ctx.branded.generate).not.toHaveBeenCalled();
   });
 
   it('never falls back to an unbranded call for any other stop', async () => {
@@ -308,7 +314,6 @@ describe('BrandedTextActionsService', () => {
       reasonCode: 'unsupported_capability',
       receiptId: 'receipt-9',
     });
-    expect(ctx.openRouter.chatCompletion).not.toHaveBeenCalled();
   });
 
   it('turns a gate rejection recorded on the receipt into the limit message', async () => {
@@ -365,7 +370,6 @@ describe('BrandedTextActionsService', () => {
       kind: 'failed',
       receiptId: 'receipt-1',
     });
-    expect(ctx.openRouter.chatCompletion).not.toHaveBeenCalled();
   });
 
   it('rejects an unknown platform before any model work', async () => {
@@ -445,6 +449,7 @@ describe('BrandedTextActionsService', () => {
           maxCharacters: 280,
           platform: 'twitter',
           receiptId: 'receipt-1',
+          receiptState: 'ready',
           tone: 'add-value',
           variants: ['Great launch!', 'What about rate limits?', 'Nice docs'],
         },
@@ -524,35 +529,32 @@ describe('BrandedTextActionsService', () => {
       });
     });
 
-    it('writes plain replies for a brand with no approved voice', async () => {
-      ctx.branded.generate.mockResolvedValue({
-        hasNewDispatch: false,
-        kind: 'stopped',
-        postId: null,
-        reasonCode: 'no_approved_revision',
-        receipt: receipt({ state: 'blocked' }),
+    it('writes the replies on the provisional draft with a review receipt', async () => {
+      ctx.modeResolver.resolve.mockResolvedValue({
+        draftRevisionId: 'draft-1',
+        mode: 'provisional_brand',
       });
-      ctx.openRouter.chatCompletion.mockResolvedValue({
-        choices: [{ message: { content: 'Plain one\n---\nPlain two' } }],
+      ctx.branded.generate.mockResolvedValue({
+        hasNewDispatch: true,
+        kind: 'completed',
+        postId: 'post-1',
+        receipt: receipt({ state: 'needs_review' }),
+        text: 'Plain one\n---\nPlain two',
       });
 
-      expect(await ctx.service.draftReplyVariants(reply)).toEqual({
+      expect(await ctx.service.draftReplyVariants(reply)).toMatchObject({
         hasNewDispatch: true,
         kind: 'completed',
         result: {
-          hasBrandVoice: false,
-          isReplayed: false,
-          maxCharacters: 280,
-          platform: 'twitter',
-          tone: 'add-value',
+          receiptId: 'receipt-1',
+          receiptState: 'needs_review',
           variants: ['Plain one', 'Plain two'],
-          voiceHint: NO_BRAND_VOICE_HINT,
         },
       });
-      const prompt = ctx.openRouter.chatCompletion.mock.calls[0][0].messages[0]
-        .content as string;
-      expect(prompt).toContain('natural, friendly voice');
-      expect(prompt).not.toContain('brand voice');
+      expect(seamOf().input).toMatchObject({
+        draftRevisionId: 'draft-1',
+        mode: 'provisional_brand',
+      });
     });
 
     it('reports an answer with no usable reply', async () => {

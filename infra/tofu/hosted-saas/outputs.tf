@@ -48,6 +48,10 @@ output "credential_backfill_task_definition_arn" {
   value = aws_ecs_task_definition.credential_backfill.arn
 }
 
+output "reference_data_sync_task_definition_arn" {
+  value = aws_ecs_task_definition.reference_data_sync.arn
+}
+
 output "articles_seed_task_definition_arn" {
   value = aws_ecs_task_definition.articles_seed.arn
 }

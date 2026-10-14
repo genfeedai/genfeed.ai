@@ -1,5 +1,6 @@
 import type { HeyGenAvatarRef } from '../integrations/heygen.interface';
 import type { IBrandAgentConfig } from '../organization/brand.interface';
+import type { TextReceiptState } from './text-action.interface';
 export type AgentUiActionType =
   | 'mutation_approval_card'
   | 'oauth_connect_card'
@@ -607,6 +608,14 @@ export interface AgentUiAction extends AgentUiActionBase {
   nextSteps?: AgentNextStepOption[];
   /** Exact source versions whose passages grounded this generated output. */
   knowledgeReceipts?: KnowledgeReceipt[];
+  /** Branded-generation receipt behind this written proposal. */
+  brandedReceipt?: AgentUiBrandedReceipt;
+}
+
+/** The receipt a text proposal was written under: its id and whether the brand kit was approved. */
+export interface AgentUiBrandedReceipt {
+  id: string;
+  state: TextReceiptState;
 }
 
 import type { PostVisibility } from '../..';

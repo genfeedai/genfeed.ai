@@ -31,6 +31,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type {
+  ITurboProjectItemDispatch,
   ITurboRunItem,
   ITurboRunSummary,
 } from '@genfeedai/contracts/interfaces';
@@ -88,6 +89,8 @@ type ProjectWithItems = TurboProject & { items: TurboProjectItem[] };
 type ItemOutcome =
   | {
       category: string;
+      /** The stored output's measured length, when the upload probe recorded one. */
+      durationSeconds?: number;
       ingredientId: string;
       item: TurboProjectItem;
       kind: 'completed';
@@ -332,11 +335,15 @@ export class TurboProjectReconcileService {
       return true;
     }
     try {
-      let state: 'released' | 'settled' = 'released';
+      let settled: Partial<ITurboProjectItemDispatch> = { state: 'released' };
       if (outcome.kind === 'completed') {
-        state = await this.credits.settle({
+        settled = await this.credits.settle({
           actorUserId: project.userId,
           brandId: project.brandId,
+          // An avatar is billed per second: it settles to the clip length.
+          ...(outcome.category === IngredientCategory.AVATAR
+            ? { clip: { durationSeconds: outcome.durationSeconds } }
+            : {}),
           description: `Turbo idea ${outcome.category.toLowerCase()} generation`,
           dispatch,
           organizationId: project.organizationId,
@@ -352,7 +359,7 @@ export class TurboProjectReconcileService {
         });
       }
       await this.prisma.turboProjectItem.updateMany({
-        data: { dispatch: toPrismaJson({ ...dispatch, state }) },
+        data: { dispatch: toPrismaJson({ ...dispatch, ...settled }) },
         where: scopedWhere(project.organizationId, {
           dispatch: { equals: dispatch.key, path: ['key'] },
           id: outcome.item.id,
@@ -440,6 +447,7 @@ export class TurboProjectReconcileService {
               category: true,
               generationError: true,
               id: true,
+              metadata: { select: { duration: true } },
               status: true,
             },
             where: scopedWhere(project.organizationId, {
@@ -464,9 +472,13 @@ export class TurboProjectReconcileService {
         return [{ error: 'Generated asset not found', item, kind: 'failed' }];
       }
       if (READY_INGREDIENT_STATUSES.has(ingredient.status)) {
+        const duration = ingredient.metadata?.duration;
         return [
           {
             category: ingredient.category,
+            ...(typeof duration === 'number' && duration > 0
+              ? { durationSeconds: duration }
+              : {}),
             ingredientId: ingredient.id,
             item,
             kind: 'completed',

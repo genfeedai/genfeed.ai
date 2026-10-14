@@ -9,12 +9,18 @@ const headless = {
 } as ToolExecutionContext;
 
 function createService(options: { hasCredits?: boolean } = {}) {
-  const contentGeneratorService = {
-    generateContent: vi
-      .fn()
-      .mockResolvedValue([
-        { content: 'LinkedIn post', hashtags: [], hook: 'Hook' },
-      ]),
+  const brandedContentActions = {
+    generateSocial: vi.fn().mockResolvedValue({
+      hasNewDispatch: true,
+      kind: 'completed',
+      result: {
+        maxCharacters: 5000,
+        platform: 'linkedin',
+        posts: ['LinkedIn post'],
+        receiptId: 'receipt-1',
+        receiptState: 'ready',
+      },
+    }),
   };
   const generationGateway = {
     generateArticle: vi.fn().mockResolvedValue({
@@ -62,7 +68,7 @@ function createService(options: { hasCredits?: boolean } = {}) {
   };
   const service = new AgentMediaTextGenerationService(
     {} as never,
-    contentGeneratorService as never,
+    brandedContentActions as never,
     {} as never,
     generationGateway as never,
     brandsService as never,
@@ -71,8 +77,8 @@ function createService(options: { hasCredits?: boolean } = {}) {
     brandedTextActions as never,
   );
   return {
+    brandedContentActions,
     brandedTextActions,
-    contentGeneratorService,
     credits,
     generationGateway,
     service,
@@ -110,7 +116,7 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
   });
 
   it('refuses social generation without credits and charges nothing', async () => {
-    const { contentGeneratorService, credits, service } = createService({
+    const { brandedContentActions, credits, service } = createService({
       hasCredits: false,
     });
 
@@ -128,13 +134,18 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
       error: 'Not enough credits to generate content.',
       success: false,
     });
-    expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
+    expect(brandedContentActions.generateSocial).not.toHaveBeenCalled();
     expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
 
-  it('charges nothing when the generator returns no draft', async () => {
-    const { contentGeneratorService, credits, service } = createService();
-    contentGeneratorService.generateContent.mockResolvedValue([]);
+  it('charges nothing when the seam stops before a usable draft', async () => {
+    const { brandedContentActions, credits, service } = createService();
+    brandedContentActions.generateSocial.mockResolvedValue({
+      code: 'no_usable_draft',
+      kind: 'failed',
+      message: 'The model gave no usable draft. Try again.',
+      receiptId: 'receipt-2',
+    });
 
     const result = await service.generateContent(
       {
@@ -146,7 +157,39 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
       headless,
     );
 
-    expect(result).toMatchObject({ creditsUsed: 0, success: false });
+    expect(result).toMatchObject({
+      creditsUsed: 0,
+      data: { code: 'no_usable_draft', receiptId: 'receipt-2' },
+      success: false,
+    });
+    expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+  });
+
+  it('does not charge a generation that reached no new provider call', async () => {
+    const { brandedContentActions, credits, service } = createService();
+    brandedContentActions.generateSocial.mockResolvedValue({
+      hasNewDispatch: false,
+      kind: 'completed',
+      result: {
+        maxCharacters: 5000,
+        platform: 'linkedin',
+        posts: ['LinkedIn post'],
+        receiptId: 'receipt-1',
+        receiptState: 'ready',
+      },
+    });
+
+    const result = await service.generateContent(
+      {
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+        type: 'post',
+      },
+      headless,
+    );
+
+    expect(result).toMatchObject({ creditsUsed: 0, success: true });
     expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
 
@@ -267,6 +310,28 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
         success: false,
       });
       expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+    });
+
+    it('keeps the seam reason of a blocked action beside its receipt', async () => {
+      const { brandedTextActions, service } = createService();
+      brandedTextActions.run.mockResolvedValue({
+        code: 'blocked',
+        kind: 'failed',
+        message: 'Your brand voice could not be applied (no_draft_revision).',
+        reasonCode: 'no_draft_revision',
+        receiptId: 'receipt-3',
+      });
+
+      expect(await service.refineText(params, headless)).toEqual({
+        creditsUsed: 0,
+        data: {
+          code: 'blocked',
+          reasonCode: 'no_draft_revision',
+          receiptId: 'receipt-3',
+        },
+        error: 'Your brand voice could not be applied (no_draft_revision).',
+        success: false,
+      });
     });
 
     it.each([

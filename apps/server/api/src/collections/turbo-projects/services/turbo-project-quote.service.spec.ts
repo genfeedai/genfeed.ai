@@ -1,7 +1,7 @@
 import { TurboProjectQuoteService } from '@api/collections/turbo-projects/services/turbo-project-quote.service';
 import { ByokProvider, ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 function ideaItem(id: string, format: string) {
   return {
@@ -207,5 +207,67 @@ describe('TurboProjectQuoteService', () => {
         revision: 1,
       }),
     ).rejects.toThrow(ConflictException);
+  });
+
+  describe('ideas without a spoken script (#6933)', () => {
+    function idea(
+      id: string,
+      format: string,
+      fields: Record<string, unknown>,
+      position = 0,
+    ) {
+      const base = ideaItem(id, format);
+      return { ...base, idea: { ...base.idea, ...fields }, position };
+    }
+    const build = (items: unknown[]) =>
+      service.build({
+        brandId: 'brand-1',
+        userId: 'user-1',
+        organizationId: 'org-1',
+        revision: 1,
+        items: items.map((item) => ({ attempt: 1, item: item as never })),
+      });
+
+    it('quotes image and video ideas with an empty caption alongside an avatar', async () => {
+      const quote = await build([
+        idea('image-1', 'image', { caption: '' }),
+        idea('video-1', 'video', { caption: '' }),
+        idea('avatar-1', 'avatar', { speechText: 'Say hi' }),
+      ]);
+
+      expect(quote.items.map((line) => line.format)).toEqual([
+        'image',
+        'video',
+        'avatar',
+      ]);
+      expect(avatarGeneration.quoteCredits).toHaveBeenCalledExactlyOnceWith(
+        { text: 'Say hi', useIdentity: true },
+        expect.anything(),
+      );
+    });
+
+    it('speaks the caption when an avatar script is blank', async () => {
+      await build([idea('avatar-1', 'avatar', { speechText: '   ' })]);
+
+      expect(avatarGeneration.quoteCredits).toHaveBeenCalledWith(
+        { text: 'Caption', useIdentity: true },
+        expect.anything(),
+      );
+    });
+
+    it('names the avatar idea that has nothing to speak before pricing anything', async () => {
+      await expect(
+        build([
+          idea('image-1', 'image', {}),
+          idea('avatar-1', 'avatar', { caption: '', speechText: '' }, 1),
+        ]),
+      ).rejects.toThrow(
+        new BadRequestException(
+          'Avatar idea 2 has no script to speak. Add a script or caption before quoting.',
+        ),
+      );
+      expect(estimate.estimate).not.toHaveBeenCalled();
+      expect(avatarGeneration.quoteCredits).not.toHaveBeenCalled();
+    });
   });
 });

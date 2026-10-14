@@ -108,6 +108,12 @@ export interface ITurboProjectItemDispatch {
   billingMode: TurboProjectBillingMode;
   reservationId?: string;
   /**
+   * What the line was charged at settlement, including any clip overrun. A
+   * per-second avatar settles to the clip length HeyGen returned, so this can
+   * differ from the accepted `credits`.
+   */
+  settledCredits?: number;
+  /**
    * `queued` until credits are reserved right before the provider call;
    * `settled` once a usable output lands; `released` when it fails.
    */

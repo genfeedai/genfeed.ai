@@ -1,8 +1,10 @@
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { CreditPackTier } from '@genfeedai/contracts/interfaces';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   AVATAR_CREDIT_COSTS,
   applyMargin,
+  avatarClipCreditRange,
   BASE_PROVIDER_COST_FRACTION,
   CREDIT_VALUE_DOLLARS,
   creditPackPrice,
@@ -35,6 +37,7 @@ import {
   WEBSITE_CREDIT_PACKS,
   websitePlans,
 } from '../src/plans-pricing';
+import { REVIEWED_RATE_SHEET_ENTRIES } from '../src/reviewed-rates';
 
 describe('plan lookups', () => {
   it('finds plans by label case-insensitively', () => {
@@ -291,7 +294,6 @@ describe('pricing constants', () => {
     expect(INTERNAL_CREDIT_COSTS.image).toBe(50);
     expect(INTERNAL_CREDIT_COSTS.image4k).toBe(100);
     expect(INTERNAL_CREDIT_COSTS.videoPerSecond).toBe(75);
-    expect(INTERNAL_CREDIT_COSTS.avatarPerSecond).toBe(100);
     expect(INTERNAL_CREDIT_COSTS.voicePerMinute).toBe(17);
   });
 
@@ -300,9 +302,39 @@ describe('pricing constants', () => {
       INTERNAL_CREDIT_COSTS.videoPerSecond * 4,
     );
     expect(VIDEO_CREDIT_COSTS.video15s).toBe(1125);
-    expect(AVATAR_CREDIT_COSTS.avatar8s).toBe(
-      INTERNAL_CREDIT_COSTS.avatarPerSecond * 8,
-    );
+  });
+
+  it('derives the avatar clip range from the reviewed HeyGen per-second rates', () => {
+    const avatarEndpoints: readonly string[] = [
+      MODEL_KEYS.HEYGEN_AVATAR,
+      MODEL_KEYS.HEYGEN_AVATAR_IV,
+      MODEL_KEYS.HEYGEN_AVATAR_V,
+    ];
+    const avatarRates = REVIEWED_RATE_SHEET_ENTRIES.filter(
+      (entry) =>
+        entry.provider === 'heygen' && avatarEndpoints.includes(entry.endpoint),
+    ).flatMap((entry) => entry.rates.map((rate) => rate.unitPriceUsd));
+    const clip = (usdPerSecond: number) =>
+      applyMargin(usdPerSecond * 4, DEFAULT_GENERATION_MARGIN_MULTIPLIER);
+
+    expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({
+      maxCredits: clip(Math.max(...avatarRates)),
+      minCredits: clip(Math.min(...avatarRates)),
+    });
+    // Photo animation $0.0385/s and Avatar V $0.12/s, 4 s at the 3.33 margin.
+    expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({
+      maxCredits: 160,
+      minCredits: 52,
+    });
+    // An Avatar IV digital twin ($0.0805/s) falls inside the range.
+    expect(clip(0.0805)).toBe(108);
+  });
+
+  it('scales an avatar clip with its length the way admission holds it', () => {
+    expect(avatarClipCreditRange(10)).toEqual({
+      maxCredits: 400,
+      minCredits: 129,
+    });
   });
 
   it('embeds the included-credit grant into the subscription feature copy', () => {

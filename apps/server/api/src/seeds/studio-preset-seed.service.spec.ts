@@ -10,8 +10,8 @@ import { describe, expect, it, vi } from 'vitest';
 function fixture() {
   const prisma = {
     preset: {
+      create: vi.fn().mockResolvedValue({}),
       findUnique: vi.fn().mockResolvedValue(null),
-      upsert: vi.fn().mockResolvedValue({}),
     },
   };
   const logger = { error: vi.fn() };
@@ -25,18 +25,24 @@ function fixture() {
   };
 }
 describe('StudioPresetSeedService', () => {
-  it('seeds six platform templates using deterministic IDs and preserves operator activation/soft deletion on repeat', async () => {
+  it('seeds six platform templates using deterministic IDs and skips writes on repeat', async () => {
     const { prisma, service } = fixture();
-    expect(await service.reconcileCatalog()).toBe(6);
-    expect(await service.reconcileCatalog()).toBe(6);
+    expect(await service.reconcileCatalog()).toEqual({
+      unchanged: 0,
+      written: 6,
+    });
+    prisma.preset.findUnique.mockResolvedValue({
+      organizationId: null,
+      brandId: null,
+    });
+    expect(await service.reconcileCatalog()).toEqual({
+      unchanged: 6,
+      written: 0,
+    });
     for (const [index, preset] of STUDIO_SYSTEM_PRESETS.entries()) {
-      const first = prisma.preset.upsert.mock.calls[index][0];
-      expect(first.where).toEqual({
+      const first = prisma.preset.create.mock.calls[index][0];
+      expect(first.data).toMatchObject({
         id: studioSystemPresetId(preset.key),
-        organizationId: null,
-        brandId: null,
-      });
-      expect(first.create).toMatchObject({
         organizationId: null,
         brandId: null,
         isActive: true,
@@ -45,13 +51,8 @@ describe('StudioPresetSeedService', () => {
           promptTemplate: preset.values.promptTemplate,
         },
       });
-      expect(first.update).not.toHaveProperty('isActive');
-      expect(first.update).not.toHaveProperty('isDeleted');
-      expect(first.update).toEqual({});
-      expect(prisma.preset.upsert.mock.calls[index + 6][0].where).toEqual(
-        first.where,
-      );
     }
+    expect(prisma.preset.create).toHaveBeenCalledTimes(6);
   });
   it('does not overwrite a tenant or brand-owned row with a colliding ID', async () => {
     const { prisma, service } = fixture();
@@ -59,15 +60,18 @@ describe('StudioPresetSeedService', () => {
       organizationId: 'other-org',
       brandId: 'other-brand',
     });
-    expect(await service.reconcileCatalog()).toBe(0);
-    expect(prisma.preset.upsert).not.toHaveBeenCalled();
+    expect(await service.reconcileCatalog()).toEqual({
+      unchanged: 6,
+      written: 0,
+    });
+    expect(prisma.preset.create).not.toHaveBeenCalled();
   });
-  it('keeps seeding the other templates when one conflicts', async () => {
+  it('keeps seeding the other templates when one conflicts and fails closed', async () => {
     const { prisma, logger, service } = fixture();
-    const [conflicting, ...others] = STUDIO_SYSTEM_PRESETS;
-    prisma.preset.upsert.mockImplementation(
-      async ({ where }: { where: { id: string } }) => {
-        if (where.id === studioSystemPresetId(conflicting.key)) {
+    const [conflicting] = STUDIO_SYSTEM_PRESETS;
+    prisma.preset.create.mockImplementation(
+      async ({ data }: { data: { id: string } }) => {
+        if (data.id === studioSystemPresetId(conflicting.key)) {
           throw Object.assign(new Error('Unique constraint failed'), {
             code: 'P2002',
           });
@@ -76,9 +80,11 @@ describe('StudioPresetSeedService', () => {
       },
     );
 
-    expect(await service.reconcileCatalog()).toBe(others.length);
+    await expect(service.reconcileCatalog()).rejects.toThrow(
+      `Studio system preset reconcile failed for: ${conflicting.key}`,
+    );
 
-    expect(prisma.preset.upsert).toHaveBeenCalledTimes(
+    expect(prisma.preset.create).toHaveBeenCalledTimes(
       STUDIO_SYSTEM_PRESETS.length,
     );
     expect(logger.error).toHaveBeenCalledTimes(1);
@@ -87,11 +93,5 @@ describe('StudioPresetSeedService', () => {
       expect.any(Error),
       'StudioPresetSeedService',
     );
-  });
-  it('reports seed failures without preventing application bootstrap', async () => {
-    const { prisma, logger, service } = fixture();
-    prisma.preset.upsert.mockRejectedValue(new Error('DB unavailable'));
-    await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
-    expect(logger.error).toHaveBeenCalled();
   });
 });

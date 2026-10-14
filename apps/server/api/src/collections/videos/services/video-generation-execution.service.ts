@@ -30,6 +30,7 @@ import {
   ReplicateProviderError,
 } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import {
+  resolveMediaGenerationReceiptBrand,
   resolveMediaGenerationReceiptPrompts,
   resolveMediaGenerationReceiptSurface,
 } from '@api/services/media-generation-receipts/media-generation-receipt-input.util';
@@ -614,6 +615,7 @@ export class VideoGenerationExecutionService {
       parentIngredientId: String(context.ingredientData.id),
       mediaKind: 'video',
       surface: resolveMediaGenerationReceiptSurface(),
+      ...resolveMediaGenerationReceiptBrand(context.generationHarness),
       provider:
         this.providerDispatchService.providerFor(
           context.model,

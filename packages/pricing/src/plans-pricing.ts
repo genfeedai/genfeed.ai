@@ -23,11 +23,13 @@ import { ceilDecimalPricingRatio } from './decimal-pricing';
  * @updated 2026-07-06
  */
 
+import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
 import type {
   CreditPackTier,
   ServiceOfferingProps,
   TrainingPackageProps,
 } from '@genfeedai/contracts/interfaces';
+import { REVIEWED_RATE_SHEET_ENTRIES } from './reviewed-rates/reviewed-rate-sheet.data';
 
 export type { CreditPackTier, ServiceOfferingProps, TrainingPackageProps };
 
@@ -297,8 +299,6 @@ export function applyMargin(
 export const INTERNAL_CREDIT_COSTS = {
   /** Long-form article: 25 credits = $0.25 */
   articlePerPost: 25,
-  /** Avatar/Lip-sync per second: 100 credits = $1.00/sec */
-  avatarPerSecond: 100,
   /** Image (1K/2K): 50 credits = $0.50 */
   image: 50,
   /** Image (4K): 100 credits = $1.00 */
@@ -322,17 +322,51 @@ export const VIDEO_CREDIT_COSTS = {
   video15s: INTERNAL_CREDIT_COSTS.videoPerSecond * 15,
 } as const;
 
+/** HeyGen's per-second avatar renders: photo animation and the trained-look engines. */
+const AVATAR_RATE_ENDPOINTS: readonly string[] = [
+  MODEL_KEYS.HEYGEN_AVATAR,
+  MODEL_KEYS.HEYGEN_AVATAR_IV,
+  MODEL_KEYS.HEYGEN_AVATAR_V,
+];
+
+/** The cheapest and dearest credit price of one output. */
+export interface CreditRange {
+  maxCredits: number;
+  minCredits: number;
+}
+
 /**
- * Avatar duration helpers
- * Standard avatar durations and their credit costs
+ * Credits for an avatar clip of `seconds`, from the reviewed HeyGen
+ * per-second rates at the default margin: a photo animation is the floor, an
+ * Avatar V digital twin the ceiling. Admission prices a render from the same
+ * rates, so the public figure cannot drift from the hold.
  */
+export function avatarClipCreditRange(seconds: number): CreditRange {
+  const credits = REVIEWED_RATE_SHEET_ENTRIES.filter(
+    (entry) =>
+      entry.provider === 'heygen' &&
+      AVATAR_RATE_ENDPOINTS.includes(entry.endpoint),
+  ).flatMap((entry) =>
+    entry.rates
+      .filter((rate) => rate.unit === 'second')
+      .map((rate) =>
+        applyMargin(
+          rate.unitPriceUsd * seconds,
+          DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+        ),
+      ),
+  );
+  if (credits.length === 0)
+    throw new Error('No reviewed HeyGen per-second avatar rate');
+  return {
+    maxCredits: Math.max(...credits),
+    minCredits: Math.min(...credits),
+  };
+}
+
+/** Standard avatar clip lengths and their credit range. */
 export const AVATAR_CREDIT_COSTS = {
-  /** 4 second avatar: 400 credits = $4.00 */
-  avatar4s: INTERNAL_CREDIT_COSTS.avatarPerSecond * 4,
-  /** 8 second avatar: 800 credits = $8.00 */
-  avatar8s: INTERNAL_CREDIT_COSTS.avatarPerSecond * 8,
-  /** 15 second avatar: 1500 credits = $15.00 */
-  avatar15s: INTERNAL_CREDIT_COSTS.avatarPerSecond * 15,
+  avatar4s: avatarClipCreditRange(4),
 } as const;
 
 /**

@@ -86,4 +86,60 @@ describe('GenerationHarnessReceipt', () => {
     expect(screen.getByText('This generation’s override')).toBeInTheDocument();
     expect(screen.queryByText('Applied context')).not.toBeInTheDocument();
   });
+
+  it.each([
+    ['approved_brand', 'Approved brand', undefined],
+    [
+      'provisional_brand',
+      'Provisional brand',
+      'Your brand kit is not approved yet. This was generated from the draft kit and is not checked for compliance.',
+    ],
+    [
+      'raw',
+      'Not branded',
+      'The prompt was sent exactly as typed. No brand was applied.',
+    ],
+  ] as const)(
+    'states how the %s generation treated the brand',
+    (brandMode, label, hint) => {
+      render(
+        <GenerationHarnessReceipt
+          receipt={{
+            originalPrompt: 'A cat',
+            enhancedPrompt: 'A cat',
+            status: brandMode === 'raw' ? 'skipped' : 'applied',
+            source: 'brand',
+            brandId: 'brand-1',
+            brandMode,
+            appliedPacks: [],
+          }}
+        />,
+        { wrapper: EnglishMessages },
+      );
+      expect(screen.getByText(label)).toBeInTheDocument();
+      if (hint) expect(screen.getByText(hint)).toBeInTheDocument();
+      else
+        expect(
+          screen.queryByText(/not approved yet|exactly as typed/),
+        ).not.toBeInTheDocument();
+    },
+  );
+
+  it('shows no brand badge for a receipt written before brand modes existed', () => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{
+          originalPrompt: 'old',
+          enhancedPrompt: 'old',
+          status: 'skipped',
+          source: 'default',
+          brandId: 'brand-1',
+          appliedPacks: [],
+        }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    expect(screen.queryByText('Not branded')).not.toBeInTheDocument();
+    expect(screen.queryByText('Provisional brand')).not.toBeInTheDocument();
+  });
 });

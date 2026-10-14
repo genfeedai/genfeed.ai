@@ -1,11 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import type {
   ResolveGenerationBrandMembersServiceLike,
   ResolveGenerationBrandServiceLike,
 } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
-import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
-import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
@@ -13,8 +12,12 @@ import {
   type AiActionResult,
   AiActionsService,
 } from '@api/endpoints/ai-actions/ai-actions.service';
+import { BrandedContentActionsService } from '@api/endpoints/ai-actions/branded-content-actions.service';
 import { BrandedTextActionsService } from '@api/endpoints/ai-actions/branded-text-actions.service';
-import type { TextActionFailureV1 } from '@api/endpoints/ai-actions/branded-text-actions.types';
+import type {
+  BrandedPostsOutcomeV1,
+  TextActionFailureV1,
+} from '@api/endpoints/ai-actions/branded-text-actions.types';
 import {
   AiActionType,
   type ExecuteAiActionDto,
@@ -47,6 +50,7 @@ import type {
   AgentToolResult,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
+import { extractHashtags } from '@genfeedai/utils/server';
 import { Inject, Injectable } from '@nestjs/common';
 
 const AI_ACTIONS: Readonly<Record<string, AiActionType>> = {
@@ -68,14 +72,6 @@ const AI_ACTIONS: Readonly<Record<string, AiActionType>> = {
   'tone-adjust': AiActionType.TONE_ADJUST,
   translate: AiActionType.ADAPT_PLATFORM,
 };
-
-function splitThreadSegments(content: string): string[] {
-  const segments = content
-    .split(/\n{2,}/u)
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-  return segments.length > 0 ? segments : [content];
-}
 
 /**
  * The user's composer selection is authoritative for the turn: the model may
@@ -179,11 +175,39 @@ const INSUFFICIENT_TEXT_CREDITS_RESULT: AgentToolResult = {
   success: false,
 };
 
+/** A stopped branded generation: the stable code, the seam reason and the receipt it left. */
+function stoppedTextResult(outcome: TextActionFailureV1): AgentToolResult {
+  return {
+    creditsUsed: 0,
+    data: {
+      code: outcome.code,
+      ...(outcome.reasonCode ? { reasonCode: outcome.reasonCode } : {}),
+      ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
+    },
+    error: outcome.message,
+    success: false,
+  };
+}
+
+const KNOWLEDGE_PURPOSES_UNSUPPORTED_RESULT: AgentToolResult = {
+  creditsUsed: 0,
+  data: { code: 'knowledge_purposes_unsupported' },
+  error:
+    'Knowledge purposes cannot ground a receipt-backed draft. Select Knowledge sources or a space instead.',
+  success: false,
+};
+
+function readTextList(value: unknown): string[] | undefined {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : undefined;
+}
+
 @Injectable()
 export class AgentMediaTextGenerationService {
   constructor(
     private readonly aiActionsService: AiActionsService,
-    private readonly contentGeneratorService: ContentGeneratorService,
+    private readonly brandedContentActions: BrandedContentActionsService,
     private readonly newslettersService: NewslettersService,
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
@@ -365,17 +389,7 @@ export class AgentMediaTextGenerationService {
         userId: ctx.userId,
       },
     );
-    if (outcome.kind === 'failed') {
-      return {
-        creditsUsed: 0,
-        data: {
-          code: outcome.code,
-          ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
-        },
-        error: outcome.message,
-        success: false,
-      };
-    }
+    if (outcome.kind === 'failed') return stoppedTextResult(outcome);
     if (outcome.hasNewDispatch) {
       await this.chargeTextGeneration(ctx, brandId, input.chargeLabel);
     }
@@ -587,6 +601,13 @@ export class AgentMediaTextGenerationService {
     };
   }
 
+  /**
+   * Social drafts are written through the branded seam (#5786): the server
+   * resolves the mode (approved kit, else the provisional draft), one
+   * receipt-backed provider call writes the posts, and the receipt id returns
+   * to the chat. Billing mirrors the other text tools: admitted up front,
+   * charged once after a new provider call.
+   */
   private async generateSocialContent(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -594,19 +615,26 @@ export class AgentMediaTextGenerationService {
     variationsCount: number,
   ): Promise<AgentToolResult> {
     const platform =
-      (readOptionalString(params.platform) as ContentIntelligencePlatform) ??
+      readOptionalString(params.platform) ??
       ContentIntelligencePlatform.TWITTER;
+    const topic = readOptionalString(params.topic);
+    if (!topic) {
+      return {
+        creditsUsed: 0,
+        error: 'A topic is required to generate content.',
+        success: false,
+      };
+    }
     const knowledge = resolveToolKnowledgeSelection(params, ctx);
-    const brand = await resolveGenerationBrand({
-      brandsService: this.brandsService,
-      contextBrandId: ctx.brandId,
-      explicitBrandId:
-        typeof params.brandId === 'string' ? params.brandId : undefined,
-      membersService: this.membersService,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-    if (!brand?.id) {
+    if (
+      knowledge?.purposes?.length &&
+      !knowledge.sourceIds?.length &&
+      !knowledge.spaceIds?.length
+    ) {
+      return KNOWLEDGE_PURPOSES_UNSUPPORTED_RESULT;
+    }
+    const brandId = await this.resolveBrandId(params, ctx);
+    if (!brandId) {
       return {
         creditsUsed: 0,
         error: 'A brand is required to generate content.',
@@ -616,72 +644,64 @@ export class AgentMediaTextGenerationService {
     if (!(await this.hasTextGenerationCredits(ctx))) {
       return INSUFFICIENT_TEXT_CREDITS_RESULT;
     }
-    const results = await this.contentGeneratorService.generateContent(
-      ctx.organizationId,
-      {
-        additionalContext: params.additionalContext as string[] | undefined,
-        brandId: String(brand.id),
-        ...(knowledge ? { knowledge } : {}),
+    const isThread = normalizedType === 'thread';
+    const outcome: BrandedPostsOutcomeV1 =
+      await this.brandedContentActions.generateSocial({
+        actor: resolveToolSchedulePrincipal(ctx) ?? {
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
+        },
+        additionalContext: readTextList(params.additionalContext),
+        brandId,
+        isThread,
+        knowledgeSourceIds: knowledge?.sourceIds,
+        knowledgeSpaceIds: knowledge?.spaceIds,
         platform,
-        topic: params.topic as string,
-        variationsCount,
-      } satisfies GenerateContentDto,
-    );
-    const generated = results[0];
-    // The generator swallows LLM failures and returns no results; never bill
-    // a call that produced no draft.
-    if (!generated?.content?.trim()) {
-      return EMPTY_TEXT_GENERATION_RESULT;
+        requestKey: randomUUID(),
+        topic,
+        variants: variationsCount,
+      });
+    if (outcome.kind === 'failed') return stoppedTextResult(outcome);
+    if (outcome.hasNewDispatch) {
+      await this.chargeTextGeneration(
+        ctx,
+        brandId,
+        `Agent tool: generate_content (${normalizedType})`,
+      );
     }
-    await this.chargeTextGeneration(
-      ctx,
-      String(brand.id),
-      `Agent tool: generate_content (${normalizedType})`,
-    );
-    const threadSegments =
-      normalizedType === 'thread' && generated?.content
-        ? splitThreadSegments(generated.content)
-        : undefined;
-    const knowledgeReceipts = generated?.knowledgeReceipts ?? [];
+    const { posts, receiptId, receiptState } = outcome.result;
+    const content = isThread ? posts.join('\n\n') : posts[0];
 
     return {
-      creditsUsed: TEXT_GENERATION_CREDITS,
+      creditsUsed: outcome.hasNewDispatch ? TEXT_GENERATION_CREDITS : 0,
       isBillingDelegated: true,
       data: {
-        content: generated?.content ?? '',
-        hashtags: generated?.hashtags ?? [],
-        hook: generated?.hook,
-        knowledgeReceipts,
-        patternUsed: generated?.patternUsed,
-        ...(variationsCount > 1
+        content,
+        hashtags: extractHashtags(content),
+        receiptId,
+        receiptState,
+        ...(variationsCount > 1 && !isThread
           ? {
-              variations: results.map((variation) => ({
-                body: variation.body,
-                content: variation.content,
-                cta: variation.cta,
-                hashtags: variation.hashtags,
-                hook: variation.hook,
-                patternUsed: variation.patternUsed,
+              variations: posts.map((post) => ({
+                content: post,
+                hashtags: extractHashtags(post),
               })),
             }
           : {}),
       },
-      nextActions: generated?.content
-        ? [
-            {
-              contentFormat:
-                normalizedType === 'thread' ? 'thread' : 'social_post',
-              description: `${formatPlatformLabel(platform)} draft ready for review.`,
-              id: `content-gen-${Date.now()}`,
-              ...(knowledgeReceipts.length > 0 ? { knowledgeReceipts } : {}),
-              platform,
-              textContent: threadSegments?.[0] ?? generated.content,
-              title: `${formatPlatformLabel(platform)} ${normalizedType === 'thread' ? 'thread' : 'post'}`,
-              tweets: threadSegments,
-              type: 'content_preview_card',
-            },
-          ]
-        : [],
+      nextActions: [
+        {
+          brandedReceipt: { id: receiptId, state: receiptState },
+          contentFormat: isThread ? 'thread' : 'social_post',
+          description: `${formatPlatformLabel(platform)} draft ready for review.`,
+          id: `content-gen-${receiptId}`,
+          platform,
+          textContent: posts[0],
+          title: `${formatPlatformLabel(platform)} ${isThread ? 'thread' : 'post'}`,
+          tweets: isThread ? posts : undefined,
+          type: 'content_preview_card',
+        },
+      ],
       success: true,
     };
   }

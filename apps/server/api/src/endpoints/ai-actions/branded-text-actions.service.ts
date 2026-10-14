@@ -1,4 +1,3 @@
-import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import type {
   ReplyVariantsOutcomeV1,
   ReplyVariantsRequestV1,
@@ -6,13 +5,11 @@ import type {
   TextActionOutcomeV1,
   TextActionRequestV1,
 } from '@api/endpoints/ai-actions/branded-text-actions.types';
+import { outputTokens } from '@api/endpoints/ai-actions/branded-text-output-tokens.util';
 import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
-import {
-  NO_BRAND_VOICE_HINT,
-  REPLY_MAX_CHARACTERS,
-} from '@genfeedai/contracts/constants';
+import { REPLY_MAX_CHARACTERS } from '@genfeedai/contracts/constants';
 import {
   createReplyVariantsGate,
   splitReplyVariants,
@@ -26,9 +23,6 @@ import {
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_CHANNEL_LIMIT = 5000;
-const MAX_OUTPUT_TOKENS = 32000;
-/** Rough characters per token, to size the answer a provider may give. */
-const CHARACTERS_PER_TOKEN = 2;
 /** Room a single reply needs in the answer, whatever the platform allows. */
 const REPLY_TOKEN_CEILING_CHARACTERS = 1000;
 
@@ -37,16 +31,6 @@ const UNSUPPORTED_PLATFORM: TextActionFailureV1 = {
   code: 'unsupported_platform',
   message: 'This platform is not supported for text actions.',
 };
-
-function outputTokens(characters: number): number {
-  return Math.min(
-    MAX_OUTPUT_TOKENS,
-    Math.max(
-      TEXT_GENERATION_LIMITS.postTweetGeneration,
-      Math.ceil(characters / CHARACTERS_PER_TOKEN),
-    ),
-  );
-}
 
 /**
  * The text actions of the browser extension: proofread or rewrite the user's
@@ -89,14 +73,13 @@ export class BrandedTextActionsService {
           ? 'Extension proofread'
           : 'Extension rewrite',
       platform: capability.platform,
-      promptFor: (hasBrandVoice) =>
-        buildTextActionPrompt({
-          hasBrandVoice,
-          maxCharacters,
-          mode: request.mode,
-          platformLabel: capability.label,
-          text: request.text,
-        }),
+      prompt: buildTextActionPrompt({
+        hasBrandVoice: true,
+        maxCharacters,
+        mode: request.mode,
+        platformLabel: capability.label,
+        text: request.text,
+      }),
       requestKey: request.requestKey,
       sourceText: request.text,
     });
@@ -109,7 +92,7 @@ export class BrandedTextActionsService {
         message: isDroppedToken
           ? 'The edit dropped or changed a mention, hashtag or link. Try again.'
           : `The result did not fit the ${maxCharacters}-character limit. Try again.`,
-        ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
+        receiptId: outcome.receiptId,
       };
     }
     if (outcome.kind === 'failed') return outcome;
@@ -117,14 +100,14 @@ export class BrandedTextActionsService {
       kind: 'completed',
       hasNewDispatch: outcome.hasNewDispatch,
       result: {
-        hasBrandVoice: outcome.hasBrandVoice,
+        hasBrandVoice: true,
         isReplayed: outcome.isReplayed,
         maxCharacters,
         mode: request.mode,
         platform: request.platform,
+        receiptId: outcome.receiptId,
+        receiptState: outcome.receiptState,
         text: outcome.text,
-        ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
-        ...(outcome.hasBrandVoice ? {} : { voiceHint: NO_BRAND_VOICE_HINT }),
       },
     };
   }
@@ -159,16 +142,15 @@ export class BrandedTextActionsService {
       },
       label: 'Extension reply options',
       platform: capability.platform,
-      promptFor: (hasBrandVoice) =>
-        buildReplyVariantsPrompt({
-          hasBrandVoice,
-          maxCharacters,
-          platformLabel: capability.label,
-          postAuthor: request.postAuthor,
-          postContent: request.postContent,
-          tone: request.tone,
-          variants: request.variants,
-        }),
+      prompt: buildReplyVariantsPrompt({
+        hasBrandVoice: true,
+        maxCharacters,
+        platformLabel: capability.label,
+        postAuthor: request.postAuthor,
+        postContent: request.postContent,
+        tone: request.tone,
+        variants: request.variants,
+      }),
       requestKey: request.requestKey,
       sourceText: request.postContent,
     });
@@ -178,7 +160,7 @@ export class BrandedTextActionsService {
         kind: 'failed',
         code: 'no_usable_reply',
         message: 'The model gave no usable reply. Try again.',
-        ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
+        receiptId: outcome.receiptId,
       };
     }
     if (outcome.kind === 'failed') return outcome;
@@ -186,14 +168,14 @@ export class BrandedTextActionsService {
       kind: 'completed',
       hasNewDispatch: outcome.hasNewDispatch,
       result: {
-        hasBrandVoice: outcome.hasBrandVoice,
+        hasBrandVoice: true,
         isReplayed: outcome.isReplayed,
         maxCharacters,
         platform: request.platform,
+        receiptId: outcome.receiptId,
+        receiptState: outcome.receiptState,
         tone: request.tone,
         variants: splitReplyVariants(outcome.text),
-        ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
-        ...(outcome.hasBrandVoice ? {} : { voiceHint: NO_BRAND_VOICE_HINT }),
       },
     };
   }

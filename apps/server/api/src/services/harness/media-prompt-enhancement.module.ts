@@ -1,3 +1,5 @@
+import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
+import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { GenerationHarnessController } from '@api/services/harness/generation-harness.controller';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
@@ -7,7 +9,13 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [ContentHarnessModule, PromptEnhancementModule, LoggerModule],
+  imports: [
+    BrandedGenerationReceiptsModule,
+    BrandedTextGenerationModule,
+    ContentHarnessModule,
+    PromptEnhancementModule,
+    LoggerModule,
+  ],
   controllers: [GenerationHarnessController],
   providers: [GenerationHarnessSettingsService, MediaPromptEnhancementService],
   exports: [GenerationHarnessSettingsService, MediaPromptEnhancementService],

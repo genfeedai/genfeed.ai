@@ -1,4 +1,6 @@
 import {
+  AVATAR_CREDIT_COSTS,
+  avatarClipCreditRange,
   formatOutputs,
   formatPrice,
   getPlanByTier,
@@ -179,5 +181,17 @@ describe('PricingContent launch pricing', () => {
       expect(brands).toMatch(/brands and connected channels/i);
       expect(api).toMatch(/API/);
     }
+  });
+
+  it('prices the avatar clip from the reviewed HeyGen rates, not a flat per-second guess', () => {
+    render(<PricingContent />);
+    const { maxCredits, minCredits } = avatarClipCreditRange(4);
+    const row = screen.getByText('Avatar clip (4s)').parentElement;
+
+    expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({ maxCredits, minCredits });
+    expect(row).toHaveTextContent(`${minCredits}–${maxCredits} credits`);
+    // Photo animation to Avatar V: 52–160 credits, not the old 400.
+    expect(row).toHaveTextContent('52–160 credits≈ $0.52–$1.60');
+    expect(row).not.toHaveTextContent('400 credits');
   });
 });

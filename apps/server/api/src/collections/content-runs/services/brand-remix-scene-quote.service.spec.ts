@@ -30,26 +30,28 @@ vi.mock('@api/services/router/agent-generation-estimate.service', () => ({
   AgentGenerationEstimateService: class {},
 }));
 
-function config() {
+const TWO_SCENES = [
+  {
+    durationSeconds: 5,
+    id: 'scene-a',
+    narration: 'Meet the brand',
+    ordinal: 1,
+    visualIntent: 'Founder holds the product',
+  },
+  {
+    durationSeconds: 5,
+    id: 'scene-b',
+    narration: 'Show the product',
+    ordinal: 2,
+    visualIntent: 'Product on the desk',
+  },
+];
+
+function config(storyboard = TWO_SCENES) {
   return brandRemixRunConfigSchema.parse({
     concept: {
       savedAt: '2026-09-24T00:00:00.000Z',
-      storyboard: [
-        {
-          durationSeconds: 5,
-          id: 'scene-a',
-          narration: 'Meet the brand',
-          ordinal: 1,
-          visualIntent: 'Founder holds the product',
-        },
-        {
-          durationSeconds: 5,
-          id: 'scene-b',
-          narration: 'Show the product',
-          ordinal: 2,
-          visualIntent: 'Product on the desk',
-        },
-      ],
+      storyboard,
     },
     contract: BRAND_REMIX_RUN_CONTRACT,
     draft: {
@@ -169,5 +171,29 @@ describe('BrandRemixSceneQuoteService avatar pricing', () => {
       expect.objectContaining({ billingMode: 'platform', credits: 14 }),
       expect.objectContaining({ billingMode: 'platform', credits: 16 }),
     ]);
+  });
+
+  it('quotes a multi-scene ad priced per second above the old 50-credit cap', async () => {
+    byok.isByokActiveForProvider.mockResolvedValue(false);
+    // A 5 s photo-animation clip is 65 credits at $0.0385/s and 3.33x.
+    avatars.quotePlatformCredits.mockResolvedValue(65);
+    const storyboard = ['a', 'b', 'c', 'd'].map((id, index) => ({
+      durationSeconds: 5,
+      id: `scene-${id}`,
+      narration: `Scene ${id} line`,
+      ordinal: index + 1,
+      visualIntent: `Visual ${id}`,
+    }));
+
+    const quote = await service.build('org', 'brand', config(storyboard), {
+      expectedRevision: 1,
+      operation: 'generate',
+    });
+
+    // 4 stills x 2 + 4 clips x 65 + 1 caption credit.
+    expect(quote.total).toBe(269);
+    expect(quote.items.filter((item) => item.stage === 'video')).toHaveLength(
+      4,
+    );
   });
 });

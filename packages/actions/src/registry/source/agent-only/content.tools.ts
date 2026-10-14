@@ -93,7 +93,7 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: GENERATE_CONTENT_TEXT_CREDITS,
     description:
-      'Generate content for a topic or brief. Social types (caption, post, thread, script, article_outline) return ready-to-publish text with hook, body, CTA and hashtags and are not saved; use platform linkedin for LinkedIn posts and variationsCount for alternatives. type newsletter creates a saved newsletter draft. type article (or x-article) generates and saves an article draft with an id, ready for get_article_preview and publish_article; to import an already written article without regeneration use create_article_draft. Each field lists the types it applies to.',
+      'Generate content for a topic or brief. Social types (caption, post, thread, script, article_outline) return ready-to-publish text written in the brand voice, with a brand receipt (receiptId) and hashtags, and are not scheduled or published; the exact text is kept on that receipt; use platform linkedin for LinkedIn posts and variationsCount for alternatives. type newsletter creates a saved newsletter draft. type article (or x-article) generates and saves an article draft with an id, ready for get_article_preview and publish_article; to import an already written article without regeneration use create_article_draft. Each field lists the types it applies to.',
     name: 'generate_content',
     parameters: {
       properties: {
@@ -103,7 +103,7 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
         },
         knowledgePurposes: {
           description:
-            'Social types. Restrict grounding to saved Knowledge with these purposes (BRAND_TRUTH, INSPIRATION, RESEARCH)',
+            'Social types. Only together with knowledgeSourceIds: a receipt-backed draft cannot be grounded on purposes alone (BRAND_TRUTH, INSPIRATION, RESEARCH)',
           items: {
             enum: ['BRAND_TRUTH', 'INSPIRATION', 'RESEARCH'],
             type: 'string',
@@ -112,7 +112,7 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
         },
         knowledgeSourceIds: {
           description:
-            'Social types. Ground the content on these saved Knowledge source ids only; the output cites them',
+            'Social types. Ground the content on these saved Knowledge source ids only; the brand receipt records them',
           items: { type: 'string' },
           type: 'array',
         },

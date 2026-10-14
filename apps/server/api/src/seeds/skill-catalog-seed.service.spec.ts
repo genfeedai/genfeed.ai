@@ -103,12 +103,8 @@ describe('SkillCatalogSeedService', () => {
         loaderSpy = vi
           .spyOn(firstPartySkillLoader, 'loadFirstPartySkillDefinitions')
           .mockImplementation(() => strictLoader(fixture));
-        await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
-        expect(logger.error).toHaveBeenCalledWith(
-          'First-party skill catalog seed failed — agent skills may be incomplete',
-          expect.any(Error),
-          'SkillCatalogSeedService',
-        );
+        await expect(service.reconcileCatalog()).rejects.toThrow();
+        expect(logger.error).not.toHaveBeenCalled();
         expect(prisma.skill.findUnique).not.toHaveBeenCalled();
         expect(prisma.skill.create).not.toHaveBeenCalled();
         expect(prisma.skill.update).not.toHaveBeenCalled();

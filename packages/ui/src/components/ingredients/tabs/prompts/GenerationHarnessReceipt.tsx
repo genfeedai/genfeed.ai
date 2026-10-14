@@ -1,6 +1,7 @@
 'use client';
 
 import type { GenerationHarnessReceiptProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
+import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
 import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
 import { useTranslations } from 'next-intl';
 
@@ -11,6 +12,19 @@ export default function GenerationHarnessReceipt({
   return (
     <section className="space-y-3 border-t border-border pt-5">
       <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <BrandModeBadge brandMode={receipt.brandMode} />
+        </div>
+        {receipt.brandMode === 'provisional_brand' ? (
+          <p className="text-xs text-muted-foreground">
+            {translate('brandModeHint.provisional_brand')}
+          </p>
+        ) : null}
+        {receipt.brandMode === 'raw' ? (
+          <p className="text-xs text-muted-foreground">
+            {translate('brandModeHint.raw')}
+          </p>
+        ) : null}
         <p className="text-sm font-semibold">
           {receipt.status === 'applied'
             ? translate('promptEnhanced')

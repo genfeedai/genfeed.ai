@@ -7,6 +7,16 @@ import type {
 
 export type MediaGenerationReceiptKindV1 = 'image' | 'video';
 
+/**
+ * The brand revision a media prompt was enhanced against. Absent on an output
+ * that carries no brand (raw): the receipt then records that no identity applied.
+ */
+export interface MediaGenerationReceiptBrandV1 {
+  mode: 'approved_brand' | 'provisional_brand';
+  revisionId: string;
+  revisionVersion: number;
+}
+
 /** One Studio media output, described when it is admitted for dispatch. */
 export interface MediaGenerationReceiptOpenInputV1 {
   organizationId: string;
@@ -21,6 +31,7 @@ export interface MediaGenerationReceiptOpenInputV1 {
   parentIngredientId?: string;
   mediaKind: MediaGenerationReceiptKindV1;
   surface: BrandedGenerationInputV1['surface'];
+  brand?: MediaGenerationReceiptBrandV1;
   provider: string;
   model: string;
   /** What the caller typed, before enhancement or compilation. */

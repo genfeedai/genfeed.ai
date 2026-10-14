@@ -599,7 +599,10 @@ describe('TurboProjectReconcileService', () => {
 
     it('settles the reserved line once a usable output lands, before review', async () => {
       useIdeaItem(IngredientStatus.GENERATED);
-      ideaCredits.settle.mockResolvedValue('settled');
+      ideaCredits.settle.mockResolvedValue({
+        settledCredits: 4,
+        state: 'settled',
+      });
 
       await service.reconcileProject('project-1', 'org-1');
 
@@ -610,6 +613,8 @@ describe('TurboProjectReconcileService', () => {
           organizationId: 'org-1',
         }),
       );
+      // An image is not billed per second.
+      expect(ideaCredits.settle.mock.calls[0]?.[0]).not.toHaveProperty('clip');
       expect(ideaCredits.settle.mock.invocationCallOrder[0]).toBeLessThan(
         turboRunService.createManualReviewTurboRun.mock.invocationCallOrder[0],
       );
@@ -617,6 +622,46 @@ describe('TurboProjectReconcileService', () => {
         dispatch: expect.objectContaining({ state: 'settled' }),
       });
       expect(ideaCredits.release).not.toHaveBeenCalled();
+    });
+
+    it('settles an avatar idea to the measured length of its clip', async () => {
+      useIdeaItem(IngredientStatus.GENERATED);
+      prisma.ingredient.findMany.mockResolvedValue([
+        {
+          category: IngredientCategory.AVATAR,
+          generationError: null,
+          id: 'ingredient-1',
+          metadata: { duration: 7.4 },
+          status: IngredientStatus.GENERATED,
+        },
+      ]);
+      ideaCredits.settle.mockResolvedValue({
+        settledCredits: 95,
+        state: 'settled',
+      });
+
+      await service.reconcileProject('project-1', 'org-1');
+
+      expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            metadata: { select: { duration: true } },
+          }),
+        }),
+      );
+      expect(ideaCredits.settle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clip: { durationSeconds: 7.4 },
+          dispatch: expect.objectContaining({ reservationId: 'reservation-1' }),
+        }),
+      );
+      // The settled amount is recorded, so a retry never re-prices it.
+      expect(updatedItem('item-1')).toContainEqual({
+        dispatch: expect.objectContaining({
+          settledCredits: 95,
+          state: 'settled',
+        }),
+      });
     });
 
     it('releases the reserved line when generation fails', async () => {
