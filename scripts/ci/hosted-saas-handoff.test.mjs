@@ -445,7 +445,7 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     publicDeployCore.indexOf('Snapshot RDS before migrations'),
   );
   const rollApply = publicDeployCore.slice(
-    publicDeployCore.indexOf('Tofu apply (roll services to new image)'),
+    publicDeployCore.indexOf('Roll metadata clients before Files'),
     publicDeployCore.indexOf('Wait for services stable'),
   );
   const authApply = publicDeployCore.slice(

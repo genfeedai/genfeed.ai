@@ -5,8 +5,8 @@
 #
 # Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR ->
 # parallel API and workers boot-smoke -> snapshot -> Prisma migrate task ->
-# OpenTofu apply rolls services (task defs are OpenTofu-managed with
-# image digest) -> wait services-stable -> deploy Vercel frontends -> live
+# reference-data sync -> roll clients and wait stable -> roll Files and wait
+# all services stable -> deploy Vercel frontends -> live
 # post-deploy smoke.
 #
 # The caller validates the exact public source commit. This engine must use that

@@ -30,7 +30,7 @@ test('boot failures stop before the live migration task can change the serving s
   );
   const migrate = workflow.indexOf('      - name: Run DB migrations');
   const roll = workflow.indexOf(
-    '      - name: Tofu apply (roll services to new image)',
+    '      - name: Roll metadata clients before Files',
   );
   assert.ok(
     compatibility > 0 &&
