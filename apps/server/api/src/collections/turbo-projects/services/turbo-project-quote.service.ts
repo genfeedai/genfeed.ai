@@ -11,7 +11,6 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { ModelCategory } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   ITurboProjectQuote,
   ITurboProjectQuoteLine,
@@ -60,7 +59,10 @@ export class TurboProjectQuoteService {
       if (!idea) {
         throw new ConflictException('Only idea items can be quoted.');
       }
-      let priced = pricedByFormat.get(idea.format);
+      // An avatar is priced by its own script length, so only the other
+      // formats share one price per format.
+      let priced =
+        idea.format === 'avatar' ? undefined : pricedByFormat.get(idea.format);
       if (!priced) {
         priced = await this.priceFormat(
           input.organizationId,
@@ -105,7 +107,11 @@ export class TurboProjectQuoteService {
         { text: prompt, useIdentity: true },
         { brandId, organizationId, userId },
       );
-      return { ...price, model: MODEL_KEYS.HEYGEN_AVATAR };
+      return {
+        billingMode: price.billingMode,
+        credits: price.credits,
+        model: price.modelKey,
+      };
     }
 
     const { aspectRatio, duration, height, width } =

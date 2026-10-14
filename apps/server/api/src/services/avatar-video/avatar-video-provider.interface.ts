@@ -39,6 +39,8 @@ export interface AvatarVideoJobResult {
   /** `unknown`: the provider could not be read; never treat it as failure. */
   status: 'queued' | 'processing' | 'completed' | 'failed' | 'unknown';
   videoUrl?: string;
+  /** Clip seconds the provider reports on completion. */
+  duration?: number;
   error?: string;
 }
 

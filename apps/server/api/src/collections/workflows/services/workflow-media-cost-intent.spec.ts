@@ -10,13 +10,18 @@ describe('workflow media billing intent', () => {
       'heygen',
       null,
       'pending_charge',
-      MODEL_KEYS.HEYGEN_AVATAR,
+      MODEL_KEYS.HEYGEN_AVATAR_IV,
     ],
     ['imageGen', 'replicate', false, 'not_charged', 'image-model'],
   ])(
     'pins truthful billing disposition for %s',
     async (actionId, provider, isByok, billingDisposition, model) => {
       const transaction = {
+        ingredient: {
+          findFirst: vi.fn().mockResolvedValue({
+            metadata: { model: MODEL_KEYS.HEYGEN_AVATAR_IV },
+          }),
+        },
         model: { findFirst: vi.fn().mockResolvedValue(null) },
         mediaVendorCost: { create: vi.fn() },
       };
@@ -47,6 +52,34 @@ describe('workflow media billing intent', () => {
       });
     },
   );
+
+  it('falls back to the flat avatar row when the output records no engine', async () => {
+    const transaction = {
+      ingredient: { findFirst: vi.fn().mockResolvedValue(null) },
+      model: { findFirst: vi.fn().mockResolvedValue(null) },
+      mediaVendorCost: { create: vi.fn() },
+    };
+    await createWorkflowMediaCostIntent(
+      transaction as unknown as Prisma.TransactionClient,
+      {
+        actionId: 'aiAvatarVideo',
+        executionId: 'run',
+        ingredientId: 'asset',
+        nodeId: 'node',
+        organizationId: 'org',
+        provider: 'heygen',
+      },
+      'continuation',
+    );
+    expect(transaction.ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'asset', isDeleted: false, organizationId: 'org' },
+      }),
+    );
+    expect(transaction.mediaVendorCost.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ model: MODEL_KEYS.HEYGEN_AVATAR }),
+    });
+  });
 
   it('records a BYOK Replicate continuation as BYOK in the pricing snapshot', async () => {
     const transaction = {

@@ -1,3 +1,7 @@
+import {
+  estimateAvatarSpeechSeconds,
+  readAvatarDurationSeconds,
+} from '@api/collections/videos/services/avatar-video-duration.util';
 import type {
   AvatarGenerationFunding,
   AvatarGenerationPrice,
@@ -10,6 +14,7 @@ import type {
   ResolvedIdentity,
 } from '@api/collections/videos/services/avatar-video-generation.types';
 import { resolveAvatarIdentityInputs } from '@api/collections/videos/services/avatar-video-identity.util';
+import { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import type { HeyGenGenerationProvider } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 
@@ -51,7 +56,6 @@ import {
   MetadataExtension,
   VoiceProvider,
 } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -78,6 +82,7 @@ export class AvatarVideoGenerationService {
     private readonly voicesService: VoicesService,
     private readonly lifecycleService: AvatarVideoLifecycleService,
     private readonly referenceService: AvatarVideoReferenceService,
+    private readonly avatarModels: AvatarVideoModelService,
   ) {}
 
   /** Quote the same resolved identity and funding sources generation will use. */
@@ -90,11 +95,12 @@ export class AvatarVideoGenerationService {
     await this.admitCharacter(identity, brand.id, context);
     this.assertUsableVoiceSource(params, identity);
     await this.admitIdentity(params, identity, context);
-    const { billingMode, credits } = await this.resolveFunding(
+    const { billingMode, credits, modelKey } = await this.resolveFunding(
+      params,
       identity,
       context,
     );
-    return { billingMode, credits };
+    return { billingMode, credits, modelKey };
   }
 
   /**
@@ -113,11 +119,20 @@ export class AvatarVideoGenerationService {
     );
   }
 
-  /** Pin provider keys before reserving, so a BYOK change cannot change who pays. */
+  /**
+   * Pin provider keys before reserving, so a BYOK change cannot change who
+   * pays, and choose the engine row the render is priced as.
+   */
   private async resolveFunding(
+    params: AvatarVideoGenerationParams,
     identity: ResolvedIdentity,
     context: AvatarVideoGenerationContext,
   ): Promise<AvatarGenerationFunding> {
+    const selection = await this.avatarModels.resolve(
+      params,
+      identity.avatarRef,
+      context.organizationId,
+    );
     const connection =
       identity.heygenConnection ??
       (await this.heygenService.resolveOrganizationConnection(
@@ -136,18 +151,58 @@ export class AvatarVideoGenerationService {
       Boolean(identity.savedVoice) ||
       (Boolean(identity.elevenlabsVoiceId) && !elevenLabsKey);
     const isByok = Boolean(heygenKey) && !usesPlatformSpeech;
+    const quote = isByok
+      ? undefined
+      : await this.avatarBilling.quoteRender(
+          selection,
+          selection.engine
+            ? await this.estimateRenderSeconds(params, identity, context)
+            : undefined,
+        );
     return {
       billingMode: isByok ? 'byok' : 'platform',
-      credits: isByok ? 0 : await this.quotePlatformCredits(),
+      credits: quote?.credits ?? 0,
+      ...(quote?.durationQuote ? { durationQuote: quote.durationQuote } : {}),
+      ...(selection.engine ? { engine: selection.engine } : {}),
       heygenApiKey: connection.apiKey,
       elevenLabsApiKey: elevenLabsKey?.apiKey,
+      modelKey: selection.modelKey,
     };
   }
 
   /**
-   * The platform price comes from the `heygen/avatar` model row, the same row
-   * the credits guard reserves from. A row that resolves to no price fails
-   * closed: with no fallback constant, zero would mean a free render.
+   * The clip length an engine render is held for: a saved narration's measured
+   * duration, else an estimate from the script. Settlement corrects either to
+   * the duration HeyGen returns.
+   */
+  private async estimateRenderSeconds(
+    params: AvatarVideoGenerationParams,
+    identity: ResolvedIdentity,
+    context: AvatarVideoGenerationContext,
+  ): Promise<number | undefined> {
+    const audioIngredientId =
+      identity.audioIngredientId ?? params.audioIngredientId;
+    if (audioIngredientId) {
+      const audio = await this.videosService.prisma.ingredient.findFirst({
+        select: { metadata: { select: { duration: true } } },
+        where: {
+          id: audioIngredientId,
+          isDeleted: false,
+          organizationId: context.organizationId,
+        },
+      });
+      const measured = readAvatarDurationSeconds(audio?.metadata?.duration);
+      if (measured !== undefined) return Math.ceil(measured);
+    }
+    return params.text.trim()
+      ? estimateAvatarSpeechSeconds(params.text)
+      : undefined;
+  }
+
+  /**
+   * The flat photo-animation price from the `heygen/avatar` row. A row that
+   * resolves to no price fails closed: with no fallback constant, zero would
+   * mean a free render.
    */
   async quotePlatformCredits(): Promise<number> {
     return this.avatarBilling.quotePlatformCredits();
@@ -181,7 +236,11 @@ export class AvatarVideoGenerationService {
       );
       this.assertUsableVoiceSource(params, resolvedIdentity);
       await this.admitIdentity(params, resolvedIdentity, context);
-      const funding = await this.resolveFunding(resolvedIdentity, context);
+      const funding = await this.resolveFunding(
+        params,
+        resolvedIdentity,
+        context,
+      );
       billing =
         funding.billingMode === 'byok'
           ? context.request
@@ -196,6 +255,7 @@ export class AvatarVideoGenerationService {
         brand.id,
         resolvedIdentity,
         context,
+        funding.modelKey,
         placeholderScope,
         personaId,
       );
@@ -216,6 +276,7 @@ export class AvatarVideoGenerationService {
       await onCreditsPrepared?.({
         billingMode: funding.billingMode,
         credits: funding.credits,
+        modelKey: funding.modelKey,
       });
 
       await this.metadataService.patch(
@@ -241,6 +302,9 @@ export class AvatarVideoGenerationService {
         await this.avatarBilling.bindOutput(billing, {
           credits: billing.creditsConfig?.amount ?? funding.credits,
           ingredientId,
+          ...(funding.durationQuote
+            ? { metadata: { avatarDurationQuote: funding.durationQuote } }
+            : {}),
           submissionIntentProvider: ByokProvider.HEYGEN,
         });
       }
@@ -266,6 +330,7 @@ export class AvatarVideoGenerationService {
         ingredientId,
         speech,
         connection.apiKey,
+        funding,
       );
 
       providerAccepted = true;
@@ -311,14 +376,16 @@ export class AvatarVideoGenerationService {
     ingredientId: string,
     speech: AvatarVideoSpeechInput,
     apiKey: string,
+    funding: AvatarGenerationFunding,
   ): Promise<string> {
     return identity.avatarRef
       ? this.heygenService.generateNativeAvatarVideo(
           ingredientId,
-          identity.avatarRef.lookId,
+          identity.avatarRef,
           speech,
           apiKey,
           params.aspectRatio ?? '9:16',
+          funding.engine,
         )
       : this.heygenService.generatePhotoAvatarVideo(
           ingredientId,
@@ -433,6 +500,7 @@ export class AvatarVideoGenerationService {
     brandId: string,
     identity: ResolvedIdentity,
     context: AvatarVideoGenerationContext,
+    modelKey: string,
     placeholderScope?: GenerationPlaceholderScope,
     personaId?: string | null,
   ): ReturnType<SharedService['createMediaDocumentsInternal']> {
@@ -443,7 +511,7 @@ export class AvatarVideoGenerationService {
       extension: MetadataExtension.MP4,
       groupId: placeholderScope?.groupId,
       groupIndex: placeholderScope?.groupIndex,
-      model: MODEL_KEYS.HEYGEN_AVATAR,
+      model: modelKey,
       organizationId: context.organizationId,
       parentId:
         identity.photoIngredientId != null

@@ -1,8 +1,11 @@
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import {
+  getEligibleHeyGenAvatarModelKeys,
   isFlux3ImageModel,
+  MODEL_KEYS,
   resolveMusicSettings,
 } from '@genfeedai/contracts/constants';
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import type {
   StudioPlaygroundCapabilities,
   StudioPlaygroundType,
@@ -39,8 +42,9 @@ const STUDIO_PLAYGROUND_TYPE_CONFIGS: Record<
       hasInstrumentalToggle: false,
       hasLook: false,
       hasLyrics: false,
-      // Avatar clips go to HeyGen directly — there is no router model catalog.
-      hasModelSelection: false,
+      // HeyGen engines (Avatar IV, Avatar V); Auto picks among the ones the
+      // selected look supports.
+      hasModelSelection: true,
       hasOutputs: false,
       hasReferences: false,
       hasSpeech: true,
@@ -49,7 +53,7 @@ const STUDIO_PLAYGROUND_TYPE_CONFIGS: Record<
     elementsType: 'all',
     ingredientCategory: IngredientCategory.AVATAR,
     label: 'Avatar',
-    modelCategory: null,
+    modelCategory: ModelCategory.AVATAR,
     // An avatar clip is persisted as a *video* ingredient — the backend
     // publishes `WebSocketPaths.video(id)` and stores it in `/videos`. The
     // `/avatars` collection holds the source portraits, which are inputs.
@@ -200,6 +204,24 @@ export function resolveStudioPlaygroundCapabilities(
     hasInstrumentalToggle: music.hasInstrumentalToggle,
     hasLyrics: music.hasLyrics,
   };
+}
+
+/**
+ * The Advanced model list for a type. Avatar offers only the engines the
+ * selected look can render: a digital twin that lists `avatar_v` gets Avatar V
+ * too, every other look (and photo animation, which HeyGen renders with its
+ * default engine) gets Avatar IV alone.
+ */
+export function filterStudioPlaygroundModels<T extends { key?: string }>(
+  type: StudioPlaygroundType,
+  models: readonly T[],
+  avatarRef: HeyGenAvatarRef | undefined,
+): readonly T[] {
+  if (type !== 'avatar') return models;
+  const eligible: readonly string[] = avatarRef
+    ? getEligibleHeyGenAvatarModelKeys(avatarRef)
+    : [MODEL_KEYS.HEYGEN_AVATAR_IV];
+  return models.filter((model) => eligible.includes(model.key ?? ''));
 }
 
 export function listStudioPlaygroundTypeConfigs(): readonly StudioPlaygroundTypeConfig[] {

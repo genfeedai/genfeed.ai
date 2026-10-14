@@ -91,7 +91,12 @@ export class HeygenPollProcessor extends WorkerHost {
     }
 
     if (result.status === 'completed' && result.videoUrl) {
-      await this.finalizeSuccess(data, result.videoUrl, result.jobId);
+      await this.finalizeSuccess(
+        data,
+        result.videoUrl,
+        result.jobId,
+        result.duration,
+      );
       return;
     }
 
@@ -107,6 +112,7 @@ export class HeygenPollProcessor extends WorkerHost {
     data: HeygenPollJobData,
     videoUrl: string,
     providerVideoId: string,
+    durationSeconds?: number,
   ): Promise<void> {
     try {
       await this.webhooksService.processMediaForIngredient(
@@ -114,6 +120,8 @@ export class HeygenPollProcessor extends WorkerHost {
         'avatar',
         videoUrl,
         providerVideoId,
+        undefined,
+        durationSeconds,
       );
 
       await this.continuationCoordinator.completeProviderAction({

@@ -33,6 +33,13 @@ export class HeygenWebhookService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
+  /** The clip seconds HeyGen reports; per-second engines settle to it. */
+  private readDuration(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? value
+      : undefined;
+  }
+
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -158,6 +165,8 @@ export class HeygenWebhookService {
           'avatar',
           successVideoUrl,
           providerVideoId,
+          undefined,
+          this.readDuration(event_data?.duration),
         );
       }
 

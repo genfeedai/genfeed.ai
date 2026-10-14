@@ -1,9 +1,11 @@
 import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
+import { RouterPriority } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsEnum,
   IsIn,
   IsOptional,
   IsString,
@@ -123,4 +125,35 @@ export class CreateAvatarVideoDto {
     required: false,
   })
   readonly aspectRatio?: AvatarVideoAspectRatio;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Avatar engine model (`heygen/avatar-iv` or `heygen/avatar-v`). Ignored when autoSelectModel is true.',
+    required: false,
+  })
+  readonly model?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: true,
+    description:
+      'Route to the best engine the selected look supports. Defaults to true when no model is given.',
+    required: false,
+  })
+  readonly autoSelectModel?: boolean;
+
+  @IsEnum(RouterPriority)
+  @IsOptional()
+  @ApiProperty({
+    default: RouterPriority.BALANCED,
+    description:
+      'Priority for auto engine routing: quality, speed, cost, or balanced.',
+    enum: RouterPriority,
+    enumName: 'RouterPriority',
+    required: false,
+  })
+  readonly prioritize?: RouterPriority;
 }

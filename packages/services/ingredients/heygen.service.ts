@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/contracts';
+import { type RouterPriority, VoiceProvider } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
@@ -94,6 +94,10 @@ export class HeyGenService extends BaseService<IHeyGen> {
     audioIngredientId?: string;
     elevenlabsVoiceId?: string;
     heygenVoiceId?: string;
+    /** Engine model; omit with `autoSelectModel` to route among the look's engines. */
+    model?: string;
+    autoSelectModel?: boolean;
+    prioritize?: RouterPriority;
   }): Promise<IHeyGen> {
     const { voiceId, voiceProvider, ...rest } = payload;
     const backendPayload: Record<string, unknown> = { ...rest };

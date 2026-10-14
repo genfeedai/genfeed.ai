@@ -19,6 +19,7 @@ import { BatchInterpolationController } from '@api/collections/videos/controller
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
+import { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
 import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
@@ -36,6 +37,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
+import { RouterModule } from '@api/services/router/router.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
@@ -70,6 +72,7 @@ import { Module } from '@nestjs/common';
     OrganizationSettingsModule,
     PromptBuilderModule,
     ReplicateModule,
+    RouterModule,
     VoicesModule,
 
     // Utility modules
@@ -80,6 +83,7 @@ import { Module } from '@nestjs/common';
     AvatarVideoGenerationService,
     AvatarVideoBillingService,
     AvatarVideoLifecycleService,
+    AvatarVideoModelService,
     AvatarVideoReferenceService,
     BatchInterpolationBillingService,
     BatchInterpolationReferenceService,
