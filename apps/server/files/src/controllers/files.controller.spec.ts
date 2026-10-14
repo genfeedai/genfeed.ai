@@ -237,6 +237,13 @@ describe('FilesController', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     guardedFetch.mockReset();
+    mockConfigService.get.mockImplementation((key: string) =>
+      key === 'GENFEEDAI_API_KEY'
+        ? 'internal-key'
+        : key === 'WEBSOCKET_URL'
+          ? 'ws://localhost:3000'
+          : null,
+    );
 
     const fs = nodeFs as unknown as Record<string, ReturnType<typeof vi.fn>>;
     fs.existsSync.mockReturnValue(true);
@@ -408,8 +415,10 @@ describe('FilesController', () => {
       downloadFile: storageController.downloadFile.bind(storageController),
       generateThumbnail:
         processingController.generateThumbnail.bind(processingController),
-      getFileMetadata:
-        metadataController.getFileMetadata.bind(metadataController),
+      getFileMetadata: (
+        body: Parameters<FilesMetadataController['getFileMetadata']>[0],
+        key = 'internal-key',
+      ) => metadataController.getFileMetadata(body, key),
       getJobStatus: jobsController.getJobStatus.bind(jobsController),
       getPresignedDownloadUrl:
         storageController.getPresignedDownloadUrl.bind(storageController),
@@ -453,6 +462,13 @@ describe('FilesController', () => {
   afterEach(() => {
     vi.clearAllMocks();
     guardedFetch.mockReset();
+    mockConfigService.get.mockImplementation((key: string) =>
+      key === 'GENFEEDAI_API_KEY'
+        ? 'internal-key'
+        : key === 'WEBSOCKET_URL'
+          ? 'ws://localhost:3000'
+          : null,
+    );
   });
 
   // ==========================================================================
