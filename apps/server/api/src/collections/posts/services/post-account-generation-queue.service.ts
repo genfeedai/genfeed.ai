@@ -112,7 +112,15 @@ export class PostAccountGenerationQueueService {
 
   async release(organizationId: string, runId: string): Promise<void> {
     const client = await this.queue.getBackend().client;
-    await client.eval(RELEASE, 2, this.key(organizationId), PENDING_KEY, runId);
+    client.defineCommand('accountGenerationRelease', {
+      numberOfKeys: 2,
+      lua: RELEASE,
+    });
+    await client.runCommand('accountGenerationRelease', [
+      this.key(organizationId),
+      PENDING_KEY,
+      runId,
+    ]);
   }
 
   private key(organizationId: string): string {
