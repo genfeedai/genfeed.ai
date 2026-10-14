@@ -175,4 +175,39 @@ describe('collapsible Searchbar', () => {
     fireEvent.blur(input);
     expect(input).toBeInTheDocument();
   });
+
+  it('keeps an empty field open until the pointer that blurred it is released', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+
+    try {
+      render(
+        <Searchbar ariaLabel="Search generations" isCollapsible value="" />,
+      );
+      fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+      const input = screen.getByRole('textbox', { name: 'Search generations' });
+
+      fireEvent.pointerDown(document.body);
+      fireEvent.blur(input, { relatedTarget: document.body });
+      expect(input).toBeInTheDocument();
+      expect(frames).toHaveLength(0);
+
+      fireEvent.pointerUp(document.body);
+      expect(input).toBeInTheDocument();
+      expect(frames).toHaveLength(1);
+
+      act(() => {
+        frames[0]?.(0);
+      });
+      expect(
+        screen.queryByRole('textbox', { name: 'Search generations' }),
+      ).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
