@@ -64,6 +64,7 @@ describe('ContentPreviewCard', () => {
             brandedReceipt: { id: 'receipt-1', state },
             id: 'content-gen-receipt-1',
             textContent: 'A branded draft',
+            title: 'Branded draft',
             type: 'content_preview_card',
           }}
         />,
@@ -85,6 +86,7 @@ describe('ContentPreviewCard', () => {
         action={{
           id: 'plain',
           textContent: 'A plain draft',
+          title: 'Plain draft',
           type: 'content_preview_card',
         }}
       />,
