@@ -409,6 +409,7 @@ export class ProactiveAgentRuntimeFixture {
       {} as never,
       {} as never,
       {} as never,
+      { canStartWork: vi.fn() } as never,
     );
 
     const delivery = {
