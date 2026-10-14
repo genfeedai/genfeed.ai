@@ -90,7 +90,7 @@ export default function Searchbar({
   const rootRef = useRef<HTMLDivElement>(null);
   const isPointerDownRef = useRef(false);
   const collapseAfterPointerRef = useRef<(() => void) | null>(null);
-  const collapseFrameRef = useRef<number | null>(null);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const isDebounced = Boolean(onSearch);
 
@@ -206,36 +206,50 @@ export default function Searchbar({
     if (!isCollapsible) {
       return;
     }
+    const clearCollapseTimer = () => {
+      if (collapseTimerRef.current !== null) {
+        clearTimeout(collapseTimerRef.current);
+        collapseTimerRef.current = null;
+      }
+    };
+    const runScheduledCollapse = () => {
+      clearCollapseTimer();
+      const collapse = collapseAfterPointerRef.current;
+      collapseAfterPointerRef.current = null;
+      collapse?.();
+    };
     const onPointerDown = () => {
       isPointerDownRef.current = true;
     };
     const onPointerUp = () => {
       isPointerDownRef.current = false;
       const collapse = collapseAfterPointerRef.current;
-      collapseAfterPointerRef.current = null;
       if (!collapse) {
         return;
       }
-      // The click event is dispatched after pointerup, in this same turn.
-      // Collapsing on the next frame keeps the toolbar still until that click
-      // lands. A narrow row otherwise jumps (w-64 → w-8) under the cursor.
-      collapseFrameRef.current = requestAnimationFrame(() => {
-        collapseFrameRef.current = null;
-        collapse();
-      });
+      // Click is dispatched after pointerup returns. A frame between
+      // mousedown and mouseup (Playwright on a busy runner) must not
+      // shrink the field, or mouseup misses and the click never toggles.
+      clearCollapseTimer();
+      collapseTimerRef.current = setTimeout(runScheduledCollapse, 0);
+    };
+    const onClick = () => {
+      if (!collapseAfterPointerRef.current) {
+        return;
+      }
+      runScheduledCollapse();
     };
     window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('pointerup', onPointerUp, true);
     window.addEventListener('pointercancel', onPointerUp, true);
+    window.addEventListener('click', onClick);
     return () => {
       window.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('pointerup', onPointerUp, true);
       window.removeEventListener('pointercancel', onPointerUp, true);
+      window.removeEventListener('click', onClick);
       collapseAfterPointerRef.current = null;
-      if (collapseFrameRef.current !== null) {
-        cancelAnimationFrame(collapseFrameRef.current);
-        collapseFrameRef.current = null;
-      }
+      clearCollapseTimer();
     };
   }, [isCollapsible]);
 
