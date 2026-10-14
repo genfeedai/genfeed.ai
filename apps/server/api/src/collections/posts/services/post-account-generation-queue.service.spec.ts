@@ -6,6 +6,7 @@ describe('PostAccountGenerationQueueService', () => {
   const redis = { defineCommand: vi.fn(), runCommand: vi.fn() };
   const queue = {
     add: vi.fn(),
+    getJobCounts: vi.fn(),
     getBackend: () => ({ client: Promise.resolve(redis) }),
   };
   const service = new PostAccountGenerationQueueService(queue as never);
@@ -26,6 +27,12 @@ describe('PostAccountGenerationQueueService', () => {
     vi.resetAllMocks();
     redis.runCommand.mockResolvedValue(1);
     queue.add.mockResolvedValue(undefined);
+    queue.getJobCounts.mockResolvedValue({
+      waiting: 0,
+      active: 0,
+      paused: 0,
+      delayed: 0,
+    });
   });
 
   it('returns 429 when another run owns the organization', async () => {
@@ -50,6 +57,20 @@ describe('PostAccountGenerationQueueService', () => {
     await expect(service.claim('org-1', 'run-1')).rejects.toThrow(
       'Redis unavailable',
     );
+  });
+
+  it('rejects an expired-lease backlog that is still waiting for workers', async () => {
+    queue.getJobCounts.mockResolvedValue({
+      waiting: 1000,
+      active: 0,
+      paused: 0,
+      delayed: 0,
+    });
+    await expect(service.claim('org-1', 'run-1')).rejects.toMatchObject({
+      status: 429,
+      response: { code: 'account_generation_queue_full' },
+    });
+    expect(redis.runCommand).not.toHaveBeenCalled();
   });
 
   it('refuses to continue a page after its ownership lease expired', async () => {
