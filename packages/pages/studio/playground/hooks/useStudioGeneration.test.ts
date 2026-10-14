@@ -110,8 +110,11 @@ vi.mock('@services/core/socket-manager.service', () => ({
 }));
 
 import { writeStudioPlaygroundSessionJobs } from '@pages/studio/playground/utils/studio-playground-session';
-import { getDefaultStudioPlaygroundSettings } from '@pages/studio/playground/utils/studio-playground-settings';
-import { resolveModelKey, useStudioGeneration } from './useStudioGeneration';
+import {
+  getDefaultStudioPlaygroundSettings,
+  resolveModelKey,
+} from '@pages/studio/playground/utils/studio-playground-settings';
+import { useStudioGeneration } from './useStudioGeneration';
 
 // ────────────────────────────────────────────────────────────
 // Fixtures

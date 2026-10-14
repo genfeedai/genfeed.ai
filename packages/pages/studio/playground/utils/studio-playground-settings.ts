@@ -9,6 +9,7 @@ import {
   resolveStudioAspectDimensions,
   resolveStudioLongEdge,
 } from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import {
   getDefaultImageQuality,
   getImageQualityOptionsByModel,
@@ -301,4 +302,24 @@ export function buildStudioPromptData({
     voiceId: capabilities.hasIdentity ? settings.voiceId : undefined,
     width,
   };
+}
+
+/**
+ * Resolves the model key actually sent to the API. Auto routing and avatar
+ * both let the backend pick, so they submit an empty key.
+ */
+export function resolveModelKey(
+  settings: StudioPlaygroundSettings,
+  models: readonly IModel[],
+  hasModelSelection: boolean,
+): string {
+  if (!hasModelSelection || settings.modelKey === AUTO_MODEL_OPTION_VALUE) {
+    return '';
+  }
+
+  if (models.some((model) => model.key === settings.modelKey)) {
+    return settings.modelKey;
+  }
+
+  return models[0]?.key ?? '';
 }

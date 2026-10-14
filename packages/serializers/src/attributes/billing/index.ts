@@ -1,3 +1,4 @@
+export * from '@serializers/attributes/billing/avatar-generation-quote.attributes';
 export * from '@serializers/attributes/billing/billing-account.attributes';
 export * from '@serializers/attributes/billing/cost-report-entry.attributes';
 export * from '@serializers/attributes/billing/cost-report-summary.attributes';

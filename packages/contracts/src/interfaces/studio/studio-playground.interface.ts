@@ -372,7 +372,11 @@ export type StudioGenerateDraftSaveStatus =
  * admission charges; `unavailableReason` is that quote's code when it declined.
  */
 export interface StudioGenerationCostEstimate {
+  /** Avatar quotes only: a BYOK render holds no platform credits. */
+  billingMode?: 'byok' | 'platform';
   credits: number | null;
+  /** Avatar quotes only: the clip length a per-second hold is estimated at. */
+  estimatedSeconds?: number;
   status: 'auto' | 'loading' | 'unavailable' | 'estimated';
   unavailableReason?: AgentGenerationQuoteUnavailableReason;
 }

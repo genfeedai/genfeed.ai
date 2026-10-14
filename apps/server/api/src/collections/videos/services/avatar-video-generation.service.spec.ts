@@ -820,6 +820,59 @@ describe('AvatarVideoGenerationService', () => {
     );
   });
 
+  it('quotes Studio a photo animation per second with its estimated clip length, holding nothing', async () => {
+    const h = createService();
+    h.brandsService.findOne.mockResolvedValue({
+      agentConfig: {},
+      id: 'brand-1',
+    });
+
+    await expect(
+      h.service.quote(
+        {
+          heygenVoiceId: 'voice-1',
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          text: 'Speech',
+        },
+        context,
+      ),
+    ).resolves.toEqual({
+      billingMode: 'platform',
+      credits: AVATAR_PRICE,
+      // "Speech" is six characters, a one-second estimate.
+      estimatedSeconds: 1,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+    });
+    expect(h.creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(h.sharedService.createMediaDocumentsInternal).not.toHaveBeenCalled();
+    expect(h.heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+  });
+
+  it('quotes Studio zero platform credits for a HeyGen BYOK render', async () => {
+    const h = createService();
+    h.brandsService.findOne.mockResolvedValue({
+      agentConfig: {},
+      id: 'brand-1',
+    });
+    h.byokService.resolveApiKey.mockResolvedValue({ apiKey: 'org-key' });
+
+    await expect(
+      h.service.quote(
+        {
+          heygenVoiceId: 'voice-1',
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          text: 'Speech',
+        },
+        context,
+      ),
+    ).resolves.toMatchObject({
+      billingMode: 'byok',
+      credits: 0,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+    });
+    expect(h.creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+  });
+
   it('pins both provider keys before reservation, even when org keys change during admission', async () => {
     const {
       service,
@@ -1860,6 +1913,26 @@ describe('AvatarVideoGenerationService', () => {
         credits: 269,
         modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
       });
+    });
+    it('quotes Studio a native look by its engine with the estimated clip length', async () => {
+      const h = createService();
+      const ref = platformTwin(['avatar_iv']);
+      admit(h, ref);
+
+      await expect(
+        h.service.quote(
+          { avatarRef: ref, heygenVoiceId: 'voice-1', text: script },
+          context,
+        ),
+      ).resolves.toEqual({
+        billingMode: 'platform',
+        // $0.0805/s digital twin x 10 s x 3.33 margin.
+        credits: 269,
+        estimatedSeconds: 10,
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
+      });
+      expect(h.creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      expect(h.heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
     });
   });
 

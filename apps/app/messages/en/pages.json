@@ -1669,6 +1669,7 @@
     "cancelEnhancingPrompt": "Cancel enhancing prompt",
     "enhancePrompt": "Enhance prompt",
     "estimatedCredits": "Estimated {credits} credits",
+    "estimatedCreditsForSeconds": "Estimated {credits} credits for a ~{seconds} s clip",
     "summary": {
       "setup": "Generation setup summary",
       "modelLoading": "Loading model…",
@@ -1680,6 +1681,9 @@
       "estimateAfterSelection": "Estimate available after model selection",
       "estimateLoading": "Loading estimate…",
       "estimateUnavailable": "Estimate unavailable",
+      "estimatedSeconds": "~{seconds} s",
+      "byokEstimate": "Your API key · 0 credits",
+      "avatarEstimateNeedsInput": "Write a script and choose an avatar and a voice to see a price.",
       "estimateReasons": {
         "ERROR": "The price check failed. Try again.",
         "INSUFFICIENT_INPUT": "Add a prompt or choose a model to see a price.",

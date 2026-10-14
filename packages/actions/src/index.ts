@@ -87,6 +87,14 @@ export {
   mostRestrictiveMcpAccessMode,
   parseMcpAccessMode,
 } from './registry/mcp-access-modes';
+export type { McpBrandOption } from './registry/mcp-brand-required';
+export {
+  describeMissingMcpBrand,
+  isMcpBrandRequiredTool,
+  MCP_BRAND_REQUIRED_NOTE,
+  MCP_BRAND_REQUIRED_TOOL_NAMES,
+  readMcpBrandId,
+} from './registry/mcp-brand-required';
 export {
   findInapplicableMediaGenerationParameters,
   getMediaGenerationCreditFloor,
