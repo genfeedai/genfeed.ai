@@ -17,9 +17,17 @@ Self-host it (**Community**), run it on your Mac (**Desktop**), or use the
 hosted product at [genfeed.ai](https://genfeed.ai) (**SaaS**). Same code, three
 [deployment modes](docs/deployment-modes.md).
 
-## Quick start (Community)
+## Requirements (Community)
 
-Prerequisites: Docker Engine with Docker Compose v2, or Docker Desktop.
+- Docker Engine with the Docker Compose v2 plugin (`docker compose version`), or
+  Docker Desktop. Both the 3-command block below and `npx @genfeedai/create`
+  need it.
+- Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`.
+- Free host ports 3000 (web), 3010 (API) and 3014 (MCP).
+- Disk for the application image, PostgreSQL and generated media. No minimum
+  RAM or disk figure is published yet.
+
+## Quick start (Community)
 
 ```bash
 curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz

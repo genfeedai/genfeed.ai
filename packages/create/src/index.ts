@@ -15,7 +15,6 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Command } from 'commander';
 import { consola } from 'consola';
 
 const REPOSITORY = 'genfeedai/genfeed.ai';
@@ -26,6 +25,9 @@ const RELEASE_CHECKSUM_NAME = `${RELEASE_ARCHIVE_NAME}.sha256`;
 const RELEASE_MANIFEST_NAME = 'release.json';
 const EXPECTED_IMAGE_REPOSITORY = 'ghcr.io/genfeedai/genfeed.ai';
 const APP_URL = 'http://localhost:3000';
+// Keep in sync with "engines.node" (>=24 <25) in package.json.
+const MIN_NODE_MAJOR = 24;
+const MAX_NODE_MAJOR_EXCLUSIVE = 25;
 
 interface CliOptions {
   release?: string;
@@ -239,6 +241,22 @@ async function runCommand(
   });
 }
 
+export function assertSupportedNodeVersion(
+  nodeVersion = process.versions.node,
+): void {
+  const major = Number.parseInt(nodeVersion.split('.')[0] ?? '', 10);
+
+  if (
+    !Number.isInteger(major) ||
+    major < MIN_NODE_MAJOR ||
+    major >= MAX_NODE_MAJOR_EXCLUSIVE
+  ) {
+    throw new Error(
+      `Node.js ${MIN_NODE_MAJOR} is required (supported range: >=${MIN_NODE_MAJOR} <${MAX_NODE_MAJOR_EXCLUSIVE}); found ${nodeVersion}. Install Node.js ${MIN_NODE_MAJOR} and run again.`,
+    );
+  }
+}
+
 function assertInstallPrerequisites(): void {
   if (!commandExists('tar')) {
     throw new Error(
@@ -415,6 +433,15 @@ export async function installRelease(
 }
 
 async function main(): Promise<void> {
+  try {
+    assertSupportedNodeVersion();
+  } catch (error) {
+    consola.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+    return;
+  }
+
+  const { Command } = await import('commander');
   const program = new Command()
     .name('genfeedai')
     .description('Install a public Genfeed.ai Community release.')

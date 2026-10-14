@@ -25,7 +25,7 @@ Prepare and validate the installation without starting containers:
 npx @genfeedai/create my-genfeed --release v0.5.0 --no-start
 ```
 
-Node.js 24, Docker Compose, and `tar` must be installed. The generated directory
+Node.js 24 (`>=24 <25`; other versions exit with an error), Docker Compose v2, and `tar` must be installed. The generated directory
 contains the release manifest, pinned environment, Compose file, and
 installation guide.
 

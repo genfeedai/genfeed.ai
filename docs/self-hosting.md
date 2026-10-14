@@ -1,5 +1,17 @@
 # Self-Hosting Genfeed.ai
 
+## Requirements
+
+- Docker Engine with the Docker Compose v2 plugin (`docker compose version`), or
+  Docker Desktop. Both the release bundle and `npx @genfeedai/create` need it.
+- Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`
+- Free host ports 3000 (web), 3010 (API) and 3014 (MCP); override them with
+  `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT` and `SELFHOSTED_MCP_PORT` in `.env`
+- A runtime capable of running the published `linux/amd64` image (Docker Desktop
+  can use emulation on Apple Silicon)
+- Disk capacity for the application image, PostgreSQL, and generated media. No
+  minimum RAM or disk figure is published yet.
+
 ## Quick Start
 
 ```bash
@@ -51,13 +63,6 @@ docker compose --env-file .env -f docker-compose.selfhosted.yml up -d
 This still runs the published GHCR image; it does not build the checked-out
 source. Unlike a release bundle, the source template defaults to the mutable
 `latest` tag unless `GENFEED_IMAGE_TAG` is set explicitly.
-
-## Requirements
-
-- Docker Engine with the Docker Compose v2 plugin, or Docker Desktop
-- A runtime capable of running the published `linux/amd64` image (Docker Desktop
-  can use emulation on Apple Silicon)
-- Disk capacity for the application image, PostgreSQL, and generated media
 
 ## Community Auth Modes
 

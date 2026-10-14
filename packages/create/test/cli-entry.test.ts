@@ -22,17 +22,30 @@ const entryPath = fileURLToPath(new URL('../src/index.ts', import.meta.url));
 describe('CLI entry point', () => {
   let originalArgv: string[];
   let originalExitCode: typeof process.exitCode;
+  const originalVersions = process.versions;
+
+  function stubNodeVersion(version: string): void {
+    Object.defineProperty(process, 'versions', {
+      configurable: true,
+      value: { ...originalVersions, node: version },
+    });
+  }
 
   beforeEach(() => {
     vi.resetModules();
     originalArgv = [...process.argv];
     originalExitCode = process.exitCode;
     childProcessMock.spawnSync.mockReturnValue({ status: 1 });
+    stubNodeVersion('24.0.0');
   });
 
   afterEach(() => {
     process.argv = originalArgv;
     process.exitCode = originalExitCode;
+    Object.defineProperty(process, 'versions', {
+      configurable: true,
+      value: originalVersions,
+    });
     vi.clearAllMocks();
   });
 
@@ -47,6 +60,21 @@ describe('CLI entry point', () => {
     expect(consolaMock.error).toHaveBeenCalledWith(
       'tar is required to extract the Genfeed.ai release bundle.',
     );
+  });
+
+  it('fails fast before installing when Node is outside the supported range', async () => {
+    stubNodeVersion('20.19.0');
+    process.argv = [process.argv[0], entryPath, 'demo-project'];
+
+    await import('../src/index');
+
+    await vi.waitFor(() => {
+      expect(process.exitCode).toBe(1);
+    });
+    expect(consolaMock.error).toHaveBeenCalledWith(
+      expect.stringContaining('Node.js 24 is required'),
+    );
+    expect(childProcessMock.spawnSync).not.toHaveBeenCalled();
   });
 
   it('stays inert when the process has no script argument', async () => {

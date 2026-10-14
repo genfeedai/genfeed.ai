@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  assertSupportedNodeVersion,
   getReleaseAssetUrls,
   imageTagFromReleaseTag,
   normalizeReleaseTag,
@@ -90,5 +91,28 @@ describe('package metadata', () => {
     await writeFile(packageJsonUrl, JSON.stringify({ version: '9.8.7' }));
 
     expect(readPackageVersion(packageJsonUrl)).toBe('9.8.7');
+  });
+});
+
+describe('assertSupportedNodeVersion', () => {
+  it.each(['24.0.0', '24.13.1'])('accepts Node %s', (version) => {
+    expect(() => assertSupportedNodeVersion(version)).not.toThrow();
+  });
+
+  it.each(['20.19.0', '22.12.0', '23.9.0', '25.0.0', 'unknown'])(
+    'rejects Node %s with a clear message',
+    (version) => {
+      expect(() => assertSupportedNodeVersion(version)).toThrow(
+        `Node.js 24 is required (supported range: >=24 <25); found ${version}.`,
+      );
+    },
+  );
+
+  it('matches the engines range declared in package.json', async () => {
+    const manifest = JSON.parse(
+      await readFile(new URL('../package.json', import.meta.url), 'utf8'),
+    ) as { engines: { node: string } };
+
+    expect(manifest.engines.node).toBe('>=24 <25');
   });
 });
