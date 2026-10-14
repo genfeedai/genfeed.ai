@@ -125,11 +125,7 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
     },
     APP_ROUTES: {
       STUDIO: actual.APP_ROUTES.STUDIO,
-      ADMIN: {
-        OVERVIEW: {
-          DASHBOARD: '/admin/overview/dashboard',
-        },
-      },
+      ADMIN: actual.APP_ROUTES.ADMIN,
     },
     APP_RAIL_FEATURE_FLAGS: {
       agent: 'agent',
