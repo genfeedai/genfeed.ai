@@ -10,8 +10,14 @@ import {
   YOUTUBE_MAINTENANCE_ACTION_IDS,
 } from '@workers/crons/youtube/youtube-maintenance-workflow-definition';
 
-const YOUTUBE_MESSAGES_SWEEP_INTERVAL_MS = 30 * 60 * 1000;
+const YOUTUBE_MESSAGES_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
+
+type YoutubeCommentSweepRequest = {
+  brandId: string;
+  credentialId: string;
+  organizationId: string;
+};
 
 @Injectable()
 export class CronYoutubeMessagesService implements OnModuleInit {
@@ -24,38 +30,22 @@ export class CronYoutubeMessagesService implements OnModuleInit {
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
       YOUTUBE_MAINTENANCE_ACTION_IDS.DISCOVER_CREDENTIALS,
-      async () => {
-        const credentials = await this.prisma.credential.findMany({
-          select: { brandId: true, id: true, organizationId: true },
-          where: {
-            brandId: { not: null },
-            isConnected: true,
-            isDeleted: false,
-            organizationId: { not: null },
-            platform: PrismaCredentialPlatform.YOUTUBE,
-          },
-        });
-        return {
-          items: credentials.flatMap((credential) =>
-            credential.organizationId && credential.brandId
-              ? [
-                  {
-                    brandId: credential.brandId,
-                    credentialId: credential.id,
-                    organizationId: credential.organizationId,
-                  },
-                ]
-              : [],
-          ),
-        };
-      },
+      async () => ({ items: await this.findConnectedCredentials() }),
     );
     this.systemWorkflowRunner.registerWorkflow(
       buildYoutubeCommentsSweepDefinition(),
     );
   }
 
+  /**
+   * Fired hourly by the platform BullMQ schedule. Queues the comment sweep
+   * only when at least one connected YouTube credential exists, so an empty
+   * tick never persists a workflow execution row (#5634).
+   */
   async syncYoutubeMessages(): Promise<void> {
+    if ((await this.findConnectedCredentials()).length === 0) {
+      return;
+    }
     const now = new Date();
     const definition = buildYoutubeCommentsSweepDefinition();
     await this.workflowQueue.queueSystemWorkflow(
@@ -73,6 +63,32 @@ export class CronYoutubeMessagesService implements OnModuleInit {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       },
+    );
+  }
+
+  private async findConnectedCredentials(): Promise<
+    YoutubeCommentSweepRequest[]
+  > {
+    const credentials = await this.prisma.credential.findMany({
+      select: { brandId: true, id: true, organizationId: true },
+      where: {
+        brandId: { not: null },
+        isConnected: true,
+        isDeleted: false,
+        organizationId: { not: null },
+        platform: PrismaCredentialPlatform.YOUTUBE,
+      },
+    });
+    return credentials.flatMap((credential) =>
+      credential.organizationId && credential.brandId
+        ? [
+            {
+              brandId: credential.brandId,
+              credentialId: credential.id,
+              organizationId: credential.organizationId,
+            },
+          ]
+        : [],
     );
   }
 }

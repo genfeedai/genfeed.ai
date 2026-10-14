@@ -170,6 +170,14 @@ export class RssSourcesService {
     });
   }
 
+  async hasEnabledForSweep(): Promise<boolean> {
+    const row = await this.delegate().findFirst({
+      select: { id: true },
+      where: { isDeleted: false, isEnabled: true },
+    });
+    return row !== null;
+  }
+
   async listEnabledForSweep(): Promise<StoredRssSourceRow[]> {
     const rows = await this.delegate().findMany({
       orderBy: { createdAt: 'asc' },

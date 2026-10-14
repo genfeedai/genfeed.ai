@@ -40,7 +40,7 @@ type RegisteredAction = (request: RegisteredActionRequest) => Promise<unknown>;
 function createHarness() {
   const registeredActions = new Map<string, RegisteredAction>();
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const postsService = { findOne: vi.fn() };
+  const postsService = { findAll: vi.fn(), findOne: vi.fn() };
   const tiktokService = {
     getPublishStatus: vi.fn(),
     refreshToken: vi
@@ -81,6 +81,7 @@ function createHarness() {
 
   return {
     credentialsService,
+    service,
     workflowQueue,
     postsService,
     publishEventWebhookService,
@@ -338,4 +339,37 @@ it('queues only committed TikTok confirmation and preserves success after queue 
   expect(
     h.scheduledPostWorkflowService.processPendingPublishedFinalization,
   ).toHaveBeenCalledOnce();
+});
+
+describe('CronTiktokStatusService.checkPendingTiktokPosts', () => {
+  it('queues no sweep and persists no execution when no post is awaiting reconciliation (#5634)', async () => {
+    const h = createHarness();
+    h.postsService.findAll.mockResolvedValue({ docs: [] });
+
+    await h.service.checkPendingTiktokPosts();
+
+    expect(h.postsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          platform: CredentialPlatform.TIKTOK,
+        }),
+      }),
+      expect.objectContaining({ limit: 1 }),
+    );
+    expect(h.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('queues the 5-minute bucketed sweep when a post is awaiting reconciliation', async () => {
+    const h = createHarness();
+    h.postsService.findAll.mockResolvedValue({ docs: [makeTiktokPost()] });
+
+    await h.service.checkPendingTiktokPosts();
+
+    expect(h.workflowQueue.queueSystemWorkflow).toHaveBeenCalledOnce();
+    expect(h.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'tiktok_status_sweep' }),
+      expect.stringMatching(/^tiktok-status-sweep-\d+$/),
+      expect.objectContaining({ attempts: 3 }),
+    );
+  });
 });

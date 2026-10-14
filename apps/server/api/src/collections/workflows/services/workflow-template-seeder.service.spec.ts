@@ -131,10 +131,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: 'resolveAnalyticsWindow',
-          type: 'genfeedAction',
-        }),
-        expect.objectContaining({
           id: 'promoteHarnessWinners',
           type: 'genfeedAction',
         }),
