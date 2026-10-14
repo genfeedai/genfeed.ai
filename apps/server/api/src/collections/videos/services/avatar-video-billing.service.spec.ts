@@ -15,6 +15,7 @@ import type { ByokService } from '@api/services/byok/byok.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { VoiceProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -610,6 +611,47 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
       );
       expect(funding).toMatchObject({ billingMode: 'platform', credits: 65 });
       expect(funding.speechModelKey).toBeUndefined();
+    });
+  });
+
+  describe('saved Genfeed voice', () => {
+    const savedVoice = {
+      externalVoiceId: null,
+      provider: VoiceProvider.GENFEED_AI,
+      sampleAudioUrl: 'https://cdn.example/reference.wav',
+    };
+
+    it('charges nothing on the organization HeyGen key: its speech is included', async () => {
+      resolveOrganizationConnection.mockResolvedValue(connection('byok'));
+
+      const funding = await service.resolveFunding(
+        { clonedVoiceId: 'voice-fleet-1', text: 'Founder update' },
+        { savedVoice },
+        'org-1',
+      );
+
+      expect(funding).toMatchObject({
+        billingMode: 'byok',
+        credits: 0,
+        heygenApiKey: 'byok-heygen-key',
+      });
+      expect(funding.durationQuote).toBeUndefined();
+      expect(funding.speechModelKey).toBeUndefined();
+      expect(quoteSnapshotByKey).not.toHaveBeenCalled();
+    });
+
+    it('keeps a platform-key render on the per-second avatar rate', async () => {
+      const funding = await service.resolveFunding(
+        { clonedVoiceId: 'voice-fleet-1', text: 'x'.repeat(60) },
+        { savedVoice },
+        'org-1',
+      );
+
+      expect(quoteSnapshotByKey).toHaveBeenCalledWith(
+        MODEL_KEYS.HEYGEN_AVATAR,
+        { duration: 5 },
+      );
+      expect(funding).toMatchObject({ billingMode: 'platform', credits: 65 });
     });
   });
 });

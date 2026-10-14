@@ -75,8 +75,8 @@ export class AvatarVideoBillingService {
   /**
    * Pin provider keys before reserving, so a BYOK change cannot change who
    * pays, and choose the engine row the render is priced as. A render on the
-   * organization's own HeyGen key is free to the platform unless the platform
-   * also speaks for it; then only that speech is charged (#6932).
+   * organization's own HeyGen key is free to the platform unless platform
+   * ElevenLabs speaks for it; then only that speech is charged (#6932).
    */
   async resolveFunding(
     params: AvatarVideoGenerationParams,
@@ -107,13 +107,16 @@ export class AvatarVideoBillingService {
     const usesPlatformElevenLabs =
       Boolean(identity.elevenlabsVoiceId) && !elevenLabsKey;
     if (connection.binding.kind === 'byok') {
-      if (!identity.savedVoice && !usesPlatformElevenLabs)
+      // A saved Genfeed voice is spoken by Genfeed's own managed voices
+      // runtime, which has no per-character rate: owner decision (#6932) is
+      // that it is included with a render on the organization's own HeyGen
+      // key, so only platform ElevenLabs speech is charged here.
+      if (!usesPlatformElevenLabs)
         return { ...keys, billingMode: 'byok', credits: 0 };
-      if (usesPlatformElevenLabs)
-        return {
-          ...keys,
-          ...(await this.quotePlatformSpeech(params.text, organizationId)),
-        };
+      return {
+        ...keys,
+        ...(await this.quotePlatformSpeech(params.text, organizationId)),
+      };
     }
     const quote = await this.quoteRender(
       selection,

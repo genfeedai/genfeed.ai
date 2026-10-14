@@ -991,7 +991,7 @@ describe('AvatarVideoGenerationService', () => {
     },
   );
 
-  it('with HeyGen BYOK, still charges for speech from a saved Genfeed voice', async () => {
+  it('with HeyGen BYOK, holds nothing for speech from a saved Genfeed voice', async () => {
     const {
       brandsService,
       byokService,
@@ -1034,7 +1034,9 @@ describe('AvatarVideoGenerationService', () => {
       context,
     );
 
-    expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledTimes(1);
+    expect(managedInferenceRuntimeService.generateVoice).toHaveBeenCalledOnce();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(creditsUtilsService.bindReservationOutput).not.toHaveBeenCalled();
   });
 
   describe('audio-driven admission (#6932)', () => {
