@@ -14,6 +14,7 @@ import { BrandRelocationService } from '@api/collections/brands/services/brand-r
 import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import { SystemBrandService } from '@api/collections/brands/services/system-brand.service';
 import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
 import { CommonModule } from '@api/common/common.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
@@ -40,6 +41,7 @@ import { Module } from '@nestjs/common';
     BrandOsRevisionsService,
     BrandOsScanService,
     BrandFontAssetsService,
+    SystemBrandService,
   ],
   imports: [
     BrandAccessModule,
@@ -66,6 +68,7 @@ import { Module } from '@nestjs/common';
     BrandRelocationService,
     BrandDataMapper,
     BrandVoiceCorpusService,
+    SystemBrandService,
   ],
 })
 export class BrandsCoreModule {}

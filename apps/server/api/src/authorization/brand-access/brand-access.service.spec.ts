@@ -1,4 +1,5 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
@@ -270,4 +271,41 @@ it('preserves actorless cosmetic selfhost reads while Cloud rejects a missing in
     f.service.predicate({ organizationId: 'org-a', userId: '' }),
   ).rejects.toThrow(ForbiddenException);
   expect(f.findMember).not.toHaveBeenCalled();
+});
+
+describe('system brand principal', () => {
+  const system = {
+    organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+    userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+  };
+
+  beforeEach(() => {
+    runtime.cloud = true;
+  });
+
+  it('sees the system organization brands without any membership', async () => {
+    const f = fixture();
+    f.findMember.mockResolvedValue(null);
+    expect(await f.service.predicate(system)).toEqual({
+      organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      isDeleted: false,
+    });
+    expect(f.findMember).not.toHaveBeenCalled();
+  });
+
+  it('is an ordinary non-member in a customer organization', async () => {
+    const f = fixture();
+    f.findMember.mockResolvedValue(null);
+    await expect(
+      f.service.predicate({ ...system, organizationId: 'org-a' }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('gets no system access through an API key', async () => {
+    const f = fixture();
+    f.findKey.mockResolvedValue(null);
+    await expect(
+      f.service.predicate({ ...system, apiKeyId: 'key-1', isApiKey: true }),
+    ).rejects.toThrow(ForbiddenException);
+  });
 });

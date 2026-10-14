@@ -36,6 +36,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -198,14 +199,31 @@ export class PostsGenerationController {
     @Body() dto: GeneratePostDraftDto,
     @CurrentUser() user: User,
   ): Promise<PostDraftGenerationResult> {
-    const result = await this.postGenerationService.generateDraftText(
-      dto,
-      user,
-      this.textGenerationCreditsService.deferredKeyResolver(
-        request,
-        user.organizationId,
-      ),
-    );
+    let result: PostDraftGenerationResult;
+    try {
+      result = await this.postGenerationService.generateDraftText(
+        dto,
+        user,
+        this.textGenerationCreditsService.deferredKeyResolver(
+          request,
+          user.organizationId,
+        ),
+      );
+    } catch (error: unknown) {
+      // A stopped request after the provider was called still owes its known cost.
+      if (
+        error instanceof BrandedGenerationBlockedException &&
+        error.providerAttempt
+      )
+        finalizeDeferredTextCredits(
+          request,
+          await resolveTextModelMinimumCredits(
+            this.modelsService,
+            error.providerAttempt.model,
+          ),
+        );
+      throw error;
+    }
     // A replay answers from the saved receipt without a provider call.
     if (!result.brandedReceipt.isReplayed) {
       finalizeDeferredTextCredits(
