@@ -5,6 +5,14 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { buildHeyGenAvatarEngineFields } from '@api/services/integrations/heygen/helpers/heygen-avatar-engine';
 import {
+  catalogPageSchema,
+  groupSchema,
+  type HeyGenCatalogLook,
+  lookSchema,
+  toCatalogAvatar,
+  voiceSchema,
+} from '@api/services/integrations/heygen/helpers/heygen-catalog';
+import {
   buildHeyGenSpeechBody,
   countHeyGenSpeechCharacters,
   HEYGEN_SPEECH_MAX_ATTEMPTS,
@@ -52,7 +60,6 @@ import type {
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
   HeyGenConnectionRef,
-  HeyGenGender,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -61,61 +68,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
-
-const catalogPageSchema = z.object({
-  data: z.array(z.record(z.string(), z.unknown())),
-  has_more: z.boolean(),
-  next_token: z.string().nullish(),
-});
-// HeyGen reports gender loosely ("Male", "female", "unknown"); keep only what it states.
-const genderSchema = z
-  .string()
-  .nullish()
-  .transform((value): HeyGenGender | null => {
-    const gender = value?.trim().toLowerCase();
-    return gender === 'male' || gender === 'female' ? gender : null;
-  });
-const voiceSchema = z.object({
-  voice_id: z.string().trim().min(1),
-  name: z.string(),
-  gender: genderSchema,
-  preview_audio_url: z.string().nullish(),
-});
-const lookSchema = z.object({
-  id: z.string().trim().min(1),
-  name: z.string(),
-  gender: genderSchema,
-  preview_image_url: z.string().nullish(),
-  avatar_type: z.string().nullish(),
-  group_id: z.string().nullish(),
-  supported_api_engines: z.array(z.string()).optional().default([]),
-  status: z.string().nullish(),
-});
-const groupSchema = z.object({
-  id: z.string().min(1),
-  status: z.string().nullable(),
-  consent_status: z.string().nullable(),
-});
-
-/** A look's persisted identity plus display-only catalogue metadata. */
-interface HeyGenCatalogLook {
-  avatarRef: HeyGenAvatarRef;
-  gender: HeyGenGender | null;
-}
-
-function toCatalogAvatar(
-  { avatarRef, gender }: HeyGenCatalogLook,
-  index: number,
-): HeyGenCatalogAvatar {
-  return {
-    avatarId: avatarRef.lookId,
-    index,
-    name: avatarRef.label,
-    gender,
-    preview: avatarRef.preview ?? '',
-    avatarRef,
-  };
-}
 
 type HeyGenSpeechInput =
   | string
