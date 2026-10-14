@@ -5,16 +5,21 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
-import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
+import {
+  asYoutubeVerifyException,
+  buildYoutubeVerifyFailureLog,
+  buildYoutubeVerifyRequestLog,
+  readYoutubeVerifyCorrelationId,
+  type YoutubeOAuthVerifyProgress,
+} from '@api/services/integrations/youtube/utils/youtube-oauth-verify.util';
+import { completeYoutubeOAuthVerification } from '@api/services/integrations/youtube/utils/youtube-oauth-verify-completion.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -34,22 +39,10 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-interface YoutubeOAuthTokens {
-  access_token?: string;
-  expiry_date?: number;
-  refresh_token?: string;
-  scope?: string;
-  token_type?: string;
-}
-
 @AutoSwagger()
 @Controller('services/youtube')
 export class YoutubeController {
   private readonly constructorName: string = String(this.constructor.name);
-
-  private isPlainObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value);
-  }
 
   constructor(
     private readonly configService: ConfigService,
@@ -102,7 +95,9 @@ export class YoutubeController {
       const authUrl = this.youtubeService.generateAuthUrl({
         accessType: 'offline',
         includeGrantedScopes: false,
-        prompt: 'consent',
+        // select_account lets a Brand Account or channel be chosen again.
+        // consent alone can reuse the Google identity that has no channel.
+        prompt: 'consent select_account',
         // youtube.force-ssl covers every Data and Live API call Genfeed makes
         // (upload, playlists, comments, live chat); request nothing broader.
         scope: [
@@ -127,284 +122,51 @@ export class YoutubeController {
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const correlationId = readYoutubeVerifyCorrelationId(
+      request.headers as Record<string, unknown> | undefined,
+    );
+    const progress: YoutubeOAuthVerifyProgress = {
+      stage: 'request_validation',
+    };
 
-    this.loggerService.log(url, createCredentialVerifyDto);
+    this.loggerService.log(
+      url,
+      buildYoutubeVerifyRequestLog(createCredentialVerifyDto, correlationId),
+    );
 
     const { code, state } = createCredentialVerifyDto;
 
     try {
-      await throwIfOAuthCallbackError(
-        this.credentialsService,
-        createCredentialVerifyDto,
-        CredentialPlatform.YOUTUBE,
-      );
-
-      if (!code || !state) {
-        throw new HttpException(
-          { detail: 'Missing code or identifiers', title: 'Invalid payload' },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const existingCredential =
-        await this.credentialsService.findPendingOAuthCredential(
-          state,
-          CredentialPlatform.YOUTUBE,
-        );
-
-      if (!existingCredential) {
-        throw new HttpException(
-          {
-            detail: 'No pending credential found for this OAuth state',
-            title: 'Credential not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      const { brandId, organizationId } = existingCredential;
-      const tokenResponse =
-        await this.youtubeService.exchangeCodeForTokens(code);
-      const tokens = this.isPlainObject(tokenResponse)
-        ? ((tokenResponse.tokens ?? {}) as YoutubeOAuthTokens)
-        : {};
-
-      // Log token details for debugging
-      this.loggerService.log('Received tokens from Google', {
-        accessTokenLength: tokens.access_token?.length || 0,
-        expiryDate: tokens.expiry_date,
-        hasAccessToken: !!tokens.access_token,
-        hasRefreshToken: !!tokens.refresh_token,
-        refreshTokenLength: tokens.refresh_token?.length || 0,
-        scope: tokens.scope,
-        tokenType: tokens.token_type,
-      });
-
-      if (!tokens.access_token) {
-        throw new HttpException(
-          {
-            detail: 'YouTube did not return an access token',
-            title: 'Token exchange failed',
-          },
-          HttpStatus.BAD_GATEWAY,
-        );
-      }
-
-      // Update the credential with the access token
-      // If reconnecting the same channel, reactivate previously deleted credential
-      let credential = await this.credentialsService.patch(
-        existingCredential.id,
-        {
-          accessToken: tokens.access_token,
-          accessTokenExpiry: tokens.expiry_date
-            ? new Date(tokens.expiry_date)
-            : undefined,
-          isConnected: true,
-          isDeleted: false, // Reactivate if previously disconnected
-          oauthState: null,
-          oauthToken: null,
-          oauthTokenSecret: null,
-          refreshToken: tokens.refresh_token || undefined, // Only save if present
-          ...buildGrantedScopesCredentialPatch(tokens.scope),
-        },
-      );
-
-      // Verify the credential was saved correctly
-      const savedCredential = await this.credentialsService.findOne({
-        id: credential.id,
-      });
-
-      if (!savedCredential?.refreshToken) {
-        this.loggerService.error('Refresh token was not saved properly', {
-          credentialId: credential.id,
-          hadRefreshToken: !!tokens.refresh_token,
-        });
-        throw new HttpException(
-          {
-            detail: 'Refresh token was not saved. Please try connecting again.',
-            title: 'Failed to save credentials',
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      credential = await this.updateChannelProfileAfterConnection({
-        brandId,
-        credential,
-        organizationId,
-        tokens,
-      });
-
-      credential = await this.finalizeConnection({
-        accessToken: tokens.access_token,
-        credential,
-        grantedScopes: tokens.scope,
-        organizationId,
+      const credential = await completeYoutubeOAuthVerification({
+        code,
+        configService: this.configService,
+        correlationId,
+        credentialsService: this.credentialsService,
+        dto: createCredentialVerifyDto,
+        historyImportService: this.historyImportService,
+        loggerService: this.loggerService,
+        progress,
+        state,
         url,
+        youtubeAuthorizedSignalsService: this.youtubeAuthorizedSignalsService,
+        youtubeService: this.youtubeService,
       });
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
-      const response = (error as { response?: { data?: unknown } })?.response;
-      this.loggerService.error(`${url} failed`, response?.data || error);
-
-      throw error;
-    }
-  }
-
-  private async updateChannelProfileAfterConnection(params: {
-    brandId: string;
-    credential: Awaited<ReturnType<CredentialsService['patch']>>;
-    organizationId: string;
-    tokens: YoutubeOAuthTokens;
-  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
-    const { brandId, credential, organizationId, tokens } = params;
-    try {
-      const clientId = this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
-      const clientSecret = this.configService.get<string>(
-        'GOOGLE_OAUTH_CLIENT_SECRET',
-      );
-      const redirectUri = this.configService.get<string>(
-        'YOUTUBE_REDIRECT_URI',
-      );
-      if (
-        typeof clientId !== 'string' ||
-        typeof clientSecret !== 'string' ||
-        typeof redirectUri !== 'string'
-      ) {
-        throw new HttpException(
-          {
-            detail: 'YouTube OAuth credentials are not configured',
-            title: 'Configuration error',
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      const oauth2Client = YoutubeOAuth2Util.createClient(
-        clientId,
-        clientSecret,
-        redirectUri,
-      );
-      oauth2Client.setCredentials({
-        access_token: tokens.access_token,
-        expiry_date: tokens.expiry_date,
-        refresh_token: tokens.refresh_token,
-      });
-      let channelDetails:
-        | {
-            customUrl?: string;
-            id?: string;
-            thumbnails?: {
-              default?: { url?: string | null };
-              high?: { url?: string | null };
-              medium?: { url?: string | null };
-            };
-            title?: string;
-          }
-        | undefined;
-
-      try {
-        channelDetails = (await this.youtubeService.getChannelDetails(
-          organizationId,
-          brandId,
-          oauth2Client,
-        )) as typeof channelDetails;
-      } catch (channelError: unknown) {
-        this.loggerService.error(
-          'Failed to fetch YouTube channel for connected account',
-          channelError,
-        );
-        channelDetails = undefined;
-      }
-
-      if (!channelDetails?.id) {
-        await this.credentialsService.patch(credential.id, {
-          isConnected: false,
-        });
-        throw new HttpException(
-          {
-            detail:
-              'No YouTube channel is attached to this Google account. Sign in with the Google account that owns the channel, or create a channel first.',
-            title: 'No YouTube channel found',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      return await this.credentialsService.updateExternalProfile(
-        credential.id,
-        organizationId,
-        {
-          avatarUrl:
-            channelDetails.thumbnails?.high?.url ??
-            channelDetails.thumbnails?.medium?.url ??
-            channelDetails.thumbnails?.default?.url,
-          // A channel's `customUrl` (its "@handle") is the only real public
-          // handle YouTube exposes; a channel without one has no handle, and
-          // the title must never stand in for it.
-          handle: channelDetails.customUrl?.replace(/^@/, ''),
-          id: channelDetails.id,
-          name: channelDetails.title,
-        },
-      );
-    } catch (verifyError: unknown) {
-      if (verifyError instanceof HttpException) {
-        throw verifyError;
-      }
+      const safeError = asYoutubeVerifyException(error, progress.stage);
       this.loggerService.error(
-        'Failed to verify YouTube connection',
-        verifyError,
+        `${url} failed`,
+        buildYoutubeVerifyFailureLog({
+          correlationId,
+          error,
+          safeError,
+          stage: progress.stage,
+        }),
       );
-      return credential;
-    }
-  }
 
-  /**
-   * Post-connection work that must never fail the connection itself: refresh
-   * the authorized signals snapshot, then queue the import of the channel's
-   * existing uploads. Both are best-effort and logged on failure.
-   */
-  private async finalizeConnection(params: {
-    accessToken: string | null | undefined;
-    credential: Awaited<ReturnType<CredentialsService['patch']>>;
-    grantedScopes: string | undefined;
-    organizationId: string;
-    url: string;
-  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
-    const { accessToken, grantedScopes, organizationId, url } = params;
-    let credential = params.credential;
-    try {
-      await this.youtubeAuthorizedSignalsService.refresh({
-        accessToken: accessToken ?? undefined,
-        credentialId: credential.id.toString(),
-        force: true,
-        grantedScopes,
-        organizationId,
-      });
-      credential =
-        (await this.credentialsService.findOne({
-          id: credential.id.toString(),
-          organizationId,
-          platform: CredentialPlatform.YOUTUBE,
-        })) ?? credential;
-    } catch (signalError: unknown) {
-      this.loggerService.warn(
-        `${url} authorized signal refresh failed after connection`,
-        signalError,
-      );
+      throw safeError;
     }
-    try {
-      await this.historyImportService.scheduleForCredential({
-        credentialId: credential.id.toString(),
-        organizationId,
-      });
-    } catch (scheduleError: unknown) {
-      this.loggerService.warn(
-        `${url} history import scheduling failed after connection`,
-        scheduleError,
-      );
-    }
-    return credential;
   }
 
   @Post(':credentialId/authorized-signals/refresh')

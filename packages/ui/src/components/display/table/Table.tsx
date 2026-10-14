@@ -12,6 +12,7 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -630,8 +631,10 @@ export default function AppTable<T>({
                         >
                           <div
                             className={cn(
-                              'flex translate-x-0 justify-end opacity-100 transition-[opacity,transform] duration-200 group-focus-within:translate-x-0 group-focus-within:opacity-100 lg:opacity-0 lg:group-hover:translate-x-0 lg:group-hover:opacity-100',
-                              !isCompact && 'lg:translate-x-2',
+                              'flex translate-x-0 justify-end transition-[opacity,transform] duration-200',
+                              hoverRevealClassName({ at: 'lg' }),
+                              !isCompact &&
+                                '[@media(hover:hover)]:lg:translate-x-2 [@media(hover:hover)]:lg:group-hover:translate-x-0 [@media(hover:hover)]:lg:group-focus-within:translate-x-0',
                             )}
                           >
                             <div className="flex items-center gap-1">

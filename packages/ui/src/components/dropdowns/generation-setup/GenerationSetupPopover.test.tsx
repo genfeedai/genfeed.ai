@@ -560,6 +560,49 @@ describe('GenerationSetupPopover', () => {
     expect(onEditChange).toHaveBeenCalledWith(true);
   });
 
+  it('marks exactly one output type active in Auto', async () => {
+    const user = userEvent.setup();
+    const onTypeChange = vi.fn();
+    renderPopover({
+      advancedMode: { isEnabled: false, onChange: vi.fn() },
+      imageEditing: {
+        isEnabled: false,
+        label: 'Edit image',
+        onChange: vi.fn(),
+      },
+      onTypeChange,
+      setup: createSetup({
+        values: { ...createSetup().values, type: 'video' },
+      }),
+      typeOptions: [...typeOptions, { label: 'Video', value: 'video' }],
+    });
+    await openPopover(user);
+    const types = within(screen.getByRole('group', { name: 'Type' }));
+    const pressed = types
+      .getAllByRole('button')
+      .filter((button) => button.getAttribute('aria-pressed') === 'true');
+    expect(pressed.map((button) => button.textContent)).toEqual(['Video']);
+    await user.click(types.getByRole('button', { name: 'Image' }));
+    expect(onTypeChange).toHaveBeenCalledWith('image');
+  });
+
+  it('hides the editing switch in Advanced for non-image types', async () => {
+    const user = userEvent.setup();
+    renderPopover({
+      advancedMode: { isEnabled: true, onChange: vi.fn() },
+      imageEditing: {
+        isEnabled: false,
+        label: 'Edit image',
+        onChange: vi.fn(),
+      },
+      setup: createSetup({
+        values: { ...createSetup().values, type: 'video' },
+      }),
+    });
+    await openPopover(user);
+    expect(screen.queryByRole('switch', { name: 'Edit image' })).toBeNull();
+  });
+
   it('keeps model search and Auto priorities isolated from output, brand, and presets', async () => {
     const user = userEvent.setup();
     const onSetField = vi.fn();

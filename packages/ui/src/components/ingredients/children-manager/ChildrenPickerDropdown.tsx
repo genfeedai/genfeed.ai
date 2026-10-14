@@ -7,10 +7,12 @@ import {
   type IngredientCategory,
 } from '@genfeedai/contracts';
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ImageIcon, Video } from 'lucide-react';
 import Image from 'next/image';
 
@@ -113,7 +115,12 @@ export default function ChildrenPickerDropdown({
                           sizes="64px"
                         />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity flex items-end justify-center pb-1">
+                      <div
+                        className={cn(
+                          'absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 to-transparent pb-1 transition-opacity',
+                          hoverRevealClassName({ isInteractive: false }),
+                        )}
+                      >
                         <span
                           className={
                             'truncate px-1 text-2xs font-medium text-white' /* design-system-allow-content-color -- media overlay */

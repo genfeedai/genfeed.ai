@@ -5,6 +5,8 @@ import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-con
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { rememberOAuthConnectContext } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
@@ -82,6 +84,15 @@ export function useAgentOAuthConnect(
           : threadId
             ? href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
             : href(APP_ROUTES.AGENT.NEW);
+        try {
+          sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
+        } catch {
+          // Private mode — the return_to query is best-effort only.
+        }
+        rememberOAuthConnectContext({
+          brandId: connectionBrand.id,
+          credentialId: credential.id,
+        });
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(
           `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,

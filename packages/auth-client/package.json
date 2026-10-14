@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "better-auth": "1.6.29",
-    "zod": "4.6.5",
+    "zod": "4.6.7",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",

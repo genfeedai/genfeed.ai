@@ -147,7 +147,6 @@ function harness(initial: BrandOsRevision[] = []) {
       watermarkLogoId: null,
       watermarkOpacity: 0.35,
       watermarkPosition: 'bottom-right',
-      isSocialHistoryImportEnabled: true,
       organizationId: ORG,
       isDeleted: false,
       label: 'Current Brand',

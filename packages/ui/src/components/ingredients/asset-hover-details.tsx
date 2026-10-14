@@ -1,4 +1,5 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import type { ReactNode } from 'react';
 
 interface AssetHoverDetailsProps {
@@ -24,7 +25,8 @@ export default function AssetHoverDetails({
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-background/90 px-3 py-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100',
+        'absolute inset-x-0 bottom-0 z-30 bg-background/90 px-3 py-2 text-foreground backdrop-blur-sm transition-opacity duration-200',
+        hoverRevealClassName(),
         className,
       )}
       data-asset-hover-details
@@ -35,9 +37,7 @@ export default function AssetHoverDetails({
         </p>
       ) : null}
       {actions ? (
-        <div className="pointer-events-auto mt-2 flex items-center gap-1">
-          {actions}
-        </div>
+        <div className="mt-2 flex items-center gap-1">{actions}</div>
       ) : null}
     </div>
   );

@@ -11,6 +11,7 @@ function setup() {
   const suggestedReply = vi.fn();
   const params: UseMessagesActionsParams = {
     canAttachReferences: false,
+    canWrite: true,
     conversationType: SocialConversationType.DM,
     getMessagesService: async () =>
       ({ suggestedReply }) as unknown as SocialMessagesService,
@@ -73,6 +74,51 @@ describe('Inline suggested replies', () => {
     rerender({ ...params, selectedId: 'conversation-2' });
     expect(signal.aborted).toBe(true);
     await act(async () => complete?.({ draft: 'Wrong conversation' }));
+    expect(result.current.draft).toBe('');
+  });
+});
+
+describe('Messages module admission', () => {
+  it('blocks imperative work callbacks before obtaining a service', async () => {
+    const { result, params, rerender } = setup();
+    const getMessagesService = vi.fn(params.getMessagesService);
+    rerender({ ...params, canWrite: false, getMessagesService });
+    act(() =>
+      result.current.handleDraftChange({
+        target: { value: 'Local draft' },
+      } as ChangeEvent<HTMLTextAreaElement>),
+    );
+    await act(async () => {
+      await result.current.handleSync();
+      await result.current.handleSuggestedReply();
+      await result.current.handleAction('draft');
+      await result.current.handleAction('reply');
+      await result.current.handleAction('dm');
+      await result.current.handleApproveDraft('message-1');
+      await result.current.handleRejectDraft('message-1');
+      await result.current.handleStatusChange('resolved');
+    });
+    expect(getMessagesService).not.toHaveBeenCalled();
+    expect(result.current.draft).toBe('Local draft');
+  });
+
+  it('aborts a pending suggestion when module access is revoked', async () => {
+    const { result, params, rerender, suggestedReply } = setup();
+    let complete: ((value: { draft: string }) => void) | undefined;
+    suggestedReply.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    act(() => {
+      void result.current.handleSuggestedReply();
+    });
+    await waitFor(() => expect(suggestedReply).toHaveBeenCalled());
+    const signal = suggestedReply.mock.calls[0]?.[1] as AbortSignal;
+    rerender({ ...params, canWrite: false });
+    expect(signal.aborted).toBe(true);
+    await act(async () => complete?.({ draft: 'Stale response' }));
     expect(result.current.draft).toBe('');
   });
 });

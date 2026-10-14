@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/props/studio/prompt-generator.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   Camera,
   Film,
@@ -77,8 +78,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           'text-foreground/30 hover:text-foreground/70',
           'bg-foreground/[0.04] hover:bg-foreground/[0.1]',
           'transition-[color,background-color,opacity] duration-200',
-          'opacity-0 group-hover:opacity-100',
-          '[@media(hover:none)]:opacity-100',
+          hoverRevealClassName(),
         )}
         ariaLabel="Dismiss prompt"
         icon={<X className="size-4" />}

@@ -1,4 +1,3 @@
-import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { DevtoController } from '@api/services/integrations/devto/controllers/devto.controller';
@@ -8,12 +7,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(DevtoService, {
-  additionalImports: [
-    HttpModule,
-    ArticlesModule,
-    BrandsModule,
-    CredentialsCoreModule,
-  ],
+  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
 });
 
 @Module({

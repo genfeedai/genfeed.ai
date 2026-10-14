@@ -13,15 +13,7 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import { CredentialSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import {
-  Body,
-  Controller,
-  HttpException,
-  Param,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -112,66 +104,6 @@ export class DevtoController {
       return returnInternalServerError(
         'Failed to connect dev.to. Please verify your API key.',
       );
-    }
-  }
-
-  /**
-   * Publish an internal article to the brand's connected dev.to account.
-   * POST /services/devto/publish/:articleId
-   */
-  @Post('publish/:articleId')
-  async publishArticle(
-    @CurrentUser() user: User,
-    @Param('articleId') articleId: string,
-    @Query('brandId') brandId: string,
-    @Query('published') published?: string,
-    @Query('tags') tags?: string,
-    @Query('canonicalUrl') canonicalUrl?: string,
-    @Query('credentialId') credentialId?: string,
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    this.loggerService.log(url, { articleId, brandId, published });
-
-    if (!brandId) {
-      return returnBadRequest({
-        detail: 'Missing brandId',
-        title: 'Invalid payload',
-      });
-    }
-
-    try {
-      const parsedTags = tags
-        ? tags
-            .split(',')
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : [];
-
-      const devtoArticle = await this.devtoService.publishArticle(
-        articleId,
-        user.organizationId,
-        brandId,
-        {
-          canonicalUrl,
-          credentialId,
-          published: published !== 'false',
-          tags: parsedTags,
-        },
-      );
-
-      return {
-        data: devtoArticle,
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      return returnInternalServerError('Failed to publish article to dev.to');
     }
   }
 }

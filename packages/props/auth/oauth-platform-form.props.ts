@@ -13,4 +13,10 @@ export type VerifyResult =
    * the operator pick one before the flow can be treated as complete.
    */
   | { status: 'selecting'; credentialId: string }
-  | { status: 'error'; canRetry: boolean; errorMessage: string };
+  | {
+      status: 'error';
+      canRestart: boolean;
+      canRetry: boolean;
+      errorMessage: string;
+      errorTitle: string;
+    };

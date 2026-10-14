@@ -5,6 +5,7 @@ import {
   isYoutubeChannelSelectionError,
   isYoutubeRateLimitError,
   isYoutubeScopeError,
+  readSafeYoutubeProviderReason,
 } from '@api/services/integrations/youtube/utils/youtube-error.util';
 
 function apiError(
@@ -63,6 +64,19 @@ describe('YouTube error utilities', () => {
         apiError(403, 'insufficientPermissions', 'Permission denied'),
       ),
     ).toBe(false);
+  });
+
+  it('returns only an allowlisted provider reason', () => {
+    expect(
+      readSafeYoutubeProviderReason(
+        apiError(401, 'youtubeSignupRequired', 'raw provider body with token'),
+      ),
+    ).toBe('youtubeSignupRequired');
+    expect(
+      readSafeYoutubeProviderReason(
+        apiError(500, 'backendError', 'no channel token=secret'),
+      ),
+    ).toBeUndefined();
   });
 
   it('classifies missing brand-account channel selection as a dedicated state', () => {

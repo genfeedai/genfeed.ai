@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Clipboard, Download, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -40,7 +41,12 @@ export function AgentGeneratedTextCard({
             {title || 'Generated Content'}
           </p>
           {hasActions && (
-            <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+            <div
+              className={cn(
+                'flex items-center gap-1 transition-opacity',
+                hoverRevealClassName({ at: 'sm' }),
+              )}
+            >
               {onCopy && (
                 <Button
                   variant={ButtonVariant.GHOST}

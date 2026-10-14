@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 
 import type { ImageGenNodeData, ImageModel } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { hoverRevealClassName } from '@genfeedai/ui/styles/hover-reveal';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Download, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -195,7 +196,7 @@ function ImageGenNodeComponent(props: NodeProps) {
 
                   <div
                     className={
-                      'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition flex items-center justify-center' /* design-system-allow-content-color */
+                      `absolute inset-0 flex items-center justify-center bg-black/50 transition ${hoverRevealClassName()}` /* design-system-allow-content-color */
                     }
                   >
                     <Button

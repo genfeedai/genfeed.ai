@@ -46,7 +46,8 @@ export class CreateArticleDto {
   summary!: string;
 
   @ApiProperty({
-    description: 'Full article content (markdown or HTML)',
+    description:
+      'Full article content as HTML. Article.content stores HTML only; Markdown is converted before it is saved.',
     required: false,
   })
   @IsOptional()

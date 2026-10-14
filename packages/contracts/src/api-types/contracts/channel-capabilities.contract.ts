@@ -843,6 +843,38 @@ const channelCapabilities = [
     settings: [],
     status: 'supported',
   },
+  {
+    caption: { maxLength: 100_000, required: true },
+    description:
+      'Long-form article on a connected Dev.to account. Articles deliver here from the article editor; stored HTML is converted to Markdown at publish.',
+    helpers: [
+      {
+        key: 'devto.accounts',
+        kind: 'account',
+        label: 'Dev.to account',
+        required: true,
+      },
+    ],
+    label: 'Dev.to',
+    media: {
+      // Dev.to articles carry images inline in the Markdown body; there is no
+      // separate media upload on the create-article API.
+      animated: { supported: true },
+      kinds: ['link'],
+      minItems: 0,
+    },
+    platform: CredentialPlatform.DEV_TO,
+    publishModes: ['draft', 'publish_now', 'scheduled'],
+    settings: [
+      {
+        description: 'Up to 4 comma-separated tags. Later tags are dropped.',
+        key: 'tags',
+        label: 'Tags',
+        type: 'string',
+      },
+    ],
+    status: 'supported',
+  },
 ] satisfies ChannelCapability[];
 
 export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] =

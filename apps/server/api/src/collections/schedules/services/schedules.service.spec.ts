@@ -108,6 +108,7 @@ describe('SchedulesService', () => {
         CredentialPlatform.GHOST,
         CredentialPlatform.WORDPRESS,
         CredentialPlatform.MEDIUM,
+        CredentialPlatform.DEV_TO,
       ]);
     });
 

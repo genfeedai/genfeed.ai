@@ -3,10 +3,12 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { BRAND_HANDLE_MAX_LENGTH } from '@genfeedai/contracts/constants';
 import { isPublicAssetScope } from '@genfeedai/helpers';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Copy, Share2, Sparkles, Upload } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -42,9 +44,10 @@ export default function BrandDetailOverview({
           priority
         />
         <div
-          className={
-            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100' /* design-system-allow-content-color */
-          }
+          className={cn(
+            'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity' /* design-system-allow-content-color */,
+            hoverRevealClassName(),
+          )}
         >
           <div className="flex gap-1.5">
             <Button

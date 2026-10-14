@@ -4,6 +4,7 @@
  */
 
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
@@ -124,6 +125,10 @@ describe('PublisherFactoryService', () => {
           useValue: mockPublisher(CredentialPlatform.MEDIUM),
         },
         {
+          provide: DevtoPublisherService,
+          useValue: mockPublisher(CredentialPlatform.DEV_TO),
+        },
+        {
           provide: GhostPublisherService,
           useValue: mockPublisher(CredentialPlatform.GHOST),
         },
@@ -199,6 +204,11 @@ describe('PublisherFactoryService', () => {
     it('should return the medium publisher for MEDIUM platform', () => {
       const publisher = service.getPublisher(CredentialPlatform.MEDIUM);
       expect(publisher?.platform).toBe(CredentialPlatform.MEDIUM);
+    });
+
+    it('should return the dev.to publisher for DEV_TO platform', () => {
+      const publisher = service.getPublisher(CredentialPlatform.DEV_TO);
+      expect(publisher?.platform).toBe(CredentialPlatform.DEV_TO);
     });
 
     it('should return the beehiiv publisher for BEEHIIV platform', () => {
@@ -408,6 +418,7 @@ describe('PublisherFactoryService', () => {
       CredentialPlatform.SHOPIFY,
       CredentialPlatform.BEEHIIV,
       CredentialPlatform.MEDIUM,
+      CredentialPlatform.DEV_TO,
     ] as const;
 
     it.each(SUPPORTED)(
@@ -431,8 +442,8 @@ describe('PublisherFactoryService', () => {
       expect(Array.isArray(service.getSupportedPlatforms())).toBe(true);
     });
 
-    it('should include all 18 registered platforms', () => {
-      expect(service.getSupportedPlatforms()).toHaveLength(18);
+    it('should include all 19 registered platforms', () => {
+      expect(service.getSupportedPlatforms()).toHaveLength(19);
     });
 
     it('should include TWITTER', () => {

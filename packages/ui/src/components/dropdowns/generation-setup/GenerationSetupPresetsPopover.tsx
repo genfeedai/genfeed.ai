@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { StudioSystemPreset } from '@genfeedai/contracts/constants/studio-system-presets.constant';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupPresetsPopoverProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupPresetPreview from '@ui/dropdowns/generation-setup/GenerationSetupPresetPreview';
 import GenerationSetupPresetsSection from '@ui/dropdowns/generation-setup/GenerationSetupPresetsSection';
@@ -11,6 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Bookmark, Eye, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -132,7 +134,10 @@ export default function GenerationSetupPresetsPopover({
                     ariaLabel={translate('presetPreviewAria', {
                       label: preset.label,
                     })}
-                    className="absolute right-1 top-1 size-8 bg-background/90 [@media(hover:none)]:size-11 [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/preset:pointer-events-auto [@media(hover:hover)]:group-hover/preset:opacity-100 [@media(hover:hover)]:group-focus-within/preset:pointer-events-auto [@media(hover:hover)]:group-focus-within/preset:opacity-100"
+                    className={cn(
+                      'absolute right-1 top-1 size-8 bg-background/90 [@media(hover:none)]:size-11',
+                      hoverRevealClassName({ group: 'preset' }),
+                    )}
                     icon={<Eye className="size-3.5" />}
                     isDisabled={props.isDisabled}
                     onClick={() => setPreviewKey(preset.key)}

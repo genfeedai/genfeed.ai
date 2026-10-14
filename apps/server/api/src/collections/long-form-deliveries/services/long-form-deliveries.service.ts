@@ -1,3 +1,5 @@
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import type { CreateArticleDeliveryDto } from '@api/collections/long-form-deliveries/dto/create-article-delivery.dto';
 import type { CreateNewsletterDeliveryDto } from '@api/collections/long-form-deliveries/dto/create-newsletter-delivery.dto';
@@ -27,8 +29,11 @@ import type {
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type LongFormDeliveryContext = {
+  apiKeyId?: string;
   brandId: string;
+  isApiKey?: boolean;
   organizationId: string;
+  scopes?: string[];
   userId: string;
 };
 
@@ -68,13 +73,14 @@ export class LongFormDeliveriesService {
     private readonly postGroupPersistenceService: PostGroupPersistenceService,
     private readonly articlesService: ArticlesService,
     private readonly newslettersService: NewslettersService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   /**
-   * Publish an article to a connected Ghost, WordPress or Medium account and
-   * mark it published in the workspace. Access matches the article editor's
-   * publish path: the caller's brand, and their own or an organization-scoped
-   * article.
+   * Publish an article to a connected Ghost, WordPress, Medium or Dev.to
+   * account and mark it published in the workspace. Access matches the article
+   * editor's publish path: the caller's brand, their own or an
+   * organization-scoped article, and the assigned-only brand rule.
    */
   async deliverArticle(
     ctx: LongFormDeliveryContext,
@@ -100,6 +106,8 @@ export class LongFormDeliveriesService {
       throw new NotFoundException('Article', articleId);
     }
 
+    await this.brandAccess.assert(this.brandActor(ctx), article.brandId);
+
     const html = article.content?.trim();
     if (!html) {
       throw new BadRequestException(
@@ -112,7 +120,7 @@ export class LongFormDeliveriesService {
       article.brandId,
       dto.credentialId,
       isArticleDeliveryPlatform,
-      'a connected Ghost, WordPress or Medium account',
+      'a connected Ghost, WordPress, Medium or Dev.to account',
     );
 
     const release = await this.queueRelease(ctx, {
@@ -349,6 +357,16 @@ export class LongFormDeliveriesService {
       ctx.userId,
       release.id,
     );
+  }
+
+  private brandActor(ctx: LongFormDeliveryContext): BrandAccessActor {
+    return {
+      apiKeyId: ctx.apiKeyId,
+      isApiKey: ctx.isApiKey,
+      organizationId: ctx.organizationId,
+      scopes: ctx.scopes,
+      userId: ctx.userId,
+    };
   }
 
   private parseFutureDate(value: string | undefined): Date {

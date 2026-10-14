@@ -24,6 +24,7 @@ import {
 import type { ReleaseRailRowProps } from '@props/publisher/release-rail.props';
 import { Badge } from '@ui/primitives/badge';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -159,7 +160,12 @@ export function ReleaseRailActions({
   const { visible } = visibleTargets(release.targets);
   const primaryTargetId = visible[0]?.id ?? release.id;
   return (
-    <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+    <div
+      className={cn(
+        'flex shrink-0 items-center gap-1 transition-opacity',
+        hoverRevealClassName(),
+      )}
+    >
       <Link
         aria-label={translate('open')}
         className={buttonVariants({

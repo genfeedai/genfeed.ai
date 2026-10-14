@@ -190,9 +190,13 @@ describe('StudioPlaygroundCard', () => {
     expect(container.querySelector('[data-asset-details]')).toBeNull();
     expect(container.querySelector('[data-asset-hover-details]')).toHaveClass(
       'absolute',
-      'opacity-0',
-      'group-hover:opacity-100',
+      'opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-hover:opacity-100',
     );
+    expect(
+      container.querySelector('[data-asset-hover-details]'),
+    ).not.toHaveClass('opacity-0');
     expect(
       container.querySelector('[data-asset-hover-details]'),
     ).not.toHaveClass('border-t');
@@ -391,7 +395,11 @@ describe('StudioPlaygroundCard', () => {
       screen
         .getByText(new RegExp(generatedJob.modelKey))
         .closest('[data-asset-hover-details]'),
-    ).toHaveClass('opacity-0', 'group-focus-within:opacity-100');
+    ).toHaveClass(
+      'opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
+    );
 
     const imageProps = masonryMocks.image.mock.calls.at(-1)?.[0];
     expect(imageProps?.onCopyPrompt).toBe(assetActions.onCopyPrompt);

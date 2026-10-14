@@ -27,7 +27,8 @@ export default function GenerationSetupAutoTypePicker({
     const isImage = option.value === 'image' || option.value === 'image-edit';
     return {
       icon: isImage ? 'image' : option.value,
-      isActive: isImage ? !isEditing : option.value === setup.values.type,
+      // Exactly one tile is active: Image yields to Edit image while editing.
+      isActive: option.value === setup.values.type && !(isImage && isEditing),
       label: option.label,
       onSelect: () => {
         if (isImage && isEditing) imageEditing?.onChange(false);

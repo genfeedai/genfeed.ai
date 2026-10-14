@@ -60,4 +60,5 @@ export interface MessagesConversationSidebarProps {
   search: string;
   selectedId: string | null;
   view: MessagesInboxView;
+  writeBlockedReason?: string;
 }

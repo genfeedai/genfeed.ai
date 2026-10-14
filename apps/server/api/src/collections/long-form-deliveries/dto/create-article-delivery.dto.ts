@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreateArticleDeliveryDto {
   @ApiProperty({
     description:
-      'Connected Ghost, WordPress or Medium account of the article brand to publish the article to.',
+      'Connected Ghost, WordPress, Medium or Dev.to account of the article brand to publish the article to.',
   })
   @IsEntityId()
   readonly credentialId!: string;

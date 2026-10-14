@@ -1013,27 +1013,23 @@ export default function StudioPlaygroundComposer({
               showEnhancementSettings={type === 'image' || type === 'video'}
               align="start"
               isIconOnly
-              imageEditing={
-                type === 'image' || type === 'image-edit'
-                  ? {
-                      isEnabled: type === 'image-edit',
-                      label: getStudioPlaygroundTypeConfig('image-edit').label,
-                      onChange: (isEditing) =>
-                        onTypeChange(isEditing ? 'image-edit' : 'image'),
-                    }
-                  : undefined
-              }
+              // Always offered so the Auto type grid keeps the same tiles
+              // whatever type is selected.
+              imageEditing={{
+                isEnabled: type === 'image-edit',
+                label: getStudioPlaygroundTypeConfig('image-edit').label,
+                onChange: (isEditing) =>
+                  onTypeChange(isEditing ? 'image-edit' : 'image'),
+              }}
               triggerLabel={setupLabel}
               inputControls={inputControls}
               referenceCount={crunReferenceCount ?? attachedAssets.length}
-              advancedMode={
-                capabilities.hasModelSelection
-                  ? {
-                      isEnabled: isAdvancedMode,
-                      onChange: handleAdvancedModeChange,
-                    }
-                  : undefined
-              }
+              // Every type keeps the Auto/Advanced layout; Avatar and Voice
+              // just have no model to choose in Advanced.
+              advancedMode={{
+                isEnabled: isAdvancedMode,
+                onChange: handleAdvancedModeChange,
+              }}
               capabilities={capabilities}
               favoriteModelKeys={favoriteModelKeys}
               isDisabled={isGenerating}

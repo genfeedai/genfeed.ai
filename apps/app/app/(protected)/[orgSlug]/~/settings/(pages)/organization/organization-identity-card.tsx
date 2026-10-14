@@ -8,6 +8,7 @@ import {
   normalizeBrandHandle,
 } from '@genfeedai/contracts/constants';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   OrganizationIdentityCardProps,
@@ -20,6 +21,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Sparkles, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -259,9 +261,10 @@ function OrganizationIdentityEditor({
             saved.label.charAt(0).toUpperCase()
           )}
           <div
-            className={
-              'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100' /* design-system-allow-content-color */
-            }
+            className={cn(
+              'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity' /* design-system-allow-content-color */,
+              hoverRevealClassName({ focus: 'within' }),
+            )}
           >
             <div className="flex gap-1.5">
               <Button

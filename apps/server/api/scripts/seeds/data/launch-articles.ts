@@ -1307,7 +1307,9 @@ one day traffic actually arrives — far more often than on positioning.</p>
 
 const ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT = '2026-08-13T01:38:45.528Z';
 
-export const RETIRED_ARTICLE_SLUGS = [] as const;
+// Misspelled test post at /articles/test-artcile-for-genfeed.ai. The seed
+// archives this slug so it stays out of the public feed and sitemap.
+export const RETIRED_ARTICLE_SLUGS = ['test-artcile-for-genfeed.ai'] as const;
 
 export const LAUNCH_ARTICLES: readonly SeedArticle[] = [
   {

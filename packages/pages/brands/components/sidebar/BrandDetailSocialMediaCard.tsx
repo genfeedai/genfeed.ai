@@ -10,6 +10,7 @@ import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
+import { rememberOAuthConnectContext } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import AccountAvatar from '@pages/brands/components/integrations/AccountAvatar';
 import AccountSettingsDialog from '@pages/brands/components/integrations/AccountSettingsDialog';
@@ -448,6 +449,10 @@ export default function BrandDetailSocialMediaCard({
         ...(isHistoryImportRequested === undefined
           ? {}
           : { isHistoryImportRequested }),
+      });
+      rememberOAuthConnectContext({
+        brandId,
+        credentialId: credentialOAuth.id || credentialId,
       });
       window.open(credentialOAuth.url, '_self');
     } catch (error) {

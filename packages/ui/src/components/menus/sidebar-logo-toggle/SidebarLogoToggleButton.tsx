@@ -3,8 +3,13 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import {
+  hoverConcealClassName,
+  hoverRevealClassName,
+} from '@ui/styles/hover-reveal';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { CSSProperties } from 'react';
+
 import SidebarLogoMark from './SidebarLogoMark';
 
 type SidebarLogoToggleButtonProps = {
@@ -44,12 +49,23 @@ export default function SidebarLogoToggleButton({
       style={style}
       tooltip={ariaLabel}
     >
-      <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
+      <span
+        className={cn(
+          'absolute inset-0 flex items-center justify-center transition-opacity duration-150',
+          hoverConcealClassName({ focus: 'group-visible' }),
+        )}
+      >
         <SidebarLogoMark />
       </span>
       <span
         aria-hidden="true"
-        className="absolute inset-0 flex items-center justify-center text-foreground/62 opacity-0 transition-opacity duration-150 group-hover:text-foreground group-hover:opacity-100 group-focus-visible:text-foreground group-focus-visible:opacity-100"
+        className={cn(
+          'absolute inset-0 flex items-center justify-center text-foreground/62 transition-opacity duration-150 group-hover:text-foreground group-focus-visible:text-foreground',
+          hoverRevealClassName({
+            focus: 'group-visible',
+            isInteractive: false,
+          }),
+        )}
       >
         <DirectionIcon className="size-4 stroke-[1.75]" />
       </span>

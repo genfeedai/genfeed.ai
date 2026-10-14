@@ -588,6 +588,14 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/ui/src/utils/$1'),
       },
       {
+        find: /^@ui\/styles$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/styles'),
+      },
+      {
+        find: /^@ui\/styles\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/styles/$1'),
+      },
+      {
         find: /^@ui\/tokens$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/tokens'),
       },

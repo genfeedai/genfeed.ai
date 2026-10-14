@@ -62,10 +62,10 @@ function renderFirstCard({ showActions = true } = {}) {
 // rules emulate a tile whose CSS hover has revealed the bar before React has
 // seen a mouseenter: `.group` stands in for `.group:hover`.
 const HOVER_REVEAL_CSS = `
-  .opacity-0 { opacity: 0; }
-  .pointer-events-none { pointer-events: none; }
-  .group .group-hover\\:opacity-100 { opacity: 1; }
-  .group .group-hover\\:pointer-events-auto { pointer-events: auto; }
+  .\\[\\@media\\(hover\\:hover\\)\\]\\:opacity-0 { opacity: 0; }
+  .\\[\\@media\\(hover\\:hover\\)\\]\\:pointer-events-none { pointer-events: none; }
+  .group .\\[\\@media\\(hover\\:hover\\)\\]\\:group-hover\\:opacity-100 { opacity: 1; }
+  .group .\\[\\@media\\(hover\\:hover\\)\\]\\:group-hover\\:pointer-events-auto { pointer-events: auto; }
 `;
 
 function emulateCssHoverReveal(): () => void {
