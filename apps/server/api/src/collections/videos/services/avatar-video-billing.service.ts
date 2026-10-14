@@ -167,7 +167,8 @@ export class AvatarVideoBillingService {
     selection: AvatarModelSelection,
     estimatedSeconds: number | undefined,
   ): Promise<AvatarRenderQuote> {
-    if (selection.engine && !selection.avatarType)
+    const { avatarType, engine } = selection;
+    if (engine && !avatarType)
       throw new BadRequestException(
         'The avatar type could not be verified, so the render cannot be priced.',
       );
@@ -175,12 +176,13 @@ export class AvatarVideoBillingService {
       throw new BadRequestException(
         'Add a script or a saved narration with a known length to price this avatar.',
       );
-    if (!selection.engine) return this.quotePhotoAnimation(estimatedSeconds);
+    if (!engine || !avatarType)
+      return this.quotePhotoAnimation(estimatedSeconds);
     const snapshot = await this.modelCreditQuote.quoteSnapshotByKey(
       selection.modelKey,
       {
         duration: estimatedSeconds,
-        selectors: { avatar_type: selection.avatarType },
+        selectors: { avatar_type: avatarType },
       },
     );
     // A flat reading of the per-second row would bill one second as a clip.
