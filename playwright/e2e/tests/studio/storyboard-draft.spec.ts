@@ -8,6 +8,7 @@ import {
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
+import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
@@ -44,6 +45,26 @@ async function previewResponse(file: string) {
   };
 }
 const base = '/test-org/brand-1/studio/storyboard';
+
+/**
+ * Plan fields live in the run's context sidebar. Below xl it is a drawer, and
+ * its tab state resets whenever the page or the drawer remounts.
+ */
+async function openStoryboardTab(
+  page: Page,
+  name: 'Shots' | 'Details' | 'References' | 'Cast',
+) {
+  const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
+  if (!(await tabs.isVisible()))
+    await page
+      .getByRole('button', { name: 'Open details', exact: true })
+      .click();
+  await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
+}
+async function closeStoryboardDrawer(page: Page) {
+  if ((page.viewportSize()?.width ?? 0) < 1280)
+    await page.keyboard.press('Escape');
+}
 const time = '2026-09-30T00:00:00.000Z';
 const run: StoryboardRun = {
   id: 'draft-coffee',
@@ -210,13 +231,16 @@ test('edits and approves a persisted draft through the actual route with loaded 
     });
   });
   await page.goto(`${base}/${run.id}`);
+  await openStoryboardTab(page, 'Details');
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
     run.config.plan.title,
   );
   await expect(
     page.getByRole('button', { name: 'Approve storyboard', exact: true }),
   ).toBeEnabled();
+  await openStoryboardTab(page, 'Cast');
   await expect(page.getByLabel('Speaker 1', { exact: true })).toBeVisible();
+  await openStoryboardTab(page, 'References');
   await expect(
     page.getByRole('button', {
       name: 'Remove Morning coffee reference',
@@ -243,9 +267,11 @@ test('edits and approves a persisted draft through the actual route with loaded 
           .addCookies([
             { name: 'theme', value: theme, url: new URL(page.url()).origin },
           ]);
+        await openStoryboardTab(page, 'Details');
         await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
           current.config.plan.title,
         );
+        await closeStoryboardDrawer(page);
         await expect(page.locator('html')).toHaveAttribute(
           'data-theme',
           theme === 'light' ? 'light' : 'dark',
@@ -283,7 +309,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
             .toBe(true);
         }
         await page
-          .getByLabel('Title', { exact: true })
+          .getByRole('region', { name: 'Shot 1', exact: true })
           .scrollIntoViewIfNeeded();
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
@@ -310,10 +336,13 @@ test('edits and approves a persisted draft through the actual route with loaded 
     }
   }
   await captureMatrix('before');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openStoryboardTab(page, 'Details');
   await page.getByLabel('Title', { exact: true }).fill('Coffee, then pause');
   await expect.poll(() => current.config.plan.title).toBe('Coffee, then pause');
   await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
   await page.reload();
+  await openStoryboardTab(page, 'Details');
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
     'Coffee, then pause',
   );
@@ -569,6 +598,7 @@ test('creates an unpaid brief draft and saves added shots through the real route
     .getByRole('button', { name: 'Save storyboard', exact: true })
     .click();
   await expect(page).toHaveURL(/\/studio\/storyboard\/new-coffee$/);
+  await openStoryboardTab(page, 'Details');
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
     'A new coffee story',
   );
@@ -727,6 +757,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     await route.fulfill(await previewResponse(file));
   });
   await page.goto(`${base}/draft-coffee`);
+  await openStoryboardTab(page, 'Details');
   const title = page.getByLabel('Title', { exact: true });
   await expect(title).toHaveValue(run.config.plan.title);
   await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
@@ -743,6 +774,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     .poll(() => current.config.plan.title)
     .toBe('Saved through sidebar navigation');
   await page.goBack();
+  await openStoryboardTab(page, 'Details');
   await expect(title).toHaveValue('Saved through sidebar navigation');
 
   // An edit made after dispatch stays queued after detachment; no route-owned abort drops it.
@@ -759,6 +791,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     .poll(() => current.config.plan.title)
     .toBe('Latest edit while saving');
   await page.goBack();
+  await openStoryboardTab(page, 'Details');
   await expect(title).toHaveValue('Latest edit while saving');
   await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
 
@@ -824,27 +857,12 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   ).toHaveCount(0);
   await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
 
-  // Source and plan share one sequence and carry source-induced freshness forward.
-  await page
-    .getByLabel('Brief', { exact: true })
-    .fill('An edited coffee brief');
-  await title.fill('Plan after source edit');
+  // After a reload the sidebar starts on Shots; title edits still autosave.
+  await openStoryboardTab(page, 'Details');
+  await title.fill('Plan after resolving');
   await expect
     .poll(() => current.config.plan.title)
-    .toBe('Plan after source edit');
-  expect(current.config.sourceSnapshot.selector).toEqual({
-    kind: 'brief',
-    brief: 'An edited coffee brief',
-  });
-  expect(
-    current.config.plan.shots.every((shot) => shot.stillFreshness === 'stale'),
-  ).toBe(true);
-  expect(
-    mutations.slice(-2).map((mutation) => mutation.path.split('/').at(-1)),
-  ).toEqual(['source', 'plan']);
-  expect(mutations.at(-1)?.revision).toBe(
-    (mutations.at(-2)?.revision ?? 0) + 1,
-  );
+    .toBe('Plan after resolving');
   expect(pageErrors).toEqual([]);
   await assertNoErrorBoundaryFallback(page, new URL(page.url()).pathname);
   await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0);
@@ -977,4 +995,127 @@ test('requires decoded still responses and permits a loaded shot while a 404, 40
     ).toBeEnabled();
   }
   expect(pageErrors).toEqual([]);
+});
+
+test('drafts shots from the brief in the shared composer, then revises them from a change request', async ({
+  authenticatedPage: page,
+}) => {
+  let current: StoryboardRun = {
+    ...run,
+    id: 'brief-coffee',
+    config: {
+      ...run.config,
+      state: 'storyboard',
+      sourceSnapshot: {
+        capturedAt: time,
+        selector: { kind: 'brief', brief: '' },
+      },
+      plan: { ...run.config.plan, title: '', logline: '', shots: [] },
+    },
+  };
+  const mutations: { path: string; instruction?: string }[] = [];
+  await page.route('**/brands/brand-1/storyboard-runs**', async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (pathname.endsWith('/capabilities')) {
+      await route.fulfill({
+        json: {
+          version: 1,
+          runId: current.id,
+          runRevision: current.config.revision,
+          capabilityVersion: 'c'.repeat(64),
+          status: 'available',
+          requestedModelKey: null,
+          effectiveModel: model,
+          eligibleModels: [model],
+          reasonCode: null,
+        },
+      });
+      return;
+    }
+    if (method === 'PATCH' && pathname.endsWith('/source')) {
+      const input = route.request().postDataJSON();
+      mutations.push({ path: 'source' });
+      expect(input.expectedRevision).toBe(current.config.revision);
+      current = {
+        ...current,
+        config: {
+          ...current.config,
+          revision: current.config.revision + 1,
+          sourceSnapshot: { capturedAt: time, selector: input.source },
+        },
+      };
+    } else if (method === 'POST' && pathname.endsWith('/plan/draft')) {
+      const input = route.request().postDataJSON();
+      mutations.push({ path: 'draft', instruction: input.instruction });
+      expect(input.expectedRevision).toBe(current.config.revision);
+      current = {
+        ...current,
+        config: {
+          ...current.config,
+          revision: current.config.revision + 1,
+          plan: {
+            ...run.config.plan,
+            title: input.instruction ? 'Coffee, revised' : 'Coffee, drafted',
+          },
+        },
+      };
+    } else if (method === 'PATCH' && pathname.endsWith('/plan')) {
+      const input = route.request().postDataJSON();
+      mutations.push({ path: 'plan' });
+      current = {
+        ...current,
+        config: {
+          ...current.config,
+          revision: current.config.revision + 1,
+          plan: input.plan,
+        },
+      };
+    } else if (method !== 'GET')
+      throw new Error(`Unexpected mutation: ${method} ${pathname}`);
+    const { id, ...attributes } = current;
+    await route.fulfill({
+      json: { data: { id, type: 'content-run', attributes } },
+    });
+  });
+
+  await page.goto(`${base}/${current.id}`);
+  const main = page.locator('main');
+  await expect(
+    main.getByText('Start with the story', { exact: true }),
+  ).toBeVisible();
+  const composer = main.getByRole('textbox', { name: 'Conversation prompt' });
+  const send = main.getByRole('button', { name: 'Send message', exact: true });
+
+  await composer.fill('A coffee founder story');
+  await send.click();
+  await expect
+    .poll(() => mutations.map((mutation) => mutation.path))
+    .toEqual(['source', 'draft']);
+  expect(current.config.sourceSnapshot.selector).toEqual({
+    kind: 'brief',
+    brief: 'A coffee founder story',
+  });
+  expect(mutations[1]?.instruction).toBeUndefined();
+  await expect(
+    page.getByRole('region', { name: 'Shot 1', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Shot 2', exact: true }),
+  ).toBeVisible();
+
+  await composer.fill('Make shot 2 shorter');
+  await send.click();
+  await expect
+    .poll(() => mutations.at(-1))
+    .toEqual({ path: 'draft', instruction: 'Make shot 2 shorter' });
+  await openStoryboardTab(page, 'Details');
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
+    'Coffee, revised',
+  );
+  expect(
+    mutations.every((mutation) =>
+      ['source', 'draft', 'plan'].includes(mutation.path),
+    ),
+  ).toBe(true);
 });

@@ -586,6 +586,13 @@ describe('persisted storyboard plan editor', () => {
         'Storyboard · brief',
       );
     });
+    it('still lets the creator add the first shot by hand', async () => {
+      renderEditor({ run: emptyRun });
+      fireEvent.click(screen.getByRole('button', { name: 'Add shot' }));
+      expect(
+        await screen.findByRole('region', { name: 'Shot 1' }),
+      ).toBeInTheDocument();
+    });
     it('offers to draft from a brief that is already saved', () => {
       const draftFromBrief = vi.fn();
       renderEditor({

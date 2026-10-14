@@ -624,15 +624,23 @@ export default function StoryboardPlanEditor({
               label={translateDraft('emptyTitle')}
               description={translateDraft('emptyDescription')}
               actions={
-                sourceBrief && onDraftFromBrief ? (
+                <div className="mt-1 flex flex-wrap justify-center gap-2">
+                  {sourceBrief && onDraftFromBrief ? (
+                    <Button
+                      label={translateDraft('draftFromBrief')}
+                      variant={ButtonVariant.SECONDARY}
+                      disabled={isDisabled}
+                      onClick={onDraftFromBrief}
+                    />
+                  ) : null}
                   <Button
-                    className="mt-1"
-                    label={translateDraft('draftFromBrief')}
-                    variant={ButtonVariant.SECONDARY}
-                    disabled={isDisabled}
-                    onClick={onDraftFromBrief}
+                    label={translate('addShot')}
+                    icon={<Plus className="size-4" />}
+                    variant={ButtonVariant.GHOST}
+                    disabled={isDisabled || timingDisabled}
+                    onClick={() => addShot()}
                   />
-                ) : undefined
+                </div>
               }
             />
           )}
