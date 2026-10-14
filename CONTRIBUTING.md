@@ -47,6 +47,62 @@ lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 This is a Bun workspace. Do not use npm, Yarn, or pnpm to install repository
 dependencies or update `bun.lock`.
 
+### Prerequisites by platform
+
+Install these before running `bun install`:
+
+| Requirement | Why it is needed |
+| --- | --- |
+| Node.js 24 (`>=24 <25`) | Runtime for the workspaces and tooling |
+| Bun | Package manager and script runner |
+| Docker with Compose v2 (`docker compose version`) | PostgreSQL and Redis for local development |
+| C/C++ toolchain (`build-essential`, or Xcode CLT on macOS) and `python3` | `bun install` compiles the `node-pty` native module (used by `apps/server/notifications`) with `node-gyp` |
+| systemd (Linux only) | `bun run dev:setup` installs the Portless HTTPS proxy as a startup service |
+
+**Debian / Ubuntu** (QA-verified on Debian 13):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential python3 git unzip ca-certificates
+```
+
+Then install Node.js 24 (for example with [nvm](https://github.com/nvm-sh/nvm),
+[fnm](https://github.com/Schniz/fnm), or NodeSource), [Bun](https://bun.sh/docs/installation),
+and Docker Engine with the Compose v2 plugin following the
+[Docker install guide](https://docs.docker.com/engine/install/). Add your user to
+the `docker` group (`sudo usermod -aG docker "$USER"`, then log out and back in)
+so `docker compose` runs without `sudo`.
+
+**macOS**:
+
+```bash
+xcode-select --install   # Xcode Command Line Tools: compiler toolchain and python3
+```
+
+Then install Node.js 24, Bun, and Docker Desktop (or another Docker Engine with
+Compose v2), for example via Homebrew.
+
+**systemd.** `bun run dev:setup` registers Portless as a startup service, so a
+Linux machine must run systemd (check with `systemctl --version`). Standard
+Debian and Ubuntu installs already do. Minimal containers and WSL2 distributions
+need systemd enabled (`systemd=true` under `[boot]` in `/etc/wsl.conf`, then
+`wsl --shutdown`). Where systemd is unavailable, use the
+[fixed-port debugging path](#optional-debugging-path-fixed-ports) instead.
+
+### Docker Compose stacks on one machine
+
+The repository has two independent Compose stacks, and they can run side by side:
+
+| Stack | Compose file | Containers |
+| --- | --- | --- |
+| Contributor dev (databases only) | `docker/local/docker-compose.yml` | `genfeed-dev-postgres`, `genfeed-dev-redis` |
+| Self-hosted Community | `docker/docker-compose.selfhosted.yml` | `genfeed-selfhosted-postgres` and the `genfeed` app |
+
+Only the dev stack publishes database ports (`5432`, `6379`). The self-hosted
+stack publishes the web UI, API, and MCP ports (`3000`, `3010`, `3014` by
+default; override with `SELFHOSTED_*_PORT`), which the fixed-port `dev:debug`
+path also uses, so do not run both at once with default ports.
+
 **Operating systems.** Development is supported on **macOS and Linux**. On
 **Windows, use WSL2** (Ubuntu) and run everything inside the WSL2 filesystem;
 native Windows shells are not supported and are not tested in CI. Self-hosting

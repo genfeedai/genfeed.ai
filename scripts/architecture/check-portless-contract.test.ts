@@ -34,6 +34,25 @@ describe('Portless local-development contract guard', () => {
     expect(compose).not.toMatch(/^version:/mu);
   });
 
+  it('keeps self-hosted and contributor Compose container names distinct', () => {
+    const containerNames = [
+      'docker/local/docker-compose.yml',
+      'docker/docker-compose.selfhosted.yml',
+    ].flatMap((file) =>
+      Array.from(
+        readFileSync(file, 'utf8').matchAll(/^\s*container_name:\s*(\S+)/gmu),
+        (match) => match[1],
+      ),
+    );
+
+    expect(containerNames).toEqual([
+      'genfeed-dev-postgres',
+      'genfeed-dev-redis',
+      'genfeed-selfhosted-postgres',
+    ]);
+    expect(new Set(containerNames).size).toBe(containerNames.length);
+  });
+
   it('declares each canonical environment key once', () => {
     const keys = readFileSync('.env.example', 'utf8')
       .split(/\r?\n/u)
