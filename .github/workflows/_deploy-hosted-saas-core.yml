@@ -478,13 +478,37 @@ jobs:
             --timeout-seconds 900 \
             --stop-on-timeout
 
-      - name: Tofu apply (roll services to new image)
+      - name: Roll metadata clients before Files
         working-directory: ops/${{ env.TF_DIR }}
         env:
           TF_VAR_enable_dns_cutover: "true"
         run: |
-          # Roll services with REDIS_PASSWORD first. Redis AUTH is applied after
-          # this wait-services-stable step so old tasks are not locked out.
+          set -euo pipefail
+          # Old clients send no metadata key. Drain them before Files requires it.
+          # Redis AUTH still waits for the complete service rollout below.
+          tofu apply -input=false -auto-approve \
+            -exclude='module.service["files"]' \
+            -exclude=aws_elasticache_replication_group.redis
+
+      - name: Wait for metadata clients stable
+        id: wait-metadata-clients
+        working-directory: ops/${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          SERVICES=$(tofu output -json service_names | jq -r 'map(select(. != "files")) | join(",")')
+          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-wait-services-stable.ts" \
+            --cluster "$CLUSTER" \
+            --services "$SERVICES" \
+            --timeout-seconds 1200 \
+            --poll-seconds 15
+
+      - name: Roll Files after metadata clients
+        working-directory: ops/${{ env.TF_DIR }}
+        env:
+          TF_VAR_enable_dns_cutover: "true"
+        run: |
+          set -euo pipefail
           tofu apply -input=false -auto-approve \
             -exclude=aws_elasticache_replication_group.redis
 
@@ -529,7 +553,7 @@ jobs:
             -target=aws_elasticache_replication_group.redis
 
       - name: Print active service logs on rollout failure
-        if: ${{ failure() && steps.wait-services.outcome == 'failure' }}
+        if: ${{ failure() && (steps.wait-metadata-clients.outcome == 'failure' || steps.wait-services.outcome == 'failure') }}
         working-directory: ops/${{ env.TF_DIR }}
         run: |
           set -u
