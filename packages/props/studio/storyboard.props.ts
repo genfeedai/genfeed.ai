@@ -15,6 +15,7 @@ import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/sto
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import type {
   IImage,
   IIngredient,
@@ -245,6 +246,15 @@ export interface StoryboardPlanEditorProps {
   ) => Promise<StoryboardRun>;
   readonly resetPlan: (revision: number) => Promise<StoryboardRun>;
   readonly approvePlan: (revision: number) => Promise<StoryboardRun>;
+  /** Prices sketch stills for the shots, or for every shot that needs one. */
+  readonly quoteStills?: (
+    revision: number,
+    shotIds?: readonly string[],
+  ) => Promise<StoryboardStillQuote>;
+  /** Accepts a quote; the shots show `generating` until each still lands. */
+  readonly generateStills?: (
+    quote: StoryboardStillQuote,
+  ) => Promise<StoryboardRun>;
 }
 
 export type StoryboardDraftPageProps = Pick<
@@ -258,6 +268,8 @@ export type StoryboardDraftPageProps = Pick<
   | 'capabilities'
   | 'capabilityError'
   | 'refreshCapabilities'
+  | 'quoteStills'
+  | 'generateStills'
 > & {
   /** Drafts the plan from the brief, or revises it when `instruction` is set. */
   readonly draftPlan: (instruction?: string) => Promise<StoryboardRun>;
@@ -291,6 +303,8 @@ export interface StoryboardShotCardProps {
   readonly isTimingDisabled: boolean;
   readonly onChangeDuration: (seconds: number) => void;
   readonly onDelete: () => void;
+  /** Quotes, then generates, this shot's sketch still. */
+  readonly onGenerateStill?: () => void;
   readonly onMove: (offset: -1 | 1) => void;
   readonly onPatch: (patch: Partial<StoryboardShot>) => void;
   readonly runId: string;
@@ -319,6 +333,7 @@ export interface StoryboardInspectorShot {
   readonly isStillFresh: boolean;
   readonly name: string;
   readonly ordinal: number;
+  readonly stillFreshness: StoryboardShot['stillFreshness'];
   readonly stillUrl?: string;
 }
 
@@ -326,6 +341,11 @@ export interface StoryboardInspectorProps {
   readonly cast: ReactNode;
   readonly castCount: number;
   readonly details: ReactNode;
+  /** Quotes, then generates, every missing, stale or failed still. */
+  readonly onGenerateMissingStills?: () => void;
+  readonly isStillActionDisabled?: boolean;
+  /** Shots with an action whose still is missing, stale or failed. */
+  readonly missingStillCount?: number;
   readonly onSelectShot: (shotId: string) => void;
   readonly references: ReactNode;
   readonly referenceCount: number;

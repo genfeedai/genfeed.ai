@@ -27,6 +27,48 @@ export function storyboardApprovalProblems(
   return problems;
 }
 
+/**
+ * Stills are server-owned. A local edit may stale a still before it saves,
+ * but a still the server is generating, or one it attached or settled since
+ * the local copy, always shows the server's state.
+ */
+export function overlayStoryboardStills(
+  local: StoryboardEditablePlan,
+  saved: StoryboardEditablePlan | null | undefined,
+): StoryboardEditablePlan {
+  if (!saved) return local;
+  const byId = new Map(saved.shots.map((shot) => [shot.id, shot]));
+  return {
+    ...local,
+    shots: local.shots.map((shot) => {
+      const server = byId.get(shot.id);
+      if (
+        !server ||
+        (server.stillFreshness !== 'generating' &&
+          shot.stillFreshness !== 'generating' &&
+          server.stillAssetId === shot.stillAssetId)
+      )
+        return shot;
+      return {
+        ...shot,
+        stillAssetId: server.stillAssetId,
+        stillFreshness: server.stillFreshness,
+      };
+    }),
+  } as StoryboardEditablePlan;
+}
+
+/** Described shots whose still is missing, out of date or failed, in board order. */
+export function storyboardShotsNeedingStills(
+  plan: StoryboardEditablePlan,
+): StoryboardShot[] {
+  return plan.shots.filter(
+    (shot) =>
+      Boolean(shot.action.trim()) &&
+      ['missing', 'stale', 'failed'].includes(shot.stillFreshness),
+  );
+}
+
 export function editStoryboardShot(
   plan: StoryboardEditablePlan,
   id: string,
@@ -37,10 +79,12 @@ export function editStoryboardShot(
     shots: plan.shots.map((shot) => {
       if (shot.id !== id) return shot;
       const next = { ...shot, ...patch, id: shot.id, ordinal: shot.ordinal };
+      // A still being generated settles fresh or stale on the server.
       if (
         patch.action !== undefined &&
         patch.action !== shot.action &&
-        shot.stillAssetId
+        shot.stillAssetId &&
+        shot.stillFreshness !== 'generating'
       )
         next.stillFreshness = 'stale';
       return next;
@@ -65,7 +109,10 @@ export function editStoryboardStyle(
     shots: changed
       ? plan.shots.map((shot) => ({
           ...shot,
-          stillFreshness: shot.stillAssetId ? 'stale' : shot.stillFreshness,
+          stillFreshness:
+            shot.stillAssetId && shot.stillFreshness !== 'generating'
+              ? 'stale'
+              : shot.stillFreshness,
         }))
       : plan.shots,
   } as StoryboardEditablePlan;

@@ -176,6 +176,8 @@ export default function StoryboardRunPage({
     resetPlan,
     approvePlan,
     draftPlan,
+    quoteStills,
+    generateStills,
   } = useDurableStoryboardRun(runId);
   const modelCapabilities = useStoryboardCapabilities(
     runId,
@@ -192,6 +194,8 @@ export default function StoryboardRunPage({
         resetPlan={resetPlan}
         approvePlan={approvePlan}
         draftPlan={draftPlan}
+        quoteStills={quoteStills}
+        generateStills={generateStills}
         {...modelCapabilities}
       />
     );

@@ -236,11 +236,14 @@ export class StoryboardStillsService {
           if (!shot) throw new BadRequestException(`Shot ${id} not found.`);
           return shot;
         })
-      : plan.shots.filter((shot) =>
-          ['missing', 'stale', 'failed'].includes(shot.stillFreshness),
+      : // Shots without an action are left for the creator to describe.
+        plan.shots.filter(
+          (shot) =>
+            Boolean(shot.action.trim()) &&
+            ['missing', 'stale', 'failed'].includes(shot.stillFreshness),
         );
     if (!targets.length)
-      throw new BadRequestException('Every shot already has a fresh still.');
+      throw new BadRequestException('No described shot needs a new still.');
     for (const shot of targets) {
       if (!shot.action.trim())
         throw new BadRequestException(

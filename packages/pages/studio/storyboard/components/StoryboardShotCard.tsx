@@ -11,6 +11,7 @@ import {
   storyboardDurationStep,
 } from '@pages/studio/storyboard/utils/storyboard-runtime';
 import Card from '@ui/card/Card';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -29,6 +30,7 @@ import {
   ArrowUp,
   CircleAlert,
   CircleCheck,
+  ImagePlus,
   MoreHorizontal,
   Trash2,
   UserRoundCog,
@@ -56,6 +58,7 @@ export default function StoryboardShotCard({
   isTimingDisabled,
   onChangeDuration,
   onDelete,
+  onGenerateStill,
   onMove,
   onPatch,
   runId,
@@ -80,6 +83,7 @@ export default function StoryboardShotCard({
   const shownSeconds = draggedSeconds ?? shot.durationSeconds;
   const speaker = cast.find((member) => member.id === shot.speakerId);
   const isStillFresh = shot.stillFreshness === 'fresh';
+  const isStillGenerating = shot.stillFreshness === 'generating';
   const label = translate('shot', { ordinal: shot.ordinal });
   return (
     <section
@@ -144,8 +148,23 @@ export default function StoryboardShotCard({
         </div>
 
         <div className="grid gap-4 p-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
-          <div className="min-w-0">
-            {still ? (
+          <div className="flex min-w-0 flex-col gap-2">
+            {isStillGenerating ? (
+              <div
+                aria-busy="true"
+                className={cn(
+                  'flex items-center justify-center rounded-md border border-border bg-muted p-2',
+                  STILL_ASPECT_CLASSES[format],
+                )}
+              >
+                <GenerationStatus
+                  status="generating"
+                  label={translate('stillGenerating')}
+                  compact
+                  isStacked
+                />
+              </div>
+            ) : still ? (
               <AgentMediaArtifactPreview
                 displayMode="featured"
                 assets={[
@@ -169,6 +188,13 @@ export default function StoryboardShotCard({
                 {translate('stillUnavailable')}
               </p>
             )}
+            {shot.stillFreshness === 'failed' ? (
+              <GenerationStatus
+                status="failed"
+                label={translate('stillFailed')}
+                compact
+              />
+            ) : null}
           </div>
           <div className="flex min-w-0 flex-col gap-3">
             <Field label={translate('action')}>
@@ -259,7 +285,9 @@ export default function StoryboardShotCard({
           <span
             className={cn(
               'ml-auto flex items-center gap-1.5 text-xs',
-              isStillFresh ? 'text-muted-foreground' : 'text-warning',
+              isStillFresh || isStillGenerating
+                ? 'text-muted-foreground'
+                : 'text-warning',
             )}
           >
             {isStillFresh ? (
@@ -282,6 +310,20 @@ export default function StoryboardShotCard({
               />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {onGenerateStill ? (
+                <>
+                  <DropdownMenuItem
+                    disabled={isStillGenerating || !shot.action.trim()}
+                    onSelect={onGenerateStill}
+                  >
+                    <ImagePlus className="mr-2 size-4" />
+                    {shot.stillAssetId
+                      ? translate('regenerateStill')
+                      : translate('generateStill')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
               <DropdownMenuItem
                 disabled={isTimingDisabled || index === 0}
                 onSelect={() => onMove(-1)}

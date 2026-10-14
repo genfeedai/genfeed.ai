@@ -52,6 +52,12 @@ import {
   type StoryboardRunSummary,
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
+import {
+  type GenerateStoryboardStills,
+  type QuoteStoryboardStills,
+  type StoryboardStillQuote,
+  storyboardStillQuoteSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import type {
   ContentRunAnalyticsSummary,
@@ -295,6 +301,43 @@ export class ContentRunsService extends HTTPBaseService {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/draft`,
       input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  async quoteStoryboardStills(
+    brandId: string,
+    runId: string,
+    input: QuoteStoryboardStills,
+  ): Promise<StoryboardStillQuote> {
+    const response = await this.instance.post<StoryboardStillQuote>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/stills/quote`,
+      input,
+    );
+    return storyboardStillQuoteSchema.parse(response.data);
+  }
+
+  async generateStoryboardStills(
+    brandId: string,
+    runId: string,
+    input: GenerateStoryboardStills,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/stills`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  async reconcileStoryboardStills(
+    brandId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/stills/reconcile`,
+      {},
+      { signal },
     );
     return deserializeStoryboardRunDocument(response.data);
   }

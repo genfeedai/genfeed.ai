@@ -193,16 +193,19 @@ export class StoryboardDraftOutbox {
     plan: StoryboardDraftValue['plan'],
     remote: StoryboardDraftValue['plan'],
   ): StoryboardDraftValue['plan'] {
+    // Stills are server-owned: a generated still lands without a new revision.
     return {
       ...plan,
-      shots: plan.shots.map((shot) => ({
-        ...shot,
-        stillFreshness:
-          remote.shots.find(
-            (saved) =>
-              saved.id === shot.id && saved.stillAssetId === shot.stillAssetId,
-          )?.stillFreshness ?? ('missing' as const),
-      })),
+      shots: plan.shots.map((shot) => {
+        const saved = remote.shots.find((item) => item.id === shot.id);
+        return saved
+          ? {
+              ...shot,
+              stillAssetId: saved.stillAssetId,
+              stillFreshness: saved.stillFreshness,
+            }
+          : { ...shot, stillFreshness: 'missing' as const };
+      }),
     } as StoryboardDraftValue['plan'];
   }
   private view() {

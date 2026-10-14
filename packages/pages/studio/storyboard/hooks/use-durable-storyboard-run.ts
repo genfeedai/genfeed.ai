@@ -7,6 +7,7 @@ import { storyboardImportedPlanSchema } from '@genfeedai/contracts/api-types/con
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { storyboardSourceSelectorSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import type {
   StoryboardDraftTransport,
@@ -26,6 +27,9 @@ import {
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+/** How often a board with a generating still asks the server to record finished stills. */
+const STILL_RECONCILE_MS = 4_000;
 
 /** Neutral persisted drafts use the brand-scoped API, never a local run substitute. */
 export function useDurableStoryboardRun(runId: string) {
@@ -417,6 +421,70 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, adopt, scope],
   );
+  const quoteStills = useCallback(
+    async (revision: number, shotIds?: readonly string[]) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      return service.quoteStoryboardStills(brandId, runId, {
+        expectedRevision: revision,
+        ...(shotIds ? { shotIds: [...shotIds] } : {}),
+      });
+    },
+    [brandId, runId, getService, scope],
+  );
+  const generateStills = useCallback(
+    async (quote: StoryboardStillQuote) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      if (activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      return adopt(
+        await service.generateStoryboardStills(brandId, runId, {
+          expectedRevision: quote.revision,
+          shotIds: quote.items.map((item) => item.shotId),
+          inputHash: quote.inputHash,
+        }),
+      );
+    },
+    [brandId, runId, getService, adopt, scope],
+  );
+  const currentRun = result.scope === scope ? result.run : null;
+  const isGeneratingStills = Boolean(
+    currentRun?.config.plan?.shots.some(
+      (shot) => shot.stillFreshness === 'generating',
+    ),
+  );
+  useEffect(() => {
+    if (!brandId || !isGeneratingStills) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = () => {
+      timer = setTimeout(() => {
+        void getService()
+          .then((service) =>
+            service.reconcileStoryboardStills(
+              brandId,
+              runId,
+              controller.signal,
+            ),
+          )
+          .then((run) => {
+            if (!controller.signal.aborted) adopt(run);
+          })
+          .catch(() => undefined)
+          .finally(() => {
+            if (!controller.signal.aborted) poll();
+          });
+      }, STILL_RECONCILE_MS);
+    };
+    poll();
+    return () => {
+      controller.abort();
+      if (timer) clearTimeout(timer);
+    };
+  }, [brandId, runId, isGeneratingStills, getService, adopt]);
   return {
     transport,
     reread: transport?.read,
@@ -429,5 +497,7 @@ export function useDurableStoryboardRun(runId: string) {
     resetPlan,
     approvePlan,
     draftPlan,
+    quoteStills,
+    generateStills,
   };
 }

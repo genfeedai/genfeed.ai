@@ -4,9 +4,11 @@ import {
   editStoryboardShot,
   editStoryboardStyle,
   insertStoryboardShot,
+  overlayStoryboardStills,
   removeStoryboardShot,
   reorderStoryboardShots,
   storyboardApprovalProblems,
+  storyboardShotsNeedingStills,
 } from './storyboard-plan';
 
 const plan: StoryboardPlan = {
@@ -109,5 +111,73 @@ describe('saved plan editing', () => {
       transition: 'cut',
     });
     expect(inserted.shots[0].transition).toBe('cut');
+  });
+});
+
+describe('server-owned stills', () => {
+  it('shows the server still while it generates or after it lands, and keeps local staleness otherwise', () => {
+    const local = editStoryboardShot(plan, 'shot-1', { action: 'Turn' });
+    const saved = {
+      ...plan,
+      shots: [
+        { ...plan.shots[0] },
+        {
+          ...plan.shots[1],
+          stillAssetId: undefined,
+          stillFreshness: 'generating' as const,
+        },
+      ],
+    };
+    expect(
+      overlayStoryboardStills(local, saved).shots.map((shot) => [
+        shot.stillAssetId,
+        shot.stillFreshness,
+      ]),
+    ).toEqual([
+      ['image-1', 'stale'],
+      [undefined, 'generating'],
+    ]);
+    const landed = {
+      ...saved,
+      shots: [
+        saved.shots[0],
+        {
+          ...saved.shots[1],
+          stillAssetId: 'sketch-2',
+          stillFreshness: 'fresh' as const,
+        },
+      ],
+    };
+    expect(
+      overlayStoryboardStills(overlayStoryboardStills(local, saved), landed)
+        .shots[1],
+    ).toMatchObject({ stillAssetId: 'sketch-2', stillFreshness: 'fresh' });
+  });
+
+  it('never stales a generating still on a local edit', () => {
+    const generating = {
+      ...plan,
+      shots: [
+        { ...plan.shots[0], stillFreshness: 'generating' as const },
+        plan.shots[1],
+      ],
+    };
+    expect(
+      editStoryboardShot(generating, 'shot-1', { action: 'Turn' }).shots[0]
+        .stillFreshness,
+    ).toBe('generating');
+  });
+
+  it('lists only described shots that need a still', () => {
+    const board = {
+      ...plan,
+      shots: [
+        { ...plan.shots[0], stillFreshness: 'stale' as const },
+        { ...plan.shots[1], action: ' ', stillFreshness: 'missing' as const },
+      ],
+    };
+    expect(storyboardShotsNeedingStills(board).map((shot) => shot.id)).toEqual([
+      'shot-1',
+    ]);
   });
 });

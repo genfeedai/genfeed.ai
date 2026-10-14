@@ -118,6 +118,31 @@ describe('scoped shared Storyboard draft outbox', () => {
     sessionStorage.clear();
   });
   afterEach(() => vi.useRealTimers());
+  it('shows a still that lands without a new revision, even with pending edits', async () => {
+    const { queue, getRun } = fixture();
+    await queue.initialize();
+    queue.edit('plan', { ...plan, title: 'Pending title' });
+    queue.adopt({
+      ...getRun(),
+      config: {
+        ...getRun().config,
+        plan: {
+          ...getRun().config.plan,
+          shots: [
+            {
+              ...getRun().config.plan.shots[0],
+              stillAssetId: 'sketch-2',
+              stillFreshness: 'fresh',
+            },
+          ],
+        },
+      },
+    });
+    expect(queue.getSnapshot().value.plan).toMatchObject({
+      title: 'Pending title',
+      shots: [{ stillAssetId: 'sketch-2', stillFreshness: 'fresh' }],
+    });
+  });
   it('persists before the debounce, drains after detachment, serializes source and plan revisions and preserves remote freshness', async () => {
     vi.useFakeTimers();
     const { queue, transport, getRun } = fixture();

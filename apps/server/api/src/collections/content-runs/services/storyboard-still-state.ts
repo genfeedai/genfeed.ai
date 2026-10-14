@@ -65,9 +65,9 @@ function mentions(action: string, name: string): boolean {
 }
 
 /**
- * The provider input for one shot's sketch still. Cast come first (the
- * speaker, then members named in the action), then style references, up to
- * the draft model's reference limit. Notes, dialogue and the brand's colour
+ * The provider input for one shot's sketch still. Cast references come first
+ * (the speaker, then members named in the action), then style references, up
+ * to the draft model's reference limit. Notes, dialogue and the brand's colour
  * look never enter a draft prompt.
  */
 export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
@@ -89,10 +89,13 @@ export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
       ...plan.styleReferenceAssetIds,
     ]),
   ].slice(0, DRAFT_GENERATION_CONFIG.maxReferences);
+  // Names mean nothing to the image model; identity comes from the
+  // references, so a speaker swap with the same images keeps the still fresh.
   const prompt = [
     shot.action.trim(),
-    cast.length
-      ? `Characters: ${cast.map((member) => member.name).join(', ')}, matching the reference images.`
+    cast.some((member) => member.referenceAssetIds.length) ||
+    referenceAssetIds.includes(speaker?.avatarAssetId ?? '')
+      ? 'Keep every person consistent with the reference images.'
       : '',
     DRAFT_GENERATION_CONFIG.sketchStyle,
   ]

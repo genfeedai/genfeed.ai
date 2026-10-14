@@ -10,6 +10,7 @@ import {
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type {
+  StoryboardEditablePlan,
   StoryboardPlanEditorProps,
   StoryboardSelectProps,
 } from '@genfeedai/props/studio/storyboard.props';
@@ -611,6 +612,119 @@ describe('persisted storyboard plan editor', () => {
       });
       expect(screen.getByTestId('composer-slot')).toBeInTheDocument();
       expect(screen.getByText('Heads up')).toBeInTheDocument();
+    });
+  });
+
+  describe('sketch stills', () => {
+    const quote = {
+      revision: 1,
+      modelKey: 'black-forest-labs/flux-2-klein-4b',
+      billingMode: 'platform' as const,
+      inputHash: 'b'.repeat(64),
+      items: [{ shotId: 'shot-1', credits: 4 }],
+      total: 4,
+    };
+    function boardWith(shots: StoryboardEditablePlan['shots']) {
+      return {
+        ...run,
+        config: { ...run.config, plan: { ...run.config.plan, shots } },
+      } as StoryboardRun;
+    }
+
+    it('shows the quote and charges only after confirmation', async () => {
+      const user = userEvent.setup();
+      const quoteStills = vi.fn().mockResolvedValue(quote);
+      const generateStills = vi.fn().mockResolvedValue(run);
+      renderEditor({ quoteStills, generateStills });
+      await user.click(screen.getByRole('button', { name: 'Shot 1 actions' }));
+      await user.click(
+        await screen.findByRole('menuitem', { name: 'Regenerate still' }),
+      );
+      await waitFor(() =>
+        expect(quoteStills).toHaveBeenCalledWith(1, ['shot-1']),
+      );
+      expect(modal.openConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'Generate 1 still?',
+          message:
+            '1 black-and-white sketch still for 4 credits. You are charged only for stills that render.',
+          confirmLabel: 'Generate',
+        }),
+      );
+      expect(generateStills).not.toHaveBeenCalled();
+      await act(async () => {
+        await modal.openConfirm.mock.calls[0][0].onConfirm();
+      });
+      expect(generateStills).toHaveBeenCalledWith(quote);
+    });
+
+    it('generates every described shot that needs a still from the Shots tab', async () => {
+      const quoteStills = vi.fn().mockResolvedValue({
+        ...quote,
+        billingMode: 'byok' as const,
+        items: [{ shotId: 'shot-1', credits: 0 }],
+        total: 0,
+      });
+      const board = boardWith(
+        run.config.plan.shots.map((shot, index) => ({
+          ...shot,
+          stillAssetId: undefined,
+          stillFreshness: 'missing' as const,
+          action: index === 0 ? 'Look up' : '',
+        })),
+      );
+      renderEditor({
+        run: board,
+        quoteStills,
+        generateStills: vi.fn(),
+      });
+      await userEvent.click(
+        within(screen.getByTestId('inspector')).getByRole('button', {
+          name: 'Generate 1 missing still',
+        }),
+      );
+      await waitFor(() =>
+        expect(quoteStills).toHaveBeenCalledWith(1, undefined),
+      );
+      expect(modal.openConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message:
+            '1 black-and-white sketch still with your Replicate key. No credits are charged.',
+        }),
+      );
+    });
+
+    it('shows progress and failure on the card', () => {
+      renderEditor({
+        run: boardWith([
+          {
+            ...run.config.plan.shots[0],
+            stillAssetId: undefined,
+            stillFreshness: 'generating',
+          },
+          {
+            ...run.config.plan.shots[1],
+            stillFreshness: 'failed',
+          },
+        ]),
+        quoteStills: vi.fn(),
+        generateStills: vi.fn(),
+      });
+      expect(
+        within(screen.getByRole('region', { name: 'Shot 1' })).getByText(
+          'Sketching still…',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('region', { name: 'Shot 2' })).getByText(
+          'The still could not be generated. You were not charged. Try again from the shot menu.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('inspector')).getByLabelText(
+          'Still is generating',
+        ),
+      ).toBeInTheDocument();
     });
   });
 });

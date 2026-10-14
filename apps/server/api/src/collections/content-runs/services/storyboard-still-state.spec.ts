@@ -61,7 +61,7 @@ describe('storyboardStillInput', () => {
   it('builds a sketch prompt from the action and named cast only', () => {
     const input = storyboardStillInput(plan(), 'shot-1');
     expect(input.prompt).toBe(
-      `Ana hands a parcel to a robot. Characters: Ana, matching the reference images. ${DRAFT_GENERATION_CONFIG.sketchStyle}`,
+      `Ana hands a parcel to a robot. Keep every person consistent with the reference images. ${DRAFT_GENERATION_CONFIG.sketchStyle}`,
     );
     expect(input.prompt).not.toMatch(/Private note|Here you go|Neon noir|Bo/);
     expect(input.referenceAssetIds).toEqual(['ana-1', 'style-1']);

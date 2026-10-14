@@ -296,7 +296,10 @@ describe('StoryboardStillsService generate', () => {
     expect((dto as { text: string }).text).toContain(
       'Mia opens the cafe door while Leo waves.',
     );
-    expect((dto as { text: string }).text).toContain('Characters: Mia, Leo');
+    expect((dto as { text: string }).text).toContain(
+      'Keep every person consistent with the reference images.',
+    );
+    expect((dto as { text: string }).text).not.toMatch(/Mia, Leo/);
     expect((dto as { text: string }).text).toContain(
       DRAFT_GENERATION_CONFIG.sketchStyle,
     );
