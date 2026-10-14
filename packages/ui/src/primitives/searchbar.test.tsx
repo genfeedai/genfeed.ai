@@ -201,4 +201,58 @@ describe('collapsible Searchbar', () => {
       screen.queryByRole('textbox', { name: 'Search generations' }),
     ).toBeNull();
   });
+
+  it('stays open when blur lands after pointerup', () => {
+    render(
+      <>
+        <Searchbar ariaLabel="Search generations" isCollapsible value="" />
+        <div data-testid="outside-search" tabIndex={-1} />
+      </>,
+    );
+    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+    const outside = screen.getByTestId('outside-search');
+
+    fireEvent.pointerDown(outside);
+    fireEvent.pointerUp(outside);
+    act(() => {
+      outside.focus();
+    });
+    expect(
+      screen.getByRole('textbox', { name: 'Search generations' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(outside);
+    expect(
+      screen.queryByRole('textbox', { name: 'Search generations' }),
+    ).toBeNull();
+  });
+
+  it('stays open across a mouse gesture that never fires a pointer event', () => {
+    render(
+      <>
+        <Searchbar ariaLabel="Search generations" isCollapsible value="" />
+        <div data-testid="outside-search" tabIndex={-1} />
+      </>,
+    );
+    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+    const outside = screen.getByTestId('outside-search');
+
+    fireEvent.mouseDown(outside);
+    act(() => {
+      outside.focus();
+    });
+    expect(
+      screen.getByRole('textbox', { name: 'Search generations' }),
+    ).toBeInTheDocument();
+
+    fireEvent.mouseUp(outside);
+    expect(
+      screen.getByRole('textbox', { name: 'Search generations' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(outside);
+    expect(
+      screen.queryByRole('textbox', { name: 'Search generations' }),
+    ).toBeNull();
+  });
 });

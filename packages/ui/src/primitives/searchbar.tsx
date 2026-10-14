@@ -91,6 +91,7 @@ export default function Searchbar({
   const isPointerDownRef = useRef(false);
   const collapseAfterPointerRef = useRef<(() => void) | null>(null);
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isWidthHeldRef = useRef(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const isDebounced = Boolean(onSearch);
 
@@ -212,44 +213,72 @@ export default function Searchbar({
         collapseTimerRef.current = null;
       }
     };
-    const runScheduledCollapse = () => {
+    const releaseWidth = () => {
+      isWidthHeldRef.current = false;
+      if (rootRef.current) {
+        rootRef.current.style.width = '';
+      }
+    };
+    const holdWidth = () => {
+      const root = rootRef.current;
+      if (!root || isWidthHeldRef.current) {
+        return;
+      }
+      const width = root.getBoundingClientRect().width;
+      if (width <= 0) {
+        return;
+      }
+      isWidthHeldRef.current = true;
+      root.style.width = `${width}px`;
+    };
+    const finishCollapse = () => {
       clearCollapseTimer();
-      const collapse = collapseAfterPointerRef.current;
-      collapseAfterPointerRef.current = null;
-      collapse?.();
-    };
-    const onPointerDown = () => {
-      isPointerDownRef.current = true;
-    };
-    const onPointerUp = () => {
       isPointerDownRef.current = false;
       const collapse = collapseAfterPointerRef.current;
-      if (!collapse) {
+      collapseAfterPointerRef.current = null;
+      releaseWidth();
+      collapse?.();
+    };
+    const armFallback = () => {
+      clearCollapseTimer();
+      // Click is dispatched in this same task, before timers. The fallback
+      // covers a pointerup that never produces a click.
+      collapseTimerRef.current = setTimeout(finishCollapse, 0);
+    };
+    const onDown = (event: Event) => {
+      isPointerDownRef.current = true;
+      const target = event.target;
+      if (target instanceof Node && rootRef.current?.contains(target)) {
         return;
       }
-      // Click is dispatched after pointerup returns. A frame between
-      // mousedown and mouseup (Playwright on a busy runner) must not
-      // shrink the field, or mouseup misses and the click never toggles.
-      clearCollapseTimer();
-      collapseTimerRef.current = setTimeout(runScheduledCollapse, 0);
+      holdWidth();
     };
     const onClick = () => {
+      clearCollapseTimer();
       if (!collapseAfterPointerRef.current) {
+        isPointerDownRef.current = false;
+        releaseWidth();
         return;
       }
-      runScheduledCollapse();
+      finishCollapse();
     };
-    window.addEventListener('pointerdown', onPointerDown, true);
-    window.addEventListener('pointerup', onPointerUp, true);
-    window.addEventListener('pointercancel', onPointerUp, true);
+    window.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('mousedown', onDown, true);
+    window.addEventListener('pointerup', armFallback, true);
+    window.addEventListener('mouseup', armFallback, true);
+    window.addEventListener('pointercancel', armFallback, true);
     window.addEventListener('click', onClick);
     return () => {
-      window.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('pointerup', onPointerUp, true);
-      window.removeEventListener('pointercancel', onPointerUp, true);
+      window.removeEventListener('pointerdown', onDown, true);
+      window.removeEventListener('mousedown', onDown, true);
+      window.removeEventListener('pointerup', armFallback, true);
+      window.removeEventListener('mouseup', armFallback, true);
+      window.removeEventListener('pointercancel', armFallback, true);
       window.removeEventListener('click', onClick);
       collapseAfterPointerRef.current = null;
+      isPointerDownRef.current = false;
       clearCollapseTimer();
+      releaseWidth();
     };
   }, [isCollapsible]);
 
@@ -264,12 +293,9 @@ export default function Searchbar({
     if (event.currentTarget.value.trim()) {
       return;
     }
-    // Blur runs during pointerdown, before click, and the input is still
-    // document.activeElement for that whole event. Collapsing here moves the
-    // control under the cursor, so the click never reaches it. A keyboard
-    // blur has no pointer and closes now. relatedTarget already proved focus
-    // left this field.
-    if (isPointerDownRef.current) {
+    // Keep the open width through mouseup. Blur can land after pointerup has
+    // already cleared a down-bit, and shrinking then makes the click miss.
+    if (isPointerDownRef.current || isWidthHeldRef.current) {
       collapseAfterPointerRef.current = () => {
         const input = resolvedRef.current;
         if (input?.value.trim()) {
