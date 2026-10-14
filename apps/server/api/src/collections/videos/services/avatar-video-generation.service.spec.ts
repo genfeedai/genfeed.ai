@@ -1010,6 +1010,7 @@ describe('AvatarVideoGenerationService', () => {
     expect(reserve).toHaveBeenCalledWith({
       billingMode: 'platform',
       credits: AVATAR_PRICE,
+      durationQuote: expect.objectContaining({ estimatedSeconds: 1 }),
       modelKey: MODEL_KEYS.HEYGEN_AVATAR,
     });
     expect(elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();

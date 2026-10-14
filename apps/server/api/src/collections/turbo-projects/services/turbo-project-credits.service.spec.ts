@@ -173,6 +173,7 @@ describe('TurboProjectCreditsService', () => {
     });
 
     it('settles an avatar line to the measured clip length', async () => {
+      credits.settleReservation.mockResolvedValue(undefined);
       credits.findReservationForWorkload.mockResolvedValue({
         amount: 154,
         id: 'reservation-1',
