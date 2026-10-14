@@ -401,6 +401,25 @@ describe('StudioPlaygroundComposer', () => {
       });
     });
 
+    it('keeps the Auto/Advanced picker and the same type tiles for Avatar', () => {
+      advancedModeMocks.isAdvancedMode = false;
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Say hello"
+          settings={{ ...settings, voiceId: 'voice-1' }}
+          type="avatar"
+        />,
+      );
+
+      expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
+        isEnabled: false,
+      });
+      expect(generationSetupPopoverMocks.props.imageEditing).toMatchObject({
+        isEnabled: false,
+      });
+    });
+
     it('turning Advanced off saves it and returns the model to Auto', () => {
       const onSettingsChange = vi.fn();
       render(
