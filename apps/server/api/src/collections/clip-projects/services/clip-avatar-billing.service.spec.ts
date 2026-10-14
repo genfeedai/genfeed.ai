@@ -14,6 +14,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const POOL = {
@@ -150,6 +151,23 @@ describe('ClipAvatarBillingService', () => {
     expect(quoteSnapshotByKey).not.toHaveBeenCalled();
     expect(holdForService).not.toHaveBeenCalled();
   });
+
+  it.each([MODEL_KEYS.ARGIL_ATOM, 'genfeedai/clip-video'])(
+    'refuses platform %s clips without a supported settlement path',
+    async (modelKey) => {
+      quoteSnapshotByKey.mockResolvedValue(photoAnimationSnapshot(2));
+      await expect(
+        service.fund({
+          clipResultId: 'clip-1',
+          organizationId: 'org-1',
+          plan: { isByok: false, selection: { modelKey } },
+          script: SCRIPT,
+          userId: 'user-1',
+        }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(holdForService).not.toHaveBeenCalled();
+    },
+  );
 
   it('returns the pool when binding fails', async () => {
     quoteSnapshotByKey.mockResolvedValue(photoAnimationSnapshot(2));

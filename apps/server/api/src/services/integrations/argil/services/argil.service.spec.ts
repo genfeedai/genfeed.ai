@@ -4,7 +4,7 @@ import { ByokProvider } from '@genfeedai/contracts';
 import { of } from 'rxjs';
 
 describe('ArgilService', () => {
-  const byokService = { resolveApiKey: vi.fn() };
+  const byokService = { resolveApiKey: vi.fn(), lookupApiKey: vi.fn() };
   const configService = { get: vi.fn() };
   const httpService = { get: vi.fn(), post: vi.fn() };
   const loggerService = { log: vi.fn() };
@@ -14,6 +14,7 @@ describe('ArgilService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     byokService.resolveApiKey.mockResolvedValue({ apiKey: 'org-key' });
+    byokService.lookupApiKey.mockResolvedValue({ apiKey: 'org-key' });
     configService.get.mockImplementation((key: string) =>
       key === 'GENFEEDAI_WEBHOOKS_URL'
         ? 'https://hooks.example.com'
@@ -27,6 +28,28 @@ describe('ArgilService', () => {
       loggerService as never,
       webhookTokenService as unknown as ArgilWebhookTokenService,
     );
+  });
+
+  it('refuses a platform submission before the first vendor call when funding is unavailable', async () => {
+    byokService.lookupApiKey.mockResolvedValue(undefined);
+    configService.get.mockImplementation((key: string) =>
+      key === 'ARGIL_KEY' ? 'platform-key' : undefined,
+    );
+    const beforeSubmission = vi
+      .fn()
+      .mockRejectedValue(new Error('Clip pricing unavailable'));
+    await expect(
+      service.generateAvatarVideo({
+        avatarId: 'avatar-1',
+        beforeSubmission,
+        callbackId: 'clip-1',
+        organizationId: 'org-1',
+        script: 'Script',
+        voiceId: 'voice-1',
+      }),
+    ).rejects.toThrow('Clip pricing unavailable');
+    expect(beforeSubmission).toHaveBeenCalledWith(false);
+    expect(httpService.post).not.toHaveBeenCalled();
   });
 
   it('creates an Atom video and starts rendering with a signed callback URL', async () => {

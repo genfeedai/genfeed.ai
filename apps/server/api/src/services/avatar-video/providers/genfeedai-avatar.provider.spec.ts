@@ -87,6 +87,31 @@ describe('GenfeedaiAvatarProvider', () => {
     expect(managedInferenceClient.generateVideo).not.toHaveBeenCalled();
   });
 
+  it('refuses unfunded platform clips before announcing or submitting a provider job', async () => {
+    const fundSubmission = vi
+      .fn()
+      .mockRejectedValue(new Error('Clip pricing unavailable'));
+    const onJobCreated = vi.fn();
+    const result = await provider.generateVideo({
+      avatarId: '',
+      callbackId: 'clip-1',
+      fundSubmission,
+      onJobCreated,
+      organizationId: 'org-1',
+      referenceImageUrl: 'https://cdn.example.com/character.png',
+      script: 'Script',
+      userId: 'user-1',
+      voiceId: '',
+    });
+    expect(result.status).toBe('failed');
+    expect(fundSubmission).toHaveBeenCalledWith({
+      isByok: false,
+      selection: { modelKey: 'genfeedai/clip-video' },
+    });
+    expect(onJobCreated).not.toHaveBeenCalled();
+    expect(managedInferenceClient.generateVideo).not.toHaveBeenCalled();
+  });
+
   it('requires a character reference before dispatch', async () => {
     const result = await provider.generateVideo({
       avatarId: '',
