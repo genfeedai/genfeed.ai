@@ -55,10 +55,10 @@ async function openStoryboardTab(
   name: 'Shots' | 'Details' | 'References' | 'Cast',
 ) {
   const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
-  if (!(await tabs.isVisible()))
-    await page
-      .getByRole('button', { name: 'Open details', exact: true })
-      .click();
+  const open = page.getByRole('button', { name: 'Open details', exact: true });
+  // Wait for the sidebar (xl and up) or its drawer toggle to mount first.
+  await expect(tabs.or(open).first()).toBeVisible();
+  if (!(await tabs.isVisible())) await open.click();
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 }
 async function closeStoryboardDrawer(page: Page) {
@@ -1008,7 +1008,7 @@ test('drafts shots from the brief in the shared composer, then revises them from
       state: 'storyboard',
       sourceSnapshot: {
         capturedAt: time,
-        selector: { kind: 'brief', brief: '' },
+        selector: { kind: 'brief', brief: 'A coffee idea' },
       },
       plan: { ...run.config.plan, title: '', logline: '', shots: [] },
     },
