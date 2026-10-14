@@ -182,6 +182,15 @@
     "appliedContext": "Applied context",
     "brand": "This brand",
     "brandLabel": "Brand prompt enhancement",
+    "brandMode": {
+      "approved_brand": "Approved brand",
+      "provisional_brand": "Provisional brand",
+      "raw": "Not branded"
+    },
+    "brandModeHint": {
+      "provisional_brand": "Your brand kit is not approved yet. This was generated from the draft kit and is not checked for compliance.",
+      "raw": "The prompt was sent exactly as typed. No brand was applied."
+    },
     "description": "Improve image and video prompts automatically. These preferences apply in Studio and all connected agents.",
     "enhancementSkipped": "Enhancement skipped",
     "inherit": "Inherit",

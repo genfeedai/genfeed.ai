@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import {
+  resolveMediaGenerationReceiptBrand,
   resolveMediaGenerationReceiptPrompts,
   resolveMediaGenerationReceiptSurface,
 } from '@api/services/media-generation-receipts/media-generation-receipt-input.util';
@@ -37,6 +38,7 @@ export class ImageGenerationReceiptsService {
       parentIngredientId: String(context.ingredientData.id),
       mediaKind: 'image',
       surface: resolveMediaGenerationReceiptSurface(),
+      ...resolveMediaGenerationReceiptBrand(context.generationHarness),
       provider: this.provider(context),
       model: context.model,
       ...resolveMediaGenerationReceiptPrompts({

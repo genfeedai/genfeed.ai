@@ -168,30 +168,6 @@ export class HeyGenService {
     return { 'Content-Type': 'application/json', 'X-Api-Key': apiKey };
   }
 
-  public async generateAvatarVideo(
-    metadataId: string,
-    avatarId: string,
-    voiceId: string,
-    inputText: string,
-    organizationId?: string,
-    _userId?: string,
-    apiKeyOverride?: string,
-  ): Promise<string> {
-    if (!avatarId.trim() || !voiceId.trim() || !inputText.trim()) {
-      throw new BadRequestException('Avatar, voice and script are required');
-    }
-    const apiKey = await this.resolveApiKey(apiKeyOverride, organizationId);
-    return this.submitAvatarVideo(apiKey, {
-      type: 'avatar',
-      avatar_id: avatarId,
-      script: inputText,
-      voice_id: voiceId,
-      aspect_ratio: '16:9',
-      resolution: '720p',
-      callback_id: metadataId,
-    });
-  }
-
   /** Renders a trained look with an engine checked against it. */
   public async generateNativeAvatarVideo(
     metadataId: string,
@@ -228,7 +204,7 @@ export class HeyGenService {
     });
   }
 
-  /** Animate an image directly; trained avatar looks use generateAvatarVideo. */
+  /** Animate an image directly; trained avatar looks use generateNativeAvatarVideo. */
   public async generatePhotoAvatarVideo(
     metadataId: string,
     photoUrl: string,

@@ -86,7 +86,7 @@ const ENTRY_POINTS: readonly GenerationEntryPoint[] = [
     surface: 'workflow image and video nodes (also clip-chain segments)',
   },
   {
-    file: 'collections/workflows/services/workflow-media-generation-executor-registrar.service.ts',
+    file: 'collections/workflows/services/workflow-lip-sync-executor-registrar.service.ts',
     path: 'lip-sync',
     surface: 'workflow lip-sync node',
   },

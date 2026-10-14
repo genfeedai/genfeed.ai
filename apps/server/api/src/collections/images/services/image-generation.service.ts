@@ -503,12 +503,18 @@ export class ImageGenerationService {
   ) {
     const generationHarness = await this.enhancementService.enhance({
       actorUserId: user.userId ?? user.id,
+      isApiKey: user.isApiKey,
+      apiKeyId: user.apiKeyId,
+      scopes: user.scopes,
       organizationId: user.organizationId,
       brandId,
       prompt: promptOriginalText,
       contentType: 'image',
       model,
       harness: createImageDto.harness,
+      ...(createImageDto.brandMode
+        ? { brandMode: createImageDto.brandMode }
+        : {}),
       ...(createImageDto.knowledge
         ? { knowledgeSelection: createImageDto.knowledge }
         : {}),
@@ -785,10 +791,7 @@ export class ImageGenerationService {
         visualDirection: params.style || params.createImageDto.style,
         width: params.width,
       });
-      if (
-        params.generationHarness.status === 'skipped' ||
-        params.generationHarness.status === 'failed'
-      ) {
+      if (params.generationHarness.status === 'skipped') {
         if (compiled.dispatch)
           compiled.dispatch.prompt = params.generationHarness.originalPrompt;
         compiled.evidence = rawPromptBriefEvidence(compiled.evidence);

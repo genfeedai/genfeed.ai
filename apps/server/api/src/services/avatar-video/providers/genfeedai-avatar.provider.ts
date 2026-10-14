@@ -43,6 +43,10 @@ export class GenfeedaiAvatarProvider implements AvatarVideoProvider {
         throw new Error('GenfeedAI managed clip generation requires a script');
       }
 
+      await input.fundSubmission?.({
+        isByok: false,
+        selection: { modelKey: GENFEEDAI_CLIP_VIDEO_MODEL },
+      });
       await input.onJobCreated?.({ jobId, providerName: this.providerName });
 
       const endpointUrl = this.configService.get(

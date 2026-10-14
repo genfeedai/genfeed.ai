@@ -85,6 +85,8 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowKnowledgeGroundingService } from '@api/collections/workflows/services/workflow-knowledge-grounding.service';
+import { WorkflowLipSyncExecutorRegistrarService } from '@api/collections/workflows/services/workflow-lip-sync-executor-registrar.service';
+import { WorkflowLipSyncFundingService } from '@api/collections/workflows/services/workflow-lip-sync-funding.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
@@ -254,6 +256,8 @@ import { Module } from '@nestjs/common';
     WorkflowGenerationAdmissionPlanService,
     WorkflowMediaDispatchAdmissionService,
     WorkflowMediaGenerationExecutorRegistrarService,
+    WorkflowLipSyncFundingService,
+    WorkflowLipSyncExecutorRegistrarService,
     WorkflowKnowledgeGroundingService,
     WorkflowContentExecutorRegistrarService,
     WorkflowPostGenerationService,

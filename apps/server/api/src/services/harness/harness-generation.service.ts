@@ -93,6 +93,11 @@ export type ResolveHarnessBriefParams = {
    */
   additionalSources?: HarnessSourceRecord[];
   brandId?: string;
+  /**
+   * Pins the brief to one brand revision (approved or the provisional draft a
+   * receipt snapshot names) instead of the brand's approved revision.
+   */
+  brandRevisionId?: string;
   contentType: ContentKind;
   /**
    * When true (default if topic is set), retrieve brand content memory from
@@ -721,10 +726,16 @@ export class HarnessGenerationService {
         this.brandOsRevisionsService,
         BrandOsRevisionsService,
       );
-      const brandOsRevision = await brandOsRevisionsService?.findApproved(
-        params.organizationId,
-        params.brandId,
-      );
+      const brandOsRevision = params.brandRevisionId
+        ? await brandOsRevisionsService?.get(
+            params.organizationId,
+            params.brandId,
+            params.brandRevisionId,
+          )
+        : await brandOsRevisionsService?.findApproved(
+            params.organizationId,
+            params.brandId,
+          );
 
       const profile = await harnessProfilesService.resolveContributionForBrand(
         params.organizationId,

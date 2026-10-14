@@ -11,6 +11,13 @@ import { isAxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
 
 // Contracts verified against developers.heygen.com/reference on 2026-10-07.
+
+const NATIVE_LOOK = {
+  avatarType: 'digital_twin',
+  lookId: 'look',
+  supportedEngines: ['avatar_iv'],
+};
+
 describe('HeyGen v3 contracts', () => {
   let service: HeyGenService;
   const http = { get: vi.fn(), post: vi.fn() };
@@ -147,7 +154,13 @@ describe('HeyGen v3 contracts', () => {
 
   it('submits a native avatar with its script, voice and callback correlation', async () => {
     await expect(
-      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+      service.generateNativeAvatarVideo(
+        'meta',
+        NATIVE_LOOK,
+        { inputText: 'Hello', voiceId: 'voice' },
+        'platform-key',
+        '16:9',
+      ),
     ).resolves.toBe('vid_abc');
     expect(http.post).toHaveBeenCalledWith(
       'https://api.heygen.com/v3/videos',
@@ -260,7 +273,13 @@ describe('HeyGen v3 contracts', () => {
   ])('rejects ambiguous acceptance without a v3 video id: %j', async (data) => {
     http.post.mockReturnValue(of({ status: 200, data }));
     await expect(
-      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+      service.generateNativeAvatarVideo(
+        'meta',
+        NATIVE_LOOK,
+        { inputText: 'Hello', voiceId: 'voice' },
+        'platform-key',
+        '16:9',
+      ),
     ).rejects.toThrow('HeyGen submission returned no operation identity');
   });
 
@@ -278,14 +297,26 @@ describe('HeyGen v3 contracts', () => {
     const transport = new Error('Response lost');
     http.post.mockReturnValueOnce(throwError(() => transport));
     await expect(
-      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+      service.generateNativeAvatarVideo(
+        'meta',
+        NATIVE_LOOK,
+        { inputText: 'Hello', voiceId: 'voice' },
+        'platform-key',
+        '16:9',
+      ),
     ).rejects.toBe(transport);
   });
 
   it('does not retry an ambiguous paid submission', async () => {
     http.post.mockReturnValue(throwError(() => new Error('timeout')));
     await expect(
-      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+      service.generateNativeAvatarVideo(
+        'meta',
+        NATIVE_LOOK,
+        { inputText: 'Hello', voiceId: 'voice' },
+        'platform-key',
+        '16:9',
+      ),
     ).rejects.toThrow('timeout');
     expect(http.post).toHaveBeenCalledTimes(1);
   });

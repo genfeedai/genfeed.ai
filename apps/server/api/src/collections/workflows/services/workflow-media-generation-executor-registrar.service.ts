@@ -1,5 +1,4 @@
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import {
   currentWorkflowGenerationDispatch,
@@ -12,12 +11,9 @@ import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflow
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { ByokService } from '@api/services/byok/byok.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaLocalizationService } from '@api/services/media-localization/media-localization.service';
-import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   ByokProvider,
   IngredientCategory,
@@ -30,7 +26,6 @@ import {
   type ExecutableNode,
   type ExecutionContext,
   ImageGenExecutor,
-  LipSyncExecutor,
   LocalizeSpeechExecutor,
   ReframeExecutor,
   TextToSpeechExecutor,
@@ -38,7 +33,6 @@ import {
   VideoGenExecutor,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -48,60 +42,21 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly loggerService: LoggerService,
     private readonly providerPlan: WorkflowMediaProviderPlanService,
-    @Optional() private readonly heyGenService?: HeyGenService,
     @Optional() private readonly elevenLabsService?: ElevenLabsService,
     @Optional() private readonly replicateService?: ReplicateService,
-    @Optional() private readonly filesClientService?: FilesClientService,
     @Optional() private readonly byokService?: ByokService,
     @Optional()
     private readonly mediaLocalizationService?: MediaLocalizationService,
     @Optional()
     private readonly dispatchAdmission?: WorkflowMediaDispatchAdmissionService,
-    @Optional() private readonly configService?: ConfigService,
-    @Optional()
-    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
-    @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly falVideo?: FalVideoGenerationProviderAdapter,
     @Optional()
     private readonly falOutputFinalization?: WorkflowFalOutputFinalizationService,
   ) {}
 
-  private async processingMediaUrl(
-    organizationId: string,
-    asset: {
-      id: string;
-      objectKey?: string;
-      storageKey: string;
-      storageType: string;
-    },
-  ): Promise<string> {
-    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
-      if (!this.authorizedMediaUrls)
-        throw new Error('Authorized media issuer is unavailable');
-      const urls = await this.authorizedMediaUrls.issueServerPublish(
-        organizationId,
-        [asset.id],
-      );
-      const url = urls.get(asset.id);
-      if (!url) throw new Error('The source asset has no authorized media URL');
-      return url;
-    }
-    if (!this.filesClientService)
-      throw new Error('File storage service is unavailable');
-    return asset.objectKey
-      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(
-          asset.objectKey,
-        )
-      : this.filesClientService.getPresignedDownloadUrl(
-          asset.storageKey,
-          asset.storageType,
-        );
-  }
-
   register(engine: WorkflowEngine): void {
     this.registerImageGenExecutor(engine);
     this.registerVideoGenExecutor(engine);
-    this.registerLipSyncExecutor(engine);
     this.registerLocalizationExecutors(engine);
     this.registerTextToSpeechExecutor(engine);
     this.registerReframeExecutor(engine);
@@ -301,140 +256,6 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     engine.registerExecutor(
       'videoGen',
       this.helper.wrapEngineExecutor(videoGenExecutor),
-    );
-  }
-
-  private registerLipSyncExecutor(engine: WorkflowEngine): void {
-    const executor = new LipSyncExecutor();
-    executor.setResolver(
-      async (mediaValue, audioValue, options, context, node) => {
-        if (!this.filesClientService)
-          throw new Error('Media file service is unavailable');
-        const media = await this.helper.requireMediaAsset(
-          mediaValue,
-          context.organizationId,
-          [
-            IngredientCategory.VIDEO,
-            IngredientCategory.IMAGE,
-            IngredientCategory.AVATAR,
-          ],
-        );
-        const audio = await this.helper.requireMediaAsset(
-          audioValue,
-          context.organizationId,
-          [
-            IngredientCategory.MUSIC,
-            IngredientCategory.VOICE,
-            IngredientCategory.AUDIO,
-          ],
-        );
-        const configuredBrandId = this.helper.readConfigString(
-          node.config,
-          'brandId',
-        );
-        if (configuredBrandId && configuredBrandId !== media.brandId) {
-          throw new Error('Lip-sync brand must match the source asset brand');
-        }
-        if (audio.brandId !== media.brandId) {
-          throw new Error(
-            'Lip-sync source media and audio must belong to the same brand',
-          );
-        }
-        // A character the brand can no longer use is refused before dispatch.
-        const personaId = (
-          await this.personasService?.resolveCharacterReferences({
-            brandId: media.brandId,
-            ingredientIds: [media.id],
-            organizationId: context.organizationId,
-            path: 'lip-sync',
-          })
-        )?.personaId;
-        const isVideo = media.category === IngredientCategory.VIDEO;
-        const mode = isVideo ? 'video' : 'image';
-        if (options.mode && options.mode !== mode) {
-          throw new Error(
-            'Lip-sync mode does not match the selected source asset',
-          );
-        }
-        const model =
-          options.model ??
-          (isVideo ? 'sync/lipsync-2' : MODEL_KEYS.HEYGEN_AVATAR);
-        if (
-          isVideo
-            ? !['sync/lipsync-2', 'sync/lipsync-2-pro'].includes(model)
-            : model !== MODEL_KEYS.HEYGEN_AVATAR
-        ) {
-          throw new Error(
-            'Select a compatible lip-sync model for the source media',
-          );
-        }
-        if (isVideo ? !this.replicateService : !this.heyGenService) {
-          throw new Error('Selected lip-sync provider is unavailable');
-        }
-        const [mediaUrl, audioUrl] = await Promise.all([
-          this.processingMediaUrl(context.organizationId, media),
-          this.processingMediaUrl(context.organizationId, audio),
-        ]);
-        const provider = isVideo ? 'replicate' : 'heygen';
-        const byok = await this.byokService?.resolveApiKey(
-          context.organizationId,
-          isVideo ? ByokProvider.REPLICATE : ByokProvider.HEYGEN,
-        );
-        const pending = await this.helper.createAndLinkProcessingOutput({
-          output: {
-            brandId: media.brandId,
-            category: IngredientCategory.VIDEO,
-            extension: MetadataExtension.MP4,
-            model,
-            organizationId: context.organizationId,
-            userId: context.userId,
-            parentIngredientId: media.id,
-            personaId,
-            references: [media.id, audio.id],
-            transformations: [TransformationCategory.LIP_SYNCED],
-          },
-          continuation: {
-            actionId: 'lipSync',
-            context,
-            isByok: Boolean(byok),
-            node,
-            provider,
-          },
-          resultUrl: (id) => this.helper.buildVideoIngredientUrl(id),
-          runProvider: async (id, continuationId) => {
-            if (isVideo && this.replicateService) {
-              return this.replicateService.runModel(
-                model,
-                {
-                  video: mediaUrl,
-                  audio: audioUrl,
-                  sync_mode: options.syncMode ?? 'silence',
-                },
-                byok?.apiKey,
-                continuationId,
-              );
-            }
-            if (!this.heyGenService) throw new Error('HeyGen is unavailable');
-            return this.heyGenService.generatePhotoAvatarVideo(
-              id,
-              mediaUrl,
-              audioUrl,
-              context.organizationId,
-              context.userId,
-              byok?.apiKey,
-            );
-          },
-        });
-        return {
-          id: pending.ingredientId,
-          status: IngredientStatus.PROCESSING,
-          videoUrl: this.helper.buildVideoIngredientUrl(pending.ingredientId),
-        };
-      },
-    );
-    engine.registerExecutor(
-      executor.nodeType,
-      this.helper.wrapEngineExecutor(executor),
     );
   }
 

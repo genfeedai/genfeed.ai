@@ -1,6 +1,7 @@
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
+import { WorkflowLipSyncExecutorRegistrarService } from '@api/collections/workflows/services/workflow-lip-sync-executor-registrar.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
@@ -18,6 +19,7 @@ export class WorkflowEngineExecutorRegistryService {
     private readonly content: WorkflowContentExecutorRegistrarService,
     private readonly automation: WorkflowAutomationExecutorRegistrarService,
     private readonly trendPublish: WorkflowTrendPublishExecutorRegistrarService,
+    private readonly lipSync: WorkflowLipSyncExecutorRegistrarService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -25,6 +27,7 @@ export class WorkflowEngineExecutorRegistryService {
     this.social.register(engine);
     this.mediaProcessing.register(engine);
     this.mediaGeneration.register(engine);
+    this.lipSync.register(engine);
     this.content.register(engine);
     this.automation.register(engine);
     this.trendPublish.register(engine);

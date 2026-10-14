@@ -1973,6 +1973,36 @@ describe('media tool skill transport', () => {
   );
 });
 
+describe('media tool brand mode transport', () => {
+  it.each(['image', 'video'] as const)(
+    'forwards only the explicit raw opt-out on %s',
+    async (kind) => {
+      const { gateway, handler } = createHandler();
+      const method = kind === 'image' ? 'generateImage' : 'generateVideo';
+      gateway[method].mockResolvedValue({
+        data: { id: 'queued', attributes: { status: 'processing' } },
+      });
+      await handler.generate(
+        { brandMode: 'raw', prompt: 'A coast', type: kind },
+        context,
+      );
+      expect(gateway[method]).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ brandMode: 'raw' }),
+        }),
+      );
+      gateway[method].mockClear();
+      await handler.generate(
+        { brandMode: 'approved_brand', prompt: 'A coast', type: kind },
+        context,
+      );
+      expect(gateway[method].mock.calls[0][0].body).not.toHaveProperty(
+        'brandMode',
+      );
+    },
+  );
+});
+
 describe('dedicated image editing', () => {
   it('forwards exact editing instructions and preserves every output id without inheriting generation settings', async () => {
     const { gateway, handler } = createHandler();

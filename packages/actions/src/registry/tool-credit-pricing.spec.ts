@@ -1,8 +1,6 @@
-import {
-  BRAND_INTERVIEW_CREDIT_COST,
-  CLIP_CREDIT_PER_CLIP,
-  CLIP_HIGHLIGHT_COUNT_MAXIMUM,
-} from '@genfeedai/contracts/constants/tool-credit.constant';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
+import { SELF_HOSTED_MODELS } from '@genfeedai/contracts/constants/self-hosted-models.constant';
+import { BRAND_INTERVIEW_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import {
   estimateTurboRunCredits,
   TURBO_RUN_CAPTION_BASE_CREDITS,
@@ -223,18 +221,21 @@ describe('tool credit pricing', () => {
         getToolByName('analyze_clip_project')?.creditCost ?? 0,
       ),
     ).toBe(false);
-    expect(pricingOf('generate_clips')).toEqual({
-      maximum: CLIP_CREDIT_PER_CLIP * CLIP_HIGHLIGHT_COUNT_MAXIMUM,
-      minimum: CLIP_CREDIT_PER_CLIP,
-      mode: 'variable',
-      unit: 'clip',
-    });
-    expect(
-      estimateToolCreditCost(
-        'generate_clips',
-        { maxClips: 8 },
-        pricingOf('generate_clips'),
-      ),
-    ).toBe(8 * CLIP_CREDIT_PER_CLIP);
+    // A HeyGen avatar clip is held per second; raw-cut holds nothing.
+    const avatarV = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_V,
+    );
+    for (const name of ['generate_clips', 'create_clip_project_from_youtube']) {
+      expect(pricingOf(name)).toEqual({
+        maximum: avatarV && 'costPerUnit' in avatarV ? avatarV.costPerUnit : -1,
+        minimum: 0,
+        mode: 'variable',
+        unit: 'second of HeyGen avatar clip',
+      });
+      expect(isSpendingCreditPricing(pricingOf(name), 0)).toBe(true);
+      expect(
+        estimateToolCreditCost(name, { maxClips: 8 }, pricingOf(name)),
+      ).toBeNull();
+    }
   });
 });

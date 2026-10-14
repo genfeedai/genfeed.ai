@@ -23,7 +23,6 @@ import type {
 import { ClipProjectClientSourceService } from '@api/collections/clip-projects/services/clip-project-client-source.service';
 import type { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   AgentClipRunIdentity,
@@ -192,10 +191,6 @@ describe('ClipProjectsController', () => {
     findProjectResultForHandoff: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
-  let creditsUtilsService: {
-    checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
-    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
-  };
   let handoffWorkflowService: {
     createEditorHandoff: ReturnType<typeof vi.fn>;
     preparePublishHandoff: ReturnType<typeof vi.fn>;
@@ -219,10 +214,6 @@ describe('ClipProjectsController', () => {
       findByProject: vi.fn().mockResolvedValue([]),
       findProjectResultForHandoff: vi.fn(),
       patch: vi.fn(),
-    };
-    creditsUtilsService = {
-      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
     };
     handoffWorkflowService = {
       createEditorHandoff: vi.fn(),
@@ -251,7 +242,6 @@ describe('ClipProjectsController', () => {
         clipGenerationService as ClipGenerationService,
         clipGenerationRequestService,
         clipIdentityResolutionService as ClipIdentityResolutionService,
-        creditsUtilsService as unknown as CreditsUtilsService,
         clipResultsService as unknown as ClipResultsService,
       ),
       hookClipApprovalService as unknown as HookClipApprovalService,
@@ -719,7 +709,7 @@ describe('ClipProjectsController', () => {
     );
   });
 
-  it('defaults multi-clip avatar generation to one-credit hook approval', async () => {
+  it('defaults multi-clip avatar generation to hook approval', async () => {
     const project = createProject(projectId, organizationId);
     const hook = project.highlights?.[0];
     if (!hook) {
@@ -751,9 +741,6 @@ describe('ClipProjectsController', () => {
 
     await controller.generateClips(currentUser as never, projectId, dto);
 
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).toHaveBeenCalledWith(organizationId, 1);
     expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
       expect.objectContaining({ hookApprovalRequired: true }),
     );
@@ -1031,9 +1018,6 @@ describe('ClipProjectsController', () => {
       controller.generateClips(currentUser as never, projectId, dto),
     ).rejects.toThrow(/cannot apply a separate reference image/);
 
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
     expect(clipProjectsService.patch).not.toHaveBeenCalled();
     expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });
@@ -1066,9 +1050,6 @@ describe('ClipProjectsController', () => {
       controller.generateClips(currentUser as never, projectId, dto),
     ).rejects.toThrow(/unsafe or transient image URL/);
 
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
     expect(clipProjectsService.patch).not.toHaveBeenCalled();
     expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });
@@ -1152,9 +1133,6 @@ describe('ClipProjectsController', () => {
       isDeleted: false,
       organizationId,
     });
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
     expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });
 

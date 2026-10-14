@@ -36,6 +36,7 @@ const SHARED_PARAMETERS = ['type', 'prompt', 'brandId'] as const;
 
 const VISUAL_PARAMETERS = [
   'aspectRatio',
+  'brandMode',
   'model',
   'characterHandles',
   'harness',

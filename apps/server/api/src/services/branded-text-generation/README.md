@@ -76,6 +76,18 @@ and propagates unchanged.
 `dispatch_window_expired` (409). Responses carry
 `meta.brandedGenerationReceiptId`.
 
+## Media prompts
+
+Image and video generation (`MediaPromptEnhancementService`) resolves the same
+identity: `BrandedModeResolverService` picks the approved revision, else the
+live draft provisionally, and the snapshot seam pins it. The enhanced prompt and
+the media receipt carry the mode and revision; a branded output is never
+compliant without a validation report, so it completes as `needs_review`.
+A failed enhancement stops before any paid call with a typed 502
+(`MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED`) and never falls back to the raw
+prompt. The only raw path is the user's explicit `brandMode: 'raw'`, which skips
+brand work and records a raw receipt.
+
 ## The Genfeed system brand
 
 Internal generation with no customer brand (system, lifecycle and internal
@@ -109,7 +121,7 @@ Approving switches the next system generation to `approved_brand`.
 
 ## Not wired yet
 
-Account and thread generation, content-intelligence, Studio media prompts, MCP,
+Account and thread generation, content-intelligence, MCP,
 workflows, schedules, batches, desktop adapters and the internal surfaces that
 will generate on the system brand remain open on #5786. The agent
 `generate_content` article and newsletter types are not text-seam surfaces yet.

@@ -71,7 +71,7 @@ export const GENERATION_BRIEF_ENTRY_EXEMPTIONS: readonly GenerationBriefExemptEn
       id: 'workflow-lipSync',
       reason: 'non_generative_transform',
       source:
-        'apps/server/api/src/collections/workflows/services/workflow-media-generation-executor-registrar.service.ts',
+        'apps/server/api/src/collections/workflows/services/workflow-lip-sync-executor-registrar.service.ts',
     },
     {
       id: 'workflow-textToSpeech',

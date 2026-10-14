@@ -74,25 +74,6 @@ describe('HedraService', () => {
     expect(postSpy).toHaveBeenCalled();
   });
 
-  it('generates character with text', async () => {
-    postSpy.mockReturnValueOnce(
-      of({
-        data: { job_id: 'job456' },
-        status: 200,
-      }),
-    );
-
-    const jobId = await service.generateCharacterWithText(
-      'meta456',
-      'Hello world',
-      'https://example.com/image.jpg',
-      'voice123',
-    );
-
-    expect(jobId).toBe('job456');
-    expect(postSpy).toHaveBeenCalled();
-  });
-
   it('gets voices list', async () => {
     getSpy.mockReturnValueOnce(
       of({

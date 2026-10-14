@@ -103,6 +103,11 @@ export interface StudioPlaygroundAssetActions {
   onCopyPrompt: (ingredient: IIngredient) => void | Promise<void>;
   onCreateVariation: (ingredient: IIngredient) => void;
   onDeleteIngredient: (ingredient: IIngredient) => void;
+  /**
+   * Re-sends a generation that stopped on a brand enhancement failure with the
+   * prompt exactly as typed and no brand applied (`brandMode: 'raw'`).
+   */
+  onGenerateWithoutBrand?: (job: StudioPlaygroundJob) => void | Promise<void>;
   onMarkArchived: (ingredient: IIngredient) => void | Promise<void>;
   onMarkRejected: (ingredient: IIngredient) => void | Promise<void>;
   onMarkValidated: (ingredient: IIngredient) => void | Promise<void>;

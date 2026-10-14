@@ -16,6 +16,7 @@ import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/serv
 import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   IngredientOrigin,
@@ -525,44 +526,46 @@ describe('ImageGenerationService', () => {
     );
   });
 
-  it('generates with the original prompt when enhancement fails instead of returning 503 (#5161)', async () => {
-    const { service, enhancementService, replicateService, sharedService } =
-      createService();
-    const prompt = 'a sunset over the ocean';
-    // Mirrors MediaPromptEnhancementService's fallback receipt: a hard
-    // failure (embedding/model outage) resolves with status 'failed' and the
-    // original prompt instead of throwing ServiceUnavailableException.
-    enhancementService.enhance.mockResolvedValue({
-      originalPrompt: prompt,
-      enhancedPrompt: prompt,
-      brandId: RESOLVED_BRAND,
-      status: 'failed',
-      source: 'brand',
-      appliedPacks: [],
-    });
+  it('stops before any document, credit or provider call when brand enhancement fails, never falling back to the raw prompt', async () => {
+    const {
+      service,
+      enhancementService,
+      replicateService,
+      sharedService,
+      creditsUtilsService,
+    } = createService();
+    enhancementService.enhance.mockRejectedValue(
+      new MediaPromptBrandEnhancementException('provider'),
+    );
+    const error = await service
+      .generateImage(
+        buildUser(),
+        baseDto({ text: 'a sunset over the ocean' }),
+        buildRequest(),
+      )
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(MediaPromptBrandEnhancementException);
+    expect((error as MediaPromptBrandEnhancementException).getStatus()).toBe(
+      502,
+    );
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('forwards the explicit raw opt-out and the caller scope to enhancement', async () => {
+    const { service, enhancementService, replicateService } = createService();
     await service.generateImage(
       buildUser(),
-      baseDto({ text: prompt }),
+      baseDto({ text: 'A bicycle', brandMode: 'raw' }),
       buildRequest(),
     );
+    expect(enhancementService.enhance).toHaveBeenCalledWith(
+      expect.objectContaining({ brandMode: 'raw', prompt: 'A bicycle' }),
+    );
     expect(replicateService.generateTextToImage).toHaveBeenCalled();
-    const providerPrompt =
-      replicateService.generateTextToImage.mock.calls[0][1].prompt;
-    expect(providerPrompt).toBe(prompt);
-    await vi.waitFor(() =>
-      expect(sharedService.createMediaDocuments).toHaveBeenCalled(),
-    );
-    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        generationHarness: expect.objectContaining({
-          originalPrompt: prompt,
-          enhancedPrompt: prompt,
-          status: 'failed',
-        }),
-        generationSource: 'generation-brief-exemption:raw_prompt_requested',
-      }),
-    );
   });
 
   it('rejects selected context in raw mode instead of silently changing the prompt', async () => {

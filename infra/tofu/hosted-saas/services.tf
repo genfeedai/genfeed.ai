@@ -112,6 +112,50 @@ resource "aws_ecs_task_definition" "migrate" {
   }])
 }
 
+# ── One-off reference-data sync (run AFTER migrate, BEFORE services roll) ─
+resource "aws_cloudwatch_log_group" "reference_data_sync" {
+  name              = "/ecs/${local.name_prefix}/reference-data-sync"
+  retention_in_days = 7
+}
+
+resource "aws_ecs_task_definition" "reference_data_sync" {
+  family                   = "${local.name_prefix}-reference-data-sync"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = local.services.api.cpu
+  memory                   = local.services.api.mem
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  container_definitions = jsonencode([{
+    name      = "reference-data-sync"
+    image     = local.image
+    essential = true
+    command = [
+      "node",
+      "--max-old-space-size=8192",
+      "--expose-gc",
+      "-r",
+      "tsconfig-paths/register",
+      "apps/server/dist/apps/api-reference-data-sync/main",
+      "--live",
+    ]
+    secrets   = local.service_task_secrets
+    environment = concat(local.internal_env, [
+      { name = "PORT", value = tostring(local.services.api.port) },
+      { name = "SERVICE_NAME", value = "reference-data-sync" },
+    ])
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.reference_data_sync.name
+        "awslogs-region"        = var.region
+        "awslogs-stream-prefix" = "reference-data-sync"
+      }
+    }
+  }])
+}
+
 # ── One-off credential-encryption backfill (run AFTER services reach steady ──
 # state with the new image, so new pods — which know how to read ciphertext —
 # are already live before any row is written. Skips rows already encrypted

@@ -5,11 +5,9 @@ import {
 } from '@api/collections/clip-projects/services/clip-generation.service';
 import { CLIP_HOOK_REVIEW_NODE_ID } from '@api/collections/clip-projects/services/clip-generation-workflow-definition';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { WorkflowExecutionDocument } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   HookClipApprovalAction,
@@ -44,7 +42,6 @@ export class HookClipApprovalService {
     private readonly clipResultsService: ClipResultsService,
     private readonly clipGenerationService: ClipGenerationService,
     private readonly clipProjectsService: ClipProjectsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     @Optional()
     private readonly moduleRef?: ModuleRef,
   ) {}
@@ -67,13 +64,6 @@ export class HookClipApprovalService {
     if (state?.state !== 'awaiting_confirmation') {
       throw new BadRequestException(
         'The hook clip is not awaiting an operator decision.',
-      );
-    }
-
-    if (input.action !== 'reject') {
-      await this.assertCredits(
-        input.organizationId,
-        input.action === 'approve' ? state.remainingClipCount : 1,
       );
     }
 
@@ -327,25 +317,6 @@ export class HookClipApprovalService {
           : highlight,
       ),
     };
-  }
-
-  private async assertCredits(
-    organizationId: string,
-    requiredCredits: number,
-  ): Promise<void> {
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-    if (hasCredits) {
-      return;
-    }
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-    throw new InsufficientCreditsException(requiredCredits, balance);
   }
 
   private readGenerationInput(value: unknown): ClipGenerationInput {

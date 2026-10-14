@@ -1,3 +1,5 @@
+import type { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
+import { projectProvisionalBrandIdentitySnapshot } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import type { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -15,12 +17,19 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import { MEDIA_GENERATION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { buildGenfeedDefaultKitDraft } from '@genfeedai/helpers';
+import {
+  type BrandOsRevision,
+  BrandOsRevisionStatus,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-10T12:00:00.000Z';
@@ -166,6 +175,36 @@ const actor = {
   actorId: 'user-1',
 };
 
+function draftRow(): BrandOsRevision {
+  return {
+    approvedAt: null,
+    approvedById: null,
+    brandId: 'brand-1',
+    content: z.json().parse(
+      toPrismaJson({
+        ...buildGenfeedDefaultKitDraft({
+          description: 'Lighthouses',
+          id: 'brand-1',
+          label: 'Acme',
+          organization: 'org-1',
+        }),
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    ),
+    createdAt: new Date(time),
+    exportSchemaVersion: '1',
+    generationRulesReviewHash: null,
+    id: 'draft-1',
+    isDeleted: false,
+    organizationId: 'org-1',
+    sourcePreviewTokenHash: null,
+    status: BrandOsRevisionStatus.DRAFT,
+    updatedAt: new Date(time),
+    version: 3,
+  };
+}
+
 function fixture() {
   const mutationResult = (value: BrandedGenerationReceiptV1) => ({
     receipt: value,
@@ -262,14 +301,23 @@ function fixture() {
       }),
     },
   };
+  const snapshots = {
+    preview: vi.fn(),
+    previewProvisional: vi
+      .fn()
+      .mockResolvedValue(
+        projectProvisionalBrandIdentitySnapshot(draftRow(), time),
+      ),
+  };
   const logger = { warn: vi.fn() };
   const service = new MediaGenerationReceiptsService(
     prisma as unknown as PrismaService,
     receipts as unknown as BrandedGenerationReceiptsService,
     material as unknown as BrandedGenerationArtifactMaterialService,
+    snapshots as unknown as BrandIdentitySnapshotService,
     logger as unknown as LoggerService,
   );
-  return { service, receipts, material, prisma, logger, binding };
+  return { service, receipts, material, prisma, snapshots, logger, binding };
 }
 
 describe('MediaGenerationReceiptsService', () => {
@@ -332,6 +380,89 @@ describe('MediaGenerationReceiptsService', () => {
         originalPromptHash: hashBrandedGenerationTextV1('A lighthouse at dawn'),
       });
       expect(enhanced).toBe('A lighthouse at dawn, brand-blue palette');
+    });
+
+    it('pins the provisional draft through the snapshot seam and never claims compliance', async () => {
+      const f = fixture();
+
+      await f.service.open(
+        openInput({
+          brand: {
+            mode: 'provisional_brand',
+            revisionId: 'draft-1',
+            revisionVersion: 3,
+          },
+        }),
+      );
+
+      expect(f.snapshots.previewProvisional).toHaveBeenCalledWith(
+        actor,
+        'draft-1',
+      );
+      expect(f.snapshots.preview).not.toHaveBeenCalled();
+      expect(f.receipts.create.mock.calls[0][0]).toMatchObject({
+        mode: 'provisional_brand',
+        draftRevisionId: 'draft-1',
+      });
+      const resolution = f.receipts.recordResolution.mock.calls[0][3];
+      expect(brandedGenerationResolutionV1Schema.parse(resolution)).toEqual(
+        resolution,
+      );
+      expect(resolution).toMatchObject({
+        mode: 'provisional_brand',
+        status: 'resolved',
+        snapshot: { approval: 'provisional', revisionId: 'draft-1' },
+        layers: [],
+      });
+    });
+
+    it('pins the approved revision without a draft id', async () => {
+      const f = fixture();
+      f.snapshots.preview.mockResolvedValue({
+        ...(await f.snapshots.previewProvisional()),
+        approval: 'approved',
+        revisionId: 'revision-approved',
+        revisionVersion: 5,
+      });
+
+      await f.service.open(
+        openInput({
+          brand: {
+            mode: 'approved_brand',
+            revisionId: 'revision-approved',
+            revisionVersion: 5,
+          },
+        }),
+      );
+
+      expect(f.snapshots.preview).toHaveBeenCalledWith(actor);
+      const request = f.receipts.create.mock.calls[0][0];
+      expect(request.mode).toBe('approved_brand');
+      expect(request).not.toHaveProperty('draftRevisionId');
+      expect(f.receipts.recordResolution.mock.calls[0][3]).toMatchObject({
+        mode: 'approved_brand',
+        snapshot: { approval: 'approved', revisionId: 'revision-approved' },
+      });
+    });
+
+    it('records nothing when the pinned revision changed after enhancement', async () => {
+      const f = fixture();
+
+      await f.service.open(
+        openInput({
+          brand: {
+            mode: 'provisional_brand',
+            revisionId: 'draft-1',
+            revisionVersion: 2,
+          },
+        }),
+      );
+
+      expect(f.receipts.create).not.toHaveBeenCalled();
+      expect(f.logger.warn).toHaveBeenCalledWith(
+        'Media generation receipt write failed',
+        expect.objectContaining({ error: 'brand_identity_changed' }),
+      );
     });
 
     it('does not link the first output to itself and leaves replays untouched', async () => {

@@ -1,4 +1,5 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import type { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
@@ -76,11 +77,15 @@ function createHarness() {
     error: vi.fn(),
     log: vi.fn(),
   };
+  const clipAvatarBilling = {
+    fund: vi.fn().mockResolvedValue({ release: vi.fn() }),
+  };
   const service = new ClipGenerationService(
     clipResults as unknown as ClipResultsService,
     avatarVideo as unknown as AvatarVideoService,
     rawCut as unknown as RawCutClipService,
     logger as unknown as LoggerService,
+    clipAvatarBilling as unknown as ClipAvatarBillingService,
     undefined,
     projects as unknown as ClipProjectsService,
     moduleRef as unknown as ModuleRef,
@@ -88,6 +93,7 @@ function createHarness() {
   service.onModuleInit();
   return {
     actions,
+    clipAvatarBilling,
     clipResults,
     moduleRef,
     projects,
@@ -251,5 +257,38 @@ describe('ClipGenerationService workflow boundary', () => {
     expect(clipResults.create).toHaveBeenCalledWith(
       expect.objectContaining({ index: 1, title: 'Body' }),
     );
+  });
+
+  it('funds each HeyGen clip on its own clip result before the provider submits', async () => {
+    const { actions, clipAvatarBilling, provider } = createHarness();
+    const executor = actions.get('clip.generation.generate-one');
+    if (!executor) {
+      throw new Error('generate-one action was not registered');
+    }
+
+    await executor({
+      context: { organizationId: 'org-1', userId: 'user-1' } as never,
+      input: { originalIndex: 0, request },
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Clip Generation',
+      },
+    });
+
+    const input = vi.mocked(provider.generateVideo).mock.calls[0]?.[0];
+    expect(input?.callbackId).toBe('clip-result-1');
+    const plan = {
+      isByok: false,
+      selection: { modelKey: 'heygen/avatar' },
+    };
+    await input?.fundSubmission?.(plan);
+    expect(clipAvatarBilling.fund).toHaveBeenCalledWith({
+      clipResultId: 'clip-result-1',
+      organizationId: 'org-1',
+      plan,
+      script: 'Hook. Hook summary',
+      userId: 'user-1',
+    });
   });
 });

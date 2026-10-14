@@ -24,7 +24,7 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 180,
+    "actual": 166,
     "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",
     "symbol": "ClipGenerationDispatchService.retryFailedClips"
@@ -240,7 +240,7 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 33,
+    "actual": 34,
     "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
     "metric": "constructor-dependencies",
     "symbol": "PlatformSchedulesProcessor.constructor"

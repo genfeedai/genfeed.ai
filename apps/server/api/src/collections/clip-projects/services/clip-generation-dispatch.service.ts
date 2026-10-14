@@ -10,10 +10,7 @@ import { clipGenerationIdentity } from '@api/collections/clip-projects/services/
 import type { ResolvedClipReference } from '@api/collections/clip-projects/services/clip-reference-generation.util';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { clipCreditGateAmount } from '@genfeedai/contracts/constants';
 import type { ClipReferenceApplication } from '@genfeedai/contracts/interfaces';
 import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/contracts/interfaces';
 import {
@@ -44,7 +41,6 @@ export class ClipGenerationDispatchService {
     private readonly clipGenerationService: ClipGenerationService,
     private readonly clipGenerationRequestService: ClipGenerationRequestService,
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly clipResultsService: ClipResultsService,
   ) {}
 
@@ -72,23 +68,6 @@ export class ClipGenerationDispatchService {
       mode === 'avatar' &&
       selectedEditedHighlights.length > 1 &&
       dto.hookApprovalRequired !== false;
-    const initialCreditCount = hookApprovalRequired
-      ? 1
-      : selectedEditedHighlights.length;
-    const requiredCredits = clipCreditGateAmount(initialCreditCount);
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-    if (!hasCredits) {
-      const currentBalance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          organizationId,
-        );
-      throw new InsufficientCreditsException(requiredCredits, currentBalance);
-    }
-
     await this.clipProjectsService.patch(
       projectId,
       {
@@ -192,20 +171,6 @@ export class ClipGenerationDispatchService {
           })
         : undefined;
     this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
-
-    const requiredCredits = clipCreditGateAmount(failedResults.length);
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-    if (!hasCredits) {
-      const currentBalance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          organizationId,
-        );
-      throw new InsufficientCreditsException(requiredCredits, currentBalance);
-    }
 
     const runReferences = project.brandId
       ? await this.clipGenerationRequestService.resolveRunReferences(

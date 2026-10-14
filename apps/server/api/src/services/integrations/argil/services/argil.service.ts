@@ -34,6 +34,7 @@ export interface ArgilVideoStatus {
 export interface GenerateArgilVideoInput {
   aspectRatio?: ArgilAspectRatio;
   avatarId: string;
+  beforeSubmission?: (isByok: boolean) => Promise<void>;
   callbackId: string;
   organizationId: string;
   onVideoCreated?: (videoId: string) => Promise<void>;
@@ -54,7 +55,10 @@ export class ArgilService {
   ) {}
 
   async generateAvatarVideo(input: GenerateArgilVideoInput): Promise<string> {
-    const apiKey = await this.resolveApiKey(input.organizationId);
+    const apiKey = await this.resolveApiKey(
+      input.organizationId,
+      input.beforeSubmission,
+    );
     const response = await firstValueFrom(
       this.httpService.post<unknown>(
         `${this.endpoint}/videos`,
@@ -174,8 +178,11 @@ export class ArgilService {
     });
   }
 
-  private async resolveApiKey(organizationId: string): Promise<string> {
-    const byok = await this.byokService.resolveApiKey(
+  private async resolveApiKey(
+    organizationId: string,
+    beforeSubmission?: (isByok: boolean) => Promise<void>,
+  ): Promise<string> {
+    const byok = await this.byokService.lookupApiKey(
       organizationId,
       ByokProvider.ARGIL,
     );
@@ -186,6 +193,7 @@ export class ArgilService {
     if (!apiKey) {
       throw new Error('No Argil API key configured (BYOK or env ARGIL_KEY)');
     }
+    await beforeSubmission?.(Boolean(byok));
     return apiKey;
   }
 

@@ -19,7 +19,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
-import { PLATFORM_RUNTIME_ENV_MIGRATIONS } from '../migrations/platform-runtime-config.util';
+import { PLATFORM_RUNTIME_ENV_MIGRATIONS } from '../platform-runtime/platform-runtime-config.util';
 
 /** Every place an env schema (Joi keys) is declared. */
 const DEFAULT_SCHEMA_GLOBS = [

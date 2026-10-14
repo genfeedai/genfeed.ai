@@ -24,6 +24,7 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
+import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -137,6 +138,9 @@ export default function StudioPlaygroundCard({
 }: StudioPlaygroundCardProps): ReactElement {
   const translate = useTranslations('pages.studioPlayground');
   const translateRecovery = useTranslations('pages.library.recovery');
+  const translateBrand = useTranslations(
+    'pages.studioPlayground.brandEnhancement',
+  );
   const { href } = useOrgUrl();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
   const accessibleLabel = studioAssetAccessibleLabel(job);
@@ -175,6 +179,13 @@ export default function StudioPlaygroundCard({
   const height = Math.max(1, job.height || 1080);
   const masonryIngredient = useMemo(() => buildMasonryIngredient(job), [job]);
   const isListView = view === ViewType.LIST;
+  // Only the two modes a reader must not miss: an unapproved draft kit and a
+  // prompt that carried no brand at all.
+  const brandMode = job.ingredient?.generationHarness?.brandMode;
+  const unbrandedMode =
+    brandMode === 'raw' || brandMode === 'provisional_brand'
+      ? brandMode
+      : undefined;
 
   const handleMediaError = useCallback(() => {
     if (mediaKey) {
@@ -324,12 +335,17 @@ export default function StudioPlaygroundCard({
         data-asset-details
       >
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <Badge
-            className="w-fit shrink-0 text-2xs uppercase tracking-wide"
-            variant="secondary"
-          >
-            {label}
-          </Badge>
+          <div className="flex min-w-0 items-center gap-1">
+            <Badge
+              className="w-fit shrink-0 text-2xs uppercase tracking-wide"
+              variant="secondary"
+            >
+              {label}
+            </Badge>
+            {unbrandedMode ? (
+              <BrandModeBadge brandMode={unbrandedMode} />
+            ) : null}
+          </div>
           <span className="truncate text-2xs text-muted-foreground">
             {job.modelKey || 'Auto'}
           </span>
@@ -441,6 +457,9 @@ export default function StudioPlaygroundCard({
               ) : null}
             </>
           ) : undefined
+        }
+        badge={
+          unbrandedMode ? <BrandModeBadge brandMode={unbrandedMode} /> : null
         }
         metadata={job.modelKey || 'Auto'}
         typeLabel={label}
@@ -579,6 +598,22 @@ export default function StudioPlaygroundCard({
                 ? job.error || translate('generationFailed')
                 : translate('previewUnavailable')}
             </span>
+            {isFailed &&
+            job.failure === 'brand_enhancement' &&
+            assetActions.onGenerateWithoutBrand ? (
+              <Button
+                ariaLabel={translateBrand('generateWithoutBrandAria', {
+                  type: label.toLowerCase(),
+                })}
+                className="pointer-events-auto px-2 text-xs"
+                data-testid={`studio-asset-generate-without-brand-${job.id}`}
+                label={translateBrand('generateWithoutBrand')}
+                onClick={() => void assetActions.onGenerateWithoutBrand?.(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              />
+            ) : null}
             {isPreviewUnavailable ? (
               <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/75">
                 {translate('previewUnavailableDescription')}

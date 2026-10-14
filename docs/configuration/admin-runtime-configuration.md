@@ -11,7 +11,7 @@ Use **Send test** to verify a saved destination, then enable **Record system eve
 ## Rollout
 
 1. Apply the additive Prisma migration before rolling out the new API, workers, file, and notification processes.
-2. While the previous env configuration is still available, run `bun scripts/migrations/import-platform-runtime-config.ts` for a dry run, then run the same command with `--apply` against the upgraded database. Do not dump environment values or command output containing secrets. The importer prints names and presence only, rejects invalid settings, imports only untouched defaults, and preserves existing admin destinations. `TOKEN_ENCRYPTION_KEY` must match the API’s key.
+2. Edit runtime configuration in Admin → Administration → Platform settings. The one-off env importer under `scripts/migrations/` is retired.
 3. Deploy the services together; the notification/file clients require the new internal runtime-settings endpoint. Verify a test destination and then remove the retired env keys from deployment secrets. The provider tokens, encryption key, and internal service API key remain required.
 
 The importer never changes the recording window, clears delivery history, or replays accepted deliveries. Runtime configuration is no longer read from the retired env keys after deployment.

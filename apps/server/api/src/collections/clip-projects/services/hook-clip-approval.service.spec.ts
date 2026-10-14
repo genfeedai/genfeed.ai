@@ -1,7 +1,6 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import type { ModuleRef } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -78,10 +77,6 @@ describe('HookClipApprovalService workflow review gate', () => {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
-  let credits: {
-    checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
-    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
-  };
   let executions: { findOne: ReturnType<typeof vi.fn> };
   let executor: { submitReviewGateApproval: ReturnType<typeof vi.fn> };
   let service: HookClipApprovalService;
@@ -99,10 +94,6 @@ describe('HookClipApprovalService workflow review gate', () => {
       findOne: vi.fn().mockResolvedValue({ status: 'completed' }),
       patch: vi.fn().mockResolvedValue({}),
     };
-    credits = {
-      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
-    };
     executions = { findOne: vi.fn().mockResolvedValue(createExecution()) };
     executor = {
       submitReviewGateApproval: vi.fn().mockResolvedValue({
@@ -118,7 +109,6 @@ describe('HookClipApprovalService workflow review gate', () => {
       clipResults as unknown as ClipResultsService,
       clipGeneration as unknown as ClipGenerationService,
       clipProjects as unknown as ClipProjectsService,
-      credits as unknown as CreditsUtilsService,
       moduleRef as unknown as ModuleRef,
     );
   });

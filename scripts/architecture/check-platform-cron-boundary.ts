@@ -285,6 +285,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler; one X mentions read per account with a post published in the last 24 hours, feeding the social inbox and the social.reply notification.',
   },
   {
+    file: 'apps/server/workers/src/crons/external-voice-catalog/cron.external-voice-catalog.service.ts',
+    id: 'external-voice-catalog-sync',
+    methodName: 'syncFromProviders',
+    reason:
+      'Platform schedule handler that keeps provider-synced external voice catalogs current. Replaces the retired scripts/migrations/reseed-voice-catalog.ts path (#6911).',
+  },
+  {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
     id: 'youtube-messages',
     methodName: 'syncYoutubeMessages',

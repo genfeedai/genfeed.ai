@@ -1,4 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
 import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -17,6 +18,7 @@ export class HeygenWebhookService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
+    private readonly clipAvatarBilling: ClipAvatarBillingService,
     private readonly clipLibraryLinkService: ClipLibraryLinkService,
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipResultsService: ClipResultsService,
@@ -33,21 +35,28 @@ export class HeygenWebhookService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
+  /** The clip seconds HeyGen billed, when the event carries them. */
+  private readDuration(body: HeygenWebhookPayload): number | undefined {
+    const duration = body.event_data?.duration;
+    return typeof duration === 'number' &&
+      Number.isFinite(duration) &&
+      duration > 0
+      ? duration
+      : undefined;
+  }
+
   /** Stores the clip and settles per-second engines to HeyGen's duration. */
   private processAvatarSuccess(
     ingredientId: string,
     body: HeygenWebhookPayload,
   ): Promise<void> {
-    const duration = body.event_data?.duration;
     return this.webhooksService.processMediaForIngredient(
       ingredientId,
       'avatar',
       this.getSuccessVideoUrl(body) ?? '',
       body.event_data?.video_id,
       undefined,
-      typeof duration === 'number' && Number.isFinite(duration) && duration > 0
-        ? duration
-        : undefined,
+      this.readDuration(body),
     );
   }
 
@@ -252,6 +261,12 @@ export class HeygenWebhookService {
         videoUrl,
       });
       if (organizationId) {
+        // The clip's hold settles to the seconds HeyGen rendered.
+        await this.clipAvatarBilling.settle(
+          clipResultId,
+          organizationId,
+          this.readDuration(body),
+        );
         await this.clipLibraryLinkService.linkReadyClip({
           clipResultId,
           organizationId,
@@ -262,6 +277,8 @@ export class HeygenWebhookService {
         providerJobId,
         status: 'failed',
       });
+      if (organizationId)
+        await this.clipAvatarBilling.release(clipResultId, organizationId);
     } else {
       this.loggerService.log(
         `${this.constructorName}.handleClipResultCallback ignoring non-terminal event`,

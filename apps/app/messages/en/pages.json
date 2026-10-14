@@ -1807,6 +1807,11 @@
     "viewGrid": "Grid",
     "viewList": "List",
     "makeClips": "Make clips",
+    "brandEnhancement": {
+      "failed": "Brand enhancement failed. Nothing was generated and no credits were used.",
+      "generateWithoutBrand": "Generate without brand",
+      "generateWithoutBrandAria": "Generate this {type} without brand, using the prompt exactly as typed"
+    },
     "crun": {
       "outputFormat": "Output format",
       "quoteLoading": "Checking image price…",

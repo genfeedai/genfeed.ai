@@ -21,7 +21,6 @@ describe('AiInfluencerService.createIngredientRecord', () => {
     {} as never,
     {} as never,
     {} as never,
-    {} as never,
     filesClientService as never,
     loggerService as never,
   );

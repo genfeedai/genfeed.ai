@@ -5,37 +5,29 @@ import {
   studioSystemPresetId,
 } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+export type StudioPresetSeedResult = {
+  unchanged: number;
+  written: number;
+};
 
 @Injectable()
-export class StudioPresetSeedService implements OnApplicationBootstrap {
+export class StudioPresetSeedService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
-  async onApplicationBootstrap(): Promise<void> {
-    try {
-      await this.reconcileCatalog();
-    } catch (error) {
-      this.logger.error(
-        'Studio system preset seed failed',
-        error instanceof Error ? error : new Error(String(error)),
-        'StudioPresetSeedService',
-      );
-    }
-  }
-
-  /**
-   * Seed each built-in template on its own: one failed write (for example a
-   * platform-key conflict) must not leave the remaining templates unseeded.
-   */
-  async reconcileCatalog(): Promise<number> {
-    let count = 0;
+  async reconcileCatalog(): Promise<StudioPresetSeedResult> {
+    const result: StudioPresetSeedResult = { unchanged: 0, written: 0 };
+    const failedKeys: string[] = [];
     for (const preset of STUDIO_SYSTEM_PRESETS) {
       try {
-        if (await this.seedPreset(preset)) count += 1;
+        if (await this.seedPreset(preset)) result.written += 1;
+        else result.unchanged += 1;
       } catch (error) {
+        failedKeys.push(preset.key);
         this.logger.error(
           `Studio system preset seed failed for ${preset.key}`,
           error instanceof Error ? error : new Error(String(error)),
@@ -43,10 +35,14 @@ export class StudioPresetSeedService implements OnApplicationBootstrap {
         );
       }
     }
-    return count;
+    if (failedKeys.length > 0) {
+      throw new Error(
+        `Studio system preset reconcile failed for: ${failedKeys.join(', ')}`,
+      );
+    }
+    return result;
   }
 
-  /** Returns false when a tenant row owns the reserved ID. */
   private async seedPreset(
     preset: (typeof STUDIO_SYSTEM_PRESETS)[number],
   ): Promise<boolean> {
@@ -56,12 +52,7 @@ export class StudioPresetSeedService implements OnApplicationBootstrap {
       where: { id },
       select: { organizationId: true, brandId: true },
     });
-    // Deterministic IDs own only platform rows; never rewrite a tenant fork.
-    if (
-      existing &&
-      (existing.organizationId !== null || existing.brandId !== null)
-    )
-      return false;
+    if (existing) return false;
     const category =
       preset.type === 'image' ? ModelCategory.IMAGE : ModelCategory.VIDEO;
     const config = {
@@ -71,10 +62,9 @@ export class StudioPresetSeedService implements OnApplicationBootstrap {
       prompt: preset.prompt,
       ...preset.values,
     };
-    // tenant-scope-ignore: platform seed owns only null organization/brand rows and preserves operator soft deletion on boot.
-    await this.prisma.preset.upsert({
-      where: { id, organizationId: null, brandId: null },
-      create: {
+    // tenant-scope-ignore: platform seed owns only null organization/brand rows
+    await this.prisma.preset.create({
+      data: {
         id,
         organizationId: null,
         brandId: null,
@@ -82,9 +72,6 @@ export class StudioPresetSeedService implements OnApplicationBootstrap {
         config,
         isActive: true,
       },
-      // Seed missing rows only. Admin edits, activation and deletion own
-      // the persisted record after its first creation.
-      update: {},
     });
     return true;
   }

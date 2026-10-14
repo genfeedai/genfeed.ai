@@ -5,9 +5,15 @@ import type {
   AvatarVideoProvider,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ByokService } from '@api/services/byok/byok.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { readHeygenVideoStatus } from '@api/services/integrations/heygen/heygen-video-status';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  HEYGEN_AVATAR_ENGINE_MODEL_KEYS,
+  type HeyGenAvatarEngine,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import type {
   AvatarVideoProviderName,
   HeyGenGenerationProvider,
@@ -15,7 +21,7 @@ import type {
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class HeygenAvatarProvider implements AvatarVideoProvider {
@@ -97,25 +103,52 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
       });
       if (persisted.count !== 1)
         throw new Error('Could not freeze avatar submission provenance.');
-      const jobId = input.referenceImageUrl
-        ? await this.heygenService.generatePhotoAvatarVideo(
-            input.callbackId,
-            input.referenceImageUrl,
-            { inputText: input.script, voiceId: voice.voiceId },
-            input.organizationId,
-            input.userId,
-            connection.apiKey,
-          )
-        : await this.heygenService.generateNativeAvatarVideo(
-            input.callbackId,
-            native?.avatarRef ?? {
-              avatarType: null,
-              lookId: '',
-              supportedEngines: [],
+      // The render engine is chosen here so pricing and dispatch cannot diverge.
+      const engine: HeyGenAvatarEngine = 'avatar_iv';
+      const hold = await input.fundSubmission?.({
+        isByok: connection.binding.kind === 'byok',
+        selection: input.referenceImageUrl
+          ? { modelKey: MODEL_KEYS.HEYGEN_AVATAR }
+          : {
+              avatarType: native?.avatarRef.avatarType ?? undefined,
+              engine,
+              modelKey: HEYGEN_AVATAR_ENGINE_MODEL_KEYS[engine],
             },
-            { inputText: input.script, voiceId: voice.voiceId },
-            connection.apiKey,
-          );
+      });
+      let jobId: string;
+      try {
+        jobId = input.referenceImageUrl
+          ? await this.heygenService.generatePhotoAvatarVideo(
+              input.callbackId,
+              input.referenceImageUrl,
+              { inputText: input.script, voiceId: voice.voiceId },
+              input.organizationId,
+              input.userId,
+              connection.apiKey,
+            )
+          : await this.heygenService.generateNativeAvatarVideo(
+              input.callbackId,
+              native?.avatarRef ?? {
+                avatarType: null,
+                lookId: '',
+                supportedEngines: [],
+              },
+              { inputText: input.script, voiceId: voice.voiceId },
+              connection.apiKey,
+              '9:16',
+              engine,
+            );
+      } catch (error: unknown) {
+        // A payment rejection or a request refused before it was sent returns
+        // the hold; an ambiguous failure keeps it for the webhook or
+        // reconciliation.
+        if (
+          error instanceof HeyGenSubmissionRejectedError ||
+          error instanceof BadRequestException
+        )
+          await hold?.release();
+        throw error;
+      }
 
       return {
         jobId,

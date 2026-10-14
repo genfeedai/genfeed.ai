@@ -1,13 +1,3 @@
-import { seedReviewedProviderRates } from '@api/seeds/reviewed-provider-rates-seed';
-/**
- * Upserts the unified model catalog into the `Model` registry on boot.
- *
- * Runs for self-hosted and cloud alike so Settings → Models, the agent picker
- * and the routers always have registry rows to read instead of a hard-coded
- * list. Idempotent by design: operator toggles and prices discovered from a
- * provider survive every subsequent boot.
- */
-
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import { ModelLifecycle } from '@genfeedai/contracts';
@@ -20,10 +10,113 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+export type ModelCatalogSeedResult = {
+  unchanged: number;
+  written: number;
+};
+
+type ExistingModelRow = {
+  aspectRatios: unknown;
+  capabilities: unknown;
+  category: unknown;
+  config: unknown;
+  cost: unknown;
+  costPerUnit: unknown;
+  costTier: unknown;
+  defaultAspectRatio: unknown;
+  defaultDuration: unknown;
+  description: unknown;
+  durations: unknown;
+  endpoint: unknown;
+  externalId: unknown;
+  hasAudioToggle: unknown;
+  hasDurationEditing: unknown;
+  hasEndFrame: unknown;
+  hasInterpolation: unknown;
+  hasResolutionOptions: unknown;
+  hasSpeech: unknown;
+  id: string;
+  inputCostPerMillionTokens: unknown;
+  isActive: boolean;
+  isBatchSupported: unknown;
+  isDefault: boolean;
+  isDeleted: boolean;
+  isDiscovered: boolean;
+  isFree: unknown;
+  isImagenModel: unknown;
+  isLegacy: boolean;
+  isPublic: boolean;
+  isReferencesMandatory: unknown;
+  label: unknown;
+  lifecycle: string;
+  maxOutputs: unknown;
+  maxReferences: unknown;
+  minCost: unknown;
+  outputCostPerMillionTokens: unknown;
+  pricingType: unknown;
+  provider: unknown;
+  providerCostUsd: unknown;
+  qualityTier: unknown;
+  recommendedFor: unknown;
+  speedTier: unknown;
+  succeededBy: unknown;
+  supportsFeatures: unknown;
+  usesOrientation: unknown;
+};
+
+const EXISTING_MODEL_SELECT = {
+  aspectRatios: true,
+  capabilities: true,
+  category: true,
+  config: true,
+  cost: true,
+  costPerUnit: true,
+  costTier: true,
+  defaultAspectRatio: true,
+  defaultDuration: true,
+  description: true,
+  durations: true,
+  endpoint: true,
+  externalId: true,
+  hasAudioToggle: true,
+  hasDurationEditing: true,
+  hasEndFrame: true,
+  hasInterpolation: true,
+  hasResolutionOptions: true,
+  hasSpeech: true,
+  id: true,
+  inputCostPerMillionTokens: true,
+  isActive: true,
+  isBatchSupported: true,
+  isDefault: true,
+  isDeleted: true,
+  isDiscovered: true,
+  isFree: true,
+  isImagenModel: true,
+  isLegacy: true,
+  isPublic: true,
+  isReferencesMandatory: true,
+  label: true,
+  lifecycle: true,
+  maxOutputs: true,
+  maxReferences: true,
+  minCost: true,
+  outputCostPerMillionTokens: true,
+  pricingType: true,
+  provider: true,
+  providerCostUsd: true,
+  qualityTier: true,
+  recommendedFor: true,
+  speedTier: true,
+  succeededBy: true,
+  supportsFeatures: true,
+  usesOrientation: true,
+} as const;
 
 @Injectable()
-export class ModelCatalogSeedService implements OnApplicationBootstrap {
+export class ModelCatalogSeedService {
   private readonly context = 'ModelCatalogSeedService';
 
   constructor(
@@ -41,31 +134,18 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     );
   }
 
-  async onApplicationBootstrap(): Promise<void> {
-    try {
-      await this.reconcileCatalog();
-    } catch (error) {
-      this.logger.error(
-        'Model catalog seed failed — registry may be incomplete',
-        error instanceof Error ? error : new Error(String(error)),
-        this.context,
-      );
-    }
-  }
-
   async reconcileCatalog(
     catalog: readonly ModelCatalogSeedEntry[] = this.resolveSeedCatalog(),
-  ): Promise<number> {
-    let upserted = 0;
+  ): Promise<ModelCatalogSeedResult> {
+    let written = 0;
+    let unchanged = 0;
     const failedKeys: string[] = [];
 
-    // One bad entry must never strand the rest of the registry: every later
-    // row (and its pricing, provider-contract and review writes) would stay at
-    // whatever an earlier boot left behind.
     for (const entry of catalog) {
       try {
-        await this.upsertEntry(entry);
-        upserted += 1;
+        const outcome = await this.upsertEntry(entry);
+        if (outcome === 'written') written += 1;
+        else unchanged += 1;
       } catch (error) {
         failedKeys.push(entry.key);
         this.logger.error(
@@ -76,51 +156,23 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       }
     }
 
-    // The checked-in rate sheet seeds approved contracts for every row it
-    // covers, including operator-discovered ones outside the catalog.
-    try {
-      const rated = await seedReviewedProviderRates(this.prisma, undefined, {
-        warn: (message) => this.logger.warn(message, this.context),
-      });
-      if (rated > 0)
-        this.logger.log(
-          `Reviewed provider rates seeded (${rated} registry rows)`,
-          this.context,
-        );
-    } catch (error) {
-      this.logger.error(
-        'Reviewed provider rate seed failed — rates keep their last approved contract',
-        error instanceof Error ? error : new Error(String(error)),
-        this.context,
-      );
-    }
-
-    // Every entry failing is an outage (database down, schema drift), not a
-    // bad entry: surface it as a failed seed rather than a quiet success.
-    if (upserted === 0 && failedKeys.length > 0) {
-      throw new Error(
-        `Model catalog reconcile failed for all ${failedKeys.length} entries`,
-      );
-    }
-
     if (failedKeys.length > 0) {
-      this.logger.warn(
-        `Model catalog reconciled with ${failedKeys.length} failed entries: ${failedKeys.join(', ')}`,
-        this.context,
+      throw new Error(
+        `Model catalog reconcile failed for: ${failedKeys.join(', ')}`,
       );
     }
 
     this.logger.log(
-      `Model catalog reconciled (${upserted} registry rows)`,
+      `Model catalog reconciled (written=${written}, unchanged=${unchanged})`,
       this.context,
     );
 
-    return upserted;
+    return { unchanged, written };
   }
 
   /**
    * Fields the seed owns outright — labels, categories, capability metadata.
-   * Rewritten on every boot so a catalogue correction reaches existing rows.
+   * Rewritten on every sync so a catalogue correction reaches existing rows.
    * `lifecycle` is written by `upsertEntry`, which lets an operator demotion
    * survive; activation (`isActive`, `isPublic`, `isDefault`) is deliberately
    * not here — see `upsertEntry`.
@@ -216,7 +268,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
   }
 
   /**
-   * Whether an *existing* row should have `isDefault` written on this boot.
+   * Whether an *existing* row should have `isDefault` written on this sync.
    *
    * `undefined` means "leave it alone" — the catalog doesn't name this key as
    * the category default, so touching the field here could demote an admin's
@@ -279,7 +331,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     return hasOperatorDemotion && !isCatalogDemotion;
   }
 
-  private async upsertEntry(entry: ModelCatalogSeedEntry): Promise<void> {
+  private async upsertEntry(
+    entry: ModelCatalogSeedEntry,
+  ): Promise<'unchanged' | 'written'> {
     const shared = this.buildSharedFields(entry);
 
     const createData: Prisma.ModelCreateInput = {
@@ -292,9 +346,6 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDiscovered: false,
       isHighlighted: entry.isHighlighted ?? false,
       isFree: entry.isFree ?? false,
-      // The catalog never seeds a hidden-legacy row: `lifecycle` carries the
-      // LEGACY/RETIRED semantics, and `isLegacy` remains the operator flag
-      // that keeps a retired key out of the public catalog.
       isLegacy: false,
       isPublic: entry.isPublic ?? true,
       lifecycle: entry.lifecycle,
@@ -311,70 +362,71 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     };
 
     // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
-    const existingRow = await this.prisma.model.findUnique({
-      select: { cost: true, id: true, isLegacy: true, lifecycle: true },
+    const existingRow = (await this.prisma.model.findUnique({
+      select: EXISTING_MODEL_SELECT,
       where: { key: entry.key },
-    });
+    })) as ExistingModelRow | null;
     const updateData: Prisma.ModelUpdateInput = {
       ...shared,
       ...(entry.endpoint ? { endpoint: entry.endpoint } : {}),
-      // The catalog propagates its lifecycle so a key it later demotes picks
-      // that up on the next boot. An operator demotion is the exception:
-      // `ModelsService.transitionLifecycle` writes `isLegacy` with the
-      // lifecycle, and a catalog that still says AVAILABLE or RECOMMENDED must
-      // not resurrect that row and leave its sibling flags half-transitioned.
-      // The catalog may still move such a row further down to LEGACY or
-      // RETIRED.
       ...(this.isLifecyclePinnedByOperator(existingRow, entry)
         ? {}
         : { lifecycle: entry.lifecycle }),
       isDeleted: false,
-      // `isActive` and `cost` stay operator/discovery territory: a curated row
-      // may have been priced or disabled deliberately, and the seed's 0 for an
-      // uncurated key would hand out free generations. A row the catalog
-      // declares free is the exception — there 0 is the curated price, so
-      // holding a stale non-zero cost would bill a round the provider gave away.
       ...(entry.cost > 0 || entry.isFree ? { cost: entry.cost } : {}),
       ...(entry.isFree ? { isFree: true } : {}),
-      // Unit pricing + provider USD must not lag the catalog — bill time prefers
-      // providerCostUsd × live applyMargin.
       ...(entry.costPerUnit != null ? { costPerUnit: entry.costPerUnit } : {}),
       ...(entry.minCost != null ? { minCost: entry.minCost } : {}),
       ...(entry.pricingType ? { pricingType: entry.pricingType } : {}),
       ...(entry.providerCostUsd != null
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
-      // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
     };
 
     if (!existingRow) {
-      // Brand-new key: seed every field exactly once, including the
-      // catalog's declared default.
       if (entry.isDefault) {
         await this.demoteOtherCategoryDefaults(entry);
       }
     } else {
-      // Row already exists — never assert or demote `isDefault` on a routine
-      // boot beyond the self-heal case; an admin's pin must survive restarts.
       const targetIsDefault = await this.resolveUpdateIsDefault(entry);
+      const isFirstCuration =
+        asNumber(existingRow.cost) === 0 && entry.cost > 0 && entry.isActive;
+      let hasOperatorFieldWrite = false;
 
       if (targetIsDefault !== undefined) {
-        if (targetIsDefault) {
-          await this.demoteOtherCategoryDefaults(entry);
-          updateData.isActive = true;
-          updateData.isDiscovered = false;
-          updateData.isPublic = true;
+        const alreadyHoldsPin =
+          existingRow.isDefault === targetIsDefault &&
+          (!targetIsDefault ||
+            (existingRow.isActive === true &&
+              existingRow.isDiscovered === false &&
+              existingRow.isPublic === true));
+        if (!alreadyHoldsPin) {
+          if (targetIsDefault) {
+            await this.demoteOtherCategoryDefaults(entry);
+            updateData.isActive = true;
+            updateData.isDiscovered = false;
+            updateData.isPublic = true;
+          }
+          updateData.isDefault = targetIsDefault;
+          hasOperatorFieldWrite = true;
         }
-        updateData.isDefault = targetIsDefault;
       }
 
-      // Previously uncurated (cost 0) rows stay inactive until the catalog
-      // prices them. First curation must turn them on — including LEGACY
-      // models, which stay selectable via the Legacy pill. Already-priced
-      // rows keep their operator activation and visibility.
-      if (existingRow.cost === 0 && entry.cost > 0 && entry.isActive) {
-        updateData.isActive = true;
-        updateData.isPublic = entry.isPublic ?? true;
+      if (isFirstCuration) {
+        const alreadyActivated =
+          existingRow.isActive === true &&
+          existingRow.isPublic === (entry.isPublic ?? true);
+        if (!alreadyActivated) {
+          updateData.isActive = true;
+          updateData.isPublic = entry.isPublic ?? true;
+          hasOperatorFieldWrite = true;
+        }
+      }
+      if (
+        !hasOperatorFieldWrite &&
+        this.isSeedOwnedSnapshotMatch(existingRow, entry, shared)
+      ) {
+        return 'unchanged';
       }
     }
 
@@ -384,5 +436,92 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       update: updateData,
       where: { key: entry.key },
     });
+    return 'written';
   }
+
+  private isSeedOwnedSnapshotMatch(
+    row: ExistingModelRow,
+    entry: ModelCatalogSeedEntry,
+    shared: ReturnType<ModelCatalogSeedService['buildSharedFields']>,
+  ): boolean {
+    if (row.isDeleted) return false;
+    for (const [key, value] of Object.entries(shared)) {
+      if (!sameJson(row[key as keyof ExistingModelRow], value)) return false;
+    }
+    if (
+      !this.isLifecyclePinnedByOperator(row, entry) &&
+      !sameJson(row.lifecycle, entry.lifecycle)
+    ) {
+      return false;
+    }
+    if (entry.endpoint && !sameJson(row.endpoint, entry.endpoint)) return false;
+    if ((entry.cost > 0 || entry.isFree) && asNumber(row.cost) !== entry.cost) {
+      return false;
+    }
+    if (entry.isFree && row.isFree !== true) return false;
+    if (
+      entry.costPerUnit != null &&
+      asNumber(row.costPerUnit) !== entry.costPerUnit
+    ) {
+      return false;
+    }
+    if (entry.minCost != null && asNumber(row.minCost) !== entry.minCost) {
+      return false;
+    }
+    if (entry.pricingType && !sameJson(row.pricingType, entry.pricingType)) {
+      return false;
+    }
+    if (
+      entry.providerCostUsd != null &&
+      asNumber(row.providerCostUsd) !== entry.providerCostUsd
+    ) {
+      return false;
+    }
+    return true;
+  }
+}
+
+function asNumber(value: unknown): number | undefined {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'bigint') return Number(value);
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    'toNumber' in value &&
+    typeof value.toNumber === 'function'
+  ) {
+    return value.toNumber();
+  }
+  return undefined;
+}
+
+function sameJson(left: unknown, right: unknown): boolean {
+  return (
+    JSON.stringify(normalizeJson(left)) === JSON.stringify(normalizeJson(right))
+  );
+}
+
+function normalizeJson(value: unknown): unknown {
+  if (value == null) return null;
+  const numeric = asNumber(value);
+  if (numeric !== undefined && (typeof value !== 'object' || value === null)) {
+    return numeric;
+  }
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    'toNumber' in value &&
+    typeof value.toNumber === 'function'
+  ) {
+    return value.toNumber();
+  }
+  if (Array.isArray(value)) return value.map(normalizeJson);
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, nested]) => [key, normalizeJson(nested)]),
+    );
+  }
+  return value;
 }

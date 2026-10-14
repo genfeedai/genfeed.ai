@@ -1,4 +1,5 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
 import {
   type ClipGenerationInput,
   type ClipGenerationResult,
@@ -266,6 +267,7 @@ describe('raw-cut clip pipeline integration', () => {
       avatarVideoService as unknown as AvatarVideoService,
       rawCutClipService,
       logger,
+      {} as ClipAvatarBillingService,
       undefined,
       clipProjectsService as unknown as ClipProjectsService,
       {

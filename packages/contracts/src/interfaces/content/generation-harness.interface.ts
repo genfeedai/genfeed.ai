@@ -15,6 +15,16 @@ export interface UpdateGenerationHarnessSettings {
   isEnabled: boolean | null;
 }
 
+/**
+ * How a media generation treated the brand. `raw` means the prompt reached the
+ * provider as typed and no brand identity was applied (explicit opt-out or
+ * enhancement switched off); the two branded modes name the pinned revision.
+ */
+export type GenerationBrandMode =
+  | 'approved_brand'
+  | 'provisional_brand'
+  | 'raw';
+
 export interface GenerationHarnessReceipt {
   brandedGenerationReceiptId?: string;
   learningReceipt?: LearningGenerationReceipt;
@@ -22,11 +32,16 @@ export interface GenerationHarnessReceipt {
   originalPrompt: string;
   enhancedPrompt: string;
   /**
-   * `failed` means enhancement was enabled but a downstream dependency
-   * (embedding, harness brief, or the enhancement model) errored; the caller
-   * falls back to the original prompt instead of failing the generation.
+   * Enhancement never degrades silently: when brand enhancement fails the
+   * request stops before any paid call, so a receipt is either `applied` or
+   * `skipped` (enhancement off, or an explicit `raw` opt-out).
    */
-  status: 'applied' | 'skipped' | 'failed';
+  status: 'applied' | 'skipped';
+  /** Absent on receipts written before brand modes existed. */
+  brandMode?: GenerationBrandMode;
+  /** The brand revision the enhancement was pinned to; never set in `raw` mode. */
+  brandRevisionId?: string;
+  brandRevisionVersion?: number;
   source: 'default' | 'organization' | 'brand' | 'request';
   brandId: string;
   appliedPacks: Array<{ id: string; version: string }>;

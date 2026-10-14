@@ -8,10 +8,6 @@ import { FalService } from '@api/services/integrations/fal/services/fal.service'
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import {
-  type GenerationResult,
-  PersonaContentService,
-} from '@api/services/persona-content/persona-content.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   FileInputType,
@@ -26,11 +22,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
 /** Supported social platforms for AI influencer posts */
-export type AiInfluencerPlatform =
-  | 'instagram'
-  | 'twitter'
-  | 'tiktok'
-  | 'youtube';
+export type AiInfluencerPlatform = 'instagram' | 'twitter';
 
 export type AiInfluencerPublishStatus = 'published' | 'queued' | 'failed';
 
@@ -50,8 +42,6 @@ export interface GeneratePostResult {
   caption: string;
   imageUrl: string;
   publishResults: PlatformPublishResult[];
-  videoResult?: GenerationResult;
-  voiceResult?: GenerationResult;
 }
 
 /** Configuration for image generation */
@@ -65,8 +55,6 @@ export interface ImageGenerationConfig {
 const SUPPORTED_PLATFORMS: readonly AiInfluencerPlatform[] = [
   'instagram',
   'twitter',
-  'tiktok',
-  'youtube',
 ] as const;
 
 const DEFAULT_IMAGE_WIDTH = 1024;
@@ -87,7 +75,6 @@ export class AiInfluencerService {
     private readonly openRouterService: OpenRouterService,
     private readonly instagramService: InstagramService,
     private readonly twitterService: TwitterService,
-    private readonly personaContentService: PersonaContentService,
     private readonly filesClientService: FilesClientService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -498,10 +485,6 @@ export class AiInfluencerService {
     imageUrl: string,
     caption: string,
     persona: PersonaDocument,
-    videoqueryResults?: {
-      voiceResult: GenerationResult;
-      videoResult: GenerationResult;
-    },
   ): Promise<PlatformPublishResult> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -552,43 +535,6 @@ export class AiInfluencerService {
           };
         }
 
-        case 'tiktok':
-        case 'youtube': {
-          if (!videoqueryResults) {
-            return {
-              error: `Video pipeline was not prepared for ${platform}`,
-              platform,
-              status: 'failed',
-              success: false,
-            };
-          }
-
-          const { videoResult } = videoqueryResults;
-          if (videoResult.status === 'failed') {
-            return {
-              error: `Video generation failed for ${platform}`,
-              platform,
-              status: 'failed',
-              success: false,
-            };
-          }
-
-          this.loggerService.log(caller, {
-            message: `Queued video pipeline for ${platform}`,
-            personaSlug: persona.slug,
-            provider: videoResult.provider,
-            videoJobId: videoResult.jobId,
-          });
-
-          const externalId = videoResult.jobId ?? videoResult.url;
-          return {
-            ...(externalId ? { externalId } : {}),
-            platform,
-            status: videoResult.status === 'completed' ? 'published' : 'queued',
-            success: true,
-          };
-        }
-
         default:
           return {
             error: `Unsupported platform: ${platform as string}`,
@@ -612,43 +558,5 @@ export class AiInfluencerService {
         success: false,
       };
     }
-  }
-
-  async generateVoice(
-    persona: PersonaDocument,
-    script: string,
-    ingredientId: string,
-  ): Promise<GenerationResult> {
-    const organizationId = this.readRequiredPersonaId(
-      persona,
-      'organizationId',
-    );
-    const userId = this.readRequiredPersonaId(persona, 'userId');
-
-    return this.personaContentService.generateVoice({
-      ingredientId,
-      organizationId,
-      personaId: persona.id,
-      text: script,
-      userId,
-    });
-  }
-
-  async generateVideo(
-    persona: PersonaDocument,
-    script: string,
-  ): Promise<GenerationResult> {
-    const organizationId = this.readRequiredPersonaId(
-      persona,
-      'organizationId',
-    );
-    const userId = this.readRequiredPersonaId(persona, 'userId');
-    return this.personaContentService.generateVideo({
-      aspectRatio: '9:16',
-      organizationId,
-      personaId: persona.id,
-      script,
-      userId,
-    });
   }
 }

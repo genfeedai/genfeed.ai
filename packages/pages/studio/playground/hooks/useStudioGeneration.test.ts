@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   LIBRARY_ASSETS_REFRESH_EVENT,
+  MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
@@ -703,6 +704,154 @@ describe('useStudioGeneration failures', () => {
     expect(isAccepted).toBe(false);
     expect(mockImagesPost).not.toHaveBeenCalled();
     expect(mockNotificationsError).toHaveBeenCalledWith('Prompt is required');
+  });
+});
+
+function brandEnhancementStop() {
+  return {
+    response: {
+      data: {
+        errors: [
+          {
+            code: MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
+            detail: 'Brand prompt enhancement failed at the provider step.',
+            status: '502',
+            title: 'Brand prompt enhancement failed',
+          },
+        ],
+      },
+      status: 502,
+    },
+  };
+}
+
+describe('useStudioGeneration brand enhancement stop', () => {
+  it.each(['image', 'video'] as const)(
+    'stops %s on a brand enhancement failure with a typed card and no silent raw retry',
+    async (type) => {
+      const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      post.mockRejectedValue(brandEnhancementStop());
+      const { result } = renderStudioGeneration({ type });
+      let isAccepted: boolean | undefined;
+
+      await act(async () => {
+        isAccepted = await result.current.submit('A founder at a desk');
+      });
+
+      expect(isAccepted).toBe(false);
+      expect(post).toHaveBeenCalledTimes(1);
+      expect(post.mock.calls[0]?.[0]).not.toHaveProperty('brandMode');
+      expect(result.current.jobs).toHaveLength(1);
+      expect(result.current.jobs[0]).toMatchObject({
+        error: 'failed',
+        failure: 'brand_enhancement',
+        prompt: 'A founder at a desk',
+        status: IngredientStatus.FAILED,
+        type,
+      });
+      expect(mockNotificationsError).toHaveBeenCalledWith('failed');
+    },
+  );
+
+  it('keeps unrelated failures untyped', async () => {
+    mockImagesPost.mockRejectedValue(new Error('Insufficient credits'));
+    const { result } = renderStudioGeneration();
+
+    await act(async () => {
+      await result.current.submit('A founder at a desk');
+    });
+
+    expect(result.current.jobs[0]).not.toHaveProperty('failure');
+    await act(async () => {
+      await result.current.generateWithoutBrand(result.current.jobs[0]);
+    });
+    expect(mockImagesPost).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['image', 'video'] as const)(
+    'generates %s without brand only on the explicit action, as raw, replacing the failed card',
+    async (type) => {
+      const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      post.mockRejectedValueOnce(brandEnhancementStop());
+      const { result } = renderStudioGeneration({ type });
+      await act(async () => {
+        await result.current.submit(
+          'A founder at a desk',
+          {},
+          {
+            harness: true,
+            knowledge: { sourceIds: ['source-1'] },
+            promptId: 'prompt-1',
+            requestedSkillSlugs: ['cinema'],
+          },
+        );
+      });
+      const failed = result.current.jobs[0];
+      expect(post).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await result.current.generateWithoutBrand(failed);
+      });
+
+      expect(post).toHaveBeenCalledTimes(2);
+      const rawBody = post.mock.calls[1]?.[0];
+      expect(rawBody).toMatchObject({
+        brandMode: 'raw',
+        text: 'A founder at a desk',
+      });
+      for (const key of [
+        'harness',
+        'knowledge',
+        'promptId',
+        'requestedSkillSlugs',
+      ])
+        expect(rawBody).not.toHaveProperty(key);
+      expect(result.current.jobs.some((job) => job.id === failed.id)).toBe(
+        false,
+      );
+      expect(result.current.jobs.some((job) => job.failure)).toBe(false);
+
+      await act(async () => {
+        await result.current.generateWithoutBrand(failed);
+      });
+      expect(post).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('never lets a raw retry re-send itself after another brand stop', async () => {
+    mockImagesPost.mockRejectedValue(brandEnhancementStop());
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('A founder at a desk');
+    });
+    await act(async () => {
+      await result.current.generateWithoutBrand(result.current.jobs[0]);
+    });
+    expect(mockImagesPost).toHaveBeenCalledTimes(2);
+    expect(mockImagesPost.mock.calls[1]?.[0]).toMatchObject({
+      brandMode: 'raw',
+    });
+    await waitFor(() =>
+      expect(
+        result.current.jobs.filter(
+          (job) => job.failure === 'brand_enhancement',
+        ),
+      ).toHaveLength(1),
+    );
+  });
+
+  it('drops the retry when the jobs are cleared', async () => {
+    mockImagesPost.mockRejectedValueOnce(brandEnhancementStop());
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('A founder at a desk');
+    });
+    const failed = result.current.jobs[0];
+    act(() => result.current.clearJobs());
+    await act(async () => {
+      await result.current.generateWithoutBrand(failed);
+    });
+    expect(mockImagesPost).toHaveBeenCalledTimes(1);
   });
 });
 
