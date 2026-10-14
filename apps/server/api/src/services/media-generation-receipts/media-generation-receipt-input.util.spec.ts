@@ -1,5 +1,6 @@
 import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import {
+  resolveMediaGenerationReceiptBrand,
   resolveMediaGenerationReceiptPrompts,
   resolveMediaGenerationReceiptSurface,
 } from '@api/services/media-generation-receipts/media-generation-receipt-input.util';
@@ -69,5 +70,54 @@ describe('resolveMediaGenerationReceiptPrompts', () => {
       originalPrompt: 'request text',
       compiledPrompt: 'request text',
     });
+  });
+});
+
+describe('resolveMediaGenerationReceiptBrand', () => {
+  const applied = {
+    originalPrompt: 'typed',
+    enhancedPrompt: 'typed, enhanced',
+    status: 'applied' as const,
+    source: 'brand' as const,
+    brandId: 'brand-1',
+    appliedPacks: [],
+  };
+
+  it.each(['approved_brand', 'provisional_brand'] as const)(
+    'pins the %s revision of an applied enhancement',
+    (brandMode) => {
+      expect(
+        resolveMediaGenerationReceiptBrand({
+          ...applied,
+          brandMode,
+          brandRevisionId: 'revision-1',
+          brandRevisionVersion: 2,
+        }),
+      ).toEqual({
+        brand: {
+          mode: brandMode,
+          revisionId: 'revision-1',
+          revisionVersion: 2,
+        },
+      });
+    },
+  );
+
+  it('carries no brand for a skipped or raw output, or one without a pin', () => {
+    expect(resolveMediaGenerationReceiptBrand(undefined)).toEqual({});
+    expect(
+      resolveMediaGenerationReceiptBrand({
+        ...applied,
+        status: 'skipped',
+        brandMode: 'raw',
+      }),
+    ).toEqual({});
+    expect(
+      resolveMediaGenerationReceiptBrand({
+        ...applied,
+        brandMode: 'approved_brand',
+      }),
+    ).toEqual({});
+    expect(resolveMediaGenerationReceiptBrand(applied)).toEqual({});
   });
 });

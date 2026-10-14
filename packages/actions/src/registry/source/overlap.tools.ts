@@ -190,6 +190,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             'Image or video only. Override saved prompt enhancement for this generation. False preserves the prompt text exactly.',
           type: 'boolean',
         },
+        brandMode: {
+          description:
+            "Image or video only. Pass 'raw' only after the user explicitly chose to generate without brand: the prompt goes to the provider exactly as typed and no brand identity applies. Never set it on your own after a brand enhancement failure.",
+          enum: ['raw'],
+          type: 'string',
+        },
         requestedSkillSlugs: {
           description:
             'Image or video only. Explicit skill selections for this generation; additive to brand guidance.',

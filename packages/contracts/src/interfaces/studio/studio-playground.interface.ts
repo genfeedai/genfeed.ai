@@ -250,6 +250,13 @@ export interface StudioPlaygroundJob {
   phase?: 'submitting' | 'queued' | 'generating' | 'saving' | 'cancelled';
   createdAt: number;
   error?: string;
+  /**
+   * Why a failed job stopped, when the client can act on it. `brand_enhancement`
+   * means the request stopped before any provider call or credit use because
+   * brand prompt enhancement failed; the card then offers an explicit
+   * "generate without brand" retry. Not persisted across a reload.
+   */
+  failure?: 'brand_enhancement';
   height?: number;
   id: string;
   /**

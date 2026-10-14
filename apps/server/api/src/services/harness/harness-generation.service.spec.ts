@@ -57,7 +57,10 @@ const EMPTY_BRIEF: ContentHarnessBrief = {
 };
 
 function createService(overrides?: {
-  brandOsRevisionsService?: { findApproved: ReturnType<typeof vi.fn> };
+  brandOsRevisionsService?: {
+    findApproved: ReturnType<typeof vi.fn>;
+    get?: ReturnType<typeof vi.fn>;
+  };
   brandsService?: { findOne: ReturnType<typeof vi.fn> };
   contentHarnessService?: { composeBrief: ReturnType<typeof vi.fn> };
   knowledgeContentRetrievalService?: {
@@ -552,6 +555,32 @@ describe('approved Brand OS identity', () => {
     expect(input.voiceProfile.hashtags).toBeUndefined();
     expect(input.voiceProfile.taglines).toBeUndefined();
     expect(JSON.stringify(input)).not.toContain('Legacy override');
+  });
+  it('pins the brief to the named revision instead of the approved one', async () => {
+    const draft = {
+      id: 'revision-draft',
+      content: buildBrandKitDraftFromManualInput(
+        { id: 'brand-1' },
+        { label: 'Draft name', voiceTone: 'Warm' },
+      ),
+    };
+    const get = vi.fn().mockResolvedValue(draft);
+    const findApproved = vi.fn();
+    const { service, contentHarnessService } = createService({
+      brandOsRevisionsService: { findApproved, get },
+    });
+    await service.resolveBrief({
+      userId: 'fixture-user',
+      brandId: 'brand-1',
+      brandRevisionId: 'revision-draft',
+      organizationId: 'org-1',
+      contentType: 'image',
+    });
+    expect(get).toHaveBeenCalledWith('org-1', 'brand-1', 'revision-draft');
+    expect(findApproved).not.toHaveBeenCalled();
+    expect(contentHarnessService.composeBrief).toHaveBeenCalledWith(
+      expect.objectContaining({ brandOsRevisionId: 'revision-draft' }),
+    );
   });
   it('falls back to profile identity only when no approval exists', async () => {
     const { service, contentHarnessService } = createService();

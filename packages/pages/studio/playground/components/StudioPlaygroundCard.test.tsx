@@ -790,3 +790,125 @@ describe('persisted failed Studio recovery', () => {
     });
   }
 });
+
+describe('brand enhancement stop', () => {
+  const stoppedJob = {
+    ...generatedJob,
+    error:
+      'Brand enhancement failed. Nothing was generated and no credits were used.',
+    failure: 'brand_enhancement' as const,
+    id: 'failed-1',
+    runId: 'run-1',
+    status: IngredientStatus.FAILED,
+    url: undefined,
+  };
+
+  it.each([ViewType.GRID, ViewType.LIST])(
+    'states the stop and offers a one-click generate without brand in %s view',
+    (view) => {
+      const assetActions = buildAssetActions();
+      assetActions.onGenerateWithoutBrand = vi.fn();
+      render(
+        <StudioPlaygroundCard
+          assetActions={assetActions}
+          job={stoppedJob}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={view}
+        />,
+      );
+
+      expect(screen.getByText(stoppedJob.error)).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Generate this image without brand, using the prompt exactly as typed',
+        }),
+      );
+      expect(assetActions.onGenerateWithoutBrand).toHaveBeenCalledOnce();
+      expect(assetActions.onGenerateWithoutBrand).toHaveBeenCalledWith(
+        stoppedJob,
+      );
+    },
+  );
+
+  it('offers no raw retry when the failure is not a brand stop or the action is unavailable', () => {
+    const assetActions = buildAssetActions();
+    assetActions.onGenerateWithoutBrand = vi.fn();
+    const { rerender } = render(
+      <StudioPlaygroundCard
+        assetActions={assetActions}
+        job={{ ...stoppedJob, failure: undefined }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: /without brand/ }),
+    ).not.toBeInTheDocument();
+    rerender(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={stoppedJob}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: /without brand/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['raw', 'Not branded'],
+    ['provisional_brand', 'Provisional brand'],
+  ] as const)(
+    'badges a %s result and not an approved one',
+    (brandMode, text) => {
+      const ingredient = {
+        id: 'ingredient-1',
+        generationHarness: {
+          appliedPacks: [],
+          brandId: 'brand-1',
+          brandMode,
+          enhancedPrompt: 'A boxer',
+          originalPrompt: 'A boxer',
+          source: 'brand',
+          status: 'skipped',
+        },
+      } as never;
+      const { rerender } = render(
+        <StudioPlaygroundCard
+          assetActions={buildAssetActions()}
+          job={{ ...generatedJob, ingredient }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={ViewType.GRID}
+        />,
+      );
+      expect(screen.getByText(text)).toBeInTheDocument();
+      rerender(
+        <StudioPlaygroundCard
+          assetActions={buildAssetActions()}
+          job={{
+            ...generatedJob,
+            ingredient: {
+              ...(ingredient as object),
+              generationHarness: {
+                ...(ingredient as { generationHarness: object })
+                  .generationHarness,
+                brandMode: 'approved_brand',
+              },
+            } as never,
+          }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={ViewType.GRID}
+        />,
+      );
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
+      expect(screen.queryByText('Approved brand')).not.toBeInTheDocument();
+    },
+  );
+});

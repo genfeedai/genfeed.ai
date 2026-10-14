@@ -164,6 +164,16 @@ export class CreateVideoDto extends CreateIngredientDto {
   readonly harness?: boolean;
 
   @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsIn(['raw'])
+  @ApiProperty({
+    description:
+      'Generate with the prompt exactly as typed and apply no brand identity. The only client-chosen brand mode; approved and provisional modes are resolved on the server.',
+    enum: ['raw'],
+    required: false,
+  })
+  readonly brandMode?: 'raw';
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
   @ValidateNested()
   @Type(() => KnowledgeSelectionDto)
   @ApiProperty({
