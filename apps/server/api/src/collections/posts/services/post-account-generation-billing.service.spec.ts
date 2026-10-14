@@ -134,6 +134,40 @@ describe('PostAccountGenerationBillingService', () => {
       expect(credits.reserveCredits).not.toHaveBeenCalled();
     });
 
+    it.each(['BYOK', 'free model'])(
+      'rejects more than 50 dispatches for an unfunded %s run',
+      async (kind) => {
+        if (kind === 'BYOK')
+          textCredits.resolveDispatch.mockResolvedValue({
+            keys: { openrouter: 'byok-key' },
+          });
+        else models.findOne.mockResolvedValue({ cost: 0, pricingType: 'flat' });
+        await expect(
+          service.reserveRun({
+            dispatchCount: 51,
+            model: 'openai/gpt-5-mini',
+            runId: 'run-1',
+            scope,
+          }),
+        ).rejects.toMatchObject({
+          status: 400,
+          response: { code: 'account_generation_batch_limit' },
+        });
+        expect(credits.reserveCredits).not.toHaveBeenCalled();
+      },
+    );
+    it('keeps credit-funded batches above 50 wallet-capped', async () => {
+      await service.reserveRun({
+        dispatchCount: 51,
+        model: 'openai/gpt-5-mini',
+        runId: 'run-1',
+        scope,
+      });
+      expect(credits.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 102 }),
+      );
+    });
+
     it('takes no hold for a free model', async () => {
       models.findOne.mockResolvedValue({ cost: 0, pricingType: 'flat' });
 
