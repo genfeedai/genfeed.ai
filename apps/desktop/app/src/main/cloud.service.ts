@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   AGENT_EXTERNAL_RUNTIME_SESSION_ID_PATTERN,
   type AgentExternalRuntimeKey,
@@ -34,6 +35,16 @@ const AGENT_RUN_STATUSES = new Set<IDesktopAgentRun['status']>([
   'queued',
   'running',
 ]);
+
+/** What the receipt-backed draft route answers (`POST /posts/draft-generations`). */
+interface DraftGenerationResponse {
+  brandedReceipt?: { id?: string };
+  description?: string;
+  postId?: string;
+}
+
+const BRAND_REQUIRED_MESSAGE =
+  'Link a Genfeed brand to this workspace before generating: cloud generation always runs under one brand.';
 
 function maybeString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -241,24 +252,54 @@ export class DesktopCloudService implements IDesktopDataService {
     };
   }
 
-  async generateHooks(
-    topic: string,
-    brandId?: string,
-  ): Promise<IDesktopDataResult<string[]>> {
-    const response = await this.fetchJson<{ hooks: string[] }>(
-      '/posts/hook-generations',
+  /**
+   * One receipt-backed draft: the server resolves the brand kit, makes one
+   * provider call, saves the exact text as a DRAFT post and answers with its
+   * receipt. A fresh request key per call, so a retry never replays another
+   * generation's draft.
+   */
+  private async generateDraft(input: {
+    brandId?: string;
+    platform: string;
+    prompt: string;
+  }): Promise<{ description: string; postId?: string }> {
+    if (!input.brandId) {
+      throw new Error(BRAND_REQUIRED_MESSAGE);
+    }
+
+    const response = await this.fetchJson<DraftGenerationResponse>(
+      '/posts/draft-generations',
       {
         body: JSON.stringify({
-          brandId,
-          platform: 'twitter',
-          topic,
+          brandId: input.brandId,
+          platform: input.platform,
+          prompt: input.prompt,
+          requestKey: randomUUID(),
         }),
         method: 'POST',
       },
     );
+    const description = maybeString(response.description);
+
+    if (!description) {
+      throw new Error('Genfeed server returned no generated content.');
+    }
+
+    return { description, postId: maybeString(response.postId) };
+  }
+
+  async generateHooks(
+    topic: string,
+    brandId?: string,
+  ): Promise<IDesktopDataResult<string[]>> {
+    const draft = await this.generateDraft({
+      brandId,
+      platform: 'twitter',
+      prompt: `Write one scroll-stopping opening hook about: ${topic}`,
+    });
 
     return {
-      data: response.hooks,
+      data: [draft.description],
       status: 'success',
     };
   }
@@ -266,32 +307,20 @@ export class DesktopCloudService implements IDesktopDataService {
   async generateContent(
     params: IDesktopGenerationOptions,
   ): Promise<IDesktopDataResult<IDesktopGeneratedContent>> {
-    const response = await this.fetchJson<{ hooks?: string[] }>(
-      '/posts/hook-generations',
-      {
-        body: JSON.stringify({
-          brandId: params.brandId,
-          count: 1,
-          platform: params.platform,
-          topic:
-            params.brief !== undefined
-              ? params.prompt
-              : (params.sourceTrendTopic ?? params.prompt),
-        }),
-        method: 'POST',
-      },
-    );
-    const generatedContent = response.hooks?.[0];
-
-    if (!generatedContent) {
-      throw new Error('Genfeed server returned no generated content.');
-    }
+    const draft = await this.generateDraft({
+      brandId: params.brandId,
+      platform: params.platform,
+      prompt:
+        params.brief !== undefined
+          ? params.prompt
+          : (params.sourceTrendTopic ?? params.prompt),
+    });
 
     return {
       data: {
-        content: generatedContent,
-        hooks: response.hooks,
-        id: params.sourceDraftId ?? '',
+        content: draft.description,
+        hooks: [draft.description],
+        id: params.sourceDraftId ?? draft.postId ?? '',
         platform: params.platform,
         type: params.type,
       },
