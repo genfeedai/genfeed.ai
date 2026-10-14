@@ -52,6 +52,10 @@ const ICON_WRAPPER_CLASSES: Record<
 
 const PANEL_CLASSES = 'rounded-sm border border-border bg-card/80';
 
+/** Two weeks of posting days for the Publishing art; two are scheduled. */
+const SCHEDULE_SLOTS = ['m1', 't1', 'w1', 'f1', 'm2', 't2', 'w2', 'f2'];
+const SCHEDULED_SLOTS = new Set(['t1', 'w2']);
+
 /** Simple divs only: abstract hints of what each app makes. */
 function ThumbnailArt({
   art,
@@ -172,6 +176,42 @@ function ThumbnailArt({
           <div className={cn(PANEL_CLASSES, 'h-5 w-24 self-start')} />
         </div>
       );
+    case 'schedule':
+      return (
+        <div className="grid w-28 grid-cols-4 gap-1">
+          {SCHEDULE_SLOTS.map((slot) => (
+            <div
+              key={slot}
+              className={cn(
+                'h-5 rounded-sm',
+                SCHEDULED_SLOTS.has(slot) ? fill : PANEL_CLASSES,
+              )}
+            />
+          ))}
+        </div>
+      );
+    case 'stats':
+      return (
+        <div className="flex w-28 flex-col gap-1.5">
+          <div className="flex gap-1.5">
+            <div className={cn(PANEL_CLASSES, 'h-7 flex-1 p-1')}>
+              <div className={cn('h-1.5 w-2/3 rounded-full', fill)} />
+            </div>
+            <div className={cn(PANEL_CLASSES, 'h-7 flex-1 p-1')}>
+              <div className={cn('h-1.5 w-1/2 rounded-full', fill)} />
+            </div>
+          </div>
+          <div className={cn(PANEL_CLASSES, 'flex h-6 items-end gap-1 p-1')}>
+            {[30, 55, 45, 80, 100].map((height) => (
+              <div
+                key={height}
+                className={cn('flex-1 rounded-[1px]', fill)}
+                style={{ height: `${height}%` }}
+              />
+            ))}
+          </div>
+        </div>
+      );
     case 'trend':
       return (
         <div className="flex h-14 items-end gap-1.5">
@@ -188,7 +228,7 @@ function ThumbnailArt({
 }
 
 /**
- * Designed thumbnail for a Store app. Draws a tinted tile with the app icon
+ * Designed thumbnail for a Store app or organization module. Draws a tinted tile with the app icon
  * and a small abstract illustration; once the app's catalog entry carries a
  * `thumbnailSrc`, that image replaces the tile.
  */

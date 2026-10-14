@@ -6,6 +6,7 @@ import {
   PLATFORM_FLAG_KEYS,
   PLATFORM_FLAG_PARENTS,
   PLATFORM_MODULE_FLAG_KEYS,
+  PLATFORM_RELEASE_FLAG_KEYS,
   type PlatformFlagKey,
   parsePlatformFlags,
   resolvePlatformFlags,
@@ -29,6 +30,9 @@ import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-
 import AdminFlagCard from './admin-flag-card';
 
 const MODULE_FLAG_KEY_SET = new Set<PlatformFlagKey>(PLATFORM_MODULE_FLAG_KEYS);
+const RELEASE_FLAG_KEY_SET = new Set<PlatformFlagKey>(
+  PLATFORM_RELEASE_FLAG_KEYS,
+);
 
 /** Top-level flags, one card each; nested flags list inside their card. */
 const TOP_LEVEL_FLAG_KEYS = PLATFORM_FLAG_KEYS.filter(
@@ -42,7 +46,13 @@ const FLAG_SECTIONS = [
   },
   {
     id: 'platform',
-    keys: TOP_LEVEL_FLAG_KEYS.filter((key) => !MODULE_FLAG_KEY_SET.has(key)),
+    keys: TOP_LEVEL_FLAG_KEYS.filter(
+      (key) => !MODULE_FLAG_KEY_SET.has(key) && !RELEASE_FLAG_KEY_SET.has(key),
+    ),
+  },
+  {
+    id: 'releases',
+    keys: TOP_LEVEL_FLAG_KEYS.filter((key) => RELEASE_FLAG_KEY_SET.has(key)),
   },
 ] as const;
 
@@ -57,7 +67,7 @@ function nestedFlagKeysOf(key: PlatformFlagKey): PlatformFlagKey[] {
 /**
  * Admin → Flags (#5468): every platform-wide on/off switch on one page —
  * one card per module with its surfaces and features listed inside, then
- * shell-wide features. Each switch saves at once, like a PostHog toggle; the
+ * shell-wide features, then what is released to every cloud organization. Each switch saves at once, like a PostHog toggle; the
  * API and every app shell pick the change up within the settings cache TTL.
  */
 export default function AdminFlagsPage() {

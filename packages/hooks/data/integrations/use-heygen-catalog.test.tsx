@@ -167,6 +167,20 @@ describe('HeyGen catalogue recovery', () => {
     expect(result.current.isLoading).toBe(true);
     expect(result.current.voices).toEqual([]);
   });
+  it('skips every catalogue request while disabled and loads once enabled', async () => {
+    let isEnabled = false;
+    const { result, rerender } = renderHook(() =>
+      useHeyGenCatalog({ isEnabled }),
+    );
+    expect(result.current.isLoading).toBe(false);
+    expect(mocks.getService).not.toHaveBeenCalled();
+    expect(result.current.voices).toEqual([]);
+
+    isEnabled = true;
+    rerender();
+    await waitFor(() => expect(result.current.voices).toEqual([voice]));
+    expect(mocks.page).toHaveBeenCalledTimes(2);
+  });
   it('does not fetch without an organization and aborts pending requests on unmount', async () => {
     mocks.organizationId = undefined;
     const empty = renderHook(() => useHeyGenCatalog());

@@ -26,7 +26,7 @@ const PUBLISH = { brandId: 'brand-1', text: 'Hello', type: 'original' };
 
 describe('X pipeline HTTP module admission', () => {
   let app: INestApplication;
-  let overrides: { discovery: boolean; publishing: boolean } | null;
+  let releases: { discovery: boolean; publishing: boolean } | null;
   let flags: { isApiKey?: boolean; isSuperAdmin?: boolean };
   const service = { search: vi.fn(), draft: vi.fn(), publish: vi.fn() };
   const paid = { isSubscriptionGatedFresh: vi.fn() };
@@ -34,7 +34,7 @@ describe('X pipeline HTTP module admission', () => {
 
   beforeEach(async () => {
     vi.resetAllMocks();
-    overrides = { discovery: false, publishing: false };
+    releases = { discovery: false, publishing: false };
     flags = {};
     service.search.mockResolvedValue([]);
     service.draft.mockResolvedValue([]);
@@ -50,11 +50,22 @@ describe('X pipeline HTTP module admission', () => {
         },
         organizationSetting: {
           findUnique: vi.fn(async () =>
-            overrides === null ? null : { moduleOverrides: overrides },
+            releases === null ? null : { isReleasePreviewEnabled: false },
           ),
         },
       } as never,
       paid as never,
+      {
+        getFeatureSettingsState: vi.fn(async () => ({
+          isResolved: true,
+          settings: {
+            flags: {
+              release_discovery: releases?.discovery === true,
+              release_publishing: releases?.publishing === true,
+            },
+          },
+        })),
+      } as never,
     );
     const auth = {
       canActivate(context: ExecutionContext) {
@@ -92,7 +103,7 @@ describe('X pipeline HTTP module admission', () => {
   });
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks disabled Discovery before search/draft services: %j',
+    'blocks unreleased Discovery before search/draft services: %j',
     async (actor) => {
       flags = actor;
       await request(app.getHttpServer())
@@ -109,7 +120,7 @@ describe('X pipeline HTTP module admission', () => {
   );
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks disabled Publishing before outbound work: %j',
+    'blocks unreleased Publishing before outbound work: %j',
     async (actor) => {
       flags = actor;
       await request(app.getHttpServer())
@@ -120,8 +131,8 @@ describe('X pipeline HTTP module admission', () => {
     },
   );
 
-  it('requires the fresh paid grant for Discovery while enabled Publishing remains credit-based', async () => {
-    overrides = { discovery: true, publishing: true };
+  it('requires the fresh paid grant for Discovery while released Publishing remains credit-based', async () => {
+    releases = { discovery: true, publishing: true };
     paid.isSubscriptionGatedFresh.mockResolvedValue(true);
     await request(app.getHttpServer())
       .post(`${ROOT}/search`)
@@ -142,13 +153,13 @@ describe('X pipeline HTTP module admission', () => {
     expect(paid.isSubscriptionGatedFresh).toHaveBeenCalledWith(ORG);
   });
 
-  it('admits enabled Discovery then blocks a later request after revocation', async () => {
-    overrides = { discovery: true, publishing: true };
+  it('admits released Discovery then blocks a later request after it is unreleased', async () => {
+    releases = { discovery: true, publishing: true };
     await request(app.getHttpServer())
       .post(`${ROOT}/search`)
       .send(SEARCH)
       .expect(200);
-    overrides.discovery = false;
+    releases.discovery = false;
     await request(app.getHttpServer())
       .post(`${ROOT}/draft`)
       .send(DRAFT)
@@ -158,7 +169,7 @@ describe('X pipeline HTTP module admission', () => {
   });
 
   it('fails closed before any service when module settings are unavailable', async () => {
-    overrides = null;
+    releases = null;
     await request(app.getHttpServer())
       .post(`${ROOT}/search`)
       .send(SEARCH)
@@ -180,7 +191,7 @@ describe('X pipeline HTTP module admission', () => {
     'retains real membership-guard rejection of cross-org paths: %j',
     async (actor) => {
       flags = actor;
-      overrides = { discovery: true, publishing: true };
+      releases = { discovery: true, publishing: true };
       await request(app.getHttpServer())
         .post('/organizations/corgscope2/twitter-pipeline/publish')
         .send(PUBLISH)

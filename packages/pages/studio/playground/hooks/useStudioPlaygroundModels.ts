@@ -1,7 +1,10 @@
 'use client';
 
 import { ModelCategory } from '@genfeedai/contracts';
-import { isImageEditModel } from '@genfeedai/contracts/constants';
+import {
+  isImageEditModel,
+  isVoiceSpeechModel,
+} from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ModelsService } from '@services/ai/models.service';
@@ -14,6 +17,23 @@ export interface UseStudioPlaygroundModelsReturn {
   /** True only once `models` holds a successful fetch for the requested category. */
   isModelCatalogReady: boolean;
   models: readonly IModel[];
+}
+
+/**
+ * The IMAGE_EDIT and VOICE categories hold rows Studio cannot drive for this
+ * type (non-edit image rows, avatar rows), so they keep only supported keys.
+ */
+function filterCategoryRows(
+  category: ModelCategory,
+  rows: readonly IModel[],
+): readonly IModel[] {
+  if (category === ModelCategory.IMAGE_EDIT) {
+    return rows.filter((row) => isImageEditModel(row.key));
+  }
+  if (category === ModelCategory.VOICE) {
+    return rows.filter((row) => isVoiceSpeechModel(row.key));
+  }
+  return rows;
 }
 
 /**
@@ -70,11 +90,7 @@ export function useStudioPlaygroundModels(
           return;
         }
 
-        setModels(
-          category === ModelCategory.IMAGE_EDIT
-            ? rows.filter((row) => isImageEditModel(row.key))
-            : rows,
-        );
+        setModels(filterCategoryRows(category, rows));
         setLoadedCategory(category);
       } catch {
         if (!isCancelled) {

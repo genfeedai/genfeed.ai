@@ -198,7 +198,7 @@ export class CreateOrganizationSettingDto {
   @ApiProperty({
     required: false,
     description:
-      'Founder release preview (#5502). Only platform admins may change it; on cloud it lets founder-only modules admit new work.',
+      'Release preview. Only platform admins may change it; on cloud it lets modules not yet released in Admin → Flags admit new work.',
   })
   readonly isReleasePreviewEnabled?: boolean;
 

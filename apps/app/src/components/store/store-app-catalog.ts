@@ -1,4 +1,4 @@
-import type { NativeSecondaryAppId } from '@genfeedai/contracts/constants';
+import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
 import type {
   StoreAppCatalogEntry,
   StoreCategoryId,
@@ -12,14 +12,21 @@ export const STORE_CATEGORY_IDS = [
 ] as const satisfies readonly StoreCategoryId[];
 
 /**
- * Store-only presentation per native app: shelf, featured flag and the
- * designed thumbnail. Set `thumbnailSrc` on an entry to swap its tile for real
- * artwork; nothing else changes.
+ * Presentation per organization module, shared by the Store and the Modules
+ * settings page: shelf, featured flag and the designed thumbnail. Set
+ * `thumbnailSrc` on an entry to swap its tile for real artwork; nothing else
+ * changes. Publishing and Analytics are core apps, never listed in the Store.
  */
 export const STORE_APP_CATALOG: Record<
-  NativeSecondaryAppId,
+  OrganizationModuleId,
   StoreAppCatalogEntry
 > = {
+  analytics: {
+    art: 'stats',
+    category: 'publish',
+    isFeatured: false,
+    tone: 'primary',
+  },
   automation: {
     thumbnailSrc: '/store/automation.webp',
     art: 'flow',
@@ -59,6 +66,12 @@ export const STORE_APP_CATALOG: Record<
     thumbnailSrc: '/store/motion.webp',
     art: 'motion',
     category: 'create',
+    isFeatured: false,
+    tone: 'warning',
+  },
+  publishing: {
+    art: 'schedule',
+    category: 'publish',
     isFeatured: false,
     tone: 'warning',
   },

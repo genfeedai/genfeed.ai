@@ -28,14 +28,13 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: APP_ROUTES.PUBLISHING.CAMPAIGNS,
-    // #5502: Campaigns stays founder-only until validated.
-    isFounderOnly: true,
     label: 'Campaigns',
     matchPaths: [
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
       APP_ROUTES.PUBLISHING.CAMPAIGNS_NEW,
     ],
     outline: Route,
+    releaseItemId: 'campaigns',
     solid: Route,
   },
 ];

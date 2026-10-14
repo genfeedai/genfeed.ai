@@ -136,6 +136,9 @@ function providerFromMediaKey(key: string): ModelProvider {
   if (key.startsWith('heygen/')) {
     return ModelProvider.HEYGEN;
   }
+  if (key.startsWith('elevenlabs/')) {
+    return ModelProvider.ELEVENLABS;
+  }
   if (key.startsWith('higgsfield-ai/') || key.startsWith('higgsfield/')) {
     return ModelProvider.HIGGSFIELD;
   }

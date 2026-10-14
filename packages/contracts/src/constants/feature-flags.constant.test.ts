@@ -11,13 +11,21 @@ import {
   parsePlatformFlags,
   resolvePlatformFlags,
 } from './feature-flags.constant';
+import {
+  PLATFORM_RELEASE_FLAG_KEYS,
+  type PlatformReleaseFlagKey,
+} from './release-items.constant';
 
 describe('platform flags (#5468)', () => {
-  it('defaults every flag on', () => {
+  it('defaults every module and feature flag on and every release off', () => {
     expect(Object.keys(DEFAULT_PLATFORM_FLAGS).sort()).toEqual(
       [...PLATFORM_FLAG_KEYS].sort(),
     );
-    expect(Object.values(DEFAULT_PLATFORM_FLAGS).every(Boolean)).toBe(true);
+    for (const key of PLATFORM_FLAG_KEYS) {
+      expect(DEFAULT_PLATFORM_FLAGS[key]).toBe(
+        !PLATFORM_RELEASE_FLAG_KEYS.includes(key as PlatformReleaseFlagKey),
+      );
+    }
   });
 
   it('turns a flag off only on an explicit false', () => {

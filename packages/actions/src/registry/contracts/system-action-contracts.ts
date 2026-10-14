@@ -117,6 +117,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
       {
         brandId: STRING_SCHEMA,
         ingredientId: STRING_SCHEMA,
+        model: STRING_SCHEMA,
         organizationId: STRING_SCHEMA,
         pinnedSkills: arraySchema(PINNED_RUNTIME_SKILL),
         requestedSkillSlugs: arraySchema(STRING_SCHEMA),
@@ -124,7 +125,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
         userId: STRING_SCHEMA,
         voiceId: STRING_SCHEMA,
       },
-      ['ingredientId', 'organizationId', 'text', 'userId', 'voiceId'],
+      ['ingredientId', 'model', 'organizationId', 'text', 'userId', 'voiceId'],
     ),
     outputSchema: closedObjectSchema(
       {

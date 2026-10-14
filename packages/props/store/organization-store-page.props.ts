@@ -1,6 +1,7 @@
 import type {
   NativeAppAvailabilityState,
   NativeSecondaryAppId,
+  OrganizationModuleId,
 } from '@genfeedai/contracts/constants';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 
@@ -30,6 +31,8 @@ export type StoreThumbnailArt =
   | 'layers'
   | 'motion'
   | 'prompt'
+  | 'schedule'
+  | 'stats'
   | 'timeline'
   | 'trend'
   | 'trim';
@@ -49,7 +52,7 @@ export interface StoreAppCatalogEntry {
 }
 
 export interface StoreAppThumbnailProps {
-  appId: NativeSecondaryAppId;
+  appId: OrganizationModuleId;
   icon: IconComponent;
   label: string;
   size: StoreThumbnailSize;

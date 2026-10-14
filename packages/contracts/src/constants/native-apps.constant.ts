@@ -4,15 +4,10 @@ import type {
 } from '../interfaces/ui/native-app.interface';
 import type {
   NativeAppContextualEntry,
-  NativeAppReleaseEligibility,
   NativeSecondaryAppId,
 } from '../types/native-app';
 
-export type {
-  NativeAppContextualEntry,
-  NativeAppReleaseEligibility,
-  NativeSecondaryAppId,
-};
+export type { NativeAppContextualEntry, NativeSecondaryAppId };
 
 /**
  * Apps model for the unified navigation (#5502).
@@ -20,8 +15,8 @@ export type {
  * Core apps form the fixed daily loop and need no installation. Secondary
  * apps are native Genfeed apps a member installs into their own setup from
  * the Store and may pin. Installation is a presentation preference: it never
- * grants organization, subscription, brand or release access, which the
- * server checks on every new piece of work.
+ * grants subscription, brand or release access, which the server checks on
+ * every new piece of work.
  *
  * Ids reuse the existing rail and organization module ids so routes and
  * stored data keep their meaning; labels are the one-word visible names.
@@ -36,11 +31,6 @@ export const CORE_APP_IDS = [
 
 export type CoreAppId = (typeof CORE_APP_IDS)[number];
 
-export const NATIVE_APP_RELEASE_ELIGIBILITIES = [
-  'released',
-  'founder-only',
-] as const satisfies readonly NativeAppReleaseEligibility[];
-
 export const NATIVE_APP_CONTEXTUAL_ENTRIES = [
   'edit',
   'clip',
@@ -51,63 +41,54 @@ export const NATIVE_SECONDARY_APPS = {
     label: 'Playground',
     organizationModuleId: 'playground',
     purpose: 'Generate and iterate on images, video, avatars, music and voice.',
-    releaseEligibility: 'released',
     contextualEntries: [],
   },
   storyboard: {
     label: 'Storyboard',
     organizationModuleId: 'storyboard',
     purpose: 'Plan sequences and shots, then assemble them.',
-    releaseEligibility: 'released',
     contextualEntries: [],
   },
   turbo: {
     label: 'Turbo',
     organizationModuleId: 'turbo',
     purpose: 'Produce a planned quantity of content from presets or winners.',
-    releaseEligibility: 'released',
     contextualEntries: [],
   },
   motion: {
     label: 'Motion',
     organizationModuleId: 'motion',
     purpose: 'Compose animated visuals with props, code and revisions.',
-    releaseEligibility: 'founder-only',
     contextualEntries: [],
   },
   clips: {
     label: 'Clips',
     organizationModuleId: 'clips',
     purpose: 'Cut highlights from long videos using their transcript.',
-    releaseEligibility: 'founder-only',
     contextualEntries: ['clip'],
   },
   editor: {
     label: 'Editor',
     organizationModuleId: 'editor',
     purpose: 'Finish video projects on a timeline.',
-    releaseEligibility: 'founder-only',
     contextualEntries: ['edit'],
   },
   automation: {
     label: 'Automation',
     organizationModuleId: 'automation',
     purpose: 'Run workflows, agents and programs on your content.',
-    releaseEligibility: 'founder-only',
     contextualEntries: [],
   },
   messages: {
     label: 'Messages',
     organizationModuleId: 'messages',
     purpose: 'Answer DMs, replies and comments in one inbox.',
-    releaseEligibility: 'founder-only',
     contextualEntries: [],
   },
   discovery: {
     label: 'Discover',
     organizationModuleId: 'discovery',
     purpose: 'Research organic timelines, tracked sources, trends and ads.',
-    releaseEligibility: 'released',
     contextualEntries: [],
   },
 } as const satisfies Record<NativeSecondaryAppId, NativeAppCatalogEntry>;
@@ -125,23 +106,6 @@ export function isNativeSecondaryAppId(
   );
 }
 
-export function isFounderOnlyNativeApp(appId: NativeSecondaryAppId): boolean {
-  return NATIVE_SECONDARY_APPS[appId].releaseEligibility === 'founder-only';
-}
-
-/**
- * Store v1 catalog for the caller. Founder-only experiments stay out of the
- * customer catalog; released apps are listed whatever their access state, so
- * the Store can show a truthful locked state.
- */
-export function listStoreNativeAppIds(
-  isFounderOperator: boolean,
-): NativeSecondaryAppId[] {
-  return NATIVE_SECONDARY_APP_IDS.filter(
-    (appId) => isFounderOperator || !isFounderOnlyNativeApp(appId),
-  );
-}
-
 /** Known installed ids in stored order, without duplicates. */
 export function normalizeInstalledAppIds(
   ids: readonly unknown[] | null | undefined,
@@ -155,7 +119,7 @@ export const NATIVE_APP_AVAILABILITY_STATES = [
   'pinned',
   'organization-disabled',
   'subscription-required',
-  'founder-only',
+  'unreleased',
   'unavailable',
 ] as const;
 
@@ -171,13 +135,9 @@ export type NativeAppAvailabilityState =
 export function resolveNativeAppAvailability({
   appId,
   installedAppIds,
-  isFounderOperator,
   organizationAccess,
   pinnedAppIds,
 }: NativeAppAvailabilityInput): NativeAppAvailabilityState {
-  if (isFounderOnlyNativeApp(appId) && !isFounderOperator) {
-    return 'founder-only';
-  }
   if (!organizationAccess) {
     return 'unavailable';
   }
@@ -188,7 +148,7 @@ export function resolveNativeAppAvailability({
       case 'subscription-required':
         return 'subscription-required';
       case 'unreleased':
-        return 'founder-only';
+        return 'unreleased';
       default:
         return 'unavailable';
     }

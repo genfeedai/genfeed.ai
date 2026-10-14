@@ -1,3 +1,4 @@
+import { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
 import {
   axiosResponse,
   collectionDocument,
@@ -45,6 +46,58 @@ describe('VoicesService', () => {
       await service.findCatalog();
 
       expect(http.get).toHaveBeenCalledWith('/catalog', { params: {} });
+    });
+  });
+
+  describe('generate', () => {
+    it('sends the voice provider with an explicit speech model', async () => {
+      http.post.mockResolvedValue(
+        axiosResponse(resourceDocument({ label: 'speech' }, { id: 'voice_1' })),
+      );
+
+      await service.generate({
+        autoSelectModel: true,
+        model: 'heygen/heygen-voice-1',
+        speed: 1,
+        text: 'Hello',
+        voiceId: 'clone-1',
+        voiceProvider: VoiceProvider.HEYGEN,
+      });
+
+      const [url, body] = http.post.mock.calls[0];
+      expect(url).toBe('/generate');
+      expect(body).toEqual({
+        model: 'heygen/heygen-voice-1',
+        speed: 1,
+        text: 'Hello',
+        voiceId: 'clone-1',
+        voiceProvider: 'HEYGEN',
+        waitForCompletion: true,
+      });
+    });
+
+    it('asks the server to route when Auto is chosen', async () => {
+      http.post.mockResolvedValue(
+        axiosResponse(resourceDocument({ label: 'speech' }, { id: 'voice_1' })),
+      );
+
+      await service.generate({
+        autoSelectModel: true,
+        prioritize: RouterPriority.QUALITY,
+        speed: 1,
+        text: 'Hello',
+        voiceId: 'voice-1',
+        voiceProvider: VoiceProvider.ELEVENLABS,
+      });
+
+      const [, body] = http.post.mock.calls[0];
+      expect(body).toMatchObject({
+        autoSelectModel: true,
+        prioritize: RouterPriority.QUALITY,
+        voiceId: 'voice-1',
+        voiceProvider: 'ELEVENLABS',
+      });
+      expect(body).not.toHaveProperty('model');
     });
   });
 

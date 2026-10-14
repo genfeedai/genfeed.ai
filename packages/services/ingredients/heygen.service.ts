@@ -5,6 +5,7 @@ import type {
   HeyGenAvatarRef,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
+  HeyGenSpeechVoiceCatalog,
   IBrandAgentConfig,
   IHeyGen,
 } from '@genfeedai/contracts/interfaces';
@@ -79,6 +80,28 @@ export class HeyGenService extends BaseService<IHeyGen> {
       config,
     );
     return response.data.data.attributes.voices;
+  }
+
+  /**
+   * HeyGen Voice (TTS) voices: the workspace's ACTIVE private clones plus
+   * HeyGen's public voices. Distinct from `fetchVoices`, which lists the stock
+   * catalog voices avatar video uses.
+   */
+  async fetchSpeechVoices(
+    signal?: AbortSignal,
+  ): Promise<HeyGenSpeechVoiceCatalog> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [500, 502, 503, 504],
+      signal,
+    };
+    const response = await this.instance.get<{
+      data: { attributes: HeyGenSpeechVoiceCatalog };
+    }>(
+      `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/speech-voices`,
+      config,
+    );
+    const { hasPersonalConnection, voices } = response.data.data.attributes;
+    return { hasPersonalConnection: Boolean(hasPersonalConnection), voices };
   }
 
   async generate(payload: {

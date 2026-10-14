@@ -254,7 +254,11 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'false');
     await expect(contextSidebar).toHaveCount(0);
 
-    await selectToggle.hover();
+    // The select control stays opacity-0 on a hover-capable pointer until the
+    // tile group is hovered. Playwright refuses to hover a hidden target, so
+    // reveal it from the tile the way a pointer does.
+    await tile.hover();
+    await expect(selectToggle).toBeVisible();
     await selectToggle.click();
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
     await expect(contextSidebar).toHaveCount(0);

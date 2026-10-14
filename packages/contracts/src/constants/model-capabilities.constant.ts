@@ -1038,6 +1038,29 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
     /**
+     * ElevenLabs text-to-speech, called directly with the platform key and a
+     * voice from the Genfeed voice catalog. Per-request text limits live in
+     * `VOICE_SPEECH_MODELS`.
+     */
+    [MODEL_KEYS.ELEVENLABS_V4]: {
+      category: ModelCategory.VOICE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    [MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2]: {
+      category: ModelCategory.VOICE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    [MODEL_KEYS.ELEVENLABS_FLASH_V2_5]: {
+      category: ModelCategory.VOICE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    /**
      * HeyGen Video (`heygen-video-1`) on the HeyGen v3 models API.
      * Duration is 5–15s. Image-to-video uses one still; extra stills or
      * clips switch the request to reference-to-video.
@@ -1434,15 +1457,6 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       hasDurationEditing: true,
       isBatchSupported: false,
       maxOutputs: 4,
-      maxReferences: 1,
-    },
-    [MODEL_KEYS.FAL_WHISPER]: {
-      category: ModelCategory.VOICE,
-      defaultDuration: 30,
-      durations: [5, 10, 30, 60],
-      hasDurationEditing: true,
-      isBatchSupported: false,
-      maxOutputs: 1,
       maxReferences: 1,
     },
     [MODEL_KEYS.FAL_ELEVEN_LABS_TTS]: {

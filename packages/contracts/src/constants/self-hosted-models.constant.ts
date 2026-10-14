@@ -493,6 +493,67 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.03,
   },
   /**
+   * ElevenLabs text-to-speech, priced like HeyGen Voice: `providerCostUsd` is
+   * USD per **1,000 characters** at the public API list price
+   * (elevenlabs.io/pricing/api, read 2026-10-14) and `cost` is a
+   * 1,000-character request. Bill time counts the submitted characters through
+   * the reviewed `character` rate.
+   */
+  {
+    category: ModelCategory.VOICE,
+    cost: 27,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'ElevenLabs v4 — the most expressive ElevenLabs voice model, 90+ languages, up to 10,000 characters. 27 credits per 1,000 characters.',
+    isDefault: true,
+    isHighlighted: true,
+    key: MODEL_KEYS.ELEVENLABS_V4,
+    label: 'ElevenLabs v4',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.ELEVENLABS,
+    providerConfig: { name: 'eleven_v4', owner: 'elevenlabs' },
+    providerCostUsd: 0.08,
+  },
+  {
+    category: ModelCategory.VOICE,
+    cost: 27,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'ElevenLabs Multilingual v2 — stable long-form narration in 29 languages, up to 10,000 characters. 27 credits per 1,000 characters.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
+    label: 'ElevenLabs Multilingual v2',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.ELEVENLABS,
+    providerConfig: { name: 'eleven_multilingual_v2', owner: 'elevenlabs' },
+    providerCostUsd: 0.08,
+  },
+  {
+    category: ModelCategory.VOICE,
+    cost: 14,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
+    description:
+      'ElevenLabs Flash v2.5 — fastest and cheapest ElevenLabs voice, 32 languages, up to 40,000 characters. 14 credits per 1,000 characters.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+    label: 'ElevenLabs Flash v2.5',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.ELEVENLABS,
+    providerConfig: { name: 'eleven_flash_v2_5', owner: 'elevenlabs' },
+    providerCostUsd: 0.04,
+  },
+  /**
    * Legacy. MusicGen's weights are CC-BY-NC 4.0 (facebookresearch/audiocraft,
    * Hugging Face `facebook/musicgen-large`), so output cannot be sold, and it
    * ranks last (19 of 19) on the Artificial Analysis instrumental board.

@@ -6,11 +6,15 @@ import { describe, expect, it } from 'vitest';
 describe('organization module preference DTO validation', () => {
   it('accepts supported boolean overrides through the existing update DTO', async () => {
     const dto = Object.assign(new UpdateOrganizationSettingDto(), {
-      moduleOverrides: { automation: true, discovery: false },
+      moduleOverrides: {
+        automation: true,
+        discovery: false,
+        playground: false,
+      },
     });
     expect(await validate(dto)).toEqual([]);
   });
-  it.each([{ unknown: true }, { turbo: 'true' }, { playground: false }, [], 1])(
+  it.each([{ unknown: true }, { turbo: 'true' }, { storyboard: null }, [], 1])(
     'rejects malformed override %j',
     async (moduleOverrides) => {
       const dto = Object.assign(new UpdateOrganizationSettingDto(), {
