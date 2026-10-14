@@ -94,6 +94,7 @@ describe('BrandedContentActionsService', () => {
           maxCharacters: getChannelCapability('linkedin')?.caption.maxLength,
           platform: 'linkedin',
           posts: ['First post', 'Second post'],
+          postId: 'post-1',
           receiptId: 'receipt-1',
           receiptState: 'ready',
         },

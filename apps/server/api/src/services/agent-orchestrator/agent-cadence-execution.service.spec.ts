@@ -48,10 +48,19 @@ function setup() {
     generateContent: vi.fn().mockResolvedValue({
       success: true,
       creditsUsed: GENERATE_CONTENT_TEXT_CREDITS,
-      data: { content: 'Useful content' },
+      data: {
+        content: 'Useful content',
+        postId: 'draft',
+        receiptId: 'receipt',
+      },
     }),
   };
-  const posts = { create: vi.fn().mockResolvedValue({ id: 'draft' }) };
+  const posts = {
+    create: vi.fn(),
+    patchOneWhere: vi
+      .fn()
+      .mockResolvedValue({ id: 'draft', description: 'Useful content' }),
+  };
   const optimizers = {
     analyzeContent: vi
       .fn()
@@ -167,7 +176,15 @@ describe('active cadence workflow execution', () => {
       GENERATE_CONTENT_TEXT_CREDITS,
     );
     expect(s.text.generateContent).toHaveBeenCalledOnce();
-    expect(s.posts.create).toHaveBeenCalledWith(
+    expect(s.posts.create).not.toHaveBeenCalled();
+    expect(s.posts.patchOneWhere).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'draft',
+        organizationId: 'organization',
+        brandId: 'brand',
+        isDeleted: false,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
       expect.objectContaining({
         agentStrategyId: 'strategy',
         organizationId: 'organization',
@@ -175,6 +192,7 @@ describe('active cadence workflow execution', () => {
         workflowExecutionId: state.executionId,
         targetExecutionState: TargetExecutionState.DRAFT,
       }),
+      [],
     );
     expect(s.strategies.recordRun).toHaveBeenCalledWith(
       'strategy',
@@ -188,7 +206,7 @@ describe('active cadence workflow execution', () => {
   });
   it('retains paid usage when draft persistence fails and aborts the run', async () => {
     const s = setup();
-    s.posts.create.mockRejectedValue(new Error('Persistence failed'));
+    s.posts.patchOneWhere.mockRejectedValue(new Error('Persistence failed'));
     s.autopilot.executeQueuedRun.mockImplementation(
       async ({ draftGenerator }) => draftGenerator(s.input),
     );

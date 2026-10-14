@@ -17,6 +17,7 @@ function createService(options: { hasCredits?: boolean } = {}) {
         maxCharacters: 5000,
         platform: 'linkedin',
         posts: ['LinkedIn post'],
+        postId: 'post-1',
         receiptId: 'receipt-1',
         receiptState: 'ready',
       },
@@ -102,6 +103,7 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
     expect(result).toMatchObject({
       creditsUsed: 2,
       isBillingDelegated: true,
+      data: { postId: 'post-1' },
       success: true,
     });
     expect(credits.deductCreditsFromOrganization).toHaveBeenCalledOnce();
@@ -174,6 +176,7 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
         maxCharacters: 5000,
         platform: 'linkedin',
         posts: ['LinkedIn post'],
+        postId: 'post-1',
         receiptId: 'receipt-1',
         receiptState: 'ready',
       },
