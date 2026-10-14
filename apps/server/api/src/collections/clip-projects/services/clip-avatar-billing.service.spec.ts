@@ -53,6 +53,8 @@ describe('ClipAvatarBillingService', () => {
       {} as ByokService,
       {} as HeyGenService,
       {} as PrismaService,
+      {} as never,
+      {} as never,
     ),
     generationBilling,
     logger,
