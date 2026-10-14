@@ -73,9 +73,13 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
       orderBy: { updatedAt: 'desc' },
       select: { id: true, mode: true, state: true },
       take: 1,
+      // Cleared and raw receipts never hold, so only the rest need the JSON
+      // path comparison.
       where: scopedWhere(organizationId, {
         brandId: post.brandId,
+        mode: { not: 'raw' },
         projection: { equals: postId, path: ['artifact', 'id'] },
+        state: { not: 'ready' },
       }),
     });
     return this.holdFor(organizationId, post.brandId, receipts);

@@ -58,8 +58,10 @@ describe('BrandedPublishHoldService', () => {
         where: {
           brandId: 'brand-1',
           isDeleted: false,
+          mode: { not: 'raw' },
           organizationId: 'org-1',
           projection: { equals: 'post-1', path: ['artifact', 'id'] },
+          state: { not: 'ready' },
         },
       }),
     );
