@@ -1,3 +1,4 @@
+export * from '@serializers/server/billing/avatar-generation-quote.serializer';
 export * from '@serializers/server/billing/billing-account.serializer';
 export * from '@serializers/server/billing/cost-report-entry.serializer';
 export * from '@serializers/server/billing/cost-report-summary.serializer';

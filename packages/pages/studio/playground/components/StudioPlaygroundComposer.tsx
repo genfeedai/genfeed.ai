@@ -55,18 +55,26 @@ import {
   crunFieldOptions,
   useCrunInputControls,
 } from '@pages/studio/playground/hooks/useCrunInputControls';
+import { useStudioAvatarEstimate } from '@pages/studio/playground/hooks/useStudioAvatarEstimate';
 import { useStudioGenerationEstimate } from '@pages/studio/playground/hooks/useStudioGenerationEstimate';
 import { useStudioGenerationSetupLookOptions } from '@pages/studio/playground/hooks/useStudioGenerationSetupLookOptions';
 import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/playground/hooks/useStudioLooks';
+import {
+  buildStudioAvatarRequest,
+  resolveStudioAvatarScript,
+} from '@pages/studio/playground/utils/studio-avatar-request';
 import { getDefaultGenerationSetupValues } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
 import {
   hasStudioAvatarSelection,
   hasStudioVoiceSelection,
 } from '@pages/studio/playground/utils/studio-identity-selection';
-import { buildStudioPromptData } from '@pages/studio/playground/utils/studio-playground-settings';
+import {
+  buildStudioPromptData,
+  resolveModelKey,
+} from '@pages/studio/playground/utils/studio-playground-settings';
 import {
   getStudioPlaygroundTypeConfig,
   isStudioPlaygroundType,
@@ -370,25 +378,42 @@ export default function StudioPlaygroundComposer({
         })
       : null,
   );
+  // An avatar is quoted for the body Generate submits (script, identity and
+  // the resolved engine); until all three exist there is nothing to price.
+  const avatarScript = resolveStudioAvatarScript(settings.speech, prompt);
+  const avatarEstimate = useStudioAvatarEstimate(
+    type === 'avatar' && !isIdentityMissing && avatarScript && !isLoadingModels
+      ? buildStudioAvatarRequest(
+          settings,
+          avatarScript,
+          resolveModelKey(settings, models, capabilities.hasModelSelection),
+        )
+      : null,
+  );
   const estimate: StudioGenerationCostEstimate =
-    type !== 'image' &&
-    type !== 'image-edit' &&
-    type !== 'video' &&
-    type !== 'music'
-      ? { credits: null, status: 'unavailable' }
-      : isLoadingModels
+    type === 'avatar'
+      ? isLoadingModels
         ? { credits: null, status: 'loading' }
-        : isAutoStudioModelKey(settings.modelKey) && type !== 'music'
-          ? { credits: null, status: 'auto' }
-          : !isMusicAuto &&
-              (!selectedModel || selectedModel.key !== displaySettings.modelKey)
-            ? {
-                credits: null,
-                status: 'unavailable',
-                unavailableReason:
-                  AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
-              }
-            : serverEstimate;
+        : avatarEstimate
+      : type !== 'image' &&
+          type !== 'image-edit' &&
+          type !== 'video' &&
+          type !== 'music'
+        ? { credits: null, status: 'unavailable' }
+        : isLoadingModels
+          ? { credits: null, status: 'loading' }
+          : isAutoStudioModelKey(settings.modelKey) && type !== 'music'
+            ? { credits: null, status: 'auto' }
+            : !isMusicAuto &&
+                (!selectedModel ||
+                  selectedModel.key !== displaySettings.modelKey)
+              ? {
+                  credits: null,
+                  status: 'unavailable',
+                  unavailableReason:
+                    AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
+                }
+              : serverEstimate;
   // Admission refuses these outright, so Generate waits instead of failing after submit.
   // ERROR, loading, Auto and Crun never block.
   const isEstimateBlocking =
@@ -1163,9 +1188,12 @@ export default function StudioPlaygroundComposer({
                 <StudioGenerationSummary
                   crunQuote={crunQuote}
                   estimate={estimate}
-                  // Music Auto is one catalog default with a tariff, so its
-                  // price stays visible. Image and video Auto hide it.
-                  isEstimateHidden={isAutoView && type !== 'music'}
+                  // Music Auto is one catalog default with a tariff, and an
+                  // avatar quote resolves its Auto engine on the server, so
+                  // both stay visible. Image and video Auto hide it.
+                  isEstimateHidden={
+                    isAutoView && type !== 'music' && type !== 'avatar'
+                  }
                   model={selectedModel}
                   type={type}
                   isDisabled={isGenerating}
