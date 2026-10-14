@@ -18,14 +18,16 @@ export class MediaPromptBrandEnhancementException extends HttpException {
   public readonly stage: MediaPromptBrandEnhancementStage;
 
   constructor(stage: MediaPromptBrandEnhancementStage) {
+    const detail = `Brand prompt enhancement failed at the ${stage.replace('_', ' ')} step. Nothing was generated and no credits were used.`;
     super(
       {
         code: MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
-        detail: `Brand prompt enhancement failed at the ${stage.replace('_', ' ')} step. Nothing was generated and no credits were used.`,
+        detail,
         title: 'Brand prompt enhancement failed',
       },
       HttpStatus.BAD_GATEWAY,
     );
+    this.message = detail;
     this.stage = stage;
   }
 }

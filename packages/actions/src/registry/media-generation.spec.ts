@@ -12,6 +12,23 @@ import {
 } from './media-generation';
 import { getToolByName } from './tool-registry';
 
+describe('brand mode applicability', () => {
+  it.each(['image', 'video'] as const)('accepts brandMode on %s', (type) => {
+    expect(
+      findInapplicableMediaGenerationParameters(type, { brandMode: 'raw' }),
+    ).toEqual([]);
+  });
+
+  it.each(['voice', 'music'] as const)(
+    'rejects brandMode on %s, which has no brand enhancement',
+    (type) => {
+      expect(
+        findInapplicableMediaGenerationParameters(type, { brandMode: 'raw' }),
+      ).toEqual(['brandMode']);
+    },
+  );
+});
+
 describe('media generation type parsing', () => {
   it('names the single generate tool and its four types', () => {
     expect(MEDIA_GENERATION_TOOL_NAME).toBe('generate');
