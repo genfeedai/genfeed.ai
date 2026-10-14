@@ -21,7 +21,6 @@ import { AvatarVideoModelService } from '@api/collections/videos/services/avatar
 import { quoteSpeechSnapshot } from '@api/collections/voices/utils/speech-quote.util';
 import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
@@ -219,30 +218,27 @@ export class AvatarVideoBillingService {
     audioUrl?: string;
     organizationId: string;
   }): Promise<number | undefined> {
-    if (input.audioIngredientId) {
-      const audio = await this.prisma.ingredient.findFirst({
-        select: { metadata: { select: { duration: true } } },
-        where: {
-          id: input.audioIngredientId,
-          isDeleted: false,
-          organizationId: input.organizationId,
-        },
-      });
-      const measured = readAvatarDurationSeconds(audio?.metadata?.duration);
-      if (measured !== undefined) return measured;
-    }
+    if (!input.audioIngredientId)
+      throw new BadRequestException(
+        'Select a saved narration asset so the priced audio is the audio rendered.',
+      );
+    const audio = await this.prisma.ingredient.findFirst({
+      select: { metadata: { select: { duration: true } } },
+      where: {
+        id: input.audioIngredientId,
+        isDeleted: false,
+        organizationId: input.organizationId,
+      },
+    });
+    if (!audio) return undefined;
+    const measured = readAvatarDurationSeconds(audio?.metadata?.duration);
+    if (measured !== undefined) return measured;
     if (!input.audioUrl) return undefined;
-    // A narration's URL is our own; a raw URL is the caller's and is checked
-    // before the files service fetches it.
-    return this.probeAudioSeconds(input.audioUrl, !input.audioIngredientId);
+    return this.probeAudioSeconds(input.audioUrl);
   }
 
-  private async probeAudioSeconds(
-    url: string,
-    isCallerUrl: boolean,
-  ): Promise<number | undefined> {
+  private async probeAudioSeconds(url: string): Promise<number | undefined> {
     try {
-      if (isCallerUrl) assertUrlNotPrivate(url);
       const probe = await this.filesClient.probeMediaFromUrl(url, 'audio');
       return readAvatarDurationSeconds(probe.durationSeconds);
     } catch (error: unknown) {

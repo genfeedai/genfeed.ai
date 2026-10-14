@@ -494,13 +494,13 @@ describe('GenerationBillingService', () => {
           expect(job0(queue)).toEqual(
             expect.objectContaining({
               amount: 129,
-              idempotencyKey: 'media-generation-late-settle:hold_1',
+              idempotencyKey: 'media-generation-duration-topup:hold_1',
             }),
           );
           expect(queue.queueDeduction.mock.calls[1][0]).toEqual(
             expect.objectContaining({
               amount: 129,
-              idempotencyKey: 'media-generation-duration-topup:hold_1',
+              idempotencyKey: 'media-generation-late-settle:hold_1',
             }),
           );
         });

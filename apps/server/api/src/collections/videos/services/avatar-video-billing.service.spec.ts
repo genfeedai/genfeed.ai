@@ -444,16 +444,21 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
       expect(probeMediaFromUrl).not.toHaveBeenCalled();
     });
 
-    it('probes a raw audio URL instead of estimating from the script', async () => {
+    it('probes saved narration instead of estimating from the script', async () => {
+      findFirst.mockResolvedValue({ metadata: { duration: null } });
       probeMediaFromUrl.mockResolvedValue({ durationSeconds: 61.2 });
 
       const funding = await service.resolveFunding(
         {
+          audioIngredientId: 'narration-1',
           audioUrl: 'https://cdn.example/voice.mp3',
           photoUrl: 'https://cdn.example/photo.png',
           text: 'hi',
         },
-        { audioUrl: 'https://cdn.example/voice.mp3' },
+        {
+          audioIngredientId: 'narration-1',
+          audioUrl: 'https://cdn.example/voice.mp3',
+        },
         'org-1',
       );
 
@@ -465,15 +470,20 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
     });
 
     it('prices photo plus audio with no script at the measured length', async () => {
+      findFirst.mockResolvedValue({ metadata: { duration: null } });
       probeMediaFromUrl.mockResolvedValue({ durationSeconds: 5 });
 
       const funding = await service.resolveFunding(
         {
+          audioIngredientId: 'narration-1',
           audioUrl: 'https://cdn.example/voice.mp3',
           photoUrl: 'https://cdn.example/photo.png',
           text: '',
         },
-        { audioUrl: 'https://cdn.example/voice.mp3' },
+        {
+          audioIngredientId: 'narration-1',
+          audioUrl: 'https://cdn.example/voice.mp3',
+        },
         'org-1',
       );
 

@@ -322,6 +322,16 @@ export async function queueLateHoldCharge(
   const held = settleHeldDuration(hold, actualSeconds);
   const amount = held?.settlement.settleCredits ?? hold.amount;
   const source = hold.source ?? ActivitySource.SCRIPT;
+  if (held) {
+    reportDurationSettlement(deps.logger, hold, held, output);
+    await queueDurationTopUp(
+      deps.queue,
+      hold,
+      output,
+      held.settlement.topUpCredits,
+      source,
+    );
+  }
   await deps.queue.queueDeduction({
     amount,
     ...(hold.brandId ? { brandId: hold.brandId } : {}),
@@ -342,14 +352,5 @@ export async function queueLateHoldCharge(
     type: 'deduct-credits',
     userId: output.userId,
   });
-  if (!held) return amount;
-  reportDurationSettlement(deps.logger, hold, held, output);
-  await queueDurationTopUp(
-    deps.queue,
-    hold,
-    output,
-    held.settlement.topUpCredits,
-    source,
-  );
-  return amount + held.settlement.topUpCredits;
+  return amount + (held?.settlement.topUpCredits ?? 0);
 }

@@ -1,10 +1,11 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { ConfigService } from '@files/config/config.service';
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { HttpService } from '@nestjs/axios';
 import {
   Body,
   Controller,
@@ -15,7 +16,6 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 interface MetadataDownload {
   filePath: string;
@@ -26,7 +26,7 @@ interface MetadataDownload {
 export class FilesMetadataController {
   constructor(
     @Inject(FFmpegService) private readonly ffmpegService: FFmpegService,
-    @Inject(HttpService) private readonly httpService: HttpService,
+    @Inject(ConfigService) private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     @Inject(TempFileCleanupCron)
     private readonly tempFileCleanupCron: TempFileCleanupCron,
@@ -123,30 +123,70 @@ export class FilesMetadataController {
   private async downloadMetadataFile(url: string): Promise<MetadataDownload> {
     this.logger.log(`Downloading file from URL for metadata: ${url}`);
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(url, {
-          maxBodyLength: 100 * 1024 * 1024,
-          maxContentLength: 100 * 1024 * 1024,
-          maxRedirects: 5,
-          responseType: 'arraybuffer',
-          timeout: 60000,
-        }),
+      const origin = new URL(url).origin;
+      const storageOrigins = [
+        this.configService.get('GENFEEDAI_CDN_URL'),
+        this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL'),
+      ]
+        .filter(
+          (value): value is string =>
+            typeof value === 'string' && value.length > 0,
+        )
+        .map((value) => new URL(value).origin);
+      const response = await safeFetch(
+        url,
+        { signal: AbortSignal.timeout(60_000) },
+        storageOrigins.includes(origin)
+          ? { allowedOrigins: [origin], allowPrivateNetwork: true }
+          : {},
       );
+      if (!response.ok || !response.body) {
+        await response.body?.cancel();
+        throw new HttpException(
+          'Media download failed',
+          response.status || HttpStatus.BAD_REQUEST,
+        );
+      }
+      const limitBytes = 100 * 1024 * 1024;
+      if (Number(response.headers.get('content-length')) > limitBytes) {
+        await response.body.cancel();
+        throw new HttpException(
+          'File size exceeds 100MB limit',
+          HttpStatus.PAYLOAD_TOO_LARGE,
+        );
+      }
+      const reader = response.body.getReader();
+      const chunks: Buffer[] = [];
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > limitBytes)
+            throw new HttpException(
+              'File size exceeds 100MB limit',
+              HttpStatus.PAYLOAD_TOO_LARGE,
+            );
+          chunks.push(Buffer.from(value));
+        }
+      } finally {
+        await reader.cancel();
+      }
       const tmpDir = path.resolve('public', 'tmp', 'metadata');
       if (!fs.existsSync(tmpDir)) {
         fs.mkdirSync(tmpDir, { recursive: true });
       }
-      const rawContentType = response.headers['content-type'];
       const contentType =
-        (typeof rawContentType === 'string' ? rawContentType : undefined) ||
-        'application/octet-stream';
+        response.headers.get('content-type') || 'application/octet-stream';
       const extension = this.getFileExtensionFromContentType(contentType);
       const tempFileName = `metadata_${Date.now()}_${Math.random().toString(36).substring(7)}${extension}`;
       const tempFilePath = path.resolve(tmpDir, tempFileName);
-      fs.writeFileSync(tempFilePath, Buffer.from(response.data));
+      fs.writeFileSync(tempFilePath, Buffer.concat(chunks));
       this.logger.log(`File downloaded to temporary location: ${tempFilePath}`);
       return { filePath: tempFilePath, tempFilePath };
     } catch (error: unknown) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(
         `Failed to download file from URL: ${url}`,
         error as Error,
