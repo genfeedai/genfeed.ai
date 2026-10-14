@@ -1,7 +1,3 @@
-import {
-  estimateAvatarSpeechSeconds,
-  readAvatarDurationSeconds,
-} from '@api/collections/videos/services/avatar-video-duration.util';
 import type {
   AvatarGenerationFunding,
   AvatarGenerationPrice,
@@ -14,7 +10,6 @@ import type {
   ResolvedIdentity,
 } from '@api/collections/videos/services/avatar-video-generation.types';
 import { resolveAvatarIdentityInputs } from '@api/collections/videos/services/avatar-video-identity.util';
-import { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import type { HeyGenGenerationProvider } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 
@@ -38,7 +33,6 @@ import type {
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
@@ -68,7 +62,6 @@ export class AvatarVideoGenerationService {
 
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly byokService: ByokService,
     private readonly avatarBilling: AvatarVideoBillingService,
     private readonly elevenlabsService: ElevenLabsService,
     private readonly failedGenerationService: FailedGenerationService,
@@ -82,7 +75,6 @@ export class AvatarVideoGenerationService {
     private readonly voicesService: VoicesService,
     private readonly lifecycleService: AvatarVideoLifecycleService,
     private readonly referenceService: AvatarVideoReferenceService,
-    private readonly avatarModels: AvatarVideoModelService,
   ) {}
 
   /** Quote the same resolved identity and funding sources generation will use. */
@@ -119,84 +111,26 @@ export class AvatarVideoGenerationService {
     );
   }
 
-  /**
-   * Pin provider keys before reserving, so a BYOK change cannot change who
-   * pays, and choose the engine row the render is priced as.
-   */
-  private async resolveFunding(
+  /** The price a run-level caller accepted, without the pinned keys. */
+  private acceptedPrice({
+    billingMode,
+    credits,
+    modelKey,
+  }: AvatarGenerationFunding): AvatarGenerationPrice {
+    return { billingMode, credits, modelKey };
+  }
+
+  /** Pin provider keys and the engine row before reserving. */
+  private resolveFunding(
     params: AvatarVideoGenerationParams,
     identity: ResolvedIdentity,
     context: AvatarVideoGenerationContext,
   ): Promise<AvatarGenerationFunding> {
-    const selection = await this.avatarModels.resolve(
+    return this.avatarBilling.resolveFunding(
       params,
-      identity.avatarRef,
+      identity,
       context.organizationId,
     );
-    const connection =
-      identity.heygenConnection ??
-      (await this.heygenService.resolveOrganizationConnection(
-        context.organizationId,
-      ));
-    identity.heygenConnection = connection;
-    const heygenKey =
-      connection.binding.kind === 'byok' ? connection : undefined;
-    const elevenLabsKey = identity.elevenlabsVoiceId
-      ? await this.byokService.lookupApiKey(
-          context.organizationId,
-          ByokProvider.ELEVENLABS,
-        )
-      : null;
-    const usesPlatformSpeech =
-      Boolean(identity.savedVoice) ||
-      (Boolean(identity.elevenlabsVoiceId) && !elevenLabsKey);
-    const isByok = Boolean(heygenKey) && !usesPlatformSpeech;
-    const quote = isByok
-      ? undefined
-      : await this.avatarBilling.quoteRender(
-          selection,
-          selection.engine
-            ? await this.estimateRenderSeconds(params, identity, context)
-            : undefined,
-        );
-    return {
-      billingMode: isByok ? 'byok' : 'platform',
-      credits: quote?.credits ?? 0,
-      ...(quote?.durationQuote ? { durationQuote: quote.durationQuote } : {}),
-      ...(selection.engine ? { engine: selection.engine } : {}),
-      heygenApiKey: connection.apiKey,
-      elevenLabsApiKey: elevenLabsKey?.apiKey,
-      modelKey: selection.modelKey,
-    };
-  }
-
-  /**
-   * The clip length an engine render is held for: a saved narration's measured
-   * duration, else an estimate from the script. Settlement corrects either to
-   * the duration HeyGen returns.
-   */
-  private async estimateRenderSeconds(
-    params: AvatarVideoGenerationParams,
-    identity: ResolvedIdentity,
-    context: AvatarVideoGenerationContext,
-  ): Promise<number | undefined> {
-    const audioIngredientId =
-      identity.audioIngredientId ?? params.audioIngredientId;
-    if (audioIngredientId) {
-      const audio = await this.videosService.prisma.ingredient.findFirst({
-        select: { metadata: { select: { duration: true } } },
-        where: {
-          id: audioIngredientId,
-          isDeleted: false,
-          organizationId: context.organizationId,
-        },
-      });
-      const measured = readAvatarDurationSeconds(audio?.metadata?.duration);
-      if (measured !== undefined) return Math.ceil(measured);
-    }
-    return params.text.trim()
-      ? estimateAvatarSpeechSeconds(params.text)
-      : undefined;
   }
 
   /**
@@ -273,11 +207,7 @@ export class AvatarVideoGenerationService {
         funding.credits,
         placeholderScope,
       );
-      await onCreditsPrepared?.({
-        billingMode: funding.billingMode,
-        credits: funding.credits,
-        modelKey: funding.modelKey,
-      });
+      await onCreditsPrepared?.(this.acceptedPrice(funding));
 
       await this.metadataService.patch(
         metadataData.id,
@@ -298,16 +228,8 @@ export class AvatarVideoGenerationService {
 
       // Bind the render to its hold before its provider id is
       // persisted, so a webhook that races this request always finds it.
-      if (billing) {
-        await this.avatarBilling.bindOutput(billing, {
-          credits: billing.creditsConfig?.amount ?? funding.credits,
-          ingredientId,
-          ...(funding.durationQuote
-            ? { metadata: { avatarDurationQuote: funding.durationQuote } }
-            : {}),
-          submissionIntentProvider: ByokProvider.HEYGEN,
-        });
-      }
+      if (billing)
+        await this.avatarBilling.bindRender(billing, funding, ingredientId);
 
       await this.freezeSubmission(
         resolvedIdentity,

@@ -3,6 +3,7 @@ import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
+import { buildHeyGenAvatarEngineFields } from '@api/services/integrations/heygen/helpers/heygen-avatar-engine';
 import {
   buildHeyGenSpeechBody,
   countHeyGenSpeechCharacters,
@@ -208,13 +209,7 @@ export class HeyGenService {
     });
   }
 
-  /**
-   * Renders a trained look. Avatar IV is HeyGen's default engine for
-   * `type: avatar`, so it is never sent; Avatar V goes on the request as
-   * `engine: { type: 'avatar_v' }`. Either engine is checked against the look
-   * before the paid submission, because HeyGen answers 400 (or renders with an
-   * engine we did not price) otherwise.
-   */
+  /** Renders a trained look with an engine checked against it. */
   public async generateNativeAvatarVideo(
     metadataId: string,
     avatar: HeyGenNativeAvatar,
@@ -225,12 +220,7 @@ export class HeyGenService {
   ): Promise<string> {
     const speech =
       typeof voiceInput === 'string' ? { audioUrl: voiceInput } : voiceInput;
-    if (!getEligibleHeyGenAvatarEngines(avatar).includes(engine))
-      throw new BadRequestException(
-        engine === 'avatar_v'
-          ? 'Avatar V needs a digital-twin look that supports the Avatar V engine.'
-          : 'This look does not support the Avatar IV engine.',
-      );
+    const engineFields = buildHeyGenAvatarEngineFields(avatar, engine);
     const avatarId = avatar.lookId;
     if (
       !avatarId.trim() ||
@@ -248,7 +238,7 @@ export class HeyGenService {
       ...(speech.audioUrl
         ? { audio_url: speech.audioUrl }
         : { script: speech.inputText, voice_id: speech.voiceId }),
-      ...(engine === 'avatar_v' ? { engine: { type: engine } } : {}),
+      ...engineFields,
       aspect_ratio: aspectRatio,
       resolution: aspectRatio === '1:1' ? '1080p' : '720p',
       callback_id: metadataId,

@@ -14,6 +14,7 @@ import {
   ByokProvider,
   IngredientCategory,
   IngredientStatus,
+  RouterPriority,
   VoiceProvider,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -217,12 +218,18 @@ describe('AvatarVideoGenerationService', () => {
     const personas = personasServiceStub();
     const service = new AvatarVideoGenerationService(
       brandsService as never,
-      byokService as never,
       new AvatarVideoBillingService(
         creditsUtilsService as never,
         generationBilling,
         modelCreditQuote as never,
         loggerService,
+        new AvatarVideoModelService(
+          routerService as never,
+          modelRegistration as never,
+        ),
+        byokService as never,
+        heygenService as never,
+        videosService.prisma as never,
       ),
       elevenlabsService as never,
       failedGenerationService as never,
@@ -240,10 +247,6 @@ describe('AvatarVideoGenerationService', () => {
         ingredientsService as never,
         mediaIssuer as never,
         personas,
-      ),
-      new AvatarVideoModelService(
-        routerService as never,
-        modelRegistration as never,
       ),
     );
 
@@ -1723,7 +1726,7 @@ describe('AvatarVideoGenerationService', () => {
         {
           avatarRef: ref,
           heygenVoiceId: 'voice-1',
-          prioritize: 'quality' as never,
+          prioritize: RouterPriority.QUALITY,
           text: script,
         },
         context,

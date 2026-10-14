@@ -1,5 +1,14 @@
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
+import type { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ActivitySource } from '@genfeedai/contracts';
+import {
+  MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
+  MEDIA_GENERATION_WORKLOAD_TYPE,
+} from '@genfeedai/contracts/constants';
+import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { z } from 'zod';
 
 /** Hold metadata a per-second output carries from admission (#6624). */
@@ -76,4 +85,111 @@ export function resolveDurationSettlement(
     settleCredits: Math.min(actualCredits, heldCredits),
     topUpCredits: Math.max(0, actualCredits - heldCredits),
   };
+}
+
+/** The stored output's measured duration, when the upload probe recorded one. */
+async function readOutputDuration(
+  prisma: PrismaService,
+  ingredientId: string,
+  organizationId: string,
+): Promise<number | undefined> {
+  const output = await prisma.ingredient.findFirst({
+    select: { metadata: { select: { duration: true } } },
+    where: { id: ingredientId, isDeleted: false, organizationId },
+  });
+  const duration = output?.metadata?.duration;
+  return typeof duration === 'number' && duration > 0 ? duration : undefined;
+}
+
+/**
+ * Queues the settlement of a reserved output hold. A hold that carries a
+ * per-second admission estimate settles to the clip duration the provider
+ * returned (`completion.durationSeconds`, else the stored output's measured
+ * duration): the unused part is refunded, an overrun is topped up.
+ */
+export async function queueHoldSettlement(
+  deps: {
+    logger: LoggerService;
+    prisma: PrismaService;
+    queue: CreditDeductionQueueService;
+  },
+  hold: ICreditReservation,
+  output: { ingredientId: string; organizationId: string; userId: string },
+  completion: { durationSeconds?: number },
+): Promise<void> {
+  const { ingredientId, organizationId, userId } = output;
+  const durationQuote = readHeldDurationQuote(hold.metadata);
+  const settlement = durationQuote
+    ? resolveDurationSettlement(
+        hold.amount,
+        durationQuote,
+        completion.durationSeconds ??
+          (await readOutputDuration(deps.prisma, ingredientId, organizationId)),
+      )
+    : undefined;
+  const { avatarDurationQuote: _frozenQuote, ...ledgerMetadata } =
+    hold.metadata ?? {};
+  const metadata = settlement
+    ? {
+        ...ledgerMetadata,
+        durationSettlement: {
+          actualCredits: settlement.actualCredits ?? null,
+          actualSeconds: settlement.actualSeconds ?? null,
+          estimatedSeconds: durationQuote?.estimatedSeconds ?? null,
+          heldCredits: hold.amount,
+        },
+      }
+    : (hold.metadata ?? undefined);
+  if (settlement?.unresolvedReason)
+    deps.logger.warn(
+      'Per-second generation settled at its admission estimate',
+      {
+        ingredientId,
+        organizationId,
+        reason: settlement.unresolvedReason,
+        reservationId: hold.id,
+      },
+    );
+  await deps.queue.queueDeduction({
+    amount: settlement?.settleCredits ?? hold.amount,
+    ...(hold.brandId ? { brandId: hold.brandId } : {}),
+    description: hold.description ?? 'Media generation',
+    idempotencyKey: `${MEDIA_GENERATION_WORKLOAD_TYPE}-settle:${hold.id}`,
+    metadata,
+    organizationId,
+    reservationId: hold.id,
+    source: hold.source ?? ActivitySource.SCRIPT,
+    type: 'deduct-credits',
+    userId,
+  });
+  if (settlement && settlement.topUpCredits > 0)
+    // The clip outran its hold. The overrun is a direct charge keyed by the
+    // hold, bounded by the same overdraft the late-completion path allows.
+    await deps.queue.queueDeduction({
+      amount: settlement.topUpCredits,
+      ...(hold.brandId ? { brandId: hold.brandId } : {}),
+      description: `${hold.description ?? 'Media generation'} (duration top-up)`,
+      idempotencyKey: `${MEDIA_GENERATION_WORKLOAD_TYPE}-duration-topup:${hold.id}`,
+      maxOverdraftCredits:
+        MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
+      metadata: {
+        assetId: ingredientId,
+        durationTopUpOfReservationId: hold.id,
+      },
+      organizationId,
+      source: hold.source ?? ActivitySource.SCRIPT,
+      type: 'deduct-credits',
+      userId,
+    });
+  deps.logger.log('Generation credit settlement queued', {
+    ingredientId,
+    organizationId,
+    reservationId: hold.id,
+    ...(settlement
+      ? {
+          settledCredits: settlement.settleCredits,
+          topUpCredits: settlement.topUpCredits,
+        }
+      : {}),
+  });
 }

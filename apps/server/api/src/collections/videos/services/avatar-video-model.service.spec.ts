@@ -1,7 +1,7 @@
 import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import type { RouterService } from '@api/services/router/router.service';
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, RouterPriority } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -53,7 +53,7 @@ describe('AvatarVideoModelService', () => {
   it('routes Auto among the engines the look supports', async () => {
     await expect(
       service.resolve(
-        { prioritize: 'quality', text: 'Hello there' },
+        { prioritize: RouterPriority.QUALITY, text: 'Hello there' },
         look('digital_twin'),
         'org',
       ),

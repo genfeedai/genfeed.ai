@@ -10,10 +10,7 @@ import {
   recordCrunSubmissionFailure,
   runCrunBillingMutation,
 } from '@api/collections/credits/services/generation-crun-billing-guard';
-import {
-  readHeldDurationQuote,
-  resolveDurationSettlement,
-} from '@api/collections/credits/services/generation-duration-settlement';
+import { queueHoldSettlement } from '@api/collections/credits/services/generation-duration-settlement';
 import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
 import {
   type HoldReconcileStats,
@@ -356,12 +353,7 @@ export class GenerationBillingService {
     return this.quoteGroups.reconcileAbortedCrunDispatches(now);
   }
 
-  /**
-   * Success: queue one reserved settlement for the output's hold. A hold that
-   * carries a per-second admission estimate settles to the clip duration the
-   * provider returned (`completion.durationSeconds`, else the stored output's
-   * measured duration): the unused part is refunded, an overrun is topped up.
-   */
+  /** Success: queue one reserved settlement for the output's hold. */
   async settleOutput(
     ingredientId: string,
     organizationId: string,
@@ -395,94 +387,13 @@ export class GenerationBillingService {
       );
       return 'hold-ended';
     }
-    const durationQuote = readHeldDurationQuote(hold.metadata);
-    const settlement = durationQuote
-      ? resolveDurationSettlement(
-          hold.amount,
-          durationQuote,
-          completion.durationSeconds ??
-            (await this.readOutputDuration(ingredientId, organizationId)),
-        )
-      : undefined;
-    const { avatarDurationQuote: _frozenQuote, ...ledgerMetadata } =
-      hold.metadata ?? {};
-    const metadata = settlement
-      ? {
-          ...ledgerMetadata,
-          durationSettlement: {
-            actualCredits: settlement.actualCredits ?? null,
-            actualSeconds: settlement.actualSeconds ?? null,
-            estimatedSeconds: durationQuote?.estimatedSeconds ?? null,
-            heldCredits: hold.amount,
-          },
-        }
-      : (hold.metadata ?? undefined);
-    if (settlement?.unresolvedReason)
-      this.logger.warn(
-        'Per-second generation settled at its admission estimate',
-        {
-          ingredientId,
-          organizationId,
-          reason: settlement.unresolvedReason,
-          reservationId: hold.id,
-        },
-      );
-    await this.queue.queueDeduction({
-      amount: settlement?.settleCredits ?? hold.amount,
-      ...(hold.brandId ? { brandId: hold.brandId } : {}),
-      description: hold.description ?? 'Media generation',
-      idempotencyKey: `${MEDIA_GENERATION_WORKLOAD_TYPE}-settle:${hold.id}`,
-      metadata,
-      organizationId,
-      reservationId: hold.id,
-      source: hold.source ?? ActivitySource.SCRIPT,
-      type: 'deduct-credits',
-      userId: hold.actorUserId,
-    });
-    if (settlement && settlement.topUpCredits > 0)
-      // The clip outran its hold. The overrun is a direct charge keyed by the
-      // hold, bounded by the same overdraft the late-completion path allows.
-      await this.queue.queueDeduction({
-        amount: settlement.topUpCredits,
-        ...(hold.brandId ? { brandId: hold.brandId } : {}),
-        description: `${hold.description ?? 'Media generation'} (duration top-up)`,
-        idempotencyKey: `${MEDIA_GENERATION_WORKLOAD_TYPE}-duration-topup:${hold.id}`,
-        maxOverdraftCredits:
-          MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
-        metadata: {
-          assetId: ingredientId,
-          durationTopUpOfReservationId: hold.id,
-        },
-        organizationId,
-        source: hold.source ?? ActivitySource.SCRIPT,
-        type: 'deduct-credits',
-        userId: hold.actorUserId,
-      });
-    this.logger.log('Generation credit settlement queued', {
-      ingredientId,
-      organizationId,
-      reservationId: hold.id,
-      ...(settlement
-        ? {
-            settledCredits: settlement.settleCredits,
-            topUpCredits: settlement.topUpCredits,
-          }
-        : {}),
-    });
+    await queueHoldSettlement(
+      { logger: this.logger, prisma: this.prisma, queue: this.queue },
+      hold,
+      { ingredientId, organizationId, userId: hold.actorUserId },
+      completion,
+    );
     return 'queued';
-  }
-
-  /** The stored output's measured duration, when the upload probe recorded one. */
-  private async readOutputDuration(
-    ingredientId: string,
-    organizationId: string,
-  ): Promise<number | undefined> {
-    const output = await this.prisma.ingredient.findFirst({
-      select: { metadata: { select: { duration: true } } },
-      where: { id: ingredientId, isDeleted: false, organizationId },
-    });
-    const duration = output?.metadata?.duration;
-    return typeof duration === 'number' && duration > 0 ? duration : undefined;
   }
 
   /**

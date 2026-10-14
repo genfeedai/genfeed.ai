@@ -2,7 +2,11 @@ import type { CreditsUtilsService } from '@api/collections/credits/services/cred
 import type { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import type { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
+import type { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
+import type { ByokService } from '@api/services/byok/byok.service';
+import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -21,6 +25,10 @@ describe('AvatarVideoBillingService.quoteRender', () => {
     {} as GenerationBillingService,
     modelCreditQuote as unknown as ModelCreditQuoteService,
     { error: vi.fn() } as unknown as LoggerService,
+    {} as AvatarVideoModelService,
+    {} as ByokService,
+    {} as HeyGenService,
+    {} as PrismaService,
   );
 
   beforeEach(() => {
