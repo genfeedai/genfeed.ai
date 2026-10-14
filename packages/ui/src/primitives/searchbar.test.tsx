@@ -186,13 +186,18 @@ describe('collapsible Searchbar', () => {
 
     try {
       render(
-        <Searchbar ariaLabel="Search generations" isCollapsible value="" />,
+        <>
+          <Searchbar ariaLabel="Search generations" isCollapsible value="" />
+          <div data-testid="outside-search" tabIndex={-1} />
+        </>,
       );
       fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
       const input = screen.getByRole('textbox', { name: 'Search generations' });
 
       fireEvent.pointerDown(document.body);
-      fireEvent.blur(input, { relatedTarget: document.body });
+      act(() => {
+        screen.getByTestId('outside-search').focus();
+      });
       expect(input).toBeInTheDocument();
       expect(frames).toHaveLength(0);
 

@@ -250,24 +250,26 @@ export default function Searchbar({
     if (event.currentTarget.value.trim()) {
       return;
     }
-    const collapse = () => {
-      const input = resolvedRef.current;
-      if (input?.value.trim()) {
-        return;
-      }
-      const active = document.activeElement;
-      if (active instanceof Node && rootRef.current?.contains(active)) {
-        return;
-      }
-      setIsExpanded(false);
-    };
-    // Blur runs during pointerdown, before click. Collapsing here moves the
-    // control the pointer is on, so the click never reaches it.
+    // Blur runs during pointerdown, before click, and the input is still
+    // document.activeElement for that whole event. Collapsing here moves the
+    // control under the cursor, so the click never reaches it. A keyboard
+    // blur has no pointer and closes now. relatedTarget already proved focus
+    // left this field.
     if (isPointerDownRef.current) {
-      collapseAfterPointerRef.current = collapse;
+      collapseAfterPointerRef.current = () => {
+        const input = resolvedRef.current;
+        if (input?.value.trim()) {
+          return;
+        }
+        const active = document.activeElement;
+        if (active instanceof Node && rootRef.current?.contains(active)) {
+          return;
+        }
+        setIsExpanded(false);
+      };
       return;
     }
-    collapse();
+    setIsExpanded(false);
   };
 
   return (
