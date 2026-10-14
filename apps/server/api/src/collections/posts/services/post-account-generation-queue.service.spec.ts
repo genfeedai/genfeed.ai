@@ -3,9 +3,10 @@ import { PostAccountGenerationQueueService } from '@api/collections/posts/servic
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PostAccountGenerationQueueService', () => {
-  const redis = { defineCommand: vi.fn(), runCommand: vi.fn() };
+  const redis = { defineCommand: vi.fn(), runCommand: vi.fn(), llen: vi.fn() };
   const queue = {
     add: vi.fn(),
+    keys: { paused: 'bull:account-generation:paused' },
     getJobCounts: vi.fn(),
     getBackend: () => ({ client: Promise.resolve(redis) }),
   };
@@ -26,6 +27,7 @@ describe('PostAccountGenerationQueueService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     redis.runCommand.mockResolvedValue(1);
+    redis.llen.mockResolvedValue(0);
     queue.add.mockResolvedValue(undefined);
     queue.getJobCounts.mockResolvedValue({
       waiting: 0,
@@ -69,6 +71,14 @@ describe('PostAccountGenerationQueueService', () => {
     await expect(service.claim('org-1', 'run-1')).rejects.toMatchObject({
       status: 429,
       response: { code: 'account_generation_queue_full' },
+    });
+    expect(redis.runCommand).not.toHaveBeenCalled();
+  });
+
+  it('rejects new runs when the backlog is paused', async () => {
+    redis.llen.mockResolvedValue(1000);
+    await expect(service.claim('org-1', 'run-1')).rejects.toMatchObject({
+      status: 429,
     });
     expect(redis.runCommand).not.toHaveBeenCalled();
   });

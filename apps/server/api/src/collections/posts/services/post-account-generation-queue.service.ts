@@ -40,6 +40,27 @@ export class PostAccountGenerationQueueService {
 
   async claim(organizationId: string, runId: string): Promise<void> {
     const client = await this.queue.getBackend().client;
+    const [counts, paused] = await Promise.all([
+      this.queue.getJobCounts(
+        'waiting',
+        'active',
+        'delayed',
+        'prioritized',
+        'waiting-children',
+      ),
+      client.llen(this.queue.keys.paused),
+    ]);
+    if (
+      Object.values(counts).reduce((sum, count) => sum + count, paused) >=
+      MAX_PENDING_RUNS
+    )
+      throw new HttpException(
+        {
+          code: 'account_generation_queue_full',
+          message: 'Account generation is busy. Try again later.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     client.defineCommand('accountGenerationClaim', {
       numberOfKeys: 2,
       lua: CLAIM,
