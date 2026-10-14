@@ -10,6 +10,7 @@ import { WorkflowEngineAdapterService } from '@api/collections/workflows/service
 import type { WorkflowDocumentShape } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
+import { WorkflowLipSyncExecutorRegistrarService } from '@api/collections/workflows/services/workflow-lip-sync-executor-registrar.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
@@ -105,8 +106,13 @@ function createWorkflowEngineAdapterForTest(
       dependency(20),
       dependency(6),
     ),
-    dependency(16),
     dependency(17),
+    dependency(19),
+  );
+  const lipSync = new WorkflowLipSyncExecutorRegistrarService(
+    helper,
+    {} as never,
+    dependency(16),
     dependency(19),
     dependency(6),
   );
@@ -153,6 +159,7 @@ function createWorkflowEngineAdapterForTest(
     content,
     automation,
     trendPublish,
+    lipSync,
   );
   return new WorkflowEngineAdapterService(
     dependency(1),

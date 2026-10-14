@@ -6,9 +6,7 @@ import type { ClipFactoryWorkflowQueueService } from '@api/collections/clip-proj
 import type { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import type { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import type { HttpService } from '@nestjs/axios';
@@ -60,10 +58,6 @@ describe('ClipProjectIngestionService', () => {
   let clipIdentityResolutionService: {
     resolve: ReturnType<typeof vi.fn>;
   };
-  let creditsUtilsService: {
-    checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
-    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
-  };
   let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
   let presignedUploadService: {
     confirmUpload: ReturnType<typeof vi.fn>;
@@ -112,10 +106,6 @@ describe('ClipProjectIngestionService', () => {
     clipIdentityResolutionService = {
       resolve: vi.fn().mockResolvedValue(completeIdentity),
     };
-    creditsUtilsService = {
-      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
-    };
     ingredientsService = { findOne: vi.fn() };
     presignedUploadService = {
       confirmUpload: vi.fn(),
@@ -133,7 +123,6 @@ describe('ClipProjectIngestionService', () => {
       clipAnalysisWorkflowQueue as unknown as ClipAnalysisWorkflowQueueService,
       clipGenerationRequestService as unknown as ClipGenerationRequestService,
       clipIdentityResolutionService as unknown as ClipIdentityResolutionService,
-      creditsUtilsService as unknown as CreditsUtilsService,
       ingredientsService as unknown as IngredientsService,
       presignedUploadService as unknown as PresignedUploadService,
       http as unknown as HttpService,
@@ -207,9 +196,6 @@ describe('ClipProjectIngestionService', () => {
     expect(
       clipGenerationRequestService.assertCompleteAvatarIdentity,
     ).toHaveBeenCalledWith(customIdentity);
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).toHaveBeenCalledWith('org-1', 12);
     expect(clipProjectsService.create).toHaveBeenCalledWith({
       brandId: undefined,
       language: 'fr',
@@ -343,14 +329,8 @@ describe('ClipProjectIngestionService', () => {
     const referenceOrder =
       clipGenerationRequestService.resolveRunReferences.mock
         .invocationCallOrder[0];
-    const creditOrder =
-      creditsUtilsService.checkOrganizationCreditsAvailable.mock
-        .invocationCallOrder[0];
     const createOrder = clipProjectsService.create.mock.invocationCallOrder[0];
     expect(referenceOrder ?? Number.MAX_SAFE_INTEGER).toBeLessThan(
-      creditOrder ?? 0,
-    );
-    expect(creditOrder ?? Number.MAX_SAFE_INTEGER).toBeLessThan(
       createOrder ?? 0,
     );
   });
@@ -423,7 +403,7 @@ describe('ClipProjectIngestionService', () => {
     expect(result.identity).toBeUndefined();
   });
 
-  it('propagates foreign-brand rejection before credits, persistence, or queueing', async () => {
+  it('propagates foreign-brand rejection before persistence or queueing', async () => {
     const error = new Error('Brand not found');
     clipIdentityResolutionService.resolve.mockRejectedValue(error);
 
@@ -434,14 +414,11 @@ describe('ClipProjectIngestionService', () => {
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
       }),
     ).rejects.toBe(error);
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
     expect(clipProjectsService.create).not.toHaveBeenCalled();
     expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
-  it('asserts complete avatar identity before credits or persistence', async () => {
+  it('asserts complete avatar identity before persistence', async () => {
     clipIdentityResolutionService.resolve.mockResolvedValue({
       ...completeIdentity,
       avatarId: undefined,
@@ -458,39 +435,6 @@ describe('ClipProjectIngestionService', () => {
     ).rejects.toThrow(
       'Missing avatar defaults. Configure saved brand defaults or provide explicit avatar IDs.',
     );
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
-    expect(clipProjectsService.create).not.toHaveBeenCalled();
-    expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
-  });
-
-  it('throws the exact balance error before persistence or queueing', async () => {
-    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
-      false,
-    );
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(3);
-    let thrown: unknown;
-
-    try {
-      await service.createFromYoutube(currentUser as never, {
-        avatarId: 'avatar-1',
-        maxClips: 8,
-        voiceId: 'voice-1',
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      });
-    } catch (error: unknown) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(InsufficientCreditsException);
-    expect(
-      (thrown as InsufficientCreditsException).getResponse(),
-    ).toMatchObject({
-      code: 'INSUFFICIENT_CREDITS',
-      detail: 'Insufficient credits: 8 required, 3 available',
-      meta: { available: 3, required: 8 },
-    });
     expect(clipProjectsService.create).not.toHaveBeenCalled();
     expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
@@ -1409,21 +1353,6 @@ describe('ClipProjectIngestionService', () => {
       ).rejects.toThrow('This upload was replaced by a newer one');
 
       expect(ingredientsService.findOne).not.toHaveBeenCalled();
-      expect(clipProjectsService.claimDraft).not.toHaveBeenCalled();
-      expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
-    });
-
-    it('keeps an upload draft startable when credits run out at finalize', async () => {
-      clipProjectsService.findOne.mockResolvedValue(quickUploadDraft);
-      ingredientsService.findOne.mockResolvedValue(uploadedIngredient);
-      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
-        false,
-      );
-
-      await expect(
-        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
-      ).rejects.toBeInstanceOf(InsufficientCreditsException);
-
       expect(clipProjectsService.claimDraft).not.toHaveBeenCalled();
       expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
     });

@@ -18,8 +18,6 @@ export const AI_INFLUENCER_WORKFLOW_IDS = {
   DAILY_POST: 'ai-influencer.daily-post',
   DAILY_POSTS: 'ai-influencer.daily-posts',
   GENERATE_POST: 'ai-influencer.generate-post',
-  GENERATE_VIDEO: 'ai-influencer.generate-video',
-  GENERATE_VOICE: 'ai-influencer.generate-voice',
   PUBLISH_PLATFORM: 'ai-influencer.publish-platform',
 } as const;
 
@@ -36,9 +34,6 @@ export const AI_INFLUENCER_ACTION_IDS = {
   PLATFORM_PUBLISH: 'ai-influencer.platform.publish',
   POST_FINALIZE: 'ai-influencer.post.finalize',
   PUBLISH_PLAN: 'ai-influencer.publish.plan',
-  VIDEO_GENERATE: 'ai-influencer.video.generate',
-  VIDEO_PLAN: 'ai-influencer.video.plan',
-  VOICE_GENERATE: 'ai-influencer.voice.generate',
 } as const;
 
 type AiInfluencerActionId =
@@ -145,37 +140,20 @@ export function buildAiInfluencerGeneratePostWorkflowDefinition(): SystemWorkflo
     'create-ingredient',
     560,
   );
-  const planVideo = actionNode(
-    AI_INFLUENCER_ACTION_IDS.VIDEO_PLAN,
-    'plan-video',
-    700,
-  );
-  const voice = fanOutNode(
-    'generate-voice',
-    AI_INFLUENCER_WORKFLOW_IDS.GENERATE_VOICE,
-    840,
-    1,
-  );
-  const video = fanOutNode(
-    'generate-video',
-    AI_INFLUENCER_WORKFLOW_IDS.GENERATE_VIDEO,
-    840,
-    1,
-  );
   const planPublish = actionNode(
     AI_INFLUENCER_ACTION_IDS.PUBLISH_PLAN,
     'plan-publish',
-    980,
+    700,
   );
   const publish = fanOutNode(
     'publish-platforms',
     AI_INFLUENCER_WORKFLOW_IDS.PUBLISH_PLATFORM,
-    1120,
+    840,
   );
   const finalize = actionNode(
     AI_INFLUENCER_ACTION_IDS.POST_FINALIZE,
     'finalize-post',
-    1260,
+    980,
   );
 
   return definition(
@@ -188,9 +166,6 @@ export function buildAiInfluencerGeneratePostWorkflowDefinition(): SystemWorkflo
       prepareImage,
       generateImage,
       createIngredient,
-      planVideo,
-      voice,
-      video,
       planPublish,
       publish,
       finalize,
@@ -202,40 +177,8 @@ export function buildAiInfluencerGeneratePostWorkflowDefinition(): SystemWorkflo
         prepareImage.id,
         generateImage.id,
         createIngredient.id,
-        planVideo.id,
+        planPublish.id,
       ]),
-      {
-        id: 'voice-items',
-        source: planVideo.id,
-        sourceHandle: 'voiceItems',
-        target: voice.id,
-        targetHandle: 'items',
-      },
-      {
-        id: 'video-items',
-        source: planVideo.id,
-        sourceHandle: 'videoItems',
-        target: video.id,
-        targetHandle: 'items',
-      },
-      {
-        id: 'post-state-to-publish-plan',
-        source: planVideo.id,
-        target: planPublish.id,
-        targetHandle: 'state',
-      },
-      {
-        id: 'voice-result-to-publish-plan',
-        source: voice.id,
-        target: planPublish.id,
-        targetHandle: 'voiceBatch',
-      },
-      {
-        id: 'video-result-to-publish-plan',
-        source: video.id,
-        target: planPublish.id,
-        targetHandle: 'videoBatch',
-      },
       {
         id: 'publish-items',
         source: planPublish.id,
@@ -365,18 +308,6 @@ function sequenceEdges(ids: string[]): WorkflowEdge[] {
 }
 
 export const AI_INFLUENCER_WORKFLOW_DEFINITIONS = [
-  singleActionWorkflow(
-    AI_INFLUENCER_WORKFLOW_IDS.GENERATE_VOICE,
-    AI_INFLUENCER_ACTION_IDS.VOICE_GENERATE,
-    'Generate AI Influencer Voice',
-    'Generates one persona voice asset.',
-  ),
-  singleActionWorkflow(
-    AI_INFLUENCER_WORKFLOW_IDS.GENERATE_VIDEO,
-    AI_INFLUENCER_ACTION_IDS.VIDEO_GENERATE,
-    'Generate AI Influencer Video',
-    'Generates one persona video asset.',
-  ),
   singleActionWorkflow(
     AI_INFLUENCER_WORKFLOW_IDS.PUBLISH_PLATFORM,
     AI_INFLUENCER_ACTION_IDS.PLATFORM_PUBLISH,

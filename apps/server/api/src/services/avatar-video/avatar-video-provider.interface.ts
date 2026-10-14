@@ -1,3 +1,4 @@
+import type { HeyGenAvatarEngine } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarRef,
   IBrandAgentConfig,
@@ -19,6 +20,22 @@ export interface AvatarVideoJobCreated {
   providerName: AvatarVideoProviderName;
 }
 
+/** What a render is priced as, resolved by the provider just before submission. */
+export interface AvatarVideoSubmissionPlan {
+  /** A customer connection pays the provider directly; no platform hold. */
+  isByok: boolean;
+  selection: {
+    modelKey: string;
+    engine?: HeyGenAvatarEngine;
+    avatarType?: string;
+  };
+}
+
+/** A hold bound to the render; released only on a definitive rejection. */
+export interface AvatarVideoSubmissionHold {
+  release(): Promise<void>;
+}
+
 export interface AvatarVideoJobInput {
   avatarRef?: HeyGenAvatarRef;
   voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
@@ -30,6 +47,10 @@ export interface AvatarVideoJobInput {
   voiceId: string;
   language?: string;
   onJobCreated?: (job: AvatarVideoJobCreated) => Promise<void>;
+  /** Funds the render after the provider resolves who pays and what it renders. */
+  fundSubmission?: (
+    plan: AvatarVideoSubmissionPlan,
+  ) => Promise<AvatarVideoSubmissionHold | undefined>;
   referenceImageUrl?: string;
 }
 

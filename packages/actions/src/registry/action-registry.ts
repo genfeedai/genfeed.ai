@@ -1312,21 +1312,6 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Builds bounded platform publishing inputs for one AI influencer post.',
   ),
   internalAction(
-    'ai-influencer.video.generate',
-    'Generate AI Influencer Video',
-    'Generates one video for an AI influencer post.',
-  ),
-  internalAction(
-    'ai-influencer.video.plan',
-    'Plan AI Influencer Video',
-    'Builds the video-generation input for one AI influencer post.',
-  ),
-  internalAction(
-    'ai-influencer.voice.generate',
-    'Generate AI Influencer Voice',
-    'Generates one voice track for an AI influencer video.',
-  ),
-  internalAction(
     'ads.credentials.discover',
     'Discover Ads Credentials',
     'Discovers bounded connected ad credentials for one provider workflow.',

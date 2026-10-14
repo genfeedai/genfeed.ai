@@ -21,20 +21,15 @@ import {
   hashSource as hashClipSource,
   withClipSourceJobId,
 } from '@api/collections/clip-projects/services/clip-source-contract.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   normalizeYoutubeUrl,
   YOUTUBE_URL_UNSUPPORTED_DETAIL,
 } from '@api/collections/workflows/services/youtube-url.util';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import {
-  CLIP_SOURCE_MAX_DURATION_SECONDS,
-  clipCreditGateAmount,
-} from '@genfeedai/contracts/constants';
+import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import {
   CLIP_SOURCE_SCHEMA_VERSION,
@@ -82,7 +77,6 @@ export class ClipProjectIngestionService {
     private readonly clipAnalysisWorkflowQueue: ClipAnalysisWorkflowQueueService,
     private readonly clipGenerationRequestService: ClipGenerationRequestService,
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly ingredientsService: IngredientsService,
     private readonly presignedUploadService: PresignedUploadService,
     private readonly httpService: HttpService,
@@ -172,18 +166,6 @@ export class ClipProjectIngestionService {
       runReferences,
       mode,
     );
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        orgId,
-        clipCreditGateAmount(estimatedClips),
-      );
-
-    if (!hasCredits) {
-      const currentBalance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(orgId);
-      throw new InsufficientCreditsException(estimatedClips, currentBalance);
-    }
 
     const source = buildYoutubeSource(dto.youtubeUrl, 'quick');
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
@@ -724,19 +706,6 @@ export class ClipProjectIngestionService {
       runReferences,
       mode,
     );
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        user.organizationId,
-        clipCreditGateAmount(estimatedClips),
-      );
-    if (!hasCredits) {
-      const currentBalance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          user.organizationId,
-        );
-      throw new InsufficientCreditsException(estimatedClips, currentBalance);
-    }
-
     await this.claimDraftIfStarting(
       draftProjectId,
       user.organizationId,

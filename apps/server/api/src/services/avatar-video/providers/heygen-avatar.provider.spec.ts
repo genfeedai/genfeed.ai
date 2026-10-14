@@ -1,7 +1,9 @@
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -144,8 +146,86 @@ describe('HeygenAvatarProvider', () => {
         avatarRef,
         { voiceId: 'voice-1', inputText: 'Create this clip' },
         'byok-xyz',
+        '9:16',
+        'avatar_iv',
       );
       expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+    });
+
+    it('funds a platform-paid trained look on the engine row it renders with, before submitting', async () => {
+      const platform = {
+        apiKey: 'platform-key',
+        binding: { ...connection.binding, kind: 'platform' as const },
+      };
+      heygenService.resolveAvatarSelection.mockResolvedValue({
+        avatarRef,
+        connection: platform,
+      });
+      const fundSubmission = vi.fn().mockResolvedValue({ release: vi.fn() });
+
+      await provider.generateVideo({ ...input, fundSubmission });
+
+      expect(fundSubmission).toHaveBeenCalledWith({
+        isByok: false,
+        selection: {
+          avatarType: 'digital_twin',
+          engine: 'avatar_iv',
+          modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
+        },
+      });
+      expect(fundSubmission.mock.invocationCallOrder[0]).toBeLessThan(
+        heygenService.generateNativeAvatarVideo.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('funds a photo clip on the per-second photo-animation row and flags a BYOK connection', async () => {
+      const fundSubmission = vi.fn().mockResolvedValue(undefined);
+
+      await provider.generateVideo({
+        ...input,
+        fundSubmission,
+        referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+      });
+
+      expect(fundSubmission).toHaveBeenCalledWith({
+        isByok: true,
+        selection: { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
+      });
+    });
+
+    it('does not submit when the clip cannot be funded', async () => {
+      const fundSubmission = vi
+        .fn()
+        .mockRejectedValue(new Error('Insufficient credits'));
+
+      const result = await provider.generateVideo({ ...input, fundSubmission });
+
+      expect(result).toMatchObject({
+        error: 'Insufficient credits',
+        status: 'failed',
+      });
+      expect(heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
+    });
+
+    it('returns the hold when HeyGen rejects the submission and keeps it on an ambiguous failure', async () => {
+      const release = vi.fn();
+      const fundSubmission = vi.fn().mockResolvedValue({ release });
+      heygenService.generateNativeAvatarVideo.mockRejectedValueOnce(
+        new HeyGenSubmissionRejectedError(),
+      );
+
+      expect(
+        (await provider.generateVideo({ ...input, fundSubmission })).status,
+      ).toBe('failed');
+      expect(release).toHaveBeenCalledTimes(1);
+
+      heygenService.generateNativeAvatarVideo.mockRejectedValueOnce(
+        new Error('socket hang up'),
+      );
+      expect(
+        (await provider.generateVideo({ ...input, fundSubmission })).status,
+      ).toBe('failed');
+      expect(release).toHaveBeenCalledTimes(1);
     });
 
     it('keeps an authorized image on the image route', async () => {

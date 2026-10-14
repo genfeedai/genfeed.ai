@@ -1,4 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
 import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -30,6 +31,11 @@ function createMockDeps() {
 
   const ingredientsService = {
     findOne: vi.fn(),
+  };
+
+  const clipAvatarBilling = {
+    release: vi.fn().mockResolvedValue(undefined),
+    settle: vi.fn().mockResolvedValue(undefined),
   };
 
   const clipLibraryLinkService = {
@@ -68,6 +74,7 @@ function createMockDeps() {
   };
 
   return {
+    clipAvatarBilling,
     clipLibraryLinkService,
     clipProjectsService,
     clipResultsService,
@@ -91,6 +98,7 @@ describe('HeygenWebhookService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HeygenWebhookService,
+        { provide: ClipAvatarBillingService, useValue: deps.clipAvatarBilling },
         {
           provide: ClipLibraryLinkService,
           useValue: deps.clipLibraryLinkService,
@@ -328,6 +336,7 @@ describe('HeygenWebhookService', () => {
     const body: HeygenWebhookPayload = {
       event_data: {
         callback_id: clipResultId,
+        duration: 7.4,
         url: 'https://cdn.heygen.com/clip.mp4',
         video_id: 'provider-job-1',
       },
@@ -357,9 +366,64 @@ describe('HeygenWebhookService', () => {
       clipResultId,
       organizationId: 'org-1',
     });
+    // The clip's hold settles to the seconds HeyGen rendered.
+    expect(deps.clipAvatarBilling.settle).toHaveBeenCalledWith(
+      clipResultId,
+      'org-1',
+      7.4,
+    );
+    expect(deps.clipAvatarBilling.release).not.toHaveBeenCalled();
     expect(
       deps.clipProjectsService.reconcileTerminalState,
     ).toHaveBeenCalledWith(projectId, 'org-1');
+  });
+
+  it('settles a clip at its estimate when HeyGen reports no duration', async () => {
+    const clipResultId = testId('metadata');
+    deps.clipResultsService.findOne.mockResolvedValue({
+      id: clipResultId,
+      organizationId: 'org-1',
+      projectId: testId('metadata'),
+    });
+
+    await service.handleCallback({
+      event_data: {
+        callback_id: clipResultId,
+        url: 'https://cdn.heygen.com/clip.mp4',
+        video_id: 'provider-job-1',
+      },
+      event_type: 'avatar_video.success',
+    });
+
+    expect(deps.clipAvatarBilling.settle).toHaveBeenCalledWith(
+      clipResultId,
+      'org-1',
+      undefined,
+    );
+  });
+
+  it('returns the clip hold when HeyGen reports the clip failed', async () => {
+    const clipResultId = testId('metadata');
+    deps.clipResultsService.findOne.mockResolvedValue({
+      id: clipResultId,
+      organizationId: 'org-1',
+      projectId: testId('metadata'),
+    });
+
+    await service.handleCallback({
+      event_data: {
+        callback_id: clipResultId,
+        error: 'Generation timed out',
+        video_id: 'provider-job-1',
+      },
+      event_type: 'avatar_video.failed',
+    });
+
+    expect(deps.clipAvatarBilling.release).toHaveBeenCalledWith(
+      clipResultId,
+      'org-1',
+    );
+    expect(deps.clipAvatarBilling.settle).not.toHaveBeenCalled();
   });
 
   it('should fail the parent project when the final clip fails', async () => {

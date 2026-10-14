@@ -49,7 +49,7 @@ export class ClipProjectGenerationController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
-      'Generate avatar or deterministic raw-cut video clips for selected highlights. Expensive step (N credits, one per clip).',
+      'Generate avatar or deterministic raw-cut video clips for selected highlights. Each HeyGen avatar clip holds the per-second avatar rate at its estimated length and settles to the rendered length; raw-cut clips are free.',
     operationId: 'ClipProjectsController.generateClips',
     summary: 'Generate clips from selected highlights',
   })

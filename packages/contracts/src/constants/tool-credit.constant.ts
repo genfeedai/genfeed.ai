@@ -21,16 +21,5 @@ export const BRAND_FROM_URL_CREDIT_COST = 1;
  */
 export const BRAND_INTERVIEW_CREDIT_COST = 10;
 
-/**
- * Credits the clip factory checks per clip before it queues work.
- * Analysis does not use this amount.
- */
-export const CLIP_CREDIT_PER_CLIP = 1;
-
 /** Schema maximum for highlight and clip counts on the clip tools. */
 export const CLIP_HIGHLIGHT_COUNT_MAXIMUM = 30;
-
-export function clipCreditGateAmount(clipCount: number): number {
-  if (!Number.isInteger(clipCount) || clipCount < 0) return 0;
-  return clipCount * CLIP_CREDIT_PER_CLIP;
-}

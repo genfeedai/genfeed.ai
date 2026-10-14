@@ -93,64 +93,6 @@ export class HedraService {
     }
   }
 
-  public async generateCharacterWithText(
-    metadataId: string,
-    text: string,
-    imageUrl: string,
-    voiceId?: string,
-    aspectRatio: string = '16:9',
-    _organizationId?: string,
-    _userId?: string,
-    apiKeyOverride?: string,
-  ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      this.loggerService.log(`${url} started`, {
-        aspectRatio,
-        metadataId,
-        voiceId,
-      });
-
-      const apiKey = this.resolveApiKey(apiKeyOverride);
-      const callbackUrl = `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/hedra/callback`;
-
-      const payload: Record<string, unknown> = {
-        aspect_ratio: aspectRatio,
-        callback_url: callbackUrl,
-        image_url: imageUrl,
-        metadata: {
-          id: metadataId,
-        },
-        text,
-      };
-
-      // Add voice ID if provided, otherwise Hedra will use default
-      if (voiceId) {
-        payload.voice_id = voiceId;
-      }
-
-      const res = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/generate/character-text`,
-          payload,
-          {
-            headers: this.getHeaders(apiKey),
-          },
-        ),
-      );
-
-      if (res.status !== 200 && res.status !== 201) {
-        throw new Error('Hedra API returned non-success status');
-      }
-
-      return res.data?.job_id || res.data?.id;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} error`, error);
-      throw error;
-    }
-  }
-
   public async getVoices(
     _organizationId?: string,
     _userId?: string,

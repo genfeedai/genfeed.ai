@@ -1,10 +1,10 @@
-import { ContentFormat } from '@genfeedai/contracts';
 import {
-  BRAND_INTERVIEW_CREDIT_COST,
-  CLIP_CREDIT_PER_CLIP,
-  CLIP_HIGHLIGHT_COUNT_MAXIMUM,
-  clipCreditGateAmount,
-} from '@genfeedai/contracts/constants/tool-credit.constant';
+  ContentFormat,
+  ModelCategory,
+  ModelProvider,
+} from '@genfeedai/contracts';
+import { SELF_HOSTED_MODELS } from '@genfeedai/contracts/constants/self-hosted-models.constant';
+import { BRAND_INTERVIEW_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import {
   contentMixFromToolArguments,
   estimateTurboRunCredits,
@@ -66,6 +66,24 @@ function turboRunCreditRange(): { maximum: number; minimum: number } {
   };
 }
 
+/**
+ * A HeyGen avatar clip holds its engine's per-second rate at the clip's
+ * estimated length and settles to the rendered length; raw-cut clips and a
+ * customer HeyGen key hold nothing. The ceiling is the dearest HeyGen avatar
+ * row in the catalog.
+ */
+function avatarClipCreditRange(): { maximum: number; minimum: number } {
+  const perSecond = SELF_HOSTED_MODELS.flatMap((model) =>
+    model.provider === ModelProvider.HEYGEN &&
+    model.category === ModelCategory.AVATAR &&
+    'costPerUnit' in model &&
+    typeof model.costPerUnit === 'number'
+      ? [model.costPerUnit]
+      : [],
+  );
+  return { maximum: Math.max(...perSecond), minimum: 0 };
+}
+
 export function fixedCreditPricing(amount: number): ToolCreditPricing {
   return { amount, mode: 'fixed' };
 }
@@ -105,10 +123,9 @@ export function toolCreditPricingFor(
     name === 'generate_clips'
   ) {
     return {
-      maximum: clipCreditGateAmount(CLIP_HIGHLIGHT_COUNT_MAXIMUM),
-      minimum: CLIP_CREDIT_PER_CLIP,
+      ...avatarClipCreditRange(),
       mode: 'variable',
-      unit: 'clip',
+      unit: 'second of HeyGen avatar clip',
     };
   }
   if (name === 'start_brand_interview') {
@@ -168,27 +185,6 @@ export function appendCreditPricingDescription(
   return `${description} ${sentence}`;
 }
 
-function boundedCount(
-  value: unknown,
-  fallback: number,
-  maximum: number,
-): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
-    return fallback;
-  }
-  return Math.min(value, maximum);
-}
-
-function clipCount(args: Record<string, unknown>): number {
-  if (Array.isArray(args.selectedHighlightIds)) {
-    return args.selectedHighlightIds.length;
-  }
-  if (Array.isArray(args.editedHighlights)) {
-    return args.editedHighlights.length;
-  }
-  return boundedCount(args.maxClips, 10, CLIP_HIGHLIGHT_COUNT_MAXIMUM);
-}
-
 function quoteAmount(args: Record<string, unknown>): number | null {
   const amount = args.maximumCredits;
   return typeof amount === 'number' && Number.isFinite(amount) && amount >= 0
@@ -240,11 +236,12 @@ export function estimateToolCreditCost(
   if (name === 'repurpose_post') {
     return args.mode === 'agent' ? TURBO_RUN_CAPTION_BASE_CREDITS : 0;
   }
+  // A clip's hold is priced from its script when it dispatches.
   if (
     name === 'create_clip_project_from_youtube' ||
     name === 'generate_clips'
   ) {
-    return clipCreditGateAmount(clipCount(args));
+    return null;
   }
   if (resolved.mode === 'fixed') return resolved.amount;
   if (resolved.mode === 'quote') return quoteAmount(args);

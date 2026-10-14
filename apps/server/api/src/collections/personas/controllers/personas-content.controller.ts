@@ -11,7 +11,6 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import { PostCategory } from '@genfeedai/contracts';
@@ -37,7 +36,6 @@ import type { Request } from 'express';
 export class PersonasContentController {
   constructor(
     private readonly loggerService: LoggerService,
-    private readonly personaContentService: PersonaContentService,
     private readonly personaContentPlanService: PersonaContentPlanService,
     private readonly personaPublisherService: PersonaPublisherService,
     private readonly postsService: PostsService,
@@ -67,76 +65,6 @@ export class PersonasContentController {
         },
       ),
     };
-  }
-
-  @Post(':id/generate/photo')
-  @HttpCode(HttpStatus.OK)
-  async generatePhoto(
-    @Param('id') id: string,
-    @Body() body: { prompt?: string },
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const context = this.resolvePersonaContext(user, id);
-      const result = await this.personaContentService.generatePhoto({
-        organizationId: context.organizationId,
-        personaId: context.personaId,
-        prompt: body.prompt,
-        userId: context.userId,
-      });
-
-      return { data: result };
-    } catch (error) {
-      return ErrorResponse.handle(error, this.loggerService, 'generatePhoto');
-    }
-  }
-
-  @Post(':id/generate/video')
-  @HttpCode(HttpStatus.OK)
-  async generateVideo(
-    @Param('id') id: string,
-    @Body() body: { script: string; aspectRatio?: string },
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const context = this.resolvePersonaContext(user, id);
-      const result = await this.personaContentService.generateVideo({
-        aspectRatio: body.aspectRatio,
-        organizationId: context.organizationId,
-        personaId: context.personaId,
-        script: body.script,
-        userId: context.userId,
-      });
-
-      return { data: result };
-    } catch (error) {
-      return ErrorResponse.handle(error, this.loggerService, 'generateVideo');
-    }
-  }
-
-  @Post(':id/generate/voice')
-  @HttpCode(HttpStatus.OK)
-  async generateVoice(
-    @Param('id') id: string,
-    @Body() body: { text: string; ingredientId?: string },
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const context = this.resolvePersonaContext(user, id);
-      const result = await this.personaContentService.generateVoice({
-        ingredientId: body.ingredientId
-          ? EntityIdUtil.validate(body.ingredientId, 'ingredientId')
-          : undefined,
-        organizationId: context.organizationId,
-        personaId: context.personaId,
-        text: body.text,
-        userId: context.userId,
-      });
-
-      return { data: result };
-    } catch (error) {
-      return ErrorResponse.handle(error, this.loggerService, 'generateVoice');
-    }
   }
 
   @Post(':id/content-plan')

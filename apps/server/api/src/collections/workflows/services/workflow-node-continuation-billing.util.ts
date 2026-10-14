@@ -38,7 +38,7 @@ export async function recordFundedWorkflowSubmissionIntent(
   const dispatch = currentWorkflowGenerationDispatch();
   if (
     !billing ||
-    !dispatch?.dispatchFingerprint ||
+    !dispatch ||
     dispatch.executionId !== executionId ||
     dispatch.organizationId !== organizationId
   ) {

@@ -1,6 +1,5 @@
 import { PersonasContentController } from '@api/collections/personas/controllers/personas-content.controller';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
-import type { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import type { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
 import type { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -46,48 +45,56 @@ describe('PersonasContentController - persona context', () => {
   const personaId = testId('persona');
 
   function createController() {
-    const personaContentService = {
-      generatePhoto: vi.fn().mockResolvedValue({ id: testId('ingredient') }),
+    const personaContentPlanService = {
+      generateContentPlan: vi.fn().mockResolvedValue({ entries: [] }),
     };
     const controller = new PersonasContentController(
       { error: vi.fn() } as unknown as LoggerService,
-      personaContentService as unknown as PersonaContentService,
-      {} as PersonaContentPlanService,
+      personaContentPlanService as unknown as PersonaContentPlanService,
       {} as PersonaPublisherService,
       {} as PostsService,
     );
 
-    return { controller, personaContentService };
+    return { controller, personaContentPlanService };
   }
 
   it('passes a legacy Better Auth user ID through as an opaque string', async () => {
     // Legacy base62 user IDs fail every Genfeed entity-id shape (#5410).
     const legacyUserId = 'LegacyBetterAuthUserIdBase62Abcd';
-    const { controller, personaContentService } = createController();
+    const { controller, personaContentPlanService } = createController();
 
-    await controller.generatePhoto(
+    await controller.generateContentPlan(
       personaId,
-      { prompt: 'portrait' },
+      { days: 7 },
       { brandId, id: legacyUserId, organizationId, userId: legacyUserId },
     );
 
-    expect(personaContentService.generatePhoto).toHaveBeenCalledWith(
+    expect(personaContentPlanService.generateContentPlan).toHaveBeenCalledWith(
       expect.objectContaining({ personaId, userId: legacyUserId }),
     );
   });
 
   it('still rejects a malformed persona ID', async () => {
-    const { controller, personaContentService } = createController();
+    const { controller, personaContentPlanService } = createController();
 
     await expect(
-      controller.generatePhoto(
+      controller.generateContentPlan(
         'not an id',
-        { prompt: 'portrait' },
+        { days: 7 },
         { brandId, id: testId('user'), organizationId, userId: testId('user') },
       ),
     ).rejects.toMatchObject({
       response: { detail: expect.stringContaining('Invalid personaId format') },
     });
-    expect(personaContentService.generatePhoto).not.toHaveBeenCalled();
+    expect(
+      personaContentPlanService.generateContentPlan,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('no longer exposes unbilled persona render routes', () => {
+    const { controller } = createController();
+
+    for (const route of ['generatePhoto', 'generateVideo', 'generateVoice'])
+      expect(route in controller).toBe(false);
   });
 });

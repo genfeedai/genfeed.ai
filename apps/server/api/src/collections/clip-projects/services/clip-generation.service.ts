@@ -1,4 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
 import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
@@ -146,6 +147,7 @@ export class ClipGenerationService implements OnModuleInit {
     private readonly avatarVideoService: AvatarVideoService,
     private readonly rawCutClipService: RawCutClipService,
     private readonly logger: LoggerService,
+    private readonly clipAvatarBilling: ClipAvatarBillingService,
     @Optional()
     private readonly clipLibraryLinkService?: ClipLibraryLinkService,
     @Optional()
@@ -275,6 +277,14 @@ export class ClipGenerationService implements OnModuleInit {
           avatarRef: input.avatarRef,
           voiceRef: input.voiceRef,
           callbackId: clipResultId,
+          fundSubmission: (plan) =>
+            this.clipAvatarBilling.fund({
+              clipResultId,
+              organizationId: orgId,
+              plan,
+              script: scriptText,
+              userId,
+            }),
           onJobCreated: async (job) => {
             await this.clipResultsService.patch(
               clipResultId,

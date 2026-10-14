@@ -53,6 +53,45 @@ describe('workflow media billing intent', () => {
     },
   );
 
+  it.each([
+    ['heygen', false, 'pending_charge'],
+    ['heygen', true, 'not_charged'],
+    ['replicate', false, 'pending_charge'],
+    ['replicate', true, 'not_charged'],
+  ] as const)(
+    'resolves a %s lip-sync row as a held charge unless a customer key paid (BYOK %s)',
+    async (provider, isByok, billingDisposition) => {
+      const transaction = {
+        model: { findFirst: vi.fn().mockResolvedValue(null) },
+        mediaVendorCost: { create: vi.fn() },
+      };
+      await createWorkflowMediaCostIntent(
+        transaction as unknown as Prisma.TransactionClient,
+        {
+          actionId: 'lipSync',
+          executionId: 'run',
+          ingredientId: 'asset',
+          isByok,
+          model:
+            provider === 'heygen' ? MODEL_KEYS.HEYGEN_AVATAR : 'sync/lipsync-2',
+          nodeId: 'node',
+          organizationId: 'org',
+          provider,
+        },
+        'continuation',
+      );
+      expect(transaction.mediaVendorCost.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          pricingSnapshot: expect.objectContaining({
+            billingDisposition,
+            // A boolean stamp lets accounting reconcile the vendor cost.
+            isByok,
+          }),
+        }),
+      });
+    },
+  );
+
   it('falls back to the flat avatar row when the output records no engine', async () => {
     const transaction = {
       ingredient: { findFirst: vi.fn().mockResolvedValue(null) },

@@ -33,15 +33,6 @@ const IMAGE_CONFIG = closedObjectSchema(
   },
   ['height', 'prompt', 'width'],
 );
-const GENERATION_RESULT = closedObjectSchema(
-  {
-    jobId: STRING_SCHEMA,
-    provider: STRING_SCHEMA,
-    status: enumSchema(['completed', 'queued', 'failed']),
-    url: STRING_SCHEMA,
-  },
-  ['provider', 'status'],
-);
 const PLATFORM_RESULT = closedObjectSchema(
   {
     error: STRING_SCHEMA,
@@ -87,8 +78,6 @@ const POST_STATE = postState(
     imageConfig: IMAGE_CONFIG,
     imageUrl: STRING_SCHEMA,
     ingredientId: STRING_SCHEMA,
-    videoResult: GENERATION_RESULT,
-    voiceResult: GENERATION_RESULT,
   },
   ['caption', 'imageConfig', 'imageUrl', 'ingredientId'],
 );
@@ -99,8 +88,6 @@ const PLATFORM_ITEM = postState(
     imageUrl: STRING_SCHEMA,
     ingredientId: STRING_SCHEMA,
     platform: STRING_SCHEMA,
-    videoResult: GENERATION_RESULT,
-    voiceResult: GENERATION_RESULT,
   },
   ['caption', 'imageConfig', 'imageUrl', 'ingredientId', 'platform'],
 );
@@ -111,8 +98,6 @@ const POST_RESULT = closedObjectSchema(
     ingredientId: STRING_SCHEMA,
     personaSlug: STRING_SCHEMA,
     publishResults: arraySchema(PLATFORM_RESULT),
-    videoResult: GENERATION_RESULT,
-    voiceResult: GENERATION_RESULT,
   },
   ['caption', 'imageUrl', 'ingredientId', 'personaSlug', 'publishResults'],
 );
@@ -124,9 +109,6 @@ const REQUEST_STATE_INPUT = closedObjectSchema(
   { request: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
   ['request', 'state'],
 );
-const GENERATION_INPUT = closedObjectSchema({ request: POST_STATE }, [
-  'request',
-]);
 const contract = (
   inputSchema: ActionJsonSchema,
   outputSchema: ActionJsonSchema,
@@ -197,32 +179,14 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   ),
   'ai-influencer.publish.plan': contract(
     closedObjectSchema(
-      {
-        request: JSON_DOCUMENT_SCHEMA,
-        state: JSON_DOCUMENT_SCHEMA,
-        videoBatch: JSON_DOCUMENT_SCHEMA,
-        voiceBatch: JSON_DOCUMENT_SCHEMA,
-      },
-      ['request', 'state', 'videoBatch', 'voiceBatch'],
+      { request: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
+      ['request', 'state'],
     ),
     closedObjectSchema(
       { items: arraySchema(PLATFORM_ITEM), state: POST_STATE },
       ['items', 'state'],
     ),
   ),
-  'ai-influencer.video.generate': contract(GENERATION_INPUT, GENERATION_RESULT),
-  'ai-influencer.video.plan': contract(
-    REQUEST_STATE_INPUT,
-    closedObjectSchema(
-      {
-        state: POST_STATE,
-        videoItems: arraySchema(POST_STATE),
-        voiceItems: arraySchema(POST_STATE),
-      },
-      ['state', 'videoItems', 'voiceItems'],
-    ),
-  ),
-  'ai-influencer.voice.generate': contract(GENERATION_INPUT, GENERATION_RESULT),
 };
 
 export function getAiInfluencerActionContract(

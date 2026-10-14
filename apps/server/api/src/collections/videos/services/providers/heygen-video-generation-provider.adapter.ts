@@ -27,7 +27,7 @@ function optionalInteger(value: unknown): number | undefined {
 
 /**
  * HeyGen Video on the HeyGen v3 models API. Avatar jobs stay on
- * `HeyGenService.generateAvatarVideo` and are not claimed here.
+ * `AvatarVideoGenerationService` and are not claimed here.
  * The poll returns a signed URL as `remote-output`.
  */
 @Injectable()

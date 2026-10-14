@@ -14,7 +14,6 @@ import {
   type AiInfluencerWorkflowRequest,
   findAiInfluencerWorkflowDefinition,
 } from '@api/services/ai-influencer/ai-influencer-workflow-definition';
-import type { GenerationResult } from '@api/services/persona-content/persona-content.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type PostState = AiInfluencerWorkflowRequest & {
@@ -23,8 +22,6 @@ type PostState = AiInfluencerWorkflowRequest & {
   imageUrl?: string;
   ingredientId?: string;
   persona: PersonaDocument;
-  videoResult?: GenerationResult;
-  voiceResult?: GenerationResult;
 };
 
 type PlatformItem = PostState & {
@@ -56,9 +53,6 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
         AI_INFLUENCER_ACTION_IDS.INGREDIENT_CREATE,
         this.createIngredient.bind(this),
       ],
-      [AI_INFLUENCER_ACTION_IDS.VIDEO_PLAN, this.planVideo.bind(this)],
-      [AI_INFLUENCER_ACTION_IDS.VOICE_GENERATE, this.generateVoice.bind(this)],
-      [AI_INFLUENCER_ACTION_IDS.VIDEO_GENERATE, this.generateVideo.bind(this)],
       [AI_INFLUENCER_ACTION_IDS.PUBLISH_PLAN, this.planPublish.bind(this)],
       [
         AI_INFLUENCER_ACTION_IDS.PLATFORM_PUBLISH,
@@ -188,68 +182,18 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
     return { ...state, ingredientId: ingredient.id.toString() };
   }
 
-  private planVideo(request: SystemWorkflowActionRequest): {
+  private planPublish(request: SystemWorkflowActionRequest): {
+    items: PlatformItem[];
     state: PostState;
-    videoItems: PostState[];
-    voiceItems: PostState[];
   } {
     const state = this.readPostState(request.input.state, [
       'caption',
       'imageUrl',
       'ingredientId',
     ]);
-    const requiresVideo =
-      state.platforms.includes('tiktok') || state.platforms.includes('youtube');
     return {
+      items: state.platforms.map((platform) => ({ ...state, platform })),
       state,
-      videoItems: requiresVideo ? [state] : [],
-      voiceItems: requiresVideo ? [state] : [],
-    };
-  }
-
-  private generateVoice(request: SystemWorkflowActionRequest) {
-    const state = this.readPostState(request.input.request, [
-      'caption',
-      'ingredientId',
-    ]);
-    return this.aiInfluencer.generateVoice(
-      state.persona,
-      state.caption as string,
-      state.ingredientId as string,
-    );
-  }
-
-  private generateVideo(request: SystemWorkflowActionRequest) {
-    const state = this.readPostState(request.input.request, ['caption']);
-    return this.aiInfluencer.generateVideo(
-      state.persona,
-      state.caption as string,
-    );
-  }
-
-  private planPublish(request: SystemWorkflowActionRequest): {
-    items: PlatformItem[];
-    state: PostState;
-  } {
-    const plan = this.readRecord(request.input.state, 'video plan');
-    const state = this.readPostState(plan.state, [
-      'caption',
-      'imageUrl',
-      'ingredientId',
-    ]);
-    const voiceResult = this.firstChildResult(request.input.voiceBatch);
-    const videoResult = this.firstChildResult(request.input.videoBatch);
-    const completed = {
-      ...state,
-      ...(videoResult ? { videoResult: videoResult as GenerationResult } : {}),
-      ...(voiceResult ? { voiceResult: voiceResult as GenerationResult } : {}),
-    };
-    return {
-      items: completed.platforms.map((platform) => ({
-        ...completed,
-        platform,
-      })),
-      state: completed,
     };
   }
 
@@ -262,9 +206,6 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       item.imageUrl as string,
       item.caption as string,
       item.persona,
-      item.videoResult && item.voiceResult
-        ? { videoResult: item.videoResult, voiceResult: item.voiceResult }
-        : undefined,
     );
   }
 
@@ -285,8 +226,6 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       publishResults: [...publishBatch.results]
         .sort((left, right) => left.index - right.index)
         .map((entry) => entry.result as PlatformPublishResult),
-      ...(state.videoResult ? { videoResult: state.videoResult } : {}),
-      ...(state.voiceResult ? { voiceResult: state.voiceResult } : {}),
     };
   }
 
@@ -412,12 +351,6 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
           )
         : [],
       ...(promptOverride ? { promptOverride } : {}),
-      ...(record.videoResult
-        ? { videoResult: record.videoResult as GenerationResult }
-        : {}),
-      ...(record.voiceResult
-        ? { voiceResult: record.voiceResult as GenerationResult }
-        : {}),
     };
     for (const field of required) {
       if (!state[field]) {
@@ -438,10 +371,6 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       ...state,
       platform: this.requiredString(record.platform, 'platform'),
     };
-  }
-
-  private firstChildResult(value: unknown): unknown {
-    return this.readForEachResult(value).results.at(0)?.result;
   }
 
   private readForEachResult(value: unknown): ForEachResult {

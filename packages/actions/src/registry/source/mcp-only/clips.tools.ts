@@ -1,7 +1,4 @@
-import {
-  CLIP_CREDIT_PER_CLIP,
-  CLIP_HIGHLIGHT_COUNT_MAXIMUM,
-} from '@genfeedai/contracts/constants/tool-credit.constant';
+import { CLIP_HIGHLIGHT_COUNT_MAXIMUM } from '@genfeedai/contracts/constants/tool-credit.constant';
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 /**
@@ -59,7 +56,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: `Create a clip project from a YouTube URL and run the AI clip factory async (${CLIP_CREDIT_PER_CLIP} credit/clip). HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clip_project.`,
+    description:
+      'Create a clip project from a YouTube URL and run the AI clip factory async. HeyGen avatar clips are held per clip at the per-second avatar rate and settle to the rendered length. HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clip_project.',
     name: 'create_clip_project_from_youtube',
     parameters: {
       properties: {
@@ -151,7 +149,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: `Generate clips from selected highlights (${CLIP_CREDIT_PER_CLIP} credit/clip). Avatar: avatarId+voiceId (HeyGen/Argil) or character ref (GenfeedAI); raw-cut: neither.`,
+    description:
+      'Generate clips from selected highlights. HeyGen avatar clips are held per clip at the per-second avatar rate and settle to the rendered length. Avatar: avatarId+voiceId (HeyGen/Argil) or character ref (GenfeedAI); raw-cut: neither.',
     name: 'generate_clips',
     parameters: {
       properties: {

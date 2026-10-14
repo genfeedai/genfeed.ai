@@ -7,6 +7,7 @@ import type { WorkflowEngineAdapterService } from '@api/collections/workflows/se
 import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
+import { WorkflowLipSyncExecutorRegistrarService } from '@api/collections/workflows/services/workflow-lip-sync-executor-registrar.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
@@ -180,7 +181,6 @@ function createProductionEngine(): WorkflowEngine {
       presentDependency(),
       presentDependency(),
       presentDependency(),
-      presentDependency(),
     ),
     new WorkflowContentExecutorRegistrarService(
       helper,
@@ -206,6 +206,13 @@ function createProductionEngine(): WorkflowEngine {
       presentDependency(),
     ),
     trendPublish,
+    new WorkflowLipSyncExecutorRegistrarService(
+      helper,
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+    ),
   ).register(engine);
 
   const engineAdapter: Pick<

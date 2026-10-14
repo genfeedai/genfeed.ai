@@ -15,6 +15,7 @@ import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipAnalysisWorkflowService } from '@api/collections/clip-projects/services/clip-analysis-workflow.service';
 import { ClipAnalysisWorkflowQueueService } from '@api/collections/clip-projects/services/clip-analysis-workflow-queue.service';
+import { ClipAvatarBillingService } from '@api/collections/clip-projects/services/clip-avatar-billing.service';
 import { ClipContinuityWorkflowService } from '@api/collections/clip-projects/services/clip-continuity-workflow.service';
 import { ClipFactoryWorkflowService } from '@api/collections/clip-projects/services/clip-factory-workflow.service';
 import { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/services/clip-factory-workflow-queue.service';
@@ -32,6 +33,7 @@ import { ClipResultsModule } from '@api/collections/clip-results/clip-results.mo
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
+import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -44,6 +46,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
+    ClipAvatarBillingService,
     ClipAnalysisWorkflowQueueService,
     ClipAnalysisWorkflowService,
     ClipProjectsService,
@@ -71,6 +74,7 @@ import { Module } from '@nestjs/common';
     HttpModule,
     MetadataModule,
     AvatarVideoModule,
+    VideoGenerationModule,
     HeyGenModule,
     OpenRouterModule,
     PublicClipToolStoreModule,
@@ -80,6 +84,7 @@ import { Module } from '@nestjs/common';
     WhisperModule,
   ],
   providers: [
+    ClipAvatarBillingService,
     ClipAnalysisWorkflowQueueService,
     ClipAnalysisWorkflowService,
     ClipProjectsService,

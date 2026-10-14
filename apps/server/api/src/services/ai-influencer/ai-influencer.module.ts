@@ -11,7 +11,6 @@ import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
-import { PersonaContentModule } from '@api/services/persona-content/persona-content.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
@@ -29,7 +28,6 @@ import { Module } from '@nestjs/common';
     OpenRouterModule,
     InstagramModule,
     TwitterModule,
-    PersonaContentModule,
     WorkflowsModule,
   ],
   providers: [
