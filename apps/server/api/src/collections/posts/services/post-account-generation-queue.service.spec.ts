@@ -3,7 +3,7 @@ import { PostAccountGenerationQueueService } from '@api/collections/posts/servic
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PostAccountGenerationQueueService', () => {
-  const redis = { eval: vi.fn() };
+  const redis = { defineCommand: vi.fn(), runCommand: vi.fn() };
   const queue = {
     add: vi.fn(),
     getBackend: () => ({ client: Promise.resolve(redis) }),
@@ -24,12 +24,12 @@ describe('PostAccountGenerationQueueService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    redis.eval.mockResolvedValue(1);
+    redis.runCommand.mockResolvedValue(1);
     queue.add.mockResolvedValue(undefined);
   });
 
   it('returns 429 when another run owns the organization', async () => {
-    redis.eval.mockResolvedValue(0);
+    redis.runCommand.mockResolvedValue(0);
     await expect(service.claim('org-1', 'run-1')).rejects.toMatchObject({
       status: 429,
       response: { code: 'account_generation_already_active' },
@@ -38,7 +38,7 @@ describe('PostAccountGenerationQueueService', () => {
   });
 
   it('returns 429 when the shared backlog is full', async () => {
-    redis.eval.mockResolvedValue(-1);
+    redis.runCommand.mockResolvedValue(-1);
     await expect(service.claim('org-1', 'run-1')).rejects.toMatchObject({
       status: 429,
       response: { code: 'account_generation_queue_full' },
@@ -46,14 +46,14 @@ describe('PostAccountGenerationQueueService', () => {
   });
 
   it('fails admission when Redis is unavailable', async () => {
-    redis.eval.mockRejectedValue(new Error('Redis unavailable'));
+    redis.runCommand.mockRejectedValue(new Error('Redis unavailable'));
     await expect(service.claim('org-1', 'run-1')).rejects.toThrow(
       'Redis unavailable',
     );
   });
 
   it('refuses to continue a page after its ownership lease expired', async () => {
-    redis.eval.mockResolvedValue(0);
+    redis.runCommand.mockResolvedValue(0);
     await expect(service.renew('org-1', 'run-1')).rejects.toMatchObject({
       status: 409,
     });
@@ -62,14 +62,17 @@ describe('PostAccountGenerationQueueService', () => {
   it('binds ownership operations to the organization and run token', async () => {
     await service.claim('org-1', 'old-run');
     await service.release('org-1', 'old-run');
-    const releaseArgs = redis.eval.mock.calls[1];
-    expect(releaseArgs.slice(1)).toEqual([
-      2,
-      '{account-generation}:organization:org-1',
-      '{account-generation}:pending',
-      'old-run',
+    expect(redis.runCommand.mock.calls[1]).toEqual([
+      'accountGenerationRelease',
+      [
+        '{account-generation}:organization:org-1',
+        '{account-generation}:pending',
+        'old-run',
+      ],
     ]);
-    expect(releaseArgs[0]).toContain("redis.call('GET', KEYS[1]) ~= ARGV[1]");
+    expect(redis.defineCommand.mock.calls[1][1].lua).toContain(
+      "redis.call('GET', KEYS[1]) ~= ARGV[1]",
+    );
   });
 
   it('never automatically retries a provider page and retains only bounded job history', async () => {

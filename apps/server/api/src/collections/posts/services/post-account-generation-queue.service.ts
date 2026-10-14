@@ -40,17 +40,19 @@ export class PostAccountGenerationQueueService {
 
   async claim(organizationId: string, runId: string): Promise<void> {
     const client = await this.queue.getBackend().client;
+    client.defineCommand('accountGenerationClaim', {
+      numberOfKeys: 2,
+      lua: CLAIM,
+    });
     const claimed = Number(
-      await client.eval(
-        CLAIM,
-        2,
+      await client.runCommand('accountGenerationClaim', [
         this.key(organizationId),
         PENDING_KEY,
         runId,
         Date.now(),
         LEASE_MS,
         MAX_PENDING_RUNS,
-      ),
+      ]),
     );
     if (claimed !== 1)
       throw new HttpException(
@@ -70,17 +72,19 @@ export class PostAccountGenerationQueueService {
 
   async renew(organizationId: string, runId: string): Promise<void> {
     const client = await this.queue.getBackend().client;
+    client.defineCommand('accountGenerationRenew', {
+      numberOfKeys: 2,
+      lua: RENEW,
+    });
     if (
       Number(
-        await client.eval(
-          RENEW,
-          2,
+        await client.runCommand('accountGenerationRenew', [
           this.key(organizationId),
           PENDING_KEY,
           runId,
           Date.now(),
           LEASE_MS,
-        ),
+        ]),
       ) !== 1
     )
       throw new ConflictException('account_generation_lease_expired');
