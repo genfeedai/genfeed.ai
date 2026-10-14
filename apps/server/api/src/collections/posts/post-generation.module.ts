@@ -3,8 +3,12 @@ import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
+import { ModelsModule } from '@api/collections/models/models.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostAccountGenerationService } from '@api/collections/posts/services/post-account-generation.service';
+import { PostAccountGenerationBillingService } from '@api/collections/posts/services/post-account-generation-billing.service';
 import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
@@ -14,6 +18,7 @@ import { TrendsModule } from '@api/collections/trends/trends.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
+import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
@@ -27,19 +32,24 @@ import { Module } from '@nestjs/common';
     ApiKeysModule,
     BrandsCoreModule,
     CredentialsCoreModule,
+    CreditsModule,
     MembersModule,
+    ModelsModule,
     PostsCoreModule,
     TemplatesModule,
     TrendsModule,
     AgentContextAssemblyModule,
     AgentChatModelRegistryModule,
     BrandedTextGenerationModule,
+    ByokModule,
     ReplicateModule,
     NotificationsPublisherModule,
     PromptBuilderModule,
     LoggerModule,
   ],
   providers: [
+    PostAccountGenerationBillingService,
+    PostAccountGenerationService,
     PostAccountLearningService,
     PostDraftGenerationService,
     PostGenerationService,

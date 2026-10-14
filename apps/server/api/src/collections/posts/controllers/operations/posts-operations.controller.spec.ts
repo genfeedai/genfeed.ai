@@ -1,4 +1,4 @@
-import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
+import { PostAccountGenerationService } from '@api/collections/posts/services/post-account-generation.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
 
@@ -191,6 +191,10 @@ describe('PostsOperationsController', () => {
   } as Request;
 
   // Mock Services
+  const mockAccountGeneration = {
+    retry: vi.fn(),
+    start: vi.fn(),
+  };
   const mockActivitiesService = {
     record: vi.fn().mockResolvedValue(mockActivity),
     recordMany: vi.fn().mockResolvedValue(1),
@@ -395,12 +399,8 @@ Tweet 3: Tech innovation is changing the world.`,
           useValue: { generateDraftText: vi.fn() },
         },
         {
-          provide: PostAccountLearningService,
-          useValue: {
-            resolve: vi.fn(),
-            revalidate: vi.fn(),
-            bindArtifact: vi.fn(),
-          },
+          provide: PostAccountGenerationService,
+          useValue: mockAccountGeneration,
         },
         {
           provide: PostRepurposeService,
@@ -634,203 +634,130 @@ Tweet 3: Tech innovation is changing the world.`,
   });
 
   // ==========================================================================
-  // POST /posts/account-generations - generateAccountContent (post format)
+  // POST /posts/account-generations - generateAccountContent
   // ==========================================================================
-  describe('generateAccountContent (post format)', () => {
-    const generateTweetsDto = {
+  describe('generateAccountContent', () => {
+    const postDto = {
       count: 3,
       credentialId,
       format: 'post' as const,
       tone: TweetTone.PROFESSIONAL,
       topic: 'AI technology',
     };
+    const threadDto = { ...postDto, count: 5, format: 'thread' as const };
 
-    it('should create posts with PROCESSING status and return them', async () => {
+    beforeEach(() => {
+      mockAccountGeneration.start.mockResolvedValue([mockPost]);
+    });
+
+    it('starts the receipt-backed run with the caller identity and returns the placeholders', async () => {
       const result = await generationController.generateAccountContent(
         mockRequest,
-        generateTweetsDto,
+        postDto,
         mockUser,
       );
 
-      expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith({
-        brandId,
-        credentialId: generateTweetsDto.credentialId,
-        organizationId,
-        sourceLineage: {
-          sourceReferenceIds: undefined,
-          sourceUrl: undefined,
-          trendId: undefined,
-        },
-        surface: 'post',
-      });
-      expect(mockPostsService.create).toHaveBeenCalledTimes(3);
-      expect(mockPostsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          platform: CredentialPlatform.TWITTER,
-        }),
+      expect(mockAccountGeneration.start).toHaveBeenCalledWith(
+        postDto,
+        mockUser,
       );
-      expect(result).toBeDefined();
-      expect(result.data).toBeDefined();
+      expect(result.data).toEqual([mockPost]);
     });
 
-    it('should throw NOT_FOUND when credential does not exist', async () => {
-      const notFoundError = new HttpException(
-        {
-          detail: 'The specified account does not exist or is not connected',
-          title: 'Credential not found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-      mockAccountPublishingContextService.resolve
-        .mockRejectedValueOnce(notFoundError)
-        .mockRejectedValueOnce(notFoundError);
-
-      await expect(
-        generationController.generateAccountContent(
-          mockRequest,
-          generateTweetsDto,
-          mockUser,
-        ),
-      ).rejects.toThrow(HttpException);
-
-      try {
-        await generationController.generateAccountContent(
-          mockRequest,
-          generateTweetsDto,
-          mockUser,
-        );
-      } catch (error) {
-        expect((error as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
-      }
-    });
-
-    it('should handle internal error during post creation', async () => {
-      mockPostsService.create.mockRejectedValueOnce(new Error('DB error'));
-
-      await expect(
-        generationController.generateAccountContent(
-          mockRequest,
-          generateTweetsDto,
-          mockUser,
-        ),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should re-throw HttpException as-is', async () => {
-      const httpError = new HttpException('Custom error', HttpStatus.FORBIDDEN);
-      mockAccountPublishingContextService.resolve.mockRejectedValueOnce(
-        httpError,
-      );
-
-      await expect(
-        generationController.generateAccountContent(
-          mockRequest,
-          generateTweetsDto,
-          mockUser,
-        ),
-      ).rejects.toThrow(httpError);
-    });
-
-    it('uses the selected account platform when creating generated drafts', async () => {
-      mockAccountPublishingContextService.resolve.mockResolvedValueOnce({
-        ...mockPublishingContext,
-        account: {
-          ...mockPublishingContext.account,
-          platform: CredentialPlatform.LINKEDIN,
-        },
-      });
-
+    it('starts a thread run for a valid thread size', async () => {
       await generationController.generateAccountContent(
         mockRequest,
-        generateTweetsDto,
+        threadDto,
         mockUser,
       );
 
-      expect(mockPostsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          platform: CredentialPlatform.LINKEDIN,
-        }),
+      expect(mockAccountGeneration.start).toHaveBeenCalledWith(
+        threadDto,
+        mockUser,
       );
+    });
+
+    it.each([
+      [1, 'at least two'],
+      [10, 'at most 9'],
+    ])(
+      'rejects a thread of %i posts before any credit hold or placeholder',
+      async (count, detail) => {
+        await expect(
+          generationController.generateAccountContent(
+            mockRequest,
+            { ...threadDto, count },
+            mockUser,
+          ),
+        ).rejects.toMatchObject({
+          response: { detail: expect.stringContaining(detail) },
+        });
+        expect(mockAccountGeneration.start).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps an insufficient-credits refusal as the 402 the run raised', async () => {
+      const refusal = new HttpException(
+        { title: 'Insufficient credits' },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+      mockAccountGeneration.start.mockRejectedValueOnce(refusal);
+
+      await expect(
+        generationController.generateAccountContent(
+          mockRequest,
+          postDto,
+          mockUser,
+        ),
+      ).rejects.toBe(refusal);
+    });
+
+    it('wraps an unexpected failure in the generic 500 shape', async () => {
+      mockAccountGeneration.start.mockRejectedValueOnce(new Error('DB error'));
+
+      await expect(
+        generationController.generateAccountContent(
+          mockRequest,
+          postDto,
+          mockUser,
+        ),
+      ).rejects.toMatchObject({ status: HttpStatus.INTERNAL_SERVER_ERROR });
     });
   });
 
   // ==========================================================================
-  // POST /posts/account-generations - generateAccountContent (thread format)
+  // POST /posts/:postId/generation-retries - retryAccountGeneration
   // ==========================================================================
-  describe('generateAccountContent (thread format)', () => {
-    const generateThreadDto = {
-      count: 5,
-      credentialId,
-      format: 'thread' as const,
-      tone: TweetTone.CASUAL,
-      topic: 'AI technology',
-    };
+  describe('retryAccountGeneration', () => {
+    it('retries the failed placeholder under the caller-supplied request key', async () => {
+      const requestKey = '7b1f6a3e-2c54-4d0e-9a8b-3f1c2d4e5a60';
+      mockAccountGeneration.retry.mockResolvedValueOnce(mockPost);
 
-    it('should create thread posts with parent relationships', async () => {
-      let callCount = 0;
-      mockPostsService.create.mockImplementation(() => {
-        callCount++;
-        return Promise.resolve({
-          ...mockPost,
-          id: testId('other'),
-          order: callCount - 1,
-        });
-      });
-
-      const result = await generationController.generateAccountContent(
+      const result = await generationController.retryAccountGeneration(
         mockRequest,
-        generateThreadDto,
+        postId,
+        { requestKey },
         mockUser,
       );
 
-      expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId,
-          credentialId: generateThreadDto.credentialId,
-          organizationId,
-          surface: 'thread',
-        }),
-      );
-      expect(mockPostsService.create).toHaveBeenCalledTimes(5);
-      expect(result).toBeDefined();
-      expect(result.data).toBeDefined();
-    });
-
-    it('should throw NOT_FOUND when credential not found', async () => {
-      mockAccountPublishingContextService.resolve.mockRejectedValueOnce(
-        new HttpException(
-          {
-            detail: 'The specified account does not exist or is not connected',
-            title: 'Credential not found',
-          },
-          HttpStatus.NOT_FOUND,
-        ),
-      );
-
-      await expect(
-        generationController.generateAccountContent(
-          mockRequest,
-          generateThreadDto,
-          mockUser,
-        ),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should use default PROFESSIONAL tone when not specified', async () => {
-      const dtoWithoutTone = {
-        count: 3,
-        credentialId,
-        format: 'thread' as const,
-        topic: 'AI',
-      };
-
-      await generationController.generateAccountContent(
-        mockRequest,
-        dtoWithoutTone,
+      expect(mockAccountGeneration.retry).toHaveBeenCalledWith(
+        postId,
+        requestKey,
         mockUser,
       );
+      expect(result.data).toEqual(mockPost);
+    });
 
-      expect(mockPostsService.create).toHaveBeenCalled();
+    it('is registered as POST /posts/:postId/generation-retries', () => {
+      const handler =
+        PostsGenerationController.prototype.retryAccountGeneration;
+
+      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(
+        ':postId/generation-retries',
+      );
+      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+        RequestMethod.POST,
+      );
     });
   });
 
@@ -1745,46 +1672,6 @@ Tweet 3: Tech innovation is changing the world.`,
         );
 
         // The method is called, processing happens internally
-        expect(mockPostsService.create).toHaveBeenCalled();
-      });
-    });
-
-    describe('isValidPostLength', () => {
-      // Tested indirectly through parseTweetContent during async generation
-      it('should validate post length during tweet generation', async () => {
-        const generateTweetsDto = {
-          count: 2,
-          credentialId,
-          format: 'post' as const,
-          topic: 'Test',
-        };
-
-        await generationController.generateAccountContent(
-          mockRequest,
-          generateTweetsDto,
-          mockUser,
-        );
-
-        expect(mockPostsService.create).toHaveBeenCalled();
-      });
-    });
-
-    describe('extractLabelFromTweet', () => {
-      it('should extract label when creating posts', async () => {
-        const generateTweetsDto = {
-          count: 1,
-          credentialId,
-          format: 'post' as const,
-          topic: 'Test',
-        };
-
-        await generationController.generateAccountContent(
-          mockRequest,
-          generateTweetsDto,
-          mockUser,
-        );
-
-        // Label extraction happens during async processing
         expect(mockPostsService.create).toHaveBeenCalled();
       });
     });

@@ -2892,6 +2892,11 @@ learningCheckpoints ContentLearningCheckpoint[]
   promptUsed                     String?
   // Knowledge source versions whose passages shaped this post's generation.
   knowledgeReceipts              Json               @default("[]")
+  // Branded generation receipt that produced this post's text and the state it
+  // reached when the dispatch finished (#5786). Plain ids: the receipt itself
+  // stays the authority and is never a foreign key of the post.
+  brandedReceiptId               String?
+  brandedReceiptState            String?
   reviewTurboRunId                  String?
   reviewItemId                   String?
   reviewDecision                 ReviewDecision?

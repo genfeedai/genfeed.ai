@@ -122,11 +122,15 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
 export type PostUpdateInput = Partial<UpdatePostDto> & {
   agentStrategyId?: string;
   brandId?: string;
+  brandedReceiptId?: string | null;
+  brandedReceiptState?: string | null;
   organizationId?: string;
   platform?: CredentialPlatform;
   reviewDecision?: PersistedReviewDecision;
   reviewFeedback?: string;
   reviewedAt?: Date;
+  promptUsed?: string;
+  targetError?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
   targetSettings?: Prisma.InputJsonValue;
   userId?: string;
 };

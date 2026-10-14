@@ -6,10 +6,9 @@ import {
   IsArray,
   IsEnum,
   IsIn,
-  IsNumber,
+  IsInt,
   IsOptional,
   IsString,
-  Max,
   Min,
 } from 'class-validator';
 
@@ -22,13 +21,12 @@ export class GenerateAccountPostDto {
   })
   readonly topic!: string;
 
-  @IsNumber()
+  @IsInt()
   @Min(1)
-  @Max(50)
   @ApiProperty({
-    description: 'Number of posts to generate',
+    description:
+      'Number of posts to generate. There is no fixed cap: the run refuses when the credit balance cannot cover every dispatch.',
     example: 1,
-    maximum: 50,
     minimum: 1,
     required: true,
   })

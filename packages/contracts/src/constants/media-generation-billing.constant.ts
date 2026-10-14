@@ -12,6 +12,13 @@ export const GENERATION_POOL_WORKLOAD_TYPE = 'generation';
 export const MEDIA_GENERATION_WORKLOAD_TYPE = 'media-generation';
 
 /**
+ * CreditReservation.workloadType for the hold that pays for exactly one text
+ * dispatch carved out of a run-level pool hold (#5786). Settled when the
+ * provider accepted the attempt, released otherwise; expiry releases it.
+ */
+export const TEXT_GENERATION_WORKLOAD_TYPE = 'text-generation';
+
+/**
  * Admission deadline for generation funding. Reconciliation closes further
  * dispatch at this deadline; provider intent remains unresolved until durable
  * completion or authoritative negative evidence arrives. TTL is not failure proof.

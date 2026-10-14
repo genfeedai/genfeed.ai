@@ -18,6 +18,7 @@ import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto'
 import { GeneratePostDraftDto } from '@api/collections/posts/dto/generate-post-draft.dto';
 import { GenerateSourcePostVariationsDto } from '@api/collections/posts/dto/generate-source-post-variations.dto';
 import { RepurposePostDto } from '@api/collections/posts/dto/repurpose-post.dto';
+import { RetryAccountGenerationDto } from '@api/collections/posts/dto/retry-account-generation.dto';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
@@ -259,6 +260,27 @@ export class PostsGenerationController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  /**
+   * Retries one failed account-generation placeholder (a thread is retried
+   * whole) under a new request key. The run's credit hold is taken up front
+   * and the dispatch finishes in the background, like the original run.
+   */
+  @Post(':postId/generation-retries')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async retryAccountGeneration(
+    @Req() request: Request,
+    @Param('postId') postId: string,
+    @Body() dto: RetryAccountGenerationDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiSingleResponse> {
+    const post = await this.postGenerationService.retryAccountContentGeneration(
+      postId,
+      dto.requestKey,
+      user,
+    );
+    return serializeSingle(request, this.serializer, post);
   }
 
   /**
