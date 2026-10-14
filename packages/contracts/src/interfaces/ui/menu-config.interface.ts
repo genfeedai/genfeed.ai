@@ -5,11 +5,6 @@ import type { ILabeledItem } from '../index';
 
 export type AppContext =
   | 'admin'
-  | 'admin-overview'
-  | 'admin-content'
-  | 'admin-automation'
-  | 'admin-configuration'
-  | 'admin-administration'
   | 'workspace'
   | 'agent'
   | 'discovery'
