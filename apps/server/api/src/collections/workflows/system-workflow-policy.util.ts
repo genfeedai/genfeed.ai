@@ -6,6 +6,7 @@ import {
   PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
   PROACTIVE_AGENT_TURN_SOURCE,
 } from '@api/collections/workflows/system-workflow-definition';
+import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -232,4 +233,28 @@ export async function resolveInheritedDispatch(
     usePlatformQueue:
       source !== undefined && isPlatformOriginatedSource(source),
   };
+}
+
+/**
+ * The `executionRetention` contract a parent execution was started with,
+ * shaped as child metadata so a `workflow.for-each` fan-out can spread it into
+ * every child it creates (#5634). Without it, a parent tagged to self-purge
+ * (e.g. the hourly artifact cleanup sweep) leaves one permanent row per child.
+ * Returns an empty record when the parent carries no retention contract.
+ */
+export async function resolveInheritedRetentionMetadata(
+  prisma: PrismaService,
+  executionId: string,
+  organizationId: string,
+): Promise<Record<string, unknown>> {
+  const execution = await prisma.workflowExecution.findFirst({
+    select: { result: true },
+    where: { id: executionId, isDeleted: false, organizationId },
+  });
+  const retention = readRecord(readRecord(execution?.result).metadata)[
+    WORKFLOW_EXECUTION_RETENTION_METADATA_KEY
+  ];
+  return retention === undefined || retention === null
+    ? {}
+    : { [WORKFLOW_EXECUTION_RETENTION_METADATA_KEY]: retention };
 }

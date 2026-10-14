@@ -77,7 +77,14 @@ export class RssSourceWorkflowService implements OnModuleInit {
     this.runner.registerWorkflow(buildRssItemWorkflowDefinition());
   }
 
-  async enqueueSweep(now = new Date()): Promise<string> {
+  /**
+   * Queues the sweep workflow, or returns `null` without persisting an
+   * execution row when no enabled source exists (#5634).
+   */
+  async enqueueSweep(now = new Date()): Promise<string | null> {
+    if (!(await this.rssSources.hasEnabledForSweep())) {
+      return null;
+    }
     const definition = buildRssSweepWorkflowDefinition();
     return this.queue.queueSystemWorkflow(
       {

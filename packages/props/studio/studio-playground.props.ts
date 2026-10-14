@@ -1,5 +1,6 @@
 import type { IngredientFormat, ViewType } from '@genfeedai/contracts';
 import type {
+  HeyGenGender,
   IIngredient,
   IModel,
   KnowledgeSelection,
@@ -28,6 +29,16 @@ export interface StudioIdentityFieldsProps {
   onChange: (patch: Partial<StudioPlaygroundSettings>) => void;
   settings: StudioPlaygroundSettings;
   type: StudioPlaygroundType;
+}
+
+export interface StudioIdentityVoiceRowProps {
+  gender?: HeyGenGender | null;
+  isDisabled?: boolean;
+  isSelected: boolean;
+  name: string;
+  onSelect: () => void;
+  previewUrl?: string;
+  source: string;
 }
 
 export interface StudioPlaygroundComposerProps {

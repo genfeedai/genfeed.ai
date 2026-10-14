@@ -884,6 +884,115 @@ describe('SystemWorkflowRunnerService definitions', () => {
     expect(runner.runWorkflow).toHaveBeenCalledTimes(2);
   });
 
+  it('propagates the parent execution retention contract to awaited for-each children (#5634)', async () => {
+    const retention = { purgeAfterHours: 1, scrubNodePayloads: 'all' };
+    const prisma = {
+      workflowExecution: {
+        findFirst: vi.fn().mockResolvedValue({
+          result: { metadata: { executionRetention: retention } },
+        }),
+      },
+    };
+    const { executors, runner } = createRunner(undefined, prisma);
+    runner.onModuleInit();
+    runner.registerWorkflow(definition);
+    vi.spyOn(runner, 'runWorkflow').mockResolvedValue({
+      provenance: {
+        executionId: 'child-execution',
+        workflowId: 'child-workflow',
+        workflowLabel: 'Child workflow',
+      },
+      result: 'done',
+    });
+
+    await executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+      executableForEachNode({
+        childWorkflowId: definition.canonicalId,
+        itemInputKey: 'item',
+      }),
+      new Map([['items', ['a', 'b']]]),
+      executionContext(),
+    );
+
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
+      select: { result: true },
+      where: {
+        id: 'parent-execution',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(runner.runWorkflow).toHaveBeenCalledTimes(2);
+    for (const [input] of vi.mocked(runner.runWorkflow).mock.calls) {
+      expect(input.metadata).toMatchObject({
+        executionRetention: retention,
+        parentExecutionId: 'parent-execution',
+      });
+    }
+  });
+
+  it('propagates the parent execution retention contract to scheduled for-each children (#5634)', async () => {
+    const retention = { purgeAfterHours: 1, scrubNodePayloads: 'all' };
+    const queueSystemWorkflow = vi
+      .fn()
+      .mockImplementation(async (_input, jobId) => jobId);
+    const prisma = {
+      workflowExecution: {
+        findFirst: vi.fn().mockResolvedValue({
+          result: { metadata: { executionRetention: retention } },
+        }),
+      },
+    };
+    const { executors, runner } = createRunner({ queueSystemWorkflow }, prisma);
+    runner.onModuleInit();
+    runner.registerWorkflow(definition);
+
+    await executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+      executableForEachNode({
+        childWorkflowId: definition.canonicalId,
+        itemInputKey: 'item',
+        mode: 'scheduled',
+      }),
+      new Map([['items', ['a']]]),
+      executionContext(),
+    );
+
+    expect(queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ executionRetention: retention }),
+      }),
+      expect.any(String),
+      expect.anything(),
+    );
+  });
+
+  it('leaves for-each children without retention when the parent carries none (#5634)', async () => {
+    const { executors, runner } = createRunner();
+    runner.onModuleInit();
+    runner.registerWorkflow(definition);
+    vi.spyOn(runner, 'runWorkflow').mockResolvedValue({
+      provenance: {
+        executionId: 'child-execution',
+        workflowId: 'child-workflow',
+        workflowLabel: 'Child workflow',
+      },
+      result: 'done',
+    });
+
+    await executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+      executableForEachNode({
+        childWorkflowId: definition.canonicalId,
+        itemInputKey: 'item',
+      }),
+      new Map([['items', ['a']]]),
+      executionContext(),
+    );
+
+    expect(
+      vi.mocked(runner.runWorkflow).mock.calls[0]?.[0].metadata,
+    ).not.toHaveProperty('executionRetention');
+  });
+
   it('executes the exact tenant workflow version for every pinned child', async () => {
     const executePinnedManualWorkflow = vi.fn().mockResolvedValue({
       execution: {
@@ -896,7 +1005,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     });
     const { executors, runner } = createRunner(
       undefined,
-      {},
+      { workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) } },
       { executePinnedManualWorkflow },
     );
     runner.onModuleInit();
@@ -961,7 +1070,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     });
     const { executors, runner } = createRunner(
       undefined,
-      {},
+      { workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) } },
       { executePinnedManualWorkflow },
     );
     runner.onModuleInit();
@@ -1207,6 +1316,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
           { id: 'org-3', userId: 'owner-3' },
         ]),
       },
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
       workflow: {
         findFirst: vi.fn().mockResolvedValue({
           metadata: {
@@ -1844,7 +1954,9 @@ describe('stored delay module ownership', () => {
 
 function createRunner(
   queue = { queueSystemWorkflow: vi.fn() },
-  prisma: object = {},
+  prisma: object = {
+    workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+  },
   workflowExecutor: object = {},
   workflowExecutions: object = {},
   moduleAccess: object = {},

@@ -261,7 +261,7 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: {
-    pattern: '*/30 * * * *',
+    pattern: '0 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.YOUTUBE_STATUS]: {

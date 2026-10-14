@@ -15,7 +15,7 @@ import {
   vi,
 } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ identities: vi.fn() }));
+const mocks = vi.hoisted(() => ({ brand: vi.fn(), identities: vi.fn() }));
 class MockResizeObserver {
   disconnect = vi.fn();
   observe = vi.fn();
@@ -24,6 +24,13 @@ class MockResizeObserver {
 
 vi.mock('@pages/studio/playground/hooks/useStudioPlaygroundIdentities', () => ({
   useStudioPlaygroundIdentities: (params: unknown) => mocks.identities(params),
+}));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/studio',
+  useSearchParams: () => new URLSearchParams(),
+}));
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => mocks.brand(),
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -49,6 +56,8 @@ const identities: UseStudioPlaygroundIdentitiesReturn = {
   avatarOptions: [
     {
       label: 'Saved photo',
+      name: 'Saved photo',
+      source: 'Photo',
       value: 'https://assets.test/photo.jpg',
       preview: 'https://assets.test/photo.jpg',
     },
@@ -62,6 +71,8 @@ const identities: UseStudioPlaygroundIdentitiesReturn = {
   voiceOptions: [
     {
       label: 'Saved voice (ELEVENLABS)',
+      name: 'Saved voice',
+      source: 'ELEVENLABS',
       value: 'ELEVENLABS:voice-1',
       preview: 'https://assets.test/sample.mp3',
       voiceRef: {
@@ -107,7 +118,12 @@ describe('Studio identity catalog recovery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.identities.mockReturnValue(identities);
+    mocks.brand.mockReturnValue({ selectedBrand: undefined });
   });
+
+  async function openPicker(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'Identity' }));
+  }
 
   it('explains a provider outage while keeping available photo and voice choices usable', async () => {
     const user = userEvent.setup();
@@ -119,31 +135,59 @@ describe('Studio identity catalog recovery', () => {
         onChange={onChange}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    await openPicker(user);
     expect(screen.getByRole('alert')).toHaveTextContent(
       identities.error as string,
     );
     expect(screen.getByRole('button', { name: 'Saved photo' })).toBeEnabled();
-    expect(
-      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
-    ).toBeEnabled();
-    await user.click(
-      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
-    );
+    await user.click(screen.getByRole('tab', { name: /^Voice/ }));
+    await user.click(screen.getByRole('button', { name: 'Use Saved voice' }));
     expect(onChange).toHaveBeenCalledExactlyOnceWith({
       voiceRef: identities.voiceOptions[0].voiceRef,
       voiceId: 'voice-1',
     });
   });
 
-  it('renders independent preview and selection controls, with explicit saved defaults', async () => {
+  it('keeps avatar and voice on separate tabs and moves to Voice after an avatar is picked', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <StudioIdentityFields
+        settings={settings}
+        type="avatar"
+        onChange={onChange}
+      />,
+    );
+    await openPicker(user);
+    expect(screen.getByRole('tab', { name: /^Avatar/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Use Saved voice' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Saved photo' }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      avatarRef: undefined,
+      avatarPhotoUrl: 'https://assets.test/photo.jpg',
+    });
+    expect(screen.getByRole('tab', { name: /^Voice/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Use Saved voice' }),
+    ).toBeVisible();
+  });
+
+  it('previews a voice without selecting it and marks the chosen voice', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
       <StudioIdentityFields
         settings={{
           ...settings,
-          avatarPhotoUrl: 'chosen',
+          avatarPhotoUrl: 'https://assets.test/photo.jpg',
           voiceId: 'voice-1',
           voiceRef: identities.voiceOptions[0].voiceRef,
         }}
@@ -151,37 +195,160 @@ describe('Studio identity catalog recovery', () => {
         onChange={onChange}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Identity' }));
-    expect(screen.queryByRole('combobox')).toBeNull();
+    await openPicker(user);
+    await user.click(screen.getByRole('tab', { name: /^Voice/ }));
     expect(
-      screen.getByRole('button', {
-        name: 'Play preview for Saved voice (ELEVENLABS)',
-      }),
+      screen.getByRole('button', { name: 'Preview Saved voice' }),
     ).toBeEnabled();
     expect(
-      screen.queryByRole('button', {
-        name: 'Pause preview for Saved voice (ELEVENLABS)',
-      }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Saved voice selected' }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(onChange).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Saved photo' }));
-    expect(onChange).toHaveBeenLastCalledWith({
-      avatarRef: undefined,
+    expect(
+      screen.getByText('Saved photo speaking as Saved voice'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Done' })).toBeEnabled();
+  });
+
+  it('keeps Done disabled and names what is missing until both are chosen', async () => {
+    const user = userEvent.setup();
+    const view = render(
+      <StudioIdentityFields
+        settings={settings}
+        type="avatar"
+        onChange={vi.fn()}
+      />,
+    );
+    await openPicker(user);
+    expect(screen.getByText('Pick an avatar and a voice')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Done' })).toBeDisabled();
+    view.rerender(
+      <StudioIdentityFields
+        settings={{
+          ...settings,
+          avatarPhotoUrl: 'https://assets.test/photo.jpg',
+        }}
+        type="avatar"
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Pick a voice')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Done' })).toBeDisabled();
+  });
+
+  describe('voice gender', () => {
+    const voiceOption = (name: string, gender: 'female' | 'male' | null) => ({
+      label: `${name} (HeyGen · public)`,
+      name,
+      source: 'HeyGen · public',
+      value: `heygen:public:${name}`,
+      gender,
+      voiceRef: {
+        source: 'catalog' as const,
+        provider: VoiceProvider.HEYGEN,
+        externalVoiceId: name,
+        ownership: 'public' as const,
+      },
+    });
+    const avatarOption = (name: string, gender: 'female' | 'male' | null) => ({
+      label: `${name} (Photo)`,
+      name,
+      source: 'Photo',
+      value: `https://assets.test/${name}.jpg`,
+      gender,
+    });
+
+    it('hides voices whose stated gender differs from the avatar', async () => {
+      mocks.identities.mockReturnValue({
+        ...identities,
+        error: null,
+        avatarOptions: [avatarOption('Dante', 'male')],
+        voiceOptions: [
+          voiceOption('Lucian', 'male'),
+          voiceOption('Elowen', 'female'),
+          voiceOption('Clone', null),
+        ],
+      });
+      const user = userEvent.setup();
+      render(
+        <StudioIdentityFields
+          settings={{
+            ...settings,
+            avatarPhotoUrl: 'https://assets.test/Dante.jpg',
+          }}
+          type="avatar"
+          onChange={vi.fn()}
+        />,
+      );
+      await openPicker(user);
+      expect(screen.getByRole('tab', { name: /^Voice/ })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByRole('button', { name: 'Use Lucian' })).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Use Clone' })).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: 'Use Elowen' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText('Only voices that match Dante are shown'),
+      ).toBeVisible();
+    });
+
+    it('clears a chosen voice that does not match a newly picked avatar', async () => {
+      mocks.identities.mockReturnValue({
+        ...identities,
+        error: null,
+        avatarOptions: [avatarOption('Dante', 'male')],
+        voiceOptions: [voiceOption('Elowen', 'female')],
+      });
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(
+        <StudioIdentityFields
+          settings={{
+            ...settings,
+            voiceId: 'Elowen',
+            voiceRef: voiceOption('Elowen', 'female').voiceRef,
+          }}
+          type="avatar"
+          onChange={onChange}
+        />,
+      );
+      await openPicker(user);
+      await user.click(screen.getByRole('button', { name: 'Dante (Photo)' }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({
+        avatarRef: undefined,
+        avatarPhotoUrl: 'https://assets.test/Dante.jpg',
+        voiceRef: undefined,
+        voiceId: undefined,
+      });
+    });
+  });
+
+  it('starts from the brand saved avatar and voice when nothing is chosen', () => {
+    const defaultVoiceRef = identities.voiceOptions[0].voiceRef;
+    mocks.brand.mockReturnValue({
+      selectedBrand: {
+        id: 'brand-1',
+        agentConfig: {
+          defaultAvatarPhotoUrl: 'https://assets.test/photo.jpg',
+          defaultVoiceRef,
+        },
+      },
+    });
+    const onChange = vi.fn();
+    render(
+      <StudioIdentityFields
+        settings={settings}
+        type="avatar"
+        onChange={onChange}
+      />,
+    );
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({
       avatarPhotoUrl: 'https://assets.test/photo.jpg',
-    });
-    await user.click(
-      screen.getByRole('button', { name: 'Use saved avatar default' }),
-    );
-    expect(onChange).toHaveBeenLastCalledWith({
-      avatarRef: undefined,
-      avatarPhotoUrl: undefined,
-    });
-    await user.click(
-      screen.getByRole('button', { name: 'Use saved voice default' }),
-    );
-    expect(onChange).toHaveBeenLastCalledWith({
-      voiceRef: undefined,
-      voiceId: undefined,
+      voiceRef: defaultVoiceRef,
+      voiceId: 'voice-1',
     });
   });
 
@@ -189,7 +356,15 @@ describe('Studio identity catalog recovery', () => {
     const user = userEvent.setup();
     mocks.identities.mockReturnValue({
       ...identities,
-      avatarOptions: [{ label: 'Not ready', value: 'look', disabled: true }],
+      avatarOptions: [
+        {
+          label: 'Not ready',
+          name: 'Not ready',
+          source: 'HeyGen',
+          value: 'look',
+          disabled: true,
+        },
+      ],
     });
     const view = render(
       <StudioIdentityFields
@@ -198,8 +373,9 @@ describe('Studio identity catalog recovery', () => {
         onChange={vi.fn()}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    await openPicker(user);
     expect(screen.getByRole('button', { name: 'Not ready' })).toBeDisabled();
+    await user.click(screen.getByRole('tab', { name: /^Voice/ }));
     view.rerender(
       <StudioIdentityFields
         settings={settings}
@@ -209,7 +385,7 @@ describe('Studio identity catalog recovery', () => {
       />,
     );
     expect(
-      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
+      screen.getByRole('button', { name: 'Use Saved voice' }),
     ).toBeDisabled();
   });
 
@@ -223,7 +399,7 @@ describe('Studio identity catalog recovery', () => {
         onChange={vi.fn()}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    await openPicker(user);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -235,7 +411,8 @@ describe('Studio identity catalog recovery', () => {
       error: null,
       voiceOptions: Array.from({ length: 25 }, (_, index) => ({
         ...identities.voiceOptions[0],
-        label: `Voice ${index + 1}`,
+        label: `Voice ${index + 1} (ELEVENLABS)`,
+        name: `Voice ${index + 1}`,
         value: `voice-${index + 1}`,
       })),
     });
@@ -246,19 +423,19 @@ describe('Studio identity catalog recovery', () => {
         onChange={onChange}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    await openPicker(user);
     expect(
-      screen.queryByRole('button', { name: 'Voice 13' }),
+      screen.queryByRole('button', { name: 'Use Voice 13' }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'More voices' }));
-    expect(screen.getByRole('button', { name: 'Voice 13' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Use Voice 13' })).toBeVisible();
     await user.type(
-      screen.getByRole('textbox', { name: 'Search avatars and voices' }),
+      screen.getByRole('textbox', { name: 'Search voices' }),
       'Voice 25',
     );
-    expect(screen.getByRole('button', { name: 'Voice 25' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Use Voice 25' })).toBeVisible();
     expect(
-      screen.queryByRole('button', { name: 'Voice 1' }),
+      screen.queryByRole('button', { name: 'Use Voice 1' }),
     ).not.toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -273,7 +450,7 @@ describe('Studio identity catalog recovery', () => {
         onChange={onChange}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    await openPicker(user);
     await user.click(
       screen.getByRole('button', { name: 'Retry HeyGen identities' }),
     );
@@ -294,15 +471,17 @@ describe('Studio identity catalog recovery', () => {
         onChange={vi.fn()}
       />,
     );
-    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    await openPicker(user);
     expect(screen.getByRole('button', { name: 'Saved photo' })).toBeEnabled();
-    expect(
-      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
-    ).toBeEnabled();
     expect(
       screen.getByRole('button', { name: 'Retry HeyGen identities' }),
     ).toBeDisabled();
+    await user.click(screen.getByRole('tab', { name: /^Voice/ }));
+    expect(
+      screen.getByRole('button', { name: 'Use Saved voice' }),
+    ).toBeEnabled();
   });
+
   it('loads another provider page only when the user requests more avatars', async () => {
     const loadMoreAvatars = vi.fn().mockResolvedValue(undefined);
     mocks.identities.mockReturnValue({
@@ -333,6 +512,8 @@ describe('Studio identity catalog recovery', () => {
     } as const;
     const heyGenVoiceOption = {
       label: 'Founder clone (HeyGen Voice · private)',
+      name: 'Founder clone',
+      source: 'HeyGen Voice · private',
       value: 'heygen:private:clone-1',
       voiceRef: heyGenVoiceRef,
     };
@@ -372,9 +553,7 @@ describe('Studio identity catalog recovery', () => {
       );
       await user.click(screen.getByRole('button', { name: 'Identity' }));
       await user.click(
-        screen.getByRole('button', {
-          name: 'Founder clone (HeyGen Voice · private)',
-        }),
+        screen.getByRole('button', { name: 'Use Founder clone' }),
       );
 
       expect(onChange).toHaveBeenCalledExactlyOnceWith({

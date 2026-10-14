@@ -83,7 +83,15 @@ describe('HeyGenService', () => {
     httpServiceMock.get.mockReturnValueOnce(
       of({
         data: {
-          data: [{ voice_id: 'voice-id', preview_audio_url: 'p', name: 'n' }],
+          data: [
+            {
+              voice_id: 'voice-id',
+              preview_audio_url: 'p',
+              name: 'n',
+              gender: 'Female',
+            },
+            { voice_id: 'voice-2', name: 'm', gender: 'unknown' },
+          ],
           has_more: false,
           next_token: null,
         },
@@ -96,10 +104,12 @@ describe('HeyGenService', () => {
       expect.objectContaining({
         index: 0,
         name: 'n',
+        gender: 'female',
         preview: 'p',
         voiceId: 'voice-id',
         ownership: 'public',
       }),
+      expect.objectContaining({ voiceId: 'voice-2', gender: null }),
     ]);
     expect(httpServiceMock.get).toHaveBeenCalled();
   });
@@ -108,7 +118,14 @@ describe('HeyGenService', () => {
     httpServiceMock.get.mockReturnValueOnce(
       of({
         data: {
-          data: [{ id: 'look-id', name: 'n', preview_image_url: 'p' }],
+          data: [
+            {
+              id: 'look-id',
+              name: 'n',
+              preview_image_url: 'p',
+              gender: 'male',
+            },
+          ],
           has_more: false,
           next_token: null,
         },
@@ -122,6 +139,7 @@ describe('HeyGenService', () => {
         avatarId: 'look-id',
         index: 0,
         name: 'n',
+        gender: 'male',
         preview: 'p',
       }),
     ]);
