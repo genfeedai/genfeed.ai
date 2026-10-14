@@ -803,7 +803,7 @@ describe('brand enhancement stop', () => {
     url: undefined,
   };
 
-  it.each([ViewType.GRID, ViewType.LIST])(
+  it.each([ViewType.GRID, ViewType.LIST] as const)(
     'states the stop and offers a one-click generate without brand in %s view',
     (view) => {
       const assetActions = buildAssetActions();
