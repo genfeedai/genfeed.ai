@@ -4,7 +4,7 @@ import type { Request } from 'express';
 
 interface BrandedTextCreditOutcome {
   brandedReceipt: { isReplayed: boolean };
-  model: string;
+  model?: string;
 }
 
 /**
@@ -18,7 +18,7 @@ export async function finalizeBrandedTextCredits<
   T extends BrandedTextCreditOutcome,
 >(
   request: Request,
-  minimumCredits: (model: string) => Promise<number>,
+  minimumCredits: (model: string | undefined) => Promise<number>,
   generate: () => Promise<T>,
 ): Promise<T> {
   let result: T;
