@@ -10,6 +10,7 @@ import { BrandValidationService } from '@api/services/brand-validation/brand-val
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
+import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationPromptStoreService } from '@api/services/branded-generation-receipts/branded-generation-prompt-store.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -360,6 +361,49 @@ describe.each([true, false])(
         response: { code: 'brand_kit_default_requires_edit' },
       });
       expect((await h.resolver.resolveSystem()).mode).toBe('provisional_brand');
+    }, 120000);
+
+    it('generates against an approved brand once the owner reviewed and approved edited rules', async () => {
+      await seed();
+      const h = build();
+      const { target } = await systemRequest(h);
+      const draft = await h.revisions.get(
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        target.brandId,
+        (target as { draftRevisionId: string }).draftRevisionId,
+      );
+      const rules = structuredClone(draft.content.generationRules);
+      if (!rules?.palette[0]) throw new Error('default kit rules expected');
+      rules.palette[0].usage = 'Genfeed primary';
+      const edited = await h.revisions.update(
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        target.brandId,
+        draft.id,
+        { ...draft.content, generationRules: rules },
+        String(draft.updatedAt),
+      );
+      const approved = await h.revisions.approve(
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        target.brandId,
+        edited.id,
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        String(edited.updatedAt),
+        hashBrandGenerationRulesReviewV1(rules),
+      );
+      expect(approved.status).toBe('APPROVED');
+
+      const next = await systemRequest(h);
+      expect(next.target.mode).toBe('approved_brand');
+      const completed = await h.seam.generate(next.request);
+      if (completed.kind !== 'completed')
+        throw new Error(
+          `Approved system generation stopped: ${'reasonCode' in completed ? completed.reasonCode : completed.kind}`,
+        );
+      expect(completed.receipt.snapshot).toMatchObject({
+        approval: 'approved',
+        brandId: target.brandId,
+      });
+      expect(completed.receipt.state).not.toBe('blocked');
     }, 120000);
 
     it('gives the system principal no reach into a customer brand', async () => {
