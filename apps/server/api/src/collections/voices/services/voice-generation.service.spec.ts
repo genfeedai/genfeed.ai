@@ -848,7 +848,7 @@ describe('VoiceGenerationService', () => {
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
       expect(heygen.generateSpeech).not.toHaveBeenCalled();
       expect(voices.patchAll).toHaveBeenLastCalledWith(
-        { id: ingredientId, isDeleted: false, organizationId },
+        { id: ingredientId, isDeleted: false, organizationId, s3Key: null },
         { status: IngredientStatus.FAILED },
       );
       expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
