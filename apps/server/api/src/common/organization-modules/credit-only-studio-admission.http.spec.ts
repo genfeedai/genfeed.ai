@@ -2,6 +2,7 @@ import { StoryboardRunsController } from '@api/collections/content-runs/controll
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import { ImagesUpscaleController } from '@api/collections/images/controllers/transformations/images-upscale.controller';
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -95,6 +96,7 @@ describe('credit-only Studio HTTP admission', () => {
         { provide: StoryboardRunsService, useValue: { approvePlan } },
         { provide: StoryboardRunCapabilitiesService, useValue: {} },
         { provide: StoryboardCharacterReplaceService, useValue: {} },
+        { provide: StoryboardStillsService, useValue: {} },
         { provide: ImageUpscaleService, useValue: { upscaleImage } },
         {
           provide: LoggerService,
