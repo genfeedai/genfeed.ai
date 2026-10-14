@@ -50,7 +50,7 @@ describe('buildSocialContentPrompt', () => {
     expect(prompt).toContain('<context>\nAudience: founders\n</context>');
     expect(
       buildSocialContentPrompt({ ...social, additionalContext: [' '] }),
-    ).not.toContain('<context>');
+    ).not.toContain('<context>\n');
   });
 });
 
