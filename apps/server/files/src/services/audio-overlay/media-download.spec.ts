@@ -11,6 +11,11 @@ vi.mock('@libs/security/destination-guard', () => ({
   safeFetch: guardedFetch,
 }));
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  deployment.selfHosted = true;
+});
+
 describe('downloadPublicMedia', () => {
   beforeEach(() => {
     vi.clearAllMocks();
