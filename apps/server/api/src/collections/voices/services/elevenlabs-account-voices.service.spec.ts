@@ -18,7 +18,7 @@ import { BadRequestException } from '@nestjs/common';
 
 describe('ElevenLabsAccountVoicesService', () => {
   const organizationId = testId('org');
-  const otherOrganizationId = testId('org');
+  const otherOrganizationId = testId('org', 2);
   const savedVoiceId = testId('ingredient');
   const user = {
     brandId: testId('brand'),
@@ -248,7 +248,7 @@ describe('ElevenLabsAccountVoicesService', () => {
     });
 
     it('keeps the first reference when a concurrent import wins the unique index', async () => {
-      const winnerId = testId('ingredient');
+      const winnerId = testId('ingredient', 2);
       voices.prisma.ingredient.findMany
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([

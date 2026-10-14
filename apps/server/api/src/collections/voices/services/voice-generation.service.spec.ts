@@ -302,6 +302,8 @@ describe('VoiceGenerationService', () => {
       ]),
     };
     const pinned = new VoiceGenerationService(
+      accountVoices as unknown as ElevenLabsAccountVoicesService,
+      connections as unknown as ElevenLabsConnectionService,
       elevenLabs as unknown as ElevenLabsService,
       logger as unknown as LoggerService,
       shared as unknown as SharedService,
