@@ -818,7 +818,7 @@ export class BrandedGenerationReceiptsService {
       ),
     );
   }
-  private async blockExpired(
+  async blockExpired(
     actor: BrandedGenerationActorV1,
     row: { id: string; revision: number },
     cutoff: Date,

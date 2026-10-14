@@ -189,6 +189,7 @@ export class PostDraftGenerationService {
         brandedReasonHttpStatus(outcome.reasonCode),
         outcome.reasonCode,
         outcome.receipt.id,
+        outcome.hasNewDispatch ? { model } : null,
       );
     const description =
       outcome.text ??

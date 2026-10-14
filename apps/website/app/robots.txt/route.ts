@@ -18,6 +18,8 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
+# Agent index of public pages, including /tools and /vs.
+LLM-Context: https://genfeed.ai/llms.txt
 Sitemap: https://genfeed.ai/sitemap.xml
 `;
 
