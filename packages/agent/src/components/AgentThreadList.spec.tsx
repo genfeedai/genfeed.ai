@@ -546,16 +546,18 @@ describe('AgentThreadList', () => {
 
     expect(timestamp.parentElement).toBe(actions.parentElement);
     expect(timestamp).toHaveClass(
-      'group-hover:opacity-0',
-      'group-focus-within:opacity-0',
-      '[@media(hover:none)]:opacity-0',
+      'opacity-0',
+      '[@media(hover:hover)]:opacity-100',
+      '[@media(hover:hover)]:group-hover:opacity-0',
+      '[@media(hover:hover)]:group-focus-within:opacity-0',
     );
     expect(actions).toHaveClass(
-      'opacity-0',
-      'group-hover:opacity-100',
-      'group-focus-within:opacity-100',
-      '[@media(hover:none)]:opacity-100',
+      'opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-hover:opacity-100',
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
     );
+    expect(actions).not.toHaveClass('opacity-0');
 
     fireEvent.pointerDown(actions);
 

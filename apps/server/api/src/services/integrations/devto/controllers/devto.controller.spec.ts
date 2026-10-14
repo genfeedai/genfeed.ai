@@ -29,7 +29,6 @@ describe('DevtoController', () => {
   let controller: DevtoController;
   let devtoService: {
     getCurrentUser: ReturnType<typeof vi.fn>;
-    publishArticle: ReturnType<typeof vi.fn>;
   };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
@@ -64,7 +63,6 @@ describe('DevtoController', () => {
   beforeEach(async () => {
     devtoService = {
       getCurrentUser: vi.fn(),
-      publishArticle: vi.fn(),
     };
     brandsService = { findOne: vi.fn() };
     credentialsService = {
@@ -178,72 +176,6 @@ describe('DevtoController', () => {
         apiKey: 'bad-key',
         brandId: devtoBrandId,
       });
-
-      expect(result).toHaveProperty('errors');
-    });
-  });
-
-  describe('publishArticle', () => {
-    it('should publish and parse tags + published flag from query', async () => {
-      devtoService.publishArticle.mockResolvedValue({
-        id: 999,
-        url: 'https://dev.to/devfounder/hello-abc',
-      });
-
-      const result = await controller.publishArticle(
-        mockUser,
-        'article-1',
-        devtoBrandId,
-        'false',
-        'typescript, webdev ,',
-        'https://mysite.dev/hello',
-      );
-
-      expect(devtoService.publishArticle).toHaveBeenCalledWith(
-        'article-1',
-        devtoOrganizationId,
-        devtoBrandId,
-        {
-          canonicalUrl: 'https://mysite.dev/hello',
-          published: false,
-          tags: ['typescript', 'webdev'],
-        },
-      );
-      expect(result).toEqual(expect.objectContaining({ success: true }));
-    });
-
-    it('should default published to true and tags to empty', async () => {
-      devtoService.publishArticle.mockResolvedValue({ id: 1 });
-
-      await controller.publishArticle(mockUser, 'article-1', devtoBrandId);
-
-      expect(devtoService.publishArticle).toHaveBeenCalledWith(
-        'article-1',
-        devtoOrganizationId,
-        devtoBrandId,
-        {
-          canonicalUrl: undefined,
-          published: true,
-          tags: [],
-        },
-      );
-    });
-
-    it('should return bad request when brandId is missing', async () => {
-      const result = await controller.publishArticle(mockUser, 'article-1', '');
-
-      expect(result).toHaveProperty('errors');
-      expect(devtoService.publishArticle).not.toHaveBeenCalled();
-    });
-
-    it('should return internal server error when publish throws', async () => {
-      devtoService.publishArticle.mockRejectedValue(new Error('boom'));
-
-      const result = await controller.publishArticle(
-        mockUser,
-        'article-1',
-        devtoBrandId,
-      );
 
       expect(result).toHaveProperty('errors');
     });

@@ -1767,9 +1767,9 @@ export async function seedVisualCodeAcceptanceActor(
       organizationId,
       defaultModel: modelId,
       enabledModelIds: [modelId],
-      // Motion is a founder-only module that is off by default: a cloud
-      // organization reaches it only on release preview with the module
-      // enabled (#5502), so the acceptance tenant opts into both.
+      // Motion ships unreleased and hidden by default: a cloud organization
+      // reaches it on release preview, so the acceptance tenant is on preview
+      // and shows the module.
       isReleasePreviewEnabled: true,
       moduleOverrides: { motion: true },
       subscriptionTier: paid ? 'pro' : 'free',

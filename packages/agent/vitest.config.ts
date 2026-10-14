@@ -257,7 +257,7 @@ export default defineConfig({
       },
       {
         find: '@ui/styles',
-        replacement: path.resolve(__dirname, '../ui/src/components/styles'),
+        replacement: path.resolve(__dirname, '../ui/src/styles'),
       },
       {
         find: '@ui/agent-panel',

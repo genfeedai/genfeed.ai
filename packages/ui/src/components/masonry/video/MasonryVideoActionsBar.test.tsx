@@ -67,8 +67,12 @@ describe('MasonryVideoActionsBar', () => {
 
     expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
     expect(container.firstElementChild).toHaveClass(
-      'focus-within:opacity-100',
-      'focus-within:pointer-events-auto',
+      'opacity-100',
+      'pointer-events-auto',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:pointer-events-none',
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
+      '[@media(hover:hover)]:group-focus-within:pointer-events-auto',
     );
   });
 

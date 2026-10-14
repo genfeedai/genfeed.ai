@@ -14,6 +14,4 @@ export type NativeSecondaryAppId =
   | 'messages'
   | 'discovery';
 
-export type NativeAppReleaseEligibility = 'released' | 'founder-only';
-
 export type NativeAppContextualEntry = 'edit' | 'clip';

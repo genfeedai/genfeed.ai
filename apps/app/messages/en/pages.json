@@ -1151,13 +1151,17 @@
       "uploadedVideo": "Uploaded video"
     },
     "draft": {
-      "brief": "Brief",
+      "draftFailed": "Could not draft the storyboard. Try again.",
+      "draftFromBrief": "Draft from the saved brief",
+      "drafting": "Drafting the storyboard…",
+      "emptyDescription": "Write what the video should say below and press send. You get a shot list with stills to edit before anything is generated.",
+      "emptyTitle": "Start with the story",
       "loading": "Loading storyboard…",
       "regenerateBeforeEditor": "Storyboard changed. Regenerate stale shots before opening Editor.",
       "saveBeforeLeave": "Your edits could not be saved. Retry saving before leaving.",
       "scopeChanged": "Storyboard scope changed.",
       "sourceNotEditable": "This source cannot be edited.",
-      "untitled": "Storyboard"
+      "untitled": "Untitled storyboard"
     },
     "plan": {
       "action": "Action",
@@ -1170,7 +1174,6 @@
       "avatarFor": "Avatar image for {name}",
       "beforeApproving": "Before approving:",
       "capabilitiesUnavailable": "Video model capabilities are unavailable.",
-      "cast": "Cast",
       "changeAvatar": "Change avatar image",
       "chooseAvatar": "Choose avatar image",
       "chooseFormat": "Choose format",
@@ -1182,7 +1185,6 @@
       "cut": "Cut",
       "deleteShot": "Delete shot",
       "dialogue": "Dialogue",
-      "duration": "Duration (seconds)",
       "durationUntilResolved": "Duration editing and adding shots become available when the supported model durations are resolved.",
       "format": "Format",
       "interpolate": "Interpolate",
@@ -1243,7 +1245,6 @@
       "runtimeBudget": "Runtime budget (seconds)",
       "secondsUnit": "s",
       "savedVoice": "Saved voice",
-      "section": "Section",
       "shortenBeforeIncrease": "Shorten another shot before increasing this duration.",
       "shot": "Shot {ordinal}",
       "shotTransition": "Shot {ordinal} transition",
@@ -1258,9 +1259,7 @@
       "style": "Style",
       "styleReferences": "Style references",
       "switchModelFailed": "Could not switch video model.",
-      "title": "Plan",
       "titleField": "Title",
-      "transition": "Transition",
       "undo": "Undo",
       "updateFailed": "Could not update storyboard. Your edits are kept.",
       "videoModel": "Video model",
@@ -1268,7 +1267,15 @@
       "voiceFor": "Voice for {name}",
       "voiceUnavailable": "Saved voice unavailable — replace or clear",
       "voiceUnavailableFor": "Saved voice for {name} is unavailable. Replace or clear it.",
-      "voicesLibrary": "Voices Library"
+      "voicesLibrary": "Voices Library",
+      "addShotAfter": "Insert shot after shot {ordinal}",
+      "brief": "Brief",
+      "briefHelp": "Read only. The brief this storyboard is drafted from.",
+      "durationUnset": "Not set",
+      "shotActions": "Shot {ordinal} actions",
+      "shotDuration": "Shot {ordinal} length in seconds",
+      "shotNameFor": "Name for shot {ordinal}",
+      "shotNamePlaceholder": "Name this shot"
     },
     "frameSequence": {
       "clear": "Clear",
@@ -1460,14 +1467,10 @@
       "ariaLabel": "Storyboard runtime",
       "durationSeconds": "{seconds} seconds",
       "durationUnset": "duration not set",
-      "empty": "No shots yet",
       "overBudget": "Shorten another shot to fit the runtime budget.",
-      "seconds": "{seconds}s",
-      "shot": "Shot {ordinal}",
       "shotAria": "Shot {ordinal}, {duration}",
       "shotCount": "{count, plural, one {# shot} other {# shots}}",
       "timeline": "Shot timeline",
-      "unset": "Unset",
       "usedWithBudget": "{used}s / {budget}s",
       "usedWithoutBudget": "{used}s / Choose runtime"
     },
@@ -1528,6 +1531,29 @@
       "scenesTitle": "Scenes",
       "selectVideosTitle": "Select videos to merge",
       "title": "Storyboard"
+    },
+    "inspector": {
+      "cast": "Cast",
+      "details": "Details",
+      "durationUnset": "Not set",
+      "jumpToShot": "Go to shot {ordinal}: {name}",
+      "noShots": "Shots appear here once the brief is drafted. Click one to jump to it on the board.",
+      "references": "References",
+      "shotList": "Shot list",
+      "states": {
+        "approved": "approved",
+        "brief": "brief",
+        "draft": "draft",
+        "drafting": "drafting"
+      },
+      "stillOutOfDate": "Still is out of date",
+      "subtitle": "Storyboard · {state}",
+      "tabs": "Storyboard details"
+    },
+    "promptBar": {
+      "briefPlaceholder": "Describe the video you want to make",
+      "changesPlaceholder": "Ask for changes, e.g. make shot 3 shorter and end on a question",
+      "retry": "Try again"
     }
   },
   "studioEditorLock": {
@@ -4767,9 +4793,13 @@
       "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
     }
   },
+  "adminOrganizationReleases": {
+    "title": "Releases",
+    "previewLabel": "Release Preview (sees unreleased modules)"
+  },
   "adminFlags": {
     "title": "Flags",
-    "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection.",
+    "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection. Releases decide which cloud organizations see each module or page.",
     "sections": {
       "modules": {
         "title": "Modules",
@@ -4778,6 +4808,10 @@
       "platform": {
         "title": "Platform",
         "description": "Features across the app shell, independent of any module."
+      },
+      "releases": {
+        "title": "Releases",
+        "description": "On releases the item to every cloud organization. Off keeps it preview-only: only organizations on release preview (Admin → Organization) see it and can start work in it. Self-hosted always sees everything. New items start off."
       }
     },
     "flags": {
@@ -4852,6 +4886,74 @@
       "desktop_local_workspace": {
         "label": "Desktop local workspace",
         "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
+      },
+      "release_publishing": {
+        "label": "Release Publishing",
+        "description": "Scheduling and publishing posts."
+      },
+      "release_analytics": {
+        "label": "Release Analytics",
+        "description": "Performance and insights for published content."
+      },
+      "release_turbo": {
+        "label": "Release Turbo",
+        "description": "Bulk content production."
+      },
+      "release_motion": {
+        "label": "Release Motion",
+        "description": "Animated visuals authored as code."
+      },
+      "release_clips": {
+        "label": "Release Clips",
+        "description": "Highlights cut from long videos and audio."
+      },
+      "release_editor": {
+        "label": "Release Editor",
+        "description": "Timeline editing for video projects."
+      },
+      "release_automation": {
+        "label": "Release Automation",
+        "description": "Workflows, agents and recurring programs."
+      },
+      "release_messages": {
+        "label": "Release Messages",
+        "description": "One inbox for DMs, replies and comments."
+      },
+      "release_discovery": {
+        "label": "Release Discovery",
+        "description": "Trends, tracked sources and ads research."
+      },
+      "release_campaigns": {
+        "label": "Release Campaigns",
+        "description": "Campaign planning in Publishing."
+      },
+      "release_analytics_brands": {
+        "label": "Release Analytics Brands",
+        "description": "Brand comparison page in Analytics."
+      },
+      "release_analytics_streaks": {
+        "label": "Release Analytics Streaks",
+        "description": "Posting streaks page in Analytics."
+      },
+      "release_analytics_insights": {
+        "label": "Release Analytics Insights",
+        "description": "Insights page in Analytics."
+      },
+      "release_analytics_hooks": {
+        "label": "Release Analytics Hooks",
+        "description": "Hook performance page in Analytics."
+      },
+      "release_analytics_outliers": {
+        "label": "Release Analytics Outliers",
+        "description": "Outlier posts page in Analytics."
+      },
+      "release_analytics_breakouts": {
+        "label": "Release Analytics Breakouts",
+        "description": "Breakout posts page in Analytics."
+      },
+      "release_analytics_performance_lab": {
+        "label": "Release Analytics Performance Lab",
+        "description": "Pattern mining page in Analytics."
       }
     },
     "inactiveUnderParent": "Off while {parent} is off.",

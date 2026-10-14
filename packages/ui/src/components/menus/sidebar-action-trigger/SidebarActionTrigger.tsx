@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Kbd } from '@genfeedai/ui';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import type { ReactElement, ReactNode } from 'react';
 
 interface SidebarActionTriggerProps {
@@ -52,7 +53,10 @@ export default function SidebarActionTrigger({
       {shortcut ? (
         <Kbd
           variant="ghost"
-          className="ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          className={cn(
+            'ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/55 transition-opacity duration-200',
+            hoverRevealClassName({ isInteractive: false }),
+          )}
         >
           {shortcut}
         </Kbd>

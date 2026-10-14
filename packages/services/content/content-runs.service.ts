@@ -31,6 +31,7 @@ import type { UpdateStoryboardPlan } from '@genfeedai/contracts/api-types/contra
 import type {
   ControlStoryboardRun,
   CreateStoryboardRun,
+  DraftStoryboardPlan,
   StoryboardRun,
   UpdateStoryboardSource,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
@@ -281,6 +282,18 @@ export class ContentRunsService extends HTTPBaseService {
   ): Promise<StoryboardRun> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/approve`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  async draftStoryboardPlan(
+    brandId: string,
+    runId: string,
+    input: DraftStoryboardPlan,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/draft`,
       input,
     );
     return deserializeStoryboardRunDocument(response.data);

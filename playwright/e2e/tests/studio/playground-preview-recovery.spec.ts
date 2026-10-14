@@ -4,16 +4,16 @@ import {
   FLUX_3_IMAGE_CONTRACT_VERSION,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
-import type { Page, Request } from '@playwright/test';
+import type { Locator, Page, Request } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
-// #6585: the first-card More menu opens by pointer and keyboard without
-// selecting the card, a saved preview that fails to load recovers through
-// Retry preview, and a rejected submit keeps the draft. No step may reach a
-// paid generation or transform endpoint.
+// #6585 / #6691: More opens by pointer and keyboard without selecting the
+// card, including one 200% zoom case. A saved preview that fails to load
+// recovers through Retry preview, and a rejected submit keeps the prompt
+// after exactly one image write. Paid generation writes are mocked.
 
 const pixel = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII=',
@@ -28,6 +28,44 @@ function isGenerationWrite(request: Request): boolean {
   if (request.method() === 'GET') return false;
   const { pathname } = new URL(request.url());
   return /\/v1\/(images|videos|audios|musics|avatars)(\/|$)/.test(pathname);
+}
+
+const PAID_GENERATION_SURFACES =
+  '**/v1/{images,videos,audios,musics,avatars}**';
+
+async function expectInsideViewport(
+  control: Locator,
+  viewport: { height: number; width: number },
+): Promise<void> {
+  await expect
+    .poll(async () => {
+      const bounds = await control.boundingBox();
+      return (
+        bounds !== null &&
+        bounds.x >= 0 &&
+        bounds.y >= 0 &&
+        bounds.x + bounds.width <= viewport.width &&
+        bounds.y + bounds.height <= viewport.height
+      );
+    })
+    .toBe(true);
+}
+
+/** The control's center is the topmost hit target, so a pointer can operate it. */
+async function expectPointerReachable(control: Locator): Promise<void> {
+  await expect
+    .poll(() =>
+      control.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        if (box.width <= 0 || box.height <= 0) return false;
+        const target = document.elementFromPoint(
+          box.x + box.width / 2,
+          box.y + box.height / 2,
+        );
+        return Boolean(target && element.contains(target));
+      }),
+    )
+    .toBe(true);
 }
 
 async function mountPlayground(page: Page) {
@@ -145,6 +183,13 @@ async function mountPlayground(page: Page) {
     const id = new URL(route.request().url()).pathname.split('/').at(-1) ?? '';
     return route.fulfill({ json: { data: image(id) } });
   });
+  // Last matching route wins. GET falls through to the handler above; every
+  // other paid write is fulfilled here and never reaches a provider. The
+  // rejected-submit test registers its 422 after mount so that response wins.
+  await page.route(PAID_GENERATION_SURFACES, (route) => {
+    if (route.request().method() === 'GET') return route.fallback();
+    return route.fulfill({ status: 500, json: { message: 'unexpected' } });
+  });
   await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
     waitUntil: 'domcontentloaded',
   });
@@ -203,6 +248,51 @@ for (const viewport of [
   });
 }
 
+// Browser zoom at 200% halves the CSS viewport (generation-setup-responsive).
+// deviceScaleFactor is pixel density, not zoom, so this case does not set it.
+test('More stays reachable by pointer and keyboard at 200% zoom', async ({
+  authenticatedPage: page,
+}) => {
+  test.setTimeout(90_000);
+  const viewport = { width: 1440 / 2, height: 600 };
+  await page.setViewportSize(viewport);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const { generationWrites } = await mountPlayground(page);
+  const card = page.getByTestId(`studio-asset-${menuId}`);
+  await expect(card).toHaveAttribute('data-asset-media-state', 'ready');
+  const more = card.getByRole('button', { name: 'More', exact: true });
+  const menu = page.getByRole('menu');
+  const firstItem = page.getByRole('menuitem').first();
+
+  await card.scrollIntoViewIfNeeded();
+  await card.hover();
+  await expect(more).toBeInViewport();
+  await expectInsideViewport(more, viewport);
+  await expectPointerReachable(more);
+  await more.click();
+  await expect(menu).toBeVisible();
+  await expectInsideViewport(firstItem, viewport);
+  await expectPointerReachable(firstItem);
+  await expect(card).toHaveAttribute('data-selected', 'false');
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(more).toBeFocused();
+
+  await page.mouse.move(0, 0);
+  for (const key of ['Enter', ' ']) {
+    await more.focus();
+    await expectPointerReachable(more);
+    await page.keyboard.press(key);
+    await expect(menu).toBeVisible();
+    await expectInsideViewport(firstItem, viewport);
+    await page.keyboard.press('Escape');
+    await expect(more).toBeFocused();
+  }
+  await expect(card).toHaveAttribute('data-selected', 'false');
+  expect(generationWrites).toEqual([]);
+  await expectNoErrorOverlay(page);
+});
+
 test('an unavailable saved preview recovers through Retry preview without generating', async ({
   authenticatedPage: page,
 }) => {
@@ -242,6 +332,8 @@ test('a rejected submit keeps the prompt for another attempt', async ({
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 1000 });
   let admissions = 0;
+  const { generationWrites } = await mountPlayground(page);
+  // Registered after the paid-write mock so this 422 is the one that answers.
   await page.route('**/v1/images', (route) => {
     admissions++;
     // A validation rejection: surfaces own 422 handling, so no debug modal.
@@ -250,7 +342,6 @@ test('a rejected submit keeps the prompt for another attempt', async ({
       json: { message: 'Prompt rejected by the provider' },
     });
   });
-  await mountPlayground(page);
   const editor = page
     .getByTestId('studio-playground-prompt')
     .getByRole('textbox');
@@ -268,6 +359,8 @@ test('a rejected submit keeps the prompt for another attempt', async ({
   await page.getByRole('button', { name: 'Generate', exact: true }).click();
 
   await expect.poll(() => admissions).toBe(1);
+  expect(generationWrites).toHaveLength(1);
+  expect(generationWrites[0]).toMatch(/^POST .*\/v1\/images(\?|$)/);
   await expect(editor).toHaveText('Keep this prompt after a rejected submit');
   await expect(
     page.getByRole('button', { name: 'Generate', exact: true }),

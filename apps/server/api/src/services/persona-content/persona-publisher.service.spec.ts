@@ -79,18 +79,18 @@ describe('PersonaPublisherService', () => {
     service = module.get<PersonaPublisherService>(PersonaPublisherService);
   });
 
-  it.each(['disabled', 'unavailable'])(
+  it.each(['unreleased', 'unavailable'])(
     'rejects %s module access before any publication effect',
     async (reason) => {
       const denied = new HttpException(
         {
           code:
-            reason === 'disabled'
-              ? 'ORGANIZATION_MODULE_DISABLED'
+            reason === 'unreleased'
+              ? 'ORGANIZATION_MODULE_UNRELEASED'
               : 'ORGANIZATION_MODULE_UNAVAILABLE',
           moduleId: 'publishing',
         },
-        reason === 'disabled'
+        reason === 'unreleased'
           ? HttpStatus.FORBIDDEN
           : HttpStatus.SERVICE_UNAVAILABLE,
       );

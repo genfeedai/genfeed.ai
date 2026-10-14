@@ -5,6 +5,7 @@ import type {
   IActivity,
   IActivityPopulated,
 } from '@genfeedai/contracts/interfaces';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   getActivityIngredientPreviewUrl,
   getActivityMediaPreviewUrl,
@@ -15,6 +16,7 @@ import {
 } from '@pages/activities/activities-list.utils';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   Coins,
   Eye,
@@ -133,14 +135,16 @@ function ActivityAssetPreview({
           }
         >
           <Play
-            className={
-              'size-4 text-white group-hover:hidden' /* design-system-allow-content-color */
-            }
+            className={cn(
+              'size-4 text-white' /* design-system-allow-content-color */,
+              canInspect &&
+                '[@media(hover:none)]:hidden [@media(hover:hover)]:group-hover:hidden',
+            )}
           />
           {canInspect ? (
             <Eye
               className={
-                'size-5 text-white hidden group-hover:block' /* design-system-allow-content-color */
+                'size-5 text-white [@media(hover:hover)]:hidden [@media(hover:hover)]:group-hover:block' /* design-system-allow-content-color */
               }
             />
           ) : null}
@@ -155,9 +159,10 @@ function ActivityAssetPreview({
             event.stopPropagation();
             onViewIngredient?.(ingredient);
           }}
-          className={
-            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary [@media(hover:none)]:opacity-100' /* design-system-allow-content-color */
-          }
+          className={cn(
+            'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary' /* design-system-allow-content-color */,
+            hoverRevealClassName({ focus: 'visible' }),
+          )}
         >
           <Eye
             className={

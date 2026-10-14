@@ -241,7 +241,9 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {!isAutoMode &&
             (!customizeSection || hasDesktopSubmenus) &&
-            imageEditing ? (
+            imageEditing &&
+            (setup.values.type === 'image' ||
+              setup.values.type === 'image-edit') ? (
               <div className="shrink-0 border-b border-border px-3 py-2">
                 <Switch
                   aria-label={imageEditing.label}

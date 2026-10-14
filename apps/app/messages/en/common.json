@@ -951,15 +951,11 @@
     },
     "organizationModules": {
       "title": "Modules",
-      "description": "Choose which tools your organization can use.",
+      "description": "Choose which apps your organization's members see.",
       "adminOnly": "Only owners and admins can change module settings.",
       "paidPlan": "Paid plan",
-      "notReleased": "Not released",
-      "releasePreview": {
-        "label": "Release preview",
-        "description": "Genfeed only. Lets this organization use founder-only modules before they are released."
-      },
-      "alwaysOn": "Always on",
+      "shown": "Shown",
+      "hidden": "Hidden",
       "loading": "Loading module settings…",
       "saving": "Saving module settings…",
       "saved": "Module settings saved.",
@@ -968,7 +964,7 @@
       "loadFailed": "Could not load module settings. Try again.",
       "unavailable": "Module settings are unavailable. Reload before making changes.",
       "retry": "Retry loading",
-      "dataHelp": "Disabling a module blocks new work. Existing projects remain readable and exportable. Playground and Storyboard use credits and stay available.",
+      "dataHelp": "Hiding a module removes its app for everyone in your organization. Work through the API and MCP keeps running, and existing projects stay readable and exportable.",
       "paidHelp": "All paid plans unlock subscription modules. Credits still cover usage.",
       "subscription": "Manage subscription",
       "modules": {
@@ -1017,8 +1013,8 @@
           "description": "Explore trends and content opportunities."
         }
       },
-      "disabledTitle": "{module} is disabled",
-      "disabledHelp": "An owner or admin can enable this module in organization settings. Existing projects remain readable and exportable.",
+      "disabledTitle": "{module} is hidden for your organization",
+      "disabledHelp": "An owner or admin can show it again in organization settings. Existing projects remain readable and exportable.",
       "manageModules": "Organization modules",
       "subscriptionTitle": "{module} requires an active paid subscription",
       "subscriptionHelp": "Existing data remains readable and exportable. A paid plan is required to start new work.",
@@ -2393,11 +2389,10 @@
     "uninstallFailed": "Couldn't uninstall {app}. Try again.",
     "loadFailed": "Couldn't load your apps. Reload the page to try again.",
     "loadingApp": "Loading app",
-    "organizationDisabled": "Turned off for your organization.",
+    "organizationDisabled": "Hidden by your organization.",
     "manageModules": "Organization settings",
     "subscriptionRequired": "Needs a paid plan.",
     "viewPlans": "View plans",
-    "founderOnly": "Not released yet.",
     "unavailable": "Unavailable right now."
   },
   "appRail": {
@@ -2504,7 +2499,7 @@
     "title": "Delivery",
     "articleIntro": "Publish this article to a blog you connected. Genfeed records the live link here.",
     "newsletterIntro": "Send this issue through a Beehiiv publication you connected. Genfeed records the live link here.",
-    "noArticleAccounts": "No Ghost, WordPress or Medium account is connected to this brand. Connect one, or copy the article and publish it yourself.",
+    "noArticleAccounts": "No Ghost, WordPress, Medium or Dev.to account is connected to this brand. Connect one, or copy the article and publish it yourself.",
     "noNewsletterAccounts": "No Beehiiv publication is connected to this brand. Connect one, or copy the issue and send it yourself.",
     "connectAccounts": "Connect an account",
     "copyHtml": "Copy HTML",

@@ -6,11 +6,11 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StoryboardReferencesPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Layers, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-/** Only references selected for this storyboard, never fabricated media. */
+/** Only references selected for this storyboard, never fabricated media. Lives in the sidebar's References tab. */
 export default function StoryboardReferencesPanel({
   references,
   actions,
@@ -25,18 +25,9 @@ export default function StoryboardReferencesPanel({
   return (
     <aside
       aria-label={translate('references')}
-      className="min-w-0 space-y-4 rounded-lg border border-border p-4 lg:sticky lg:top-4 lg:self-start"
+      className="min-w-0 space-y-4"
       data-testid="storyboard-references"
     >
-      <div className="flex items-center gap-2">
-        <Layers className="size-4 text-muted-foreground" aria-hidden />
-        <h2 className="flex-1 text-sm font-medium">
-          {translate('references')}
-        </h2>
-        <span className="text-xs text-muted-foreground">
-          {references.length}
-        </span>
-      </div>
       <Input
         aria-label={translate('searchReferences')}
         placeholder={translate('searchReferences')}
@@ -44,7 +35,7 @@ export default function StoryboardReferencesPanel({
         onChange={(event) => setSearch(event.target.value)}
       />
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
-      <div className="max-h-96 space-y-3 overflow-y-auto">
+      <div className="space-y-3">
         {matching.map((reference) => (
           <div
             key={reference.id}

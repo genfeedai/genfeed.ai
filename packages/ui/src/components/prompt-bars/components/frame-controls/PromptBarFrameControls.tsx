@@ -7,6 +7,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ImageIcon, Tv, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { type MouseEvent, memo, useContext } from 'react';
@@ -86,9 +87,10 @@ function ClearButton({
       withWrapper={false}
       onClick={onClick}
       ariaLabel={title}
-      className={
-        'absolute right-0 top-0 flex size-4 cursor-pointer items-center justify-center rounded-bl bg-black/70 opacity-0 transition-opacity hover:bg-error group-hover:opacity-100 [@media(hover:none)]:opacity-100' /* design-system-allow-content-color -- media overlay */
-      }
+      className={cn(
+        'absolute right-0 top-0 flex size-4 cursor-pointer items-center justify-center rounded-bl bg-black/70 transition-opacity hover:bg-error' /* design-system-allow-content-color -- media overlay */,
+        hoverRevealClassName(),
+      )}
       tooltip={title}
       icon={
         <X

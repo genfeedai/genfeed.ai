@@ -2,6 +2,7 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SERVER_TOKENS } from '@api/index';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
+import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { FanvueModule } from '@api/services/integrations/fanvue/fanvue.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
@@ -11,6 +12,7 @@ import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.mod
 import { MediumModule } from '@api/services/integrations/medium/medium.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
@@ -52,6 +54,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
 @Module({
   exports: [
     BeehiivPublisherService,
+    DevtoPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,
     GhostPublisherService,
@@ -82,6 +85,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
 
     // Platform integration modules
     BeehiivModule,
+    DevtoModule,
     FacebookModule,
     FanvueModule,
     GhostModule,
@@ -106,6 +110,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
   ],
   providers: [
     BeehiivPublisherService,
+    DevtoPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,
     GhostPublisherService,

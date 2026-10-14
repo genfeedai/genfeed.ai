@@ -11,6 +11,7 @@
 /* The extension consumes in-repo primitives. Tailwind must see that source
    because it does not live below this stylesheet. */
 @source "../../../../../packages/ui/src/primitives";
+@source "../../../../../packages/ui/src/styles/hover-reveal.ts";
 @source "../../../../../packages/ui/src/components/prompt-bars/components";
 @source "../../../../../packages/agent/src/components/ContentLibraryPicker.tsx";
 

@@ -4,6 +4,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { Kbd } from '@genfeedai/ui';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -66,7 +67,10 @@ export default function MenuSharedConversations({
             {isDesktop ? (
               <Kbd
                 variant="ghost"
-                className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-2xs text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                className={cn(
+                  'ml-auto rounded-md border border-border bg-foreground/[0.03] text-2xs text-foreground/36 transition-opacity duration-200',
+                  hoverRevealClassName({ isInteractive: false }),
+                )}
               >
                 ⌘⇧N
               </Kbd>

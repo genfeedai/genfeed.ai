@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Check } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
@@ -31,10 +32,10 @@ export default function MasonrySelectionToggle<T extends IIngredient>({
   return (
     <div
       className={cn(
-        'quick-actions-wrapper absolute top-2 left-2 z-50 transition-opacity duration-200 focus-within:opacity-100',
+        'quick-actions-wrapper absolute top-2 left-2 z-50 transition-opacity duration-200',
         isSelected
-          ? 'opacity-100'
-          : 'opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
+          ? 'pointer-events-auto opacity-100'
+          : hoverRevealClassName({ focus: 'within' }),
       )}
       role="presentation"
       onClick={(event) => event.stopPropagation()}
@@ -47,7 +48,7 @@ export default function MasonrySelectionToggle<T extends IIngredient>({
           'flex size-6 items-center justify-center rounded-full border backdrop-blur transition-colors shadow-border',
           isSelected
             ? 'border-primary bg-primary text-primary-foreground'
-            : 'border-transparent bg-background/90 text-transparent hover:text-foreground/60' /* design-system-allow-content-color -- media overlay */,
+            : 'border-transparent bg-background/90 text-transparent hover:text-foreground/60 [@media(hover:none)]:text-foreground/60' /* design-system-allow-content-color -- media overlay */,
         )}
         data-testid={`masonry-select-${ingredient.id}`}
         onClick={handleClick}

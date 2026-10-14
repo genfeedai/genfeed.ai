@@ -1,3 +1,4 @@
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { LongFormDeliveriesService } from '@api/collections/long-form-deliveries/services/long-form-deliveries.service';
 import type { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
@@ -6,7 +7,7 @@ import type { PostGroupsService } from '@api/collections/post-groups/services/po
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleStatus, ReleaseStatus } from '@genfeedai/contracts';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 const ctx = {
   brandId: 'brand-1',
@@ -57,6 +58,7 @@ describe('LongFormDeliveriesService', () => {
     listSourceReleases: ReturnType<typeof vi.fn>;
   };
   let articlesService: { update: ReturnType<typeof vi.fn> };
+  let brandAccess: { assert: ReturnType<typeof vi.fn> };
   let newslettersService: {
     findOneScoped: ReturnType<typeof vi.fn>;
     publishScoped: ReturnType<typeof vi.fn>;
@@ -89,6 +91,7 @@ describe('LongFormDeliveriesService', () => {
       listSourceReleases: vi.fn().mockResolvedValue([]),
     };
     articlesService = { update: vi.fn().mockResolvedValue({}) };
+    brandAccess = { assert: vi.fn().mockResolvedValue(undefined) };
     newslettersService = {
       findOneScoped: vi.fn().mockResolvedValue(makeNewsletter()),
       publishScoped: vi.fn().mockResolvedValue({}),
@@ -99,6 +102,7 @@ describe('LongFormDeliveriesService', () => {
       postGroupPersistenceService as unknown as PostGroupPersistenceService,
       articlesService as unknown as ArticlesService,
       newslettersService as unknown as NewslettersService,
+      brandAccess as unknown as BrandAccessService,
     );
   });
 
@@ -162,7 +166,7 @@ describe('LongFormDeliveriesService', () => {
       });
     });
 
-    it.each(['WORDPRESS', 'MEDIUM'])(
+    it.each(['WORDPRESS', 'MEDIUM', 'DEVTO'])(
       'accepts a connected %s account',
       async (platform) => {
         prisma.credential.findFirst.mockResolvedValue({
@@ -190,6 +194,26 @@ describe('LongFormDeliveriesService', () => {
         );
       },
     );
+
+    it('refuses a member who is not assigned to the article brand', async () => {
+      brandAccess.assert.mockRejectedValue(
+        new ForbiddenException('Brand access denied'),
+      );
+
+      await expect(
+        service.deliverArticle(ctx, 'article-1', {
+          credentialId: 'credential-1',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(brandAccess.assert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+        'brand-1',
+      );
+      expect(postGroupsService.create).not.toHaveBeenCalled();
+    });
 
     it('rejects an account that is not a long-form blog', async () => {
       prisma.credential.findFirst.mockResolvedValue({

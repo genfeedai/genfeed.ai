@@ -1,10 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailReferencesCardProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Trash2, Upload } from 'lucide-react';
 import Image from 'next/image';
 
@@ -35,9 +37,10 @@ export default function BrandDetailReferencesCard({
                 />
 
                 <div
-                  className={
-                    'absolute inset-0 flex items-start justify-end bg-black/0 p-1.5 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100 [@media(hover:none)]:opacity-100' /* design-system-allow-content-color */
-                  }
+                  className={cn(
+                    'absolute inset-0 flex items-start justify-end bg-black/0 p-1.5 transition-opacity [@media(hover:hover)]:group-hover:bg-black/20' /* design-system-allow-content-color */,
+                    hoverRevealClassName(),
+                  )}
                 >
                   <Button
                     icon={<Trash2 className="size-3.5" />}

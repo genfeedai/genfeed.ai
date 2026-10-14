@@ -49,6 +49,14 @@ import { GUARDS_METADATA, METHOD_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
+/** Admin → Flags with nothing released: only Playground and Storyboard admit work. */
+const UNRELEASED_PLATFORM = {
+  getFeatureSettingsState: async () => ({
+    isResolved: true,
+    settings: { flags: {} },
+  }),
+};
+
 vi.mock('@genfeedai/config', async (original) => ({
   ...(await original<typeof import('@genfeedai/config')>()),
   hasOrganizationBilling: () => true,
@@ -133,7 +141,7 @@ describe('direct product route module admission inventory', () => {
   );
 
   it.each(surfaces)(
-    '$controller.name denies new work before route effects for disabled or unresolved settings',
+    '$controller.name denies new work before route effects for unreleased modules or unresolved settings',
     async ({ controller }) => {
       const prisma = {
         organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
@@ -144,6 +152,7 @@ describe('direct product route module admission inventory', () => {
         {
           isSubscriptionGatedFresh: vi.fn().mockResolvedValue(true),
         } as never,
+        UNRELEASED_PLATFORM as never,
       );
       const guard = new OrganizationModuleGuard(reflector, access);
       const handlers = Object.getOwnPropertyNames(controller.prototype).flatMap(
@@ -181,11 +190,7 @@ describe('direct product route module admission inventory', () => {
               status: 503,
             });
             prisma.organizationSetting.findUnique.mockResolvedValueOnce({
-              moduleOverrides: {
-                publishing: false,
-                analytics: false,
-                discovery: false,
-              },
+              isReleasePreviewEnabled: false,
             });
             if (
               policy &&
@@ -226,6 +231,7 @@ describe('direct product route module admission inventory', () => {
           },
         } as never,
         { isSubscriptionGatedFresh } as never,
+        UNRELEASED_PLATFORM as never,
       );
       const guard = new OrganizationModuleGuard(reflector, access);
       expect(
@@ -291,6 +297,7 @@ describe('direct product route module admission inventory', () => {
         },
       } as never,
       { isSubscriptionGatedFresh } as never,
+      UNRELEASED_PLATFORM as never,
     );
     await expect(
       new OrganizationModuleGuard(reflector, creditAccess).canActivate(
@@ -388,7 +395,7 @@ describe('direct product route module admission inventory', () => {
     );
   });
 
-  it.each(['disabled', 'unpaid', 'unavailable'])(
+  it.each(['hidden', 'unpaid', 'unavailable'])(
     'preserves workflow and campaign recovery when module access is %s',
     async (state) => {
       const findSettings = vi.fn();
@@ -397,8 +404,8 @@ describe('direct product route module admission inventory', () => {
       else
         findSettings.mockResolvedValue({
           moduleOverrides: {
-            automation: state !== 'disabled',
-            messages: state !== 'disabled',
+            automation: state !== 'hidden',
+            messages: state !== 'hidden',
           },
         });
       const paidGrant = vi.fn().mockResolvedValue(state === 'unpaid');
@@ -412,6 +419,7 @@ describe('direct product route module admission inventory', () => {
             organizationSetting: { findUnique: findSettings },
           } as never,
           { isSubscriptionGatedFresh: paidGrant } as never,
+          UNRELEASED_PLATFORM as never,
         ),
       );
       const recovery = [
@@ -502,6 +510,7 @@ describe('direct product route module admission inventory', () => {
           },
         } as never,
         { isSubscriptionGatedFresh: vi.fn() } as never,
+        UNRELEASED_PLATFORM as never,
       ),
     );
     const writes = [

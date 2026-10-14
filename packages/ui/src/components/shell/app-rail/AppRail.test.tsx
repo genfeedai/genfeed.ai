@@ -155,17 +155,27 @@ vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
 // Import after mocks are set up
 const { AppRail: RailUnderTest } = await import('./AppRail');
 
-// Rendered as the founder operator so every native app is in the launcher;
-// release gating is asserted with `isFounderOperator={false}`.
 function AppRail(props: AppRailProps) {
-  return <RailUnderTest isFounderOperator {...props} />;
+  return <RailUnderTest {...props} />;
 }
+
+/** Admin → Flags as the release migration leaves it. */
+const RELEASED_FLAGS = {
+  release_analytics: true,
+  release_discovery: true,
+  release_publishing: true,
+  release_turbo: true,
+};
 
 function moduleAccessFor(settings: OrganizationModulePreferenceInput) {
   return Object.fromEntries(
     ORGANIZATION_MODULE_IDS.map((moduleId) => [
       moduleId,
-      resolveOrganizationModulePresentationAccess(settings, moduleId),
+      resolveOrganizationModulePresentationAccess(
+        settings,
+        moduleId,
+        RELEASED_FLAGS,
+      ),
     ]),
   );
 }
@@ -491,17 +501,16 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         installedAppIds={['playground', 'clips', 'discovery', 'automation']}
-        isFounderOperator={false}
         moduleAccess={{
-          automation: { isAllowed: true, reason: null },
-          clips: { isAllowed: true, reason: null },
+          automation: { isAllowed: false, reason: 'unreleased' },
+          clips: { isAllowed: false, reason: 'unreleased' },
           discovery: { isAllowed: false, reason: 'subscription-required' },
           playground: { isAllowed: true, reason: null },
         }}
         pinnedAppIds={['clips', 'discovery', 'storyboard', 'playground']}
       />,
     );
-    // Clips and Automation are founder-only, Discovery needs a plan and
+    // Clips and Automation are unreleased, Discovery needs a plan and
     // Storyboard is not installed: only Playground can be pinned or launched.
     expect(
       screen
@@ -786,15 +795,22 @@ describe('AppRail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps founder-only apps out of a customer rail despite access', () => {
+  it('keeps unreleased apps out of a customer rail the organization shows', () => {
     render(
       <AppRail
         orgSlug="acme"
-        isFounderOperator={false}
         pinnedAppIds={LAUNCHER_APP_IDS}
         moduleAccess={moduleAccessFor({
-          hasOrganizationBilling: false,
-          moduleOverrides: {},
+          hasOrganizationBilling: true,
+          hasPaidModuleSubscription: true,
+          moduleOverrides: {
+            automation: true,
+            clips: true,
+            editor: true,
+            messages: true,
+            motion: true,
+            turbo: true,
+          },
         })}
       />,
     );

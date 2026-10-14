@@ -5,6 +5,7 @@ import type {
   IIngredient,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredient.props';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
@@ -18,13 +19,16 @@ import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 
 import IngredientTimeGroupHeading from './ingredient-time-group-heading';
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
 /** Reveal provenance with the card actions on hover or keyboard focus. */
-const ORIGIN_BADGE_CLASS =
-  'pointer-events-none absolute bottom-1.5 left-1.5 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100';
+const ORIGIN_BADGE_CLASS = cn(
+  'pointer-events-none absolute bottom-1.5 left-1.5 z-10 transition-opacity',
+  hoverRevealClassName({ isInteractive: false }),
+);
 
 /** Tags sit just above the origin label and never intercept a click either. */
 const TAG_CHIPS_CLASS =
@@ -126,7 +130,12 @@ export default function IngredientsMediaGrid({
             tags={ingredient.tags}
           />
           {isActionsEnabled ? (
-            <div className="absolute bottom-1.5 right-1.5 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+            <div
+              className={cn(
+                'absolute bottom-1.5 right-1.5 z-20 transition-opacity',
+                hoverRevealClassName(),
+              )}
+            >
               <IngredientReviewActions
                 ingredient={ingredient}
                 onUpdated={onReviewUpdated ?? onRefresh}
@@ -167,7 +176,12 @@ export default function IngredientsMediaGrid({
           tags={ingredient.tags}
         />
         {isActionsEnabled ? (
-          <div className="absolute bottom-1.5 right-1.5 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+          <div
+            className={cn(
+              'absolute bottom-1.5 right-1.5 z-20 transition-opacity',
+              hoverRevealClassName(),
+            )}
+          >
             <IngredientReviewActions
               ingredient={ingredient}
               onUpdated={onReviewUpdated ?? onRefresh}

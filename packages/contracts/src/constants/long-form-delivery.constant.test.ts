@@ -10,6 +10,7 @@ describe('long-form delivery platforms', () => {
     expect(isArticleDeliveryPlatform(CredentialPlatform.GHOST)).toBe(true);
     expect(isArticleDeliveryPlatform(CredentialPlatform.WORDPRESS)).toBe(true);
     expect(isArticleDeliveryPlatform(CredentialPlatform.MEDIUM)).toBe(true);
+    expect(isArticleDeliveryPlatform(CredentialPlatform.DEV_TO)).toBe(true);
     expect(isArticleDeliveryPlatform(CredentialPlatform.BEEHIIV)).toBe(false);
     expect(isArticleDeliveryPlatform(undefined)).toBe(false);
   });

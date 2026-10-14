@@ -1,11 +1,11 @@
 'use client';
 
-import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
-
 import {
   useConfirmModal,
   useGalleryModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useRegisterBreadcrumbLeaf } from '@genfeedai/contexts/ui/breadcrumb-leaf-context';
+import { ContextSidebarPanel } from '@genfeedai/contexts/ui/context-sidebar-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -15,18 +15,19 @@ import {
   type StoryboardShot,
   storyboardImportedPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   StoryboardEditablePlan,
   StoryboardPlanEditorProps,
 } from '@genfeedai/props/studio/storyboard.props';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
-import StoryboardCharacterReplace from '@pages/studio/storyboard/components/StoryboardCharacterReplace';
+import StoryboardCastPanel from '@pages/studio/storyboard/components/StoryboardCastPanel';
+import StoryboardDetailsPanel from '@pages/studio/storyboard/components/StoryboardDetailsPanel';
+import StoryboardInspector from '@pages/studio/storyboard/components/StoryboardInspector';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
 import StoryboardRuntimeRail from '@pages/studio/storyboard/components/StoryboardRuntimeRail';
 import StoryboardSaveIndicator from '@pages/studio/storyboard/components/StoryboardSaveIndicator';
-import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
+import StoryboardShotCard from '@pages/studio/storyboard/components/StoryboardShotCard';
+import StoryboardShotJoint from '@pages/studio/storyboard/components/StoryboardShotJoint';
 import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { useStoryboardAutosave } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
 import { useStoryboardVoices } from '@pages/studio/storyboard/hooks/use-storyboard-voices';
@@ -34,29 +35,37 @@ import { normalizeStoryboardModel } from '@pages/studio/storyboard/utils/storybo
 import {
   editStoryboardShot,
   editStoryboardStyle,
+  insertStoryboardShot,
   removeStoryboardShot,
   reorderStoryboardShots,
   storyboardApprovalProblems,
   storyboardAssetLabel,
 } from '@pages/studio/storyboard/utils/storyboard-plan';
-import { snapStoryboardDuration } from '@pages/studio/storyboard/utils/storyboard-runtime';
-import Card from '@ui/card/Card';
+import {
+  snapStoryboardDuration,
+  storyboardRuntimeRanges,
+} from '@pages/studio/storyboard/utils/storyboard-runtime';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import Field from '@ui/primitives/field';
-import { Input } from '@ui/primitives/input';
-import { Textarea } from '@ui/primitives/textarea';
-import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { Skeleton } from '@ui/primitives/skeleton';
+import { Clapperboard, Plus, RotateCcw, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useImperativeHandle, useState } from 'react';
+import { Fragment, useEffect, useImperativeHandle, useState } from 'react';
+
+const MAX_SHOTS = 12;
 
 /** Draft edits persist independently of paid planning or video execution. */
 export default function StoryboardPlanEditor({
   ref,
   run,
+  actions,
+  composer,
   draft,
+  isDrafting = false,
   isSourceSaving = false,
+  notices,
+  onDraftFromBrief,
   onSaveStatusChange,
   savePlan,
   resetPlan,
@@ -64,12 +73,16 @@ export default function StoryboardPlanEditor({
   capabilities,
   capabilityError,
   refreshCapabilities,
+  sourceBrief,
 }: StoryboardPlanEditorProps) {
   const translate = useTranslations('pages.studioStoryboard.plan');
+  const translateDraft = useTranslations('pages.studioStoryboard.draft');
+  const translateInspector = useTranslations(
+    'pages.studioStoryboard.inspector',
+  );
   const translateWorkspace = useTranslations(
     'pages.studioStoryboard.workspace',
   );
-  const translateRuntime = useTranslations('pages.studioStoryboard.runtime');
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
   const {
@@ -78,7 +91,6 @@ export default function StoryboardPlanEditor({
     error: voiceError,
     retry: retryVoices,
   } = useStoryboardVoices(run.brandId, run.organizationId);
-  const { href } = useOrgUrl();
   const [selectedShotId, setSelectedShotId] = useState<string>();
   const [error, setError] = useState<string>();
   const [working, setWorking] = useState(false);
@@ -129,6 +141,8 @@ export default function StoryboardPlanEditor({
     onSaveStatusChange?.(autosave.status);
   }, [onSaveStatusChange, autosave.status]);
   const plan = autosave.value;
+  const title = plan.title.trim() || translateDraft('untitled');
+  useRegisterBreadcrumbLeaf(run.id, title);
   const currentCapabilities =
     capabilities?.runId === run.id &&
     capabilities.runRevision === autosave.revision
@@ -146,6 +160,7 @@ export default function StoryboardPlanEditor({
   const isDisabled =
     working ||
     isSourceSaving ||
+    isDrafting ||
     ['analysing', 'generating', 'assembling'].includes(run.config.state);
   const assets = useStoryboardAssets(
     `${run.id}:${autosave.revision}`,
@@ -181,6 +196,16 @@ export default function StoryboardPlanEditor({
   const approved =
     autosave.status === 'saved' &&
     run.config.approvedRevision === autosave.revision;
+  const hasShots = plan.shots.length > 0;
+  const ranges = storyboardRuntimeRanges(plan.shots);
+  const usedSeconds = plan.shots.reduce(
+    (sum, shot) => sum + (shot.durationSeconds ?? 0),
+    0,
+  );
+  const stillUrl = (shot: StoryboardShot) =>
+    shot.stillFreshness === 'fresh' && shot.stillAssetId
+      ? (assets[`image:${shot.stillAssetId}`]?.cdnUrl ?? undefined)
+      : undefined;
 
   function edit(next: unknown) {
     if (isDisabled) return;
@@ -246,7 +271,7 @@ export default function StoryboardPlanEditor({
       onConfirm: () => perform((revision) => resetPlan(revision)),
     });
   }
-  function addShot() {
+  function addShot(position = plan.shots.length) {
     const remaining =
       (plan.runtimeBudgetSeconds ?? 0) -
       plan.shots.reduce((sum, shot) => sum + (shot.durationSeconds ?? 0), 0);
@@ -254,28 +279,49 @@ export default function StoryboardPlanEditor({
       ...supportedDurations.filter((seconds) => seconds > 0),
     );
     if (
-      plan.shots.length >= 12 ||
+      plan.shots.length >= MAX_SHOTS ||
       !Number.isFinite(minimum) ||
       minimum > remaining
     ) {
       setError(translate('noRoomForShot'));
       return;
     }
-    edit({
-      ...plan,
-      shots: [
-        ...plan.shots,
-        {
-          id: crypto.randomUUID(),
-          ordinal: plan.shots.length + 1,
-          action: '',
-          onScreenSpeaker: false,
-          durationSeconds: minimum,
-          stillFreshness: 'missing',
-          transition: 'cut',
-        },
-      ],
-    });
+    edit(
+      insertStoryboardShot(plan, position, {
+        id: crypto.randomUUID(),
+        action: '',
+        onScreenSpeaker: false,
+        durationSeconds: minimum,
+        stillFreshness: 'missing',
+        transition: 'cut',
+      }),
+    );
+  }
+  function changeModel(key: string | undefined) {
+    const selected =
+      key === '__automatic__'
+        ? currentCapabilities?.effectiveModel
+        : currentCapabilities?.eligibleModels.find(
+            (candidate) => candidate.key === key,
+          );
+    if (!selected) return;
+    try {
+      edit(
+        normalizeStoryboardModel(
+          {
+            ...plan,
+            videoModelKey: key === '__automatic__' ? null : (key ?? null),
+          },
+          selected,
+        ),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : translate('switchModelFailed'),
+      );
+    }
   }
   function pickStyleReferences() {
     openGallery({
@@ -296,33 +342,116 @@ export default function StoryboardPlanEditor({
       },
     });
   }
+  function selectShot(id: string) {
+    setSelectedShotId(id);
+    document
+      .getElementById(`shot-${id}`)
+      ?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }
+
+  const references = [
+    ...plan.styleReferenceAssetIds.map((id, index) => ({
+      id: `style:${id}`,
+      title: storyboardAssetLabel(
+        assets[`image:${id}`],
+        translate('referenceFallback', { ordinal: index + 1 }),
+      ),
+      group: translate('styleReferences'),
+      kind: 'image' as const,
+      url: assets[`image:${id}`]?.cdnUrl ?? undefined,
+      onRemove: isDisabled
+        ? undefined
+        : () =>
+            edit(
+              editStoryboardStyle(plan, {
+                styleReferenceAssetIds: plan.styleReferenceAssetIds.filter(
+                  (value) => value !== id,
+                ),
+              }),
+            ),
+    })),
+    ...plan.cast.flatMap((member) =>
+      [
+        ...new Set([
+          ...(member.avatarAssetId ? [member.avatarAssetId] : []),
+          ...member.referenceAssetIds,
+        ]),
+      ].map((id) => ({
+        id: `cast:${member.id}:${id}`,
+        title: member.name,
+        group: translateWorkspace('characters'),
+        kind: 'image' as const,
+        url: assets[`image:${id}`]?.cdnUrl ?? undefined,
+      })),
+    ),
+  ];
+  const inspectorState = approved
+    ? 'approved'
+    : isDrafting
+      ? 'drafting'
+      : hasShots
+        ? 'draft'
+        : 'brief';
+  const inspectorShots = plan.shots.map((shot) => ({
+    id: shot.id,
+    ordinal: shot.ordinal,
+    name:
+      shot.sectionLabel?.trim() || translate('shot', { ordinal: shot.ordinal }),
+    durationSeconds: shot.durationSeconds,
+    isStillFresh: shot.stillFreshness === 'fresh',
+    stillUrl: stillUrl(shot),
+  }));
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <StoryboardSaveIndicator
-            status={autosave.status}
-            error={autosave.error}
-            onRetry={() => void autosave.flush().catch(() => undefined)}
+    <>
+      <Container
+        label={title}
+        moduleChrome
+        leading={
+          <StoryboardRuntimeRail
+            budgetSeconds={plan.runtimeBudgetSeconds}
+            formatLabel={plan.format}
+            shots={plan.shots}
+            selectedShotId={selectedShotId}
+            onSelectShot={selectShot}
           />
-          <div className="flex flex-wrap gap-2">
-            <Button
-              label={translate('undo')}
-              variant={ButtonVariant.SECONDARY}
-              disabled={isDisabled || !autosave.canUndo}
-              onClick={() => void perform(() => autosave.undo())}
+        }
+        iconActions={
+          <>
+            <StoryboardSaveIndicator
+              status={autosave.status}
+              error={autosave.error}
+              onRetry={() => void autosave.flush().catch(() => undefined)}
             />
             <Button
-              label={translate('resetPlan')}
+              ariaLabel={translate('undo')}
+              icon={<Undo2 className="size-4" />}
+              isDisabled={isDisabled || !autosave.canUndo}
+              onClick={() => void perform(() => autosave.undo())}
+              size={ButtonSize.ICON}
+              tooltip={translate('undo')}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+            <Button
+              ariaLabel={translate('resetPlan')}
               icon={<RotateCcw className="size-4" />}
-              variant={ButtonVariant.SECONDARY}
-              disabled={
+              isDisabled={
                 isDisabled ||
                 !run.config.generatedPlan ||
                 Boolean(draft && draft.status !== 'saved')
               }
               onClick={reset}
+              size={ButtonSize.ICON}
+              tooltip={translate('resetPlan')}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
             />
+          </>
+        }
+        right={
+          <>
+            {actions}
             <Button
               label={approved ? translate('approved') : translate('approve')}
               disabled={
@@ -340,696 +469,239 @@ export default function StoryboardPlanEditor({
                 })
               }
             />
-          </div>
-        </div>
-        {capabilityError || currentCapabilities?.status === 'unavailable' ? (
-          <div
-            role="status"
-            className="space-y-2 text-sm text-muted-foreground"
-          >
-            <p>
-              {capabilityError ||
-                translate('modelUnavailable', {
-                  reason:
-                    currentCapabilities?.reasonCode
-                      ?.toLowerCase()
-                      .replaceAll('_', ' ') ?? '',
-                })}
-            </p>
-            <Button
-              label={translate('reloadCapabilities')}
-              variant={ButtonVariant.SECONDARY}
-              onClick={refreshCapabilities}
-            />
-          </div>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
-        <Card label={translate('title')}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={translate('titleField')}>
-              <Input
-                value={plan.title}
-                maxLength={120}
-                disabled={isDisabled}
-                onChange={(event) =>
-                  edit({ ...plan, title: event.target.value })
-                }
-              />
-            </Field>
-            <Field label={translate('style')}>
-              <Input
-                value={plan.styleLabel ?? ''}
-                maxLength={60}
-                disabled={isDisabled}
-                onChange={(event) =>
-                  edit(
-                    editStoryboardStyle(plan, {
-                      styleLabel: event.target.value,
-                    }),
-                  )
-                }
-              />
-            </Field>
-            <Field label={translate('logline')} className="sm:col-span-2">
-              <Textarea
-                value={plan.logline}
-                maxLength={300}
-                disabled={isDisabled}
-                onChange={(event) =>
-                  edit({ ...plan, logline: event.target.value })
-                }
-              />
-            </Field>
-            <Field label={translate('videoModel')}>
-              <StoryboardSelect
-                ariaLabel={translate('videoModel')}
-                value={plan.videoModelKey ?? '__automatic__'}
-                placeholder={translate('chooseVideoModel')}
-                isDisabled={
-                  isDisabled ||
-                  autosave.status === 'saving' ||
-                  !currentCapabilities?.eligibleModels.length
-                }
-                options={[
-                  ...(currentCapabilities?.requestedModelKey === null &&
-                  currentCapabilities.effectiveModel
-                    ? [
-                        {
-                          value: '__automatic__',
-                          label: translate('automaticModel', {
-                            label: currentCapabilities.effectiveModel.label,
-                          }),
-                        },
-                      ]
-                    : []),
-                  ...(currentCapabilities?.eligibleModels.map((candidate) => ({
-                    value: candidate.key,
-                    label: candidate.label,
-                  })) ?? []),
-                ]}
-                onChange={(key) => {
-                  const selected =
-                    key === '__automatic__'
-                      ? currentCapabilities?.effectiveModel
-                      : currentCapabilities?.eligibleModels.find(
-                          (candidate) => candidate.key === key,
-                        );
-                  if (!selected) return;
-                  try {
-                    edit(
-                      normalizeStoryboardModel(
-                        {
-                          ...plan,
-                          videoModelKey:
-                            key === '__automatic__' ? null : (key ?? null),
-                        },
-                        selected,
-                      ),
-                    );
-                  } catch (caught) {
-                    setError(
-                      caught instanceof Error
-                        ? caught.message
-                        : translate('switchModelFailed'),
-                    );
-                  }
-                }}
-              />
-            </Field>
-            <Field label={translate('format')}>
-              <StoryboardSelect
-                ariaLabel={translate('format')}
-                value={plan.format}
-                placeholder={translate('chooseFormat')}
-                isDisabled={isDisabled || timingDisabled}
-                options={(
-                  model?.supportedFormats.filter(
-                    (format) => format !== '4:5',
-                  ) ?? []
-                ).map((value) => ({
-                  value,
-                  label: value,
-                }))}
-                onChange={(value) => {
-                  if (value === '9:16' || value === '16:9' || value === '1:1')
-                    edit({ ...plan, format: value });
-                }}
-              />
-            </Field>
-            <Field label={translate('runtimeBudget')}>
-              <Input
-                type="number"
-                min={1}
-                max={60}
-                value={plan.runtimeBudgetSeconds ?? ''}
-                disabled={isDisabled || timingDisabled}
-                onChange={(event) =>
-                  edit({
-                    ...plan,
-                    runtimeBudgetSeconds: event.target.value
-                      ? Number(event.target.value)
-                      : null,
-                  })
-                }
-              />
-            </Field>
-          </div>
-        </Card>
-
-        <StoryboardRuntimeRail
-          budgetSeconds={plan.runtimeBudgetSeconds}
-          shots={plan.shots}
-          selectedShotId={selectedShotId}
-          onSelectShot={(id) => {
-            setSelectedShotId(id);
-            document
-              .getElementById(`shot-${id}`)
-              ?.scrollIntoView({ block: 'nearest' });
-          }}
-        />
-        <StoryboardAnimatic
-          scope={`${run.id}:${autosave.revision}:${JSON.stringify(plan.shots)}`}
-          shots={plan.shots.map((shot) => ({
-            id: shot.id,
-            ordinal: shot.ordinal,
-            durationSeconds: shot.durationSeconds,
-            dialogue: shot.dialogue,
-            stillUrl:
-              shot.stillFreshness === 'fresh' && shot.stillAssetId
-                ? (assets[`image:${shot.stillAssetId}`]?.cdnUrl ?? undefined)
-                : undefined,
-          }))}
-        />
-        {!supportedDurations.length ? (
-          <p role="status" className="text-xs text-muted-foreground">
-            {translate('durationUntilResolved')}
-          </p>
-        ) : null}
-        <div className="space-y-3">
-          {plan.shots.map((shot, index) => (
-            <section
-              key={shot.id}
-              id={`shot-${shot.id}`}
-              aria-label={translate('shot', { ordinal: shot.ordinal })}
+          </>
+        }
+      >
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+          {notices}
+          {capabilityError || currentCapabilities?.status === 'unavailable' ? (
+            <div
+              role="status"
+              className="space-y-2 text-sm text-muted-foreground"
             >
-              <Card
-                label={translate('shot', { ordinal: shot.ordinal })}
-                description={translate('stillStatus', {
-                  status: shot.stillFreshness,
-                })}
-              >
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
-                  <div className="min-w-0">
-                    {shot.stillAssetId &&
-                    assets[`image:${shot.stillAssetId}`]?.cdnUrl ? (
-                      <AgentMediaArtifactPreview
-                        displayMode="featured"
-                        assets={[
-                          {
-                            kind: 'image',
-                            url:
-                              assets[`image:${shot.stillAssetId}`].cdnUrl || '',
-                            title: storyboardAssetLabel(
-                              assets[`image:${shot.stillAssetId}`],
-                              translate('shot', { ordinal: shot.ordinal }),
-                            ),
-                            width:
-                              assets[`image:${shot.stillAssetId}`]
-                                .metadataWidth,
-                            height:
-                              assets[`image:${shot.stillAssetId}`]
-                                .metadataHeight,
-                            alt: translate('stillAlt', {
-                              ordinal: shot.ordinal,
-                            }),
-                          },
-                        ]}
-                      />
-                    ) : (
-                      <p className="flex aspect-video items-center justify-center rounded-md border border-border text-xs text-muted-foreground">
-                        {translate('stillUnavailable')}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label={translate('section')}>
-                      <Input
-                        value={shot.sectionLabel ?? ''}
-                        maxLength={40}
-                        disabled={isDisabled}
-                        onChange={(event) =>
-                          patchShot(shot, { sectionLabel: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label={translate('duration')}>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={60}
-                        value={shot.durationSeconds ?? ''}
-                        disabled={isDisabled || timingDisabled}
-                        onChange={(event) =>
-                          duration(shot, Number(event.target.value))
-                        }
-                      />
-                    </Field>
-                    <Field label={translate('transition')}>
-                      <StoryboardSelect
-                        ariaLabel={translate('shotTransition', {
-                          ordinal: shot.ordinal,
-                        })}
-                        value={shot.transition}
-                        placeholder={translate('chooseTransition')}
-                        isDisabled={isDisabled || timingDisabled}
-                        options={[
-                          { value: 'cut', label: translate('cut') },
-                          { value: 'stitch', label: translate('stitch') },
-                          ...(model?.hasInterpolation &&
-                          index < plan.shots.length - 1 &&
-                          shot.stillFreshness === 'fresh' &&
-                          plan.shots[index + 1]?.stillFreshness === 'fresh'
-                            ? [
-                                {
-                                  value: 'interpolate',
-                                  label: translate('interpolate'),
-                                },
-                              ]
-                            : []),
-                        ]}
-                        onChange={(value) => {
-                          if (
-                            value === 'cut' ||
-                            value === 'stitch' ||
-                            value === 'interpolate'
-                          )
-                            patchShot(shot, { transition: value });
-                        }}
-                      />
-                    </Field>
-                    <Field
-                      label={translate('action')}
-                      className="sm:col-span-2"
-                    >
-                      <Textarea
-                        value={shot.action}
-                        maxLength={4000}
-                        disabled={isDisabled}
-                        onChange={(event) =>
-                          patchShot(shot, { action: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field
-                      label={translate('dialogue')}
-                      helpText={
-                        shot.dialogue?.trim()
-                          ? undefined
-                          : translate('noDialogue')
-                      }
-                    >
-                      <Textarea
-                        value={shot.dialogue ?? ''}
-                        maxLength={500}
-                        disabled={isDisabled}
-                        onChange={(event) =>
-                          patchShot(shot, { dialogue: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label={translate('notes')}>
-                      <Textarea
-                        value={shot.notes ?? ''}
-                        maxLength={1000}
-                        disabled={isDisabled}
-                        onChange={(event) =>
-                          patchShot(shot, { notes: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label={translate('speakerField')}>
-                      <StoryboardSelect
-                        ariaLabel={translate('speakerForShot', {
-                          ordinal: shot.ordinal,
-                        })}
-                        value={shot.speakerId}
-                        placeholder={translate('chooseSpeaker')}
+              <p>
+                {capabilityError ||
+                  translate('modelUnavailable', {
+                    reason:
+                      currentCapabilities?.reasonCode
+                        ?.toLowerCase()
+                        .replaceAll('_', ' ') ?? '',
+                  })}
+              </p>
+              <Button
+                label={translate('reloadCapabilities')}
+                variant={ButtonVariant.SECONDARY}
+                onClick={refreshCapabilities}
+              />
+            </div>
+          ) : null}
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+          {isDrafting ? (
+            <div aria-busy="true" className="flex flex-col gap-3">
+              <p role="status" className="sr-only">
+                {translateDraft('drafting')}
+              </p>
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-56 w-full" />
+              <Skeleton className="h-56 w-full" />
+            </div>
+          ) : hasShots ? (
+            <>
+              <StoryboardAnimatic
+                scope={`${run.id}:${autosave.revision}:${JSON.stringify(plan.shots)}`}
+                shots={plan.shots.map((shot) => ({
+                  id: shot.id,
+                  ordinal: shot.ordinal,
+                  durationSeconds: shot.durationSeconds,
+                  dialogue: shot.dialogue,
+                  stillUrl: stillUrl(shot),
+                }))}
+              />
+              {!supportedDurations.length ? (
+                <p role="status" className="text-xs text-muted-foreground">
+                  {translate('durationUntilResolved')}
+                </p>
+              ) : null}
+              <div className="flex flex-col gap-3">
+                {plan.shots.map((shot, index) => {
+                  const asset = shot.stillAssetId
+                    ? assets[`image:${shot.stillAssetId}`]
+                    : undefined;
+                  const next = plan.shots[index + 1];
+                  return (
+                    <Fragment key={shot.id}>
+                      <StoryboardShotCard
+                        brandId={run.brandId}
+                        cast={plan.cast}
+                        characterReplacement={run.config.characterReplacements?.find(
+                          (item) => item.shotId === shot.id,
+                        )}
+                        endSeconds={ranges[index]?.endSeconds ?? 0}
+                        format={plan.format}
+                        index={index}
                         isDisabled={isDisabled}
-                        options={plan.cast.map((member) => ({
-                          value: member.id,
-                          label: member.name,
-                        }))}
-                        onChange={(speakerId) =>
-                          patchShot(shot, {
-                            speakerId,
-                            onScreenSpeaker: speakerId
-                              ? shot.onScreenSpeaker
-                              : false,
-                          })
+                        isSelected={selectedShotId === shot.id}
+                        isTimingDisabled={timingDisabled}
+                        onChangeDuration={(seconds) => duration(shot, seconds)}
+                        onDelete={() =>
+                          edit(removeStoryboardShot(plan, shot.id))
                         }
+                        onMove={(offset) =>
+                          edit(reorderStoryboardShots(plan, shot.id, offset))
+                        }
+                        onPatch={(patch) => patchShot(shot, patch)}
+                        runId={run.id}
+                        shot={shot}
+                        shotCount={plan.shots.length}
+                        startSeconds={ranges[index]?.startSeconds ?? 0}
+                        still={
+                          asset?.cdnUrl
+                            ? {
+                                url: asset.cdnUrl,
+                                title: storyboardAssetLabel(
+                                  asset,
+                                  translate('shot', { ordinal: shot.ordinal }),
+                                ),
+                                width: asset.metadataWidth,
+                                height: asset.metadataHeight,
+                              }
+                            : undefined
+                        }
+                        supportedDurations={supportedDurations}
                       />
-                    </Field>
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={shot.onScreenSpeaker}
-                        disabled={
-                          isDisabled ||
-                          !plan.cast.find(
-                            (member) => member.id === shot.speakerId,
-                          )?.avatarAssetId
-                        }
-                        onCheckedChange={(checked) =>
-                          patchShot(shot, { onScreenSpeaker: checked === true })
-                        }
-                      />
-                      {translate('speakerOnScreen')}
-                    </label>
-                  </div>
+                      {next ? (
+                        <StoryboardShotJoint
+                          canAddShot={plan.shots.length < MAX_SHOTS}
+                          index={index}
+                          interpolationAvailable={Boolean(
+                            model?.hasInterpolation &&
+                              shot.stillFreshness === 'fresh' &&
+                              next.stillFreshness === 'fresh',
+                          )}
+                          isDisabled={isDisabled || timingDisabled}
+                          onAddShot={() => addShot(index + 1)}
+                          onChangeTransition={(transition) =>
+                            patchShot(shot, { transition })
+                          }
+                          transition={shot.transition}
+                        />
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
+              </div>
+              <Button
+                className="self-center"
+                label={translate('addShot')}
+                icon={<Plus className="size-4" />}
+                variant={ButtonVariant.SECONDARY}
+                disabled={
+                  isDisabled || plan.shots.length >= MAX_SHOTS || timingDisabled
+                }
+                onClick={() => addShot()}
+              />
+              {problems.length ? (
+                <div
+                  role="status"
+                  className="space-y-1 text-xs text-muted-foreground"
+                >
+                  <p>{translate('beforeApproving')}</p>
+                  <ul className="list-disc pl-4">
+                    {problems.map((problem) => (
+                      <li key={problem}>{problem}</li>
+                    ))}
+                  </ul>
                 </div>
-                <StoryboardCharacterReplace
-                  brandId={run.brandId}
-                  runId={run.id}
-                  shotId={shot.id}
-                  isDisabled={isDisabled}
-                  saved={run.config.characterReplacements?.find(
-                    (item) => item.shotId === shot.id,
-                  )}
-                />
-                <div className="mt-3 flex flex-wrap gap-2">
+              ) : null}
+            </>
+          ) : (
+            <CardEmptyContent
+              icon={Clapperboard}
+              label={translateDraft('emptyTitle')}
+              description={translateDraft('emptyDescription')}
+              actions={
+                sourceBrief && onDraftFromBrief ? (
                   <Button
-                    ariaLabel={translate('moveShotUp', {
-                      ordinal: shot.ordinal,
-                    })}
-                    icon={<ArrowUp className="size-4" />}
-                    variant={ButtonVariant.SECONDARY}
-                    disabled={isDisabled || timingDisabled || index === 0}
-                    onClick={() =>
-                      edit(reorderStoryboardShots(plan, shot.id, -1))
-                    }
-                  />
-                  <Button
-                    ariaLabel={translate('moveShotDown', {
-                      ordinal: shot.ordinal,
-                    })}
-                    icon={<ArrowDown className="size-4" />}
-                    variant={ButtonVariant.SECONDARY}
-                    disabled={
-                      isDisabled ||
-                      timingDisabled ||
-                      index === plan.shots.length - 1
-                    }
-                    onClick={() =>
-                      edit(reorderStoryboardShots(plan, shot.id, 1))
-                    }
-                  />
-                  <Button
-                    label={translate('deleteShot')}
-                    icon={<Trash2 className="size-4" />}
+                    className="mt-1"
+                    label={translateDraft('draftFromBrief')}
                     variant={ButtonVariant.SECONDARY}
                     disabled={isDisabled}
-                    onClick={() => edit(removeStoryboardShot(plan, shot.id))}
+                    onClick={onDraftFromBrief}
                   />
-                </div>
-              </Card>
-            </section>
-          ))}
+                ) : undefined
+              }
+            />
+          )}
         </div>
-        <Button
-          label={translate('addShot')}
-          icon={<Plus className="size-4" />}
-          variant={ButtonVariant.SECONDARY}
-          disabled={isDisabled || plan.shots.length >= 12 || timingDisabled}
-          onClick={addShot}
-        />
-        {problems.length ? (
-          <div
-            role="status"
-            className="space-y-1 text-xs text-muted-foreground"
-          >
-            <p>{translate('beforeApproving')}</p>
-            <ul className="list-disc pl-4">
-              {problems.map((problem) => (
-                <li key={problem}>{problem}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-      <div className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-10rem)] lg:self-start lg:overflow-y-auto">
-        <StoryboardReferencesPanel
-          references={[
-            ...plan.shots.map((shot) => ({
-              id: `shot:${shot.id}`,
-              title: `${translate('shot', { ordinal: shot.ordinal })} · ${shot.durationSeconds === null ? translateRuntime('durationUnset') : translateWorkspace('seconds', { seconds: shot.durationSeconds })}`,
-              group: translateWorkspace('shots'),
-              kind: 'image' as const,
-              isSelected: selectedShotId === shot.id,
-              url:
-                shot.stillFreshness === 'fresh' && shot.stillAssetId
-                  ? (assets[`image:${shot.stillAssetId}`]?.cdnUrl ?? undefined)
-                  : undefined,
-              onSelect: () => {
-                setSelectedShotId(shot.id);
-                document
-                  .getElementById(`shot-${shot.id}`)
-                  ?.scrollIntoView({ block: 'nearest' });
-              },
-            })),
-            ...plan.styleReferenceAssetIds.map((id, index) => ({
-              id: `style:${id}`,
-              title: storyboardAssetLabel(
-                assets[`image:${id}`],
-                translate('referenceFallback', { ordinal: index + 1 }),
-              ),
-              group: translateWorkspace('styles'),
-              kind: 'image' as const,
-              url: assets[`image:${id}`]?.cdnUrl ?? undefined,
-              onRemove: isDisabled
-                ? undefined
-                : () =>
-                    edit(
-                      editStoryboardStyle(plan, {
-                        styleReferenceAssetIds:
-                          plan.styleReferenceAssetIds.filter(
-                            (value) => value !== id,
-                          ),
-                      }),
-                    ),
-            })),
-            ...plan.cast.flatMap((member) =>
-              [
-                ...new Set([
-                  ...(member.avatarAssetId ? [member.avatarAssetId] : []),
-                  ...member.referenceAssetIds,
-                ]),
-              ].map((id) => ({
-                id: `cast:${member.id}:${id}`,
-                title: member.name,
-                group: translateWorkspace('characters'),
-                kind: 'image' as const,
-                url: assets[`image:${id}`]?.cdnUrl ?? undefined,
-              })),
-            ),
-          ]}
-          actions={
-            <Button
-              label={translate('addStyleReferences')}
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-              disabled={isDisabled || plan.styleReferenceAssetIds.length >= 20}
-              onClick={pickStyleReferences}
+        {composer}
+      </Container>
+      <ContextSidebarPanel
+        selection={{
+          id: run.id,
+          isOpenByDefault: true,
+          kind: 'run',
+          origin: 'automatic',
+          subtitle: translateInspector('subtitle', {
+            state: translateInspector(`states.${inspectorState}`),
+          }),
+          title,
+        }}
+      >
+        <StoryboardInspector
+          cast={
+            <StoryboardCastPanel
+              brandId={run.brandId}
+              isDisabled={isDisabled}
+              onChange={edit}
+              onRetryVoices={retryVoices}
+              plan={plan}
+              voiceError={voiceError}
+              voiceStatus={voiceStatus}
+              voices={voices}
             />
           }
-        />
-        <Card label={translate('cast')}>
-          <div className="space-y-3">
-            {voiceStatus === 'loading' ? (
-              <p role="status">{translate('loadingVoices')}</p>
-            ) : voiceStatus === 'failed' ? (
-              <div role="alert">
-                <p>{voiceError}</p>
+          castCount={plan.cast.length}
+          details={
+            <StoryboardDetailsPanel
+              isDisabled={isDisabled}
+              isTimingDisabled={timingDisabled}
+              modelCapabilities={currentCapabilities}
+              onChange={edit}
+              onChangeModel={changeModel}
+              plan={plan}
+              sourceBrief={sourceBrief}
+              supportedFormats={(model?.supportedFormats ?? []).filter(
+                (format) => format !== '4:5',
+              )}
+            />
+          }
+          onSelectShot={selectShot}
+          referenceCount={references.length}
+          references={
+            <StoryboardReferencesPanel
+              references={references}
+              actions={
                 <Button
-                  label={translate('retryVoices')}
+                  label={translate('addStyleReferences')}
                   variant={ButtonVariant.SECONDARY}
-                  onClick={retryVoices}
-                />
-              </div>
-            ) : !voices.length ? (
-              <p>{translate('noVoices')}</p>
-            ) : null}
-            <Button asChild variant={ButtonVariant.SECONDARY}>
-              <Link href={href(APP_ROUTES.LIBRARY.VOICES)}>
-                {translate('voicesLibrary')}
-              </Link>
-            </Button>
-            {plan.cast.map((member, index) => (
-              <div key={member.id} className="grid items-end gap-3">
-                <Field label={translate('speaker', { ordinal: index + 1 })}>
-                  <Input
-                    value={member.name}
-                    maxLength={40}
-                    disabled={isDisabled}
-                    onChange={(event) =>
-                      edit({
-                        ...plan,
-                        cast: plan.cast.map((item) =>
-                          item.id === member.id
-                            ? { ...item, name: event.target.value }
-                            : item,
-                        ),
-                      })
-                    }
-                  />
-                </Field>
-                <Field label={translate('voice')}>
-                  <StoryboardSelect
-                    ariaLabel={translate('voiceFor', { name: member.name })}
-                    value={member.voiceId}
-                    placeholder={translate('chooseVoice')}
-                    isDisabled={isDisabled || voiceStatus === 'loading'}
-                    options={[
-                      ...(member.voiceId &&
-                      !voices.some((voice) => voice.id === member.voiceId)
-                        ? [
-                            {
-                              value: member.voiceId,
-                              label: translate('voiceUnavailable'),
-                              isDisabled: true,
-                            },
-                          ]
-                        : []),
-                      ...voices.map((voice) => ({
-                        value: voice.id,
-                        label: storyboardAssetLabel(
-                          voice,
-                          translate('savedVoice'),
-                        ),
-                      })),
-                    ]}
-                    onChange={(voiceId) =>
-                      edit({
-                        ...plan,
-                        cast: plan.cast.map((item) =>
-                          item.id === member.id ? { ...item, voiceId } : item,
-                        ),
-                      })
-                    }
-                  />
-                </Field>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    label={
-                      member.avatarAssetId
-                        ? translate('changeAvatar')
-                        : translate('chooseAvatar')
-                    }
-                    variant={ButtonVariant.SECONDARY}
-                    disabled={isDisabled}
-                    onClick={() =>
-                      openGallery({
-                        category: IngredientCategory.IMAGE,
-                        maxSelectableItems: 1,
-                        title: translate('avatarFor', { name: member.name }),
-                        onSelect: (items) => {
-                          const item = items.find(
-                            (candidate) =>
-                              candidate.brandId === run.brandId &&
-                              !candidate.isDeleted,
-                          );
-                          if (item)
-                            edit({
-                              ...plan,
-                              cast: plan.cast.map((candidate) =>
-                                candidate.id === member.id
-                                  ? { ...candidate, avatarAssetId: item.id }
-                                  : candidate,
-                              ),
-                            });
-                        },
-                      })
-                    }
-                  />
-                  {member.avatarAssetId ? (
-                    <Button
-                      label={translate('clearAvatar')}
-                      variant={ButtonVariant.SECONDARY}
-                      disabled={isDisabled}
-                      onClick={() =>
-                        edit({
-                          ...plan,
-                          cast: plan.cast.map((candidate) =>
-                            candidate.id === member.id
-                              ? { ...candidate, avatarAssetId: undefined }
-                              : candidate,
-                          ),
-                          shots: plan.shots.map((shot) =>
-                            shot.speakerId === member.id
-                              ? { ...shot, onScreenSpeaker: false }
-                              : shot,
-                          ),
-                        })
-                      }
-                    />
-                  ) : null}
-                </div>
-                <Button
-                  ariaLabel={translate('removeSpeaker', { name: member.name })}
-                  icon={<Trash2 className="size-4" />}
-                  variant={ButtonVariant.SECONDARY}
-                  disabled={isDisabled}
-                  onClick={() =>
-                    edit({
-                      ...plan,
-                      cast: plan.cast.filter((item) => item.id !== member.id),
-                      shots: plan.shots.map((shot) =>
-                        shot.speakerId === member.id
-                          ? {
-                              ...shot,
-                              speakerId: undefined,
-                              onScreenSpeaker: false,
-                            }
-                          : shot,
-                      ),
-                    })
+                  size={ButtonSize.SM}
+                  disabled={
+                    isDisabled || plan.styleReferenceAssetIds.length >= 20
                   }
+                  onClick={pickStyleReferences}
                 />
-              </div>
-            ))}
-          </div>
-          <Button
-            className="mt-3"
-            label={translate('addSpeaker')}
-            icon={<Plus className="size-4" />}
-            variant={ButtonVariant.SECONDARY}
-            disabled={isDisabled || plan.cast.length >= 6}
-            onClick={() => {
-              let index = plan.cast.length + 1;
-              while (
-                plan.cast.some(
-                  (member) =>
-                    member.name === translate('speaker', { ordinal: index }),
-                )
-              )
-                index++;
-              edit({
-                ...plan,
-                cast: [
-                  ...plan.cast,
-                  {
-                    id: crypto.randomUUID(),
-                    name: translate('speaker', { ordinal: index }),
-                    referenceAssetIds: [],
-                  },
-                ],
-              });
-            }}
-          />
-        </Card>
-      </div>
-    </div>
+              }
+            />
+          }
+          selectedShotId={selectedShotId}
+          shots={inspectorShots}
+          totalSeconds={usedSeconds}
+        />
+      </ContextSidebarPanel>
+    </>
   );
 }

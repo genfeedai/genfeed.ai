@@ -20,6 +20,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 
 export class CreateStoryboardRunDto {
@@ -54,6 +55,14 @@ export class UpdateStoryboardPlanDto extends ControlStoryboardRunDto {
 }
 export class ResetStoryboardPlanDto extends ControlStoryboardRunDto {}
 export class ApproveStoryboardPlanDto extends ControlStoryboardRunDto {}
+export class DraftStoryboardPlanDto extends ControlStoryboardRunDto {
+  @ApiProperty({ maxLength: 2_000, minLength: 1, required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2_000)
+  instruction?: string;
+}
 export class UpdateStoryboardSourceDto extends ControlStoryboardRunDto {
   @ApiProperty({ type: Object })
   @IsObject()

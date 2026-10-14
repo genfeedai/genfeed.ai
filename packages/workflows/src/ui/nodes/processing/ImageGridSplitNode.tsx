@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import { hoverRevealClassName } from '@genfeedai/ui/styles/hover-reveal';
 import type { NodeProps } from '@xyflow/react';
 import { Download, Grid3X3, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
@@ -273,7 +274,7 @@ function OutputGallery({
             </Button>
             <div
               className={
-                'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition flex items-center justify-center gap-1' /* design-system-allow-content-color */
+                `absolute inset-0 flex items-center justify-center gap-1 bg-black/50 transition ${hoverRevealClassName()}` /* design-system-allow-content-color */
               }
             >
               <Button

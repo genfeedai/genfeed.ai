@@ -1,7 +1,15 @@
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import type { PromptEditorProps } from '@genfeedai/props/prompt-bars/prompt-editor.props';
-import type { StoryboardPlanEditorProps } from '@genfeedai/props/studio/storyboard.props';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type {
+  StoryboardPlanEditorProps,
+  StoryboardPromptBarProps,
+} from '@genfeedai/props/studio/storyboard.props';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardDraftPage from './StoryboardDraftPage';
 
@@ -10,39 +18,100 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/prompt-editor/PromptEditor', () => ({
-  default: ({
-    ariaLabel,
-    value,
-    isDisabled,
-    onValueChange,
-  }: PromptEditorProps) => (
-    <textarea
-      aria-label={ariaLabel}
-      value={value}
-      disabled={isDisabled}
-      onChange={(event) => onValueChange?.(event.target.value)}
-    />
-  ),
-}));
-
 const mocks = vi.hoisted(() => ({ flush: vi.fn(), push: vi.fn() }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
+// A settled outbox queue, so the page is not waiting on storage.
+vi.mock(
+  '@pages/studio/storyboard/hooks/use-storyboard-autosave',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@pages/studio/storyboard/hooks/use-storyboard-autosave')
+      >();
+    return {
+      ...actual,
+      useStoryboardDraftOutbox: () => ({
+        queue: { choose: vi.fn(), resolve: vi.fn() },
+        snapshot: { status: 'saved', revision: 1, conflicts: [], choices: {} },
+        plan: undefined,
+        source: undefined,
+      }),
+    };
+  },
+);
 vi.mock(
   '@pages/studio/storyboard/components/StoryboardPlanEditor',
   async () => {
     const { useImperativeHandle } = await import('react');
     return {
-      default: ({ ref }: Pick<StoryboardPlanEditorProps, 'ref'>) => {
+      default: ({
+        ref,
+        actions,
+        composer,
+        isDrafting,
+        notices,
+        onDraftFromBrief,
+        sourceBrief,
+      }: StoryboardPlanEditorProps) => {
         useImperativeHandle(ref, () => ({ flush: mocks.flush }));
-        return <div>Plan editor</div>;
+        return (
+          <div>
+            <p>Plan editor</p>
+            {isDrafting ? <p>Drafting</p> : null}
+            <p data-testid="source-brief">{sourceBrief}</p>
+            {onDraftFromBrief ? (
+              <button type="button" onClick={onDraftFromBrief}>
+                Draft saved brief
+              </button>
+            ) : null}
+            {actions}
+            {notices}
+            {composer}
+          </div>
+        );
       },
     };
   },
 );
+vi.mock('@pages/studio/storyboard/components/StoryboardPromptBar', async () => {
+  const { useState } = await import('react');
+  return {
+    default: ({
+      error,
+      hasShots,
+      isDisabled,
+      onRetry,
+      onSubmit,
+    }: StoryboardPromptBarProps) => {
+      const [value, setValue] = useState('');
+      return (
+        <div>
+          <textarea
+            aria-label={hasShots ? 'Changes' : 'Brief'}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          <button
+            type="button"
+            disabled={isDisabled}
+            onClick={() => void onSubmit(value)}
+          >
+            Send
+          </button>
+          {error ? <p role="alert">{error}</p> : null}
+          {error ? (
+            <button type="button" onClick={onRetry}>
+              Retry
+            </button>
+          ) : null}
+        </div>
+      );
+    },
+  };
+});
 const run = {
   id: 'run',
   organizationId: 'org',
@@ -83,120 +152,243 @@ const run = {
     },
   },
 } satisfies StoryboardRun;
-describe('draft detail navigation', () => {
+const emptyRun = {
+  ...run,
+  config: { ...run.config, plan: { ...run.config.plan, shots: [] } },
+} satisfies StoryboardRun;
+const readyRun = {
+  ...run,
+  config: {
+    ...run.config,
+    state: 'ready' as const,
+    scenePipeline: {
+      state: 'ready',
+      scenes: {
+        'shot-1': { video: { state: 'ready', assetId: 'clip-1' } },
+        'shot-2': { video: { state: 'ready', assetId: 'clip-2' } },
+      },
+    },
+  },
+} as unknown as StoryboardRun;
+function savedBrief(brief: string): StoryboardRun {
+  return {
+    ...emptyRun,
+    config: {
+      ...emptyRun.config,
+      revision: 2,
+      sourceSnapshot: {
+        ...emptyRun.config.sourceSnapshot,
+        selector: { kind: 'brief', brief },
+      },
+    },
+  };
+}
+function renderPage(
+  props: Partial<Parameters<typeof StoryboardDraftPage>[0]> = {},
+) {
+  return render(
+    <StoryboardDraftPage
+      run={run}
+      savePlan={vi.fn()}
+      resetPlan={vi.fn()}
+      approvePlan={vi.fn()}
+      draftPlan={vi.fn().mockResolvedValue(run)}
+      {...props}
+    />,
+  );
+}
+describe('draft detail page', () => {
   beforeEach(() => {
     mocks.flush.mockReset();
     mocks.push.mockReset();
+    mocks.flush.mockResolvedValue({ revision: 1, value: run.config.plan });
   });
-  it('waits for the save before navigating back to scoped storyboards', async () => {
-    let finish: (() => void) | undefined;
-    mocks.flush.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
-        }),
-    );
-    render(
-      <StoryboardDraftPage
-        run={run}
-        savePlan={vi.fn()}
-        resetPlan={vi.fn()}
-        approvePlan={vi.fn()}
-      />,
-    );
-    fireEvent.click(screen.getByRole('link', { name: 'All storyboards' }));
-    expect(mocks.push).not.toHaveBeenCalled();
-    await waitFor(() => expect(mocks.flush).toHaveBeenCalled());
-    finish?.();
-    await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/org/brand/studio/storyboard'),
-    );
-  });
-  it('flushes plan edits before saving a changed brief at the returned revision', async () => {
-    mocks.flush.mockResolvedValue({ revision: 2, value: run.config.plan });
-    const saveSource = vi.fn().mockResolvedValue({
-      ...run,
-      config: {
-        ...run.config,
-        revision: 3,
-        sourceSnapshot: {
-          ...run.config.sourceSnapshot,
-          selector: { kind: 'brief', brief: 'A revised idea' },
-        },
-      },
+
+  describe('opening the editor', () => {
+    it('has no back button; the breadcrumb root links to the list', () => {
+      renderPage();
+      expect(
+        screen.queryByRole('link', { name: 'All storyboards' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Plan editor')).toBeInTheDocument();
     });
-    render(
-      <StoryboardDraftPage
-        run={run}
-        savePlan={vi.fn()}
-        saveSource={saveSource}
-        resetPlan={vi.fn()}
-        approvePlan={vi.fn()}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText('Brief'), {
-      target: { value: 'A revised idea' },
+    it('waits for the save before opening a finished storyboard in the editor', async () => {
+      let finish: (() => void) | undefined;
+      mocks.flush.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finish = () => resolve({ revision: 1, value: run.config.plan });
+          }),
+      );
+      renderPage({ run: readyRun });
+      const link = screen.getByRole('link', { name: 'Open in Editor' });
+      expect(link).toHaveAttribute(
+        'href',
+        expect.stringContaining('/org/brand/studio/editor/new?'),
+      );
+      fireEvent.click(link);
+      expect(mocks.push).not.toHaveBeenCalled();
+      await waitFor(() => expect(mocks.flush).toHaveBeenCalled());
+      finish?.();
+      await waitFor(() =>
+        expect(mocks.push).toHaveBeenCalledWith(
+          expect.stringContaining('/org/brand/studio/editor/new?'),
+        ),
+      );
     });
-    fireEvent.click(screen.getByRole('link', { name: 'All storyboards' }));
-    await waitFor(() =>
-      expect(saveSource).toHaveBeenCalledWith(2, {
-        kind: 'brief',
-        brief: 'A revised idea',
-      }),
-    );
-    expect(mocks.flush).toHaveBeenCalled();
-    await waitFor(() => expect(mocks.push).toHaveBeenCalled());
-  });
-  it('keeps the editor visible and warns when save fails', async () => {
-    mocks.flush.mockRejectedValue(new Error('Offline'));
-    render(
-      <StoryboardDraftPage
-        run={run}
-        savePlan={vi.fn()}
-        resetPlan={vi.fn()}
-        approvePlan={vi.fn()}
-      />,
-    );
-    fireEvent.click(screen.getByRole('link', { name: 'All storyboards' }));
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Retry saving before leaving',
-      ),
-    );
-    expect(screen.getByText('Plan editor')).toBeInTheDocument();
-    expect(mocks.push).not.toHaveBeenCalled();
-  });
-  it('renders a migrated storyboard that has no plan without creating an outbox', () => {
-    render(
-      <StoryboardDraftPage
-        run={
-          {
-            ...run,
-            config: {
-              ...run.config,
-              origin: 'migrated',
-              importedPresentation: null,
-              migration: {
-                version: 1,
-                sourceContract: 'brand-remix-run',
-                sourceVersion: 1,
-                sourceConfigHash: 'b'.repeat(64),
-                migratedAt: run.updatedAt,
-                converterVersion: 1,
-              },
-              migrationReview: {
-                status: 'required',
-                issues: [{ code: 'LEGACY_PLAN_UNREPRESENTABLE', path: 'plan' }],
-              },
-              plan: null,
+    it('keeps the editor visible and warns when save fails', async () => {
+      mocks.flush.mockRejectedValue(new Error('Offline'));
+      renderPage({ run: readyRun });
+      fireEvent.click(screen.getByRole('link', { name: 'Open in Editor' }));
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          'Retry saving before leaving',
+        ),
+      );
+      expect(screen.getByText('Plan editor')).toBeInTheDocument();
+      expect(mocks.push).not.toHaveBeenCalled();
+    });
+    it('renders a migrated storyboard that has no plan without creating an outbox', () => {
+      renderPage({
+        run: {
+          ...run,
+          config: {
+            ...run.config,
+            origin: 'migrated',
+            importedPresentation: null,
+            migration: {
+              version: 1,
+              sourceContract: 'brand-remix-run',
+              sourceVersion: 1,
+              sourceConfigHash: 'b'.repeat(64),
+              migratedAt: run.updatedAt,
+              converterVersion: 1,
             },
-          } satisfies StoryboardRun
-        }
-        savePlan={vi.fn()}
-        resetPlan={vi.fn()}
-        approvePlan={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('Plan editor')).toBeInTheDocument();
+            migrationReview: {
+              status: 'required',
+              issues: [{ code: 'LEGACY_PLAN_UNREPRESENTABLE', path: 'plan' }],
+            },
+            plan: null,
+          },
+        } satisfies StoryboardRun,
+      });
+      expect(screen.getByText('Plan editor')).toBeInTheDocument();
+    });
+  });
+
+  describe('prompt bar', () => {
+    it('offers the brief while the plan has no shots and change requests once it has', () => {
+      const { rerender } = renderPage({
+        run: emptyRun,
+        saveSource: vi.fn(),
+      });
+      expect(screen.getByLabelText('Brief')).toBeInTheDocument();
+      rerender(
+        <StoryboardDraftPage
+          run={run}
+          savePlan={vi.fn()}
+          saveSource={vi.fn()}
+          resetPlan={vi.fn()}
+          approvePlan={vi.fn()}
+          draftPlan={vi.fn()}
+        />,
+      );
+      expect(screen.getByLabelText('Changes')).toBeInTheDocument();
+    });
+    it('is absent once the storyboard is generating, or when the source cannot be edited', () => {
+      renderPage({ run: readyRun, saveSource: vi.fn() });
+      expect(screen.queryByLabelText('Changes')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Brief')).not.toBeInTheDocument();
+      renderPage({ run: emptyRun });
+      expect(screen.queryByLabelText('Brief')).not.toBeInTheDocument();
+    });
+    it('saves the brief, settles pending plan edits, then drafts the plan', async () => {
+      let finishDraft: ((value: StoryboardRun) => void) | undefined;
+      const draftPlan = vi.fn(
+        () =>
+          new Promise<StoryboardRun>((resolve) => {
+            finishDraft = resolve;
+          }),
+      );
+      const saveSource = vi
+        .fn()
+        .mockResolvedValue(savedBrief('A founder story'));
+      renderPage({ run: emptyRun, saveSource, draftPlan });
+      fireEvent.change(screen.getByLabelText('Brief'), {
+        target: { value: 'A founder story' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await waitFor(() => expect(draftPlan).toHaveBeenCalledWith(undefined));
+      expect(saveSource).toHaveBeenCalledWith(1, {
+        kind: 'brief',
+        brief: 'A founder story',
+      });
+      expect(saveSource.mock.invocationCallOrder[0]).toBeLessThan(
+        draftPlan.mock.invocationCallOrder[0],
+      );
+      expect(Math.max(...mocks.flush.mock.invocationCallOrder)).toBeLessThan(
+        draftPlan.mock.invocationCallOrder[0],
+      );
+      expect(screen.getByText('Drafting')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+      await act(async () => finishDraft?.(run));
+      await waitFor(() =>
+        expect(screen.queryByText('Drafting')).not.toBeInTheDocument(),
+      );
+    });
+    it('sends a change request to the existing plan without touching the brief', async () => {
+      const draftPlan = vi.fn().mockResolvedValue(run);
+      const saveSource = vi.fn();
+      renderPage({ saveSource, draftPlan });
+      fireEvent.change(screen.getByLabelText('Changes'), {
+        target: { value: 'Make shot 2 shorter' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await waitFor(() =>
+        expect(draftPlan).toHaveBeenCalledWith('Make shot 2 shorter'),
+      );
+      expect(saveSource).not.toHaveBeenCalled();
+      expect(mocks.flush).toHaveBeenCalled();
+    });
+    it('ignores an empty prompt', () => {
+      const draftPlan = vi.fn();
+      renderPage({ saveSource: vi.fn(), draftPlan });
+      fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+      expect(draftPlan).not.toHaveBeenCalled();
+    });
+    it('reports a failed draft and retries the same request', async () => {
+      const draftPlan = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Model unavailable'))
+        .mockResolvedValueOnce(run);
+      renderPage({ saveSource: vi.fn(), draftPlan });
+      fireEvent.change(screen.getByLabelText('Changes'), {
+        target: { value: 'Add a hook' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          'Model unavailable',
+        ),
+      );
+      expect(screen.queryByText('Drafting')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      await waitFor(() => expect(draftPlan).toHaveBeenCalledTimes(2));
+      expect(draftPlan).toHaveBeenLastCalledWith('Add a hook');
+      await waitFor(() =>
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+      );
+    });
+    it('drafts from the brief that is already saved', async () => {
+      const draftPlan = vi.fn().mockResolvedValue(run);
+      const saveSource = vi.fn();
+      renderPage({ run: emptyRun, saveSource, draftPlan });
+      expect(screen.getByTestId('source-brief')).toHaveTextContent('Idea');
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Draft saved brief' }),
+      );
+      await waitFor(() => expect(draftPlan).toHaveBeenCalledWith(undefined));
+      expect(saveSource).not.toHaveBeenCalled();
+    });
   });
 });

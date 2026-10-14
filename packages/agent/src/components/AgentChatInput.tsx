@@ -54,6 +54,12 @@ export type ExtractedMention =
 
 interface AgentChatInputProps {
   agentMode?: AgentThreadMode;
+  /**
+   * Hosts that are not an Agent conversation (the storyboard prompt bar) hide
+   * the controls that only make sense there: agent mode, generation setup and
+   * the Library reference picker. Send, voice and the editor stay the same.
+   */
+  isAgentControlsHidden?: boolean;
   onAgentModeChange?: (mode: AgentThreadMode) => void;
   onSend: (
     content: string,
@@ -103,6 +109,7 @@ function mapAttachmentToTrayAsset(
 
 export function AgentChatInput({
   agentMode = AgentThreadMode.MANUAL,
+  isAgentControlsHidden = false,
   onAgentModeChange = () => {},
   onSend,
   onPromoteQueuedFollowUp,
@@ -267,6 +274,7 @@ export function AgentChatInput({
           canUseVoiceInput={canUseVoiceInput}
           disabled={disabled}
           hasEditor={Boolean(editor)}
+          isAgentControlsHidden={isAgentControlsHidden}
           isEmptyComposer={isEmptyComposer}
           isListening={isListening}
           isTranscribing={isTranscribing}

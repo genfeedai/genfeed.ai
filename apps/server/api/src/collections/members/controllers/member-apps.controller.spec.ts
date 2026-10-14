@@ -23,8 +23,12 @@ describe('MemberAppsController (#5502)', () => {
       findInstalledAppIds: vi.fn().mockResolvedValue(['playground']),
       setAppInstalled: vi.fn().mockResolvedValue(['playground', 'turbo']),
     };
+    // Turbo is released in Admin → Flags; Motion and Editor are not.
     const moduleAccess = {
-      isReleasePreviewActive: vi.fn().mockResolvedValue(isReleasePreview),
+      isReleased: vi.fn(
+        async (_organizationId: string, itemId: string) =>
+          isReleasePreview || itemId === 'turbo',
+      ),
     };
     return {
       controller: new MemberAppsController(
@@ -62,17 +66,17 @@ describe('MemberAppsController (#5502)', () => {
     );
   });
 
-  it('refuses founder-only apps outside release preview', async () => {
+  it('refuses unreleased apps', async () => {
     const { controller, membersService, moduleAccess } = makeController();
 
     await expect(
       controller.installApp(makeUser(), 'motion'),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(moduleAccess.isReleasePreviewActive).toHaveBeenCalledWith('org-1');
+    expect(moduleAccess.isReleased).toHaveBeenCalledWith('org-1', 'motion');
     expect(membersService.setAppInstalled).not.toHaveBeenCalled();
   });
 
-  it('installs founder-only apps for an organization on release preview', async () => {
+  it('installs unreleased apps for an organization on release preview', async () => {
     const { controller, membersService } = makeController({
       isReleasePreview: true,
     });
@@ -86,7 +90,7 @@ describe('MemberAppsController (#5502)', () => {
     );
   });
 
-  it('does not let a super admin install around release preview', async () => {
+  it('does not let a super admin install an unreleased app', async () => {
     const { controller, membersService } = makeController();
 
     await expect(
@@ -95,7 +99,7 @@ describe('MemberAppsController (#5502)', () => {
     expect(membersService.setAppInstalled).not.toHaveBeenCalled();
   });
 
-  it('lets anyone uninstall a known app, including founder-only ones', async () => {
+  it('lets anyone uninstall a known app, including unreleased ones', async () => {
     const { controller, membersService } = makeController();
 
     await controller.uninstallApp(makeUser(), 'messages');

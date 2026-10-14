@@ -175,6 +175,7 @@ export default function StoryboardRunPage({
     transport,
     resetPlan,
     approvePlan,
+    draftPlan,
   } = useDurableStoryboardRun(runId);
   const modelCapabilities = useStoryboardCapabilities(
     runId,
@@ -190,11 +191,12 @@ export default function StoryboardRunPage({
         saveSource={saveSource}
         resetPlan={resetPlan}
         approvePlan={approvePlan}
+        draftPlan={draftPlan}
         {...modelCapabilities}
       />
     );
   return (
-    <Container label={translate('runs.title')}>
+    <Container label={translate('runs.title')} moduleChrome>
       <div className="mx-auto max-w-5xl space-y-3">
         {error ? (
           <>

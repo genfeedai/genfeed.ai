@@ -34,6 +34,7 @@ import { ContentRunsService } from '@api/collections/content-runs/services/conte
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
+import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
@@ -110,6 +111,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     StoryboardCharacterReplaceService,
+    StoryboardPlanDraftService,
     StoryboardRunCapabilitiesService,
     StoryboardRunsService,
     StoryboardRunStoreService,

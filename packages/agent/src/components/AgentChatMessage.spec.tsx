@@ -394,12 +394,19 @@ describe('AgentChatMessage', () => {
       '[data-message-role="user"][data-message-surface="prompt"]',
     );
     expect(surface?.contains(copyButton)).toBe(false);
-    const actions = copyButton.closest('.opacity-0');
+    const actions = copyButton.closest(
+      '[class*="[@media(hover:hover)]:opacity-0"]',
+    );
     expect(actions).toBeTruthy();
-    expect(actions).toHaveClass('opacity-0');
-    expect(actions).toHaveClass('group-hover:opacity-100');
-    expect(actions).toHaveClass('group-focus-within:opacity-100');
-    expect(actions).toHaveClass('[@media(hover:none)]:opacity-100');
+    expect(actions).toHaveClass('opacity-100');
+    expect(actions).toHaveClass('[@media(hover:hover)]:opacity-0');
+    expect(actions).toHaveClass(
+      '[@media(hover:hover)]:group-hover:opacity-100',
+    );
+    expect(actions).toHaveClass(
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
+    );
+    expect(actions).not.toHaveClass('opacity-0');
   });
 
   it('offers retry only when the user prompt owns the terminal failure', () => {

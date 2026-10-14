@@ -18,6 +18,19 @@ const state = vi.hoisted(() => ({
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => state,
 }));
+// Admin → Flags as the release migration leaves it.
+vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+  useFeatureFlagContext: () => ({
+    flags: {
+      release_analytics: true,
+      release_discovery: true,
+      release_publishing: true,
+      release_turbo: true,
+    },
+    isConfigured: true,
+    isReady: true,
+  }),
+}));
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ orgHref: (path: string) => `/acme/~${path}` }),
 }));
@@ -96,7 +109,7 @@ describe('credit-based module creation gate', () => {
     ).toHaveAttribute('href', '/acme/~/settings/general');
   });
   it.each(['clips', 'editor', 'motion'] as const)(
-    'shows %s as not released on cloud without release preview (#5502)',
+    'shows %s as not released on cloud without release preview',
     (moduleId) => {
       state.settings = {
         hasOrganizationBilling: true,
@@ -110,7 +123,7 @@ describe('credit-based module creation gate', () => {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     },
   );
-  it('mounts founder-only creation on release preview when enabled', () => {
+  it('mounts unreleased creation on release preview when shown', () => {
     state.settings = {
       hasOrganizationBilling: true,
       isReleasePreviewEnabled: true,

@@ -3,6 +3,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Clipboard, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -44,9 +45,8 @@ export function AgentChatMessageFooter({
   const actionButtons = (
     <div
       className={cn(
-        'flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100',
-        // Touch has no hover affordance, so actions remain discoverable there.
-        '[@media(hover:none)]:opacity-100',
+        'flex items-center gap-1 transition-opacity',
+        hoverRevealClassName(),
       )}
     >
       {onCopy ? (

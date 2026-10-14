@@ -19,6 +19,8 @@ export interface AgentChatInputToolbarProps {
   canUseVoiceInput: boolean;
   disabled: boolean | undefined;
   hasEditor: boolean;
+  /** Hides agent mode, generation setup and the Library reference picker. */
+  isAgentControlsHidden?: boolean;
   /** No text and no ready attachments: the mic owns the submit slot. */
   isEmptyComposer: boolean;
   isListening: boolean;
@@ -47,6 +49,7 @@ function AgentChatInputToolbarInner({
   canUseVoiceInput,
   disabled,
   hasEditor,
+  isAgentControlsHidden = false,
   isEmptyComposer,
   isListening,
   isTranscribing,
@@ -70,11 +73,14 @@ function AgentChatInputToolbarInner({
   // The Agent infers output type from the prompt itself (#4672) — there is no
   // user control for it any more, only the mode dropdown (Auto/Manual/Plan).
   useEffect(() => {
+    if (isAgentControlsHidden) {
+      return;
+    }
     onGenerationModeChange(
       inferAgentMediaGenerationModeFromPrompt(promptText) ??
         AgentGenerationMode.AUTO,
     );
-  }, [onGenerationModeChange, promptText]);
+  }, [isAgentControlsHidden, onGenerationModeChange, promptText]);
 
   const controlSize = isCompact ? 'size-8' : 'size-9';
   const send =
@@ -100,24 +106,26 @@ function AgentChatInputToolbarInner({
     <PromptBarToolbar
       density={density}
       leading={
-        <>
-          <PromptBarReferenceControls
-            density={density}
-            isAttachmentDisabled={disabled}
-            isLibraryDisabled={disabled || !hasEditor}
-            onAddFiles={onAddFiles}
-            onOpenLibrary={onInsertReference}
-          />
-          <AgentModeDropdown
-            isDisabled={disabled || showStop}
-            mode={agentMode}
-            onChange={onAgentModeChange}
-          />
-          <GenerationHarnessSettingsPopover
-            className={controlSize}
-            isDisabled={disabled || showStop}
-          />
-        </>
+        isAgentControlsHidden ? null : (
+          <>
+            <PromptBarReferenceControls
+              density={density}
+              isAttachmentDisabled={disabled}
+              isLibraryDisabled={disabled || !hasEditor}
+              onAddFiles={onAddFiles}
+              onOpenLibrary={onInsertReference}
+            />
+            <AgentModeDropdown
+              isDisabled={disabled || showStop}
+              mode={agentMode}
+              onChange={onAgentModeChange}
+            />
+            <GenerationHarnessSettingsPopover
+              className={controlSize}
+              isDisabled={disabled || showStop}
+            />
+          </>
+        )
       }
       trailing={
         <PromptBarSubmitSlot

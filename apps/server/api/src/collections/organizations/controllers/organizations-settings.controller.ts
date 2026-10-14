@@ -29,12 +29,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
-import { hasOrganizationBilling } from '@genfeedai/config';
 import { ByokProvider, MemberRole } from '@genfeedai/contracts';
-import {
-  findNewlyEnabledUnreleasedModules,
-  ORGANIZATION_MODULES,
-} from '@genfeedai/contracts/constants';
 import type {
   IByokProviderStatus,
   IWebhookDeliveryStatus,
@@ -236,21 +231,6 @@ export class OrganizationsSettingsController {
       await this.organizationSettingsService.ensureForOrganization(
         resolvedOrganizationId,
       );
-
-    const unreleased = isSuperAdmin
-      ? []
-      : findNewlyEnabledUnreleasedModules({
-          hasOrganizationBilling: hasOrganizationBilling(),
-          isReleasePreviewEnabled:
-            organizationSettings.isReleasePreviewEnabled === true,
-          nextOverrides: settingsDto.moduleOverrides,
-          previousOverrides: organizationSettings.moduleOverrides,
-        });
-    if (unreleased.length > 0) {
-      throw new ForbiddenException(
-        `${unreleased.map((id) => ORGANIZATION_MODULES[id].label).join(', ')} not released yet`,
-      );
-    }
 
     const normalizedSettingsDto =
       this.agentPolicyOverridesService.normalizeOverrides(settingsDto);

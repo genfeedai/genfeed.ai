@@ -4,12 +4,12 @@ import { useAccessState } from '@genfeedai/contexts/providers/access-state/acces
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import {
-  isReleasePreviewActive,
   ORGANIZATION_MODULE_IDS,
   resolveOrganizationModulePreferences,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
+import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AppRail } from '@ui/shell/app-rail/AppRail';
@@ -38,8 +38,10 @@ function AppProtectedRailContent({
   const pathname = usePathname();
   const { brandId, brands, selectedBrand, settings, settingsLoading } =
     useBrand();
+  const { flags: platformFlags } = useFeatureFlagContext();
   const modulePreferences = resolveOrganizationModulePreferences(
     settingsLoading ? null : settings,
+    platformFlags,
   );
   const moduleAccess = useMemo(
     () =>
@@ -48,10 +50,14 @@ function AppProtectedRailContent({
         : Object.fromEntries(
             ORGANIZATION_MODULE_IDS.map((moduleId) => [
               moduleId,
-              resolveOrganizationModulePresentationAccess(settings, moduleId),
+              resolveOrganizationModulePresentationAccess(
+                settings,
+                moduleId,
+                platformFlags,
+              ),
             ]),
           ),
-    [settings, settingsLoading],
+    [platformFlags, settings, settingsLoading],
   );
   const installedApps = useInstalledApps();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
@@ -145,9 +151,6 @@ function AppProtectedRailContent({
         installedApps.status === 'ready' ? installedApps.installedAppIds : []
       }
       isAssetGateLocked={isAssetGateLocked}
-      isFounderOperator={isReleasePreviewActive(
-        settingsLoading ? null : settings,
-      )}
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
       onNavigate={onNavigate}

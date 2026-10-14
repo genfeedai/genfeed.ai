@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { StoryboardAnimaticProps } from '@genfeedai/props/studio/storyboard.props';
+import { formatStoryboardTimecode } from '@pages/studio/storyboard/utils/storyboard-runtime';
 import { Button } from '@ui/primitives/button';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import NextImage from 'next/image';
@@ -12,12 +13,6 @@ function previewDuration(seconds: number | null): number {
   return seconds !== null && Number.isFinite(seconds) && seconds > 0
     ? seconds
     : 0;
-}
-function timecode(seconds: number) {
-  const whole = Math.floor(seconds);
-  return `${Math.floor(whole / 60)
-    .toString()
-    .padStart(2, '0')}:${(whole % 60).toString().padStart(2, '0')}`;
 }
 
 /** Displays persisted stills and dialogue only. It never calls a generation service. */
@@ -184,7 +179,8 @@ export default function StoryboardAnimatic({
           <h2 className="text-sm font-semibold">{translate('title')}</h2>
         </div>
         <span className="font-mono text-xs text-muted-foreground">
-          {timecode(elapsed)} / {timecode(total)}
+          {formatStoryboardTimecode(elapsed)} /{' '}
+          {formatStoryboardTimecode(total)}
         </span>
       </div>
       <Button
@@ -256,7 +252,7 @@ export default function StoryboardAnimatic({
           ? translate('shotStatus', { ordinal: current.shot.ordinal })
           : translate('noShots')}
         {current
-          ? ` · ${timecode(current.start)}–${timecode(current.end)}`
+          ? ` · ${formatStoryboardTimecode(current.start)}–${formatStoryboardTimecode(current.end)}`
           : ''}
       </p>
       <p className="whitespace-pre-wrap break-words text-sm">

@@ -8,8 +8,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
-  isFounderOnlyNativeApp,
   isNativeSecondaryAppId,
+  isReleaseItemId,
   type NativeSecondaryAppId,
 } from '@genfeedai/contracts/constants';
 import type { MemberAppsResponse } from '@genfeedai/contracts/interfaces';
@@ -65,12 +65,13 @@ export class MemberAppsController {
     @Param('appId') appId: string,
   ): Promise<MemberAppsResponse> {
     const nativeAppId = this.readNativeAppId(appId);
-    // Founder-only experiments are absent from the Store outside release
-    // preview, so they cannot be installed around it through the API either.
+    // Unreleased apps are absent from the Store, so they cannot be installed
+    // around it through the API either.
     if (
-      isFounderOnlyNativeApp(nativeAppId) &&
-      !(await this.moduleAccess.isReleasePreviewActive(
+      isReleaseItemId(nativeAppId) &&
+      !(await this.moduleAccess.isReleased(
         this.readMembershipScope(user).organizationId,
+        nativeAppId,
       ))
     ) {
       throw new ForbiddenException(`${nativeAppId} is not available yet`);

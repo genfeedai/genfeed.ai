@@ -93,6 +93,12 @@ describe('ArticleDeliveryCard', () => {
         platform: 'ghost',
       },
       {
+        id: 'devto-1',
+        isConnected: true,
+        label: 'Dev.to author',
+        platform: 'devto',
+      },
+      {
         id: 'beehiiv-1',
         isConnected: true,
         label: 'Weekly',
@@ -109,6 +115,9 @@ describe('ArticleDeliveryCard', () => {
 
     expect(
       screen.getByRole('button', { name: 'Publish to Team blog' }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Publish to Dev.to author' }),
     ).toBeEnabled();
     expect(
       screen.queryByRole('button', { name: 'Publish to Weekly' }),
@@ -153,7 +162,9 @@ describe('ArticleDeliveryCard', () => {
     renderCard();
 
     expect(
-      screen.getByText(/No Ghost, WordPress or Medium account is connected/),
+      screen.getByText(
+        /No Ghost, WordPress, Medium or Dev.to account is connected/,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Connect an account' }),

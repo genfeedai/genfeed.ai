@@ -13,6 +13,9 @@ import ApiTestTimingsReporter, {
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const REPORTER = path.join(ROOT, 'scripts/ci/api-test-timings-reporter.mjs');
 const VITEST = path.join(ROOT, 'node_modules/vitest/vitest.mjs');
+const INSTALLED_VITEST_VERSION = JSON.parse(
+  readFileSync(path.join(ROOT, 'node_modules/vitest/package.json'), 'utf8'),
+).version;
 
 test('records separate phases, retries and states without recording test data', () => {
   const module = {
@@ -199,7 +202,7 @@ test('real Vitest sharding preserves the selected union, skips, retries and fail
       assert.equal(record.isComplete, true);
       assert.equal(record.runtime.maxWorkers, 2);
       assert.deepEqual(record.shard, { index: shard, count: 2 });
-      assert.equal(record.runtime.vitestVersion, '5.0.3');
+      assert.equal(record.runtime.vitestVersion, INSTALLED_VITEST_VERSION);
       assert.deepEqual(record.candidateFiles, Object.keys(sources).sort());
       records.push(record);
     }

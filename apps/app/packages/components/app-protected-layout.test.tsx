@@ -1,3 +1,4 @@
+import { useRegisterBreadcrumbLeaf } from '@contexts/ui/breadcrumb-leaf-context';
 import { useAgentPageContext } from '@genfeedai/agent';
 import { MemberRole } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
@@ -1209,6 +1210,43 @@ describe('AppProtectedLayout', () => {
       });
     },
   );
+
+  describe('storyboard run breadcrumb', () => {
+    function RunTitle({ label }: { readonly label: string }) {
+      useRegisterBreadcrumbLeaf('run-1', label);
+      return null;
+    }
+
+    it('shows the run title the page publishes as the leaf', () => {
+      mockPathname.value = '/org-123/brand-123/studio/storyboard/run-1';
+
+      render(
+        <AppProtectedLayout>
+          <RunTitle label="The Founder Story" />
+        </AppProtectedLayout>,
+      );
+
+      const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+        breadcrumb?: { leafLabel: string };
+      };
+      expect(layoutProps.breadcrumb?.leafLabel).toBe('The Founder Story');
+    });
+
+    it('keeps the registry leaf when the published title belongs to another run', () => {
+      mockPathname.value = '/org-123/brand-123/studio/storyboard/run-2';
+
+      render(
+        <AppProtectedLayout>
+          <RunTitle label="The Founder Story" />
+        </AppProtectedLayout>,
+      );
+
+      const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+        breadcrumb?: { leafLabel: string };
+      };
+      expect(layoutProps.breadcrumb?.leafLabel).toBe('Run');
+    });
+  });
 
   it.each([
     '/org-123/brand-123/automation/workflows/new',

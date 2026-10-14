@@ -14,9 +14,8 @@ import {
 } from 'lucide-react';
 
 /**
- * #5502: customers see Overview, Posts and Accounts. The other destinations
- * are founder-only (`isFounderOnly`) until Winners, insights, streaks and
- * hooks are folded into Overview and Posts.
+ * Overview, Posts and Accounts are always listed. The other destinations are
+ * release items (`releaseItemId`), listed once released in Admin → Flags.
  *
  * Analytics is the single home for measuring the brand's own content — the
  * Publishing module no longer carries its own analytics page. Market trends
@@ -64,8 +63,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.ANALYTICS.BRANDS,
     hrefScope: 'brand',
-    isFounderOnly: true,
     label: 'Brands',
+    releaseItemId: 'analytics_brands',
     matchPaths: [APP_ROUTES.ANALYTICS.BRANDS],
     outline: BriefcaseBusiness,
     solid: BriefcaseBusiness,
@@ -74,8 +73,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.ANALYTICS.STREAKS,
     hrefScope: 'brand',
-    isFounderOnly: true,
     label: 'Streaks',
+    releaseItemId: 'analytics_streaks',
     matchPaths: [APP_ROUTES.ANALYTICS.STREAKS],
     outline: Flame,
     solid: Flame,
@@ -84,8 +83,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.INSIGHTS,
     hrefScope: 'brand',
-    isFounderOnly: true,
     label: 'Insights',
+    releaseItemId: 'analytics_insights',
     matchPaths: [APP_ROUTES.ANALYTICS.INSIGHTS],
     outline: Telescope,
     solid: Telescope,
@@ -94,8 +93,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.HOOKS,
     hrefScope: 'brand',
-    isFounderOnly: true,
     label: 'Hooks',
+    releaseItemId: 'analytics_hooks',
     matchPaths: [APP_ROUTES.ANALYTICS.HOOKS],
     outline: Quote,
     solid: Quote,
@@ -103,8 +102,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.OUTLIERS,
-    isFounderOnly: true,
     label: 'Outliers',
+    releaseItemId: 'analytics_outliers',
     matchPaths: [APP_ROUTES.ANALYTICS.OUTLIERS],
     outline: ChartScatter,
     solid: ChartScatter,
@@ -113,8 +112,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.BREAKOUTS,
     hrefScope: 'brand',
-    isFounderOnly: true,
     label: 'Breakouts',
+    releaseItemId: 'analytics_breakouts',
     matchPaths: [APP_ROUTES.ANALYTICS.BREAKOUTS],
     outline: Zap,
     solid: Zap,
@@ -124,8 +123,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
     hrefScope: 'brand',
-    isFounderOnly: true,
     label: 'Performance Lab',
+    releaseItemId: 'analytics_performance_lab',
     matchPaths: [APP_ROUTES.ANALYTICS.PERFORMANCE_LAB],
     outline: SquareActivity,
     solid: SquareActivity,

@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { ArticleDeliveriesController } from '@api/collections/long-form-deliveries/controllers/article-deliveries.controller';
 import { NewsletterDeliveriesController } from '@api/collections/long-form-deliveries/controllers/newsletter-deliveries.controller';
@@ -13,7 +14,12 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   controllers: [ArticleDeliveriesController, NewsletterDeliveriesController],
-  imports: [ArticlesModule, NewslettersModule, PostGroupsModule],
+  imports: [
+    ArticlesModule,
+    BrandAccessModule,
+    NewslettersModule,
+    PostGroupsModule,
+  ],
   providers: [LongFormDeliveriesService],
 })
 export class LongFormDeliveriesModule {}

@@ -469,7 +469,7 @@ describe('SocialMessagesPage', () => {
       'disabled',
       { hasOrganizationBilling: false, moduleOverrides: { messages: false } },
       false,
-      'Messages is disabled',
+      'Messages is hidden for your organization',
     ],
     ['unavailable', null, false, 'Module settings are unavailable'],
     [

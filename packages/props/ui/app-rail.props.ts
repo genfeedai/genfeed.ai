@@ -37,8 +37,6 @@ export interface AppRailProps {
   > | null;
   /** The member's installed apps here. Undefined is a neutral surface. */
   installedAppIds?: readonly string[];
-  /** Existing operator authorization; opens founder-only apps. */
-  isFounderOperator?: boolean;
   surface?: AppRailSurface;
   onNavigationEvent?: (event: AppRailNavigationEvent) => void;
   /** Count pills keyed by app id; a missing or zero count renders nothing. */
