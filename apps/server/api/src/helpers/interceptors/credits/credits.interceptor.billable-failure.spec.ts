@@ -30,7 +30,8 @@ function setup(config: Record<string, unknown>) {
     { closeDispatch: vi.fn() } as never,
   );
   const request: CreditsInterceptorRequest = {
-    creditsConfig: config as CreditsInterceptorRequest['creditsConfig'],
+    creditsConfig:
+      config as unknown as CreditsInterceptorRequest['creditsConfig'],
     user: user as never,
   };
   const run = (error: unknown) =>

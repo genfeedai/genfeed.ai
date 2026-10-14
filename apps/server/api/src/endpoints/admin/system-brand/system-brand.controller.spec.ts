@@ -3,6 +3,7 @@ import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { ForbiddenException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
@@ -24,7 +25,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 const request = { url: 'https://api.genfeed.ai/admin/system-brand' } as never;
 const revision = { id: 'rev-1', status: 'DRAFT' };
-const rules = {
+const rules: BrandGenerationRulesV1 = {
   assets: [],
   avoid: [],
   evidence: [],
@@ -93,10 +94,7 @@ describe('SystemBrandController', () => {
       request,
       { id: 'auth_1', userId: 'db_user_1' } as never,
       'rev-1',
-      {
-        reviewedGenerationRulesHash: undefined,
-        updatedAt: '2026-10-14T00:00:00.000Z',
-      },
+      { updatedAt: '2026-10-14T00:00:00.000Z' },
     );
     expect(revisions.approve).toHaveBeenCalledWith(
       SYSTEM_WORKFLOW_PRINCIPAL_ID,
@@ -107,6 +105,25 @@ describe('SystemBrandController', () => {
       hashBrandGenerationRulesReviewV1(rules),
     );
     expect(tenants).toEqual([SYSTEM_WORKFLOW_PRINCIPAL_ID]);
+  });
+
+  it('approves a kit without saved rules with no rules digest', async () => {
+    const { controller, revisions } = setup();
+    revisions.get.mockResolvedValue({ content: {} });
+    await controller.approve(
+      request,
+      { id: 'auth_1', userId: 'db_user_1' } as never,
+      'rev-1',
+      { updatedAt: '2026-10-14T00:00:00.000Z' },
+    );
+    expect(revisions.approve).toHaveBeenCalledWith(
+      SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      SYSTEM_BRAND_ID,
+      'rev-1',
+      'db_user_1',
+      '2026-10-14T00:00:00.000Z',
+      undefined,
+    );
   });
 
   it('refuses to approve without a user identity', async () => {
