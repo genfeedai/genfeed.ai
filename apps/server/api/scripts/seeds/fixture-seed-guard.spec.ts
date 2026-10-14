@@ -1,5 +1,5 @@
-import { assertFixtureSeedAllowed } from '@api-scripts/seeds/fixture-seed-guard';
 import { describe, expect, it } from 'vitest';
+import { assertFixtureSeedAllowed } from './fixture-seed-guard';
 
 describe('assertFixtureSeedAllowed', () => {
   const localUrl = new URL(
