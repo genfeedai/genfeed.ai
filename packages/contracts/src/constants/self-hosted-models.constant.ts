@@ -465,6 +465,34 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
+   * Photo animation (`POST /v3/videos`, `type: image`) quotes `heygen/avatar`
+   * with no duration. Image-type animation has no separate published
+   * per-second rate, so this row is a flat 10-second hold (the capability
+   * default) at the verified photo-avatar list rate of $0.0385/s
+   * (pricing page, 2026-10-10) — the same band Avatar IV uses for a photo
+   * look, not a claim that the image pipeline has its own sheet.
+   * $0.385 at 3.33x is 129 credits. Clips longer than 10 seconds keep that
+   * hold because this path does not pass duration.
+   */
+  {
+    category: ModelCategory.AVATAR,
+    cost: 129,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'HeyGen photo animation — a still image turned into a talking clip. Flat 129-credit hold for the 10-second default at the photo-avatar list rate.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.HEYGEN_AVATAR,
+    label: 'HeyGen Photo Avatar',
+    lifecycle: ModelLifecycle.AVAILABLE,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'avatar', owner: 'heygen' },
+    providerCostUsd: 0.385,
+  },
+  /**
    * HeyGen Avatar IV, the default avatar engine. HeyGen bills per output
    * second by avatar type: $0.0385 for a photo avatar, $0.0805 for a digital
    * twin or studio avatar (pricing page, 2026-10-10). This row carries the

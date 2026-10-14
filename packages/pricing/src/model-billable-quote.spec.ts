@@ -43,6 +43,44 @@ describe('pending provider rate drift', () => {
     expect(hasPendingProviderRateDrift(reviewed, pending)).toBe(expected);
   });
 });
+describe('flat photo-avatar hold', () => {
+  const photo = {
+    ...model,
+    key: 'heygen/avatar',
+    provider: 'heygen',
+    pricingType: 'flat' as const,
+    providerCostUsd: 0.385,
+    cost: 129,
+  };
+  const request = { modelKey: 'heygen/avatar', provider: 'heygen' };
+
+  it('prices an active flat hold without a duration', () => {
+    const quote = quoteModelBillablePricing(photo, request, 3.33, date);
+
+    expect(quote).toMatchObject({
+      status: 'priced',
+      snapshot: {
+        costSource: 'configured-provider',
+        credits: 129,
+        providerCostUsd: 0.385,
+      },
+    });
+  });
+
+  it('keeps an inactive row unresolved even when a price is stored', () => {
+    const quote = quoteModelBillablePricing(
+      { ...photo, isActive: false },
+      request,
+      3.33,
+      date,
+    );
+
+    expect(quote).toEqual({
+      status: 'unresolved',
+      reason: 'Exact model/provider is unavailable or does not match dispatch',
+    });
+  });
+});
 describe('authoritative bill-time quote snapshots', () => {
   it('binds native input usage to the same source at quote and completion', () => {
     const profile: ModelBillablePricingProfile = {

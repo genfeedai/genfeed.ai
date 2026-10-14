@@ -18,6 +18,8 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'bytedance/video-upscaler':
     'The public readme says the price depends on tier, resolution and frame rate, and the numeric table is only on the pricing tab.',
   'genfeed-ai/flux-dev': PRIVATE_DEPLOYMENT,
+  'heygen/avatar':
+    'Photo animation (type:image) has no separate published per-second rate. The flat row is a 10-second hold at the verified photo-avatar list rate ($0.0385/s). The quote does not pass duration, so this key stays off the rate sheet.',
   'genfeed-ai/flux-dev-pulid': PRIVATE_DEPLOYMENT,
   'genfeed-ai/flux2-dev': PRIVATE_DEPLOYMENT,
   'genfeed-ai/flux2-dev-pulid': PRIVATE_DEPLOYMENT,

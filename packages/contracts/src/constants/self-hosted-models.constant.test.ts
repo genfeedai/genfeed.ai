@@ -54,6 +54,24 @@ describe('SELF_HOSTED_MODELS', () => {
     expect(voice?.cost).toBe(10);
   });
 
+  it('carries photo animation as a flat 10-second hold at the photo-avatar list rate', () => {
+    const photo = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR,
+    );
+
+    expect(photo).toMatchObject({
+      category: ModelCategory.AVATAR,
+      isDefault: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.HEYGEN,
+      // $0.0385/s × 10 s. At 3.33x that is 129 credits. Not per second:
+      // the photo quote does not pass duration.
+      providerCostUsd: 0.385,
+    });
+    expect(photo?.cost).toBe(129);
+  });
+
   it('carries Avatar IV as the default avatar engine and Avatar V as the ultra option', () => {
     const avatarIv = SELF_HOSTED_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_IV,

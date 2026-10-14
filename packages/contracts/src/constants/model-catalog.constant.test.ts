@@ -443,6 +443,23 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(getModelCatalogForDeployment(true)).toBe(UNIFIED_MODEL_CATALOG);
   });
 
+  it('seeds photo animation as an active flat hold that is not the avatar default', () => {
+    const photo = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.HEYGEN_AVATAR,
+    );
+
+    expect(photo).toMatchObject({
+      category: ModelCategory.AVATAR,
+      cost: 129,
+      isActive: true,
+      isDefault: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.HEYGEN,
+      providerCostUsd: 0.385,
+    });
+  });
+
   it('seeds HeyGen Video and Genjutsu inactive at zero cost on their own providers', () => {
     const heygen = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.HEYGEN_VIDEO,

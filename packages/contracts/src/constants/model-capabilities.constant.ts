@@ -1028,7 +1028,8 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
 
     /**
      * Photo animation (`POST /v3/videos` with `type: image`). It has no
-     * verified per-second engine price, so it keeps the flat quote.
+     * verified per-second engine price, so it keeps the flat quote: a
+     * 10-second hold at the photo-avatar list rate ($0.0385/s).
      */
     [MODEL_KEYS.HEYGEN_AVATAR]: {
       aspectRatios: ASPECT_RATIOS.HEYGEN,
