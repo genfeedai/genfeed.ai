@@ -1,5 +1,6 @@
 import { PostsAnalyticsController } from '@api/collections/posts/controllers/analytics/posts-analytics.controller';
 import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
+import { PostsAccountGenerationRetryController } from '@api/collections/posts/controllers/operations/posts-account-generation-retry.controller';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
@@ -41,6 +42,7 @@ describe('Posts split controllers', () => {
   });
 
   it.each([
+    PostsAccountGenerationRetryController,
     PostsOperationsController,
     PostsRetryController,
     PostsThreadDraftController,
@@ -57,6 +59,7 @@ describe('Posts split controllers', () => {
       ContentMentionsController,
       PostsAnalyticsController,
       PostsGenerationController,
+      PostsAccountGenerationRetryController,
       PostsThreadDraftController,
       PostsOperationsController,
       PostsRetryController,

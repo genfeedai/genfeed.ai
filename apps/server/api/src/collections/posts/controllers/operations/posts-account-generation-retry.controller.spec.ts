@@ -75,7 +75,7 @@ describe('PostsAccountGenerationRetryController', () => {
         ORGANIZATION_MODULE_KEY,
         PostsAccountGenerationRetryController,
       ),
-    ).toBe('publishing');
+    ).toEqual({ moduleId: 'publishing', operation: undefined });
     expect(
       Reflect.getMetadata(
         GUARDS_METADATA,

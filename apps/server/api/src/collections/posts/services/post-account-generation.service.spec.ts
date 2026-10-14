@@ -228,15 +228,21 @@ describe('PostAccountGenerationService', () => {
     );
   });
 
-  const dto = {
+  interface RunInput {
+    count: number;
+    credentialId: string;
+    format: 'post' | 'thread';
+    topic: string;
+  }
+  const dto: RunInput = {
     count: 3,
     credentialId,
-    format: 'post' as const,
+    format: 'post',
     topic: 'AI technology',
   };
 
   async function run(
-    overrides: Partial<typeof dto> & { format?: 'post' | 'thread' } = {},
+    overrides: Partial<RunInput> = {},
   ): Promise<{ posts: PostDocument[] }> {
     const input = { ...dto, ...overrides };
     // `start` runs the background work detached; the spy lets the test await it.
