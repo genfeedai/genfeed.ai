@@ -523,7 +523,7 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     });
     expect(result.data).toMatchObject({
       content: 'Shipping is a feature. Momentum is the moat. #ship',
-      hashtags: ['#ship'],
+      hashtags: ['ship'],
       receiptId: 'receipt-1',
       receiptState: 'ready',
     });
@@ -916,7 +916,7 @@ describe('AgentMediaGenerationToolHandler social variations', () => {
     expect(result.data).toMatchObject({
       content: 'one #launch',
       variations: [
-        { content: 'one #launch', hashtags: ['#launch'] },
+        { content: 'one #launch', hashtags: ['launch'] },
         { content: 'two' },
         { content: 'three' },
       ],
