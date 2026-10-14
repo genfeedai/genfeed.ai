@@ -245,6 +245,7 @@ export class BrandOsRevisionsService {
           'Superseded revisions cannot be edited. Create a new draft.',
         );
       const previous = row.content as unknown as IBrandKitDraft;
+      let hasOwnedFieldEdit = false;
       for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
         const field = normalized.fields[owner.key];
         const before = previous.fields[owner.key];
@@ -253,6 +254,7 @@ export class BrandOsRevisionsService {
           JSON.stringify(field.proposedValue ?? field.currentValue) !==
             JSON.stringify(before?.proposedValue ?? before?.currentValue)
         ) {
+          hasOwnedFieldEdit = true;
           field.evidence = [
             { label: 'Owner edit', sourceType: 'manual' },
             ...field.evidence.filter(
@@ -262,11 +264,11 @@ export class BrandOsRevisionsService {
           delete field.confidence;
         }
       }
-      const persisted =
-        isGenfeedDefaultKitDraft(previous) &&
-        isGenfeedDefaultKitDraft(normalized)
-          ? stripGenfeedDefaultKit(normalized)
-          : normalized;
+      const persisted = this.resolveDefaultKitContent(
+        previous,
+        normalized,
+        hasOwnedFieldEdit,
+      );
       if (row.status === BrandOsRevisionStatus.APPROVED)
         return this.createDraft(tx, organizationId, brandId, persisted);
       return this.toRevision(
@@ -518,6 +520,39 @@ export class BrandOsRevisionsService {
         frequency: text(strategy.frequency),
       },
     };
+  }
+
+  /**
+   * A save that does not change an owned field or the generation rules is not
+   * an edit. Keep the Genfeed default marker even when the client dropped it,
+   * so a later approve still refuses the seeded kit.
+   */
+  private resolveDefaultKitContent(
+    previous: IBrandKitDraft,
+    normalized: IBrandKitDraft,
+    hasOwnedFieldEdit: boolean,
+  ): IBrandKitDraft {
+    if (!isGenfeedDefaultKitDraft(previous)) return normalized;
+    if (hasOwnedFieldEdit) return stripGenfeedDefaultKit(normalized);
+    const sentRules = normalized.generationRules;
+    const rulesChanged =
+      sentRules !== undefined &&
+      JSON.stringify(sentRules) !== JSON.stringify(previous.generationRules);
+    if (rulesChanged) {
+      const stripped = stripGenfeedDefaultKit(normalized);
+      return { ...stripped, generationRules: sentRules };
+    }
+    const retained: IBrandKitDraft = {
+      ...normalized,
+      evidence: structuredClone(previous.evidence),
+      sourceType: previous.sourceType,
+    };
+    if (previous.generationRules === undefined) {
+      Reflect.deleteProperty(retained, 'generationRules');
+      return retained;
+    }
+    retained.generationRules = structuredClone(previous.generationRules);
+    return retained;
   }
 
   private normalize(

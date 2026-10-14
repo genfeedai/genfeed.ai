@@ -1180,6 +1180,77 @@ describe('BrandOsRevisionsService', () => {
       expect(result.content.sourceType).toBe('manual');
     });
 
+    it('keeps the default marker when a save does not change an owned field', async () => {
+      const { service, rows } = harness([seedRow()]);
+      const content = structuredClone(
+        rows[0].content,
+      ) as unknown as IBrandKitDraft;
+      const result = await service.update(
+        ORG,
+        BRAND,
+        'seed-1',
+        content,
+        TIMESTAMP.toISOString(),
+      );
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(true);
+      expect(result.content.sourceType).toBe('system');
+      expect(result.content.generationRules).toEqual(content.generationRules);
+      await expect(
+        service.approve(ORG, BRAND, 'seed-1', USER, result.updatedAt),
+      ).rejects.toMatchObject({
+        response: { code: 'brand_kit_default_requires_edit' },
+      });
+      expect(rows[0].status).toBe(BrandOsRevisionStatus.DRAFT);
+    });
+
+    it('restores the default marker when an unchanged save omits it', async () => {
+      const { service, rows } = harness([seedRow()]);
+      const content = structuredClone(
+        rows[0].content,
+      ) as unknown as IBrandKitDraft;
+      content.evidence = [];
+      content.sourceType = 'manual';
+      Reflect.deleteProperty(content, 'generationRules');
+      const result = await service.update(
+        ORG,
+        BRAND,
+        'seed-1',
+        content,
+        TIMESTAMP.toISOString(),
+      );
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(true);
+      expect(result.content.sourceType).toBe('system');
+      expect(result.content.generationRules).toBeDefined();
+      await expect(
+        service.approve(ORG, BRAND, 'seed-1', USER, result.updatedAt),
+      ).rejects.toMatchObject({
+        response: { code: 'brand_kit_default_requires_edit' },
+      });
+      expect(rows[0].status).toBe(BrandOsRevisionStatus.DRAFT);
+    });
+
+    it('drops the marker and keeps generation rules the owner changed', async () => {
+      const { service, rows } = harness([seedRow()]);
+      const content = structuredClone(
+        rows[0].content,
+      ) as unknown as IBrandKitDraft;
+      const rules = content.generationRules;
+      if (!rules?.avoid[0]) throw new Error('default kit has no avoid rule');
+      rules.avoid[0] = { ...rules.avoid[0], text: 'No exclamation marks' };
+      const result = await service.update(
+        ORG,
+        BRAND,
+        'seed-1',
+        content,
+        TIMESTAMP.toISOString(),
+      );
+      expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+      expect(result.content.sourceType).toBe('manual');
+      expect(result.content.generationRules?.avoid[0]?.text).toBe(
+        'No exclamation marks',
+      );
+    });
+
     it('refuses to approve an unedited default kit, then allows the owner version', async () => {
       const { service, rows } = harness([seedRow()]);
       await expect(
