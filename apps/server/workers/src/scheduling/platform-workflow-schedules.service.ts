@@ -5,6 +5,7 @@ import {
 import { PLATFORM_WORKFLOW_SCHEDULE_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
@@ -22,6 +23,20 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
  * they run on their own catalog cadence for every org regardless (AC-5).
  */
 const DUE_STRATEGY_GATED_TEMPLATE_ID = 'proactive-agent-strategies';
+
+/**
+ * Background enrichment only runs for organizations that can use Discovery and
+ * where a member signed in recently: a dormant organization gains nothing from
+ * a reconcile every five minutes (#5634). Retention and armed automations keep
+ * their own gates.
+ */
+const ACTIVE_DISCOVERY_GATED_TEMPLATE_IDS: ReadonlySet<string> = new Set([
+  'content-learning.reconcile',
+  'analytics-sync',
+  'content-loop-autopilot',
+]);
+
+const ORGANIZATION_ACTIVITY_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 const WORKFLOWS = {
   'content-learning.reconcile': {
@@ -65,6 +80,7 @@ export class PlatformWorkflowSchedulesService {
     private readonly continuations: WorkflowContinuationReconcileService,
     private readonly pendingExecutions: PendingWorkflowExecutionReconcileService,
     private readonly taskOrchestrator: TaskOrchestratorService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   async reconcileContinuations(): Promise<void> {
@@ -115,8 +131,21 @@ export class PlatformWorkflowSchedulesService {
               organizations.map((organization) => organization.id),
             )
           : null;
+      const activeDiscoveryOrganizationIds =
+        ACTIVE_DISCOVERY_GATED_TEMPLATE_IDS.has(templateId)
+          ? await this.findActiveDiscoveryOrganizationIds(
+              organizations,
+              new Date(timestamp - ORGANIZATION_ACTIVITY_WINDOW_MS),
+            )
+          : null;
       for (const organization of organizations) {
         try {
+          if (
+            activeDiscoveryOrganizationIds &&
+            !activeDiscoveryOrganizationIds.has(organization.id)
+          ) {
+            continue;
+          }
           // Without a due active strategy or accepted pending work, dispatching
           // this org's proactive-agent-strategies run does no useful work —
           // it only occupies a platform-sweep queue slot every minute, for
@@ -207,6 +236,59 @@ export class PlatformWorkflowSchedulesService {
         failures,
         `Platform workflow ${templateId} sweep failed`,
       );
+  }
+
+  /**
+   * Organizations (within this sweep page) where the owner or a member has a
+   * session active since `activeSince` and that can start Discovery work.
+   * Activity is one batched read per page; the module check only runs for
+   * active organizations.
+   */
+  private async findActiveDiscoveryOrganizationIds(
+    organizations: ReadonlyArray<{ id: string; userId: string }>,
+    activeSince: Date,
+  ): Promise<Set<string>> {
+    if (organizations.length === 0) return new Set();
+    const members = await this.prisma.member.findMany({
+      where: {
+        organizationId: { in: organizations.map((org) => org.id) },
+        isDeleted: false,
+      },
+      select: { organizationId: true, userId: true },
+    });
+    const userIdsByOrganization = new Map<string, Set<string>>();
+    for (const organization of organizations) {
+      userIdsByOrganization.set(
+        organization.id,
+        new Set([organization.userId]),
+      );
+    }
+    for (const member of members) {
+      userIdsByOrganization.get(member.organizationId)?.add(member.userId);
+    }
+    const sessions = await this.prisma.session.findMany({
+      where: {
+        userId: {
+          in: [
+            ...new Set(
+              [...userIdsByOrganization.values()].flatMap((ids) => [...ids]),
+            ),
+          ],
+        },
+        updatedAt: { gte: activeSince },
+      },
+      distinct: ['userId'],
+      select: { userId: true },
+    });
+    const activeUserIds = new Set(sessions.map((session) => session.userId));
+    const eligible = new Set<string>();
+    for (const [organizationId, userIds] of userIdsByOrganization) {
+      if (![...userIds].some((userId) => activeUserIds.has(userId))) continue;
+      if (await this.moduleAccess.canStartWork(organizationId, 'discovery')) {
+        eligible.add(organizationId);
+      }
+    }
+    return eligible;
   }
 
   /**
