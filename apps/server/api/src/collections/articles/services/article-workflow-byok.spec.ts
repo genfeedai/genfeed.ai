@@ -125,7 +125,9 @@ function createHarness() {
     },
   };
   runner = new SystemWorkflowRunnerService(
-    {} as never,
+    {
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    } as never,
     {
       get: (token: unknown) =>
         token === WORKFLOW_EXECUTOR

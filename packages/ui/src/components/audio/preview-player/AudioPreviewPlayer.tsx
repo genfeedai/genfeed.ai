@@ -113,14 +113,21 @@ export interface AudioPreviewPlayerProps {
   label: string;
 }
 
-export default function AudioPreviewPlayer({
+export interface UseAudioPreviewParams {
+  audioUrl?: string | null;
+  onError?: () => void;
+  stopOnUnmount?: boolean;
+}
+
+/**
+ * One shared audio element for every preview: playing a sample stops the
+ * previous one. Exposed so dense pickers can lay out their own controls.
+ */
+export function useAudioPreview({
   audioUrl,
-  label,
-  className,
   onError,
-  isTimelineVisible = false,
   stopOnUnmount = false,
-}: AudioPreviewPlayerProps) {
+}: UseAudioPreviewParams) {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   useEffect(
@@ -193,6 +200,46 @@ export default function AudioPreviewPlayer({
     }
   };
 
+  const toggle = () => {
+    handleToggle().catch(() => {
+      setSharedSnapshot({
+        currentUrl: audioUrl ?? null,
+        status: 'error',
+      });
+    });
+  };
+
+  return {
+    currentTime: isCurrent ? snapshot.currentTime : 0,
+    duration: isCurrent ? snapshot.duration : 0,
+    isCurrent,
+    isErrored,
+    isLoading,
+    isPlaying,
+    toggle,
+    volume: snapshot.volume,
+  };
+}
+
+export default function AudioPreviewPlayer({
+  audioUrl,
+  label,
+  className,
+  onError,
+  isTimelineVisible = false,
+  stopOnUnmount = false,
+}: AudioPreviewPlayerProps) {
+  const {
+    currentTime,
+    duration,
+    isCurrent,
+    isErrored,
+    isLoading,
+    isPlaying,
+    toggle,
+    volume,
+  } = useAudioPreview({ audioUrl, onError, stopOnUnmount });
+
   return (
     <div
       className={cn('nodrag nopan flex items-center gap-2', className)}
@@ -204,14 +251,7 @@ export default function AudioPreviewPlayer({
           isPlaying ? `Pause preview for ${label}` : `Play preview for ${label}`
         }
         isDisabled={!audioUrl}
-        onClick={() => {
-          handleToggle().catch(() => {
-            setSharedSnapshot({
-              currentUrl: audioUrl ?? null,
-              status: 'error',
-            });
-          });
-        }}
+        onClick={toggle}
         size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
@@ -229,10 +269,10 @@ export default function AudioPreviewPlayer({
           <Slider
             aria-label={`Seek ${label}`}
             min={0}
-            max={isCurrent && snapshot.duration ? snapshot.duration : 1}
+            max={duration || 1}
             step={0.1}
-            value={[isCurrent ? snapshot.currentTime : 0]}
-            disabled={!isCurrent || !snapshot.duration}
+            value={[currentTime]}
+            disabled={!isCurrent || !duration}
             onValueChange={([time]) => {
               if (sharedAudio && isCurrent && time !== undefined)
                 sharedAudio.currentTime = time;
@@ -240,21 +280,20 @@ export default function AudioPreviewPlayer({
           />
           <div className="flex items-center gap-2">
             <span className="flex-1 text-2xs tabular-nums text-muted-foreground">
-              {formatDuration(isCurrent ? snapshot.currentTime : 0)} /{' '}
-              {formatDuration(isCurrent ? snapshot.duration : 0)}
+              {formatDuration(currentTime)} / {formatDuration(duration)}
             </span>
             <Slider
               aria-label={`Volume for ${label}`}
               min={0}
               max={1}
               step={0.1}
-              value={[snapshot.volume]}
+              value={[volume]}
               className="max-w-16"
               disabled={!isCurrent}
-              onValueChange={([volume]) => {
-                if (sharedAudio && isCurrent && volume !== undefined) {
-                  sharedAudio.volume = volume;
-                  setSharedSnapshot({ volume });
+              onValueChange={([nextVolume]) => {
+                if (sharedAudio && isCurrent && nextVolume !== undefined) {
+                  sharedAudio.volume = nextVolume;
+                  setSharedSnapshot({ volume: nextVolume });
                 }
               }}
             />

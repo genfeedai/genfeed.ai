@@ -133,10 +133,15 @@ export class CronTiktokStatusService implements OnModuleInit {
   /**
    * Checks status of PENDING TikTok posts and polls the TikTok API for a
    * post_id once moderation completes. Fired every 5 minutes by the
-   * platform BullMQ schedule.
+   * platform BullMQ schedule. Runs the cheap discovery query first and only
+   * queues the sweep workflow when something is awaiting reconciliation, so
+   * an empty tick never persists a workflow execution row (#5634).
    */
   async checkPendingTiktokPosts(): Promise<void> {
     const now = new Date();
+    if (!(await this.hasPendingPosts())) {
+      return;
+    }
     const definition = buildTiktokStatusSweepDefinition();
     await this.workflowQueue.queueSystemWorkflow(
       {
@@ -157,17 +162,15 @@ export class CronTiktokStatusService implements OnModuleInit {
     );
   }
 
-  private async discoverPendingPosts(request: unknown) {
-    const now = new Date(
-      String((request as { now?: unknown } | undefined)?.now ?? ''),
-    );
-    if (!Number.isFinite(now.getTime())) {
-      throw new Error('TikTok status sweep requires a valid timestamp');
-    }
-    const maxAge = new Date(
-      now.getTime() - this.MAX_PENDING_AGE_HOURS * 60 * 60 * 1000,
-    );
-    const posts = (await this.postsService.findAll(
+  private async hasPendingPosts(): Promise<boolean> {
+    const posts = await this.findPendingPosts(1);
+    return (posts.docs?.length ?? 0) > 0;
+  }
+
+  private async findPendingPosts(
+    limit: number,
+  ): Promise<{ docs?: TiktokPost[] }> {
+    return (await this.postsService.findAll(
       {
         include: {
           credential: true,
@@ -190,8 +193,21 @@ export class CronTiktokStatusService implements OnModuleInit {
           platform: CredentialPlatform.TIKTOK,
         },
       },
-      { customLabels, limit: 50 },
+      { customLabels, limit },
     )) as unknown as { docs?: TiktokPost[] };
+  }
+
+  private async discoverPendingPosts(request: unknown) {
+    const now = new Date(
+      String((request as { now?: unknown } | undefined)?.now ?? ''),
+    );
+    if (!Number.isFinite(now.getTime())) {
+      throw new Error('TikTok status sweep requires a valid timestamp');
+    }
+    const maxAge = new Date(
+      now.getTime() - this.MAX_PENDING_AGE_HOURS * 60 * 60 * 1000,
+    );
+    const posts = await this.findPendingPosts(50);
     return {
       items: (posts.docs ?? []).map((post) => ({
         maxAge: maxAge.toISOString(),

@@ -221,8 +221,24 @@ describe('SocialSourceOwnAccountResyncWorkflowService', () => {
   });
 
   describe('enqueueSweep', () => {
+    it('queues nothing and persists no execution when no source is due (#5634)', async () => {
+      socialSource.findMany.mockResolvedValue([]);
+
+      await expect(service.enqueueSweep()).resolves.toBeNull();
+
+      expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+
     it('queues the sweep workflow with a deduped, hour-bucketed job id', async () => {
       const now = new Date('2026-09-07T12:34:00Z');
+      socialSource.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          id: 'source-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+      ]);
 
       await service.enqueueSweep(now);
 

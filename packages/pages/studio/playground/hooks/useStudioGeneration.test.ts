@@ -611,9 +611,12 @@ describe('useStudioGeneration avatar submits', () => {
     expect(mockIngredientsFindOne).not.toHaveBeenCalled();
   });
 
-  it('lets the server resolve saved avatar defaults', async () => {
+  it.each([
+    ['avatar', { avatarPhotoUrl: undefined }],
+    ['voice', { voiceId: undefined }],
+  ])('refuses an avatar video without a chosen %s', async (_label, patch) => {
     const { result } = renderStudioGeneration({
-      settings: { ...avatarSettings, avatarPhotoUrl: undefined },
+      settings: { ...avatarSettings, ...patch },
       type: 'avatar',
     });
 
@@ -621,8 +624,9 @@ describe('useStudioGeneration avatar submits', () => {
       await result.current.submit('Hello from Genfeed');
     });
 
-    expect(mockHeyGenGenerate).toHaveBeenCalledWith(
-      expect.objectContaining({ useIdentity: true, photoUrl: undefined }),
+    expect(mockHeyGenGenerate).not.toHaveBeenCalled();
+    expect(mockNotificationsError).toHaveBeenCalledWith(
+      'Pick an avatar and a voice before generating',
     );
   });
 });

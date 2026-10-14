@@ -77,7 +77,15 @@ export class SocialSourceOwnAccountResyncWorkflowService
     );
   }
 
-  async enqueueSweep(now = new Date()): Promise<string> {
+  /**
+   * Queues the sweep workflow, or returns `null` without persisting an
+   * execution row when no own-account source is due (#5634).
+   */
+  async enqueueSweep(now = new Date()): Promise<string | null> {
+    const { items } = await this.discoverDueSources(now);
+    if (items.length === 0) {
+      return null;
+    }
     return this.queue.queueSystemWorkflow(
       {
         actionType: SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_WORKFLOW_ID,

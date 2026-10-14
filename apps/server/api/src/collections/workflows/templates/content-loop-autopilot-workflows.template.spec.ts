@@ -2,7 +2,7 @@ import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/work
 import { describe, expect, it } from 'vitest';
 
 describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
-  it('chains analytics sync into the harness winner promotion sweep on a daily schedule', () => {
+  it('only promotes harness winners on a daily schedule', () => {
     const [template] = CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES;
 
     expect(template).toBeDefined();
@@ -12,47 +12,27 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
       schedule: '0 8 * * *',
     });
 
-    const nodeTypes = (template?.nodes ?? []).map((node) => node.type);
-    expect(nodeTypes).toEqual([
-      'genfeedAction',
-      'genfeedAction',
-      'genfeedAction',
-      'genfeedAction',
-    ]);
     expect(
       (template?.nodes ?? []).map((node) => node.data.config.actionId),
-    ).toEqual([
-      'analytics.generic.resolve-window',
-      'analytics.generic.discover',
-      'workflow.for-each',
-      'workflow.run-child',
-    ]);
-
-    expect(template?.edges).toEqual([
-      expect.objectContaining({
-        source: 'resolveAnalyticsWindow',
-        target: 'discoverAnalytics',
-      }),
-      expect.objectContaining({
-        source: 'discoverAnalytics',
-        target: 'syncEachAnalyticsItem',
-      }),
-      expect.objectContaining({
-        source: 'syncEachAnalyticsItem',
-        target: 'promoteHarnessWinners',
-      }),
-    ]);
+    ).toEqual(['workflow.run-child']);
+    expect(template?.edges).toEqual([]);
   });
 
-  it('uses stable, unique node ids matching the node types they wire together', () => {
+  it('does not repeat the analytics discovery or item sync owned by analytics-sync (#5634)', () => {
     const [template] = CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES;
-    const ids = (template?.nodes ?? []).map((node) => node.id);
+    const actionIds = (template?.nodes ?? []).map(
+      (node) => node.data.config.actionId,
+    );
 
-    expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).toEqual([
-      'resolveAnalyticsWindow',
-      'discoverAnalytics',
-      'syncEachAnalyticsItem',
+    expect(actionIds).not.toContain('analytics.generic.resolve-window');
+    expect(actionIds).not.toContain('analytics.generic.discover');
+    expect(actionIds).not.toContain('workflow.for-each');
+  });
+
+  it('uses stable node ids', () => {
+    const [template] = CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES;
+
+    expect((template?.nodes ?? []).map((node) => node.id)).toEqual([
       'promoteHarnessWinners',
     ]);
   });

@@ -175,4 +175,84 @@ describe('collapsible Searchbar', () => {
     fireEvent.blur(input);
     expect(input).toBeInTheDocument();
   });
+
+  it('keeps an empty field open until the click that blurred it finishes', () => {
+    render(
+      <>
+        <Searchbar ariaLabel="Search generations" isCollapsible value="" />
+        <div data-testid="outside-search" tabIndex={-1} />
+      </>,
+    );
+    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+    const input = screen.getByRole('textbox', { name: 'Search generations' });
+    const outside = screen.getByTestId('outside-search');
+
+    fireEvent.pointerDown(outside);
+    act(() => {
+      outside.focus();
+    });
+    expect(input).toBeInTheDocument();
+
+    fireEvent.pointerUp(outside);
+    expect(input).toBeInTheDocument();
+
+    fireEvent.click(outside);
+    expect(
+      screen.queryByRole('textbox', { name: 'Search generations' }),
+    ).toBeNull();
+  });
+
+  it('stays open when blur lands after pointerup', () => {
+    render(
+      <>
+        <Searchbar ariaLabel="Search generations" isCollapsible value="" />
+        <div data-testid="outside-search" tabIndex={-1} />
+      </>,
+    );
+    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+    const outside = screen.getByTestId('outside-search');
+
+    fireEvent.pointerDown(outside);
+    fireEvent.pointerUp(outside);
+    act(() => {
+      outside.focus();
+    });
+    expect(
+      screen.getByRole('textbox', { name: 'Search generations' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(outside);
+    expect(
+      screen.queryByRole('textbox', { name: 'Search generations' }),
+    ).toBeNull();
+  });
+
+  it('stays open across a mouse gesture that never fires a pointer event', () => {
+    render(
+      <>
+        <Searchbar ariaLabel="Search generations" isCollapsible value="" />
+        <div data-testid="outside-search" tabIndex={-1} />
+      </>,
+    );
+    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+    const outside = screen.getByTestId('outside-search');
+
+    fireEvent.mouseDown(outside);
+    act(() => {
+      outside.focus();
+    });
+    expect(
+      screen.getByRole('textbox', { name: 'Search generations' }),
+    ).toBeInTheDocument();
+
+    fireEvent.mouseUp(outside);
+    expect(
+      screen.getByRole('textbox', { name: 'Search generations' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(outside);
+    expect(
+      screen.queryByRole('textbox', { name: 'Search generations' }),
+    ).toBeNull();
+  });
 });

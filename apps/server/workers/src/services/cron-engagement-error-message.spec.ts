@@ -18,6 +18,7 @@ describe('engagement failure messages', () => {
         {} as never,
         {} as never,
         {} as never,
+        {} as never,
       );
       const finalizeFailure = (
         service as unknown as {

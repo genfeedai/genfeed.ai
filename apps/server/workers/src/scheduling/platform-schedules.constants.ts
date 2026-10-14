@@ -105,8 +105,11 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     pattern: '0 8 * * *',
     timezone: 'UTC',
   },
+  // Finds the organizations with lifecycle deliveries, recaps, credit or trial
+  // notices, or product signals due, and queues one run for each. Idle
+  // organizations get none.
   [PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS]: {
-    pattern: '*/5 * * * *',
+    pattern: '0 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.TURBO_RUN_CREDIT_SETTLEMENT_RECONCILE]: {
@@ -261,7 +264,7 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: {
-    pattern: '*/30 * * * *',
+    pattern: '0 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.YOUTUBE_STATUS]: {

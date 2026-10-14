@@ -32,30 +32,7 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
       REVIEW_GATE_TIMEOUT_ACTION_IDS.DISCOVER,
-      async () => {
-        const now = Date.now();
-        const pending =
-          await this.executorService.findPendingReviewGateExecutions();
-        return {
-          items: pending.flatMap((gate) => {
-            const requestedAtMs = new Date(gate.requestedAt).getTime();
-            if (
-              !Number.isFinite(requestedAtMs) ||
-              requestedAtMs + gate.timeoutHours * MS_PER_HOUR > now
-            ) {
-              return [];
-            }
-            return [
-              {
-                executionId: gate.executionId,
-                nodeId: gate.nodeId,
-                organizationId: gate.organizationId,
-                workflowId: gate.workflowId,
-              } satisfies ReviewGateTimeoutRequest,
-            ];
-          }),
-        };
-      },
+      async () => ({ items: await this.findTimedOutGates(Date.now()) }),
     );
     this.systemWorkflowRunner.registerAction(
       REVIEW_GATE_TIMEOUT_ACTION_IDS.RESOLVE,
@@ -80,10 +57,16 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
   /**
    * Auto-resolves review gates whose reviewer timeout has elapsed. Fired every
    * 15 minutes by the platform BullMQ schedule. Each resolution is
-   * recorded as a system workflow execution for tenant-visible provenance.
+   * recorded as a system workflow execution for tenant-visible provenance;
+   * a tick with no timed-out gate queues nothing.
    */
   async resolveTimedOutReviewGates(): Promise<void> {
     const now = Date.now();
+    // Cheap discovery first: an empty tick must not persist an execution row
+    // (#5634).
+    if ((await this.findTimedOutGates(now)).length === 0) {
+      return;
+    }
     const definition = buildReviewGateTimeoutSweepDefinition();
     await this.workflowQueue.queueSystemWorkflow(
       {
@@ -101,5 +84,29 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       },
     );
+  }
+
+  private async findTimedOutGates(
+    now: number,
+  ): Promise<ReviewGateTimeoutRequest[]> {
+    const pending =
+      await this.executorService.findPendingReviewGateExecutions();
+    return pending.flatMap((gate) => {
+      const requestedAtMs = new Date(gate.requestedAt).getTime();
+      if (
+        !Number.isFinite(requestedAtMs) ||
+        requestedAtMs + gate.timeoutHours * MS_PER_HOUR > now
+      ) {
+        return [];
+      }
+      return [
+        {
+          executionId: gate.executionId,
+          nodeId: gate.nodeId,
+          organizationId: gate.organizationId,
+          workflowId: gate.workflowId,
+        } satisfies ReviewGateTimeoutRequest,
+      ];
+    });
   }
 }

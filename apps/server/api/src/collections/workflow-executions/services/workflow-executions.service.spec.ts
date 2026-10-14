@@ -1134,8 +1134,6 @@ describe('WorkflowExecutionsService', () => {
       'lifecycle-email.enqueue-delivery',
       'lifecycle-email.sweep',
       'lifecycle-email.organization',
-      'email-product-signals.reconcile',
-      'email-product-signals.organization',
     ].flatMap((canonicalId) => [
       {
         canonicalId,

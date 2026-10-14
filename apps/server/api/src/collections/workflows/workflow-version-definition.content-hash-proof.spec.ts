@@ -332,8 +332,6 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'daily-publishing.account',
   'email-digest.deliver-one',
   'email-digest.delivery',
-  'email-product-signals.organization',
-  'email-product-signals.reconcile',
   'engagement.rule.process',
   'engagement.sweep',
   'evergreen.release.expand',

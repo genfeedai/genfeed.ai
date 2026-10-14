@@ -88,6 +88,10 @@ export default function Searchbar({
   const internalRef = useRef<HTMLInputElement>(null);
   const resolvedRef = inputRef ?? internalRef;
   const rootRef = useRef<HTMLDivElement>(null);
+  const isPointerDownRef = useRef(false);
+  const collapseAfterPointerRef = useRef<(() => void) | null>(null);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isWidthHeldRef = useRef(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const isDebounced = Boolean(onSearch);
 
@@ -199,6 +203,85 @@ export default function Searchbar({
     resolvedRef.current?.focus();
   }, [isCollapsible, isExpanded, resolvedRef]);
 
+  useEffect(() => {
+    if (!isCollapsible) {
+      return;
+    }
+    const clearCollapseTimer = () => {
+      if (collapseTimerRef.current !== null) {
+        clearTimeout(collapseTimerRef.current);
+        collapseTimerRef.current = null;
+      }
+    };
+    const releaseWidth = () => {
+      isWidthHeldRef.current = false;
+      if (rootRef.current) {
+        rootRef.current.style.width = '';
+      }
+    };
+    const holdWidth = () => {
+      const root = rootRef.current;
+      if (!root || isWidthHeldRef.current) {
+        return;
+      }
+      const width = root.getBoundingClientRect().width;
+      if (width <= 0) {
+        return;
+      }
+      isWidthHeldRef.current = true;
+      root.style.width = `${width}px`;
+    };
+    const finishCollapse = () => {
+      clearCollapseTimer();
+      isPointerDownRef.current = false;
+      const collapse = collapseAfterPointerRef.current;
+      collapseAfterPointerRef.current = null;
+      releaseWidth();
+      collapse?.();
+    };
+    const armFallback = () => {
+      clearCollapseTimer();
+      // Click is dispatched in this same task, before timers. The fallback
+      // covers a pointerup that never produces a click.
+      collapseTimerRef.current = setTimeout(finishCollapse, 0);
+    };
+    const onDown = (event: Event) => {
+      isPointerDownRef.current = true;
+      const target = event.target;
+      if (target instanceof Node && rootRef.current?.contains(target)) {
+        return;
+      }
+      holdWidth();
+    };
+    const onClick = () => {
+      clearCollapseTimer();
+      if (!collapseAfterPointerRef.current) {
+        isPointerDownRef.current = false;
+        releaseWidth();
+        return;
+      }
+      finishCollapse();
+    };
+    window.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('mousedown', onDown, true);
+    window.addEventListener('pointerup', armFallback, true);
+    window.addEventListener('mouseup', armFallback, true);
+    window.addEventListener('pointercancel', armFallback, true);
+    window.addEventListener('click', onClick);
+    return () => {
+      window.removeEventListener('pointerdown', onDown, true);
+      window.removeEventListener('mousedown', onDown, true);
+      window.removeEventListener('pointerup', armFallback, true);
+      window.removeEventListener('mouseup', armFallback, true);
+      window.removeEventListener('pointercancel', armFallback, true);
+      window.removeEventListener('click', onClick);
+      collapseAfterPointerRef.current = null;
+      isPointerDownRef.current = false;
+      clearCollapseTimer();
+      releaseWidth();
+    };
+  }, [isCollapsible]);
+
   const collapseIfEmpty = (event: FocusEvent<HTMLInputElement>) => {
     if (!isCollapsible) {
       return;
@@ -208,6 +291,22 @@ export default function Searchbar({
       return;
     }
     if (event.currentTarget.value.trim()) {
+      return;
+    }
+    // Keep the open width through mouseup. Blur can land after pointerup has
+    // already cleared a down-bit, and shrinking then makes the click miss.
+    if (isPointerDownRef.current || isWidthHeldRef.current) {
+      collapseAfterPointerRef.current = () => {
+        const input = resolvedRef.current;
+        if (input?.value.trim()) {
+          return;
+        }
+        const active = document.activeElement;
+        if (active instanceof Node && rootRef.current?.contains(active)) {
+          return;
+        }
+        setIsExpanded(false);
+      };
       return;
     }
     setIsExpanded(false);

@@ -2,6 +2,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -59,6 +60,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     ConfigModule,
     LibsConfigModule,
     LoggerModule,
+    OrganizationModuleAccessModule,
     PlatformSettingsModule,
     WorkflowsModule,
     WorkflowExecutionsModule,

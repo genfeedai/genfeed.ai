@@ -1,4 +1,3 @@
-import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -9,7 +8,6 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
-import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -21,23 +19,14 @@ import {
   isPurchasedCredit,
 } from './email-product-signals.policy';
 import {
-  buildEmailSignalWorkflows,
+  EMAIL_CONVERSION_ACCEPTED_LOOKBACK_MS,
   EMAIL_SIGNAL_ACTIONS,
-  EMAIL_SIGNAL_WORKFLOWS,
+  EMAIL_SIGNAL_DEFAULT_LOOKBACK_MS,
+  EMAIL_SIGNAL_STREAMS,
 } from './email-product-signals.workflow';
 
 const PAGE_SIZE = 100;
 const DAY_MS = 86_400_000;
-/**
- * The tenant schedule fans out every five minutes because generation results
- * and delivery recovery are latency-sensitive. Sweeps that only need to be
- * eventually correct run on the first tick of each hour instead, so they cost
- * one pass per organization per hour rather than twelve.
- */
-function isHourlySweepTick(now: Date): boolean {
-  return now.getUTCMinutes() < 5;
-}
-
 @Injectable()
 export class EmailProductSignalsService implements OnModuleInit {
   constructor(
@@ -45,13 +34,9 @@ export class EmailProductSignalsService implements OnModuleInit {
     private readonly emails: EmailPerformanceService,
     private readonly config: ConfigService,
     private readonly runner: SystemWorkflowRunnerService,
-    private readonly queue: WorkflowExecutionQueueService,
   ) {}
 
   onModuleInit(): void {
-    this.runner.registerAction(EMAIL_SIGNAL_ACTIONS.DISPATCH, () =>
-      this.dispatch(),
-    );
     this.runner.registerAction(
       EMAIL_SIGNAL_ACTIONS.GENERATIONS,
       ({ context }) => this.generations(context.organizationId),
@@ -63,54 +48,16 @@ export class EmailProductSignalsService implements OnModuleInit {
     this.runner.registerAction(EMAIL_SIGNAL_ACTIONS.RECEIPTS, ({ context }) =>
       this.receipts(context.organizationId),
     );
-    for (const definition of buildEmailSignalWorkflows())
-      this.runner.registerWorkflow(definition);
-  }
-
-  async dispatch(): Promise<{ count: number }> {
-    if (isSelfHostedDeployment()) return { count: 0 };
-    let cursor: string | undefined;
-    let count = 0;
-    const bucket = Math.floor(Date.now() / 300_000);
-    while (true) {
-      // tenant-scope-ignore: system discovery only enumerates active organization IDs; all work runs in scoped child workflows.
-      const organizations = await this.prisma.organization.findMany({
-        where: { isDeleted: false },
-        select: { id: true, userId: true },
-        orderBy: { id: 'asc' },
-        take: PAGE_SIZE,
-        cursor: cursor ? { id: cursor } : undefined,
-        skip: cursor ? 1 : 0,
-      });
-      for (const organization of organizations) {
-        if (!organization.userId) continue;
-        await this.queue.queueSystemWorkflow(
-          {
-            canonicalId: EMAIL_SIGNAL_WORKFLOWS.ORGANIZATION,
-            actionType: EMAIL_SIGNAL_WORKFLOWS.ORGANIZATION,
-            organizationId: organization.id,
-            userId: organization.userId,
-            source: 'email-product-signals',
-            inputValues: {},
-          },
-          `email-signals-${organization.id}-${bucket}`,
-          {
-            attempts: 3,
-            dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-          },
-        );
-        count++;
-      }
-      if (organizations.length < PAGE_SIZE) break;
-      cursor = organizations.at(-1)?.id;
-    }
-    return { count };
   }
 
   async generations(organizationId: string): Promise<{ count: number }> {
     if (isSelfHostedDeployment()) return { count: 0 };
     const now = new Date();
-    const since = await this.checkpoint(organizationId, 'generation', now);
+    const since = await this.checkpoint(
+      organizationId,
+      EMAIL_SIGNAL_STREAMS.GENERATION,
+      now,
+    );
     let cursor: string | undefined;
     let count = 0;
     while (true) {
@@ -187,15 +134,17 @@ export class EmailProductSignalsService implements OnModuleInit {
       if (assets.length < PAGE_SIZE) break;
       cursor = assets.at(-1)?.id;
     }
-    await this.advanceCheckpoint(organizationId, 'generation', now);
+    await this.advanceCheckpoint(
+      organizationId,
+      EMAIL_SIGNAL_STREAMS.GENERATION,
+      now,
+    );
     return { count };
   }
 
   async conversions(organizationId: string): Promise<{ count: number }> {
     if (isSelfHostedDeployment()) return { count: 0 };
     const now = new Date();
-    // Attribution reads a seven-day window; it does not need five-minute latency.
-    if (!isHourlySweepTick(now)) return { count: 0 };
     const since = new Date(now.getTime() - 7 * DAY_MS);
     let cursor: string | undefined;
     let count = 0;
@@ -206,7 +155,12 @@ export class EmailProductSignalsService implements OnModuleInit {
           organizationId,
           isDeleted: false,
           goal: { not: null },
-          acceptedAt: { gte: new Date(since.getTime() - 7 * DAY_MS), lte: now },
+          acceptedAt: {
+            gte: new Date(
+              now.getTime() - EMAIL_CONVERSION_ACCEPTED_LOOKBACK_MS,
+            ),
+            lte: now,
+          },
         },
         select: { id: true, userId: true, goal: true },
         orderBy: { id: 'asc' },
@@ -335,7 +289,11 @@ export class EmailProductSignalsService implements OnModuleInit {
     });
     if (!organization) return { count: 0 };
     const now = new Date();
-    const since = await this.checkpoint(organizationId, 'receipt', now);
+    const since = await this.checkpoint(
+      organizationId,
+      EMAIL_SIGNAL_STREAMS.RECEIPT,
+      now,
+    );
     let cursor: string | undefined;
     let count = 0;
     while (true) {
@@ -391,7 +349,11 @@ export class EmailProductSignalsService implements OnModuleInit {
       if (purchases.length < PAGE_SIZE) break;
       cursor = purchases.at(-1)?.id;
     }
-    await this.advanceCheckpoint(organizationId, 'receipt', now);
+    await this.advanceCheckpoint(
+      organizationId,
+      EMAIL_SIGNAL_STREAMS.RECEIPT,
+      now,
+    );
     return { count };
   }
 
@@ -404,7 +366,10 @@ export class EmailProductSignalsService implements OnModuleInit {
       where: { organizationId, stream, isDeleted: false },
       select: { scannedThrough: true },
     });
-    return checkpoint?.scannedThrough ?? new Date(now.getTime() - DAY_MS);
+    return (
+      checkpoint?.scannedThrough ??
+      new Date(now.getTime() - EMAIL_SIGNAL_DEFAULT_LOOKBACK_MS)
+    );
   }
 
   private async advanceCheckpoint(

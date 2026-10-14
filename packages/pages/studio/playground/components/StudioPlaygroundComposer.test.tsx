@@ -793,6 +793,45 @@ describe('StudioPlaygroundComposer', () => {
     }
   });
 
+  it.each([
+    ['no avatar or voice', {}],
+    ['only an avatar', { avatarPhotoUrl: 'https://assets.test/photo.jpg' }],
+    ['only a voice', { voiceId: 'voice-1' }],
+  ])('blocks an avatar video with %s', (_label, identity) => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Say hello"
+        settings={{ ...settings, ...identity }}
+        type="avatar"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  it('allows an avatar video once both an avatar and a voice are chosen', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Say hello"
+        settings={{
+          ...settings,
+          avatarPhotoUrl: 'https://assets.test/photo.jpg',
+          voiceId: 'voice-1',
+        }}
+        type="avatar"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Generate' }),
+    ).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('shows the Identity chip only for identity-capable types', () => {
     render(
       <StudioPlaygroundComposer

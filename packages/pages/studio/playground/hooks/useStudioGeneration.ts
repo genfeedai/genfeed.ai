@@ -38,6 +38,10 @@ import {
   buildVideoPayload,
 } from '@pages/studio/playground/utils/generation-payloads';
 import {
+  hasStudioAvatarSelection,
+  hasStudioVoiceSelection,
+} from '@pages/studio/playground/utils/studio-identity-selection';
+import {
   mergeStudioPlaygroundJobs,
   resolveJsonApiIngredientId,
   resolveStudioAssetDimensions,
@@ -694,6 +698,17 @@ export function useStudioGeneration({
         (!settings.voiceId || !resolveSpeechVoiceProvider(settings.voiceRef))
       ) {
         notificationsService.error('Pick a voice before generating');
+        return false;
+      }
+
+      if (
+        type === 'avatar' &&
+        (!hasStudioAvatarSelection(settings) ||
+          !hasStudioVoiceSelection(settings))
+      ) {
+        notificationsService.error(
+          'Pick an avatar and a voice before generating',
+        );
         return false;
       }
 

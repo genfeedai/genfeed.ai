@@ -1,6 +1,7 @@
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { type IPublisher, scopedWhere } from '@api/index';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import {
@@ -116,6 +117,7 @@ export class CronEngagementTriggersService implements OnModuleInit {
     private readonly publisherFactory: PublisherFactoryService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   onModuleInit(): void {
@@ -132,8 +134,15 @@ export class CronEngagementTriggersService implements OnModuleInit {
    * Evaluates armed engagement rules. Fired every 15 minutes by the
    * platform BullMQ schedule. At-most-once: fired rules complete
    * or expire and never re-arm after an ineligible credential.
+   *
+   * A rule is a user-armed automation, so nothing is persisted for organizations
+   * that have none armed or cannot use Discovery: an empty tick returns before
+   * a sweep execution row is written (#5634).
    */
   async processArmedRules(): Promise<void> {
+    if ((await this.findArmedRuleRequests()).length === 0) {
+      return;
+    }
     const definition = buildEngagementSweepWorkflowDefinition();
     const bucket = Math.floor(Date.now() / ENGAGEMENT_SWEEP_INTERVAL_MS);
     await this.workflowQueue.queueSystemWorkflow(
@@ -206,6 +215,10 @@ export class CronEngagementTriggersService implements OnModuleInit {
   }
 
   private async discoverRules(): Promise<{ items: RuleRequest[] }> {
+    return { items: await this.findArmedRuleRequests() };
+  }
+
+  private async findArmedRuleRequests(): Promise<RuleRequest[]> {
     const rules = await this.prisma.engagementRule.findMany({
       select: { id: true, organizationId: true, userId: true },
       where: {
@@ -214,13 +227,26 @@ export class CronEngagementTriggersService implements OnModuleInit {
         state: EngagementRuleState.ARMED,
       },
     });
-    return {
-      items: rules.map((rule) => ({
-        organizationId: rule.organizationId,
-        ruleId: rule.id,
-        userId: rule.userId,
-      })),
-    };
+    const discoveryByOrganization = new Map<string, boolean>();
+    const requests: RuleRequest[] = [];
+    for (const rule of rules) {
+      let hasDiscovery = discoveryByOrganization.get(rule.organizationId);
+      if (hasDiscovery === undefined) {
+        hasDiscovery = await this.moduleAccess.canStartWork(
+          rule.organizationId,
+          'discovery',
+        );
+        discoveryByOrganization.set(rule.organizationId, hasDiscovery);
+      }
+      if (hasDiscovery) {
+        requests.push({
+          organizationId: rule.organizationId,
+          ruleId: rule.id,
+          userId: rule.userId,
+        });
+      }
+    }
+    return requests;
   }
 
   private async evaluateRule(request: RuleRequest): Promise<RuleEvaluation> {

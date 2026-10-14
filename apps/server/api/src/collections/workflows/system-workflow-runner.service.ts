@@ -4,6 +4,7 @@ import {
   requiredString,
   resolveDefinition,
   resolveInheritedDispatch,
+  resolveInheritedRetentionMetadata,
   type SystemWorkflowActionExecutor,
   type SystemWorkflowActionRequest,
   type SystemWorkflowProvenance,
@@ -689,6 +690,11 @@ export class SystemWorkflowRunnerService
       request,
       projectTenantContext,
     );
+    const inheritedMetadata = await resolveInheritedRetentionMetadata(
+      this.prisma,
+      request.provenance.executionId,
+      request.context.organizationId,
+    );
 
     if (options.mode === 'scheduled') {
       if (!this.workflowDefinitions.has(options.childWorkflowId)) {
@@ -709,6 +715,7 @@ export class SystemWorkflowRunnerService
       );
       return scheduleForEach({
         childContexts,
+        inheritedMetadata,
         options,
         parentNodeId,
         queueSystemWorkflow: (workflow, jobId, queueOptions) =>
@@ -736,6 +743,7 @@ export class SystemWorkflowRunnerService
           [options.itemInputKey]: options.items[index],
         };
         const childMetadata = {
+          ...inheritedMetadata,
           ...(options.childWorkflowVersionId
             ? { childWorkflowVersionId: options.childWorkflowVersionId }
             : {}),

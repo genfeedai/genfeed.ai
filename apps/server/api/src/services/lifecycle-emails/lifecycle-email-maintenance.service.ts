@@ -29,12 +29,18 @@ import {
   type LifecycleMaintenanceRequest,
   lifecycleMaintenanceWorkflows,
 } from './lifecycle-email-maintenance-workflow';
+import { completedEmailPeriod } from './lifecycle-email-period.util';
+import {
+  LifecycleEmailWorkService,
+  PAID_CREDIT_REFERENCE_PREFIX,
+} from './lifecycle-email-work.service';
 import { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.service';
 import {
   GENERATED_CONTENT_FILTER,
   SystemEmailEligibilityService,
 } from './system-email-eligibility.service';
 
+const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 /**
  * A balance that simply sits below the threshold is not news. Only an
@@ -43,23 +49,6 @@ const DAY_MS = 86_400_000;
  */
 const CREDIT_ALERT_COOLDOWN_MS = 7 * DAY_MS;
 const CREDIT_ALERT_TEMPLATE_KEYS = ['credit-low', 'credit-exhausted'] as const;
-/** Every Stripe-backed credit grant namespaces its ledger reference with this. */
-const PAID_CREDIT_REFERENCE_PREFIX = 'stripe-';
-export function completedEmailPeriod(
-  reference: Date,
-  weekly: boolean,
-): { start: Date; end: Date } {
-  const end = new Date(
-    Date.UTC(
-      reference.getUTCFullYear(),
-      reference.getUTCMonth(),
-      reference.getUTCDate(),
-    ),
-  );
-  if (weekly) end.setUTCDate(end.getUTCDate() - ((end.getUTCDay() + 6) % 7));
-  return { end, start: new Date(end.getTime() - (weekly ? 7 : 1) * DAY_MS) };
-}
-
 @Injectable()
 export class LifecycleEmailMaintenanceService implements OnModuleInit {
   constructor(
@@ -73,6 +62,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     private readonly queue: WorkflowExecutionQueueService,
     private readonly freeTrialEmails: FreeTrialEmailsService,
     private readonly lowCreditThreshold: LowCreditThresholdService,
+    private readonly work: LifecycleEmailWorkService,
   ) {}
 
   onModuleInit(): void {
@@ -97,21 +87,27 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       this.runner.registerWorkflow(definition);
   }
 
+  /**
+   * Queues one hourly run for each organization with work to do. Idle
+   * organizations get no job and no execution row.
+   */
   private async discover(request: {
     referenceDate: string;
   }): Promise<{ count: number }> {
     if (isSelfHostedDeployment()) return { count: 0 };
-    let cursor: string | undefined;
+    const referenceDate = new Date(request.referenceDate);
+    const organizationIds = await this.work.findOrganizationIds(referenceDate);
+    const hour = Math.floor(referenceDate.getTime() / HOUR_MS);
     let count = 0;
-    while (true) {
+    for (let offset = 0; offset < organizationIds.length; offset += 100) {
       // tenant-scope-ignore: administrative discovery reads tenant identifiers only; each queued child supplies its canonical organization scope.
       const organizations = await this.prisma.organization.findMany({
-        where: { isDeleted: false },
+        where: {
+          id: { in: organizationIds.slice(offset, offset + 100) },
+          isDeleted: false,
+        },
         select: { id: true, userId: true },
         orderBy: { id: 'asc' },
-        take: 100,
-        cursor: cursor ? { id: cursor } : undefined,
-        skip: cursor ? 1 : 0,
       });
       for (const organization of organizations) {
         await this.queue.queueSystemWorkflow(
@@ -128,7 +124,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
               },
             },
           },
-          `system-email-${organization.id}-${Math.floor(new Date(request.referenceDate).getTime() / 300_000)}`,
+          `system-email-${organization.id}-${hour}`,
           {
             attempts: 3,
             dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
@@ -136,9 +132,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         );
         count++;
       }
-      if (organizations.length < 100) return { count };
-      cursor = organizations[organizations.length - 1].id;
     }
+    return { count };
   }
 
   async recover(request: LifecycleMaintenanceRequest): Promise<void> {
@@ -218,7 +213,6 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
 
   async recaps(request: LifecycleMaintenanceRequest): Promise<void> {
     const now = new Date(request.referenceDate);
-    if (now.getUTCMinutes() >= 5) return;
     const organization = await this.prisma.organization.findFirst({
       where: { id: request.organizationId, isDeleted: false },
       select: { slug: true },
@@ -577,10 +571,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
   }
 
   async credits(request: LifecycleMaintenanceRequest): Promise<void> {
-    // A balance alert has a multi-day cooldown; evaluating it hourly is enough,
-    // and the tenant schedule otherwise re-reads every organization's balance
-    // twelve times an hour.
-    if (new Date(request.referenceDate).getUTCMinutes() >= 5) return;
+    // A balance alert has a multi-day cooldown, so the hourly run is plenty.
     // Free-trial "ends in 24 hours" / "has ended" notices for never-paid
     // organizations. Hourly is precise enough for a 72-hour window.
     await this.freeTrialEmails.sendDueTrialNotices(
