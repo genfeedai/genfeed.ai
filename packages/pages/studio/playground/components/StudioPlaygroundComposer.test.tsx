@@ -420,6 +420,28 @@ describe('StudioPlaygroundComposer', () => {
       });
     });
 
+    it('offers the avatar engines as a real Advanced model choice', () => {
+      advancedModeMocks.isAdvancedMode = true;
+      const engines = [
+        { key: 'heygen/avatar-iv', label: 'HeyGen Avatar IV' } as IModel,
+        { key: 'heygen/avatar-v', label: 'HeyGen Avatar V' } as IModel,
+      ];
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={engines}
+          prompt="Say hello"
+          settings={{ ...settings, voiceId: 'voice-1' }}
+          type="avatar"
+        />,
+      );
+
+      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+        hasModelSelection: true,
+      });
+      expect(generationSetupPopoverMocks.props.models).toEqual(engines);
+    });
+
     it('turning Advanced off saves it and returns the model to Auto', () => {
       const onSettingsChange = vi.fn();
       render(

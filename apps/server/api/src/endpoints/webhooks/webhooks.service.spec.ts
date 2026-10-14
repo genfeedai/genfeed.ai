@@ -369,6 +369,7 @@ describe('WebhooksService', () => {
       expect(generationBilling.settleOutput).toHaveBeenCalledWith(
         mockIngredientId.toString(),
         mockOrgId,
+        {},
       );
       expect(websocketService.publishVideoComplete).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['images']);

@@ -3,6 +3,7 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import type { StudioPlaygroundType } from '../types';
 import {
+  filterStudioPlaygroundModels,
   getStudioPlaygroundTypeConfig,
   listStudioPlaygroundTypeConfigs,
   resolveStudioPlaygroundCapabilities,
@@ -154,16 +155,82 @@ describe('getStudioPlaygroundTypeConfig', () => {
     });
   });
 
-  it('routes avatar through identity with no router model catalog', () => {
+  it('routes avatar through identity with the avatar engine catalog', () => {
     const config = getStudioPlaygroundTypeConfig('avatar');
 
     expect(config.ingredientCategory).toBe(IngredientCategory.AVATAR);
-    expect(config.modelCategory).toBeNull();
+    expect(config.modelCategory).toBe(ModelCategory.AVATAR);
     expect(config.capabilities).toMatchObject({
       hasBrandEnrichment: false,
       hasIdentity: true,
-      hasModelSelection: false,
+      hasModelSelection: true,
       hasSpeech: true,
+    });
+  });
+
+  describe('filterStudioPlaygroundModels', () => {
+    const engines = [
+      { key: MODEL_KEYS.HEYGEN_AVATAR_IV },
+      { key: MODEL_KEYS.HEYGEN_AVATAR_V },
+    ];
+    const look = (avatarType: string, supportedEngines: string[]) => ({
+      avatarType,
+      connection: {
+        kind: 'platform' as const,
+        organizationId: 'org',
+        provider: 'heygen' as const,
+      },
+      groupId: null,
+      label: 'Look',
+      lookId: 'look',
+      ownership: 'public' as const,
+      preview: null,
+      provider: 'heygen' as const,
+      readiness: {
+        consentStatus: null,
+        groupStatus: null,
+        lookStatus: 'completed',
+        reason: null,
+        usable: true,
+      },
+      source: 'heygen-look' as const,
+      supportedEngines,
+      version: 1 as const,
+    });
+    const keys = (models: readonly { key: string }[]) =>
+      models.map((model) => model.key);
+
+    it('offers Avatar V only for a digital twin that supports it', () => {
+      expect(
+        keys(
+          filterStudioPlaygroundModels(
+            'avatar',
+            engines,
+            look('digital_twin', ['avatar_iv', 'avatar_v']),
+          ),
+        ),
+      ).toEqual([MODEL_KEYS.HEYGEN_AVATAR_IV, MODEL_KEYS.HEYGEN_AVATAR_V]);
+      expect(
+        keys(
+          filterStudioPlaygroundModels(
+            'avatar',
+            engines,
+            look('photo_avatar', ['avatar_iv', 'avatar_v']),
+          ),
+        ),
+      ).toEqual([MODEL_KEYS.HEYGEN_AVATAR_IV]);
+    });
+
+    it('offers photo animation Avatar IV alone', () => {
+      expect(
+        keys(filterStudioPlaygroundModels('avatar', engines, undefined)),
+      ).toEqual([MODEL_KEYS.HEYGEN_AVATAR_IV]);
+    });
+
+    it('leaves other types untouched', () => {
+      expect(filterStudioPlaygroundModels('video', engines, undefined)).toBe(
+        engines,
+      );
     });
   });
 

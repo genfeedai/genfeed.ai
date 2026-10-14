@@ -5,6 +5,7 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { isAxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
@@ -362,7 +363,14 @@ describe('HeyGen v3 contracts', () => {
 
   it.each([
     ['training', look({ status: 'processing' }), null],
-    ['engine', look({ supported_api_engines: ['avatar_v'] }), null],
+    [
+      'engine',
+      look({
+        avatar_type: 'photo_avatar',
+        supported_api_engines: ['avatar_v'],
+      }),
+      null,
+    ],
     ['type', look({ avatar_type: 'unknown' }), null],
     [
       'group training',
@@ -608,10 +616,31 @@ describe('HeyGen v3 contracts', () => {
     expect(http.get).not.toHaveBeenCalled();
   });
 
+  it('admits a digital twin that renders only with Avatar V', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+    http.get.mockReturnValue(
+      page([look({ supported_api_engines: ['avatar_v'] })]),
+    );
+    const result = await service.resolveAvatarSelection(
+      { lookId: 'look', ownership: 'private' },
+      'org',
+    );
+    expect(result.avatarRef).toMatchObject({
+      avatarType: 'digital_twin',
+      readiness: { usable: true },
+      supportedEngines: ['avatar_v'],
+    });
+  });
+
+  const nativeLook = (
+    avatarType: string,
+    supportedEngines: string[] = ['avatar_iv', 'avatar_v'],
+  ) => ({ avatarType, lookId: 'look', supportedEngines });
+
   it('renders a native look with audio without converting its preview to an image', async () => {
     await service.generateNativeAvatarVideo(
       'meta',
-      'look',
+      nativeLook('digital_twin'),
       { audioUrl: 'https://cdn/narration.mp3' },
       'tenant-key',
     );
@@ -624,4 +653,66 @@ describe('HeyGen v3 contracts', () => {
       callback_id: 'meta',
     });
   });
+
+  it('sends Avatar V as the engine for an eligible digital twin', async () => {
+    await service.generateNativeAvatarVideo(
+      'meta',
+      nativeLook('digital_twin'),
+      { inputText: 'Hello', voiceId: 'voice' },
+      'tenant-key',
+      '16:9',
+      'avatar_v',
+    );
+    expect(http.post.mock.calls[0][1]).toMatchObject({
+      avatar_id: 'look',
+      engine: { type: 'avatar_v' },
+      type: 'avatar',
+    });
+  });
+
+  it('sends no engine for Avatar IV, the default', async () => {
+    await service.generateNativeAvatarVideo(
+      'meta',
+      nativeLook('photo_avatar', ['avatar_iv']),
+      { inputText: 'Hello', voiceId: 'voice' },
+      'tenant-key',
+      '9:16',
+      'avatar_iv',
+    );
+    expect(http.post.mock.calls[0][1]).not.toHaveProperty('engine');
+  });
+
+  it.each([
+    [
+      'a photo avatar',
+      nativeLook('photo_avatar', ['avatar_iv', 'avatar_v']),
+      'avatar_v',
+    ],
+    [
+      'a twin without avatar_v',
+      nativeLook('digital_twin', ['avatar_iv']),
+      'avatar_v',
+    ],
+    [
+      'a twin without avatar_iv',
+      nativeLook('digital_twin', ['avatar_v']),
+      'avatar_iv',
+    ],
+    ['an unpriced image look', nativeLook('image', ['avatar_iv']), 'avatar_iv'],
+  ] as const)(
+    'refuses %s before the paid submission',
+    async (_name, avatar, engine) => {
+      await expect(
+        service.generateNativeAvatarVideo(
+          'meta',
+          avatar,
+          { inputText: 'Hello', voiceId: 'voice' },
+          'tenant-key',
+          '9:16',
+          engine,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
 });

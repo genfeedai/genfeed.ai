@@ -367,6 +367,98 @@ describe('RouterService', () => {
         ).rejects.toBeInstanceOf(ServiceUnavailableException);
       });
 
+      describe('avatar engines', () => {
+        const avatarRow = (key: string) => {
+          const row = SELF_HOSTED_MODELS.find((model) => model.key === key);
+          if (!row) throw new Error(`The catalog must carry ${key}`);
+          return createMockModel({ ...row, category: ModelCategory.AVATAR });
+        };
+        const avatarRates = billableProfile({
+          key: MODEL_KEYS.HEYGEN_AVATAR_IV,
+          provider: 'heygen',
+          requiresReviewedRates: true,
+          reviewedPricing: {
+            currency: 'USD',
+            isFree: false,
+            rates: [
+              {
+                component: 'output',
+                isPerOutput: true,
+                unit: 'second',
+                unitPriceUsd: 0.0385,
+                when: { avatar_type: 'photo_avatar' },
+              },
+            ],
+            reviewStatus: 'approved',
+            sourceUrl: 'https://example.test/rates',
+            verifiedAt: '2026-10-10T07:18:30.000Z',
+            version: 'rate-v1',
+          },
+        });
+
+        beforeEach(() => {
+          modelsService.findAllActive.mockResolvedValue([
+            avatarRow(MODEL_KEYS.HEYGEN_AVATAR_IV),
+            avatarRow(MODEL_KEYS.HEYGEN_AVATAR_V),
+          ]);
+          modelsService.findBillablePricingProfile.mockResolvedValue(
+            avatarRates,
+          );
+        });
+
+        it('routes a photo avatar only to Avatar IV, even on quality', async () => {
+          const result = await service.selectModel({
+            category: ModelCategory.AVATAR,
+            eligibleModelKeys: [MODEL_KEYS.HEYGEN_AVATAR_IV],
+            prioritize: 'quality',
+            prompt: 'Welcome to the launch',
+          });
+
+          expect(result.selectedModel).toBe(MODEL_KEYS.HEYGEN_AVATAR_IV);
+          expect(result.alternatives).toEqual([]);
+        });
+
+        it('lets quality priority pick Avatar V for an eligible digital twin', async () => {
+          const result = await service.selectModel({
+            category: ModelCategory.AVATAR,
+            eligibleModelKeys: [
+              MODEL_KEYS.HEYGEN_AVATAR_IV,
+              MODEL_KEYS.HEYGEN_AVATAR_V,
+            ],
+            prioritize: 'quality',
+            prompt: 'Welcome to the launch',
+          });
+
+          expect(result.selectedModel).toBe(MODEL_KEYS.HEYGEN_AVATAR_V);
+        });
+
+        it('keeps the Avatar IV default on balanced priority', async () => {
+          const result = await service.selectModel({
+            category: ModelCategory.AVATAR,
+            eligibleModelKeys: [
+              MODEL_KEYS.HEYGEN_AVATAR_IV,
+              MODEL_KEYS.HEYGEN_AVATAR_V,
+            ],
+            prioritize: 'balanced',
+            prompt: 'Welcome to the launch',
+          });
+
+          expect(result.selectedModel).toBe(MODEL_KEYS.HEYGEN_AVATAR_IV);
+        });
+
+        it('refuses avatar routing while the engines have no reviewed rate', async () => {
+          modelsService.findBillablePricingProfile.mockResolvedValue(null);
+
+          await expect(
+            service.selectModel({
+              category: ModelCategory.AVATAR,
+              eligibleModelKeys: [MODEL_KEYS.HEYGEN_AVATAR_IV],
+              prompt: 'Welcome to the launch',
+            }),
+          ).rejects.toBeInstanceOf(ServiceUnavailableException);
+        });
+      });
+
       it('does not quote categories admitted outside the media quote', async () => {
         modelsService.findAllActive.mockResolvedValue([
           createMockModel({ category: ModelCategory.TEXT, key: 'text/model' }),

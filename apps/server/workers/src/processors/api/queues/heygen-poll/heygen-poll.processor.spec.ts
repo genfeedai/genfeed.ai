@@ -115,6 +115,26 @@ describe('HeygenPollProcessor', () => {
     },
   );
 
+  it('settles to the clip duration HeyGen reports on completion', async () => {
+    heygenAvatarProvider.getStatus.mockResolvedValue({
+      duration: 9.2,
+      jobId: 'provider-video-1',
+      status: 'completed',
+      videoUrl: 'https://cdn.example/video.mp4',
+    });
+
+    await processor.process(buildJob({ attempt: 1 }));
+
+    expect(webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
+      'ingredient-1',
+      'avatar',
+      'https://cdn.example/video.mp4',
+      'provider-video-1',
+      undefined,
+      9.2,
+    );
+  });
+
   it.each([1, HEYGEN_POLL_MAX_ATTEMPTS])(
     'processes media and records completion on success at attempt %i',
     async (attempt) => {
@@ -131,6 +151,8 @@ describe('HeygenPollProcessor', () => {
         'avatar',
         'https://cdn.example/video.mp4',
         'provider-video-1',
+        undefined,
+        undefined,
       );
       expect(
         continuationCoordinator.completeProviderAction,

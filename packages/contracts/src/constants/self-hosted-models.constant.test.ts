@@ -53,4 +53,34 @@ describe('SELF_HOSTED_MODELS', () => {
     });
     expect(voice?.cost).toBe(10);
   });
+
+  it('carries Avatar IV as the default avatar engine and Avatar V as the ultra option', () => {
+    const avatarIv = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_IV,
+    );
+    const avatarV = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_V,
+    );
+
+    expect(avatarIv).toMatchObject({
+      category: ModelCategory.AVATAR,
+      isDefault: true,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.HEYGEN,
+      // $0.0385/s photo avatar: 5 s at 3.33x is 65 credits, 13 per second.
+      providerCostUsd: 0.0385,
+    });
+    expect(avatarIv?.cost).toBe(65);
+    expect(avatarV).toMatchObject({
+      category: ModelCategory.AVATAR,
+      isDefault: false,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.HEYGEN,
+      // $0.12/s: 5 s at 3.33x is 200 credits.
+      providerCostUsd: 0.12,
+    });
+    expect(avatarV?.cost).toBe(200);
+  });
 });

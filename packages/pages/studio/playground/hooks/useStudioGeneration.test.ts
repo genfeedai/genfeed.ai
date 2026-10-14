@@ -3,7 +3,10 @@ import {
   IngredientStatus,
   RouterPriority,
 } from '@genfeedai/contracts';
-import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
+import {
+  LIBRARY_ASSETS_REFRESH_EVENT,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -544,7 +547,9 @@ describe('useStudioGeneration avatar submits', () => {
     });
 
     expect(mockHeyGenGenerate).toHaveBeenCalledWith({
+      autoSelectModel: true,
       photoUrl: 'https://cdn.genfeed.test/portrait.png',
+      prioritize: avatarSettings.prioritize,
       text: 'Hello from Genfeed',
       voiceId: 'voice-1',
       voiceRef: undefined,
@@ -554,6 +559,28 @@ describe('useStudioGeneration avatar submits', () => {
     });
     expect(mockHeyGenGenerate.mock.calls[0]?.[0]).not.toHaveProperty(
       'avatarId',
+    );
+  });
+
+  it('sends the Advanced avatar engine instead of Auto', async () => {
+    const { result } = renderStudioGeneration({
+      models: [makeModel(MODEL_KEYS.HEYGEN_AVATAR_V)],
+      settings: { ...avatarSettings, modelKey: MODEL_KEYS.HEYGEN_AVATAR_V },
+      type: 'avatar',
+    });
+
+    await act(async () => {
+      await result.current.submit('Hello from Genfeed');
+    });
+
+    expect(mockHeyGenGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autoSelectModel: false,
+        model: MODEL_KEYS.HEYGEN_AVATAR_V,
+      }),
+    );
+    expect(mockHeyGenGenerate.mock.calls[0]?.[0]).not.toHaveProperty(
+      'prioritize',
     );
   });
 

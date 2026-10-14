@@ -453,4 +453,85 @@ describe('HeyGen rate sheet entries', () => {
       ),
     ).toMatchObject({ status: 'unresolved' });
   });
+  describe('HeyGen avatar engines', () => {
+    const quote = (
+      profile: Awaited<ReturnType<typeof seededProfile>>['profile'],
+      endpoint: string,
+      duration: number,
+      avatarType?: string,
+    ) =>
+      quoteModelBillablePricing(
+        profile,
+        {
+          duration,
+          modelKey: endpoint,
+          provider: 'heygen',
+          ...(avatarType ? { selectors: { avatar_type: avatarType } } : {}),
+        },
+        3.33,
+        NOW,
+      );
+
+    it('seeds both engines from the avatar schema fixture without a resolution selector', async () => {
+      for (const endpoint of ['heygen/avatar-iv', 'heygen/avatar-v']) {
+        const { create, profile } = await seededProfile(endpoint);
+        expect(create).toMatchObject({
+          endpoint,
+          provider: 'heygen',
+          reviewStatus: 'approved',
+          schemaFamily: 'heygen-avatar-v3',
+        });
+        expect(create.inputSchema).not.toHaveProperty('properties.resolution');
+        expect(profile.requiredSelectorKeys).not.toContain('resolution');
+      }
+    });
+
+    it('prices Avatar IV per output second by avatar type', async () => {
+      const { profile } = await seededProfile('heygen/avatar-iv');
+      const iv = (avatarType: string) =>
+        quote(profile, 'heygen/avatar-iv', 5, avatarType);
+
+      // $0.0385/s photo avatar; $0.0805/s digital twin and studio avatar.
+      expect(iv('photo_avatar')).toMatchObject({
+        snapshot: { costSource: 'reviewed-provider', credits: 65 },
+        status: 'priced',
+      });
+      expect(iv('digital_twin')).toMatchObject({
+        snapshot: { credits: 135 },
+        status: 'priced',
+      });
+      expect(iv('studio_avatar')).toMatchObject({
+        snapshot: { credits: 135 },
+        status: 'priced',
+      });
+    });
+
+    it('prices Avatar V at $0.12 per second for a digital twin only', async () => {
+      const { profile } = await seededProfile('heygen/avatar-v');
+
+      expect(
+        quote(profile, 'heygen/avatar-v', 5, 'digital_twin'),
+      ).toMatchObject({ snapshot: { credits: 200 }, status: 'priced' });
+      expect(
+        quote(profile, 'heygen/avatar-v', 5, 'photo_avatar'),
+      ).toMatchObject({ status: 'unresolved' });
+    });
+
+    it.each(['image', 'prompt'])(
+      'refuses the unpriced %s avatar type instead of guessing',
+      async (avatarType) => {
+        const { profile } = await seededProfile('heygen/avatar-iv');
+        expect(quote(profile, 'heygen/avatar-iv', 5, avatarType)).toMatchObject(
+          { status: 'unresolved' },
+        );
+      },
+    );
+
+    it('refuses a quote without an avatar type', async () => {
+      const { profile } = await seededProfile('heygen/avatar-iv');
+      expect(quote(profile, 'heygen/avatar-iv', 5)).toMatchObject({
+        status: 'unresolved',
+      });
+    });
+  });
 });
