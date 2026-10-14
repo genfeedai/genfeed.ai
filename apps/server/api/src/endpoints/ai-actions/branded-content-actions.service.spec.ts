@@ -244,6 +244,7 @@ describe('BrandedContentActionsService', () => {
           maxCharacters: 280,
           platform: 'twitter',
           posts: ['Reply one', 'Reply two'],
+          postId: 'post-1',
           receiptId: 'receipt-1',
           receiptState: 'ready',
         },

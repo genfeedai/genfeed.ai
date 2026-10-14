@@ -576,7 +576,7 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     });
   });
 
-  it('refuses Knowledge purposes alone because a receipt cannot be grounded on them', async () => {
+  it('stops a Knowledge purpose selection with no visible matching sources', async () => {
     const { brandedContentActions, handler } = createHandler();
 
     const result = await handler.generateContent(
@@ -588,7 +588,7 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     );
 
     expect(result).toMatchObject({
-      data: { code: 'knowledge_purposes_unsupported' },
+      data: { code: 'knowledge_selection_empty' },
       success: false,
     });
     expect(brandedContentActions.generateSocial).not.toHaveBeenCalled();
