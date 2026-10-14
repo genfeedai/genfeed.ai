@@ -56,8 +56,8 @@ function findMdxFiles(directory: string): string[] {
 describe('docs SEO metadata', () => {
   it('builds exact self-referencing canonical URLs', () => {
     expect(getCanonicalUrl()).toBe('https://docs.genfeed.ai/');
-    expect(getCanonicalUrl(['guides', 'self-host-quickstart'])).toBe(
-      'https://docs.genfeed.ai/guides/self-host-quickstart',
+    expect(getCanonicalUrl(['self-host', 'installation'])).toBe(
+      'https://docs.genfeed.ai/self-host/installation',
     );
 
     const metadata = withPageSeoMetadata(
@@ -135,7 +135,7 @@ describe('docs SEO metadata', () => {
   it('builds a complete Open Graph card for every docs route', () => {
     const metadata = withPageSeoMetadata(
       { description: 'Route-specific description', title: 'Brands' },
-      ['cloud', 'brands'],
+      ['guides', 'brands'],
     );
 
     expect(metadata.openGraph).toEqual({
@@ -144,7 +144,7 @@ describe('docs SEO metadata', () => {
       siteName: DOCS_SITE_NAME,
       title: `Brands${DOCS_TITLE_SUFFIX}`,
       type: 'website',
-      url: 'https://docs.genfeed.ai/cloud/brands',
+      url: 'https://docs.genfeed.ai/guides/brands',
     });
     expect(metadata.twitter).toEqual({
       card: 'summary_large_image',

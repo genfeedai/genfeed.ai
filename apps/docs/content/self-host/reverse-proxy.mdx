@@ -1,0 +1,124 @@
+---
+title: Reverse Proxy and HTTPS
+description: 'Put self-hosted Genfeed behind your own domain and HTTPS: public URL settings, proxy routing for ports 3000, 3010, and 3014, and a pre-exposure checklist.'
+---
+
+# Reverse Proxy and HTTPS
+
+Out of the box Genfeed listens on plain HTTP on `localhost`. That is right for a
+single machine. To reach it from other devices or from the internet, put a
+reverse proxy in front that terminates HTTPS, and tell Genfeed what its public
+addresses are.
+
+## Plan the addresses
+
+The instance exposes three services. Give each its own hostname, or its own
+path-routed address if your proxy supports that:
+
+| Service | Container port | Example public address |
+| --- | --- | --- |
+| Web UI | `3000` | `https://genfeed.example.com` |
+| REST API | `3010` | `https://api.genfeed.example.com` |
+| MCP server | `3014` | `https://mcp.genfeed.example.com` |
+
+Only expose the ports you need. PostgreSQL and Redis are not published, and they
+should stay that way.
+
+## Tell Genfeed its public URLs
+
+Set these in `.env`, then recreate the stack
+(`docker compose --env-file .env -f compose.yml up -d`):
+
+```env
+GENFEEDAI_PUBLIC_URL=https://genfeed.example.com
+GENFEEDAI_APP_URL=https://genfeed.example.com
+GENFEEDAI_API_PUBLIC_URL=https://api.genfeed.example.com
+GENFEEDAI_MCP_PUBLIC_URL=https://mcp.genfeed.example.com/mcp
+NEXT_PUBLIC_API_ENDPOINT=https://api.genfeed.example.com/v1
+```
+
+If you enable the login wall, also set the origins Better Auth should use:
+
+```env
+BETTER_AUTH_URL=https://api.genfeed.example.com
+BETTER_AUTH_TRUSTED_ORIGINS=https://genfeed.example.com
+```
+
+`GENFEEDAI_CDN_URL` must be the files-service origin **as the browser sees it**,
+for example a public address that proxies to the files service. An internal
+Docker hostname is not a browser URL. The published image defaults to
+`localhost` values for the browser-facing settings, so after changing them open
+the web UI and check in your browser's network tools that requests go to your
+public API address.
+
+## Example: Caddy
+
+[Caddy](https://caddyserver.com/) obtains and renews HTTPS certificates
+automatically. A minimal `Caddyfile` for the three services:
+
+```caddyfile
+genfeed.example.com {
+  reverse_proxy localhost:3000
+}
+
+api.genfeed.example.com {
+  reverse_proxy localhost:3010
+}
+
+mcp.genfeed.example.com {
+  reverse_proxy localhost:3014
+}
+```
+
+Any reverse proxy works the same way: terminate HTTPS and forward each hostname
+to the matching host port (see `SELFHOSTED_*_PORT` in
+[Configuration](/self-host/configuration) if you changed them). Allow long
+request durations; watermarked media exports can take up to ten minutes.
+
+## Client IP addresses
+
+Genfeed ignores `X-Forwarded-For` by default, because the published ports are
+reachable directly and any client could otherwise claim another address and pass
+`ADMIN_ALLOWED_IPS`. Behind a proxy, set `TRUST_PROXY` in `.env` to an Express
+trust-proxy value that names your proxy, for example `loopback`,
+`172.18.0.0/16`, or a proxy address.
+
+Prefer an address or subnet over a hop count such as `1`: a hop count trusts
+whoever connects, so use it only when the proxy is the sole path to every
+published port. The web app cannot see the connecting peer, so setting
+`TRUST_PROXY` also asserts that the web port is reachable only through the proxy.
+
+## OAuth callbacks
+
+Google sign-in and the Google connectors share one Google Cloud OAuth web client.
+Register the callbacks on your public origins, keeping each path:
+
+```text
+https://api.genfeed.example.com/v1/auth/callback/google
+https://genfeed.example.com/oauth/youtube
+https://genfeed.example.com/oauth/google-ads
+https://genfeed.example.com/oauth/google-search-console
+```
+
+For other publishing providers, register the callbacks documented in the
+[OAuth provider runbook](https://github.com/genfeedai/genfeed.ai/blob/master/docs/integrations/oauth-provider-provisioning.md).
+Unconfigured providers fail closed.
+
+## Before you expose it
+
+- Turn on the [login wall](/self-host/configuration#login-wall). The default
+  install has none, so anyone who can reach the web port can use the workspace.
+- Change the bundled PostgreSQL password (`POSTGRES_PASSWORD`).
+- Keep provider keys in `.env` only, never in `NEXT_PUBLIC_*` variables.
+- Set `TRUST_PROXY` as described above.
+- Remember that MCP authentication is separate from the login wall; see
+  [MCP server](/api-reference/mcp#authentication).
+- Back up PostgreSQL and the `/data` volume, and read
+  [Upgrading](/self-host/upgrading) before your first update.
+- Confirm the API responds with `curl https://api.genfeed.example.com/v1/health`.
+  It reports only that the API process is up, not full readiness.
+
+## Next
+
+- [Upgrading](/self-host/upgrading)
+- [Troubleshooting](/self-host/troubleshooting)

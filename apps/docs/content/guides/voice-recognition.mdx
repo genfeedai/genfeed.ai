@@ -13,7 +13,7 @@ send the recording to the authenticated API for transcription.
 - a browser with `MediaRecorder` and `navigator.mediaDevices.getUserMedia`;
 - microphone permission for the Genfeed web origin;
 - an authenticated API session; and
-- a configured transcription path on the API.
+- a transcription provider key configured on your instance (see [Provider API Keys](/self-host/provider-api-keys)).
 
 Browser and operating-system support varies. The UI hides or disables voice
 recording when the required browser APIs are unavailable.
@@ -27,14 +27,12 @@ recording when the required browser APIs are unavailable.
 5. Review the inserted text before generating.
 
 The recorder captures WebM/Opus audio when the browser supports it. Recordings
-larger than 25 MB are rejected by the client. Transcription can consume credits,
-as shown by the product notification after a successful request.
+larger than 25 MB are rejected by the client. Transcription uses the transcription provider you configured, which may charge you directly.
 
 ## Privacy
 
 This is backend transcription, not guaranteed on-device speech recognition.
-Audio leaves the browser and is handled by the configured Genfeed API and its
-transcription provider. Self-hosters should review that provider's data terms.
+Audio leaves the browser and is handled by your Genfeed API and the transcription provider you configured. Review that provider's data terms.
 
 ## Troubleshooting
 

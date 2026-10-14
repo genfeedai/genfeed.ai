@@ -1,65 +1,51 @@
 ---
-description: 'Review which capabilities ship in Genfeed Community, which source clients exist, and which Cloud or Enterprise features depend on deployment.'
+description: 'Review what a self-hosted Genfeed instance includes, how provider keys fit in, and which source clients exist in the repository.'
 ---
 
 # Capabilities
 
-Genfeed's source tree spans several clients and deployment modes. A workspace in
-the monorepo is evidence that source exists, not necessarily that a public
-installer or store listing exists.
+Genfeed's source tree spans several clients. A workspace in the monorepo is
+evidence that source exists, not necessarily that a public installer or store
+listing exists.
 
-## Community distribution
+## What the self-hosted image contains
 
-The published Community image contains:
+The published image contains:
 
 - the Next.js product UI;
 - the NestJS REST API;
 - workers, files, notifications, and MCP runtimes;
 - PostgreSQL persistence through Prisma;
 - embedded Redis and BullMQ background work;
-- visual workflow authoring and local/BYOK execution; and
+- visual workflow authoring and BYOK execution; and
 - brand and content-library surfaces used by the product UI.
 
-Community is single-tenant and can start without a login wall or Cloud
-account.
+It is single-tenant and can start without a login wall. See
+[Architecture](/self-host/architecture) for the services and ports.
 
 ## Generation providers
 
 The provider registry includes adapters for text, image, video, and voice/audio
-generation. Models vary by provider availability, account access, configuration,
-and region; see [Available Models](/models) for the current registry.
+generation. Models vary by the keys you add, account access, and region; see
+[Models and Providers](/models).
 
-Local/BYOK execution has no Genfeed-managed usage quota. Provider quotas,
-provider charges, and the self-hoster's infrastructure limits still apply.
+Genfeed does not meter self-hosted execution and has no credits. Provider
+quotas, provider charges, and your infrastructure limits still apply.
 
-Application records remain on self-hosted infrastructure, but prompts and media
-sent to a configured external provider are processed under that provider's
-terms. Fully local processing requires a local provider path.
-
-## Cloud and commercial boundaries
-
-Cloud adds hosted operations and can provide managed inference, multi-tenant
-organization controls, team governance, managed publishing connectors, and
-managed analytics. Exact availability depends on the active deployment and
-commercial entitlement; this page does not promise a plan, quota, SLA, or
-certification.
-
-Organization billing ships in every image and is gated at runtime by
-`hasOrganizationBilling()`; see
-[Billing: one build, a runtime gate](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md#billing-one-build-a-runtime-gate).
-The repository does not contain the private managed inference servers or
-customer Fleet/LoRA operations.
+Application records remain on your infrastructure, but prompts and media sent to
+a configured external provider are processed under that provider's terms. Fully
+local processing requires a local provider path.
 
 ## Client source
 
 | Client  | Repository evidence                                                                                              |
 | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| Web     | Next.js application used by Cloud and Community.                                                                 |
+| Web     | Next.js application served by the self-hosted image.                                                             |
 | Desktop | macOS-first Electron application with signed macOS release automation.                                           |
 | Mobile  | Expo/React Native source. Its EAS config is disabled/not actively developed, with no store publication workflow. |
 | Browser | Chrome extension source with build and optional store-submission automation.                                     |
 | IDE     | VS Code extension source with manual VSIX packaging CI.                                                          |
 
-See [Deployment Options](/deployment) for the distribution status of each
-surface and [Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy)
+See [Installation Options](/self-host/installation) to run the web stack and
+the [Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy)
 for vulnerability reporting.

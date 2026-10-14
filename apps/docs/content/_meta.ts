@@ -1,26 +1,23 @@
 export default {
-  index: 'Welcome',
+  index: 'Introduction',
 
-  // -- Products --
-  'sep-products': {
-    title: 'Products',
+  // -- Self-host --
+  'sep-self-host': {
+    title: 'Self-host',
     type: 'separator',
   },
-  core: 'Genfeed Core (OSS)',
-  cloud: 'Genfeed Cloud',
-  deployment: 'Deployment Options',
+  'self-host': 'Self-host',
 
-  // -- Learn --
-  'sep-learn': {
-    title: 'Learn',
+  // -- Use Genfeed --
+  'sep-use': {
+    title: 'Use Genfeed',
     type: 'separator',
   },
-  features: 'Features',
+  guides: 'Guides',
+  features: 'Capabilities',
   'core-loop': 'Core Loop',
-  'getting-started': 'Getting Started',
-  guides: 'Guides & Tutorials',
   integrations: 'Integrations',
-  models: 'AI Models',
+  models: 'Models and Providers',
   skills: 'Agent Skills',
   faq: 'FAQ',
 

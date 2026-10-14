@@ -4,7 +4,7 @@ description: "Trace Genfeed's OSS trend-ingestion path through registered module
 
 # Trend Ingestion
 
-This page documents the OSS v1 trend-ingestion surface tracked by `#159`.
+This page documents the OSS v1 trend-ingestion surface.
 
 ## Discovery feeds and playable content
 
@@ -38,7 +38,7 @@ Public collection and account feeds have separate health evidence. Authenticatio
 API access, rate limits and provider budget failures remain actionable; hiding
 them would not restore ingestion. Apify can supply public content and media
 metadata, but does not provide native account permissions. Actor availability,
-provider credits and credential access must also be healthy for live collection.
+provider account balance and credential access must also be healthy for live collection.
 
 ## Live Module Inventory
 
@@ -90,7 +90,6 @@ The stable surface is not:
 | `ModelsModule`                                     | Model metadata used by trend content-idea generation paths.                                                   |
 | `ReplicateModule`                                  | Media/model support for trend content-idea workflows.                                                         |
 | `ByokModule`                                       | Provider access resolution for generation-adjacent trend workflows.                                           |
-| `CreditsModule`                                    | Credit guard/interceptor support around trend-powered AI operations.                                          |
 | `InstagramModule`, `TiktokModule`, `TwitterModule` | Platform service access for trend and source-preview paths.                                                   |
 
 `TrendsModule` exports only:

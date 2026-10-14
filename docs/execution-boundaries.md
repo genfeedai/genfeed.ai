@@ -1,6 +1,6 @@
 # Core and Cloud Execution Boundaries
 
-This is the repository-level V1 boundary reference. The public docs version lives at `apps/docs/content/core/execution-boundaries.mdx`.
+This is the repository-level V1 boundary reference. The public docs version lives at `apps/docs/content/self-host/architecture.mdx`.
 
 Boundary spec version: v1.3.1.
 

@@ -1,13 +1,15 @@
 ---
 title: API Reference
-description: 'Interactive OpenAPI reference for the Genfeed.ai REST API — browse every endpoint, schema, and response directly in the browser.'
+description: 'OpenAPI reference for the REST API of your Genfeed instance: browse every endpoint, schema, and response, plus the scheduling and release routes.'
 ---
 
 import SwaggerUI from '../../components/SwaggerUI';
 
 # API Reference
 
-Explore the Genfeed.ai API with the interactive documentation below.
+Explore the REST API of your Genfeed instance with the interactive documentation below. Example requests use the default local address `http://localhost:3010/v1`; substitute your own API URL if you run behind a domain (see [Reverse Proxy and HTTPS](/self-host/reverse-proxy)).
+
+Your instance serves its own OpenAPI document at `http://localhost:3010/v1/openapi.json`. The viewer at the bottom of this page renders the published spec for the current release as read-only documentation: it describes the routes your instance serves, and "Try it out" is disabled so nothing is sent to any server from this page.
 
 ## Scheduling
 
@@ -36,7 +38,7 @@ same route. To reschedule without changing content, send the request field
 `scheduledAt`.
 
 ```bash
-curl -X PATCH https://api.genfeed.ai/v1/post-groups/RELEASE_ID \
+curl -X PATCH http://localhost:3010/v1/post-groups/RELEASE_ID \
   -H "Authorization: Bearer $GENFEED_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"scheduledDate":"2026-09-01T10:00:00.000Z"}'
@@ -45,7 +47,7 @@ curl -X PATCH https://api.genfeed.ai/v1/post-groups/RELEASE_ID \
 Cancel the same release with the canonical lifecycle action:
 
 ```bash
-curl -X PATCH https://api.genfeed.ai/v1/post-groups/RELEASE_ID \
+curl -X PATCH http://localhost:3010/v1/post-groups/RELEASE_ID \
   -H "Authorization: Bearer $GENFEED_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"cancel"}'
@@ -57,7 +59,7 @@ curl -X PATCH https://api.genfeed.ai/v1/post-groups/RELEASE_ID \
 | ------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`  | `/v1/schedules/calendar`                               | Read scheduled entries for an optional `start` and `end` range.                                                                          |
 | `POST` | `/v1/schedules/bulk`                                   | Schedule multiple content items.                                                                                                         |
-| `POST` | `/v1/schedules/optimal`                                | Suggest posting times for an optional platform and timezone. This may consume generation credits.                                        |
+| `POST` | `/v1/schedules/optimal`                                | Suggest posting times for an optional platform and timezone. This may call your configured model provider.                              |
 | `GET`  | `/v1/schedules/channel-capabilities`                   | List channel publishing contracts. `includeHidden` and `includePlanned` are optional boolean query parameters.                           |
 | `GET`  | `/v1/schedules/channel-capabilities/{platform}`        | Read one platform's limits, media rules, publish modes, settings, and support status.                                                    |
 | `POST` | `/v1/schedules/channel-capabilities/validate`          | Validate a proposed target without creating or updating a release.                                                                       |

@@ -1,10 +1,10 @@
 ---
-description: "Understand Genfeed's reviewed model registry, OpenRouter text curation, verified Replicate media discovery, and assigned managed models."
+description: "Understand the reviewed model registry in a self-hosted Genfeed instance: OpenRouter text curation, Replicate media discovery, and provider configuration."
 ---
 
 # Provider Registry
 
-Genfeed Core stores reviewed model records behind one generation-facing surface. Text models are curated through OpenRouter, media models are discovered from verified Replicate owners, and Genfeed-managed models remain an explicitly assigned provider.
+Your instance stores reviewed model records behind one generation-facing surface. Text models are curated through OpenRouter and media models are discovered from verified Replicate owners. For the keys you add, see [Provider API keys](/self-host/provider-api-keys).
 
 ## Registry Layers
 
@@ -13,7 +13,7 @@ Genfeed Core stores reviewed model records behind one generation-facing surface.
 | Model records      | `packages/services/ai/models.service.ts`                                     | Returns reviewed model records already known to the app                             |
 | Replicate watcher  | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`  | Creates inactive review drafts for models from verified Replicate owners            |
 | Agent model filter | `packages/agent/src/hooks/use-agent-registry-models.ts`                      | Filters reviewed registry records for the shared agent model selector                |
-| BYOK access        | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before hosted/server fallback at execution time |
+| BYOK access        | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before deployment-level fallback at execution time |
 | Generation tools   | `packages/actions/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate` (image, video, voice and music by `type`)      |
 
 ## How Discovery Works
@@ -34,9 +34,8 @@ Provider discovery and provider execution are related but separate:
 | Replicate discovery/runtime | `REPLICATE_KEY`            | Replicate watcher and generation integrations               |
 | fal.ai runtime execution    | `FAL_API_KEY`              | Explicit fal.ai generation integrations                     |
 | Organization BYOK execution | Organization BYOK settings | Runtime provider resolution in `ByokProviderFactoryService` |
-| Managed Cloud execution     | `GENFEED_API_KEY`          | Explicit Cloud-backed managed inference paths               |
 
-Core does not require every provider key. At least one generation-capable provider must be configured for real generation, but docs and registry tests can run without live provider credentials.
+A self-hosted instance does not require every provider key. At least one generation-capable provider must be configured for real generation, but docs and registry tests can run without live provider credentials.
 
 ## Stable V1 Generation Surface
 

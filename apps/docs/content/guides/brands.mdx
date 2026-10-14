@@ -12,8 +12,7 @@ Supported generation flows can apply configured brand context. The exact fields
 and automatic behavior depend on the current UI and workflow node; these docs do
 not claim that every setting is applied to every generation.
 
-Cloud organizations can contain multiple brands. Community also supports
-multiple brands inside its single organization.
+A self-hosted instance has one organization and can hold multiple brands inside it.
 
 Use the product's brand settings as the source of truth for the fields available
 in the deployed release.
@@ -22,7 +21,7 @@ in the deployed release.
 
 In agent chat or MCP, organization owners and admins can use
 `create_brand_from_url` to create a brand with a draft website guide and voice
-analysis for one credit on success. Approval stays explicit through `approve:
+analysis on success. Approval stays explicit through `approve:
 true`; otherwise review the draft using the returned review URL. Poll
 `get_brand_scan_status` if the scan is still running. See the
 [MCP guide](/api-reference/mcp#create-a-brand-from-a-url) for inputs and results.
@@ -77,7 +76,7 @@ not in the prompt, or empty, and links to the page where you edit it.
 
 Type a message into **Preview a message** to see what a turn about that topic
 would retrieve. Knowledge, related posts, and memories are ranked against it.
-Nothing is saved and no credits are charged.
+Nothing is saved.
 
 The page also lists your personal memories, which only you can see and can
 archive, and the brand's shared memories.
@@ -111,7 +110,7 @@ the previous brand context.
 
 In **Brand settings → Brand Kit**, configure watermark text, choose an uploaded
 brand logo or reference image, and set opacity and corner position. Text and a
-logo can be combined. The settings are available in Cloud and self-hosted installs.
+logo can be combined.
 
 On an image or video, open the arrow beside Download and choose **Download with
 brand watermark**. The export creates a separate PNG image or MP4 video and keeps
@@ -126,7 +125,7 @@ image exports are not supported. Video rendering may take several minutes.
 For operators, apply the brand watermark database migration and configure the same
 `GENFEEDAI_API_KEY` internal service secret on the API and files services. The
 renderer rejects requests when its secret is absent or incorrect. Both local and
-S3 storage providers are supported. Self-hosted operators must configure
+S3 storage providers are supported. Configure
 `GENFEEDAI_CDN_URL` with the browser-reachable files-service origin that serves
 `/local/`; an internal Docker hostname is not a browser URL. The API allows up to
 ten minutes for an export; configure your reverse proxy to allow the same request
@@ -134,6 +133,5 @@ duration. Exports are limited to five per user per minute and two active renders
 per files-service instance. Identical source content and watermark settings reuse
 the existing derivative.
 
-This optional preview feature does not restrict original access by subscription.
-A SaaS paywall requires protected original storage and access enforcement across
-all media delivery paths; a watermarked preview alone is not access control.
+This optional preview feature does not restrict access to the original: a
+watermarked preview alone is not access control.

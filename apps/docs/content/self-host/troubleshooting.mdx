@@ -1,0 +1,118 @@
+---
+title: Troubleshooting
+description: 'Fix common self-hosted Genfeed problems: Docker Compose v2 on Debian 13, P1001 database errors, port conflicts, Node.js versions, and missing provider keys.'
+---
+
+# Troubleshooting
+
+Start by looking at what is running and what it logged:
+
+```bash
+docker compose --env-file .env -f compose.yml ps
+docker compose --env-file .env -f compose.yml logs genfeed
+docker compose --env-file .env -f compose.yml logs postgres
+```
+
+## Debian 13: Docker Compose v2
+
+Debian 13 does not package Docker Compose v2, so `docker compose` is not found
+or is the wrong version. Install the `docker-compose-plugin` package from Docker's
+apt repository. Set up the repository by following Docker's
+[Debian install guide](https://docs.docker.com/engine/install/debian/), then:
+
+```bash
+sudo apt-get install docker-compose-plugin
+docker compose version
+```
+
+Genfeed needs Compose v2, which is the `docker compose` command (with a space),
+not the older `docker-compose` binary.
+
+## `P1001: Can't reach database server at postgres:5432`
+
+This error means the Genfeed container could not open a connection to the
+`postgres` container over the Compose network. Check these in order:
+
+1. Confirm PostgreSQL is running and healthy with the `ps` and `logs postgres`
+   commands above.
+2. **Container networking.** Genfeed reaches PostgreSQL by the hostname `postgres`
+   on the Compose network. Check that both containers are on the same network and
+   that you did not override `POSTGRES_HOST` or `DATABASE_URL` with a value that
+   does not resolve from inside the container.
+3. **Firewall.** A host firewall (for example ufw, firewalld, or custom nftables
+   rules) that blocks traffic between containers on Docker's bridge network
+   prevents `genfeed` from reaching `postgres`.
+4. **`FORWARD` policy.** If the `iptables` or `nftables` `FORWARD` chain policy
+   is `DROP` and Docker's own forwarding rules are missing, container traffic is
+   dropped:
+
+   ```bash
+   sudo iptables -S FORWARD
+   ```
+
+   Restart Docker after changing firewall rules so it can recreate its rules, then
+   recreate the stack with `docker compose --env-file .env -f compose.yml up -d`.
+
+Rootless Docker and user-namespace setups can also change container networking.
+See Docker's
+[packet filtering and firewalls](https://docs.docker.com/engine/network/packet-filtering-firewalls/)
+documentation.
+
+## A port is already in use
+
+Genfeed publishes `3000`, `3010`, and `3014`. If another program uses one, either
+stop it or move Genfeed to different host ports in `.env`:
+
+```env
+SELFHOSTED_APP_PORT=3100
+SELFHOSTED_API_PORT=3110
+SELFHOSTED_MCP_PORT=3114
+```
+
+Recreate the stack afterwards. If you change the web or API port, also update
+the public URLs; see [Configuration](/self-host/configuration#public-urls).
+
+## `npx @genfeedai/create` fails on Node.js
+
+`@genfeedai/create` requires Node.js `>=24 <25`. Check with `node --version`.
+Install Node.js 24, or skip Node entirely and use the
+[release bundle](/self-host/installation#option-2-release-bundle-with-docker-compose).
+This is separate from `@genfeedai/cli`, which needs Node.js 22.12 or newer.
+
+## Generation does nothing or fails
+
+The model keys in `.env` start blank, and self-hosting has no Genfeed credits.
+Add the key for the provider behind the model you chose, recreate the stack, and
+try a small request. See [Provider API keys](/self-host/provider-api-keys).
+
+The Community image does not start GPU or local-model services, so a model that
+needs your own ComfyUI or GPU host will not run unless you point
+`DARKROOM_COMFYUI_URL` at one.
+
+## The web UI loads but nothing works behind my domain
+
+The published image defaults its browser-facing settings to `localhost`. Set the
+public URL variables described in
+[Reverse proxy and HTTPS](/self-host/reverse-proxy), recreate the stack, and
+confirm in your browser's network tools that requests go to your API address.
+
+## MCP returns 401
+
+Turning off the login wall does not turn off MCP authentication. Register the
+client as described in [MCP server](/api-reference/mcp#connect-to-your-instance),
+or use a scoped API key.
+
+## The health check passes but something is broken
+
+`curl http://localhost:3010/v1/health` reports only that the API process
+responds. It does not test the database, queues, providers, or workflows. Use
+the logs to look further.
+
+## Reporting a problem
+
+Use the [bug report form](https://github.com/genfeedai/genfeed.ai/issues/new/choose)
+for reproducible defects, and include your release version and the relevant log
+lines, with secrets removed. The public tracker does not provide a support SLA.
+Report suspected vulnerabilities through the
+[security policy](https://github.com/genfeedai/genfeed.ai/security/policy), not a
+public issue.

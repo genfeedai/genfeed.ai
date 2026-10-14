@@ -1,0 +1,101 @@
+---
+title: After It Is Running
+description: 'First steps on a new self-hosted Genfeed instance: open your workspace, add model keys, connect MCP and the CLI, install skills, and ship a first post.'
+---
+
+# After It Is Running
+
+Your instance is up at `http://localhost:3000`. These steps take it from an
+empty workspace to a first post you have reviewed and approved.
+
+## 1. Open your workspace
+
+Open `http://localhost:3000`. With the default configuration there is no login
+wall: the first boot seeded one local user, one organization (slug `default`),
+and one brand, and the web UI opens straight into them.
+
+If you turned on the login wall (`BETTER_AUTH_ENABLED=true`), create your
+account with email and password. That needs no email provider; magic links,
+password resets, and invites do. See [Configuration](/self-host/configuration#login-wall).
+
+## 2. Add model keys
+
+Generation needs at least one provider key, and self-hosting has no Genfeed
+credits. Add your keys to `.env` and recreate the stack, following
+[Provider API keys](/self-host/provider-api-keys).
+
+## 3. Connect an AI agent over MCP
+
+Your instance serves MCP on port `3014`. The login wall does not protect it:
+the MCP server always requires a bearer credential.
+
+For Claude Code, register the dedicated content connector, then open `/mcp`,
+select `genfeed`, and complete browser authorization:
+
+```bash
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
+```
+
+For other clients, create a scoped key and point the client at
+`http://localhost:3014/mcp`:
+
+1. Open `http://localhost:3000/default/~/settings/api-keys`.
+2. Create a key with the **MCP** preset and copy it once.
+3. Export it in the client's environment, not in the Genfeed `.env`:
+
+   ```bash
+   export GENFEED_API_KEY=gf_live_xxx
+   codex mcp add genfeed --url http://localhost:3014/mcp --bearer-token-env-var GENFEED_API_KEY
+   ```
+
+Ask your agent to **list your Genfeed brands**. A successful answer confirms the
+connection. Details, toolsets, and troubleshooting are in
+[MCP server](/api-reference/mcp).
+
+## 4. Use the CLI against your instance
+
+```bash
+bun add -g @genfeedai/cli          # needs Node.js 22.12 or newer
+export GENFEED_API_URL=http://localhost:3010/v1
+export GENFEED_API_KEY=gf_live_xxx
+gf whoami
+```
+
+Use `gf login -i` instead if you would rather paste the key at a hidden prompt.
+See the [CLI reference](/api-reference/cli).
+
+## 5. Install Agent Skills
+
+Skills teach your agent the content discipline; MCP gives it the tools.
+
+```bash
+bunx skills add genfeedai/skills
+```
+
+See [Agent Skills](/skills).
+
+## 6. From a first brief to a published post
+
+Genfeed is approval-first: an agent can generate and draft, and publishing
+waits for you.
+
+1. **Give a brief.** In your agent (or the web UI), describe the post: audience,
+   topic, and format. Ask it to generate content with the brand's voice. This
+   uses the provider keys you added.
+2. **Review the draft.** Agents save drafts for review rather than publishing.
+   Open the draft in the web UI to edit the copy and media.
+3. **Approve it.** Approve the draft in the app. A scoped key with the **MCP**
+   preset can draft, schedule, and approve; it cannot publish directly.
+4. **Connect a channel.** Under **Accounts → Add Account**, connect a publishing
+   channel. Each provider needs its own OAuth application and callback; see
+   [Publishing](/guides/publishing). Unconfigured providers fail closed.
+5. **Publish or schedule.** Publish the approved post, or schedule it for later.
+
+Publish a non-sensitive test post first and confirm it in the provider's own UI.
+
+## Where to go next
+
+- [Brands](/guides/brands) and [Studio](/guides/studio)
+- [Reverse proxy and HTTPS](/self-host/reverse-proxy) before sharing your instance
+- [Architecture](/self-host/architecture)
+- [REST API](/api-reference) and [webhooks](/api-reference/webhooks)
