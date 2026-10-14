@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PostAccountGenerationQueueService', () => {
   const redis = { eval: vi.fn() };
-  const queue = { add: vi.fn(), client: Promise.resolve(redis) };
+  const queue = {
+    add: vi.fn(),
+    getBackend: () => ({ client: Promise.resolve(redis) }),
+  };
   const service = new PostAccountGenerationQueueService(queue as never);
   const page = (): AccountGenerationJobData => ({
     dto: {

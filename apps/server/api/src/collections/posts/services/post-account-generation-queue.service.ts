@@ -39,7 +39,7 @@ export class PostAccountGenerationQueueService {
   ) {}
 
   async claim(organizationId: string, runId: string): Promise<void> {
-    const client = await this.queue.client;
+    const client = await this.queue.getBackend().client;
     const claimed = Number(
       await client.eval(
         CLAIM,
@@ -69,7 +69,7 @@ export class PostAccountGenerationQueueService {
   }
 
   async renew(organizationId: string, runId: string): Promise<void> {
-    const client = await this.queue.client;
+    const client = await this.queue.getBackend().client;
     if (
       Number(
         await client.eval(
@@ -107,7 +107,7 @@ export class PostAccountGenerationQueueService {
   }
 
   async release(organizationId: string, runId: string): Promise<void> {
-    const client = await this.queue.client;
+    const client = await this.queue.getBackend().client;
     await client.eval(RELEASE, 2, this.key(organizationId), PENDING_KEY, runId);
   }
 
