@@ -34,3 +34,7 @@ a148c21c6aa16eae60af9ba885fff060edbe97b5:apps/app/app/(protected)/[orgSlug]/~/co
 
 # Studio lens catalog slug. A focal-length id, not a credential.
 7e523cbfdb05cf261320b6c45cf68aa66a78a740:apps/server/api/src/seeds/studio-element-catalog.ts:generic-api-key:441
+ea4916ac46428b230fa124608f6d31335f249c05:apps/server/api/src/seeds/studio-element-catalog.ts:generic-api-key:441
+
+# Empty environment assignments in self-host docs; the match spans the next variable name.
+f7b4c633bd7f6031609130c1a0da2d5b28f2c1f7:apps/docs/content/self-host/provider-api-keys.mdx:generic-api-key:57
