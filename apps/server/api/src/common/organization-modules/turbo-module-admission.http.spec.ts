@@ -21,14 +21,14 @@ vi.mock('@genfeedai/config', async (original) => ({
 
 describe('Turbo HTTP organization module admission', () => {
   let app: INestApplication;
-  let isEnabled: boolean;
+  let isReleased: boolean;
   let actorFlags: { isApiKey?: boolean; isSuperAdmin?: boolean };
   let create: ReturnType<typeof vi.fn>;
   let findOne: ReturnType<typeof vi.fn>;
   let queueTurboRun: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    isEnabled = false;
+    isReleased = false;
     actorFlags = {};
     create = vi.fn().mockResolvedValue({ id: 'project-1' });
     findOne = vi.fn().mockResolvedValue({ id: 'project-1' });
@@ -40,11 +40,19 @@ describe('Turbo HTTP organization module admission', () => {
         organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
         organizationSetting: {
           findUnique: vi.fn(async () => ({
-            moduleOverrides: { turbo: isEnabled },
+            isReleasePreviewEnabled: false,
+            // Hidden by the organization: never refuses API or MCP work.
+            moduleOverrides: { turbo: false },
           })),
         },
       } as never,
       { isSubscriptionGatedFresh: vi.fn().mockResolvedValue(true) } as never,
+      {
+        getFeatureSettingsState: vi.fn(async () => ({
+          isResolved: true,
+          settings: { flags: { release_turbo: isReleased } },
+        })),
+      } as never,
     );
     const fixtureAuth = {
       canActivate: (context: ExecutionContext) => {
@@ -85,7 +93,7 @@ describe('Turbo HTTP organization module admission', () => {
   });
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks disabled Turbo before the actual controller creates a project: %j',
+    'blocks unreleased Turbo before the actual controller creates a project: %j',
     async (flags) => {
       actorFlags = flags;
       const result = await request(app.getHttpServer())
@@ -97,12 +105,12 @@ describe('Turbo HTTP organization module admission', () => {
           organizationId: 'other-org',
         });
       expect(result.status).toBe(403);
-      expect(result.body.code).toBe('ORGANIZATION_MODULE_DISABLED');
+      expect(result.body.code).toBe('ORGANIZATION_MODULE_UNRELEASED');
       expect(create).not.toHaveBeenCalled();
     },
   );
-  it('allows explicitly enabled Turbo without an active subscription', async () => {
-    isEnabled = true;
+  it('allows released Turbo the organization hides, without a subscription', async () => {
+    isReleased = true;
     const result = await request(app.getHttpServer())
       .post('/turbo-projects')
       .send({ name: 'draft' });
@@ -112,7 +120,7 @@ describe('Turbo HTTP organization module admission', () => {
       expect.objectContaining({ organizationId: 'org-1' }),
     );
   });
-  it('preserves existing project reads when Turbo is disabled', async () => {
+  it('preserves existing project reads while Turbo is unreleased', async () => {
     const result = await request(app.getHttpServer()).get(
       '/turbo-projects/project-1',
     );
@@ -136,13 +144,13 @@ describe('Turbo HTTP organization module admission', () => {
           organizationId: 'other-org',
         });
       expect(result.status).toBe(403);
-      expect(result.body.code).toBe('ORGANIZATION_MODULE_DISABLED');
+      expect(result.body.code).toBe('ORGANIZATION_MODULE_UNRELEASED');
       expect(queueTurboRun).not.toHaveBeenCalled();
     },
   );
 
-  it('rechecks a previously enabled Turbo content route before the next request', async () => {
-    isEnabled = true;
+  it('rechecks a previously released Turbo content route before the next request', async () => {
+    isReleased = true;
     const url = '/brands/brand-1/content/turbo';
     expect(
       (
@@ -161,7 +169,7 @@ describe('Turbo HTTP organization module admission', () => {
       },
       'user-1',
     );
-    isEnabled = false;
+    isReleased = false;
     const result = await request(app.getHttpServer())
       .post(url)
       .send({ skillSlug: 'content-writing', count: 2 });

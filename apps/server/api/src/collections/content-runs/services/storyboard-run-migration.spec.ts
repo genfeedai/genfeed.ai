@@ -786,6 +786,7 @@ describe('Explicit corrected-plan adoption', () => {
       store as never,
       capabilities as never,
       { warn: vi.fn() } as never,
+      {} as never,
     );
     const plan = {
       title: 'Corrected',

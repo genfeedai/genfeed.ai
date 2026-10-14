@@ -6,8 +6,10 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
+/** One-line runtime meter for the sub-topbar: seconds used, a shot-by-shot bar, shot count. */
 export default function StoryboardRuntimeRail({
   budgetSeconds,
+  formatLabel,
   shots,
   selectedShotId,
   onSelectShot,
@@ -17,26 +19,27 @@ export default function StoryboardRuntimeRail({
     (total, shot) => total + (shot.durationSeconds ?? 0),
     0,
   );
+  const isOverBudget = budgetSeconds !== null && used > budgetSeconds;
+  const remaining = budgetSeconds === null ? 0 : budgetSeconds - used;
+  const shotCountLabel = translate('shotCount', { count: shots.length });
   return (
-    <section aria-label={translate('ariaLabel')} className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span>
-          {budgetSeconds === null
-            ? translate('usedWithoutBudget', { used })
-            : translate('usedWithBudget', { used, budget: budgetSeconds })}
-        </span>
-        <span className="text-muted-foreground">
-          {translate('shotCount', { count: shots.length })}
-        </span>
-      </div>
-      {budgetSeconds !== null && used > budgetSeconds ? (
-        <p role="alert" className="text-xs text-destructive">
-          {translate('overBudget')}
-        </p>
-      ) : null}
+    <section
+      aria-label={translate('ariaLabel')}
+      className="flex min-w-0 items-center gap-3 text-xs"
+    >
+      <span
+        className={cn(
+          'whitespace-nowrap font-medium tabular-nums',
+          isOverBudget && 'text-destructive',
+        )}
+      >
+        {budgetSeconds === null
+          ? translate('usedWithoutBudget', { used })
+          : translate('usedWithBudget', { used, budget: budgetSeconds })}
+      </span>
       {shots.length ? (
         <div
-          className="flex min-h-10 gap-1 overflow-x-auto"
+          className="hidden h-1.5 w-32 gap-0.5 sm:flex"
           role="group"
           aria-label={translate('timeline')}
         >
@@ -56,24 +59,31 @@ export default function StoryboardRuntimeRail({
               })}
               aria-pressed={selectedShotId === shot.id}
               onClick={() => onSelectShot(shot.id)}
-              style={{ flexGrow: shot.durationSeconds ?? 0, flexBasis: 0 }}
+              style={{ flexGrow: shot.durationSeconds ?? 1, flexBasis: 0 }}
               className={cn(
-                'flex min-w-16 flex-col items-center justify-center rounded-md border border-border px-2 py-1 text-xs hover:bg-hover',
-                selectedShotId === shot.id && 'border-border-strong bg-hover',
+                'h-full min-w-1 rounded-sm bg-foreground/40 hover:bg-foreground/60',
+                selectedShotId === shot.id && 'bg-foreground',
+                isOverBudget && 'bg-destructive/70',
               )}
-            >
-              <span>{translate('shot', { ordinal: shot.ordinal })}</span>
-              <span className="text-muted-foreground">
-                {shot.durationSeconds === null
-                  ? translate('unset')
-                  : translate('seconds', { seconds: shot.durationSeconds })}
-              </span>
-            </Button>
+            />
           ))}
+          {remaining > 0 ? (
+            <span
+              aria-hidden
+              className="h-full rounded-sm bg-border"
+              style={{ flexGrow: remaining, flexBasis: 0 }}
+            />
+          ) : null}
         </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">{translate('empty')}</p>
-      )}
+      ) : null}
+      <span className="hidden whitespace-nowrap text-muted-foreground md:inline">
+        {formatLabel ? `${shotCountLabel} · ${formatLabel}` : shotCountLabel}
+      </span>
+      {isOverBudget ? (
+        <p role="alert" className="sr-only">
+          {translate('overBudget')}
+        </p>
+      ) : null}
     </section>
   );
 }

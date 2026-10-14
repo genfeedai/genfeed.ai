@@ -142,6 +142,24 @@ describe('AdminFlagsPage (#5468)', () => {
     expect(
       screen.getByRole('heading', { name: 'Platform' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Releases' }),
+    ).toBeInTheDocument();
+  });
+
+  it('lists releases off until an operator releases them', async () => {
+    mocks.getSettings.mockResolvedValue({ flags: { release_turbo: true } });
+    render(<AdminFlagsPage />);
+
+    expect(
+      await screen.findByRole('switch', { name: 'Release Turbo' }),
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(
+      screen.getByRole('switch', { name: 'Release Motion' }),
+    ).toHaveAttribute('aria-checked', 'false');
+    expect(
+      screen.getByRole('switch', { name: 'Release Campaigns' }),
+    ).toHaveAttribute('aria-checked', 'false');
   });
 
   it('groups each module with its own surfaces and features in one card', async () => {
@@ -253,13 +271,19 @@ describe('AdminFlagsPage (#5468)', () => {
     expect(mocks.error).not.toHaveBeenCalled();
   });
 
-  it('shows every flag on before an operator changed any', async () => {
+  it('shows every module and feature on, and every release off, before an operator changed any', async () => {
     mocks.getSettings.mockResolvedValue({ flags: {} });
     render(<AdminFlagsPage />);
 
     await screen.findByRole('switch', { name: 'Library canvas' });
     for (const toggle of screen.getAllByRole('switch')) {
-      expect(toggle).toHaveAttribute('aria-checked', 'true');
+      const isRelease = toggle
+        .getAttribute('aria-label')
+        ?.startsWith('Release ');
+      expect(toggle).toHaveAttribute(
+        'aria-checked',
+        isRelease ? 'false' : 'true',
+      );
     }
     expect(DEFAULT_PLATFORM_FLAGS.library_canvas).toBe(true);
   });

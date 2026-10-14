@@ -12,6 +12,7 @@ These are community-maintained brand assets, not a claim of official endorsement
 | BflIcon | [bfl.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/bfl.svg) |
 | BytedanceProviderIcon | [bytedance-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/bytedance-color.svg) |
 | DeepseekProviderIcon | [deepseek-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/deepseek-color.svg) |
+| ElevenLabsIcon | [elevenlabs.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/elevenlabs.svg) |
 | GoogleProviderIcon | [google-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/google-color.svg) |
 | IdeogramIcon | [ideogram.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/ideogram.svg) |
 | KlingIcon | [kling-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/kling-color.svg) |

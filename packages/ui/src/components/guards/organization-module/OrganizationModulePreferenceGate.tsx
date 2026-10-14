@@ -5,6 +5,7 @@ import {
   APP_ROUTES,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
+import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { OrganizationModulePreferenceGateProps } from '@genfeedai/props/guards/organization-module-preference-gate.props';
 import { Button } from '@ui/primitives/button';
@@ -28,9 +29,11 @@ function OrganizationModulePreferenceBody({
     useBrand();
   const { orgHref } = useOrgUrl();
   const t = useTranslations('common.settings.organizationModules');
+  const { flags: platformFlags } = useFeatureFlagContext();
   const access = resolveOrganizationModulePresentationAccess(
     settingsLoading ? null : settings,
     moduleId,
+    platformFlags,
   );
   const mounted = useRef(true);
   const retrying = useRef(false);
@@ -59,7 +62,7 @@ function OrganizationModulePreferenceBody({
   if (organizationId && access.isAllowed) return <>{children}</>;
   const isUnavailable = !organizationId || access.reason === 'unavailable';
   const isSubscriptionRequired = access.reason === 'subscription-required';
-  // #5502 nothing in the organization can release a founder-only module.
+  // Nothing in the organization can release a module; Admin → Flags does.
   const isUnreleased = access.reason === 'unreleased';
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">

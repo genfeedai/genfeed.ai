@@ -2,6 +2,7 @@ import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import {
   extractAgentConversationId,
+  extractStoryboardRunId,
   truncateBreadcrumbLabel,
 } from './app-protected-layout.breadcrumb';
 
@@ -28,6 +29,25 @@ describe('extractAgentConversationId', () => {
     expect(
       extractAgentConversationId('/default/default/agent/onboarding'),
     ).toBeNull();
+  });
+});
+
+describe('extractStoryboardRunId', () => {
+  it('reads the run id of a storyboard detail route', () => {
+    expect(
+      extractStoryboardRunId('/default/default/studio/storyboard/run-1'),
+    ).toBe('run-1');
+  });
+
+  it('ignores the storyboard list and create routes', () => {
+    expect(
+      extractStoryboardRunId('/default/default/studio/storyboard'),
+    ).toBeNull();
+    expect(
+      extractStoryboardRunId('/default/default/studio/storyboard/new'),
+    ).toBeNull();
+    expect(extractStoryboardRunId('/default/default/agent/run-1')).toBeNull();
+    expect(extractStoryboardRunId(null)).toBeNull();
   });
 });
 

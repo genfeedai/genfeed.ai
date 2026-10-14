@@ -148,7 +148,7 @@ export interface StudioPlaygroundTypeConfig {
   elementsType: 'all' | 'image' | 'music' | 'video' | 'voice';
   ingredientCategory: IngredientCategory;
   label: string;
-  /** `null` for types that have no router-backed model catalog (avatar, voice). */
+  /** `null` for types that have no router-backed model catalog (avatar). */
   modelCategory: ModelCategory | null;
   /** Socket topic + REST collection segment, e.g. `images`. */
   resourceSegment: string;

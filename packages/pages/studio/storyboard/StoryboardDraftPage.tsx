@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   StoryboardDraftPageProps,
   StoryboardPlanEditorHandle,
@@ -10,25 +9,26 @@ import type {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StoryboardConflictReview from '@pages/studio/storyboard/components/StoryboardConflictReview';
 import StoryboardPlanEditor from '@pages/studio/storyboard/components/StoryboardPlanEditor';
-import StoryboardSaveIndicator from '@pages/studio/storyboard/components/StoryboardSaveIndicator';
+import StoryboardPromptBar from '@pages/studio/storyboard/components/StoryboardPromptBar';
 import {
   useStoryboardAutosave,
   useStoryboardDraftOutbox,
 } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
 import { getStoryboardEditorSeed } from '@pages/studio/storyboard/utils/storyboard-editor-seed';
-import Container from '@ui/layout/container/Container';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
-import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
-import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
-import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 
-// The brief counter only appears once the brief is close to its 2,000 limit.
-const CHARACTER_COUNT_THRESHOLD = 1600;
+const MAX_BRIEF_LENGTH = 2000;
+
+interface DraftRequest {
+  /** A new brief to save before drafting; omitted to draft from the saved one. */
+  readonly brief?: string;
+  /** A change request for a plan that already has shots. */
+  readonly instruction?: string;
+}
 
 /** Neutral detail page stays separate until existing-run migration is integrated. */
 export default function StoryboardDraftPage({
@@ -38,6 +38,7 @@ export default function StoryboardDraftPage({
   saveSource,
   resetPlan,
   approvePlan,
+  draftPlan,
   capabilities,
   capabilityError,
   refreshCapabilities,
@@ -81,7 +82,17 @@ export default function StoryboardDraftPage({
     useState<StoryboardSaveIndicatorProps['status']>('saved');
   const [navigationError, setNavigationError] = useState<string>();
   const [leaving, setLeaving] = useState(false);
+  const [isDrafting, setIsDrafting] = useState(false);
+  const [draftError, setDraftError] = useState<string>();
+  const lastRequest = useRef<DraftRequest>({});
   const pipeline = run.config.scenePipeline;
+  const hasShots = (run.config.plan?.shots.length ?? 0) > 0;
+  const savedBrief =
+    sourceAutosave.value.kind === 'brief' ? sourceAutosave.value.brief : '';
+  const canCompose =
+    Boolean(saveSource) &&
+    sourceAutosave.value.kind === 'brief' &&
+    !run.config.scenePipeline;
   const editorSeed = getStoryboardEditorSeed({
     isReady:
       pipeline?.state === 'ready' &&
@@ -132,128 +143,105 @@ export default function StoryboardDraftPage({
       .catch(() => setNavigationError(translate('draft.saveBeforeLeave')))
       .finally(() => setLeaving(false));
   }
-  const backHref = href(APP_ROUTES.STUDIO.STORYBOARD);
-  const back = (
-    <Button asChild variant={ButtonVariant.SECONDARY} disabled={leaving}>
-      <Link href={backHref} onClick={(event) => leave(event, backHref)}>
-        {translate('runs.all')}
-      </Link>
-    </Button>
-  );
+  /** Saves what the composer holds, settles pending edits, then drafts. */
+  async function runDraft(request: DraftRequest) {
+    lastRequest.current = request;
+    setIsDrafting(true);
+    setDraftError(undefined);
+    try {
+      const brief = request.brief?.slice(0, MAX_BRIEF_LENGTH);
+      if (brief !== undefined && brief !== savedBrief)
+        sourceAutosave.edit((source) =>
+          source.kind === 'brief' ? { ...source, brief } : source,
+        );
+      await sourceAutosave.flush();
+      // The draft is based on the persisted revision, so pending plan edits land first.
+      await editor.current?.flush();
+      await draftPlan(request.instruction);
+    } catch (caught) {
+      setDraftError(
+        caught instanceof Error && caught.message
+          ? caught.message
+          : translate('draft.draftFailed'),
+      );
+    } finally {
+      setIsDrafting(false);
+    }
+  }
+  function submitPrompt(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    return runDraft(hasShots ? { instruction: trimmed } : { brief: trimmed });
+  }
   return (
-    <Container
-      label={run.config.plan?.title || translate('draft.untitled')}
-      right={
-        <div className="flex flex-wrap gap-2">
-          {editorSeed.href ? (
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              disabled={leaving}
+    <StoryboardPlanEditor
+      ref={editor}
+      key={`${run.brandId}:${run.id}`}
+      run={run}
+      draft={draft.plan}
+      isDrafting={isDrafting}
+      isSourceSaving={leaving || !draft.queue}
+      onSaveStatusChange={setPlanStatus}
+      savePlan={savePlan}
+      resetPlan={resetPlan}
+      approvePlan={approvePlan}
+      capabilities={capabilities}
+      capabilityError={capabilityError}
+      refreshCapabilities={refreshCapabilities}
+      sourceBrief={savedBrief || undefined}
+      onDraftFromBrief={canCompose ? () => void runDraft({}) : undefined}
+      actions={
+        editorSeed.href ? (
+          <Button asChild variant={ButtonVariant.SECONDARY} disabled={leaving}>
+            <Link
+              href={href(editorSeed.href)}
+              onClick={(event) =>
+                leave(event, href(editorSeed.href ?? ''), true)
+              }
             >
-              <Link
-                href={href(editorSeed.href)}
-                onClick={(event) =>
-                  leave(event, href(editorSeed.href ?? ''), true)
-                }
-              >
-                {translateAction('openInEditor')}
-              </Link>
-            </Button>
-          ) : null}
-          {back}
-        </div>
+              {translateAction('openInEditor')}
+            </Link>
+          </Button>
+        ) : undefined
       }
-    >
-      <div className="mx-auto w-full max-w-7xl space-y-4">
-        {pipeline?.state === 'ready' && !editorSeed.href ? (
-          <p role="status" className="text-sm text-muted-foreground">
-            {editorSeed.reason}
-          </p>
-        ) : null}
-        {navigationError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {navigationError}
-          </p>
-        ) : null}
-        {draft.snapshot?.storageError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {draft.snapshot.storageError}
-          </p>
-        ) : null}
-        {draft.queue && draft.snapshot ? (
-          <StoryboardConflictReview
-            conflicts={draft.snapshot.conflicts}
-            choices={draft.snapshot.choices}
-            choose={draft.queue.choose}
-            resolve={draft.queue.resolve}
+      notices={
+        <>
+          {pipeline?.state === 'ready' && !editorSeed.href ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {editorSeed.reason}
+            </p>
+          ) : null}
+          {navigationError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {navigationError}
+            </p>
+          ) : null}
+          {draft.snapshot?.storageError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {draft.snapshot.storageError}
+            </p>
+          ) : null}
+          {draft.queue && draft.snapshot ? (
+            <StoryboardConflictReview
+              conflicts={draft.snapshot.conflicts}
+              choices={draft.snapshot.choices}
+              choose={draft.queue.choose}
+              resolve={draft.queue.resolve}
+            />
+          ) : null}
+        </>
+      }
+      composer={
+        canCompose ? (
+          <StoryboardPromptBar
+            error={draftError}
+            hasShots={hasShots}
+            isDisabled={leaving || !draft.queue || isDrafting}
+            onRetry={() => void runDraft(lastRequest.current)}
+            onSubmit={submitPrompt}
           />
-        ) : null}
-        <StoryboardPlanEditor
-          ref={editor}
-          key={`${run.brandId}:${run.id}`}
-          run={run}
-          draft={draft.plan}
-          isSourceSaving={leaving || !draft.queue}
-          onSaveStatusChange={setPlanStatus}
-          savePlan={savePlan}
-          resetPlan={resetPlan}
-          approvePlan={approvePlan}
-          capabilities={capabilities}
-          capabilityError={capabilityError}
-          refreshCapabilities={refreshCapabilities}
-        />
-        {saveSource &&
-        sourceAutosave.value.kind === 'brief' &&
-        !run.config.scenePipeline ? (
-          <div className="sticky bottom-4 z-10 mx-auto w-full max-w-4xl">
-            <PromptBarContainer layoutMode="inflow" maxWidth="full">
-              <PromptBarComposer
-                data-testid="storyboard-source-composer"
-                density="compact"
-              >
-                <PromptEditor
-                  ariaLabel={translate('draft.brief')}
-                  value={sourceAutosave.value.brief}
-                  isDisabled={leaving || !draft.queue}
-                  onValueChange={(brief) =>
-                    sourceAutosave.edit((source) =>
-                      source.kind === 'brief'
-                        ? { ...source, brief: brief.slice(0, 2000) }
-                        : source,
-                    )
-                  }
-                  onSubmit={() =>
-                    void sourceAutosave.flush().catch(() => undefined)
-                  }
-                  className="min-h-12"
-                />
-                <PromptBarToolbar
-                  leading={
-                    <StoryboardSaveIndicator
-                      status={sourceAutosave.status}
-                      error={sourceAutosave.error}
-                      onRetry={() =>
-                        void sourceAutosave.flush().catch(() => undefined)
-                      }
-                    />
-                  }
-                  trailing={
-                    sourceAutosave.value.brief.length >=
-                    CHARACTER_COUNT_THRESHOLD ? (
-                      <p className="text-xs text-muted-foreground">
-                        {translate('create.characterCount', {
-                          count: sourceAutosave.value.brief.length,
-                        })}
-                      </p>
-                    ) : undefined
-                  }
-                />
-              </PromptBarComposer>
-            </PromptBarContainer>
-          </div>
-        ) : null}
-      </div>
-    </Container>
+        ) : undefined
+      }
+    />
   );
 }

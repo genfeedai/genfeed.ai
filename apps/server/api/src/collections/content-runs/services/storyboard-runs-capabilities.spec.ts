@@ -70,6 +70,7 @@ function setup() {
     store as never,
     capabilities as never,
     { warn: vi.fn() } as never,
+    {} as never,
   );
   return { service, store, config, capabilities, capability, source };
 }

@@ -21,8 +21,15 @@ function isCredentialsInvalid(error: unknown): boolean {
   );
 }
 
+export interface UseHeyGenCatalogOptions {
+  /** Skip every catalogue request for surfaces that do not need avatars or stock voices. */
+  isEnabled?: boolean;
+}
+
 /** Organization-bound pages; healthy sources remain usable during an outage. */
-export function useHeyGenCatalog() {
+export function useHeyGenCatalog({
+  isEnabled = true,
+}: UseHeyGenCatalogOptions = {}) {
   const { organizationId } = useBrand();
   const getService = useAuthedService((token: string) =>
     HeyGenService.getInstance(token),
@@ -91,7 +98,7 @@ export function useHeyGenCatalog() {
     setIsLoadingMoreAvatars(false);
     setError(null);
     setIsReconnectRequired(false);
-    setIsLoading(Boolean(organizationId));
+    setIsLoading(Boolean(organizationId) && isEnabled);
     async function load() {
       const failures: string[] = [];
       let isCredentialsRejected = false;
@@ -167,9 +174,9 @@ export function useHeyGenCatalog() {
         }
       }
     }
-    if (organizationId) void load();
+    if (organizationId && isEnabled) void load();
     return () => abort.abort();
-  }, [acceptPage, getService, organizationId, retryCount]);
+  }, [acceptPage, getService, isEnabled, organizationId, retryCount]);
 
   const loadMoreAvatars = useCallback(async () => {
     const abort = active.current;

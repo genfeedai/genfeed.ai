@@ -314,6 +314,28 @@ describe('ElevenLabsService', () => {
   });
 
   describe('generateAndUploadAudio', () => {
+    it('speaks with the catalog-selected model instead of the platform setting', async () => {
+      const { service, uploadToS3 } = createHarness();
+      textToSpeechConvert.mockResolvedValue({ audioBase64: 'AAAA' });
+      uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn/x.mp3' });
+
+      await service.generateAndUploadAudio(
+        'v1',
+        'hello',
+        'ingredient-1',
+        undefined,
+        undefined,
+        undefined,
+        { modelId: 'eleven_flash_v2_5' },
+      );
+
+      expect(textToSpeechConvert).toHaveBeenCalledWith('v1', {
+        modelId: 'eleven_flash_v2_5',
+        outputFormat: 'mp3_44100_128',
+        text: 'hello',
+      });
+    });
+
     it('uploads the decoded audio and returns the CDN url', async () => {
       const { service, uploadToS3 } = createHarness();
       textToSpeechConvert.mockResolvedValue({

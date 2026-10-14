@@ -105,6 +105,16 @@ describe('AgentChatInput', () => {
     expect(screen.getByTestId('agent-chat-input-shell')).toBeTruthy();
   });
 
+  it('hides the agent-only toolbar controls when the host is not an Agent conversation', () => {
+    render(<AgentChatInput isAgentControlsHidden onSend={vi.fn()} />);
+
+    expect(
+      screen.queryByRole('button', { name: /Agent mode/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add context')).not.toBeInTheDocument();
+    expect(screen.getByTestId('agent-chat-input-shell')).toBeTruthy();
+  });
+
   it('shows an explicit Knowledge selection as a chip that reopens the library', () => {
     render(
       <AgentChatInput

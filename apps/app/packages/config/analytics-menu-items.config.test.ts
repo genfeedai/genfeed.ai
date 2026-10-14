@@ -109,9 +109,9 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     ]);
   });
 
-  it('leaves customers Overview, Posts and Accounts; the rest is founder-only (#5502)', () => {
+  it('always lists Overview, Posts and Accounts; the rest waits for its release', () => {
     expect(
-      ANALYTICS_MENU_ITEMS.filter((item) => !item.isFounderOnly).map(
+      ANALYTICS_MENU_ITEMS.filter((item) => !item.releaseItemId).map(
         (item) => item.label,
       ),
     ).toEqual(['Overview', 'Posts', 'Accounts']);

@@ -20,7 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 
 const SETTING_GROUPS: SettingGroup[] = [
   {
@@ -131,7 +132,26 @@ export function OrganizationSettingsTable({
   organizationId,
   onUpdate,
 }: OrganizationSettingsTableProps) {
+  const translate = useTranslations('pages.adminOrganizationReleases');
   const { updateSettings } = useOrganizationSettings(organizationId);
+  // Releases sit right after Features, so the order matches the admin's flow.
+  const settingGroups = useMemo<SettingGroup[]>(
+    () => [
+      SETTING_GROUPS[0],
+      {
+        label: translate('title'),
+        settings: [
+          {
+            key: 'isReleasePreviewEnabled',
+            label: translate('previewLabel'),
+            type: 'boolean',
+          },
+        ],
+      },
+      ...SETTING_GROUPS.slice(1),
+    ],
+    [translate],
+  );
   const [selectedSetting, setSelectedSetting] =
     useState<SelectedSetting | null>(null);
 
@@ -211,7 +231,7 @@ export function OrganizationSettingsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {SETTING_GROUPS.map((group) => (
+              {settingGroups.map((group) => (
                 <Fragment key={group.label}>
                   <TableRow key={group.label} className="bg-background/50">
                     <TableCell

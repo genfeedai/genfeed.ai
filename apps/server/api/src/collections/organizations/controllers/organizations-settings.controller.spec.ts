@@ -439,7 +439,7 @@ describe('OrganizationsSettingsController', () => {
       );
     });
 
-    describe('founder release preview (#5502)', () => {
+    describe('release preview', () => {
       beforeEach(() => {
         billingConfig.hasOrganizationBilling.mockReturnValue(true);
         mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
@@ -480,52 +480,17 @@ describe('OrganizationsSettingsController', () => {
         );
       });
 
-      it('refuses an owner switching on an unreleased module', async () => {
-        await expect(
-          controller.updateSettings(
-            memberRequest(organizationA),
-            organizationA,
-            { moduleOverrides: { automation: true, messages: true } },
-          ),
-        ).rejects.toMatchObject({
-          status: 403,
-          message: 'Automation not released yet',
-        });
-        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
-      });
-
-      it('keeps saving other modules when an unreleased module was already on', async () => {
+      it('saves module visibility for an owner, released or not', async () => {
+        // A switch only hides an app; admission gates unreleased work.
         await controller.updateSettings(
           memberRequest(organizationA),
           organizationA,
-          { moduleOverrides: { messages: true, turbo: true } },
+          { moduleOverrides: { automation: true, messages: true } },
         );
         expect(organizationSettingsService.patch).toHaveBeenCalledWith(
           mockOrganizationSettings.id,
-          { moduleOverrides: { messages: true, turbo: true } },
+          { moduleOverrides: { automation: true, messages: true } },
         );
-      });
-
-      it('lets an owner enable founder-only modules on release preview', async () => {
-        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
-          { ...mockOrganizationSettings, isReleasePreviewEnabled: true },
-        );
-        await controller.updateSettings(
-          memberRequest(organizationA),
-          organizationA,
-          { moduleOverrides: { automation: true } },
-        );
-        expect(organizationSettingsService.patch).toHaveBeenCalled();
-      });
-
-      it('applies no release gate to self-hosted deployments', async () => {
-        billingConfig.hasOrganizationBilling.mockReturnValue(false);
-        await controller.updateSettings(
-          memberRequest(organizationA),
-          organizationA,
-          { moduleOverrides: { automation: true } },
-        );
-        expect(organizationSettingsService.patch).toHaveBeenCalled();
       });
     });
 

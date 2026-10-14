@@ -1167,6 +1167,21 @@ export function HeygenIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function ElevenLabsIcon(props: SVGProps<SVGSVGElement>) {
+  return createElement(
+    'svg',
+    {
+      fill: 'currentColor',
+      fillRule: 'evenodd',
+      viewBox: '0 0 24 24',
+      'aria-hidden': true,
+      focusable: false,
+      ...props,
+    },
+    createElement('path', { d: 'M5 0h5v24H5V0zM14 0h5v24h-5V0z' }),
+  );
+}
+
 export function MurekaIcon(props: SVGProps<SVGSVGElement>) {
   return createElement(
     'svg',

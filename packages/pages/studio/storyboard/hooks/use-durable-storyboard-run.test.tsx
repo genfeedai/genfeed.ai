@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   voices: vi.fn(),
   get: vi.fn(),
   update: vi.fn(),
+  draft: vi.fn(),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: mocks.brandId, organizationId: 'org' }),
@@ -39,6 +40,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
     return {
       getStoryboardRun: mocks.get,
       updateStoryboardPlan: mocks.update,
+      draftStoryboardPlan: mocks.draft,
       findAllPages: mocks.voices,
     };
   };
@@ -49,6 +51,7 @@ describe('brand-scoped durable storyboard loading', () => {
     mocks.brandId = 'brand-one';
     mocks.get.mockReset();
     mocks.update.mockReset();
+    mocks.draft.mockReset();
     mocks.voices.mockReset().mockResolvedValue([]);
     mocks.serviceLoads.mockReset();
     mocks.userId = 'user';
@@ -148,6 +151,34 @@ describe('brand-scoped durable storyboard loading', () => {
       expect(mocks.update).not.toHaveBeenCalled();
     },
   );
+  it('drafts from the persisted revision and adopts the returned run', async () => {
+    const run = persistedRun();
+    mocks.get.mockResolvedValue(run);
+    mocks.draft.mockImplementation(async (_brand, _id, input) => ({
+      ...run,
+      config: {
+        ...run.config,
+        revision: input.expectedRevision + 1,
+        plan: { ...run.config.plan, title: 'Drafted title' },
+      },
+    }));
+    const { result } = renderHook(() => useDurableStoryboardRun('run'));
+    await waitFor(() => expect(result.current.run).not.toBeNull());
+    await act(async () => {
+      await result.current.draftPlan('Shorten every shot');
+    });
+    expect(mocks.draft).toHaveBeenCalledWith('brand-one', 'run', {
+      expectedRevision: 1,
+      instruction: 'Shorten every shot',
+    });
+    expect(result.current.run?.config.revision).toBe(2);
+    await act(async () => {
+      await result.current.draftPlan();
+    });
+    expect(mocks.draft).toHaveBeenLastCalledWith('brand-one', 'run', {
+      expectedRevision: 2,
+    });
+  });
   it('rejects a foreign canonical organization response before publishing a run', async () => {
     mocks.get.mockResolvedValue({
       ...persistedRun(),

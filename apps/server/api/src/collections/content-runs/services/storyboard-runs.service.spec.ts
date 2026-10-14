@@ -60,6 +60,7 @@ function setup() {
     {} as StoryboardRunStoreService,
     {} as StoryboardRunCapabilitiesService,
     { warn: vi.fn() } as never,
+    {} as never,
   );
   return { service, prisma, planning, source, create, findFirst };
 }
@@ -212,6 +213,7 @@ describe('Storyboard run list', () => {
       {} as never,
       {} as never,
       { warn } as never,
+      {} as never,
     );
 
     const summaries = await service.list('org-1', 'brand-1', {});

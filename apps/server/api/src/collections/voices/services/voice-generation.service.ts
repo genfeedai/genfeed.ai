@@ -9,13 +9,18 @@ import { readSpeechReceipt } from '@api/collections/voices/utils/elevenlabs-voic
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { toElevenLabsActionableError } from '@api/services/integrations/elevenlabs/elevenlabs-error.util';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import {
   ElevenLabsConnectionService,
   type ResolvedElevenLabsConnection,
 } from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
+import { countHeyGenSpeechCharacters } from '@api/services/integrations/heygen/helpers/heygen-speech';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { RouterService } from '@api/services/router/router.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -23,11 +28,22 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  FileInputType,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
+  ModelCategory,
+  RouterPriority,
+  VoiceProvider,
 } from '@genfeedai/contracts';
+import {
+  countSpeechCharacters,
+  getVoiceSpeechModel,
+  SPEECH_VOICE_PROVIDERS,
+  type VoiceSpeechModel,
+  voiceSpeechModelKeysFor,
+} from '@genfeedai/contracts/constants';
 import type { ElevenLabsSpeechReceipt } from '@genfeedai/contracts/interfaces';
 import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -55,6 +71,8 @@ export type VoiceGenerationActionResult = {
 type VoiceGenerationParams = {
   brandId?: string;
   ingredientId: string;
+  /** A `VOICE_SPEECH_MODELS` key, resolved at admission. */
+  model: string;
   organizationId: string;
   pinnedSkills?: PinnedRuntimeSkill[];
   requestedSkillSlugs?: string[];
@@ -62,6 +80,25 @@ type VoiceGenerationParams = {
   userId: string;
   voiceId: string;
 };
+
+type GeneratedSpeech = {
+  duration: number;
+  s3Key?: string;
+};
+
+/** Who pays for the speech; a workspace's own provider key is never debited. */
+type SpeechBillingMode = 'byok' | 'platform';
+
+/** Stored on the ingredient so a replayed job settles the same charge. */
+type SpeechBillingReceipt = {
+  billingMode: SpeechBillingMode;
+  characters: number;
+  credits: number;
+  modelKey: string;
+  rateVersion: string | null;
+};
+
+const SPEECH_BILLING_KEY = 'speechBilling';
 
 @Injectable()
 export class VoiceGenerationService implements OnModuleInit {
@@ -71,6 +108,10 @@ export class VoiceGenerationService implements OnModuleInit {
     private readonly accountVoicesService: ElevenLabsAccountVoicesService,
     private readonly connectionService: ElevenLabsConnectionService,
     private readonly elevenLabsService: ElevenLabsService,
+    private readonly heygenService: HeyGenService,
+    private readonly heygenSpeechVoices: HeyGenSpeechVoicesService,
+    private readonly filesClientService: FilesClientService,
+    private readonly routerService: RouterService,
     private readonly loggerService: LoggerService,
     private readonly sharedService: SharedService,
     private readonly voiceCreditsService: VoiceCreditsService,
@@ -100,6 +141,7 @@ export class VoiceGenerationService implements OnModuleInit {
     dto: GenerateVoiceDto,
   ): Promise<IngredientDocument> {
     this.validateRequest(dto);
+    const userId = user.userId ?? user.id;
 
     if (dto.sourceActionId) {
       const accepted = await this.voicesService.findOne(
@@ -125,17 +167,23 @@ export class VoiceGenerationService implements OnModuleInit {
           await this.recordActivity(
             String(accepted.id),
             user.organizationId,
-            user.userId ?? user.id,
+            userId,
             user.brandId,
             'processing',
           );
+          const acceptedModel =
+            typeof accepted.modelUsed === 'string' &&
+            getVoiceSpeechModel(accepted.modelUsed)
+              ? accepted.modelUsed
+              : await this.resolveSpeechModelKey(user.organizationId, dto);
           await this.enqueueGeneration({
             brandId: user.brandId,
             ingredientId: String(accepted.id),
+            model: acceptedModel,
             organizationId: user.organizationId,
             requestedSkillSlugs: dto.requestedSkillSlugs,
             text: dto.text,
-            userId: user.userId ?? user.id,
+            userId,
             voiceId: dto.voiceId,
           });
         }
@@ -143,16 +191,38 @@ export class VoiceGenerationService implements OnModuleInit {
       }
     }
 
-    const receipt = await this.bindSpeechRequest(
-      user.organizationId,
-      dto.voiceId,
-    );
-    if (receipt.connection.kind === 'platform') {
+    const model = await this.resolveSpeechModelKey(user.organizationId, dto);
+    const speechModel = this.requireSpeechModel(model);
+    // The admitted text prices the hold; dispatch re-quotes the exact text
+    // sent, which selected skills may rewrite.
+    const characters = this.countBillableCharacters(speechModel, dto.text);
+    this.assertWithinTextLimit(speechModel, characters);
+    // ElevenLabs binds the voice and the account that owns it before any
+    // work; the receipt is frozen on the ingredient below.
+    const speechReceipt =
+      speechModel.voiceProvider === VoiceProvider.HEYGEN
+        ? undefined
+        : await this.bindSpeechRequest(user.organizationId, dto.voiceId);
+    const billingMode = speechReceipt
+      ? speechReceipt.connection.kind === 'byok'
+        ? 'byok'
+        : 'platform'
+      : await this.resolveBillingMode(
+          speechModel,
+          user.organizationId,
+          dto.voiceId,
+        );
+    const quote = await this.voiceCreditsService.quoteSpeech({
+      characters,
+      modelKey: model,
+      organizationId: user.organizationId,
+      provider: this.quoteProvider(speechModel),
+    });
+    if (billingMode === 'platform')
       await this.voiceCreditsService.assertOrganizationCanAfford(
         user.organizationId,
-        1,
+        quote.credits,
       );
-    }
 
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
@@ -160,7 +230,11 @@ export class VoiceGenerationService implements OnModuleInit {
         origin: IngredientOrigin.GENERATED,
         brandId: user.brandId,
         category: IngredientCategory.VOICE,
-        extension: MetadataExtension.MP3,
+        extension:
+          speechModel.voiceProvider === VoiceProvider.HEYGEN
+            ? MetadataExtension.WAV
+            : MetadataExtension.MP3,
+        model,
         organizationId: user.organizationId,
         status: IngredientStatus.PROCESSING,
         sourceActionId: dto.sourceActionId,
@@ -168,14 +242,16 @@ export class VoiceGenerationService implements OnModuleInit {
       },
     );
     const ingredientId = String(ingredientData.id);
-    await this.voicesService.patchAll(
-      { id: ingredientId, organizationId: user.organizationId },
-      { generationProvider: toPrismaJson(receipt) },
-    );
+    if (speechReceipt) {
+      await this.voicesService.patchAll(
+        { id: ingredientId, organizationId: user.organizationId },
+        { generationProvider: toPrismaJson(speechReceipt) },
+      );
+    }
     await this.recordActivity(
       ingredientId,
       user.organizationId,
-      user.userId ?? user.id,
+      userId,
       user.brandId,
       'processing',
     );
@@ -183,10 +259,11 @@ export class VoiceGenerationService implements OnModuleInit {
     await this.enqueueGeneration({
       brandId: user.brandId,
       ingredientId,
+      model,
       requestedSkillSlugs: dto.requestedSkillSlugs,
       organizationId: user.organizationId,
       text: dto.text,
-      userId: user.userId ?? user.id,
+      userId,
       voiceId: dto.voiceId,
     });
     const accepted = await this.voicesService.findOne(
@@ -209,6 +286,93 @@ export class VoiceGenerationService implements OnModuleInit {
     return accepted;
   }
 
+  /**
+   * An explicit model must speak the voice's catalog; Auto routes among the
+   * speech models that can. Both go through the router so the row is
+   * enabled for the workspace and priceable.
+   */
+  private async resolveSpeechModelKey(
+    organizationId: string,
+    dto: GenerateVoiceDto,
+  ): Promise<string> {
+    const voiceProvider = dto.voiceProvider ?? VoiceProvider.ELEVENLABS;
+    if (!SPEECH_VOICE_PROVIDERS.includes(voiceProvider))
+      throw new BadRequestException(
+        `Speech generation does not support ${voiceProvider} voices`,
+      );
+    const explicitModel = dto.autoSelectModel ? undefined : dto.model;
+    if (explicitModel) {
+      const speechModel = getVoiceSpeechModel(explicitModel);
+      if (!speechModel)
+        throw new BadRequestException(`${explicitModel} is not a speech model`);
+      if (speechModel.voiceProvider !== voiceProvider)
+        throw new BadRequestException(
+          `${explicitModel} cannot speak this voice. Pick a matching voice or model.`,
+        );
+    }
+    const recommendation = await this.routerService.selectModel({
+      category: ModelCategory.VOICE,
+      eligibleModelKeys: explicitModel
+        ? [explicitModel]
+        : voiceSpeechModelKeysFor(voiceProvider),
+      organizationId,
+      prioritize: dto.prioritize ?? RouterPriority.BALANCED,
+      prompt: dto.text,
+    });
+    return recommendation.selectedModel;
+  }
+
+  private requireSpeechModel(model: string): VoiceSpeechModel {
+    const speechModel = getVoiceSpeechModel(model);
+    if (!speechModel)
+      throw new BadRequestException(`${model} is not a speech model`);
+    return speechModel;
+  }
+
+  /** HeyGen bills its own documented count; ElevenLabs counts the same way. */
+  private countBillableCharacters(
+    speechModel: VoiceSpeechModel,
+    text: string,
+  ): number {
+    return speechModel.voiceProvider === VoiceProvider.HEYGEN
+      ? countHeyGenSpeechCharacters(text)
+      : countSpeechCharacters(text);
+  }
+
+  private assertWithinTextLimit(
+    speechModel: VoiceSpeechModel,
+    characters: number,
+  ): void {
+    if (characters > speechModel.maxCharacters)
+      throw new BadRequestException(
+        `This voice model speaks at most ${speechModel.maxCharacters.toLocaleString('en-US')} characters per request.`,
+      );
+  }
+
+  /** The registry provider whose reviewed rate prices the model. */
+  private quoteProvider(speechModel: VoiceSpeechModel): string {
+    return speechModel.voiceProvider === VoiceProvider.HEYGEN
+      ? 'heygen'
+      : 'elevenlabs';
+  }
+
+  /**
+   * HeyGen speaks with the workspace's own key when one is connected, and
+   * that key is never debited. ElevenLabs billing follows its speech receipt.
+   */
+  private async resolveBillingMode(
+    speechModel: VoiceSpeechModel,
+    organizationId: string,
+    voiceId: string,
+  ): Promise<SpeechBillingMode> {
+    if (speechModel.voiceProvider !== VoiceProvider.HEYGEN) return 'platform';
+    const connection = await this.heygenSpeechVoices.resolveSpeechConnection(
+      organizationId,
+      voiceId,
+    );
+    return connection.binding.kind === 'byok' ? 'byok' : 'platform';
+  }
+
   private async enqueueGeneration(
     params: VoiceGenerationParams,
   ): Promise<void> {
@@ -219,6 +383,7 @@ export class VoiceGenerationService implements OnModuleInit {
         canonicalId: 'voice.generate',
         inputValues: {
           ingredientId: params.ingredientId,
+          model: params.model,
           organizationId: params.organizationId,
           text: params.text,
           userId: params.userId,
@@ -254,14 +419,12 @@ export class VoiceGenerationService implements OnModuleInit {
       },
       [PopulatePatterns.metadataFull],
     );
-    const receipt = readSpeechReceipt(existing?.generationProvider);
     if (
       (existing?.cdnUrl || existing?.s3Key) &&
       ['GENERATED', 'VALIDATED'].includes(String(existing.status).toUpperCase())
     ) {
-      await this.settleCredits(receipt, {
+      await this.settleSpeech(this.readBillingReceipt(existing.providerData), {
         brandId: existing.brandId ?? params.brandId,
-        durationSeconds: Number(existing.duration) || 0,
         ingredientId: params.ingredientId,
         organizationId: params.organizationId,
         userId: params.userId,
@@ -280,7 +443,7 @@ export class VoiceGenerationService implements OnModuleInit {
         ...params,
         brandId: existing?.brandId ?? undefined,
       },
-      receipt,
+      readSpeechReceipt(existing?.generationProvider),
     );
     await this.recordActivity(
       params.ingredientId,
@@ -290,101 +453,6 @@ export class VoiceGenerationService implements OnModuleInit {
       'completed',
     );
     return this.toActionResult(generated);
-  }
-
-  /** Binds the voice and the account that will speak it, before any work. */
-  private async bindSpeechRequest(
-    organizationId: string,
-    voiceId: string,
-  ): Promise<ElevenLabsSpeechReceipt> {
-    const voice = await this.accountVoicesService.resolveSpeechVoice(
-      organizationId,
-      voiceId,
-    );
-    const connection = await this.connectionService.resolve(
-      organizationId,
-      voice.connectionKind,
-    );
-    return {
-      connection: connection.binding,
-      organizationId,
-      provider: 'elevenlabs',
-      state: 'accepted',
-      version: 1,
-      voice: {
-        externalVoiceId: voice.externalVoiceId,
-        ...(voice.internalVoiceId
-          ? { internalVoiceId: voice.internalVoiceId }
-          : {}),
-      },
-    };
-  }
-
-  /** The submitting account must still be the bound one. */
-  private async resolveBoundConnection(
-    receipt: ElevenLabsSpeechReceipt,
-  ): Promise<ResolvedElevenLabsConnection> {
-    const connection = await this.connectionService.resolve(
-      receipt.organizationId,
-      receipt.connection.kind,
-    );
-    if (
-      receipt.connection.kind === 'byok' &&
-      connection.binding.credentialVersionId !==
-        receipt.connection.credentialVersionId
-    ) {
-      throw new BadRequestException(
-        'The ElevenLabs connection changed after this voice was requested. Generate it again.',
-      );
-    }
-    return connection;
-  }
-
-  /**
-   * One-way claim on the paid provider call. A retry that finds the request
-   * already submitted without stored audio cannot know whether ElevenLabs
-   * produced (and billed) it, so it fails instead of sending it again.
-   */
-  private async claimSubmission(
-    params: VoiceGenerationParams,
-    receipt: ElevenLabsSpeechReceipt,
-    hasStoredReceipt: boolean,
-  ): Promise<void> {
-    const { count } = await this.voicesService.prisma.ingredient.updateMany({
-      data: {
-        generationProvider: toPrismaJson({ ...receipt, state: 'submitted' }),
-      },
-      where: {
-        generationProvider: hasStoredReceipt
-          ? { equals: 'accepted', path: ['state'] }
-          : { equals: Prisma.DbNull },
-        id: params.ingredientId,
-        isDeleted: false,
-        organizationId: params.organizationId,
-      },
-    });
-    if (count === 0) {
-      throw new ConflictException(
-        'An earlier attempt of this voice generation has an unknown result, so it was not sent again. Generate it again.',
-      );
-    }
-  }
-
-  private async settleCredits(
-    receipt: ElevenLabsSpeechReceipt | undefined,
-    params: {
-      brandId?: string | null;
-      durationSeconds: number;
-      ingredientId: string;
-      organizationId: string;
-      userId: string;
-    },
-  ): Promise<void> {
-    // The connected account pays ElevenLabs directly for personal voices.
-    if (receipt?.connection.kind === 'byok') {
-      return;
-    }
-    await this.voiceCreditsService.settleBackgroundGenerationCredits(params);
   }
 
   private async recordActivity(
@@ -514,35 +582,75 @@ export class VoiceGenerationService implements OnModuleInit {
 
   private async executeGeneration(
     params: VoiceGenerationParams,
-    storedReceipt: ElevenLabsSpeechReceipt | undefined,
+    storedSpeechReceipt: ElevenLabsSpeechReceipt | undefined,
   ): Promise<IngredientDocument> {
-    let receipt = storedReceipt;
-    let result: {
-      audioUrl: string;
-      duration: number;
-      uploadResult: Record<string, unknown>;
-    };
+    let receipt: SpeechBillingReceipt;
     try {
-      // Jobs accepted before speech receipts existed bind at execution.
-      receipt ??= await this.bindSpeechRequest(
-        params.organizationId,
-        params.voiceId,
-      );
-      const connection = await this.resolveBoundConnection(receipt);
+      const speechModel = this.requireSpeechModel(params.model);
       const text = await this.spokenText(params);
-      await this.claimSubmission(params, receipt, storedReceipt !== undefined);
+      const characters = this.countBillableCharacters(speechModel, text);
+      this.assertWithinTextLimit(speechModel, characters);
+      // Dispatch guard: the exact text sent is quoted, and only a reviewed
+      // per-character rate may price it.
+      const isHeyGen = speechModel.voiceProvider === VoiceProvider.HEYGEN;
+      const connection = isHeyGen
+        ? await this.heygenSpeechVoices.resolveSpeechConnection(
+            params.organizationId,
+            params.voiceId,
+          )
+        : undefined;
+      // Jobs accepted before speech receipts existed bind at execution.
+      const speechReceipt = isHeyGen
+        ? undefined
+        : (storedSpeechReceipt ??
+          (await this.bindSpeechRequest(
+            params.organizationId,
+            params.voiceId,
+          )));
+      const elevenLabsConnection = speechReceipt
+        ? await this.resolveBoundConnection(speechReceipt)
+        : undefined;
+      const quote = await this.voiceCreditsService.quoteSpeech({
+        characters,
+        modelKey: params.model,
+        organizationId: params.organizationId,
+        provider: this.quoteProvider(speechModel),
+      });
+      const bindingKind =
+        connection?.binding.kind ?? speechReceipt?.connection.kind;
+      receipt = {
+        billingMode: bindingKind === 'byok' ? 'byok' : 'platform',
+        characters,
+        credits: quote.credits,
+        modelKey: params.model,
+        rateVersion: quote.rateVersion,
+      };
 
-      try {
-        result = await this.elevenLabsService.generateAndUploadAudio(
-          receipt.voice.externalVoiceId,
+      if (speechReceipt) {
+        await this.claimSubmission(
+          params,
+          speechReceipt,
+          storedSpeechReceipt !== undefined,
+        );
+      }
+
+      let speech: GeneratedSpeech;
+      if (connection) {
+        speech = await this.generateHeyGenSpeech(
+          params,
           text,
-          params.ingredientId,
-          params.organizationId,
-          params.userId,
           connection.apiKey,
         );
-      } catch (error: unknown) {
-        throw toElevenLabsActionableError(error);
+      } else if (speechReceipt && elevenLabsConnection) {
+        speech = await this.generateElevenLabsSpeech(
+          params,
+          text,
+          speechModel,
+          speechReceipt,
+          elevenLabsConnection,
+        );
+      } else {
+        throw new Error('Speech has no bound provider connection');
       }
 
       await this.voicesService.patchAll(
@@ -552,12 +660,18 @@ export class VoiceGenerationService implements OnModuleInit {
           organizationId: params.organizationId,
         },
         {
-          duration: result.duration,
-          generationProvider: toPrismaJson({ ...receipt, state: 'completed' }),
-          // The object key is the stored identity; the URL is derived on read.
-          ...(typeof result.uploadResult.s3Key === 'string'
-            ? { s3Key: result.uploadResult.s3Key }
+          duration: speech.duration,
+          ...(speechReceipt
+            ? {
+                generationProvider: toPrismaJson({
+                  ...speechReceipt,
+                  state: 'completed',
+                }),
+              }
             : {}),
+          providerData: { [SPEECH_BILLING_KEY]: receipt },
+          // The object key is the stored identity; the URL is derived on read.
+          ...(speech.s3Key ? { s3Key: speech.s3Key } : {}),
           status: IngredientStatus.GENERATED,
         },
       );
@@ -579,9 +693,8 @@ export class VoiceGenerationService implements OnModuleInit {
       'completed',
     );
 
-    await this.settleCredits(receipt, {
+    await this.settleSpeech(receipt, {
       brandId: params.brandId,
-      durationSeconds: result.duration,
       ingredientId: params.ingredientId,
       organizationId: params.organizationId,
       userId: params.userId,
@@ -606,6 +719,188 @@ export class VoiceGenerationService implements OnModuleInit {
     }
 
     return completedIngredient;
+  }
+
+  /** Speaks the bound voice through the account that owns it. */
+  private async generateElevenLabsSpeech(
+    params: VoiceGenerationParams,
+    text: string,
+    speechModel: VoiceSpeechModel,
+    speechReceipt: ElevenLabsSpeechReceipt,
+    connection: ResolvedElevenLabsConnection,
+  ): Promise<GeneratedSpeech> {
+    let result: Awaited<
+      ReturnType<ElevenLabsService['generateAndUploadAudio']>
+    >;
+    try {
+      result = await this.elevenLabsService.generateAndUploadAudio(
+        speechReceipt.voice.externalVoiceId,
+        text,
+        params.ingredientId,
+        params.organizationId,
+        params.userId,
+        connection.apiKey,
+        { modelId: speechModel.providerModelId },
+      );
+    } catch (error: unknown) {
+      throw toElevenLabsActionableError(error);
+    }
+    return {
+      duration: result.duration,
+      ...(typeof result.uploadResult.s3Key === 'string'
+        ? { s3Key: result.uploadResult.s3Key }
+        : {}),
+    };
+  }
+
+  /**
+   * HeyGen returns a HeyGen-hosted WAV url; it is copied into our storage so
+   * the ingredient never depends on HeyGen keeping the file.
+   */
+  private async generateHeyGenSpeech(
+    params: VoiceGenerationParams,
+    text: string,
+    apiKey: string,
+  ): Promise<GeneratedSpeech> {
+    const speech = await this.heygenService.generateSpeech({
+      apiKeyOverride: apiKey,
+      organizationId: params.organizationId,
+      text,
+      voiceId: params.voiceId,
+    });
+    const uploaded = await this.filesClientService.uploadToS3(
+      `${params.ingredientId}.wav`,
+      // Same storage family as ElevenLabs speech, so reads resolve one way.
+      'musics',
+      { type: FileInputType.URL, url: speech.audioUrl },
+    );
+    if (typeof uploaded.s3Key !== 'string' || !uploaded.s3Key)
+      throw new Error('HeyGen Voice audio could not be stored');
+    return {
+      duration: speech.duration ?? uploaded.duration ?? 0,
+      s3Key: uploaded.s3Key,
+    };
+  }
+
+  /** Binds the voice and the account that will speak it, before any work. */
+  private async bindSpeechRequest(
+    organizationId: string,
+    voiceId: string,
+  ): Promise<ElevenLabsSpeechReceipt> {
+    const voice = await this.accountVoicesService.resolveSpeechVoice(
+      organizationId,
+      voiceId,
+    );
+    const connection = await this.connectionService.resolve(
+      organizationId,
+      voice.connectionKind,
+    );
+    return {
+      connection: connection.binding,
+      organizationId,
+      provider: 'elevenlabs',
+      state: 'accepted',
+      version: 1,
+      voice: {
+        externalVoiceId: voice.externalVoiceId,
+        ...(voice.internalVoiceId
+          ? { internalVoiceId: voice.internalVoiceId }
+          : {}),
+      },
+    };
+  }
+
+  /** The submitting account must still be the bound one. */
+  private async resolveBoundConnection(
+    receipt: ElevenLabsSpeechReceipt,
+  ): Promise<ResolvedElevenLabsConnection> {
+    const connection = await this.connectionService.resolve(
+      receipt.organizationId,
+      receipt.connection.kind,
+    );
+    if (
+      receipt.connection.kind === 'byok' &&
+      connection.binding.credentialVersionId !==
+        receipt.connection.credentialVersionId
+    ) {
+      throw new BadRequestException(
+        'The ElevenLabs connection changed after this voice was requested. Generate it again.',
+      );
+    }
+    return connection;
+  }
+
+  /**
+   * One-way claim on the paid provider call. A retry that finds the request
+   * already submitted without stored audio cannot know whether ElevenLabs
+   * produced (and billed) it, so it fails instead of sending it again.
+   */
+  private async claimSubmission(
+    params: VoiceGenerationParams,
+    receipt: ElevenLabsSpeechReceipt,
+    hasStoredReceipt: boolean,
+  ): Promise<void> {
+    const { count } = await this.voicesService.prisma.ingredient.updateMany({
+      data: {
+        generationProvider: toPrismaJson({ ...receipt, state: 'submitted' }),
+      },
+      where: {
+        generationProvider: hasStoredReceipt
+          ? { equals: 'accepted', path: ['state'] }
+          : { equals: Prisma.DbNull },
+        id: params.ingredientId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+    });
+    if (count === 0) {
+      throw new ConflictException(
+        'An earlier attempt of this voice generation has an unknown result, so it was not sent again. Generate it again.',
+      );
+    }
+  }
+
+  /** A workspace's own provider key is never debited for platform credits. */
+  private async settleSpeech(
+    receipt: SpeechBillingReceipt | undefined,
+    params: {
+      brandId?: string | null;
+      ingredientId: string;
+      organizationId: string;
+      userId: string;
+    },
+  ): Promise<void> {
+    if (!receipt) {
+      this.loggerService.warn(
+        `${this.constructorName} generated voice has no billing receipt`,
+        { ingredientId: params.ingredientId },
+      );
+      return;
+    }
+    if (receipt.billingMode === 'byok') return;
+    await this.voiceCreditsService.settleSpeechCredits({
+      ...params,
+      credits: receipt.credits,
+    });
+  }
+
+  private readBillingReceipt(
+    providerData: unknown,
+  ): SpeechBillingReceipt | undefined {
+    if (!providerData || typeof providerData !== 'object') return undefined;
+    const receipt = (providerData as Record<string, unknown>)[
+      SPEECH_BILLING_KEY
+    ];
+    if (!receipt || typeof receipt !== 'object') return undefined;
+    const { billingMode, characters, credits, modelKey, rateVersion } =
+      receipt as Record<string, unknown>;
+    return (billingMode === 'byok' || billingMode === 'platform') &&
+      typeof characters === 'number' &&
+      typeof credits === 'number' &&
+      typeof modelKey === 'string' &&
+      (typeof rateVersion === 'string' || rateVersion === null)
+      ? { billingMode, characters, credits, modelKey, rateVersion }
+      : undefined;
   }
 
   private validateRequest(dto: GenerateVoiceDto): void {

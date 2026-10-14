@@ -3,6 +3,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HeyGenController } from '@api/services/integrations/heygen/controllers/heygen.controller';
 import { HeyGenAvatarPageDto } from '@api/services/integrations/heygen/dto/heygen-avatar-page.dto';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
@@ -40,6 +41,7 @@ describe('HeyGenController', () => {
     getConnectionStatus: ReturnType<typeof vi.fn>;
     getAvatars: ReturnType<typeof vi.fn>;
     getAvatarPage: ReturnType<typeof vi.fn>;
+    getSpeechVoices: ReturnType<typeof vi.fn>;
   };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
@@ -61,6 +63,7 @@ describe('HeyGenController', () => {
         .mockResolvedValue({ hasCustomKey: true, isConnected: true }),
       getAvatars: vi.fn().mockResolvedValue([]),
       getAvatarPage: vi.fn(),
+      getSpeechVoices: vi.fn(),
       getVoices: vi.fn().mockResolvedValue([]),
     };
     loggerService = {
@@ -73,6 +76,7 @@ describe('HeyGenController', () => {
       providers: [
         { provide: LoggerService, useValue: loggerService },
         { provide: HeyGenService, useValue: heygenService },
+        { provide: HeyGenSpeechVoicesService, useValue: heygenService },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -333,5 +337,55 @@ describe('HeyGenController', () => {
         'An unexpected error occurred while loading the provider catalog.',
       );
     }
+  });
+
+  describe('getSpeechVoices', () => {
+    it('serializes the HeyGen Voice voices for the organization', async () => {
+      heygenService.getSpeechVoices.mockResolvedValue({
+        hasPersonalConnection: true,
+        voices: [
+          {
+            language: 'en',
+            mode: 'instant',
+            name: 'My clone',
+            ownership: 'private',
+            voiceId: 'clone-1',
+          },
+        ],
+      });
+
+      await expect(controller.getSpeechVoices(mockUser)).resolves.toEqual({
+        data: {
+          attributes: {
+            count: 1,
+            hasPersonalConnection: true,
+            provider: 'heygen',
+            voices: [
+              {
+                language: 'en',
+                mode: 'instant',
+                name: 'My clone',
+                ownership: 'private',
+                voiceId: 'clone-1',
+              },
+            ],
+          },
+          type: 'speech-voices',
+        },
+      });
+      expect(heygenService.getSpeechVoices).toHaveBeenCalledWith(
+        mockUser.organizationId,
+      );
+    });
+
+    it('surfaces a provider failure as a catalog error', async () => {
+      heygenService.getSpeechVoices.mockRejectedValue(
+        providerFailure({ status: 503 }),
+      );
+
+      await expect(controller.getSpeechVoices(mockUser)).rejects.toBeInstanceOf(
+        HttpException,
+      );
+    });
   });
 });

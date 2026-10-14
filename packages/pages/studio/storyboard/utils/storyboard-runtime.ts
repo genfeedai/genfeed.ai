@@ -36,3 +36,21 @@ export function storyboardRuntimeRanges(
     return { id: shot.id, startSeconds, endSeconds: seconds };
   });
 }
+
+/** `mm:ss` for a whole-second position on the storyboard timeline. */
+export function formatStoryboardTimecode(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(whole / 60)
+    .toString()
+    .padStart(2, '0')}:${(whole % 60).toString().padStart(2, '0')}`;
+}
+
+/** The slider step that lands on every supported duration. */
+export function storyboardDurationStep(supported: readonly number[]): number {
+  const whole = supported.filter(
+    (duration) => Number.isInteger(duration) && duration > 0,
+  );
+  if (!whole.length || whole.length !== supported.length) return 1;
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  return whole.reduce((step, duration) => gcd(step, duration));
+}

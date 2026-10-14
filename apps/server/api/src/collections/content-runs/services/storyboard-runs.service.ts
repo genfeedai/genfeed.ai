@@ -12,6 +12,8 @@ import {
   requiresStoryboardCapabilities,
   storyboardCapabilityError,
 } from '@api/collections/content-runs/services/storyboard-plan-capabilities';
+import { STORYBOARD_DEFAULT_RUNTIME_BUDGET_SECONDS } from '@api/collections/content-runs/services/storyboard-plan-draft';
+import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import {
   approveStoryboardPlan,
   assertStoryboardComplete,
@@ -36,6 +38,7 @@ import {
 import {
   controlStoryboardRunSchema,
   createStoryboardRunSchema,
+  draftStoryboardPlanSchema,
   STORYBOARD_RUN_CONTRACT,
   STORYBOARD_RUN_VERSION,
   type StoryboardRun,
@@ -89,6 +92,7 @@ export class StoryboardRunsService {
     private readonly store: StoryboardRunStoreService,
     private readonly capabilities: StoryboardRunCapabilitiesService,
     private readonly logger: LoggerService,
+    private readonly drafter: StoryboardPlanDraftService,
   ) {}
 
   async create(
@@ -399,6 +403,89 @@ export class StoryboardRunsService {
     const next = editStoryboardPlan(config, restored);
     await this.source.validatePlanAssets(organizationId, brandId, next.plan);
     return this.store.save(organizationId, brandId, runId, config, next);
+  }
+
+  /**
+   * Draft the plan from the brief, or revise the saved plan when an
+   * instruction is given. The model call happens before anything is written,
+   * so a failed draft leaves the run untouched.
+   */
+  async draftPlan(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    body: unknown,
+  ): Promise<StoryboardRun> {
+    const input = parseInput(draftStoryboardPlanSchema, body);
+    const { config } = await this.store.read(
+      organizationId,
+      brandId,
+      runId,
+      input.expectedRevision,
+    );
+    assertStoryboardEditable(config);
+    assertStoryboardPlan(config);
+    if (
+      config.origin === 'migrated' &&
+      config.migrationReview.status === 'required'
+    )
+      throw new ConflictException('STORYBOARD_MIGRATION_REVIEW_REQUIRED');
+    const selector = config.sourceSnapshot.selector;
+    // Uploaded and remix sources carry no written brief; analysis builds their plan.
+    if (selector.kind !== 'brief')
+      throw new BadRequestException(
+        'Plan drafting needs a written brief. This storyboard starts from a video, which is analysed instead.',
+      );
+    const hasShots = config.plan.shots.some((shot) => shot.action.length > 0);
+    const isRevision = Boolean(input.instruction) && hasShots;
+    if (!selector.brief && !input.instruction)
+      throw new BadRequestException(
+        'Write a brief or give an instruction before drafting the plan.',
+      );
+    const capabilities = await this.capabilities.resolve(
+      organizationId,
+      brandId,
+      runId,
+      config,
+    );
+    if (capabilities.status !== 'available' || !capabilities.effectiveModel)
+      storyboardCapabilityError(
+        capabilities.reasonCode ?? 'MODEL_CAPABILITIES_UNAVAILABLE',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    const context = await this.planning.resolveBrandContext(
+      organizationId,
+      brandId,
+    );
+    const plan = await this.drafter.draft({
+      brand: {
+        name: context.brand.label,
+        description: context.brand.description ?? undefined,
+      },
+      brief: selector.brief,
+      current: config.plan,
+      instruction: input.instruction,
+      mode: isRevision ? 'revise' : 'draft',
+      model: capabilities.effectiveModel,
+      runtimeBudgetSeconds:
+        config.plan.runtimeBudgetSeconds ??
+        STORYBOARD_DEFAULT_RUNTIME_BUDGET_SECONDS,
+    });
+    const next = editStoryboardPlan(config, plan);
+    await this.source.validatePlanAssets(organizationId, brandId, next.plan);
+    return this.store.save(
+      organizationId,
+      brandId,
+      runId,
+      config,
+      // Reset restores the last generated plan; a revision keeps the earlier one.
+      isRevision
+        ? next
+        : storyboardStoredRunConfigSchema.parse({
+            ...next,
+            generatedPlan: next.plan,
+          }),
+    );
   }
 
   async approvePlan(

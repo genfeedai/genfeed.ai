@@ -2,6 +2,7 @@ import {
   deriveRequiredSelectorKeys,
   parseContractReviewedPricing,
 } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { ELEVENLABS_SCHEMA_FIXTURES } from '@api/seeds/fixtures/elevenlabs-rate-schemas';
 import { HEYGEN_SCHEMA_FIXTURES } from '@api/seeds/fixtures/heygen-rate-schemas';
 import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.types';
 import flux3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/flux-3-image.schema.json';
@@ -36,6 +37,7 @@ const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
     openapi: ideogramOpenapi,
     schemaFamily: 'ideogram-image-edit-v1',
   },
+  ...ELEVENLABS_SCHEMA_FIXTURES,
   ...HEYGEN_SCHEMA_FIXTURES,
 };
 
@@ -284,7 +286,8 @@ export async function seedReviewedProviderRates(
     if (
       entry.provider === ModelProvider.REPLICATE ||
       entry.provider === ModelProvider.FAL ||
-      entry.provider === ModelProvider.HEYGEN
+      entry.provider === ModelProvider.HEYGEN ||
+      entry.provider === ModelProvider.ELEVENLABS
     )
       if (await seedEntry(prisma, entry, logger)) written += 1;
   return written;

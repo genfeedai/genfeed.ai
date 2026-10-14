@@ -163,9 +163,9 @@ export class WebhooksController {
           'code' in response &&
           typeof response.code === 'string' &&
           [
-            'ORGANIZATION_MODULE_DISABLED',
             'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
             'ORGANIZATION_MODULE_UNAVAILABLE',
+            'ORGANIZATION_MODULE_UNRELEASED',
           ].includes(response.code)
         ) {
           throw error;

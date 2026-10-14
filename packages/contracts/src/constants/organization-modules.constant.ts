@@ -1,108 +1,104 @@
 import { z } from 'zod';
+import type { PlatformFlagKey } from './feature-flags.constant';
+import {
+  isReleaseItemVisible,
+  type ReleaseAudienceInput,
+} from './release-items.constant';
 
 /**
- * Organization preferences are distinct from platform operator kill switches.
- * Founder-only modules (#5502) are unreleased on cloud: they admit new work
- * only in organizations a platform admin put on release preview.
+ * Modules an organization shows or hides for its members. A switch only
+ * hides the module's app: the API and MCP never refuse work because of it.
+ * New work is gated by the module's release (Admin → Flags `release_<id>`),
+ * its platform kill switch (`platformFlagKey`) and, on cloud, the
+ * subscription for paid modules.
  */
 export const ORGANIZATION_MODULES = {
   playground: {
     label: 'Playground',
     isDefaultEnabled: true,
     requiresSubscription: false,
-    isToggleable: false,
-    isFounderOnly: false,
+    platformFlagKey: 'studio',
   },
   storyboard: {
     label: 'Storyboard',
     isDefaultEnabled: true,
     requiresSubscription: false,
-    isToggleable: false,
-    isFounderOnly: false,
+    platformFlagKey: 'studio_storyboard',
   },
   publishing: {
     label: 'Publishing',
     isDefaultEnabled: true,
     requiresSubscription: false,
-    isToggleable: true,
-    isFounderOnly: false,
+    platformFlagKey: 'publishing',
   },
   analytics: {
     label: 'Analytics',
     isDefaultEnabled: true,
     requiresSubscription: false,
-    isToggleable: true,
-    isFounderOnly: false,
+    platformFlagKey: 'analytics',
   },
   motion: {
     label: 'Motion',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    isToggleable: true,
-    isFounderOnly: true,
+    platformFlagKey: 'studio_motion',
   },
   clips: {
     label: 'Clips',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    isToggleable: true,
-    isFounderOnly: true,
+    platformFlagKey: 'studio_clips',
   },
   turbo: {
     label: 'Turbo',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    isToggleable: true,
-    isFounderOnly: false,
+    platformFlagKey: 'studio_turbo',
   },
   editor: {
     label: 'Editor',
     isDefaultEnabled: false,
     requiresSubscription: false,
-    isToggleable: true,
-    isFounderOnly: true,
+    platformFlagKey: 'studio_editor',
   },
   automation: {
     label: 'Automation',
     isDefaultEnabled: false,
     requiresSubscription: true,
-    isToggleable: true,
-    isFounderOnly: true,
+    platformFlagKey: 'automation',
   },
   messages: {
     label: 'Messages',
     isDefaultEnabled: false,
     requiresSubscription: true,
-    isToggleable: true,
-    isFounderOnly: true,
+    platformFlagKey: 'messages',
   },
   discovery: {
     label: 'Discovery',
     isDefaultEnabled: true,
     requiresSubscription: true,
-    isToggleable: true,
-    isFounderOnly: false,
+    platformFlagKey: 'discovery',
   },
-} as const;
+} as const satisfies Record<
+  string,
+  {
+    label: string;
+    isDefaultEnabled: boolean;
+    requiresSubscription: boolean;
+    platformFlagKey: PlatformFlagKey;
+  }
+>;
 
 export type OrganizationModuleId = keyof typeof ORGANIZATION_MODULES;
-export type CreditBasedOrganizationModuleId = {
-  [TModule in OrganizationModuleId]: (typeof ORGANIZATION_MODULES)[TModule]['requiresSubscription'] extends false
-    ? TModule
-    : never;
-}[OrganizationModuleId];
-export type ToggleableOrganizationModuleId = {
-  [TModule in OrganizationModuleId]: (typeof ORGANIZATION_MODULES)[TModule]['isToggleable'] extends true
-    ? TModule
-    : never;
-}[OrganizationModuleId];
 
 export const ORGANIZATION_MODULE_IDS = Object.keys(
   ORGANIZATION_MODULES,
 ) as OrganizationModuleId[];
 
-// Strict on writes and admission: typos and non-booleans must never grant access.
+// Strict on writes: typos and non-booleans must never be stored.
 export const organizationModuleOverridesSchema = z.strictObject({
+  playground: z.boolean().optional(),
+  storyboard: z.boolean().optional(),
   publishing: z.boolean().optional(),
   analytics: z.boolean().optional(),
   motion: z.boolean().optional(),
@@ -120,108 +116,66 @@ export type OrganizationModuleOverrides = z.infer<
 export type OrganizationModulePreferences = Readonly<
   Record<OrganizationModuleId, boolean>
 >;
-export interface OrganizationModulePreferenceInput {
+export interface OrganizationModulePreferenceInput
+  extends ReleaseAudienceInput {
   moduleOverrides?: unknown;
-  hasOrganizationBilling?: unknown;
   hasPaidModuleSubscription?: unknown;
-  isReleasePreviewEnabled?: unknown;
 }
+/** Resolved platform flags: kill switches and `release_<id>` releases. */
+export type OrganizationModuleFlagInput = Readonly<Record<string, unknown>>;
 
-/** On cloud, a founder-only module is unreleased outside release preview. */
-export function isOrganizationModuleUnreleased(
+/** The organization's own switch, or the module default when unset. */
+function isOrganizationModuleShown(
   moduleId: OrganizationModuleId,
+  overrides: OrganizationModuleOverrides,
   hasOrganizationBilling: boolean,
-  isReleasePreviewEnabled: boolean,
 ): boolean {
   return (
-    hasOrganizationBilling &&
-    ORGANIZATION_MODULES[moduleId].isFounderOnly &&
-    !isReleasePreviewEnabled
+    overrides[moduleId] ??
+    (!hasOrganizationBilling || ORGANIZATION_MODULES[moduleId].isDefaultEnabled)
   );
 }
 
 /**
- * #5502 founder-only navigation (Campaigns, experimental Analytics) shows only
- * where unreleased work is visible: self-hosted, or a cloud organization on
- * release preview. Unknown settings hide it, like unknown module access.
+ * Whether the organization can see the module at all: its platform kill
+ * switch is on and it is released to the organization. The Modules settings
+ * page lists only these.
  */
-export function isReleasePreviewActive(
+export function isOrganizationModuleOffered(
+  moduleId: OrganizationModuleId,
   settings: OrganizationModulePreferenceInput | null | undefined,
+  flags: OrganizationModuleFlagInput,
 ): boolean {
-  if (typeof settings?.hasOrganizationBilling !== 'boolean') return false;
   return (
-    !settings.hasOrganizationBilling ||
-    settings.isReleasePreviewEnabled === true
+    flags[ORGANIZATION_MODULES[moduleId].platformFlagKey] !== false &&
+    isReleaseItemVisible(moduleId, settings, flags)
   );
 }
 
-export interface UnreleasedModuleChangeInput {
-  hasOrganizationBilling: boolean;
-  isReleasePreviewEnabled: boolean;
-  /** Stored overrides; an unreadable value counts as nothing switched on. */
-  previousOverrides: unknown;
-  nextOverrides: Partial<Record<OrganizationModuleId, boolean>> | undefined;
-}
-
-/**
- * #5502 modules a settings update would switch from off to on while they are
- * unreleased for the organization. Values already stored are not reported, so
- * other module changes still save; admission refuses unreleased work anyway.
- */
-export function findNewlyEnabledUnreleasedModules({
-  hasOrganizationBilling,
-  isReleasePreviewEnabled,
-  nextOverrides,
-  previousOverrides,
-}: UnreleasedModuleChangeInput): OrganizationModuleId[] {
-  if (!nextOverrides) return [];
-  const parsed = organizationModuleOverridesSchema.safeParse(
-    previousOverrides ?? {},
-  );
-  const previous: Partial<Record<OrganizationModuleId, boolean>> =
-    parsed.success ? parsed.data : {};
-  return ORGANIZATION_MODULE_IDS.filter(
-    (moduleId) =>
-      nextOverrides[moduleId] === true &&
-      previous[moduleId] !== true &&
-      isOrganizationModuleUnreleased(
-        moduleId,
-        hasOrganizationBilling,
-        isReleasePreviewEnabled,
-      ),
-  );
-}
-
-/** Navigation/preferences only. Enabled subscription modules still require fresh admission. */
+/** Navigation only: which module apps the organization shows. */
 export function resolveOrganizationModulePreferences(
   settings: OrganizationModulePreferenceInput | null | undefined,
+  flags: OrganizationModuleFlagInput,
 ): OrganizationModulePreferences | null {
   if (typeof settings?.hasOrganizationBilling !== 'boolean') return null;
   const parsed = organizationModuleOverridesSchema.safeParse(
     settings.moduleOverrides,
   );
   if (!parsed.success) return null;
+  const hasOrganizationBilling = settings.hasOrganizationBilling;
   return Object.fromEntries(
-    ORGANIZATION_MODULE_IDS.map((moduleId) => {
-      const module = ORGANIZATION_MODULES[moduleId];
-      if (
-        isOrganizationModuleUnreleased(
+    ORGANIZATION_MODULE_IDS.map((moduleId) => [
+      moduleId,
+      isReleaseItemVisible(moduleId, settings, flags) &&
+        isOrganizationModuleShown(
           moduleId,
-          settings.hasOrganizationBilling === true,
-          settings.isReleasePreviewEnabled === true,
-        )
-      ) {
-        return [moduleId, false];
-      }
-      return [
-        moduleId,
-        !module.isToggleable ||
-          (parsed.data[moduleId as ToggleableOrganizationModuleId] ??
-            (!settings.hasOrganizationBilling || module.isDefaultEnabled)),
-      ];
-    }),
+          parsed.data,
+          hasOrganizationBilling,
+        ),
+    ]),
   ) as OrganizationModulePreferences;
 }
+
 export type OrganizationModuleAccess =
   | { isAllowed: true; reason: null }
   | {
@@ -235,66 +189,74 @@ export type OrganizationModuleAccess =
 
 export interface OrganizationModuleAccessInput {
   moduleId: OrganizationModuleId;
-  moduleOverrides: unknown;
   isSettingsLoaded: boolean;
   hasOrganizationBilling: boolean;
   hasPaidSubscription: boolean | null;
-  /** Platform-admin release preview; unlocks founder-only modules on cloud. */
-  isReleasePreviewEnabled: boolean;
+  /** From `isReleaseItemVisible` for this organization. */
+  isReleased: boolean;
   operation: 'read' | 'export' | 'cancel' | 'write';
 }
 
-/** Creation presentation only. The server still rechecks every actual write. */
+/**
+ * What the app shell shows for a module: hidden by the organization
+ * (`disabled`), or the admission the server would decide. The server still
+ * rechecks every write and ignores the organization's switch.
+ */
 export function resolveOrganizationModulePresentationAccess(
   settings: OrganizationModulePreferenceInput | null | undefined,
   moduleId: OrganizationModuleId,
+  flags: OrganizationModuleFlagInput,
 ): OrganizationModuleAccess {
   if (typeof settings?.hasOrganizationBilling !== 'boolean')
     return { isAllowed: false, reason: 'unavailable' };
+  const parsed = organizationModuleOverridesSchema.safeParse(
+    settings.moduleOverrides,
+  );
+  if (!parsed.success) return { isAllowed: false, reason: 'unavailable' };
+  const isReleased = isReleaseItemVisible(moduleId, settings, flags);
+  if (
+    isReleased &&
+    !isOrganizationModuleShown(
+      moduleId,
+      parsed.data,
+      settings.hasOrganizationBilling,
+    )
+  ) {
+    return { isAllowed: false, reason: 'disabled' };
+  }
   return resolveOrganizationModuleAccess({
     moduleId,
     operation: 'write',
     isSettingsLoaded: true,
-    moduleOverrides: settings.moduleOverrides,
     hasOrganizationBilling: settings.hasOrganizationBilling,
     hasPaidSubscription:
       typeof settings.hasPaidModuleSubscription === 'boolean'
         ? settings.hasPaidModuleSubscription
         : null,
-    isReleasePreviewEnabled: settings.isReleasePreviewEnabled === true,
+    isReleased,
   });
 }
 
-/** Admission only: authorization, platform flags and credits still apply. */
+/**
+ * Admission only: authorization, platform flags and credits still apply.
+ * The organization's module switches only hide apps, so they never refuse
+ * work here; API and MCP callers keep working with a module's app hidden.
+ */
 export function resolveOrganizationModuleAccess({
   moduleId,
-  moduleOverrides,
   isSettingsLoaded,
   hasOrganizationBilling,
   hasPaidSubscription,
-  isReleasePreviewEnabled,
+  isReleased,
   operation,
 }: OrganizationModuleAccessInput): OrganizationModuleAccess {
   if (operation !== 'write') return { isAllowed: true, reason: null };
   if (!isSettingsLoaded) return { isAllowed: false, reason: 'unavailable' };
-  const parsed = organizationModuleOverridesSchema.safeParse(moduleOverrides);
-  if (!parsed.success) return { isAllowed: false, reason: 'unavailable' };
-  const module = ORGANIZATION_MODULES[moduleId];
+  if (!isReleased) return { isAllowed: false, reason: 'unreleased' };
   if (
-    isOrganizationModuleUnreleased(
-      moduleId,
-      hasOrganizationBilling,
-      isReleasePreviewEnabled,
-    )
+    hasOrganizationBilling &&
+    ORGANIZATION_MODULES[moduleId].requiresSubscription
   ) {
-    return { isAllowed: false, reason: 'unreleased' };
-  }
-  const isEnabled = module.isToggleable
-    ? (parsed.data[moduleId as ToggleableOrganizationModuleId] ??
-      (!hasOrganizationBilling || module.isDefaultEnabled))
-    : true;
-  if (!isEnabled) return { isAllowed: false, reason: 'disabled' };
-  if (hasOrganizationBilling && module.requiresSubscription) {
     if (hasPaidSubscription === null)
       return { isAllowed: false, reason: 'unavailable' };
     if (!hasPaidSubscription)

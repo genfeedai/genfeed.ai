@@ -176,7 +176,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       );
       mockWorkflowWebhookService.triggerViaWebhook.mockRejectedValueOnce(
         new HttpException(
-          { code: 'ORGANIZATION_MODULE_DISABLED', moduleId: 'automation' },
+          { code: 'ORGANIZATION_MODULE_UNRELEASED', moduleId: 'automation' },
           403,
         ),
       );
@@ -185,7 +185,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
         .set('x-webhook-secret', 'my-secret-key')
         .send({});
       expect(result.status).toBe(403);
-      expect(result.body.code).toBe('ORGANIZATION_MODULE_DISABLED');
+      expect(result.body.code).toBe('ORGANIZATION_MODULE_UNRELEASED');
     });
 
     it('still returns generic 401 before invoking module admission for an invalid secret', async () => {

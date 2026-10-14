@@ -350,10 +350,10 @@ describe('rate sheet frozen variant metadata', () => {
   });
 });
 
-describe('HeyGen rate sheet entries', () => {
+describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
   const NOW = '2026-12-31T00:00:00Z';
 
-  function heygenEntry(endpoint: string): ReviewedRateSheetEntry {
+  function sheetEntry(endpoint: string): ReviewedRateSheetEntry {
     const entry = REVIEWED_RATE_SHEET_ENTRIES.find(
       (candidate) => candidate.endpoint === endpoint,
     );
@@ -363,25 +363,26 @@ describe('HeyGen rate sheet entries', () => {
 
   /** Seed the entry against a bare registry row and project its billing profile. */
   async function seededProfile(endpoint: string) {
+    const { provider } = sheetEntry(endpoint);
     const prisma = harness(
       modelRow({
         endpoint,
         key: endpoint,
-        provider: 'heygen',
+        provider,
         providerInputSchema: null,
       }),
       undefined,
       [],
     );
     const written = await seedReviewedProviderRates(prisma as never, [
-      heygenEntry(endpoint),
+      sheetEntry(endpoint),
     ]);
     expect(written).toBe(1);
     const create =
       prisma.modelProviderContract.upsert.mock.calls[0]?.[0].create;
     const profile = projectModelBillablePricingProfile(
       {
-        ...modelRow({ endpoint, key: endpoint, provider: 'heygen' }),
+        ...modelRow({ endpoint, key: endpoint, provider }),
         cost: 0,
         costPerUnit: null,
         isActive: true,
@@ -453,4 +454,40 @@ describe('HeyGen rate sheet entries', () => {
       ),
     ).toMatchObject({ status: 'unresolved' });
   });
+
+  it.each([
+    ['elevenlabs/eleven_v4', 0.08, 27],
+    ['elevenlabs/eleven_multilingual_v2', 0.08, 27],
+    ['elevenlabs/eleven_flash_v2_5', 0.04, 14],
+  ])(
+    'quotes %s per submitted character at the list price and 3.33x margin',
+    async (endpoint, usdPerThousand, credits) => {
+      const { create, profile } = await seededProfile(endpoint);
+      expect(create).toMatchObject({
+        provider: 'elevenlabs',
+        schemaFamily: 'elevenlabs-speech-v1',
+      });
+      const quote = (characters?: number) =>
+        quoteModelBillablePricing(
+          profile,
+          {
+            ...(characters === undefined ? {} : { characters }),
+            modelKey: endpoint,
+            provider: 'elevenlabs',
+          },
+          3.33,
+          NOW,
+        );
+
+      expect(quote(1000)).toMatchObject({
+        snapshot: {
+          costSource: 'reviewed-provider',
+          credits,
+          providerCostUsd: usdPerThousand,
+        },
+        status: 'priced',
+      });
+      expect(quote()).toMatchObject({ status: 'unresolved' });
+    },
+  );
 });

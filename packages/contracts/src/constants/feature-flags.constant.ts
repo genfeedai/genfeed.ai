@@ -1,3 +1,8 @@
+import {
+  PLATFORM_RELEASE_FLAG_KEYS,
+  type PlatformReleaseFlagKey,
+} from './release-items.constant';
+
 /**
  * Product modules a superadmin can switch off for the whole platform from
  * Admin → Flags (#5468). Off hides the module's app-rail entry and
@@ -43,7 +48,8 @@ export type PlatformFeatureFlagKey =
 export type PlatformFlagKey =
   | PlatformModuleFlagKey
   | PlatformStudioFlagKey
-  | PlatformFeatureFlagKey;
+  | PlatformFeatureFlagKey
+  | PlatformReleaseFlagKey;
 
 /** Same shape as `IPlatformFlags`, declared here so contracts stay acyclic. */
 type PlatformFlagValues = Readonly<Record<PlatformFlagKey, boolean>>;
@@ -52,7 +58,17 @@ export const PLATFORM_FLAG_KEYS: readonly PlatformFlagKey[] = [
   ...PLATFORM_MODULE_FLAG_KEYS,
   ...PLATFORM_STUDIO_FLAG_KEYS,
   ...PLATFORM_FEATURE_FLAG_KEYS,
+  ...PLATFORM_RELEASE_FLAG_KEYS,
 ];
+
+const PLATFORM_RELEASE_FLAG_KEY_SET = new Set<string>(
+  PLATFORM_RELEASE_FLAG_KEYS,
+);
+
+/** Release flags default off (preview only); every other flag defaults on. */
+function isPlatformFlagDefaultOn(key: PlatformFlagKey): boolean {
+  return !PLATFORM_RELEASE_FLAG_KEY_SET.has(key);
+}
 
 /**
  * The flag each nested flag lives under. A flag is only in effect while its
@@ -82,12 +98,14 @@ export function getPlatformFlagChildren(
   );
 }
 
-/** Everything on: what a deployment gets until an operator switches a flag off. */
+/**
+ * What a deployment gets until an operator changes a flag: modules and
+ * features on, release items unreleased (preview only).
+ */
 export const DEFAULT_PLATFORM_FLAGS: PlatformFlagValues = Object.freeze(
-  Object.fromEntries(PLATFORM_FLAG_KEYS.map((key) => [key, true])) as Record<
-    PlatformFlagKey,
-    boolean
-  >,
+  Object.fromEntries(
+    PLATFORM_FLAG_KEYS.map((key) => [key, isPlatformFlagDefaultOn(key)]),
+  ) as Record<PlatformFlagKey, boolean>,
 );
 
 const PLATFORM_FLAG_KEY_SET = new Set<string>(PLATFORM_FLAG_KEYS);
@@ -97,9 +115,10 @@ export function isPlatformFlagKey(value: string): value is PlatformFlagKey {
 }
 
 /**
- * Narrow the persisted `flags` JSON. Only an explicit `false` turns a flag
- * off: a missing, unknown or malformed entry keeps the default (on), so a
- * flag added by a newer release is on until an operator says otherwise.
+ * Narrow the persisted `flags` JSON. A missing, unknown or malformed entry
+ * keeps its default: a module or feature flag added by a newer release is on
+ * until an operator switches it off, and a release flag stays preview-only
+ * until an operator releases it.
  */
 export function parsePlatformFlags(value: unknown): PlatformFlagValues {
   const stored =
@@ -108,7 +127,12 @@ export function parsePlatformFlags(value: unknown): PlatformFlagValues {
       : {};
 
   return Object.fromEntries(
-    PLATFORM_FLAG_KEYS.map((key) => [key, stored[key] !== false]),
+    PLATFORM_FLAG_KEYS.map((key) => [
+      key,
+      typeof stored[key] === 'boolean'
+        ? stored[key]
+        : isPlatformFlagDefaultOn(key),
+    ]),
   ) as Record<PlatformFlagKey, boolean>;
 }
 

@@ -53,4 +53,26 @@ describe('SELF_HOSTED_MODELS', () => {
     });
     expect(voice?.cost).toBe(10);
   });
+
+  it.each([
+    // $0.08 per 1,000 characters at 3.33x is 26.64, ceiled to 27 credits.
+    [MODEL_KEYS.ELEVENLABS_V4, 0.08, 27, true],
+    [MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2, 0.08, 27, false],
+    // $0.04 per 1,000 characters at 3.33x is 13.32, ceiled to 14 credits.
+    [MODEL_KEYS.ELEVENLABS_FLASH_V2_5, 0.04, 14, false],
+  ])(
+    'carries %s as a Recommended ElevenLabs voice row priced per 1,000 characters',
+    (key, providerCostUsd, cost, isDefault) => {
+      const voice = SELF_HOSTED_MODELS.find((model) => model.key === key);
+
+      expect(voice).toMatchObject({
+        category: ModelCategory.VOICE,
+        cost,
+        isDefault,
+        lifecycle: ModelLifecycle.RECOMMENDED,
+        provider: ModelProvider.ELEVENLABS,
+        providerCostUsd,
+      });
+    },
+  );
 });

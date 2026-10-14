@@ -50,15 +50,15 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     );
   });
 
-  it('keeps Campaigns founder-only and Overview and Posts for customers (#5502)', () => {
+  it('lists Campaigns only once released, and Posts always', () => {
     expect(
-      PUBLISHING_MENU_ITEMS.filter((item) => !item.isFounderOnly).map(
+      PUBLISHING_MENU_ITEMS.filter((item) => !item.releaseItemId).map(
         (item) => item.label,
       ),
     ).not.toContain('Campaigns');
     expect(
       PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Campaigns'),
-    ).toEqual(expect.objectContaining({ isFounderOnly: true }));
+    ).toEqual(expect.objectContaining({ releaseItemId: 'campaigns' }));
   });
 
   it('has no groups, collapsible sections, or search-param shortcuts', () => {
