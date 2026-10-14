@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ElevenLabsAccountVoicesService } from '@api/collections/voices/services/elevenlabs-account-voices.service';
+import { ElevenLabsSpeechBindingService } from '@api/collections/voices/services/elevenlabs-speech-binding.service';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
@@ -124,8 +125,11 @@ describe('VoiceGenerationService', () => {
 
   function build(skillRuntime?: unknown): VoiceGenerationService {
     return new VoiceGenerationService(
-      accountVoices as unknown as ElevenLabsAccountVoicesService,
-      connections as unknown as ElevenLabsConnectionService,
+      new ElevenLabsSpeechBindingService(
+        accountVoices as unknown as ElevenLabsAccountVoicesService,
+        connections as unknown as ElevenLabsConnectionService,
+        voices as unknown as VoicesService,
+      ),
       elevenLabs as unknown as ElevenLabsService,
       heygen as unknown as HeyGenService,
       heygen as unknown as HeyGenSpeechVoicesService,

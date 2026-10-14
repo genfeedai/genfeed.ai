@@ -2,7 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
-import { ElevenLabsAccountVoicesService } from '@api/collections/voices/services/elevenlabs-account-voices.service';
+import { ElevenLabsSpeechBindingService } from '@api/collections/voices/services/elevenlabs-speech-binding.service';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { readSpeechReceipt } from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
@@ -12,10 +12,7 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { toElevenLabsActionableError } from '@api/services/integrations/elevenlabs/elevenlabs-error.util';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
-import {
-  ElevenLabsConnectionService,
-  type ResolvedElevenLabsConnection,
-} from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
+import type { ResolvedElevenLabsConnection } from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
 import { countHeyGenSpeechCharacters } from '@api/services/integrations/heygen/helpers/heygen-speech';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
@@ -47,12 +44,11 @@ import {
 import type { ElevenLabsSpeechReceipt } from '@genfeedai/contracts/interfaces';
 import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
-  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -105,8 +101,7 @@ export class VoiceGenerationService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    private readonly accountVoicesService: ElevenLabsAccountVoicesService,
-    private readonly connectionService: ElevenLabsConnectionService,
+    private readonly speechBinding: ElevenLabsSpeechBindingService,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly heygenService: HeyGenService,
     private readonly heygenSpeechVoices: HeyGenSpeechVoicesService,
@@ -202,7 +197,7 @@ export class VoiceGenerationService implements OnModuleInit {
     const speechReceipt =
       speechModel.voiceProvider === VoiceProvider.HEYGEN
         ? undefined
-        : await this.bindSpeechRequest(user.organizationId, dto.voiceId);
+        : await this.speechBinding.bind(user.organizationId, dto.voiceId);
     const billingMode = speechReceipt
       ? speechReceipt.connection.kind === 'byok'
         ? 'byok'
@@ -603,12 +598,12 @@ export class VoiceGenerationService implements OnModuleInit {
       const speechReceipt = isHeyGen
         ? undefined
         : (storedSpeechReceipt ??
-          (await this.bindSpeechRequest(
+          (await this.speechBinding.bind(
             params.organizationId,
             params.voiceId,
           )));
       const elevenLabsConnection = speechReceipt
-        ? await this.resolveBoundConnection(speechReceipt)
+        ? await this.speechBinding.resolveBoundConnection(speechReceipt)
         : undefined;
       const quote = await this.voiceCreditsService.quoteSpeech({
         characters,
@@ -627,8 +622,8 @@ export class VoiceGenerationService implements OnModuleInit {
       };
 
       if (speechReceipt) {
-        await this.claimSubmission(
-          params,
+        await this.speechBinding.claimSubmission(
+          params.ingredientId,
           speechReceipt,
           storedSpeechReceipt !== undefined,
         );
@@ -780,84 +775,6 @@ export class VoiceGenerationService implements OnModuleInit {
       duration: speech.duration ?? uploaded.duration ?? 0,
       s3Key: uploaded.s3Key,
     };
-  }
-
-  /** Binds the voice and the account that will speak it, before any work. */
-  private async bindSpeechRequest(
-    organizationId: string,
-    voiceId: string,
-  ): Promise<ElevenLabsSpeechReceipt> {
-    const voice = await this.accountVoicesService.resolveSpeechVoice(
-      organizationId,
-      voiceId,
-    );
-    const connection = await this.connectionService.resolve(
-      organizationId,
-      voice.connectionKind,
-    );
-    return {
-      connection: connection.binding,
-      organizationId,
-      provider: 'elevenlabs',
-      state: 'accepted',
-      version: 1,
-      voice: {
-        externalVoiceId: voice.externalVoiceId,
-        ...(voice.internalVoiceId
-          ? { internalVoiceId: voice.internalVoiceId }
-          : {}),
-      },
-    };
-  }
-
-  /** The submitting account must still be the bound one. */
-  private async resolveBoundConnection(
-    receipt: ElevenLabsSpeechReceipt,
-  ): Promise<ResolvedElevenLabsConnection> {
-    const connection = await this.connectionService.resolve(
-      receipt.organizationId,
-      receipt.connection.kind,
-    );
-    if (
-      receipt.connection.kind === 'byok' &&
-      connection.binding.credentialVersionId !==
-        receipt.connection.credentialVersionId
-    ) {
-      throw new BadRequestException(
-        'The ElevenLabs connection changed after this voice was requested. Generate it again.',
-      );
-    }
-    return connection;
-  }
-
-  /**
-   * One-way claim on the paid provider call. A retry that finds the request
-   * already submitted without stored audio cannot know whether ElevenLabs
-   * produced (and billed) it, so it fails instead of sending it again.
-   */
-  private async claimSubmission(
-    params: VoiceGenerationParams,
-    receipt: ElevenLabsSpeechReceipt,
-    hasStoredReceipt: boolean,
-  ): Promise<void> {
-    const { count } = await this.voicesService.prisma.ingredient.updateMany({
-      data: {
-        generationProvider: toPrismaJson({ ...receipt, state: 'submitted' }),
-      },
-      where: {
-        generationProvider: hasStoredReceipt
-          ? { equals: 'accepted', path: ['state'] }
-          : { equals: Prisma.DbNull },
-        id: params.ingredientId,
-        isDeleted: false,
-        organizationId: params.organizationId,
-      },
-    });
-    if (count === 0) {
-      throw new ConflictException(
-        'An earlier attempt of this voice generation has an unknown result, so it was not sent again. Generate it again.',
-      );
-    }
   }
 
   /** A workspace's own provider key is never debited for platform credits. */

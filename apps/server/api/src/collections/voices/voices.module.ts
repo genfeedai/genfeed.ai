@@ -14,6 +14,7 @@ import { VoicesAccountController } from '@api/collections/voices/controllers/voi
 import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
 import { ElevenLabsAccountVoicesService } from '@api/collections/voices/services/elevenlabs-account-voices.service';
+import { ElevenLabsSpeechBindingService } from '@api/collections/voices/services/elevenlabs-speech-binding.service';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
@@ -67,6 +68,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     ElevenLabsAccountVoicesService,
+    ElevenLabsSpeechBindingService,
     ExternalVoiceCatalogService,
     VoiceCloneService,
     VoiceCreditsService,
