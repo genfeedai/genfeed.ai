@@ -120,11 +120,9 @@ export class StoryboardStillsService {
     );
     const quote = await this.buildQuote(organizationId, config, input.shotIds);
     if (quote.inputHash !== input.inputHash)
-      throw new ConflictException({
-        errorCode: 'STORYBOARD_STILL_QUOTE_CHANGED',
-        message:
-          'The storyboard or the still price changed. Review the new quote.',
-      });
+      throw new ConflictException(
+        'The storyboard or the still price changed. Review the new quote.',
+      );
     assertStoryboardPlan(config);
     await this.source.validatePlanAssets(organizationId, brandId, config.plan);
     const now = new Date().toISOString();

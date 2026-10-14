@@ -426,10 +426,16 @@ export function useDurableStoryboardRun(runId: string) {
       if (!brandId || activeScope.current !== scope)
         throw new Error('Storyboard scope changed.');
       const service = await getService();
-      return service.quoteStoryboardStills(brandId, runId, {
-        expectedRevision: revision,
-        ...(shotIds ? { shotIds: [...shotIds] } : {}),
-      });
+      try {
+        return await service.quoteStoryboardStills(brandId, runId, {
+          expectedRevision: revision,
+          ...(shotIds ? { shotIds: [...shotIds] } : {}),
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not price the stills.'),
+        );
+      }
     },
     [brandId, runId, getService, scope],
   );
@@ -440,13 +446,19 @@ export function useDurableStoryboardRun(runId: string) {
       const service = await getService();
       if (activeScope.current !== scope)
         throw new Error('Storyboard scope changed.');
-      return adopt(
-        await service.generateStoryboardStills(brandId, runId, {
+      let run: StoryboardRun;
+      try {
+        run = await service.generateStoryboardStills(brandId, runId, {
           expectedRevision: quote.revision,
           shotIds: quote.items.map((item) => item.shotId),
           inputHash: quote.inputHash,
-        }),
-      );
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not start the stills.'),
+        );
+      }
+      return adopt(run);
     },
     [brandId, runId, getService, adopt, scope],
   );
