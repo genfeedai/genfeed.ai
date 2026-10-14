@@ -88,6 +88,14 @@ for i in $(seq 1 $MIGRATE_RETRIES); do
   sleep "$MIGRATE_DELAY"
 done
 
+echo "[entrypoint] Reconciling reference data..."
+if ! node --max-old-space-size=8192 --expose-gc -r tsconfig-paths/register \
+  apps/server/dist/apps/api-reference-data-sync/main --live; then
+  echo "[entrypoint] FATAL: reference-data sync failed" >&2
+  exit 1
+fi
+echo "[entrypoint] Reference-data sync completed"
+
 # Derive service ports from their env URLs
 API_PORT=$(echo "$GENFEEDAI_API_URL" | sed 's|.*:||')
 FILES_PORT=$(echo "$GENFEEDAI_MICROSERVICES_FILES_URL" | sed 's|.*:||')

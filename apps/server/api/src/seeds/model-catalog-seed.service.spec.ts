@@ -71,7 +71,7 @@ describe('ModelCatalogSeedService', () => {
     );
   });
 
-  it('keeps reconciling after one entry fails and names the failing key', async () => {
+  it('keeps reconciling after one entry fails, names the failing key, and fails closed', async () => {
     const [first, second, third] = UNIFIED_MODEL_CATALOG;
     prisma.model.upsert.mockImplementation(({ where }: UpsertCall) =>
       where.key === second.key
@@ -83,9 +83,9 @@ describe('ModelCatalogSeedService', () => {
         : Promise.resolve({ id: 'model' }),
     );
 
-    const upserted = await service.reconcileCatalog([first, second, third]);
-
-    expect(upserted).toBe(2);
+    await expect(
+      service.reconcileCatalog([first, second, third]),
+    ).rejects.toThrow(`Model catalog reconcile failed for: ${second.key}`);
     expect(prisma.model.upsert).toHaveBeenCalledTimes(3);
     expect(callForKey(third.key)).toBeDefined();
     expect(logger.error).toHaveBeenCalledWith(
@@ -96,26 +96,62 @@ describe('ModelCatalogSeedService', () => {
   });
 
   it('upserts one registry row per catalog entry, keyed by model key', async () => {
-    const upserted = await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+    const result = await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
-    expect(upserted).toBe(UNIFIED_MODEL_CATALOG.length);
+    expect(result).toEqual({
+      unchanged: 0,
+      written: UNIFIED_MODEL_CATALOG.length,
+    });
     expect(prisma.model.upsert).toHaveBeenCalledTimes(
       UNIFIED_MODEL_CATALOG.length,
     );
     expect(logger.log).toHaveBeenCalledWith(
-      `Model catalog reconciled (${UNIFIED_MODEL_CATALOG.length} registry rows)`,
+      `Model catalog reconciled (written=${UNIFIED_MODEL_CATALOG.length}, unchanged=0)`,
       'ModelCatalogSeedService',
     );
   });
 
-  it('is idempotent — a second run issues the same upserts', async () => {
+  it('is idempotent — a second run writes nothing when seed-owned snapshots match', async () => {
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
-    const first = upsertCalls();
 
+    prisma.model.findFirst.mockImplementation(
+      async ({ where }: { where?: { category?: string } }) => {
+        const entry = UNIFIED_MODEL_CATALOG.find(
+          (candidate) =>
+            candidate.category === where?.category && candidate.isDefault,
+        );
+        return entry ? { key: entry.key } : null;
+      },
+    );
+    prisma.model.findUnique.mockImplementation(
+      async ({ where }: { where: { key: string } }) => {
+        const entry = UNIFIED_MODEL_CATALOG.find(
+          (candidate) => candidate.key === where.key,
+        );
+        if (!entry) return null;
+        return {
+          ...entry,
+          endpoint: entry.endpoint ?? entry.key,
+          id: `id-${entry.key}`,
+          isActive: entry.isActive,
+          isDefault: entry.isDefault ?? false,
+          isDeleted: false,
+          isDiscovered: false,
+          isLegacy: false,
+          isPublic: entry.isPublic ?? true,
+        };
+      },
+    );
     prisma.model.upsert.mockClear();
-    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+    prisma.model.updateMany.mockClear();
 
-    expect(upsertCalls()).toEqual(first);
+    const second = await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+    expect(second).toEqual({
+      unchanged: UNIFIED_MODEL_CATALOG.length,
+      written: 0,
+    });
+    expect(prisma.model.upsert).not.toHaveBeenCalled();
   });
 
   it('never overwrites an existing price with an unpriced catalog entry', async () => {
@@ -690,16 +726,12 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
-  it('logs and swallows a failed reconcile so boot is never blocked', async () => {
+  it('fails closed when every catalog entry rejects', async () => {
     prisma.model.upsert.mockRejectedValue(new Error('connection refused'));
 
-    await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
-
-    expect(logger.error).toHaveBeenCalledWith(
-      'Model catalog seed failed — registry may be incomplete',
-      expect.any(Error),
-      'ModelCatalogSeedService',
-    );
+    await expect(
+      service.reconcileCatalog(UNIFIED_MODEL_CATALOG.slice(0, 2)),
+    ).rejects.toThrow('Model catalog reconcile failed for:');
   });
 
   describe('admin pin survives restarts (existing rows)', () => {

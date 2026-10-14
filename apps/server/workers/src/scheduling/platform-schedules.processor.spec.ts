@@ -55,6 +55,7 @@ describe('PlatformSchedulesProcessor', () => {
   };
   const workflowArtifacts = { queueExpiredArtifactCleanup: handler() };
   const xReplyWatch = { watchRecentPostReplies: handler() };
+  const externalVoiceCatalog = { syncFromProviders: handler() };
   const youtubeMessages = { syncYoutubeMessages: handler() };
   const youtubeStatus = { checkScheduledYoutubeVideos: handler() };
   const workflowSchedules = {
@@ -214,6 +215,10 @@ describe('PlatformSchedulesProcessor', () => {
         xReplyWatch.watchRecentPostReplies,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC,
+        externalVoiceCatalog.syncFromProviders,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES,
         youtubeMessages.syncYoutubeMessages,
       ],
@@ -262,6 +267,7 @@ describe('PlatformSchedulesProcessor', () => {
       brandedDispatchRecovery as never,
       workflowSchedules as never,
       xReplyWatch as never,
+      externalVoiceCatalog as never,
     );
   });
 

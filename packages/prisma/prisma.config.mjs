@@ -33,6 +33,7 @@ export default defineConfig({
   schema: './prisma/schema.prisma',
   migrations: {
     path: './prisma/migrations',
+    seed: 'bun run ../../apps/server/api/scripts/seeds/local-debug-data.seed.ts --live',
   },
   datasource: {
     // prisma generate can run with an empty URL. migrate/db need a real one.

@@ -102,6 +102,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Architecture decisions
 
+- [data-change-protocol](context/data-change-protocol.md) — three channels: Prisma data migrations, deploy-time reference-data sync, local fixture seed (#6911)
 - [shared-package-message-catalogs](project_shared_package_message_catalogs.md) — shared packages consume the host app next-intl catalog (`ui` / `pages` / `agent` / `contexts`); no COPY consts (#2686)
 - [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md) — 3 modes (SaaS/Community/Desktop) as `deployment × client`; Better Auth is the active baseline; platform admin via `users.platformRole`; multi-tenancy is SaaS-mode; managed credits cloud-only; billing is AGPL in-tree, runtime-gated. Supersedes the auth half of #95. Contributor doc: `docs/deployment-modes.md`
 - [ADR-CONVERSATION-SHELL-CONTRACTS](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — v3.2: conversation is a surface, composer follows it, frame/nav are route-owned, and the topbar breadcrumb owns visible page identity

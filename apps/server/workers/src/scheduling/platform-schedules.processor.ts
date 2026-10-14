@@ -6,6 +6,7 @@ import { CronBrandedDispatchRecoveryService } from '@workers/crons/branded-dispa
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 import { CronCreditsService } from '@workers/crons/credits/cron.credits.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
+import { CronExternalVoiceCatalogService } from '@workers/crons/external-voice-catalog/cron.external-voice-catalog.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
 import { CronLifecycleEmailsService } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.service';
@@ -86,6 +87,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly brandedDispatchRecovery: CronBrandedDispatchRecoveryService,
     private readonly workflowSchedules: PlatformWorkflowSchedulesService,
     private readonly xReplyWatch: CronXReplyWatchService,
+    private readonly externalVoiceCatalog: CronExternalVoiceCatalogService,
   ) {
     super();
     this.handlers = {
@@ -184,6 +186,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.workflowSchedules.recoverWorkspaceTaskRollups(),
       [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: () =>
         this.xReplyWatch.watchRecentPostReplies(),
+      [PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC]: () =>
+        this.externalVoiceCatalog.syncFromProviders(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: () =>
         this.youtubeMessages.syncYoutubeMessages(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_STATUS]: () =>

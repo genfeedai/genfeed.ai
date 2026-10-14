@@ -13,6 +13,7 @@
 
 import { resolve } from 'node:path';
 import process from 'node:process';
+import { assertFixtureSeedAllowed } from '@api-scripts/seeds/fixture-seed-guard';
 import { CampaignStatus, CampaignTargetStatus } from '@genfeedai/contracts';
 import {
   CredentialPlatform,
@@ -25,13 +26,6 @@ import { config } from 'dotenv';
 
 const QA_PREFIX = '[QA Seed]';
 const DEFAULT_ORGANIZATION_SLUG = 'default';
-const LOCAL_DATABASE_HOSTS = new Set([
-  '0.0.0.0',
-  '127.0.0.1',
-  '::1',
-  '[::1]',
-  'localhost',
-]);
 
 type SeedArgs = {
   dryRun: boolean;
@@ -157,17 +151,6 @@ function getDatabaseUrl(): URL {
   }
 
   return url;
-}
-
-function assertLocalDatabase(url: URL): void {
-  const isLocal =
-    LOCAL_DATABASE_HOSTS.has(url.hostname) ||
-    url.hostname.endsWith('.localhost');
-  if (!isLocal) {
-    throw new Error(
-      `Refusing to seed a non-local database host: ${url.hostname || 'unknown'}`,
-    );
-  }
 }
 
 function createPrismaClient(url: URL): PrismaClient {
@@ -1028,7 +1011,7 @@ export async function runLocalDebugDataSeed(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   loadLocalEnv();
   const databaseUrl = getDatabaseUrl();
-  assertLocalDatabase(databaseUrl);
+  assertFixtureSeedAllowed(process.env, databaseUrl);
   console.log(
     `Target database: ${databaseUrl.hostname}${databaseUrl.port ? `:${databaseUrl.port}` : ''}${databaseUrl.pathname}`,
   );

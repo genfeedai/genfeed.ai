@@ -22,6 +22,7 @@ export function prepareLocalDatabase(
   workspaceRoot: string,
   environment: NodeJS.ProcessEnv,
   runCommand?: (args: string[]) => void,
+  runReferenceDataSync?: (env: NodeJS.ProcessEnv) => void,
 ): void {
   if (!isLocalDevelopmentDatabase(environment)) {
     console.info(
@@ -51,4 +52,30 @@ export function prepareLocalDatabase(
   );
   run(['migrate', 'deploy']);
   run(['generate']);
+
+  const shouldSync =
+    runCommand === undefined || runReferenceDataSync !== undefined;
+  if (!shouldSync) return;
+
+  const sync =
+    runReferenceDataSync ??
+    ((env) => {
+      const result = spawnSync(
+        process.execPath,
+        ['run', 'src/seeds/reference-data-sync.entrypoint.ts', '--live'],
+        {
+          cwd: path.join(workspaceRoot, 'apps/server/api'),
+          env,
+          stdio: 'inherit',
+        },
+      );
+      if (result.error || result.status !== 0) {
+        throw new Error(
+          'Local reference-data sync failed. API startup stopped.',
+          { cause: result.error },
+        );
+      }
+    });
+  console.info('[dev:database] Reconciling reference data.');
+  sync(environment);
 }

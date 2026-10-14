@@ -64,6 +64,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   WORKFLOW_CONTINUATION_RECONCILE: 'workflow-continuation-reconcile',
   WORKSPACE_TASK_ROLLUP_RECOVERY: 'workspace-task-rollup-recovery',
   X_REPLY_WATCH: 'x-reply-watch',
+  EXTERNAL_VOICE_CATALOG_SYNC: 'external-voice-catalog-sync',
   YOUTUBE_MESSAGES: 'youtube-messages',
   YOUTUBE_STATUS: 'youtube-status',
 } as const;
@@ -261,6 +262,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: {
     pattern: X_REPLY_WATCH_SCHEDULE,
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC]: {
+    pattern: '0 */12 * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: {

@@ -1,28 +1,9 @@
-/**
- * Boot seed module.
- *
- * - SelfHostedSeedService creates the default workspace on first boot when
- *   running in self-hosted mode (no legacy auth provider).
- * - ModelCatalogSeedService reconciles the unified model registry on every
- *   boot, in every deployment mode.
- * - SkillCatalogSeedService provisions first-party product SKILL.md rows.
- */
-
-import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
-import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { SelfHostedSeedService } from '@api/seeds/self-hosted-seed.service';
-import { SkillCatalogSeedService } from '@api/seeds/skill-catalog-seed.service';
-import { StudioPresetSeedService } from '@api/seeds/studio-preset-seed.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [LoggerModule, SkillsCoreModule],
-  providers: [
-    ModelCatalogSeedService,
-    SelfHostedSeedService,
-    SkillCatalogSeedService,
-    StudioPresetSeedService,
-  ],
+  imports: [LoggerModule],
+  providers: [SelfHostedSeedService],
 })
 export class SelfHostedSeedModule {}
