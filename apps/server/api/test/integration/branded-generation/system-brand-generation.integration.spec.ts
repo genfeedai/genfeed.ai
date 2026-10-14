@@ -387,6 +387,9 @@ describe.each([true, false])(
       await seed();
       const h = build();
       const { request, input } = await systemRequest(h);
+      const postsBefore = await prisma.post.count({
+        where: { organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID },
+      });
       h.hooks.beforeAnswer = async () => {
         const longAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
         await sql.query(
@@ -409,7 +412,7 @@ describe.each([true, false])(
         await prisma.post.count({
           where: { organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID },
         }),
-      ).toBe(0);
+      ).toBe(postsBefore);
 
       // Replaying the key answers stopped from the receipt and never calls the provider again.
       h.hooks.beforeAnswer = undefined;
