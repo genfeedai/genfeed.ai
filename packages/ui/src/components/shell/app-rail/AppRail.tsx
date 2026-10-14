@@ -34,6 +34,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ADMIN_RAIL_APP,
+  ADMIN_RAIL_CATEGORIES,
   APP_RAIL_REGISTRY,
   getActiveAppId,
   getAppRailHref,
@@ -204,6 +205,7 @@ export function AppRail({
   orgSlug,
   pinnedAppIds = [],
   preservedSearch,
+  isAdminChrome = false,
   resolveNavigation,
   showAdmin = false,
   surface = 'desktop',
@@ -214,6 +216,11 @@ export function AppRail({
   const t = useTranslations('common.appRail');
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
   const apps = useMemo(() => {
+    if (isAdminChrome) {
+      // Workspace is the way out of admin; the categories are the admin nav.
+      const exit = APP_RAIL_REGISTRY.filter((app) => app.id === 'workspace');
+      return [...exit, ...ADMIN_RAIL_CATEGORIES];
+    }
     const visible = APP_RAIL_REGISTRY.filter((app) => {
       if (!isAppRailItemEnabled(app, flags, isConfigured)) {
         return false;
@@ -235,12 +242,15 @@ export function AppRail({
     flags,
     installedAppIds,
     isConfigured,
+    isAdminChrome,
     moduleAccess,
     modulePreferences,
     showAdmin,
   ]);
   const activeAppId = getActiveAppId(
-    [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP],
+    isAdminChrome
+      ? ADMIN_RAIL_CATEGORIES
+      : [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP],
     currentPath,
   );
   const items = useMemo<AppRailNavigationItem[]>(() => {
@@ -281,6 +291,9 @@ export function AppRail({
   ]);
   const dailyItems = items.filter((item) => item.app.group === 'daily');
   const launcherItems = items.filter((item) => item.app.group === 'app');
+  const adminCategoryItems = items.filter(
+    (item) => item.app.group === 'admin-category',
+  );
   const pinnedItems = pinnedAppIds.flatMap((appId) => {
     const item = launcherItems.find((candidate) => candidate.app.id === appId);
     return item ? [item] : [];
@@ -349,6 +362,15 @@ export function AppRail({
           ) : null}
           {pinnedItems.map(renderItem)}
         </div>
+        {adminCategoryItems.length > 0 ? (
+          <div
+            className="flex flex-col items-center gap-1"
+            data-testid="app-rail-admin-categories"
+          >
+            <Separator className="my-1 w-5" />
+            {adminCategoryItems.map(renderItem)}
+          </div>
+        ) : null}
         {admin || footer ? (
           <div
             className="mt-auto flex flex-col items-center gap-1 pt-2"

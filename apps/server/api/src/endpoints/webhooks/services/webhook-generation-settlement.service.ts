@@ -15,10 +15,15 @@ export class WebhookGenerationSettlementService {
   async settleOutput(
     ingredientId: string,
     organizationId: string | null | undefined,
+    durationSeconds?: number,
   ): Promise<void> {
     if (!organizationId) return;
     try {
-      await this.generationBilling.settleOutput(ingredientId, organizationId);
+      await this.generationBilling.settleOutput(
+        ingredientId,
+        organizationId,
+        durationSeconds === undefined ? {} : { durationSeconds },
+      );
     } catch (error: unknown) {
       this.loggerService.error(
         `WebhookGenerationSettlementService generation credit settlement failed`,

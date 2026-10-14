@@ -34,23 +34,10 @@ import {
 } from 'lucide-react';
 
 /**
- * Admin nav is long — mark the first item of each named group collapsible so
- * CollapsibleGroup shows a chevron header. Other app shells leave
- * `isCollapsible` unset and keep static section labels.
+ * Each `group` is an admin category with its own icon on the rail
+ * (`ADMIN_RAIL_CATEGORIES`); the sidebar lists only the active category.
  */
-function withAdminCollapsibleGroups(items: MenuItemConfig[]): MenuItemConfig[] {
-  const seenGroups = new Set<string>();
-  return items.map((item) => {
-    const group = item.group ?? '';
-    if (!group || seenGroups.has(group)) {
-      return item;
-    }
-    seenGroups.add(group);
-    return { ...item, isCollapsible: true };
-  });
-}
-
-export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
+export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Overview',
     hrefScope: 'global',
@@ -327,4 +314,4 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
     outline: Binary,
     solid: Binary,
   },
-]);
+];

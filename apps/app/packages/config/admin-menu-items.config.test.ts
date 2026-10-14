@@ -1,3 +1,7 @@
+import {
+  ADMIN_RAIL_CATEGORIES,
+  getActiveAppId,
+} from '@ui/shell/app-rail/app-rail.registry';
 import { describe, expect, it } from 'vitest';
 import { ADMIN_MENU_ITEMS } from './admin-menu-items.config';
 
@@ -51,18 +55,32 @@ describe('ADMIN_MENU_ITEMS', () => {
     );
   });
 
-  it('makes each named admin section collapsible (first item of the group)', () => {
-    const firstByGroup = new Map<string, (typeof ADMIN_MENU_ITEMS)[number]>();
-    for (const item of ADMIN_MENU_ITEMS) {
-      const group = item.group ?? '';
-      if (group && !firstByGroup.has(group)) {
-        firstByGroup.set(group, item);
-      }
-    }
+  it('leaves category grouping to the rail: no collapsible headers', () => {
+    expect(ADMIN_MENU_ITEMS.some((item) => item.isCollapsible)).toBe(false);
+  });
 
-    expect(firstByGroup.size).toBeGreaterThan(0);
-    for (const [group, item] of firstByGroup) {
-      expect(item.isCollapsible, group).toBe(true);
+  it('gives every menu group a rail category icon, and no other', () => {
+    const groups = new Set(ADMIN_MENU_ITEMS.map((item) => item.group));
+    const categories = new Set(
+      ADMIN_RAIL_CATEGORIES.map((category) => category.adminMenuGroup),
+    );
+    expect(categories).toEqual(groups);
+  });
+
+  it('opens each category on a page that belongs to it', () => {
+    for (const category of ADMIN_RAIL_CATEGORIES) {
+      const home = category.route('acme');
+      const owner = ADMIN_MENU_ITEMS.find((item) => item.href === home);
+      expect(owner?.group, category.id).toBe(category.adminMenuGroup);
+    }
+  });
+
+  it('resolves every menu item to its own category on the rail', () => {
+    for (const item of ADMIN_MENU_ITEMS) {
+      const category = ADMIN_RAIL_CATEGORIES.find(
+        ({ id }) => id === getActiveAppId(ADMIN_RAIL_CATEGORIES, item.href),
+      );
+      expect(category?.adminMenuGroup, item.label).toBe(item.group);
     }
   });
 });

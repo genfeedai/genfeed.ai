@@ -14,6 +14,7 @@ const heygenStatusSchema = z.object({
     .object({
       status: z.string(),
       video_url: z.string().nullish(),
+      duration: z.number().nullish(),
       failure_message: z.string().nullish(),
     })
     .nullish(),
@@ -123,6 +124,11 @@ export async function readHeygenVideoStatus(
         providerName: 'heygen',
         status: 'completed',
         videoUrl: data.video_url ?? undefined,
+        ...(typeof data.duration === 'number' &&
+        Number.isFinite(data.duration) &&
+        data.duration > 0
+          ? { duration: data.duration }
+          : {}),
       };
     }
 
@@ -135,6 +141,9 @@ export async function readHeygenVideoStatus(
       };
     }
 
+    // `waiting` (which the create response can return although status
+    // polling documents only `pending` and `processing`) and any status HeyGen
+    // adds later keep polling; only `completed` and `failed` end the render.
     return { jobId, providerName: 'heygen', status: 'processing' };
   } catch (error: unknown) {
     logger.error('HeygenVideoStatus getStatus failed', {

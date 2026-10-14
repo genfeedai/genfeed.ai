@@ -1,6 +1,7 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 
 const MODEL_CATEGORY_BADGE_CLASSES: Record<ModelCategory, string> = {
+  [ModelCategory.AVATAR]: 'bg-agent/15 text-agent border-agent/30',
   [ModelCategory.EMBEDDING]: 'bg-muted text-muted-foreground border-border',
   [ModelCategory.IMAGE]: 'bg-info/15 text-info border-info/30',
   [ModelCategory.IMAGE_EDIT]:

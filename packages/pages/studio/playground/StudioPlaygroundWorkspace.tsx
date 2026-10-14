@@ -123,6 +123,7 @@ import {
   sanitizeStudioPlaygroundState,
 } from '@pages/studio/playground/utils/studio-playground-storage';
 import {
+  filterStudioPlaygroundModels,
   getStudioPlaygroundTypeConfig,
   isStudioPlaygroundType,
   listStudioPlaygroundTypeConfigs,
@@ -468,8 +469,15 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   });
 
   const { capabilities, modelCategory } = getStudioPlaygroundTypeConfig(type);
-  const { isLoadingModels, isModelCatalogReady, models } =
-    useStudioPlaygroundModels(modelCategory, organizationId);
+  const {
+    isLoadingModels,
+    isModelCatalogReady,
+    models: catalogModels,
+  } = useStudioPlaygroundModels(modelCategory, organizationId);
+  const models = useMemo(
+    () => filterStudioPlaygroundModels(type, catalogModels, settings.avatarRef),
+    [catalogModels, settings.avatarRef, type],
+  );
   const editSourceLimit = getImageEditMaxSources(
     models.find((model) => model.key === settings.modelKey)?.key ??
       models.find((model) => model.isDefault)?.key,

@@ -125,11 +125,7 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
     },
     APP_ROUTES: {
       STUDIO: actual.APP_ROUTES.STUDIO,
-      ADMIN: {
-        OVERVIEW: {
-          DASHBOARD: '/admin/overview/dashboard',
-        },
-      },
+      ADMIN: actual.APP_ROUTES.ADMIN,
     },
     APP_RAIL_FEATURE_FLAGS: {
       agent: 'agent',
@@ -292,6 +288,37 @@ describe('AppRail', () => {
       surface: 'desktop',
     });
     expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('lists admin categories instead of the app loop in admin chrome', () => {
+    render(
+      <AppRail
+        currentPath="/admin/content/posts"
+        isAdminChrome
+        orgSlug="acme"
+        showAdmin
+      />,
+    );
+    expect(screen.getByTestId('app-rail-item-workspace')).toBeInTheDocument();
+    for (const id of [
+      'admin-overview',
+      'admin-content',
+      'admin-automation',
+      'admin-configuration',
+      'admin-administration',
+    ]) {
+      expect(screen.getByTestId(`app-rail-item-${id}`)).toBeInTheDocument();
+    }
+    expect(screen.getByTestId('app-rail-item-admin-content')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByTestId('app-rail-item-admin-content')).toHaveAttribute(
+      'href',
+      '/admin/content/posts',
+    );
+    expect(screen.queryByTestId('app-rail-item-agent')).toBeNull();
+    expect(screen.queryByTestId('app-rail-item-admin')).toBeNull();
   });
 
   it('uses web sequences and desktop command keys without numbering Admin', () => {

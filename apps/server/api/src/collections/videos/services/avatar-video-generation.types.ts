@@ -9,8 +9,12 @@ import type {
 } from '@api/services/integrations/heygen/heygen-identity.types';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
-import type { VoiceProvider } from '@genfeedai/contracts';
-import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
+import type { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
+import type { HeyGenAvatarEngine } from '@genfeedai/contracts/constants';
+import type {
+  HeyGenAvatarRef,
+  ModelBillableQuoteSnapshot,
+} from '@genfeedai/contracts/interfaces';
 import type { HttpException } from '@nestjs/common';
 
 export interface AvatarVideoGenerationContext {
@@ -45,6 +49,10 @@ export interface AvatarVideoGenerationParams {
   audioIngredientId?: string;
   voiceProvider?: string;
   aspectRatio?: AvatarVideoAspectRatio;
+  /** Explicit engine model; omitted or auto routes among the look's engines. */
+  model?: string;
+  autoSelectModel?: boolean;
+  prioritize?: RouterPriority;
 }
 
 export interface AvatarVideoGenerationResult {
@@ -56,9 +64,36 @@ export interface AvatarVideoGenerationResult {
 export interface AvatarGenerationPrice {
   billingMode: 'byok' | 'platform';
   credits: number;
+  /** The catalog row the render is priced and recorded as. */
+  modelKey: string;
+}
+
+/** The engine model chosen for a render and the look evidence that prices it. */
+export interface AvatarModelSelection {
+  modelKey: string;
+  /** Set for an engine row; photo animation keeps the flat `heygen/avatar` quote. */
+  engine?: HeyGenAvatarEngine;
+  avatarType?: string;
+}
+
+/**
+ * The admission estimate for a per-second engine. The frozen quote is
+ * re-priced at the clip duration HeyGen returns, so the hold settles to the
+ * real length (refund or top-up).
+ */
+export interface AvatarDurationQuote {
+  estimatedSeconds: number;
+  snapshot: ModelBillableQuoteSnapshot;
+}
+
+export interface AvatarRenderQuote {
+  credits: number;
+  durationQuote?: AvatarDurationQuote;
 }
 
 export interface AvatarGenerationFunding extends AvatarGenerationPrice {
+  durationQuote?: AvatarDurationQuote;
+  engine?: HeyGenAvatarEngine;
   heygenApiKey?: string;
   elevenLabsApiKey?: string;
 }

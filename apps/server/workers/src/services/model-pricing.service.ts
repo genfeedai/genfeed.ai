@@ -91,6 +91,14 @@ const CATEGORY_TIER_MAP: Record<string, ICategoryTierConfig> = {
     high: 25,
     standard: 10,
   },
+  [ModelCategory.AVATAR]: {
+    basic: 65,
+    defaultCostPerUnit: 13,
+    defaultMinCost: 13,
+    defaultPricingType: PricingType.PER_SECOND,
+    high: 200,
+    standard: 135,
+  },
 };
 
 /** Default fallback config for unknown categories */

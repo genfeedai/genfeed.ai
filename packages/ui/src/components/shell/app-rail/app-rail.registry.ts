@@ -12,10 +12,13 @@ import type {
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 import { GalleryHorizontalStart } from '@ui/primitives/animated-icons/custom-lucide';
 import {
+  Bot,
   BotMessageSquare,
   CalendarDays,
   ChartPie,
   Clapperboard,
+  FileStack,
+  Gauge,
   House,
   LibraryBig,
   MessageSquare,
@@ -23,6 +26,7 @@ import {
   Rocket,
   Scissors,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   SquarePlay,
   Workflow,
@@ -220,6 +224,70 @@ export const ADMIN_RAIL_APP: AppRailItemConfig = {
   label: 'admin.label',
   route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
 };
+
+/**
+ * Admin chrome swaps the app loop for these: one icon per admin category, each
+ * opening that category's pages in the sidebar. `activePathRoots` mirror the
+ * pages of the matching group in `ADMIN_MENU_ITEMS`; the longest root wins, so
+ * Organizations (an `/admin/overview/...` URL) still lands in Administration.
+ */
+export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
+  {
+    activePathRoots: [APP_ROUTES.ADMIN.ROOT, '/admin/overview'],
+    adminMenuGroup: 'Overview',
+    description: 'adminOverview.description',
+    group: 'admin-category',
+    icon: Gauge,
+    id: 'admin-overview',
+    label: 'adminOverview.label',
+    route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+  },
+  {
+    activePathRoots: ['/admin/content'],
+    adminMenuGroup: 'Content',
+    description: 'adminContent.description',
+    group: 'admin-category',
+    icon: FileStack,
+    id: 'admin-content',
+    label: 'adminContent.label',
+    route: () => APP_ROUTES.ADMIN.CONTENT.POSTS,
+  },
+  {
+    activePathRoots: ['/admin/automation', '/admin/library'],
+    adminMenuGroup: 'AI & Automation',
+    description: 'adminAutomation.description',
+    group: 'admin-category',
+    icon: Bot,
+    id: 'admin-automation',
+    label: 'adminAutomation.label',
+    route: () => APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+  },
+  {
+    activePathRoots: ['/admin/configuration'],
+    adminMenuGroup: 'Configuration',
+    description: 'adminConfiguration.description',
+    group: 'admin-category',
+    icon: SlidersHorizontal,
+    id: 'admin-configuration',
+    label: 'adminConfiguration.label',
+    route: () => APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
+  },
+  {
+    activePathRoots: [
+      '/admin/administration',
+      '/admin/flags',
+      '/admin/organization',
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+    ],
+    adminMenuGroup: 'Administration',
+    description: 'adminAdministration.description',
+    group: 'admin-category',
+    icon: ShieldCheck,
+    id: 'admin-administration',
+    label: 'adminAdministration.label',
+    route: () => APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
+  },
+];
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {

@@ -3,12 +3,21 @@ import { GenerationBillingService } from '@api/collections/credits/services/gene
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
+import { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
-import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
+import {
+  ByokProvider,
+  IngredientCategory,
+  IngredientStatus,
+  RouterPriority,
+  VoiceProvider,
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -71,6 +80,27 @@ describe('AvatarVideoGenerationService', () => {
     };
     const modelCreditQuote = {
       quoteByKey: vi.fn().mockResolvedValue(AVATAR_PRICE),
+      quoteSnapshotByKey: vi.fn(
+        async (
+          modelKey: 'heygen/avatar-iv' | 'heygen/avatar-v',
+          input: { duration: number; selectors: { avatar_type: string } },
+        ) =>
+          avatarEngineSnapshot(
+            modelKey,
+            input.selectors.avatar_type,
+            input.duration,
+          ),
+      ),
+    };
+    const routerService = {
+      selectModel: vi.fn(
+        async (options: { eligibleModelKeys: readonly string[] }) => ({
+          selectedModel: options.eligibleModelKeys[0],
+        }),
+      ),
+    };
+    const modelRegistration = {
+      validateModelForOrg: vi.fn(async (key: string) => ({ key })),
     };
     const elevenlabsService = {
       generateAndUploadAudio: vi.fn().mockResolvedValue({
@@ -137,7 +167,12 @@ describe('AvatarVideoGenerationService', () => {
     };
     const videosService = {
       patch: vi.fn(),
-      prisma: { ingredient: { update: vi.fn().mockResolvedValue({}) } },
+      prisma: {
+        ingredient: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          update: vi.fn().mockResolvedValue({}),
+        },
+      },
     };
     const voicesService = {
       findOne: vi.fn(),
@@ -183,12 +218,18 @@ describe('AvatarVideoGenerationService', () => {
     const personas = personasServiceStub();
     const service = new AvatarVideoGenerationService(
       brandsService as never,
-      byokService as never,
       new AvatarVideoBillingService(
         creditsUtilsService as never,
         generationBilling,
         modelCreditQuote as never,
         loggerService,
+        new AvatarVideoModelService(
+          routerService as never,
+          modelRegistration as never,
+        ),
+        byokService as never,
+        heygenService as never,
+        videosService.prisma as never,
       ),
       elevenlabsService as never,
       failedGenerationService as never,
@@ -219,6 +260,8 @@ describe('AvatarVideoGenerationService', () => {
       creditDeductionQueueService,
       creditsUtilsService,
       modelCreditQuote,
+      modelRegistration,
+      routerService,
       elevenlabsService,
       failedGenerationService,
       managedInferenceRuntimeService,
@@ -335,6 +378,7 @@ describe('AvatarVideoGenerationService', () => {
       ).resolves.toEqual({
         billingMode: cost === 0 ? 'byok' : 'platform',
         credits: cost,
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR,
       });
       expect(
         managedInferenceRuntimeService.generateVoice,
@@ -744,7 +788,11 @@ describe('AvatarVideoGenerationService', () => {
       context,
     );
 
-    expect(price).toEqual({ billingMode: 'platform', credits: AVATAR_PRICE });
+    expect(price).toEqual({
+      billingMode: 'platform',
+      credits: AVATAR_PRICE,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+    });
     expect(modelCreditQuote.quoteByKey).toHaveBeenCalledWith('heygen/avatar');
   });
 
@@ -781,7 +829,11 @@ describe('AvatarVideoGenerationService', () => {
       },
       reserve,
     );
-    expect(reserve).toHaveBeenCalledWith({ billingMode: 'byok', credits: 0 });
+    expect(reserve).toHaveBeenCalledWith({
+      billingMode: 'byok',
+      credits: 0,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+    });
     expect(elevenlabsService.generateAndUploadAudio.mock.calls[0][5]).toBe(
       `pinned-${ByokProvider.ELEVENLABS}`,
     );
@@ -822,6 +874,7 @@ describe('AvatarVideoGenerationService', () => {
     expect(reserve).toHaveBeenCalledWith({
       billingMode: 'platform',
       credits: AVATAR_PRICE,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR,
     });
     expect(elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
@@ -1607,10 +1660,11 @@ describe('AvatarVideoGenerationService', () => {
     );
     expect(h.heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
       'avatar-ingredient-1',
-      'brand-look',
+      expect.objectContaining({ lookId: 'brand-look' }),
       { inputText: 'Hello', voiceId: 'voice-1' },
       'current-key',
       '9:16',
+      'avatar_iv',
     );
     expect(h.heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     expect(h.videosService.prisma.ingredient.update).toHaveBeenCalledWith(
@@ -1627,6 +1681,162 @@ describe('AvatarVideoGenerationService', () => {
     ).toBeLessThan(
       h.heygenService.generateNativeAvatarVideo.mock.invocationCallOrder[0],
     );
+  });
+
+  describe('engine routing and per-second billing', () => {
+    // 120 characters at 12 characters a second is a 10 s estimate.
+    const script = 'a'.repeat(120);
+    const platformTwin = (supportedEngines = ['avatar_iv', 'avatar_v']) => ({
+      ...savedNative('twin-look'),
+      ownership: 'public' as const,
+      supportedEngines,
+      connection: {
+        provider: 'heygen' as const,
+        kind: 'platform' as const,
+        organizationId: context.organizationId,
+      },
+    });
+    const admit = (
+      h: ReturnType<typeof createService>,
+      ref: ReturnType<typeof platformTwin>,
+    ) => {
+      h.brandsService.findOne.mockResolvedValue({
+        id: 'brand-1',
+        agentConfig: {},
+      });
+      const connection = {
+        apiKey: 'platform-key',
+        binding: { ...ref.connection, credentialVersionId: 'version-1' },
+      };
+      h.heygenService.resolveAvatarSelection.mockResolvedValue({
+        avatarRef: { ...ref, connection: connection.binding },
+        connection,
+      });
+    };
+
+    it('routes Auto on quality to Avatar V and holds its per-second estimate', async () => {
+      const h = createService();
+      const ref = platformTwin();
+      admit(h, ref);
+      h.routerService.selectModel.mockResolvedValue({
+        selectedModel: MODEL_KEYS.HEYGEN_AVATAR_V,
+      });
+
+      await h.service.generateAvatarVideo(
+        {
+          avatarRef: ref,
+          heygenVoiceId: 'voice-1',
+          prioritize: RouterPriority.QUALITY,
+          text: script,
+        },
+        context,
+      );
+
+      expect(h.routerService.selectModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eligibleModelKeys: [
+            MODEL_KEYS.HEYGEN_AVATAR_IV,
+            MODEL_KEYS.HEYGEN_AVATAR_V,
+          ],
+          prioritize: 'quality',
+        }),
+      );
+      expect(h.modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
+        MODEL_KEYS.HEYGEN_AVATAR_V,
+        { duration: 10, selectors: { avatar_type: 'digital_twin' } },
+      );
+      // $0.12/s x 10 s x 3.33 margin.
+      expect(h.creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 400 }),
+      );
+      expect(h.creditsUtilsService.bindReservationOutput).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 400,
+          metadata: expect.objectContaining({
+            avatarDurationQuote: expect.objectContaining({
+              estimatedSeconds: 10,
+            }),
+          }),
+        }),
+      );
+      expect(h.sharedService.createMediaDocumentsInternal).toHaveBeenCalledWith(
+        expect.objectContaining({ model: MODEL_KEYS.HEYGEN_AVATAR_V }),
+      );
+      expect(h.heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
+        'avatar-ingredient-1',
+        expect.objectContaining({ lookId: 'twin-look' }),
+        { inputText: script, voiceId: 'voice-1' },
+        'platform-key',
+        '9:16',
+        'avatar_v',
+      );
+    });
+
+    it('holds a saved narration for its measured length, not the script', async () => {
+      const h = createService();
+      const ref = platformTwin(['avatar_iv']);
+      admit(h, ref);
+      h.ingredientsService.findOne.mockResolvedValue({
+        category: IngredientCategory.AUDIO,
+        id: 'narration-1',
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example.com/narration.mp3',
+      });
+      h.videosService.prisma.ingredient.findFirst.mockResolvedValue({
+        metadata: { duration: 4.2 },
+      });
+
+      await h.service.generateAvatarVideo(
+        { audioIngredientId: 'narration-1', avatarRef: ref, text: script },
+        context,
+      );
+
+      expect(h.modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
+        MODEL_KEYS.HEYGEN_AVATAR_IV,
+        { duration: 5, selectors: { avatar_type: 'digital_twin' } },
+      );
+    });
+
+    it('refuses an explicit Avatar V the look cannot render before any hold or dispatch', async () => {
+      const h = createService();
+      const ref = platformTwin(['avatar_iv']);
+      admit(h, ref);
+
+      await expect(
+        h.service.generateAvatarVideo(
+          {
+            avatarRef: ref,
+            heygenVoiceId: 'voice-1',
+            model: MODEL_KEYS.HEYGEN_AVATAR_V,
+            text: script,
+          },
+          context,
+        ),
+      ).rejects.toThrow('Avatar V');
+      expect(h.creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      expect(
+        h.sharedService.createMediaDocumentsInternal,
+      ).not.toHaveBeenCalled();
+      expect(h.heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
+    });
+
+    it('quotes a native look by its engine for run-level callers', async () => {
+      const h = createService();
+      const ref = platformTwin(['avatar_iv']);
+      admit(h, ref);
+
+      await expect(
+        h.service.quoteCredits(
+          { avatarRef: ref, heygenVoiceId: 'voice-1', text: script },
+          context,
+        ),
+      ).resolves.toEqual({
+        billingMode: 'platform',
+        // $0.0805/s digital twin x 10 s x 3.33 margin.
+        credits: 269,
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
+      });
+    });
   });
 
   it('rejects failed native admission before credit holds, placeholders, and dispatch', async () => {

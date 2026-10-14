@@ -3,6 +3,7 @@ import {
   type GenerationBillingRequest,
   GenerationBillingService,
 } from '@api/collections/credits/services/generation-billing.service';
+import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -197,6 +198,23 @@ describe('GenerationBillingService', () => {
       expect(billing.creditsConfig?.boundOutputCount).toBe(1);
     });
 
+    it('stores caller metadata on the bound hold without letting it replace the asset id', async () => {
+      await service.bindOutput(request(), {
+        credits: 4,
+        ingredientId: 'ing_1',
+        metadata: { assetId: 'spoofed', avatarDurationQuote: { seconds: 3 } },
+      });
+
+      expect(credits.bindReservationOutput).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            assetId: 'ing_1',
+            avatarDurationQuote: { seconds: 3 },
+          },
+        }),
+      );
+    });
+
     it('links BYOK usage without reserving platform credits', async () => {
       await service.bindOutput(request({ isByokBypass: true }), {
         credits: 4,
@@ -282,6 +300,101 @@ describe('GenerationBillingService', () => {
         source: ActivitySource.VIDEO_GENERATION,
         type: 'deduct-credits',
         userId: 'user_1',
+      });
+    });
+
+    describe('per-second avatar holds', () => {
+      const avatarHold = () =>
+        hold({
+          amount: 129,
+          metadata: {
+            assetId: 'ing_1',
+            avatarDurationQuote: {
+              estimatedSeconds: 10,
+              snapshot: avatarEngineSnapshot(
+                'heygen/avatar-iv',
+                'photo_avatar',
+                10,
+              ),
+            },
+          },
+        });
+
+      it('settles below the hold and refunds the rest for a shorter clip', async () => {
+        credits.findReservationForWorkload.mockResolvedValue(avatarHold());
+
+        await service.settleOutput('ing_1', 'org_1', { durationSeconds: 5 });
+
+        expect(queue.queueDeduction).toHaveBeenCalledTimes(1);
+        expect(job0(queue)).toEqual(
+          expect.objectContaining({
+            amount: 65,
+            idempotencyKey: 'media-generation-settle:hold_1',
+            metadata: {
+              assetId: 'ing_1',
+              durationSettlement: {
+                actualCredits: 65,
+                actualSeconds: 5,
+                estimatedSeconds: 10,
+                heldCredits: 129,
+              },
+            },
+            reservationId: 'hold_1',
+          }),
+        );
+      });
+
+      it('settles the hold and tops up the overrun for a longer clip', async () => {
+        credits.findReservationForWorkload.mockResolvedValue(avatarHold());
+
+        await service.settleOutput('ing_1', 'org_1', { durationSeconds: 20 });
+
+        expect(queue.queueDeduction).toHaveBeenCalledTimes(2);
+        expect(job0(queue)).toEqual(
+          expect.objectContaining({ amount: 129, reservationId: 'hold_1' }),
+        );
+        const topUp = queue.queueDeduction.mock.calls[1][0];
+        expect(topUp).toEqual(
+          expect.objectContaining({
+            amount: 128,
+            idempotencyKey: 'media-generation-duration-topup:hold_1',
+            metadata: {
+              assetId: 'ing_1',
+              durationTopUpOfReservationId: 'hold_1',
+            },
+            userId: 'user_1',
+          }),
+        );
+        expect(topUp).not.toHaveProperty('reservationId');
+      });
+
+      it('falls back to the stored output duration when the provider reports none', async () => {
+        credits.findReservationForWorkload.mockResolvedValue(avatarHold());
+        prisma.ingredient.findFirst.mockResolvedValue({
+          metadata: { duration: 5 },
+        });
+
+        await service.settleOutput('ing_1', 'org_1');
+
+        expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: 'ing_1', isDeleted: false, organizationId: 'org_1' },
+          }),
+        );
+        expect(job0(queue)).toEqual(expect.objectContaining({ amount: 65 }));
+      });
+
+      it('settles at the estimate and warns when no duration is known', async () => {
+        credits.findReservationForWorkload.mockResolvedValue(avatarHold());
+
+        await service.settleOutput('ing_1', 'org_1');
+
+        expect(queue.queueDeduction).toHaveBeenCalledTimes(1);
+        expect(job0(queue)).toEqual(expect.objectContaining({ amount: 129 }));
+        expect(logger.warn).toHaveBeenCalledWith(
+          'Per-second generation settled at its admission estimate',
+          expect.objectContaining({ reservationId: 'hold_1' }),
+        );
       });
     });
 

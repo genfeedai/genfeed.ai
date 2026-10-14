@@ -10,6 +10,7 @@ import {
   recordCrunSubmissionFailure,
   runCrunBillingMutation,
 } from '@api/collections/credits/services/generation-crun-billing-guard';
+import { queueHoldSettlement } from '@api/collections/credits/services/generation-duration-settlement';
 import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
 import {
   type HoldReconcileStats,
@@ -170,6 +171,8 @@ export class GenerationBillingService {
     output: {
       credits: number;
       ingredientId: string;
+      /** Extra hold metadata, e.g. the frozen per-second quote to settle against. */
+      metadata?: Record<string, unknown>;
       submissionIntentProvider?: string;
     },
   ): Promise<void> {
@@ -203,6 +206,7 @@ export class GenerationBillingService {
       amount: output.credits,
       expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
       metadata: {
+        ...output.metadata,
         assetId: output.ingredientId,
         ...(output.submissionIntentProvider
           ? {
@@ -353,6 +357,7 @@ export class GenerationBillingService {
   async settleOutput(
     ingredientId: string,
     organizationId: string,
+    completion: { durationSeconds?: number } = {},
   ): Promise<GenerationSettlementOutcome> {
     void this.receipts?.syncTerminal(organizationId, ingredientId, 'settled');
     if (
@@ -382,23 +387,12 @@ export class GenerationBillingService {
       );
       return 'hold-ended';
     }
-    await this.queue.queueDeduction({
-      amount: hold.amount,
-      ...(hold.brandId ? { brandId: hold.brandId } : {}),
-      description: hold.description ?? 'Media generation',
-      idempotencyKey: `${MEDIA_GENERATION_WORKLOAD_TYPE}-settle:${hold.id}`,
-      metadata: hold.metadata ?? undefined,
-      organizationId,
-      reservationId: hold.id,
-      source: hold.source ?? ActivitySource.SCRIPT,
-      type: 'deduct-credits',
-      userId: hold.actorUserId,
-    });
-    this.logger.log('Generation credit settlement queued', {
-      ingredientId,
-      organizationId,
-      reservationId: hold.id,
-    });
+    await queueHoldSettlement(
+      { logger: this.logger, prisma: this.prisma, queue: this.queue },
+      hold,
+      { ingredientId, organizationId, userId: hold.actorUserId },
+      completion,
+    );
     return 'queued';
   }
 

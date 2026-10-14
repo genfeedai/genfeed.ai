@@ -421,6 +421,42 @@ describe('HeygenWebhookService', () => {
       'avatar',
       'https://cdn.heygen.com/avatar.mp4',
       undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('passes the clip duration HeyGen reports to settlement', async () => {
+    const ingredientId = testId('ingredient');
+    const metadataId = testId('linkedMetadata');
+    deps.clipResultsService.findOne.mockResolvedValue(null);
+    deps.metadataService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: metadataId });
+    deps.ingredientsService.findOne.mockResolvedValue({
+      id: ingredientId,
+      metadataId,
+    });
+    deps.metadataService.patch.mockResolvedValue({});
+
+    await service.handleCallback({
+      callback_id: ingredientId,
+      event_data: {
+        callback_id: ingredientId,
+        duration: 12.5,
+        url: 'https://cdn.heygen.com/avatar.mp4',
+        video_id: 'provider-video-43',
+      },
+      event_type: 'avatar_video.success',
+    });
+
+    expect(deps.webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
+      ingredientId,
+      'avatar',
+      'https://cdn.heygen.com/avatar.mp4',
+      'provider-video-43',
+      undefined,
+      12.5,
     );
   });
 
@@ -454,6 +490,8 @@ describe('HeygenWebhookService', () => {
       'avatar',
       'https://cdn.heygen.com/avatar.mp4',
       'provider-video-42',
+      undefined,
+      undefined,
     );
     expect(deps.metadataService.patch).toHaveBeenCalledWith(
       metadataId,

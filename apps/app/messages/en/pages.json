@@ -1154,7 +1154,7 @@
       "draftFailed": "Could not draft the storyboard. Try again.",
       "draftFromBrief": "Draft from the saved brief",
       "drafting": "Drafting the storyboard…",
-      "emptyDescription": "Write what the video should say below and press send. You get a shot list with stills to edit before anything is generated.",
+      "emptyDescription": "Write what the video should say below and send it to draft a shot list you can edit before anything is generated. Or add shots yourself.",
       "emptyTitle": "Start with the story",
       "loading": "Loading storyboard…",
       "regenerateBeforeEditor": "Storyboard changed. Regenerate stale shots before opening Editor.",

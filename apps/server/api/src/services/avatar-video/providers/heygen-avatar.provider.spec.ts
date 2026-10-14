@@ -141,7 +141,7 @@ describe('HeygenAvatarProvider', () => {
       );
       expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
         'clip-result-1',
-        'avatar-1',
+        avatarRef,
         { voiceId: 'voice-1', inputText: 'Create this clip' },
         'byok-xyz',
       );
@@ -215,6 +215,40 @@ describe('HeygenAvatarProvider', () => {
           headers: { 'X-Api-Key': 'env-key-abc' },
         }),
       );
+      expect(result.status).toBe('processing');
+    });
+
+    it('reports the clip duration HeyGen returns on completion', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-xyz' });
+      httpService.get.mockReturnValue(
+        of({
+          data: {
+            data: {
+              duration: 7.4,
+              status: 'completed',
+              video_url: 'https://hg/video.mp4',
+            },
+          },
+        }),
+      );
+
+      await expect(provider.getStatus('video-8', 'org-8')).resolves.toEqual({
+        duration: 7.4,
+        jobId: 'video-8',
+        providerName: 'heygen',
+        status: 'completed',
+        videoUrl: 'https://hg/video.mp4',
+      });
+    });
+
+    it('keeps polling a render HeyGen reports as waiting', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-xyz' });
+      httpService.get.mockReturnValue(
+        of({ data: { data: { status: 'waiting' } } }),
+      );
+
+      const result = await provider.getStatus('video-9', 'org-9');
+
       expect(result.status).toBe('processing');
     });
 

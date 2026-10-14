@@ -44,6 +44,7 @@ describe('TurboProjectQuoteService', () => {
     avatarGeneration.quoteCredits.mockResolvedValue({
       billingMode: 'platform',
       credits: AVATAR_PRICE,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
     });
   });
 
@@ -80,7 +81,7 @@ describe('TurboProjectQuoteService', () => {
       }),
       expect.objectContaining({
         credits: AVATAR_PRICE,
-        model: MODEL_KEYS.HEYGEN_AVATAR,
+        model: MODEL_KEYS.HEYGEN_AVATAR_IV,
       }),
     ]);
     // One estimate per format, not per idea.
@@ -114,6 +115,7 @@ describe('TurboProjectQuoteService', () => {
     avatarGeneration.quoteCredits.mockResolvedValue({
       billingMode: 'byok',
       credits: 0,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
     });
     byok.isByokActiveForProvider.mockImplementation(
       async (_organizationId: string, provider: ByokProvider) =>
@@ -138,6 +140,38 @@ describe('TurboProjectQuoteService', () => {
         ['byok', 0],
       ],
     );
+  });
+
+  it('prices every avatar idea by its own script and engine', async () => {
+    avatarGeneration.quoteCredits
+      .mockResolvedValueOnce({
+        billingMode: 'platform',
+        credits: 65,
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
+      })
+      .mockResolvedValueOnce({
+        billingMode: 'platform',
+        credits: 400,
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR_V,
+      });
+
+    const quote = await service.build({
+      brandId: 'brand-1',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      revision: 1,
+      items: [
+        { attempt: 1, item: ideaItem('avatar-1', 'avatar') as never },
+        { attempt: 1, item: ideaItem('avatar-2', 'avatar') as never },
+      ],
+    });
+
+    expect(avatarGeneration.quoteCredits).toHaveBeenCalledTimes(2);
+    expect(quote.items.map((line) => [line.model, line.credits])).toEqual([
+      [MODEL_KEYS.HEYGEN_AVATAR_IV, 65],
+      [MODEL_KEYS.HEYGEN_AVATAR_V, 400],
+    ]);
+    expect(quote.total).toBe(465);
   });
 
   it('prices platform speech even when the avatar video provider is BYOK', async () => {

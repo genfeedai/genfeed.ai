@@ -130,6 +130,8 @@ export class WebhooksService {
     url: string,
     externalId?: string,
     observer?: StoredMediaFinalizationObserver,
+    /** Clip seconds the provider billed, for per-second settlement. */
+    providerDurationSeconds?: number,
   ): Promise<void> {
     const categoryValue = normalizeCategory(category);
     const ingredient = await this.ingredientsService.findOne({
@@ -155,6 +157,7 @@ export class WebhooksService {
       integration: 'direct',
       metadataId,
       observer,
+      providerDurationSeconds,
       url,
     });
   }
@@ -167,6 +170,7 @@ export class WebhooksService {
     integration: string;
     externalId?: string;
     observer?: StoredMediaFinalizationObserver;
+    providerDurationSeconds?: number;
   }): Promise<void> {
     const logContext = `${this.constructorName} finalizeWebhookMedia`;
 
@@ -241,6 +245,7 @@ export class WebhooksService {
     await this.generationSettlement.settleOutput(
       input.ingredientId,
       ingredient.organizationId,
+      input.providerDurationSeconds,
     );
 
     await this.notifyMediaGenerated(input, ingredient, metadata);

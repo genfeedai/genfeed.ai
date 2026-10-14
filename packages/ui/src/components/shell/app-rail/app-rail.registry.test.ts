@@ -2,6 +2,7 @@ import { findAnimatedIcon } from '@ui/primitives/animated-icons/animated-icon.re
 import { describe, expect, it } from 'vitest';
 import {
   ADMIN_RAIL_APP,
+  ADMIN_RAIL_CATEGORIES,
   APP_RAIL_REGISTRY,
   getActiveAppId,
   getAppRailFlagKeyForPath,
@@ -12,7 +13,11 @@ import {
 
 describe('app rail registry', () => {
   it('gives every rail icon an animated twin, so every one reacts to hover', () => {
-    for (const app of [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP]) {
+    for (const app of [
+      ...APP_RAIL_REGISTRY,
+      ADMIN_RAIL_APP,
+      ...ADMIN_RAIL_CATEGORIES,
+    ]) {
       expect(
         findAnimatedIcon(app.icon),
         `${app.id} uses an icon with no animated twin`,
@@ -157,5 +162,29 @@ describe('app rail registry', () => {
         (app) => app.id,
       ),
     ).toEqual(['workspace']);
+  });
+
+  it('maps admin paths to one category icon each', () => {
+    expect(
+      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/overview/dashboard'),
+    ).toBe('admin-overview');
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/content/posts')).toBe(
+      'admin-content',
+    );
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/library/voices')).toBe(
+      'admin-automation',
+    );
+    expect(
+      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/configuration/tags'),
+    ).toBe('admin-configuration');
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/flags')).toBe(
+      'admin-administration',
+    );
+    expect(
+      getActiveAppId(
+        ADMIN_RAIL_CATEGORIES,
+        '/admin/overview/analytics/organizations',
+      ),
+    ).toBe('admin-administration');
   });
 });

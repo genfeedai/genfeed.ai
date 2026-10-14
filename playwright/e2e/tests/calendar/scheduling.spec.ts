@@ -70,17 +70,15 @@ async function currentWeekBrowserDates(
 }
 
 /**
- * FullCalendar's own day-column container for `dateKey` (`YYYY-MM-DD`):
- * `role="gridcell"` spans the whole vertical time-grid strip for that day
- * and carries `data-date` -- unlike the rest of FullCalendar's DOM, whose
- * classes are build-hashed per this app's theme (no stable `.fc-*`
- * selectors exist), this attribute is a stable accessibility hook. Scoping
- * a locator to it, rather than comparing bounding-box coordinates, proves
- * actual DOM containment -- the event is *inside* that day's column, not
- * merely positioned at some x that happens not to equal another event's x.
+ * FullCalendar 7 classic theme's day lane for `dateKey` (`YYYY-MM-DD`).
+ * The week view is a table: each timed day column is `role="cell"` and
+ * carries `data-date`. Column headers use `role="columnheader"` with the
+ * same attribute and do not contain events. Classes are build-hashed, so
+ * this pair is the stable hook. Scoping a locator to the cell proves the
+ * event is inside that day's column.
  */
 function dayColumn(page: Page, dateKey: string) {
-  return page.locator(`[role="gridcell"][data-date="${dateKey}"]`);
+  return page.locator(`[role="cell"][data-date="${dateKey}"]`);
 }
 
 test.describe('Calendar — Scheduling', () => {

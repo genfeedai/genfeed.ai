@@ -2210,7 +2210,7 @@ describe('StudioPlaygroundWorkspace', () => {
     });
   });
 
-  it('preserves the saved model for avatar without model selection in simple mode', async () => {
+  it('returns a saved avatar engine to Auto in simple mode, now that avatar has a model catalog', async () => {
     mocks.type.value = 'avatar';
     mocks.advancedMode.value = {
       isAdvancedMode: false,
@@ -2219,7 +2219,7 @@ describe('StudioPlaygroundWorkspace', () => {
     };
     mocks.settings.mockReturnValue({
       resetSettings: vi.fn(),
-      settings: { modelKey: 'saved-identity-model' },
+      settings: { modelKey: 'heygen/avatar-v' },
       setType: mocks.setType,
       type: 'avatar',
       updateSettings: vi.fn(),
@@ -2228,7 +2228,7 @@ describe('StudioPlaygroundWorkspace', () => {
     render(<StudioPlaygroundWorkspace />);
     await act(async () => {});
 
-    expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+    expect(mocks.updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
     );
   });

@@ -587,6 +587,25 @@ describe('persisted storyboard plan editor', () => {
         'Storyboard · brief',
       );
     });
+    it('still lets the creator add the first shot by hand', async () => {
+      renderEditor({ run: emptyRun });
+      fireEvent.click(screen.getByRole('button', { name: 'Add shot' }));
+      expect(
+        await screen.findByRole('region', { name: 'Shot 1' }),
+      ).toBeInTheDocument();
+    });
+    it('disables Add shot until the model resolves a positive duration', () => {
+      renderEditor({ run: emptyRun, capabilities: capabilities([]) });
+      expect(screen.getByRole('button', { name: 'Add shot' })).toBeDisabled();
+    });
+    it('disables Add shot on a board whose model has no positive duration', () => {
+      renderEditor({ capabilities: capabilities([0]) });
+      expect(screen.getByRole('button', { name: 'Add shot' })).toBeDisabled();
+      for (const insert of screen.getAllByRole('button', {
+        name: /^Insert shot after shot /,
+      }))
+        expect(insert).toBeDisabled();
+    });
     it('offers to draft from a brief that is already saved', () => {
       const draftFromBrief = vi.fn();
       renderEditor({

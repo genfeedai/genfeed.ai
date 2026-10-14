@@ -22,6 +22,7 @@ const CATEGORY_ORDER = [
   'image-edit',
   'image-upscale',
   'voice',
+  'avatar',
   'music',
   'text',
   'embedding',

@@ -6,20 +6,32 @@ import type { OrganizationModuleId } from '../../constants/organization-modules.
 import type { IconComponent } from '../../types/icon';
 import type { AppContext } from './menu-config.interface';
 
+export type AdminRailCategoryId =
+  | 'admin-overview'
+  | 'admin-content'
+  | 'admin-automation'
+  | 'admin-configuration'
+  | 'admin-administration';
+
+export type AppRailItemId = AppContext | AdminRailCategoryId;
+
 export interface AppRailItemConfig {
-  id: AppContext;
+  id: AppRailItemId;
   icon: IconComponent;
   /** Translation keys relative to common.appRail. */
   label: string;
   description: string;
   /** `daily` is the fixed core loop; `app` entries open from the Apps launcher. */
-  group: 'daily' | 'app' | 'admin';
+  /** `admin-category` entries replace the app loop while the admin chrome is up. */
+  group: 'daily' | 'app' | 'admin' | 'admin-category';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
   /** Platform switch for one Studio surface, under the `studio` module flag. */
   surfaceFlagKey?: PlatformStudioFlagKey;
   organizationModule?: OrganizationModuleId;
   isBrandAware?: boolean;
+  /** Admin menu `group` whose items this category icon opens in the sidebar. */
+  adminMenuGroup?: string;
   route: (orgSlug: string, brandSlug?: string) => string;
 }
 
@@ -39,8 +51,8 @@ export type AppRailSurface = 'desktop' | 'drawer';
 export type AppRailNavigationVia = 'click' | 'shortcut' | 'palette';
 
 export interface AppRailNavigationEvent {
-  from_app: AppContext | null;
-  to_app: AppContext;
+  from_app: AppRailItemId | null;
+  to_app: AppRailItemId;
   via: AppRailNavigationVia;
   surface: AppRailSurface;
 }

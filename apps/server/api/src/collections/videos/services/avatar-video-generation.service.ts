@@ -33,7 +33,6 @@ import type {
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
@@ -51,7 +50,6 @@ import {
   MetadataExtension,
   VoiceProvider,
 } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -64,7 +62,6 @@ export class AvatarVideoGenerationService {
 
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly byokService: ByokService,
     private readonly avatarBilling: AvatarVideoBillingService,
     private readonly elevenlabsService: ElevenLabsService,
     private readonly failedGenerationService: FailedGenerationService,
@@ -90,11 +87,12 @@ export class AvatarVideoGenerationService {
     await this.admitCharacter(identity, brand.id, context);
     this.assertUsableVoiceSource(params, identity);
     await this.admitIdentity(params, identity, context);
-    const { billingMode, credits } = await this.resolveFunding(
+    const { billingMode, credits, modelKey } = await this.resolveFunding(
+      params,
       identity,
       context,
     );
-    return { billingMode, credits };
+    return { billingMode, credits, modelKey };
   }
 
   /**
@@ -113,41 +111,32 @@ export class AvatarVideoGenerationService {
     );
   }
 
-  /** Pin provider keys before reserving, so a BYOK change cannot change who pays. */
-  private async resolveFunding(
+  /** The price a run-level caller accepted, without the pinned keys. */
+  private acceptedPrice({
+    billingMode,
+    credits,
+    modelKey,
+  }: AvatarGenerationFunding): AvatarGenerationPrice {
+    return { billingMode, credits, modelKey };
+  }
+
+  /** Pin provider keys and the engine row before reserving. */
+  private resolveFunding(
+    params: AvatarVideoGenerationParams,
     identity: ResolvedIdentity,
     context: AvatarVideoGenerationContext,
   ): Promise<AvatarGenerationFunding> {
-    const connection =
-      identity.heygenConnection ??
-      (await this.heygenService.resolveOrganizationConnection(
-        context.organizationId,
-      ));
-    identity.heygenConnection = connection;
-    const heygenKey =
-      connection.binding.kind === 'byok' ? connection : undefined;
-    const elevenLabsKey = identity.elevenlabsVoiceId
-      ? await this.byokService.lookupApiKey(
-          context.organizationId,
-          ByokProvider.ELEVENLABS,
-        )
-      : null;
-    const usesPlatformSpeech =
-      Boolean(identity.savedVoice) ||
-      (Boolean(identity.elevenlabsVoiceId) && !elevenLabsKey);
-    const isByok = Boolean(heygenKey) && !usesPlatformSpeech;
-    return {
-      billingMode: isByok ? 'byok' : 'platform',
-      credits: isByok ? 0 : await this.quotePlatformCredits(),
-      heygenApiKey: connection.apiKey,
-      elevenLabsApiKey: elevenLabsKey?.apiKey,
-    };
+    return this.avatarBilling.resolveFunding(
+      params,
+      identity,
+      context.organizationId,
+    );
   }
 
   /**
-   * The platform price comes from the `heygen/avatar` model row, the same row
-   * the credits guard reserves from. A row that resolves to no price fails
-   * closed: with no fallback constant, zero would mean a free render.
+   * The flat photo-animation price from the `heygen/avatar` row. A row that
+   * resolves to no price fails closed: with no fallback constant, zero would
+   * mean a free render.
    */
   async quotePlatformCredits(): Promise<number> {
     return this.avatarBilling.quotePlatformCredits();
@@ -181,7 +170,11 @@ export class AvatarVideoGenerationService {
       );
       this.assertUsableVoiceSource(params, resolvedIdentity);
       await this.admitIdentity(params, resolvedIdentity, context);
-      const funding = await this.resolveFunding(resolvedIdentity, context);
+      const funding = await this.resolveFunding(
+        params,
+        resolvedIdentity,
+        context,
+      );
       billing =
         funding.billingMode === 'byok'
           ? context.request
@@ -196,6 +189,7 @@ export class AvatarVideoGenerationService {
         brand.id,
         resolvedIdentity,
         context,
+        funding.modelKey,
         placeholderScope,
         personaId,
       );
@@ -213,10 +207,7 @@ export class AvatarVideoGenerationService {
         funding.credits,
         placeholderScope,
       );
-      await onCreditsPrepared?.({
-        billingMode: funding.billingMode,
-        credits: funding.credits,
-      });
+      await onCreditsPrepared?.(this.acceptedPrice(funding));
 
       await this.metadataService.patch(
         metadataData.id,
@@ -237,13 +228,8 @@ export class AvatarVideoGenerationService {
 
       // Bind the render to its hold before its provider id is
       // persisted, so a webhook that races this request always finds it.
-      if (billing) {
-        await this.avatarBilling.bindOutput(billing, {
-          credits: billing.creditsConfig?.amount ?? funding.credits,
-          ingredientId,
-          submissionIntentProvider: ByokProvider.HEYGEN,
-        });
-      }
+      if (billing)
+        await this.avatarBilling.bindRender(billing, funding, ingredientId);
 
       await this.freezeSubmission(
         resolvedIdentity,
@@ -266,6 +252,7 @@ export class AvatarVideoGenerationService {
         ingredientId,
         speech,
         connection.apiKey,
+        funding,
       );
 
       providerAccepted = true;
@@ -311,14 +298,16 @@ export class AvatarVideoGenerationService {
     ingredientId: string,
     speech: AvatarVideoSpeechInput,
     apiKey: string,
+    funding: AvatarGenerationFunding,
   ): Promise<string> {
     return identity.avatarRef
       ? this.heygenService.generateNativeAvatarVideo(
           ingredientId,
-          identity.avatarRef.lookId,
+          identity.avatarRef,
           speech,
           apiKey,
           params.aspectRatio ?? '9:16',
+          funding.engine,
         )
       : this.heygenService.generatePhotoAvatarVideo(
           ingredientId,
@@ -433,6 +422,7 @@ export class AvatarVideoGenerationService {
     brandId: string,
     identity: ResolvedIdentity,
     context: AvatarVideoGenerationContext,
+    modelKey: string,
     placeholderScope?: GenerationPlaceholderScope,
     personaId?: string | null,
   ): ReturnType<SharedService['createMediaDocumentsInternal']> {
@@ -443,7 +433,7 @@ export class AvatarVideoGenerationService {
       extension: MetadataExtension.MP4,
       groupId: placeholderScope?.groupId,
       groupIndex: placeholderScope?.groupIndex,
-      model: MODEL_KEYS.HEYGEN_AVATAR,
+      model: modelKey,
       organizationId: context.organizationId,
       parentId:
         identity.photoIngredientId != null

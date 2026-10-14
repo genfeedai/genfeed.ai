@@ -439,6 +439,15 @@ describe('editing bootstrap default', () => {
       'edit-default',
     ]);
   });
+  it('enables Avatar IV, never Avatar V, so new workspaces keep avatar generation', async () => {
+    const service = makeService('test', undefined, {
+      findAllActive: vi.fn().mockResolvedValue([
+        { id: 'avatar-iv', key: MODEL_KEYS.HEYGEN_AVATAR_IV },
+        { id: 'avatar-v', key: MODEL_KEYS.HEYGEN_AVATAR_V },
+      ]),
+    });
+    expect(await service.getLowestCostModelIds()).toEqual(['avatar-iv']);
+  });
 });
 
 describe('OrganizationSettingsService module preference validation', () => {

@@ -29,7 +29,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   [ModelCategory.VIDEO]: 'Video Generation',
   [ModelCategory.VIDEO_EDIT]: 'Video Editing',
   [ModelCategory.VIDEO_UPSCALE]: 'Video Upscaling',
-  [ModelCategory.VOICE]: 'Voice & Avatar',
+  [ModelCategory.VOICE]: 'Voice',
+  [ModelCategory.AVATAR]: 'Avatar Video',
 };
 
 const CATEGORY_ORDER: readonly string[] = [
@@ -37,6 +38,7 @@ const CATEGORY_ORDER: readonly string[] = [
   ModelCategory.VIDEO,
   ModelCategory.MUSIC,
   ModelCategory.VOICE,
+  ModelCategory.AVATAR,
   ModelCategory.TEXT,
   ModelCategory.IMAGE_EDIT,
   ModelCategory.IMAGE_UPSCALE,

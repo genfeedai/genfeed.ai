@@ -6,6 +6,7 @@ vi.mock('@genfeedai/contracts', async (importOriginal) => {
   return {
     ...actual,
     ModelCategory: {
+      AVATAR: 'avatar',
       EMBEDDING: 'embedding',
       IMAGE: 'image',
       IMAGE_EDIT: 'image-edit',

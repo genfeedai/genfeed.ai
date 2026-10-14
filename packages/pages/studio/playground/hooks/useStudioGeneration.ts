@@ -1031,6 +1031,10 @@ export function useStudioGeneration({
               voiceProvider: settings.voiceRef?.provider,
               text: promptData.speech?.trim() || promptData.text?.trim() || '',
               voiceId: settings.voiceId,
+              // Auto routes among the engines the look supports.
+              ...(modelKey
+                ? { autoSelectModel: false, model: modelKey }
+                : { autoSelectModel: true, prioritize: settings.prioritize }),
             });
             trackPendingIds([resolveJsonApiIngredientId(data)], pendingContext);
             isAccepted = true;

@@ -465,6 +465,55 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
+   * HeyGen Avatar IV, the default avatar engine. HeyGen bills per output
+   * second by avatar type: $0.0385 for a photo avatar, $0.0805 for a digital
+   * twin or studio avatar (pricing page, 2026-10-10). This row carries the
+   * photo-avatar band; the reviewed `avatar_type` rates price each request,
+   * and dispatch refuses an avatar type the sheet does not price.
+   */
+  {
+    category: ModelCategory.AVATAR,
+    cost: 65,
+    costPerUnit: 13,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'HeyGen Avatar IV — talking-avatar video from a trained HeyGen look. 65 credits for a 5 s photo-avatar clip, 135 for digital twins and studio avatars.',
+    isDefault: true,
+    isHighlighted: false,
+    key: MODEL_KEYS.HEYGEN_AVATAR_IV,
+    label: 'HeyGen Avatar IV',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'avatar-iv', owner: 'heygen' },
+    providerCostUsd: 0.0385,
+  },
+  /**
+   * HeyGen Avatar V at $0.12 per output second. HeyGen only renders it for a
+   * digital-twin look whose `supported_api_engines` contain `avatar_v`.
+   */
+  {
+    category: ModelCategory.AVATAR,
+    cost: 200,
+    costPerUnit: 40,
+    costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'HeyGen Avatar V — the highest-fidelity engine for digital-twin looks. 200 credits for a 5 s clip.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.HEYGEN_AVATAR_V,
+    label: 'HeyGen Avatar V',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'avatar-v', owner: 'heygen' },
+    providerCostUsd: 0.12,
+  },
+  /**
    * HeyGen Voice (`heygen-voice-1`) on the synchronous
    * `POST /v3/models/audio/tts`. Unlike every other row, `providerCostUsd` is
    * USD per **1,000 characters** ($30 per 1M at HeyGen's list price), so

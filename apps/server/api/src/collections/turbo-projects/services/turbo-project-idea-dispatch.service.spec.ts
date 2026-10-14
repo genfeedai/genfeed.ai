@@ -7,6 +7,7 @@ import {
   IngredientCategory,
   TurboProjectItemStatus,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 type Row = Record<string, unknown>;
 type CreditsConfig = {
@@ -290,7 +291,10 @@ describe('TurboProjectIdeaDispatchService', () => {
     });
     useItem(
       makeItem('avatar', {
-        dispatch: makeDispatch({ credits: 8, model: 'heygen-avatar' }),
+        dispatch: makeDispatch({
+          credits: 8,
+          model: MODEL_KEYS.HEYGEN_AVATAR_IV,
+        }),
       }),
     );
     avatarGeneration.generateAvatarVideo.mockImplementation(
@@ -302,7 +306,11 @@ describe('TurboProjectIdeaDispatchService', () => {
         onCreditsPrepared: (price: AvatarGenerationPrice) => Promise<void>,
       ) => {
         await onPlaceholderCreated('avatar-video-1');
-        await onCreditsPrepared({ billingMode: 'platform', credits: 8 });
+        await onCreditsPrepared({
+          billingMode: 'platform',
+          credits: 8,
+          modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
+        });
         providerCalls.push('heygen');
       },
     );
@@ -314,6 +322,7 @@ describe('TurboProjectIdeaDispatchService', () => {
     const [params] = avatarGeneration.generateAvatarVideo.mock.calls[0];
     expect(params).toEqual({
       aspectRatio: '9:16',
+      model: MODEL_KEYS.HEYGEN_AVATAR_IV,
       text: 'Say hi to the new mug',
       useIdentity: true,
     });
@@ -333,13 +342,45 @@ describe('TurboProjectIdeaDispatchService', () => {
     });
   });
 
+  it('stops an avatar before paid calls when its engine changed after the quote', async () => {
+    useItem(
+      makeItem('avatar', {
+        dispatch: makeDispatch({
+          credits: 8,
+          model: MODEL_KEYS.HEYGEN_AVATAR_IV,
+        }),
+      }),
+    );
+    avatarGeneration.generateAvatarVideo.mockImplementation(
+      async (
+        _params: unknown,
+        _context: unknown,
+        onPlaceholderCreated: (id: string) => Promise<void>,
+        _scope: PlaceholderScope,
+        onCreditsPrepared: (price: AvatarGenerationPrice) => Promise<void>,
+      ) => {
+        await onPlaceholderCreated('avatar-video-1');
+        await onCreditsPrepared({
+          billingMode: 'platform',
+          credits: 8,
+          modelKey: MODEL_KEYS.HEYGEN_AVATAR_V,
+        });
+        providerCalls.push('heygen');
+      },
+    );
+
+    await expect(service.dispatch(job)).resolves.toEqual({ status: 'failed' });
+    expect(providerCalls).toEqual([]);
+    expect(creditsUtils.reserveCredits).not.toHaveBeenCalled();
+  });
+
   it('skips platform credits for a line billed to the org key', async () => {
     useItem(
       makeItem('avatar', {
         dispatch: makeDispatch({
           billingMode: 'byok',
           credits: 0,
-          model: 'heygen-avatar',
+          model: MODEL_KEYS.HEYGEN_AVATAR_IV,
         }),
       }),
     );
@@ -353,7 +394,11 @@ describe('TurboProjectIdeaDispatchService', () => {
       ) => {
         expect(scope.isByokBypass).toBe(true);
         await onPlaceholderCreated('avatar-video-1');
-        await onCreditsPrepared({ billingMode: 'byok', credits: 0 });
+        await onCreditsPrepared({
+          billingMode: 'byok',
+          credits: 0,
+          modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
+        });
         providerCalls.push('heygen');
       },
     );
@@ -370,7 +415,7 @@ describe('TurboProjectIdeaDispatchService', () => {
         dispatch: makeDispatch({
           billingMode: 'byok',
           credits: 0,
-          model: 'heygen-avatar',
+          model: MODEL_KEYS.HEYGEN_AVATAR_IV,
         }),
       }),
     );
@@ -383,7 +428,11 @@ describe('TurboProjectIdeaDispatchService', () => {
         onCreditsPrepared: (price: AvatarGenerationPrice) => Promise<void>,
       ) => {
         await onPlaceholderCreated('avatar-video-1');
-        await onCreditsPrepared({ billingMode: 'platform', credits: 8 });
+        await onCreditsPrepared({
+          billingMode: 'platform',
+          credits: 8,
+          modelKey: MODEL_KEYS.HEYGEN_AVATAR_IV,
+        });
         providerCalls.push('paid-speech-and-video');
       },
     );

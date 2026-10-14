@@ -17,8 +17,20 @@ export async function createWorkflowMediaCostIntent(
   input: MediaIntentInput,
   continuationId: string,
 ): Promise<void> {
+  // The avatar service records the engine row it priced on the output.
   const modelKey =
-    input.actionId === 'aiAvatarVideo' ? MODEL_KEYS.HEYGEN_AVATAR : input.model;
+    input.actionId === 'aiAvatarVideo'
+      ? ((
+          await transaction.ingredient.findFirst({
+            select: { metadata: { select: { model: true } } },
+            where: {
+              id: input.ingredientId,
+              isDeleted: false,
+              organizationId: input.organizationId,
+            },
+          })
+        )?.metadata?.model ?? MODEL_KEYS.HEYGEN_AVATAR)
+      : input.model;
   const isDirectPlatformMedia =
     input.provider === 'replicate' &&
     ['imageGen', 'videoGen', 'lipSync', 'reframe', 'upscale'].includes(

@@ -33,6 +33,24 @@ export class HeygenWebhookService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
+  /** Stores the clip and settles per-second engines to HeyGen's duration. */
+  private processAvatarSuccess(
+    ingredientId: string,
+    body: HeygenWebhookPayload,
+  ): Promise<void> {
+    const duration = body.event_data?.duration;
+    return this.webhooksService.processMediaForIngredient(
+      ingredientId,
+      'avatar',
+      this.getSuccessVideoUrl(body) ?? '',
+      body.event_data?.video_id,
+      undefined,
+      typeof duration === 'number' && Number.isFinite(duration) && duration > 0
+        ? duration
+        : undefined,
+    );
+  }
+
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -153,12 +171,7 @@ export class HeygenWebhookService {
           JSON.stringify(event_data),
         );
       } else if (event_type === 'avatar_video.success' && successVideoUrl) {
-        await this.webhooksService.processMediaForIngredient(
-          ingredient.id.toString(),
-          'avatar',
-          successVideoUrl,
-          providerVideoId,
-        );
+        await this.processAvatarSuccess(ingredient.id.toString(), body);
       }
 
       await this.metadataService.patch(metadata.id, updateData);

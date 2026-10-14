@@ -336,6 +336,8 @@ export class TurboProjectIdeaDispatchService implements OnModuleInit {
       await this.avatarGeneration.generateAvatarVideo(
         {
           aspectRatio: IDEA_OUTPUT_ASPECT_RATIO,
+          // The engine the accepted quote priced; never re-routed at dispatch.
+          model: dispatch.model,
           text: ideaSpeechText(idea),
           useIdentity: true,
         },
@@ -349,7 +351,8 @@ export class TurboProjectIdeaDispatchService implements OnModuleInit {
         async (price) => {
           if (
             price.billingMode !== dispatch.billingMode ||
-            price.credits !== dispatch.credits
+            price.credits !== dispatch.credits ||
+            price.modelKey !== dispatch.model
           ) {
             throw new ConflictException(
               'Avatar funding changed after the accepted quote. Retry with a fresh quote.',

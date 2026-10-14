@@ -44,6 +44,7 @@ export class AvatarVideoController {
           {
             aspectRatio: createAvatarVideoDto.aspectRatio,
             audioUrl: createAvatarVideoDto.audioUrl,
+            autoSelectModel: createAvatarVideoDto.autoSelectModel,
             avatarId: createAvatarVideoDto.avatarId,
             avatarRef: createAvatarVideoDto.avatarRef,
             voiceRef: createAvatarVideoDto.voiceRef,
@@ -51,8 +52,10 @@ export class AvatarVideoController {
             clonedVoiceId: createAvatarVideoDto.clonedVoiceId,
             elevenlabsVoiceId: createAvatarVideoDto.elevenlabsVoiceId,
             heygenVoiceId: createAvatarVideoDto.heygenVoiceId,
+            model: createAvatarVideoDto.model,
             photoUrl: createAvatarVideoDto.photoUrl,
             photoIngredientId: createAvatarVideoDto.photoIngredientId,
+            prioritize: createAvatarVideoDto.prioritize,
             text: createAvatarVideoDto.text ?? '',
             useIdentity: createAvatarVideoDto.useIdentity,
             voiceProvider: createAvatarVideoDto.voiceProvider,
