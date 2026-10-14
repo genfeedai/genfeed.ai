@@ -1,9 +1,6 @@
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
-import {
-  MODEL_KEYS,
-  RouterPriority,
-  VoiceProvider,
-} from '@genfeedai/contracts';
+import { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 

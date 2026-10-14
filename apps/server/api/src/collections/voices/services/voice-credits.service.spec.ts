@@ -5,7 +5,8 @@ import {
   VoiceCreditsService,
 } from '@api/collections/voices/services/voice-credits.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
-import { ActivitySource, MODEL_KEYS } from '@genfeedai/contracts';
+import { ActivitySource } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { Request } from 'express';
 

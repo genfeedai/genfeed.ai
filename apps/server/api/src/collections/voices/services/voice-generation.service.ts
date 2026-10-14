@@ -20,20 +20,22 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
-  countSpeechCharacters,
   FileInputType,
-  getVoiceSpeechModel,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
   RouterPriority,
-  SPEECH_VOICE_PROVIDERS,
   VoiceProvider,
+} from '@genfeedai/contracts';
+import {
+  countSpeechCharacters,
+  getVoiceSpeechModel,
+  SPEECH_VOICE_PROVIDERS,
   type VoiceSpeechModel,
   voiceSpeechModelKeysFor,
-} from '@genfeedai/contracts';
+} from '@genfeedai/contracts/constants';
 import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';

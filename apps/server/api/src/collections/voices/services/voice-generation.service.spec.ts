@@ -15,11 +15,11 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-  MODEL_KEYS,
   ModelCategory,
   RouterPriority,
   VoiceProvider,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { compileActionContract } from '@genfeedai/workflows/engine';
 import { testId } from '@helpers/testing/test-id.helper';

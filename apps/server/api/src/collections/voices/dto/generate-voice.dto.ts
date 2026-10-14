@@ -1,8 +1,5 @@
-import {
-  RouterPriority,
-  SPEECH_VOICE_PROVIDERS,
-  VoiceProvider,
-} from '@genfeedai/contracts';
+import { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
+import { SPEECH_VOICE_PROVIDERS } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
