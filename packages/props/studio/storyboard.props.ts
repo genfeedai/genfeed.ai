@@ -7,12 +7,17 @@ import type {
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { StoryboardCharacterReplacement } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
+import type {
+  StoryboardCastMember,
+  StoryboardShot,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type {
   IImage,
+  IIngredient,
   StoryboardRunRecipe,
   StoryboardRunSelectOption,
 } from '@genfeedai/contracts/interfaces';
@@ -172,6 +177,8 @@ export interface StoryboardEditorSeedInput {
 
 export interface StoryboardRuntimeRailProps {
   readonly budgetSeconds: number | null;
+  /** Shown beside the shot count, for example `9:16`. */
+  readonly formatLabel?: string;
   readonly shots: readonly Pick<
     StoryboardAnimaticShot,
     'id' | 'ordinal' | 'durationSeconds'
@@ -205,7 +212,19 @@ export interface StoryboardCharacterReplaceProps {
 export interface StoryboardPlanEditorProps {
   readonly ref?: Ref<StoryboardPlanEditorHandle>;
   readonly run: StoryboardRun;
+  /** Page actions that sit before the primary Approve action in the sub-topbar. */
+  readonly actions?: ReactNode;
+  /** Sticky prompt bar rendered under the board. */
+  readonly composer?: ReactNode;
   readonly draft?: StoryboardAutosaveBinding<StoryboardEditablePlan>;
+  /** A plan is being drafted: the board shows a skeleton and edits pause. */
+  readonly isDrafting?: boolean;
+  /** Banners above the board: navigation, storage and conflict notices. */
+  readonly notices?: ReactNode;
+  /** Drafts the plan from the saved brief, offered by the empty board. */
+  readonly onDraftFromBrief?: () => void;
+  /** The saved brief, shown read-only under Details once shots exist. */
+  readonly sourceBrief?: string;
   readonly transport?: StoryboardDraftTransport;
   readonly isSourceSaving?: boolean;
   readonly onSaveStatusChange?: (
@@ -239,7 +258,103 @@ export type StoryboardDraftPageProps = Pick<
   | 'capabilities'
   | 'capabilityError'
   | 'refreshCapabilities'
->;
+> & {
+  /** Drafts the plan from the brief, or revises it when `instruction` is set. */
+  readonly draftPlan: (instruction?: string) => Promise<StoryboardRun>;
+};
+
+export interface StoryboardPromptBarProps {
+  readonly error?: string;
+  readonly hasShots: boolean;
+  readonly isDisabled: boolean;
+  readonly onRetry: () => void;
+  /** Handles the request; failures are reported back through `error`. */
+  readonly onSubmit: (text: string) => void | Promise<void>;
+}
+
+export interface StoryboardShotCardStill {
+  readonly url: string;
+  readonly title: string;
+  readonly width?: number;
+  readonly height?: number;
+}
+
+export interface StoryboardShotCardProps {
+  readonly brandId: string;
+  readonly cast: readonly StoryboardCastMember[];
+  readonly characterReplacement?: StoryboardCharacterReplacement;
+  readonly endSeconds: number;
+  readonly format: StoryboardEditablePlan['format'];
+  readonly index: number;
+  readonly isDisabled: boolean;
+  readonly isSelected: boolean;
+  readonly isTimingDisabled: boolean;
+  readonly onChangeDuration: (seconds: number) => void;
+  readonly onDelete: () => void;
+  readonly onMove: (offset: -1 | 1) => void;
+  readonly onPatch: (patch: Partial<StoryboardShot>) => void;
+  readonly runId: string;
+  readonly shot: StoryboardShot;
+  readonly shotCount: number;
+  readonly startSeconds: number;
+  readonly still?: StoryboardShotCardStill;
+  readonly supportedDurations: readonly number[];
+}
+
+export interface StoryboardShotJointProps {
+  readonly canAddShot: boolean;
+  readonly index: number;
+  readonly interpolationAvailable: boolean;
+  readonly isDisabled: boolean;
+  readonly onAddShot: () => void;
+  readonly onChangeTransition: (
+    transition: StoryboardShot['transition'],
+  ) => void;
+  readonly transition: StoryboardShot['transition'];
+}
+
+export interface StoryboardInspectorShot {
+  readonly durationSeconds: number | null;
+  readonly id: string;
+  readonly isStillFresh: boolean;
+  readonly name: string;
+  readonly ordinal: number;
+  readonly stillUrl?: string;
+}
+
+export interface StoryboardInspectorProps {
+  readonly cast: ReactNode;
+  readonly castCount: number;
+  readonly details: ReactNode;
+  readonly onSelectShot: (shotId: string) => void;
+  readonly references: ReactNode;
+  readonly referenceCount: number;
+  readonly selectedShotId?: string;
+  readonly shots: readonly StoryboardInspectorShot[];
+  readonly totalSeconds: number;
+}
+
+export interface StoryboardDetailsPanelProps {
+  readonly isDisabled: boolean;
+  readonly isTimingDisabled: boolean;
+  readonly modelCapabilities?: StoryboardRunCapabilities;
+  readonly onChange: (next: StoryboardEditablePlan) => void;
+  readonly onChangeModel: (key: string | undefined) => void;
+  readonly plan: StoryboardEditablePlan;
+  readonly sourceBrief?: string;
+  readonly supportedFormats: readonly string[];
+}
+
+export interface StoryboardCastPanelProps {
+  readonly brandId: string;
+  readonly isDisabled: boolean;
+  readonly onChange: (next: StoryboardEditablePlan) => void;
+  readonly plan: StoryboardEditablePlan;
+  readonly voiceError?: string;
+  readonly voiceStatus: 'loading' | 'loaded' | 'failed';
+  readonly voices: readonly IIngredient[];
+  readonly onRetryVoices: () => void;
+}
 
 export type StoryboardListRun = StoryboardRunSummary | BrandRemixRunSummary;
 

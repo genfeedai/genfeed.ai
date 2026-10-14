@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   editStoryboardShot,
   editStoryboardStyle,
+  insertStoryboardShot,
   removeStoryboardShot,
   reorderStoryboardShots,
   storyboardApprovalProblems,
@@ -78,5 +79,35 @@ describe('saved plan editing', () => {
       'Shot 1: stale still.',
       'Shot 1: assign a speaker with a voice.',
     ]);
+  });
+  it('inserts a shot between two shots and renumbers without touching the others', () => {
+    const inserted = insertStoryboardShot(plan, 1, {
+      id: 'shot-new',
+      action: '',
+      onScreenSpeaker: false,
+      durationSeconds: 3,
+      stillFreshness: 'missing',
+      transition: 'cut',
+    });
+    expect(inserted.shots.map((shot) => [shot.id, shot.ordinal])).toEqual([
+      ['shot-1', 1],
+      ['shot-new', 2],
+      ['shot-2', 3],
+    ]);
+    expect(insertStoryboardShot(plan, 99, plan.shots[0]).shots).toHaveLength(3);
+  });
+  it('drops an interpolation whose next shot was replaced by the inserted one', () => {
+    const interpolating = editStoryboardShot(plan, 'shot-1', {
+      transition: 'interpolate',
+    });
+    const inserted = insertStoryboardShot(interpolating, 1, {
+      id: 'shot-new',
+      action: '',
+      onScreenSpeaker: false,
+      durationSeconds: 3,
+      stillFreshness: 'missing',
+      transition: 'cut',
+    });
+    expect(inserted.shots[0].transition).toBe('cut');
   });
 });

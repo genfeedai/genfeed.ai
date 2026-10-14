@@ -105,6 +105,7 @@ describe('Storyboard upload creation against real Prisma metadata', () => {
       {} as never,
       {} as never,
       { warn: vi.fn() } as never,
+      {} as never,
     );
   });
   afterAll(async () => {

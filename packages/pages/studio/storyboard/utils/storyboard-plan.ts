@@ -94,6 +94,29 @@ export function reorderStoryboardShots(
   } as StoryboardEditablePlan;
 }
 
+/** Inserts a shot at `index` and renumbers the saved order. */
+export function insertStoryboardShot(
+  plan: StoryboardEditablePlan,
+  index: number,
+  shot: Omit<StoryboardShot, 'ordinal'>,
+): StoryboardEditablePlan {
+  const at = Math.min(Math.max(index, 0), plan.shots.length);
+  const shots = [...plan.shots];
+  shots.splice(at, 0, { ...shot, ordinal: at + 1 });
+  return {
+    ...plan,
+    shots: shots.map((current, position) => ({
+      ...current,
+      ordinal: position + 1,
+      // The shot it interpolated into is no longer its neighbour.
+      transition:
+        position === at - 1 && current.transition === 'interpolate'
+          ? 'cut'
+          : current.transition,
+    })),
+  } as StoryboardEditablePlan;
+}
+
 export function removeStoryboardShot(
   plan: StoryboardEditablePlan,
   id: string,

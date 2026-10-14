@@ -55,6 +55,24 @@ describe('AgentChatInputToolbar', () => {
     expect(screen.queryByText(/^Lock /)).not.toBeInTheDocument();
   });
 
+  it('hides the agent-only controls but keeps Send for other hosts', () => {
+    render(
+      <AgentChatInputToolbar
+        {...buildDefaultProps({
+          isAgentControlsHidden: true,
+          isEmptyComposer: false,
+          promptText: 'Generate an image of a red apple',
+        })}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /Agent mode/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add context')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeTruthy();
+  });
+
   it('keeps a secondary mic beside Send once the field has text', () => {
     const onStartListening = vi.fn();
     render(

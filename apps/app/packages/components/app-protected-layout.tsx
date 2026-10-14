@@ -4,6 +4,10 @@ import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/li
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import { AgentDockProvider } from '@contexts/ui/agent-dock-context';
+import {
+  BreadcrumbLeafProvider,
+  useBreadcrumbLeaf,
+} from '@contexts/ui/breadcrumb-leaf-context';
 import { ContextSidebarProvider } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -57,6 +61,7 @@ import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import {
   extractAgentConversationId,
+  extractStoryboardRunId,
   truncateBreadcrumbLabel,
 } from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
@@ -451,7 +456,9 @@ function AppLayoutWithDynamicMenu({
   // Org settings: Settings / <org label> / <page> (General vs brand Profile).
   // Registry seeds parent as :brandSlug / :orgSlug; prefer live display names.
   // Agent conversation: Agent / <thread title, 25 chars>.
+  // Storyboard run: Storyboard / <run title, 25 chars>, published by the page.
   const rawPathname = usePathname();
+  const breadcrumbLeaf = useBreadcrumbLeaf();
   const layoutBreadcrumb = useMemo(() => {
     const breadcrumb = workspaceShellRoute?.breadcrumb;
     if (!breadcrumb) {
@@ -520,8 +527,16 @@ function AppLayoutWithDynamicMenu({
         }
       }
     }
+    const storyboardRunId = extractStoryboardRunId(rawPathname);
+    if (storyboardRunId && breadcrumbLeaf?.key === storyboardRunId) {
+      return {
+        ...breadcrumb,
+        leafLabel: truncateBreadcrumbLabel(breadcrumbLeaf.label),
+      };
+    }
     return breadcrumb;
   }, [
+    breadcrumbLeaf,
     brands,
     organizationId,
     orgSlug,
@@ -654,11 +669,13 @@ function AppProtectedLayoutContent({
       >
         <InstalledAppsProvider>
           <PinnedRailAppsProvider>
-            <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
-              <OnboardingGuard>
-                <AssetGateGuard>{children}</AssetGateGuard>
-              </OnboardingGuard>
-            </AppLayoutWithDynamicMenu>
+            <BreadcrumbLeafProvider>
+              <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
+                <OnboardingGuard>
+                  <AssetGateGuard>{children}</AssetGateGuard>
+                </OnboardingGuard>
+              </AppLayoutWithDynamicMenu>
+            </BreadcrumbLeafProvider>
           </PinnedRailAppsProvider>
         </InstalledAppsProvider>
       </ProtectedProviders>

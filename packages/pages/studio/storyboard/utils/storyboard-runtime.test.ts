@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatStoryboardTimecode,
   snapStoryboardDuration,
+  storyboardDurationStep,
   storyboardRuntimeRanges,
 } from './storyboard-runtime';
 
@@ -26,5 +28,17 @@ describe('model-backed storyboard runtime', () => {
       { id: 'a', startSeconds: 3, endSeconds: 3 },
       { id: 'c', startSeconds: 3, endSeconds: 8 },
     ]);
+  });
+  it('formats whole-second timecodes', () => {
+    expect(formatStoryboardTimecode(0)).toBe('00:00');
+    expect(formatStoryboardTimecode(5.9)).toBe('00:05');
+    expect(formatStoryboardTimecode(75)).toBe('01:15');
+  });
+  it('steps the duration slider by the common divisor of the supported durations', () => {
+    expect(storyboardDurationStep([5, 10])).toBe(5);
+    expect(storyboardDurationStep([4, 6, 8])).toBe(2);
+    expect(storyboardDurationStep([3, 5, 8])).toBe(1);
+    expect(storyboardDurationStep([4.5, 9])).toBe(1);
+    expect(storyboardDurationStep([])).toBe(1);
   });
 });
