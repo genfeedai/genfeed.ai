@@ -747,7 +747,7 @@ export class AvatarVideoGenerationService {
         context.organizationId,
         context.userId,
         funding.elevenLabsApiKey,
-        funding.speechModelId ? { modelId: funding.speechModelId } : undefined,
+        ...(funding.speechModelId ? [{ modelId: funding.speechModelId }] : []),
       );
 
       return {
