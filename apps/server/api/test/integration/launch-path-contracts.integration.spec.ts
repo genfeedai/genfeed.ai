@@ -403,17 +403,24 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(ads).toContain("'ad-creative'");
   });
 
-  it('video upscale/reframe charge only via CreditsInterceptor (no manual deduct)', () => {
-    const controllers = [
-      'VideosUpscaleController',
-      'VideosReframeController',
-      'VideosLipSyncController',
-    ];
+  it('video transformations use one funded billing path before provider dispatch', () => {
+    const controllers = ['VideosUpscaleController', 'VideosReframeController'];
     for (const controller of controllers) {
       const source = readSourceOf(controller, { root: API_SRC });
       expect(source).toContain('CreditsInterceptor');
       expect(source).not.toContain('deductCreditsFromOrganization');
     }
+    const lipSync = readSourceOf('VideosLipSyncController', { root: API_SRC });
+    const funding = lipSync.indexOf('await this.avatarBilling.fundLipSync(');
+    const binding = lipSync.indexOf('await this.avatarBilling.bindRender(');
+    const submission = lipSync.indexOf(
+      'await this.heygenService.generatePhotoAvatarVideo(',
+    );
+    expect(funding).toBeGreaterThan(-1);
+    expect(binding).toBeGreaterThan(funding);
+    expect(submission).toBeGreaterThan(binding);
+    expect(lipSync).not.toContain('CreditsInterceptor');
+    expect(lipSync).not.toContain('deductCreditsFromOrganization');
   });
 
   it('context auto-create uses parsePlatform for posts.platform (not a local map)', () => {
