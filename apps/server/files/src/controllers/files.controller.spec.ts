@@ -29,6 +29,11 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Response } from 'express';
 import { of, throwError } from 'rxjs';
 
+const { guardedFetch } = vi.hoisted(() => ({ guardedFetch: vi.fn() }));
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: guardedFetch,
+}));
+
 // Mock fs module
 const fsMock = vi.hoisted(() => ({
   existsSync: vi.fn().mockReturnValue(true),
@@ -66,7 +71,6 @@ describe('FilesController', () => {
   let imageQueueService: ImageQueueService;
   let fileQueueService: FileQueueService;
   let youtubeQueueService: YoutubeQueueService;
-  let httpService: HttpService;
   let s3Service: S3Service;
   let uploadService: UploadService;
   let videoThumbnailService: VideoThumbnailService;
@@ -231,6 +235,7 @@ describe('FilesController', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    guardedFetch.mockReset();
 
     const fs = nodeFs as unknown as Record<string, ReturnType<typeof vi.fn>>;
     fs.existsSync.mockReturnValue(true);
@@ -432,7 +437,6 @@ describe('FilesController', () => {
     imageQueueService = module.get<ImageQueueService>(ImageQueueService);
     fileQueueService = module.get<FileQueueService>(FileQueueService);
     youtubeQueueService = module.get<YoutubeQueueService>(YoutubeQueueService);
-    httpService = module.get<HttpService>(HttpService);
     s3Service = module.get<S3Service>(S3Service);
     uploadService = module.get<UploadService>(UploadService);
     videoThumbnailService = module.get<VideoThumbnailService>(
@@ -446,6 +450,7 @@ describe('FilesController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    guardedFetch.mockReset();
   });
 
   // ==========================================================================
@@ -1369,9 +1374,8 @@ describe('FilesController', () => {
     });
 
     it('should download and return metadata for URL', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        of({
-          data: Buffer.from('video-data'),
+      guardedFetch.mockResolvedValueOnce(
+        new Response('video-data', {
           headers: { 'content-type': 'video/mp4' },
         }),
       );
@@ -1380,11 +1384,10 @@ describe('FilesController', () => {
 
       const result = await controller.getFileMetadata(body);
 
-      expect(httpService.get).toHaveBeenCalledWith(
+      expect(guardedFetch).toHaveBeenCalledWith(
         'https://example.com/video.mp4',
-        expect.objectContaining({
-          responseType: 'arraybuffer',
-        }),
+        { signal: expect.any(AbortSignal) },
+        {},
       );
       expect(result.duration).toBe(120);
     });
@@ -1401,11 +1404,8 @@ describe('FilesController', () => {
     });
 
     it('should handle 404 error when downloading URL', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        throwError(() => ({
-          message: 'Not found',
-          response: { status: 404 },
-        })),
+      guardedFetch.mockResolvedValueOnce(
+        new Response('Not found', { status: 404 }),
       );
 
       const body = { url: 'https://example.com/nonexistent.mp4' };
@@ -1416,11 +1416,8 @@ describe('FilesController', () => {
     });
 
     it('should handle 403 error when downloading URL', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        throwError(() => ({
-          message: 'Forbidden',
-          response: { status: 403 },
-        })),
+      guardedFetch.mockResolvedValueOnce(
+        new Response('Forbidden', { status: 403 }),
       );
 
       const body = { url: 'https://example.com/protected.mp4' };
@@ -1431,11 +1428,10 @@ describe('FilesController', () => {
     });
 
     it('should handle file size exceeded error', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        throwError(() => ({
-          code: 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED',
-          message: 'Size exceeded',
-        })),
+      guardedFetch.mockResolvedValueOnce(
+        new Response('large', {
+          headers: { 'content-length': String(101 * 1024 * 1024) },
+        }),
       );
 
       const body = { url: 'https://example.com/large-file.mp4' };
