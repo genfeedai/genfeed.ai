@@ -710,6 +710,11 @@ export class AvatarVideoGenerationService {
         );
       }
 
+      // Platform speech for a customer-key render is generated on the model
+      // its hold was priced on.
+      const speechModel = funding.speechModelId
+        ? ([{ modelId: funding.speechModelId }] as const)
+        : ([] as const);
       const audioResult = await this.elevenlabsService.generateAndUploadAudio(
         resolvedIdentity.elevenlabsVoiceId,
         params.text,
@@ -717,6 +722,7 @@ export class AvatarVideoGenerationService {
         context.organizationId,
         context.userId,
         funding.elevenLabsApiKey,
+        ...speechModel,
       );
 
       return {

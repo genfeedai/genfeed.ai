@@ -384,6 +384,142 @@ describe('GenerationBillingService', () => {
         expect(job0(queue)).toEqual(expect.objectContaining({ amount: 65 }));
       });
 
+      it('caps the overrun per render and flags the excess for an operator', async () => {
+        credits.findReservationForWorkload.mockResolvedValue(avatarHold());
+
+        await service.settleOutput('ing_1', 'org_1', { durationSeconds: 60 });
+
+        expect(queue.queueDeduction).toHaveBeenCalledTimes(2);
+        expect(job0(queue)).toEqual(
+          expect.objectContaining({
+            amount: 129,
+            metadata: expect.objectContaining({
+              durationSettlement: expect.objectContaining({
+                actualCredits: 770,
+                forgoneCredits: 512,
+              }),
+            }),
+          }),
+        );
+        // At most twice the hold in total: the top-up is the hold again.
+        expect(queue.queueDeduction.mock.calls[1][0]).toEqual(
+          expect.objectContaining({
+            amount: 129,
+            idempotencyKey: 'media-generation-duration-topup:hold_1',
+          }),
+        );
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('per-render charge cap'),
+          expect.objectContaining({
+            forgoneCredits: 512,
+            maxChargeCredits: 258,
+            reservationId: 'hold_1',
+          }),
+        );
+      });
+
+      describe('after the hold ended', () => {
+        const endedAvatarHold = () => ({
+          ...avatarHold(),
+          status: CreditReservationStatus.EXPIRED,
+        });
+
+        it('re-prices a late completion at the clip length instead of the hold', async () => {
+          credits.findReservationForWorkload.mockResolvedValue(
+            endedAvatarHold(),
+          );
+          prisma.ingredient.findFirst.mockResolvedValue({
+            metadata: { duration: 5 },
+            status: IngredientStatus.GENERATED,
+            userId: 'user_1',
+          });
+
+          expect(await service.settleOutput('ing_1', 'org_1')).toBe(
+            'late-queued',
+          );
+
+          expect(queue.queueDeduction).toHaveBeenCalledTimes(1);
+          expect(job0(queue)).toEqual(
+            expect.objectContaining({
+              amount: 65,
+              idempotencyKey: 'media-generation-late-settle:hold_1',
+              metadata: expect.objectContaining({
+                durationSettlement: expect.objectContaining({
+                  actualSeconds: 5,
+                  heldCredits: 129,
+                }),
+                lateSettlementOfReservationId: 'hold_1',
+              }),
+            }),
+          );
+        });
+
+        it('tops up a late overrun with the same capped, shared top-up', async () => {
+          credits.findReservationForWorkload.mockResolvedValue(
+            endedAvatarHold(),
+          );
+          prisma.ingredient.findFirst.mockResolvedValue({
+            status: IngredientStatus.GENERATED,
+            userId: 'user_1',
+          });
+
+          await service.settleOutput('ing_1', 'org_1', { durationSeconds: 60 });
+
+          expect(queue.queueDeduction).toHaveBeenCalledTimes(2);
+          expect(job0(queue)).toEqual(
+            expect.objectContaining({
+              amount: 129,
+              idempotencyKey: 'media-generation-late-settle:hold_1',
+            }),
+          );
+          expect(queue.queueDeduction.mock.calls[1][0]).toEqual(
+            expect.objectContaining({
+              amount: 129,
+              idempotencyKey: 'media-generation-duration-topup:hold_1',
+            }),
+          );
+        });
+
+        it('re-prices a late charge the reconcile sweep finds', async () => {
+          prisma.creditReservation.findMany.mockImplementation(
+            async ({ where }: { where: { status: unknown } }) =>
+              typeof where.status === 'object'
+                ? [
+                    {
+                      id: 'hold_1',
+                      organizationId: 'org_1',
+                      workloadId: 'ing_1',
+                    },
+                  ]
+                : [],
+          );
+          prisma.ingredient.findMany.mockResolvedValue([
+            {
+              id: 'ing_1',
+              organizationId: 'org_1',
+              status: IngredientStatus.GENERATED,
+            },
+          ]);
+          prisma.creditTransaction.findMany.mockResolvedValue([]);
+          credits.findReservationForWorkload.mockResolvedValue(
+            endedAvatarHold(),
+          );
+          prisma.ingredient.findFirst.mockResolvedValue({
+            metadata: { duration: 5 },
+            status: IngredientStatus.GENERATED,
+            userId: 'user_1',
+          });
+
+          expect(await service.reconcileLateCompletions(NOW)).toBe(1);
+          expect(job0(queue)).toEqual(
+            expect.objectContaining({
+              amount: 65,
+              idempotencyKey: 'media-generation-late-settle:hold_1',
+            }),
+          );
+        });
+      });
+
       it('settles at the estimate and warns when no duration is known', async () => {
         credits.findReservationForWorkload.mockResolvedValue(avatarHold());
 

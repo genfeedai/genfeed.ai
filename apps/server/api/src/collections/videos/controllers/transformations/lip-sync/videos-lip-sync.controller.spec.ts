@@ -29,6 +29,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ByokService } from '@api/services/byok/byok.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -49,6 +50,18 @@ const imageIngredientId = testId('ingredient', 1);
 const audioIngredientId = testId('ingredient', 2);
 const ingredientDataId = testId('ingredientdata');
 const metadataDataId = testId('metadata');
+
+function heygenConnection(kind: 'byok' | 'platform') {
+  return {
+    apiKey: `${kind}-heygen-key`,
+    binding: {
+      credentialVersionId: 'version-1',
+      kind,
+      organizationId,
+      provider: 'heygen',
+    },
+  };
+}
 
 describe('VideosLipSyncController', () => {
   let controller: VideosLipSyncController;
@@ -93,6 +106,7 @@ describe('VideosLipSyncController', () => {
   let avatarBilling: {
     bindRender: ReturnType<typeof vi.fn>;
     fundLipSync: ReturnType<typeof vi.fn>;
+    recordSubmissionRejection: ReturnType<typeof vi.fn>;
     releaseGenerationHold: ReturnType<typeof vi.fn>;
     releasePool: ReturnType<typeof vi.fn>;
   };
@@ -100,7 +114,10 @@ describe('VideosLipSyncController', () => {
   let failedGenerationService: {
     handleFailedVideoGeneration: ReturnType<typeof vi.fn>;
   };
-  let heygenService: { generatePhotoAvatarVideo: ReturnType<typeof vi.fn> };
+  let heygenService: {
+    generatePhotoAvatarVideo: ReturnType<typeof vi.fn>;
+    resolveOrganizationConnection: ReturnType<typeof vi.fn>;
+  };
   let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
   let metadataService: { patch: ReturnType<typeof vi.fn> };
   let sharedService: { createMediaDocuments: ReturnType<typeof vi.fn> };
@@ -137,6 +154,7 @@ describe('VideosLipSyncController', () => {
               request: { creditsConfig: { amount: 65 } },
             },
       ),
+      recordSubmissionRejection: vi.fn().mockResolvedValue(undefined),
       releaseGenerationHold: vi.fn().mockResolvedValue(undefined),
       releasePool: vi.fn().mockResolvedValue(undefined),
     };
@@ -148,6 +166,9 @@ describe('VideosLipSyncController', () => {
       generatePhotoAvatarVideo: vi
         .fn()
         .mockResolvedValue('heygen-video-id-abc'),
+      resolveOrganizationConnection: vi
+        .fn()
+        .mockResolvedValue(heygenConnection('platform')),
     };
     ingredientsService = {
       findOne: vi
@@ -240,6 +261,7 @@ describe('VideosLipSyncController', () => {
     expect(avatarBilling.fundLipSync).toHaveBeenCalledWith(
       expect.objectContaining({
         audioIngredientId: audioIngredientId,
+        audioUrl: `http://localhost/audios/${audioIngredientId}`,
         organizationId,
         useCustomerKey: false,
         userId,
@@ -270,7 +292,9 @@ describe('VideosLipSyncController', () => {
   });
 
   it('skips the platform hold when the organization uses its own HeyGen key', async () => {
-    byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key-xyz' });
+    heygenService.resolveOrganizationConnection.mockResolvedValue(
+      heygenConnection('byok'),
+    );
 
     await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
@@ -278,6 +302,118 @@ describe('VideosLipSyncController', () => {
       expect.objectContaining({ useCustomerKey: true }),
     );
     expect(avatarBilling.bindRender).not.toHaveBeenCalled();
+  });
+
+  describe('one HeyGen connection for billing and dispatch (#6932)', () => {
+    it('renders on the customer key it billed as BYOK, even when a lenient key read misses', async () => {
+      // A transient failure the lenient BYOK read swallows used to price the
+      // render as platform while the dispatch re-read found the customer key.
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      heygenService.resolveOrganizationConnection.mockResolvedValue(
+        heygenConnection('byok'),
+      );
+
+      await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+
+      expect(heygenService.resolveOrganizationConnection).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(heygenService.resolveOrganizationConnection).toHaveBeenCalledWith(
+        organizationId,
+      );
+      expect(avatarBilling.fundLipSync).toHaveBeenCalledWith(
+        expect.objectContaining({ useCustomerKey: true }),
+      );
+      expect(avatarBilling.bindRender).not.toHaveBeenCalled();
+      expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
+        ingredientDataId,
+        expect.any(String),
+        expect.any(String),
+        organizationId,
+        userId,
+        'byok-heygen-key',
+      );
+    });
+
+    it('charges nothing and renders nothing when the key lookup fails', async () => {
+      heygenService.resolveOrganizationConnection.mockRejectedValue(
+        new Error('settings read timed out'),
+      );
+
+      await expect(
+        controller.createLipSyncVideo(mockReq, mockUser, mockDto),
+      ).rejects.toBeInstanceOf(HttpException);
+      expect(avatarBilling.fundLipSync).not.toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+    });
+
+    it('renders a platform-billed job on the platform key it priced', async () => {
+      await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+
+      expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
+        ingredientDataId,
+        expect.any(String),
+        expect.any(String),
+        organizationId,
+        userId,
+        'platform-heygen-key',
+      );
+    });
+  });
+
+  describe('submission outcomes (#6932)', () => {
+    it('keeps the hold when the submission times out after it was sent', async () => {
+      heygenService.generatePhotoAvatarVideo.mockRejectedValue(
+        new Error('timeout of 30000ms exceeded'),
+      );
+
+      await expect(
+        controller.createLipSyncVideo(mockReq, mockUser, mockDto),
+      ).rejects.toBeInstanceOf(HttpException);
+      expect(avatarBilling.releaseGenerationHold).not.toHaveBeenCalled();
+      expect(
+        failedGenerationService.handleFailedVideoGeneration,
+      ).not.toHaveBeenCalled();
+      expect(avatarBilling.recordSubmissionRejection).not.toHaveBeenCalled();
+    });
+
+    it('records a definitive HeyGen rejection, fails the output and returns the hold', async () => {
+      heygenService.generatePhotoAvatarVideo.mockRejectedValue(
+        new HeyGenSubmissionRejectedError(),
+      );
+
+      await expect(
+        controller.createLipSyncVideo(mockReq, mockUser, mockDto),
+      ).rejects.toBeInstanceOf(HeyGenSubmissionRejectedError);
+      expect(avatarBilling.recordSubmissionRejection).toHaveBeenCalledWith(
+        ingredientDataId,
+        organizationId,
+      );
+      expect(
+        failedGenerationService.handleFailedVideoGeneration,
+      ).toHaveBeenCalled();
+      expect(avatarBilling.releaseGenerationHold).toHaveBeenCalledWith(
+        ingredientDataId,
+        organizationId,
+      );
+    });
+
+    it('fails the output and returns the hold when it breaks before dispatch', async () => {
+      avatarBilling.bindRender.mockRejectedValue(new Error('bind failed'));
+
+      await expect(
+        controller.createLipSyncVideo(mockReq, mockUser, mockDto),
+      ).rejects.toBeInstanceOf(HttpException);
+      expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+      expect(
+        failedGenerationService.handleFailedVideoGeneration,
+      ).toHaveBeenCalled();
+      expect(avatarBilling.releaseGenerationHold).toHaveBeenCalledWith(
+        ingredientDataId,
+        organizationId,
+      );
+    });
   });
 
   describe('character admission (#6040)', () => {
@@ -341,7 +477,7 @@ describe('VideosLipSyncController', () => {
           `http://localhost/audios/${mockDto.voice}`,
           organizationId,
           userId,
-          undefined, // no BYOK key
+          'platform-heygen-key',
         );
       });
 
@@ -367,7 +503,9 @@ describe('VideosLipSyncController', () => {
       });
 
       it('should resolve BYOK key when available', async () => {
-        byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key-xyz' });
+        heygenService.resolveOrganizationConnection.mockResolvedValue(
+          heygenConnection('byok'),
+        );
 
         await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
@@ -377,7 +515,7 @@ describe('VideosLipSyncController', () => {
           expect.any(String),
           expect.any(String),
           expect.any(String),
-          'byok-key-xyz',
+          'byok-heygen-key',
         );
       });
 
@@ -400,7 +538,7 @@ describe('VideosLipSyncController', () => {
           `http://localhost/videos/${mockDto.voice}`,
           expect.any(String),
           expect.any(String),
-          undefined,
+          'platform-heygen-key',
         );
       });
     });
@@ -539,9 +677,9 @@ describe('VideosLipSyncController', () => {
     });
 
     describe('generation failure', () => {
-      it('should call failedGenerationService when HeyGen throws', async () => {
+      it('should call failedGenerationService when HeyGen rejects the job', async () => {
         heygenService.generatePhotoAvatarVideo.mockRejectedValue(
-          new Error('HeyGen API error'),
+          new HeyGenSubmissionRejectedError(),
         );
 
         await expect(
@@ -615,7 +753,7 @@ describe('VideosLipSyncController', () => {
       audioUrl,
       organizationId,
       userId,
-      undefined,
+      'platform-heygen-key',
     );
   });
 

@@ -1,12 +1,13 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { quoteSpeechSnapshot } from '@api/collections/voices/utils/speech-quote.util';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { ActivitySource } from '@genfeedai/contracts';
 import type {
   CreditsConfig,
   ModelBillableQuoteSnapshot,
 } from '@genfeedai/contracts/interfaces';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
 export const VOICE_CLONE_CREDITS = 17;
@@ -45,34 +46,14 @@ export class VoiceCreditsService {
     throw new InsufficientCreditsException(credits, balance);
   }
 
-  /**
-   * Speech is billed per submitted character through the model's reviewed
-   * `character` rate. Any other cost source reads `providerCostUsd` as a
-   * per-run price and would undercharge long text, so it is refused.
-   */
-  async quoteSpeech(params: {
+  /** The reviewed per-character speech quote; see {@link quoteSpeechSnapshot}. */
+  quoteSpeech(params: {
     characters: number;
     modelKey: string;
     organizationId: string;
     provider: string;
   }): Promise<ModelBillableQuoteSnapshot> {
-    const snapshot = await this.modelCreditQuoteService.quoteSnapshotByKey(
-      params.modelKey,
-      {
-        characters: params.characters,
-        organizationId: params.organizationId,
-        provider: params.provider,
-      },
-    );
-    if (snapshot.costSource !== 'reviewed-provider')
-      throw new ServiceUnavailableException({
-        code: 'PRICING_UNAVAILABLE',
-        detail: `${params.modelKey} has no reviewed per-character rate`,
-        message: 'Speech pricing is unavailable right now',
-        modelKey: params.modelKey,
-        title: 'Pricing unavailable',
-      });
-    return snapshot;
+    return quoteSpeechSnapshot(this.modelCreditQuoteService, params);
   }
 
   /** Charges a settled speech quote once per ingredient. */

@@ -43,6 +43,20 @@ export const MEDIA_GENERATION_LATE_SETTLEMENT_WINDOW_MS =
 export const MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS = 1_000_000;
 
 /**
+ * Most a per-second render may charge at settlement, as a multiple of its hold
+ * (#6932). The wallet overdraft above bounds the wallet, not one render, so
+ * without this a single clip could top up to the whole overdraft.
+ *
+ * An audio-driven hold is sized from the measured audio, so only a script
+ * estimate can run over. That estimate errs slow (about 120 words a minute,
+ * slower per-script rates for CJK and Hangul), so a normal delivery settles at
+ * or under its hold. A clip more than twice its estimate is outside what the
+ * estimate models: it is charged up to this cap and the excess is logged for
+ * an operator, never billed.
+ */
+export const MEDIA_GENERATION_DURATION_MAX_CHARGE_HOLD_MULTIPLE = 2;
+
+/**
  * Idempotency-key prefix of the charge recorded when an output completes after
  * its hold ended. The key carries the hold id, so redelivered webhooks and
  * sweeps collapse into a single ledger transaction.

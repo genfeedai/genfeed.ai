@@ -1,9 +1,18 @@
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import {
+  durationSettlementMetadata,
+  type HeldDurationSettlement,
+  queueDurationTopUp,
+  readPositiveSeconds,
+  reportDurationSettlement,
+  settleHeldDuration,
+} from '@api/collections/credits/services/generation-duration-settlement';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { generationSubmissionIntentSchema } from '@api/helpers/utils/credits/persist-submission-failure.util';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
+import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -38,6 +47,14 @@ const PAGE_SIZE = 50;
 export const UNKNOWN_PROVIDER_STATUS_RELEASE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const COMPLETED = [IngredientStatus.GENERATED, IngredientStatus.VALIDATED];
 
+/** What a recovered charge settles a hold at, and who pays it. */
+interface RecoveredCharge {
+  amount: number;
+  held?: HeldDurationSettlement;
+  payerUserId: string;
+  source: ActivitySource;
+}
+
 @Injectable()
 export class GenerationHoldRecoveryService {
   constructor(
@@ -49,6 +66,7 @@ export class GenerationHoldRecoveryService {
     private readonly http: HttpService,
     private readonly logger: LoggerService,
     private readonly bootstrapCache: AccessBootstrapCacheService,
+    private readonly queue: CreditDeductionQueueService,
   ) {}
 
   /** Five calls per sweep are budgeted by the caller. Never hold DB locks while polling. */
@@ -110,23 +128,26 @@ export class GenerationHoldRecoveryService {
     const action = isCompleted
       ? CreditHoldRecoveryAction.CHARGE
       : CreditHoldRecoveryAction.RELEASE;
-    await this.apply({
-      organizationId,
-      reservationId,
-      action,
-      reason: isCompleted
-        ? 'Provider completed at credit-hold ceiling'
-        : isUnknownExpired
-          ? 'Unknown provider status after 7d at credit-hold ceiling'
-          : status
-            ? 'Provider confirmed failure at credit-hold ceiling'
-            : 'No provider submission at credit-hold ceiling',
-      expectedProviderExternalId: externalId ?? null,
-      expectedReservationMetadata: z
-        .record(z.string(), z.unknown())
-        .parse(hold.metadata),
-      expiry: true,
-    });
+    await this.apply(
+      {
+        organizationId,
+        reservationId,
+        action,
+        reason: isCompleted
+          ? 'Provider completed at credit-hold ceiling'
+          : isUnknownExpired
+            ? 'Unknown provider status after 7d at credit-hold ceiling'
+            : status
+              ? 'Provider confirmed failure at credit-hold ceiling'
+              : 'No provider submission at credit-hold ceiling',
+        expectedProviderExternalId: externalId ?? null,
+        expectedReservationMetadata: z
+          .record(z.string(), z.unknown())
+          .parse(hold.metadata),
+        expiry: true,
+      },
+      { durationSeconds: status?.duration },
+    );
     return action;
   }
 
@@ -200,8 +221,16 @@ export class GenerationHoldRecoveryService {
     };
   }
 
-  /** Money, reservation CAS and operator audit commit or roll back together. */
-  async apply(input: CreditHoldRecoveryInput): Promise<void> {
+  /**
+   * Money, reservation CAS and operator audit commit or roll back together. A
+   * charged per-second hold is re-priced at the real clip length (#6932): the
+   * provider's reported duration, else the stored output's measured one. Its
+   * capped overrun is queued as the shared top-up once the settlement commits.
+   */
+  async apply(
+    input: CreditHoldRecoveryInput,
+    completion: { durationSeconds?: number } = {},
+  ): Promise<void> {
     if (!usesMeteredCredits())
       throw new ServiceUnavailableException(
         'Credit holds are unavailable in this edition',
@@ -211,7 +240,7 @@ export class GenerationHoldRecoveryService {
       throw new BusinessLogicException(
         'Provide a recovery reason between 8 and 500 characters',
       );
-    const recorded = await this.reservations.runSerializable(async (tx) => {
+    const recovered = await this.reservations.runSerializable(async (tx) => {
       const hold = await tx.creditReservation.findFirst({
         where: {
           id: input.reservationId,
@@ -232,7 +261,7 @@ export class GenerationHoldRecoveryService {
         select: {
           status: true,
           userId: true,
-          metadata: { select: { externalId: true } },
+          metadata: { select: { duration: true, externalId: true } },
         },
       });
       if (
@@ -249,35 +278,50 @@ export class GenerationHoldRecoveryService {
         COMPLETED.includes(ingredient.status as IngredientStatus)
       )
         throw new BusinessLogicException('Completed output must be charged');
-      const snapshot =
+      const charge =
         input.action === CreditHoldRecoveryAction.CHARGE
-          ? await this.reservations.settleInTransaction(
-              {
-                organizationId: input.organizationId,
-                reservationId: hold.id,
-                actualAmount: hold.amount,
-                actorUserId: this.payer(hold, ingredient?.userId),
-                description: hold.description ?? 'Recovered media generation',
-                source:
-                  Object.values(ActivitySource).find(
-                    (source) => source === hold.source,
-                  ) ?? ActivitySource.SCRIPT,
-                metadata: { recoveredReservationId: hold.id },
-                expectedReservationMetadata: input.expectedReservationMetadata,
-                settlementIdempotencyKey: `${MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX}:${hold.id}`,
-              },
-              tx,
-              true,
+          ? this.recoveredCharge(
+              hold,
+              ingredient?.userId,
+              completion.durationSeconds ??
+                readPositiveSeconds(ingredient?.metadata?.duration),
             )
-          : await this.reservations.releaseInTransaction(
-              {
-                organizationId: input.organizationId,
-                reservationId: hold.id,
-                reason: input.expiry ? 'expiry' : 'release',
-                expectedReservationMetadata: input.expectedReservationMetadata,
+          : undefined;
+      const snapshot = charge
+        ? await this.reservations.settleInTransaction(
+            {
+              organizationId: input.organizationId,
+              reservationId: hold.id,
+              actualAmount: charge.amount,
+              actorUserId: charge.payerUserId,
+              description: hold.description ?? 'Recovered media generation',
+              source: charge.source,
+              metadata: {
+                recoveredReservationId: hold.id,
+                ...(charge.held
+                  ? {
+                      durationSettlement: durationSettlementMetadata(
+                        hold.amount,
+                        charge.held,
+                      ),
+                    }
+                  : {}),
               },
-              tx,
-            );
+              expectedReservationMetadata: input.expectedReservationMetadata,
+              settlementIdempotencyKey: `${MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX}:${hold.id}`,
+            },
+            tx,
+            true,
+          )
+        : await this.reservations.releaseInTransaction(
+            {
+              organizationId: input.organizationId,
+              reservationId: hold.id,
+              reason: input.expiry ? 'expiry' : 'release',
+              expectedReservationMetadata: input.expectedReservationMetadata,
+            },
+            tx,
+          );
       const after = await tx.creditReservation.findFirst({
         where: {
           id: hold.id,
@@ -285,7 +329,7 @@ export class GenerationHoldRecoveryService {
           isDeleted: false,
         },
       });
-      return this.activities.recordInTransaction(tx, {
+      const recorded = await this.activities.recordInTransaction(tx, {
         key:
           input.action === CreditHoldRecoveryAction.CHARGE
             ? ActivityKey.CREDITS_REMOVE
@@ -307,14 +351,60 @@ export class GenerationHoldRecoveryService {
           payerUserId: hold.actorUserId ?? ingredient?.userId ?? null,
           billingAccountId: hold.billingAccountId,
           amount: hold.amount,
+          ...(charge ? { chargedAmount: charge.amount } : {}),
           beforeStatus: hold.status,
           afterStatus: after?.status,
           wallet: snapshot,
         },
       });
+      return { charge, hold, recorded };
     });
     await this.bootstrapCache.invalidateForOrganization(input.organizationId);
-    await this.activities.afterCommit(recorded.commit);
+    await this.activities.afterCommit(recovered.recorded.commit);
+    if (recovered.charge?.held)
+      await this.topUpRecoveredCharge(recovered.hold, recovered.charge);
+  }
+
+  /**
+   * The amount a recovered completion settles its hold at. A per-second hold
+   * is re-priced at the clip length and capped at the hold; the overrun is a
+   * separate top-up, because a reservation never settles above its amount.
+   */
+  private recoveredCharge(
+    hold: CreditReservation,
+    ingredientUserId: string | null | undefined,
+    actualSeconds: number | undefined,
+  ): RecoveredCharge {
+    const held = settleHeldDuration(hold, actualSeconds);
+    return {
+      amount: held?.settlement.settleCredits ?? hold.amount,
+      ...(held ? { held } : {}),
+      payerUserId: this.payer(hold, ingredientUserId),
+      source:
+        Object.values(ActivitySource).find(
+          (source) => source === hold.source,
+        ) ?? ActivitySource.SCRIPT,
+    };
+  }
+
+  private async topUpRecoveredCharge(
+    hold: CreditReservation,
+    charge: RecoveredCharge,
+  ): Promise<void> {
+    if (!charge.held || !hold.workloadId) return;
+    const output = {
+      ingredientId: hold.workloadId,
+      organizationId: hold.organizationId,
+      userId: charge.payerUserId,
+    };
+    reportDurationSettlement(this.logger, hold, charge.held, output);
+    await queueDurationTopUp(
+      this.queue,
+      hold,
+      output,
+      charge.held.settlement.topUpCredits,
+      charge.source,
+    );
   }
 
   private payer(

@@ -10,7 +10,11 @@ import {
   recordCrunSubmissionFailure,
   runCrunBillingMutation,
 } from '@api/collections/credits/services/generation-crun-billing-guard';
-import { queueHoldSettlement } from '@api/collections/credits/services/generation-duration-settlement';
+import {
+  queueHoldSettlement,
+  queueLateHoldCharge,
+  readPositiveSeconds,
+} from '@api/collections/credits/services/generation-duration-settlement';
 import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
 import {
   type HoldReconcileStats,
@@ -38,7 +42,6 @@ import {
   MEDIA_GENERATION_HOLD_TTL_MS,
   MEDIA_GENERATION_INTENT_HOLD_CEILING_MS,
   MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX,
-  MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
   MEDIA_GENERATION_LATE_SETTLEMENT_WINDOW_MS,
   MEDIA_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
@@ -378,7 +381,12 @@ export class GenerationBillingService {
       return 'already-settled';
     }
     if (hold.status !== CreditReservationStatus.RESERVED) {
-      return this.chargeLateCompletion(hold, ingredientId, organizationId);
+      return this.chargeLateCompletion(
+        hold,
+        ingredientId,
+        organizationId,
+        completion,
+      );
     }
     if (!hold.actorUserId) {
       this.logger.error(
@@ -401,16 +409,22 @@ export class GenerationBillingService {
    * funds are gone, so the charge is a direct deduction keyed by the dead hold:
    * it settles from the wallet when funds exist and otherwise records the
    * shortfall as a negative balance, the same durable debt every other
-   * delivered-then-billed output carries. The key keeps redeliveries and sweeps
-   * to one ledger transaction.
+   * delivered-then-billed output carries. A per-second hold is re-priced at the
+   * real clip length (#6932). The key keeps redeliveries and sweeps to one
+   * ledger transaction.
    */
   private async chargeLateCompletion(
     hold: ICreditReservation,
     ingredientId: string,
     organizationId: string,
+    completion: { durationSeconds?: number },
   ): Promise<GenerationSettlementOutcome> {
     const ingredient = await this.prisma.ingredient.findFirst({
-      select: { status: true, userId: true },
+      select: {
+        metadata: { select: { duration: true } },
+        status: true,
+        userId: true,
+      },
       where: { id: ingredientId, organizationId, isDeleted: false },
     });
     if (!ingredient || !SETTLEABLE_STATUSES.includes(ingredient.status)) {
@@ -430,30 +444,19 @@ export class GenerationBillingService {
       );
       return 'hold-ended';
     }
-    await this.queue.queueDeduction({
-      amount: hold.amount,
-      ...(hold.brandId ? { brandId: hold.brandId } : {}),
-      description: hold.description ?? 'Media generation',
-      idempotencyKey: this.lateSettlementKey(hold.id),
-      referenceId: hold.id,
-      referenceType: 'credit_reservation',
-      maxOverdraftCredits:
-        MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
-      metadata: {
-        assetId: ingredientId,
-        lateSettlementOfReservationId: hold.id,
-      },
-      organizationId,
-      source: hold.source ?? ActivitySource.SCRIPT,
-      type: 'deduct-credits',
-      userId,
-    });
+    const amount = await queueLateHoldCharge(
+      { logger: this.logger, queue: this.queue },
+      hold,
+      { ingredientId, organizationId, userId },
+      completion.durationSeconds ??
+        readPositiveSeconds(ingredient.metadata?.duration),
+    );
     // Operator signal: error level pages through Sentry, and the stable message
     // and fields are what a metric or log query counts.
     this.logger.error(
       'Generation completed after its credit hold ended; charged late',
       {
-        amount: hold.amount,
+        amount,
         ingredientId,
         organizationId,
         reservationId: hold.id,
