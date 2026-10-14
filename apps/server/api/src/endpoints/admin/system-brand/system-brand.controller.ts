@@ -1,8 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  ApproveBrandOsRevisionDto,
-  UpdateBrandOsRevisionDto,
-} from '@api/collections/brands/dto/brand-os-revision.dto';
+import { UpdateBrandOsRevisionDto } from '@api/collections/brands/dto/brand-os-revision.dto';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import {
   runAsSystemOrganization,
@@ -12,8 +9,10 @@ import {
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { ApproveSystemBrandDto } from '@api/endpoints/admin/system-brand/dto/approve-system-brand.dto';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandOsRevisionSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -79,29 +78,37 @@ export class SystemBrandController {
   @HttpCode(200)
   @ApiOperation({
     summary:
-      'Approve the edited system brand kit; internal output then ships ready',
+      'Approve the edited system brand kit; internal output is then generated against an approved brand',
   })
   async approve(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('revisionId') revisionId: string,
-    @Body() dto: ApproveBrandOsRevisionDto,
+    @Body() dto: ApproveSystemBrandDto,
   ) {
     const userId = user.userId ?? user.id;
     if (!userId) throw new ForbiddenException('User context is required');
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await runAsSystemOrganization(() =>
-        this.revisions.approve(
+      await runAsSystemOrganization(async () => {
+        const { content } = await this.revisions.get(
+          SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          SYSTEM_BRAND_ID,
+          revisionId,
+        );
+        // The updatedAt fence already pins the reviewed draft, so the rules digest is derived from it.
+        return this.revisions.approve(
           SYSTEM_WORKFLOW_PRINCIPAL_ID,
           SYSTEM_BRAND_ID,
           revisionId,
           userId,
           dto.updatedAt,
-          dto.reviewedGenerationRulesHash,
-        ),
-      ),
+          content.generationRules === undefined
+            ? undefined
+            : hashBrandGenerationRulesReviewV1(content.generationRules),
+        );
+      }),
     );
   }
 }

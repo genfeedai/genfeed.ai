@@ -2,6 +2,7 @@ import { SYSTEM_BRAND_ID } from '@api/collections/brands/services/system-brand.s
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { ForbiddenException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
@@ -23,6 +24,17 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 const request = { url: 'https://api.genfeed.ai/admin/system-brand' } as never;
 const revision = { id: 'rev-1', status: 'DRAFT' };
+const rules = {
+  assets: [],
+  avoid: [],
+  evidence: [],
+  examples: [],
+  facts: [],
+  mandatory: [],
+  palette: [],
+  schemaVersion: 1,
+  typography: [],
+};
 
 function setup() {
   const tenants: Array<string | undefined> = [];
@@ -33,6 +45,7 @@ function setup() {
   const systemBrand = { ensure: vi.fn().mockResolvedValue({ revision }) };
   const revisions = {
     approve: vi.fn(track),
+    get: vi.fn().mockResolvedValue({ content: { generationRules: rules } }),
     update: vi.fn(track),
   };
   const controller = new SystemBrandController(
@@ -91,7 +104,7 @@ describe('SystemBrandController', () => {
       'rev-1',
       'db_user_1',
       '2026-10-14T00:00:00.000Z',
-      undefined,
+      hashBrandGenerationRulesReviewV1(rules),
     );
     expect(tenants).toEqual([SYSTEM_WORKFLOW_PRINCIPAL_ID]);
   });
