@@ -88,7 +88,7 @@ export function acceptsAccountText(
     usesWeightedCharacters: boolean;
   },
 ): boolean {
-  const parts = options.isThread ? splitThreadText(text) : [text];
+  const parts = options.isThread ? splitThreadText(text) : [text.trim()];
   return (
     parts.length === (options.isThread ? options.count : 1) &&
     parts.every((part) =>

@@ -1,9 +1,14 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandedModeResolution } from '@api/services/branded-text-generation/branded-mode-resolver.service';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 
-/** `Post.source` of every placeholder an account or thread run creates; retry is limited to it. */
-export const ACCOUNT_GENERATION_POST_SOURCE = 'account-generation';
+/** Post columns an account or thread run writes after create: its receipt link and stopped reason. */
+export interface PostGenerationUpdateFields {
+  brandedReceiptId?: string | null;
+  brandedReceiptState?: string | null;
+  targetError?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+}
 
 export type AccountGenerationIdentity = Pick<
   AuthenticatedUser,

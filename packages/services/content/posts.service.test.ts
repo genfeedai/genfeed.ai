@@ -518,6 +518,23 @@ describe('PostsService', () => {
     });
   });
 
+  describe('retryAccountGeneration', () => {
+    it('retries the failed placeholder under the supplied request key', async () => {
+      mockInstance.post.mockResolvedValue({ data: mockPostData });
+
+      const result = await service.retryAccountGeneration(
+        'post-123',
+        '7b1f6a3e-2c54-4d0e-9a8b-3f1c2d4e5a60',
+      );
+
+      expect(mockInstance.post).toHaveBeenCalledWith(
+        '/post-123/generation-retries',
+        { requestKey: '7b1f6a3e-2c54-4d0e-9a8b-3f1c2d4e5a60' },
+      );
+      expect(result).toBeInstanceOf(Post);
+    });
+  });
+
   describe('retry', () => {
     it('should queue a failed post for retry and map the response', async () => {
       mockInstance.post.mockResolvedValue({ data: mockPostData });

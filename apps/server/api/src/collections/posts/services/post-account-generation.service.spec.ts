@@ -148,6 +148,8 @@ describe('PostAccountGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    seam.generate.mockReset();
+    seam.generateThread.mockReset();
     store = new Map();
     nextId = 0;
     accountContext.resolve.mockResolvedValue(context);
@@ -631,13 +633,14 @@ describe('PostAccountGenerationService', () => {
           call === 1 ? { stop: 'channel_limit_exceeded' } : 'ok',
         ),
       );
-      seam.generateThread.mockImplementationOnce(async () => ({
-        hasNewDispatch: false,
-        kind: 'stopped',
-        postId: null,
-        reasonCode: 'provider_output_empty',
-        receipt: receipt('r', { attempt: null, state: 'failed' }),
-      }));
+      if (overrides.format === 'thread')
+        seam.generateThread.mockImplementationOnce(async () => ({
+          hasNewDispatch: false,
+          kind: 'stopped',
+          postId: null,
+          reasonCode: 'provider_output_empty',
+          receipt: receipt('r', { attempt: null, state: 'failed' }),
+        }));
       const { posts } = await run(overrides);
       vi.clearAllMocks();
       billing.reserveRun.mockResolvedValue(
@@ -683,7 +686,9 @@ describe('PostAccountGenerationService', () => {
         brandedReceiptId: `receipt-${requestKey}-0`,
         targetExecutionState: TargetExecutionState.DRAFT,
       });
-      expect(store.get(String(posts[1].id))?.targetError).toBeUndefined();
+      expect(store.get(String(posts[1].id))?.targetError).toEqual(
+        Prisma.JsonNull,
+      );
       expect(seam.generate).toHaveBeenCalledTimes(1);
     });
 

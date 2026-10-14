@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/contracts';
 import { mapPostStatusToCanonicalWrite } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
+  ACCOUNT_GENERATION_POST_SOURCE,
   APP_ROUTES,
   createArtifactEditorRoute,
   createBrandAppRoute,
@@ -590,8 +591,17 @@ export function usePostsList({
     async (post: IPost) => {
       try {
         const postsService = await getPostsService();
-        await postsService.retry(post.id);
-        notificationsService.success('Post queued for retry');
+        if (post.source === ACCOUNT_GENERATION_POST_SOURCE) {
+          // A failed generation retries under a new request key; publishing is untouched.
+          await postsService.retryAccountGeneration(
+            post.id,
+            crypto.randomUUID(),
+          );
+          notificationsService.success('Generation retry started');
+        } else {
+          await postsService.retry(post.id);
+          notificationsService.success('Post queued for retry');
+        }
       } catch (error) {
         notificationsService.error('Failed to retry post. Please try again.');
         logger.error('Failed to retry post', error);

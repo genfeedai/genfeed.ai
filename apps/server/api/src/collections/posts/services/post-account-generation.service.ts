@@ -6,7 +6,6 @@ import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-acco
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import {
-  ACCOUNT_GENERATION_POST_SOURCE,
   type AccountGenerationIdentity,
   type AccountGenerationRun,
 } from '@api/collections/posts/services/post-account-generation.types';
@@ -16,6 +15,7 @@ import {
   buildAccountPostPrompt,
   buildAccountThreadPrompt,
   splitThreadText,
+  withRunContext,
 } from '@api/collections/posts/services/post-account-generation-prompt.util';
 import {
   accountGenerationErrorCode,
@@ -48,6 +48,7 @@ import {
   Status,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { ACCOUNT_GENERATION_POST_SOURCE } from '@genfeedai/contracts/constants';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import type { LearningGenerationReceipt } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
@@ -513,6 +514,10 @@ export class PostAccountGenerationService {
     } catch (error) {
       // A thrown failure leaves a bound hold to expire: whether the provider
       // was reached is unknown, so it is neither charged nor returned here.
+      this.logger.warn(`${this.logContext} dispatch threw`, {
+        dispatchKey,
+        error: error instanceof Error ? error.message : String(error),
+      });
       await this.failUnit(
         unit,
         accountGenerationFailure(accountGenerationErrorCode(error)),

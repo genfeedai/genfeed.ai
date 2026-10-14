@@ -6,7 +6,8 @@ generation through the saved receipt (#5786):
 create → resolve → dispatch → bind artifact → validate
 
 Callers today: `POST /posts/draft-generations` (`PostDraftGenerationService`,
-surface `api`, or `onboarding` for the agent first-content tool), the agent text
+surface `api`, or `onboarding` for the agent first-content tool), account and
+thread generation (`POST /posts/account-generations`, see below), the agent text
 actions (`BrandedTextRunnerService`, surface `agent`) and breakout text output.
 There is no unreceipted draft path: the mode is decided on the server by
 `BrandedModeResolverService` (an approved revision wins; otherwise the brand's
@@ -46,7 +47,30 @@ changed payload is rejected with `request_payload_conflict`.
 `artifact_persist_failed` and `artifact_bind_failed` (500). Responses carry
 `meta.brandedGenerationReceiptId`.
 
+## Account and thread runs
+
+`PostAccountGenerationService` (`POST /posts/account-generations`) makes **one
+dispatch and one receipt per post**, in order, tied by the run's batch id
+(`runId`, also the posts' `groupId`; the requestKey is the same id and the
+candidate index is the post's position). Each later dispatch is told what the
+run already wrote so the posts differ. A thread is one dispatch: its receipt
+binds the whole thread (a receipt artifact holds at most nine posts, so a
+thread has two to nine posts).
+
+- The run takes ONE credit hold for every dispatch before any placeholder
+  exists and answers 402 when the balance cannot cover it. Each dispatch carves
+  its share out of that pool, is charged when the provider recorded an attempt
+  (including a stopped one) and returns its share otherwise; the remainder goes
+  back at the end. BYOK runs and free models hold nothing. There is no fixed
+  post cap.
+- Placeholders stay and are patched as each dispatch finishes: the text,
+  `brandedReceiptId` and `brandedReceiptState`. One failed dispatch never stops
+  the others; its placeholder is `failed` with `targetError.code` and a
+  message, and `POST /posts/:postId/generation-retries` (new `requestKey`)
+  retries it. Nothing is retried or charged automatically.
+- Provisional brands generate `needs_review` output, never compliant.
+
 ## Not wired yet
 
-Account and thread generation, content-intelligence, Studio media prompts, MCP,
+Content-intelligence, Studio media prompts, MCP,
 workflows, schedules, batches and desktop adapters remain open on #5786.

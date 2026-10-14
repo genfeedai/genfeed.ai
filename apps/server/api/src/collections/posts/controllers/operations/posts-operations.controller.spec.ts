@@ -192,7 +192,6 @@ describe('PostsOperationsController', () => {
 
   // Mock Services
   const mockAccountGeneration = {
-    retry: vi.fn(),
     start: vi.fn(),
   };
   const mockActivitiesService = {
@@ -722,42 +721,6 @@ Tweet 3: Tech innovation is changing the world.`,
           mockUser,
         ),
       ).rejects.toMatchObject({ status: HttpStatus.INTERNAL_SERVER_ERROR });
-    });
-  });
-
-  // ==========================================================================
-  // POST /posts/:postId/generation-retries - retryAccountGeneration
-  // ==========================================================================
-  describe('retryAccountGeneration', () => {
-    it('retries the failed placeholder under the caller-supplied request key', async () => {
-      const requestKey = '7b1f6a3e-2c54-4d0e-9a8b-3f1c2d4e5a60';
-      mockAccountGeneration.retry.mockResolvedValueOnce(mockPost);
-
-      const result = await generationController.retryAccountGeneration(
-        mockRequest,
-        postId,
-        { requestKey },
-        mockUser,
-      );
-
-      expect(mockAccountGeneration.retry).toHaveBeenCalledWith(
-        postId,
-        requestKey,
-        mockUser,
-      );
-      expect(result.data).toEqual(mockPost);
-    });
-
-    it('is registered as POST /posts/:postId/generation-retries', () => {
-      const handler =
-        PostsGenerationController.prototype.retryAccountGeneration;
-
-      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(
-        ':postId/generation-retries',
-      );
-      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
-        RequestMethod.POST,
-      );
     });
   });
 
@@ -1707,6 +1670,7 @@ Tweet 3: Tech innovation is changing the world.`,
         format: 'post' as const,
         topic: 'Test',
       };
+      mockAccountGeneration.start.mockResolvedValueOnce([mockPost]);
 
       await generationController.generateAccountContent(
         mockRequest,
@@ -1714,7 +1678,10 @@ Tweet 3: Tech innovation is changing the world.`,
         mockUser,
       );
 
-      expect(mockPostsService.create).toHaveBeenCalled();
+      expect(mockAccountGeneration.start).toHaveBeenCalledWith(
+        minimalDto,
+        mockUser,
+      );
     });
 
     it('should handle posts with no description', async () => {
