@@ -2205,7 +2205,30 @@ describe('StudioPlaygroundWorkspace', () => {
     });
   });
 
-  it.each(['avatar', 'voice'] as const)(
+  it('returns a saved avatar engine to Auto in simple mode, now that avatar has a model catalog', async () => {
+    mocks.type.value = 'avatar';
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: 'heygen/avatar-v' },
+      setType: mocks.setType,
+      type: 'avatar',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+    );
+  });
+
+  it.each(['voice'] as const)(
     'preserves the saved model for %s without model selection in simple mode',
     async (type) => {
       mocks.type.value = type;
