@@ -71,13 +71,13 @@ export interface AvatarGenerationPrice {
 /** The engine model chosen for a render and the look evidence that prices it. */
 export interface AvatarModelSelection {
   modelKey: string;
-  /** Set for an engine row; photo animation keeps the flat `heygen/avatar` quote. */
+  /** Set for an engine row; photo animation is priced on `heygen/avatar`. */
   engine?: HeyGenAvatarEngine;
   avatarType?: string;
 }
 
 /**
- * The admission estimate for a per-second engine. The frozen quote is
+ * The admission estimate for a per-second avatar render. The frozen quote is
  * re-priced at the clip duration HeyGen returns, so the hold settles to the
  * real length (refund or top-up).
  */

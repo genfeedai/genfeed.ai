@@ -443,23 +443,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(getModelCatalogForDeployment(true)).toBe(UNIFIED_MODEL_CATALOG);
   });
 
-  it('seeds photo animation as an active flat hold that is not the avatar default', () => {
-    const photo = UNIFIED_MODEL_CATALOG.find(
-      (entry) => entry.key === MODEL_KEYS.HEYGEN_AVATAR,
-    );
-
-    expect(photo).toMatchObject({
-      category: ModelCategory.AVATAR,
-      cost: 129,
-      isActive: true,
-      isDefault: false,
-      lifecycle: ModelLifecycle.AVAILABLE,
-      pricingType: PricingType.FLAT,
-      provider: ModelProvider.HEYGEN,
-      providerCostUsd: 0.385,
-    });
-  });
-
   it('seeds HeyGen Video and Genjutsu inactive at zero cost on their own providers', () => {
     const heygen = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.HEYGEN_VIDEO,
@@ -488,6 +471,24 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(soul?.provider).toBe(ModelProvider.HIGGSFIELD);
     expect(heygen?.providerCostUsd).toBeUndefined();
     expect(genjutsu?.providerCostUsd).toBeUndefined();
+  });
+
+  it('seeds HeyGen photo animation active, public and priced per second', () => {
+    expect(
+      UNIFIED_MODEL_CATALOG.find(
+        (entry) => entry.key === MODEL_KEYS.HEYGEN_AVATAR,
+      ),
+    ).toMatchObject({
+      category: ModelCategory.AVATAR,
+      cost: 65,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.HEYGEN,
+      providerCostUsd: 0.0385,
+    });
   });
 
   it('seeds curated media rows with providerCostUsd for live-margin billing', () => {

@@ -996,6 +996,12 @@ describe('BrandRemixRunsService', () => {
         expectedRevision: 1,
       });
 
+      // The variant is priced per second at the length of the script it speaks.
+      const [avatarParams] =
+        avatarVideoGenerationService.generateAvatarVideo.mock.calls[0];
+      expect(
+        avatarVideoGenerationService.quotePlatformCredits,
+      ).toHaveBeenCalledWith(avatarParams.text);
       expect(
         avatarVideoGenerationService.generateAvatarVideo,
       ).toHaveBeenCalledWith(

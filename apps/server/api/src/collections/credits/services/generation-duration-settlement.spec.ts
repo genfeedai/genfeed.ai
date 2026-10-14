@@ -2,7 +2,10 @@ import {
   readHeldDurationQuote,
   resolveDurationSettlement,
 } from '@api/collections/credits/services/generation-duration-settlement';
-import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
+import {
+  avatarEngineSnapshot,
+  photoAnimationSnapshot,
+} from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import { describe, expect, it } from 'vitest';
 
 function heldQuote(seconds: number, avatarType = 'photo_avatar') {
@@ -18,6 +21,30 @@ function heldQuote(seconds: number, avatarType = 'photo_avatar') {
 }
 
 describe('per-second duration settlement', () => {
+  it('settles a photo-animation hold to the clip HeyGen returned', () => {
+    const quote = readHeldDurationQuote({
+      avatarDurationQuote: {
+        estimatedSeconds: 12,
+        snapshot: photoAnimationSnapshot(12),
+      },
+    });
+    if (!quote) throw new Error('The fixture must parse');
+
+    // $0.0385/s at 3.33x: 12 s holds 154 credits, 8 s costs 103, 20 s costs 257.
+    expect(resolveDurationSettlement(154, quote, 8)).toEqual({
+      actualCredits: 103,
+      actualSeconds: 8,
+      settleCredits: 103,
+      topUpCredits: 0,
+    });
+    expect(resolveDurationSettlement(154, quote, 20)).toEqual({
+      actualCredits: 257,
+      actualSeconds: 20,
+      settleCredits: 154,
+      topUpCredits: 103,
+    });
+  });
+
   it('holds the admission estimate priced from the reviewed avatar rate', () => {
     // $0.0385/s photo avatar: 10 s is $0.385, x3.33 margin is 129 credits.
     expect(heldQuote(10).snapshot.credits).toBe(129);

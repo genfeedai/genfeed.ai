@@ -134,12 +134,12 @@ export class AvatarVideoGenerationService {
   }
 
   /**
-   * The flat photo-animation price from the `heygen/avatar` row. A row that
-   * resolves to no price fails closed: with no fallback constant, zero would
-   * mean a free render.
+   * The photo-animation price of a script from the per-second `heygen/avatar`
+   * row. A row that resolves to no price fails closed: with no fallback
+   * constant, zero would mean a free render.
    */
-  async quotePlatformCredits(): Promise<number> {
-    return this.avatarBilling.quotePlatformCredits();
+  async quotePlatformCredits(script: string): Promise<number> {
+    return this.avatarBilling.quotePlatformCredits(script);
   }
 
   async generateAvatarVideo(

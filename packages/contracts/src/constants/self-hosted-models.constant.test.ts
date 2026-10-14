@@ -54,24 +54,6 @@ describe('SELF_HOSTED_MODELS', () => {
     expect(voice?.cost).toBe(10);
   });
 
-  it('carries photo animation as a flat 10-second hold at the photo-avatar list rate', () => {
-    const photo = SELF_HOSTED_MODELS.find(
-      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR,
-    );
-
-    expect(photo).toMatchObject({
-      category: ModelCategory.AVATAR,
-      isDefault: false,
-      lifecycle: ModelLifecycle.AVAILABLE,
-      pricingType: PricingType.FLAT,
-      provider: ModelProvider.HEYGEN,
-      // $0.0385/s × 10 s. At 3.33x that is 129 credits. Not per second:
-      // the photo quote does not pass duration.
-      providerCostUsd: 0.385,
-    });
-    expect(photo?.cost).toBe(129);
-  });
-
   it('carries Avatar IV as the default avatar engine and Avatar V as the ultra option', () => {
     const avatarIv = SELF_HOSTED_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_IV,
@@ -101,6 +83,25 @@ describe('SELF_HOSTED_MODELS', () => {
     });
     expect(avatarV?.cost).toBe(200);
   });
+
+  it('prices photo animation per second at the Avatar IV photo-avatar rate', () => {
+    const photoAvatar = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR,
+    );
+
+    expect(photoAvatar).toMatchObject({
+      category: ModelCategory.AVATAR,
+      // $0.0385/s: 5 s at 3.33x is 65 credits, 13 per second.
+      cost: 65,
+      costPerUnit: 13,
+      isDefault: false,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.HEYGEN,
+      providerCostUsd: 0.0385,
+    });
+    expect(photoAvatar?.lifecycle).toBe(ModelLifecycle.AVAILABLE);
+  });
+
   it.each([
     // $0.08 per 1,000 characters at 3.33x is 26.64, ceiled to 27 credits.
     [MODEL_KEYS.ELEVENLABS_V4, 0.08, 27, true],

@@ -6,7 +6,10 @@ import { AvatarVideoLifecycleService } from '@api/collections/videos/services/av
 import { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
+import {
+  avatarEngineSnapshot,
+  photoAnimationSnapshot,
+} from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
@@ -79,17 +82,23 @@ describe('AvatarVideoGenerationService', () => {
       queueDeduction: vi.fn().mockResolvedValue(undefined),
     };
     const modelCreditQuote = {
-      quoteByKey: vi.fn().mockResolvedValue(AVATAR_PRICE),
       quoteSnapshotByKey: vi.fn(
         async (
-          modelKey: 'heygen/avatar-iv' | 'heygen/avatar-v',
-          input: { duration: number; selectors: { avatar_type: string } },
+          modelKey: string,
+          input: { duration: number; selectors?: { avatar_type: string } },
         ) =>
-          avatarEngineSnapshot(
-            modelKey,
-            input.selectors.avatar_type,
-            input.duration,
-          ),
+          modelKey === MODEL_KEYS.HEYGEN_AVATAR
+            ? // Flow tests hold a photo render at the AVATAR_PRICE stub.
+              {
+                ...photoAnimationSnapshot(input.duration),
+                allocatedCredits: [AVATAR_PRICE],
+                credits: AVATAR_PRICE,
+              }
+            : avatarEngineSnapshot(
+                modelKey as 'heygen/avatar-iv' | 'heygen/avatar-v',
+                input.selectors?.avatar_type ?? '',
+                input.duration,
+              ),
       ),
     };
     const routerService = {
@@ -733,6 +742,13 @@ describe('AvatarVideoGenerationService', () => {
         expect.objectContaining({
           metadata: {
             assetId: 'avatar-ingredient-1',
+            // The photo render is held per second, so settlement re-prices it.
+            avatarDurationQuote: expect.objectContaining({
+              estimatedSeconds: 1,
+              snapshot: expect.objectContaining({
+                modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+              }),
+            }),
             submissionIntent: { version: 1, provider: ByokProvider.HEYGEN },
           },
         }),
@@ -758,7 +774,11 @@ describe('AvatarVideoGenerationService', () => {
       heygenService,
     } = createService();
     brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
-    modelCreditQuote.quoteByKey.mockResolvedValue(0);
+    modelCreditQuote.quoteSnapshotByKey.mockResolvedValue({
+      ...photoAnimationSnapshot(1),
+      allocatedCredits: [0],
+      credits: 0,
+    });
 
     await expect(
       service.generateAvatarVideo(
@@ -775,7 +795,7 @@ describe('AvatarVideoGenerationService', () => {
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
   });
 
-  it('prices the platform charge from the heygen/avatar model row', async () => {
+  it('prices the platform charge per second from the heygen/avatar model row', async () => {
     const { service, brandsService, modelCreditQuote } = createService();
     brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
 
@@ -793,7 +813,11 @@ describe('AvatarVideoGenerationService', () => {
       credits: AVATAR_PRICE,
       modelKey: MODEL_KEYS.HEYGEN_AVATAR,
     });
-    expect(modelCreditQuote.quoteByKey).toHaveBeenCalledWith('heygen/avatar');
+    // "Speech" is six characters, a one-second estimate.
+    expect(modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
+      MODEL_KEYS.HEYGEN_AVATAR,
+      { duration: 1 },
+    );
   });
 
   it('pins both provider keys before reservation, even when org keys change during admission', async () => {

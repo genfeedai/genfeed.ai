@@ -17,8 +17,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 /**
  * Chooses the avatar engine row for a render. A trained look routes among the
  * engines it can render (Auto) or takes an explicit engine it supports. Photo
- * animation has no engine field on HeyGen's image request and no verified
- * per-second price, so it stays on the flat `heygen/avatar` row.
+ * animation has no engine field on HeyGen's image request, so it is priced on
+ * its own per-second `heygen/avatar` row.
  */
 @Injectable()
 export class AvatarVideoModelService {

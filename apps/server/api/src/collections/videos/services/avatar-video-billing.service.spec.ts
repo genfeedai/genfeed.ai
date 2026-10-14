@@ -1,9 +1,15 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
-import type { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import type { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
-import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  avatarEngineSnapshot,
+  photoAnimationProfile,
+  photoAnimationSnapshot,
+} from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -16,10 +22,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AvatarVideoBillingService.quoteRender', () => {
-  const modelCreditQuote = {
-    quoteByKey: vi.fn(),
-    quoteSnapshotByKey: vi.fn(),
-  };
+  const modelCreditQuote = { quoteSnapshotByKey: vi.fn() };
   const service = new AvatarVideoBillingService(
     {} as CreditsUtilsService,
     {} as GenerationBillingService,
@@ -32,7 +35,6 @@ describe('AvatarVideoBillingService.quoteRender', () => {
   );
 
   beforeEach(() => {
-    modelCreditQuote.quoteByKey.mockReset().mockResolvedValue(40);
     modelCreditQuote.quoteSnapshotByKey
       .mockReset()
       .mockResolvedValue(
@@ -40,12 +42,66 @@ describe('AvatarVideoBillingService.quoteRender', () => {
       );
   });
 
-  it('keeps photo animation on the flat heygen/avatar quote', async () => {
+  it('holds photo animation per second on heygen/avatar at the estimated seconds', async () => {
+    modelCreditQuote.quoteSnapshotByKey.mockResolvedValue(
+      photoAnimationSnapshot(12),
+    );
+
+    const quote = await service.quoteRender(
+      { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
+      12,
+    );
+
+    expect(modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
+      MODEL_KEYS.HEYGEN_AVATAR,
+      { duration: 12 },
+    );
+    // $0.0385/s: 12 s is $0.462, x3.33 margin is 154 credits.
+    expect(quote.credits).toBe(154);
+    expect(quote.durationQuote).toMatchObject({
+      estimatedSeconds: 12,
+      snapshot: { costSource: 'configured-provider', credits: 154 },
+    });
+  });
+
+  it('refuses photo animation with no duration basis before quoting', async () => {
+    await expect(
+      service.quoteRender({ modelKey: MODEL_KEYS.HEYGEN_AVATAR }, undefined),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(modelCreditQuote.quoteSnapshotByKey).not.toHaveBeenCalled();
+  });
+
+  it('refuses a photo-animation row that is not metered per second', async () => {
+    const snapshot = photoAnimationSnapshot(12);
+    modelCreditQuote.quoteSnapshotByKey.mockResolvedValue({
+      ...snapshot,
+      credits: 13,
+      pricingProfile: { ...snapshot.pricingProfile, pricingType: 'flat' },
+    });
+
     await expect(
       service.quoteRender({ modelKey: MODEL_KEYS.HEYGEN_AVATAR }, 12),
-    ).resolves.toEqual({ credits: 40 });
-    expect(modelCreditQuote.quoteByKey).toHaveBeenCalledWith(
+    ).rejects.toBeInstanceOf(BusinessLogicException);
+  });
+
+  it('prices a remix script at its estimated length on heygen/avatar', async () => {
+    modelCreditQuote.quoteSnapshotByKey.mockResolvedValue(
+      photoAnimationSnapshot(5),
+    );
+
+    // 60 characters at 12 characters a second is 5 s: 65 credits.
+    await expect(service.quotePlatformCredits('x'.repeat(60))).resolves.toBe(
+      65,
+    );
+    expect(modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
       MODEL_KEYS.HEYGEN_AVATAR,
+      { duration: 5 },
+    );
+  });
+
+  it('refuses to price an empty remix script', async () => {
+    await expect(service.quotePlatformCredits('  ')).rejects.toBeInstanceOf(
+      BadRequestException,
     );
     expect(modelCreditQuote.quoteSnapshotByKey).not.toHaveBeenCalled();
   });
@@ -110,5 +166,54 @@ describe('AvatarVideoBillingService.quoteRender', () => {
         10,
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('AvatarVideoBillingService photo animation against the catalog row', () => {
+  function serviceFor(profile: ReturnType<typeof photoAnimationProfile>) {
+    return new AvatarVideoBillingService(
+      {} as CreditsUtilsService,
+      {} as GenerationBillingService,
+      new ModelCreditQuoteService({
+        findBillablePricingProfile: vi.fn().mockResolvedValue(profile),
+      } as unknown as ModelsService),
+      { error: vi.fn() } as unknown as LoggerService,
+      {} as AvatarVideoModelService,
+      {} as ByokService,
+      {} as HeyGenService,
+      {} as PrismaService,
+    );
+  }
+
+  it('answers 503 for the inactive, unpriced row the uncurated catalog seeded', async () => {
+    const seededBeforeCuration = {
+      ...photoAnimationProfile(),
+      cost: 0,
+      isActive: false,
+      pricingType: 'flat',
+      providerCostUsd: null,
+    };
+
+    await expect(
+      serviceFor(seededBeforeCuration).quoteRender(
+        { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
+        12,
+      ),
+    ).rejects.toThrow(
+      'Pricing is unavailable for heygen/avatar: Exact model/provider is unavailable or does not match dispatch',
+    );
+  });
+
+  it('quotes the curated row per second at the 3.33x generation margin', async () => {
+    const quote = await serviceFor(photoAnimationProfile()).quoteRender(
+      { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
+      12,
+    );
+
+    expect(quote.credits).toBe(154);
+    expect(quote.durationQuote?.snapshot).toMatchObject({
+      costSource: 'configured-provider',
+      providerCostUsd: 0.462,
+    });
   });
 });

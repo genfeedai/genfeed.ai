@@ -43,34 +43,50 @@ describe('pending provider rate drift', () => {
     expect(hasPendingProviderRateDrift(reviewed, pending)).toBe(expected);
   });
 });
-describe('flat photo-avatar hold', () => {
+describe('photo-avatar per-second quote', () => {
   const photo = {
     ...model,
     key: 'heygen/avatar',
     provider: 'heygen',
-    pricingType: 'flat' as const,
-    providerCostUsd: 0.385,
-    cost: 129,
+    pricingType: 'per-second' as const,
+    providerCostUsd: 0.0385,
+    cost: 65,
+    costPerUnit: 13,
   };
   const request = { modelKey: 'heygen/avatar', provider: 'heygen' };
 
-  it('prices an active flat hold without a duration', () => {
-    const quote = quoteModelBillablePricing(photo, request, 3.33, date);
+  it('prices an active row from the clip length', () => {
+    const quote = quoteModelBillablePricing(
+      photo,
+      { ...request, duration: 10 },
+      3.33,
+      date,
+    );
 
     expect(quote).toMatchObject({
       status: 'priced',
       snapshot: {
         costSource: 'configured-provider',
+        // $0.0385/s × 10 s × 3.33 / $0.01, ceiled.
         credits: 129,
         providerCostUsd: 0.385,
       },
     });
   });
 
+  it('refuses to invent a duration when the caller omits one', () => {
+    const quote = quoteModelBillablePricing(photo, request, 3.33, date);
+
+    expect(quote).toEqual({
+      status: 'unresolved',
+      reason: 'Provider rate or bill-time quantity is unavailable',
+    });
+  });
+
   it('keeps an inactive row unresolved even when a price is stored', () => {
     const quote = quoteModelBillablePricing(
       { ...photo, isActive: false },
-      request,
+      { ...request, duration: 10 },
       3.33,
       date,
     );

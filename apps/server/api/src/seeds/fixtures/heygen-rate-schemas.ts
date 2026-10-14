@@ -39,6 +39,60 @@ const SPEECH_OPENAPI: SchemaFixture['openapi'] = {
   openapi: '3.1.0',
 };
 
+/** The `/v3/videos` result every avatar render reports, its billed duration included. */
+const AVATAR_VIDEO_OUTPUT = {
+  properties: {
+    duration: { type: 'number' },
+    status: {
+      enum: ['waiting', 'pending', 'processing', 'completed', 'failed'],
+      type: 'string',
+    },
+    video_id: { type: 'string' },
+    video_url: { format: 'uri', type: 'string' },
+  },
+  required: ['video_id'],
+  title: 'Output',
+  type: 'object',
+};
+
+/**
+ * Photo animation (`type: image`): one per-second rate and no pricing
+ * selector, so the schema declares no `avatar_type` and no `resolution`.
+ */
+const PHOTO_ANIMATION_OPENAPI: SchemaFixture['openapi'] = {
+  components: {
+    schemas: {
+      Input: {
+        properties: {
+          aspect_ratio: { enum: ['16:9', '9:16', '1:1'], type: 'string' },
+          audio_url: { format: 'uri', type: 'string' },
+          duration: {
+            description: 'Output seconds HeyGen bills for the clip.',
+            minimum: 0,
+            type: 'number',
+          },
+          image: {
+            properties: {
+              type: { const: 'url', type: 'string' },
+              url: { format: 'uri', type: 'string' },
+            },
+            required: ['type', 'url'],
+            type: 'object',
+          },
+          script: { type: 'string' },
+          type: { const: 'image', type: 'string' },
+          voice_id: { type: 'string' },
+        },
+        required: ['type', 'image'],
+        title: 'Input',
+        type: 'object',
+      },
+      Output: AVATAR_VIDEO_OUTPUT,
+    },
+  },
+  openapi: '3.1.0',
+};
+
 /**
  * The avatar video fields that price a request. HeyGen bills Avatar IV and
  * Avatar V per output second by the look's `avatar_type`, so that selector is
@@ -71,20 +125,7 @@ function avatarOpenapi(
           title: 'Input',
           type: 'object',
         },
-        Output: {
-          properties: {
-            duration: { type: 'number' },
-            status: {
-              enum: ['waiting', 'pending', 'processing', 'completed', 'failed'],
-              type: 'string',
-            },
-            video_id: { type: 'string' },
-            video_url: { format: 'uri', type: 'string' },
-          },
-          required: ['video_id'],
-          title: 'Output',
-          type: 'object',
-        },
+        Output: AVATAR_VIDEO_OUTPUT,
       },
     },
     openapi: '3.1.0',
@@ -92,6 +133,10 @@ function avatarOpenapi(
 }
 
 export const HEYGEN_SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
+  'heygen/avatar': {
+    openapi: PHOTO_ANIMATION_OPENAPI,
+    schemaFamily: 'heygen-image-v3',
+  },
   'heygen/avatar-iv': {
     openapi: avatarOpenapi(['photo_avatar', 'digital_twin', 'studio_avatar']),
     schemaFamily: 'heygen-avatar-v3',

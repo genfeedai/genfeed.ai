@@ -150,19 +150,24 @@ describe('BrandRemixSceneQuoteService avatar pricing', () => {
     ]);
   });
 
-  it('quotes the platform avatar price once for every platform-billed scene', async () => {
+  it('prices every platform-billed scene by the length of its own narration', async () => {
     byok.isByokActiveForProvider.mockResolvedValue(false);
-    avatars.quotePlatformCredits.mockResolvedValue(4);
+    avatars.quotePlatformCredits.mockImplementation(
+      async (script: string) => script.length,
+    );
 
     const quote = await service.build('org', 'brand', config(), {
       expectedRevision: 1,
       operation: 'generate',
     });
 
-    expect(avatars.quotePlatformCredits).toHaveBeenCalledOnce();
+    expect(avatars.quotePlatformCredits.mock.calls).toEqual([
+      ['Meet the brand'],
+      ['Show the product'],
+    ]);
     expect(quote.items.filter((item) => item.stage === 'video')).toEqual([
-      expect.objectContaining({ billingMode: 'platform', credits: 4 }),
-      expect.objectContaining({ billingMode: 'platform', credits: 4 }),
+      expect.objectContaining({ billingMode: 'platform', credits: 14 }),
+      expect.objectContaining({ billingMode: 'platform', credits: 16 }),
     ]);
   });
 });
