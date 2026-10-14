@@ -399,10 +399,14 @@ export class ContentGeneratorService implements OnModuleInit {
       }),
       this.buildTopPerformerSystemPrompt(organizationId, dto),
     ]);
-    const observations = patterns.map(
-      (pattern) =>
-        `Historical content pattern: ${SecurityUtil.sanitizePromptInput(pattern.extractedFormula, 1000)}`,
-    );
+    const observations = patterns.flatMap((pattern) => {
+      const formula = pattern.extractedFormula ?? pattern.description;
+      return formula
+        ? [
+            `Historical content pattern: ${SecurityUtil.sanitizePromptInput(formula, 1000)}`,
+          ]
+        : [];
+    });
     if (performance) observations.push(performance);
     return observations;
   }
