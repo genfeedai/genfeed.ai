@@ -6,6 +6,7 @@ import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/ag
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { getActionDefinition } from '@genfeedai/actions';
@@ -94,6 +95,7 @@ describe('VoiceGenerationService', () => {
     return new VoiceGenerationService(
       elevenLabs as unknown as ElevenLabsService,
       heygen as unknown as HeyGenService,
+      heygen as unknown as HeyGenSpeechVoicesService,
       files as unknown as FilesClientService,
       router as unknown as RouterService,
       logger as unknown as LoggerService,

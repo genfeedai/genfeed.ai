@@ -11,6 +11,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { countHeyGenSpeechCharacters } from '@api/services/integrations/heygen/helpers/heygen-speech';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
@@ -96,6 +97,7 @@ export class VoiceGenerationService implements OnModuleInit {
   constructor(
     private readonly elevenLabsService: ElevenLabsService,
     private readonly heygenService: HeyGenService,
+    private readonly heygenSpeechVoices: HeyGenSpeechVoicesService,
     private readonly filesClientService: FilesClientService,
     private readonly routerService: RouterService,
     private readonly loggerService: LoggerService,
@@ -337,7 +339,7 @@ export class VoiceGenerationService implements OnModuleInit {
     voiceId: string,
   ): Promise<SpeechBillingMode> {
     if (speechModel.voiceProvider !== VoiceProvider.HEYGEN) return 'platform';
-    const connection = await this.heygenService.resolveSpeechConnection(
+    const connection = await this.heygenSpeechVoices.resolveSpeechConnection(
       organizationId,
       voiceId,
     );
@@ -561,7 +563,7 @@ export class VoiceGenerationService implements OnModuleInit {
       // per-character rate may price it.
       const isHeyGen = speechModel.voiceProvider === VoiceProvider.HEYGEN;
       const connection = isHeyGen
-        ? await this.heygenService.resolveSpeechConnection(
+        ? await this.heygenSpeechVoices.resolveSpeechConnection(
             params.organizationId,
             params.voiceId,
           )

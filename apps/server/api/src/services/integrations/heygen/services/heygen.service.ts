@@ -46,8 +46,6 @@ import type {
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
   HeyGenConnectionRef,
-  HeyGenSpeechVoice,
-  HeyGenSpeechVoiceCatalog,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -66,13 +64,6 @@ const voiceSchema = z.object({
   voice_id: z.string().trim().min(1),
   name: z.string(),
   preview_audio_url: z.string().nullish(),
-});
-const speechVoiceSchema = z.object({
-  voice_id: z.string().trim().min(1),
-  name: z.string(),
-  mode: z.string().nullish(),
-  language: z.string().nullish(),
-  status: z.string(),
 });
 const lookSchema = z.object({
   id: z.string().trim().min(1),
@@ -382,85 +373,6 @@ export class HeyGenService {
       });
       throw mapHeyGenSpeechFailure(status, code, param, retryAfter);
     }
-  }
-
-  /**
-   * HeyGen Voice voices the workspace can speak with: `ACTIVE` private clones
-   * from its own HeyGen key, plus HeyGen's public HeyGen Voice voices read
-   * with the key that would speak them (the workspace key when connected,
-   * otherwise the platform key). The platform key's private clones belong to
-   * Genfeed's own workspace and are never listed.
-   */
-  public async getSpeechVoices(
-    organizationId: string,
-  ): Promise<HeyGenSpeechVoiceCatalog> {
-    // Lookup failure is not absence: let a storage error surface.
-    const credential = await this.byokService.lookupApiKeyWithIdentity(
-      organizationId,
-      ByokProvider.HEYGEN,
-    );
-    const apiKey = credential?.apiKey ?? this.getApiKey();
-    if (!apiKey) return { voices: [], hasPersonalConnection: false };
-    const sources: Promise<HeyGenSpeechVoice[]>[] = [
-      ...(credential ? [this.readSpeechVoices(apiKey, 'private')] : []),
-      this.readSpeechVoices(apiKey, 'public'),
-    ];
-    const results = await Promise.allSettled(sources);
-    const failure = results.find((result) => result.status === 'rejected');
-    if (failure && results.every((result) => result.status === 'rejected'))
-      throw failure.reason;
-    return {
-      voices: results.flatMap((result) =>
-        result.status === 'fulfilled' ? result.value : [],
-      ),
-      hasPersonalConnection: Boolean(credential),
-    };
-  }
-
-  /**
-   * The connection that speaks `voiceId` for this workspace and pays for it.
-   * A workspace key reaches its own clones and HeyGen enforces ownership. The
-   * platform key also reaches Genfeed's private clones, so on the platform key
-   * only an `ACTIVE` public HeyGen Voice voice is accepted.
-   */
-  public async resolveSpeechConnection(
-    organizationId: string,
-    voiceId: string,
-  ): Promise<ResolvedHeyGenConnection> {
-    const connection = await this.resolveOrganizationConnection(organizationId);
-    if (connection.binding.kind === 'byok') return connection;
-    const publicVoices = await this.readSpeechVoices(
-      connection.apiKey,
-      'public',
-    );
-    if (!publicVoices.some((voice) => voice.voiceId === voiceId))
-      throw new BadRequestException(
-        'This HeyGen voice needs your own HeyGen connection. Connect HeyGen or pick a public HeyGen Voice voice.',
-      );
-    return connection;
-  }
-
-  private async readSpeechVoices(
-    apiKey: string,
-    ownership: 'private' | 'public',
-  ): Promise<HeyGenSpeechVoice[]> {
-    const items = await this.getCatalog('/models/audio/voices', apiKey, 100, {
-      type: ownership,
-    });
-    return items.flatMap((item) => {
-      const voice = speechVoiceSchema.parse(item);
-      return voice.status === 'ACTIVE'
-        ? [
-            {
-              voiceId: voice.voice_id,
-              name: voice.name,
-              mode: voice.mode ?? null,
-              language: voice.language ?? null,
-              ownership,
-            },
-          ]
-        : [];
-    });
   }
 
   private delay(milliseconds: number): Promise<void> {
@@ -895,7 +807,8 @@ export class HeyGenService {
     return data;
   }
 
-  private async getCatalog(
+  /** Every page of a HeyGen `/v3` catalog, or the page holding `findId`. */
+  public async getCatalog(
     path: string,
     apiKey: string,
     limit: number,

@@ -9,6 +9,7 @@ import {
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { HeyGenAvatarPageDto } from '@api/services/integrations/heygen/dto/heygen-avatar-page.dto';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
 import { HEYGEN_CREDENTIALS_INVALID_ERROR_CODE } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
@@ -68,6 +69,7 @@ export class HeyGenController {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly heygenService: HeyGenService,
+    private readonly speechVoicesService: HeyGenSpeechVoicesService,
   ) {}
 
   @Get('voices')
@@ -109,7 +111,7 @@ export class HeyGenController {
     this.loggerService.log(url);
 
     try {
-      const catalog = await this.heygenService.getSpeechVoices(
+      const catalog = await this.speechVoicesService.getSpeechVoices(
         user.organizationId,
       );
 
