@@ -302,4 +302,28 @@ describe('ElevenLabsAccountVoicesDialog', () => {
       screen.queryByRole('button', { name: 'Load more voices' }),
     ).not.toBeInTheDocument();
   });
+
+  it('clears earlier results when a new search fails', async () => {
+    mocks.findAccountVoices
+      .mockResolvedValueOnce(page({ hasMore: true, nextPageToken: 'page-2' }))
+      .mockRejectedValueOnce(new Error('network'));
+
+    renderDialog();
+    await screen.findByRole('button', { name: 'Import Founder clone' });
+
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Search your ElevenLabs voices' }),
+      { target: { value: 'narrator' } },
+    );
+
+    expect(
+      await screen.findByText('Your ElevenLabs voices could not be loaded.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Import Founder clone' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Load more voices' }),
+    ).not.toBeInTheDocument();
+  });
 });

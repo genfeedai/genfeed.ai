@@ -440,6 +440,11 @@ export class VoiceGenerationService implements OnModuleInit {
       },
       readSpeechReceipt(existing?.generationProvider),
     );
+    if (
+      String(generated.status).toUpperCase() === IngredientStatus.PROCESSING
+    ) {
+      return this.toActionResult(generated);
+    }
     await this.recordActivity(
       params.ingredientId,
       params.organizationId,
@@ -621,12 +626,16 @@ export class VoiceGenerationService implements OnModuleInit {
         rateVersion: quote.rateVersion,
       };
 
-      if (speechReceipt) {
-        await this.speechBinding.claimSubmission(
+      if (
+        speechReceipt &&
+        (await this.speechBinding.claimSubmission(
           params.ingredientId,
           speechReceipt,
           storedSpeechReceipt !== undefined,
-        );
+        )) === 'in-flight'
+      ) {
+        // A concurrent attempt owns the provider call; it settles the asset.
+        return await this.findRequiredIngredient(params);
       }
 
       let speech: GeneratedSpeech;
@@ -818,6 +827,29 @@ export class VoiceGenerationService implements OnModuleInit {
       (typeof rateVersion === 'string' || rateVersion === null)
       ? { billingMode, characters, credits, modelKey, rateVersion }
       : undefined;
+  }
+
+  private async findRequiredIngredient(
+    params: VoiceGenerationParams,
+  ): Promise<IngredientDocument> {
+    const ingredient = await this.voicesService.findOne(
+      {
+        id: params.ingredientId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+      [PopulatePatterns.metadataFull],
+    );
+    if (!ingredient) {
+      throw new HttpException(
+        {
+          detail: `Ingredient ${params.ingredientId} not found`,
+          title: 'Generation error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return ingredient;
   }
 
   private validateRequest(dto: GenerateVoiceDto): void {

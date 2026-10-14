@@ -58,4 +58,6 @@ export interface ElevenLabsSpeechReceipt {
     internalVoiceId?: string;
   };
   state: 'accepted' | 'submitted' | 'completed';
+  /** When the provider call was claimed; bounds an in-flight duplicate. */
+  submittedAt?: string;
 }

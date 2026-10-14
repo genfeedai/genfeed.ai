@@ -1,9 +1,11 @@
 import { ElevenLabsAccountVoicesService } from '@api/collections/voices/services/elevenlabs-account-voices.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import { readSpeechReceipt } from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
 import {
   ElevenLabsConnectionService,
   type ResolvedElevenLabsConnection,
 } from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
+import { IngredientStatus } from '@genfeedai/contracts';
 import type { ElevenLabsSpeechReceipt } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
@@ -11,6 +13,14 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+/**
+ * How long a claimed provider call counts as in flight: well above the
+ * synthesis and upload time, so only a crashed attempt outlives it.
+ */
+export const SPEECH_SUBMISSION_LEASE_MS = 10 * 60 * 1000;
+
+export type SpeechSubmissionClaim = 'claimed' | 'in-flight';
 
 /**
  * Binds ElevenLabs speech to the voice and the account that owns it, and
@@ -73,18 +83,24 @@ export class ElevenLabsSpeechBindingService {
   }
 
   /**
-   * One-way claim on the paid provider call. A retry that finds the request
-   * already submitted without stored audio cannot know whether ElevenLabs
-   * produced (and billed) it, so it fails instead of sending it again.
+   * One-way claim on the paid provider call. A duplicate job that finds a
+   * fresh claim on audio still processing leaves it to that attempt. A claim
+   * older than the lease without stored audio has an unknown result: whether
+   * ElevenLabs produced (and billed) it cannot be known, so it fails instead
+   * of sending it again.
    */
   async claimSubmission(
     ingredientId: string,
     receipt: ElevenLabsSpeechReceipt,
     hasStoredReceipt: boolean,
-  ): Promise<void> {
+  ): Promise<SpeechSubmissionClaim> {
     const { count } = await this.voicesService.prisma.ingredient.updateMany({
       data: {
-        generationProvider: toPrismaJson({ ...receipt, state: 'submitted' }),
+        generationProvider: toPrismaJson({
+          ...receipt,
+          state: 'submitted',
+          submittedAt: new Date().toISOString(),
+        }),
       },
       where: {
         generationProvider: hasStoredReceipt
@@ -95,10 +111,34 @@ export class ElevenLabsSpeechBindingService {
         organizationId: receipt.organizationId,
       },
     });
-    if (count === 0) {
-      throw new ConflictException(
-        'An earlier attempt of this voice generation has an unknown result, so it was not sent again. Generate it again.',
-      );
+    if (count === 1) {
+      return 'claimed';
     }
+    if (await this.isSubmissionInFlight(ingredientId, receipt.organizationId)) {
+      return 'in-flight';
+    }
+    throw new ConflictException(
+      'An earlier attempt of this voice generation has an unknown result, so it was not sent again. Generate it again.',
+    );
+  }
+
+  private async isSubmissionInFlight(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const current = await this.voicesService.prisma.ingredient.findFirst({
+      select: { generationProvider: true, s3Key: true, status: true },
+      where: { id: ingredientId, isDeleted: false, organizationId },
+    });
+    const submitted = readSpeechReceipt(current?.generationProvider);
+    const submittedAt = submitted?.submittedAt
+      ? Date.parse(submitted.submittedAt)
+      : Number.NaN;
+    return (
+      current?.status === IngredientStatus.PROCESSING &&
+      !current.s3Key &&
+      submitted?.state === 'submitted' &&
+      Date.now() - submittedAt < SPEECH_SUBMISSION_LEASE_MS
+    );
   }
 }

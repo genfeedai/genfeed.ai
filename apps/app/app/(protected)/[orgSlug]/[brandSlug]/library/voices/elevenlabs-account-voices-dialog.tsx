@@ -63,6 +63,9 @@ export default function ElevenLabsAccountVoicesDialog({
     loadMoreControllerRef.current?.abort();
     setIsLoading(true);
     setHasError(false);
+    // A failed search must not leave the previous results or cursor usable.
+    setVoices([]);
+    setNextPageToken(null);
 
     void (async () => {
       try {

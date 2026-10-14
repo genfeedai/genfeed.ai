@@ -23,6 +23,7 @@ const speechReceiptSchema = z.object({
   organizationId: z.string().min(1),
   provider: z.literal('elevenlabs'),
   state: z.enum(['accepted', 'submitted', 'completed']),
+  submittedAt: z.string().min(1).optional(),
   version: z.literal(1),
   voice: z.object({
     externalVoiceId: z.string().min(1),

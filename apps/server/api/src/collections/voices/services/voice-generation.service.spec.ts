@@ -108,7 +108,12 @@ describe('VoiceGenerationService', () => {
   let voices: {
     findOne: ReturnType<typeof vi.fn>;
     patchAll: ReturnType<typeof vi.fn>;
-    prisma: { ingredient: { updateMany: ReturnType<typeof vi.fn> } };
+    prisma: {
+      ingredient: {
+        findFirst: ReturnType<typeof vi.fn>;
+        updateMany: ReturnType<typeof vi.fn>;
+      };
+    };
   };
   let workflowRunner: {
     enqueueWorkflow: ReturnType<typeof vi.fn>;
@@ -239,7 +244,10 @@ describe('VoiceGenerationService', () => {
       }),
       patchAll: vi.fn(),
       prisma: {
-        ingredient: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+        ingredient: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
       },
     };
     workflowRunner = {
@@ -1069,10 +1077,10 @@ describe('VoiceGenerationService', () => {
 
       expect(voices.prisma.ingredient.updateMany).toHaveBeenCalledWith({
         data: {
-          generationProvider: speechReceipt(
-            elevenLabsPersonalBinding,
-            'submitted',
-          ),
+          generationProvider: {
+            ...speechReceipt(elevenLabsPersonalBinding, 'submitted'),
+            submittedAt: expect.any(String),
+          },
         },
         where: {
           generationProvider: { equals: 'accepted', path: ['state'] },
@@ -1169,6 +1177,64 @@ describe('VoiceGenerationService', () => {
         organizationId,
         'platform',
       );
+    });
+
+    it('leaves an in-flight duplicate job to the attempt that owns the provider call', async () => {
+      let finishProvider: (value: unknown) => void = () => undefined;
+      elevenLabs.generateAndUploadAudio.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishProvider = resolve;
+          }),
+      );
+      const processing = {
+        generationProvider: speechReceipt(elevenLabsPlatformBinding),
+        id: ingredientId,
+        status: IngredientStatus.PROCESSING,
+      };
+      voices.findOne.mockResolvedValue(processing);
+      voices.prisma.ingredient.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      voices.prisma.ingredient.findFirst.mockResolvedValue({
+        generationProvider: {
+          ...speechReceipt(elevenLabsPlatformBinding, 'submitted'),
+          submittedAt: new Date().toISOString(),
+        },
+        s3Key: null,
+        status: IngredientStatus.PROCESSING,
+      });
+
+      const first = service.executeQueuedGeneration(queued());
+      await vi.waitFor(() =>
+        expect(elevenLabs.generateAndUploadAudio).toHaveBeenCalledTimes(1),
+      );
+
+      await expect(
+        service.executeQueuedGeneration(queued()),
+      ).resolves.toMatchObject({ status: IngredientStatus.PROCESSING });
+      expect(elevenLabs.generateAndUploadAudio).toHaveBeenCalledTimes(1);
+      expect(voices.patchAll).not.toHaveBeenCalledWith(expect.anything(), {
+        status: IngredientStatus.FAILED,
+      });
+      expect(activities.record).not.toHaveBeenCalledWith(
+        expect.objectContaining({ key: ActivityKey.VOICE_FAILED }),
+      );
+
+      voices.findOne.mockResolvedValue({
+        cdnUrl: 'https://example.com/generated.mp3',
+        id: ingredientId,
+        status: IngredientStatus.GENERATED,
+      });
+      finishProvider({
+        audioUrl: 'https://example.com/generated.mp3',
+        duration: 90,
+        uploadResult: { s3Key: 'ingredients/musics/voice-1' },
+      });
+      await expect(first).resolves.toMatchObject({
+        status: IngredientStatus.GENERATED,
+      });
+      expect(credits.settleSpeechCredits).toHaveBeenCalledTimes(1);
     });
   });
 });
