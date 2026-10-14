@@ -26,10 +26,14 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('token'),
-}));
+// Like the real hook, the service getter keeps its identity across renders.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', async () => {
+  const { useCallback } = await import('react');
+  return {
+    useAuthedService: (factory: (token: string) => unknown) =>
+      useCallback(async () => factory('token'), []),
+  };
+});
 
 // Search is exercised by the service request; skip the debounce delay.
 vi.mock('@hooks/utils/use-debounce/use-debounce', () => ({
@@ -171,8 +175,12 @@ describe('ElevenLabsAccountVoicesDialog', () => {
       await screen.findByRole('button', { name: 'Load more voices' }),
     );
 
-    expect(await screen.findByText('Page two')).toBeInTheDocument();
-    expect(screen.getByText('Founder clone')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Import Page two' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Import Founder clone' }),
+    ).toBeInTheDocument();
     expect(mocks.findAccountVoices).toHaveBeenLastCalledWith({
       pageToken: 'page-2',
       search: undefined,
@@ -232,7 +240,7 @@ describe('ElevenLabsAccountVoicesDialog', () => {
     mocks.findAccountVoices.mockResolvedValue(page());
 
     renderDialog();
-    await screen.findByText('Founder clone');
+    await screen.findByRole('button', { name: 'Import Founder clone' });
 
     fireEvent.change(
       screen.getByRole('textbox', { name: 'Search your ElevenLabs voices' }),
