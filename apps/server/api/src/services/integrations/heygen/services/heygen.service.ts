@@ -52,6 +52,7 @@ import type {
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
   HeyGenConnectionRef,
+  HeyGenGender,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -66,14 +67,24 @@ const catalogPageSchema = z.object({
   has_more: z.boolean(),
   next_token: z.string().nullish(),
 });
+// HeyGen reports gender loosely ("Male", "female", "unknown"); keep only what it states.
+const genderSchema = z
+  .string()
+  .nullish()
+  .transform((value): HeyGenGender | null => {
+    const gender = value?.trim().toLowerCase();
+    return gender === 'male' || gender === 'female' ? gender : null;
+  });
 const voiceSchema = z.object({
   voice_id: z.string().trim().min(1),
   name: z.string(),
+  gender: genderSchema,
   preview_audio_url: z.string().nullish(),
 });
 const lookSchema = z.object({
   id: z.string().trim().min(1),
   name: z.string(),
+  gender: genderSchema,
   preview_image_url: z.string().nullish(),
   avatar_type: z.string().nullish(),
   group_id: z.string().nullish(),
@@ -85,6 +96,26 @@ const groupSchema = z.object({
   status: z.string().nullable(),
   consent_status: z.string().nullable(),
 });
+
+/** A look's persisted identity plus display-only catalogue metadata. */
+interface HeyGenCatalogLook {
+  avatarRef: HeyGenAvatarRef;
+  gender: HeyGenGender | null;
+}
+
+function toCatalogAvatar(
+  { avatarRef, gender }: HeyGenCatalogLook,
+  index: number,
+): HeyGenCatalogAvatar {
+  return {
+    avatarId: avatarRef.lookId,
+    index,
+    name: avatarRef.label,
+    gender,
+    preview: avatarRef.preview ?? '',
+    avatarRef,
+  };
+}
 
 type HeyGenSpeechInput =
   | string
@@ -430,6 +461,7 @@ export class HeyGenService {
         output.push({
           index: output.length,
           name: voice.name,
+          gender: voice.gender,
           preview: voice.preview_audio_url ?? '',
           voiceId: voice.voice_id,
           ownership: partition,
@@ -456,7 +488,7 @@ export class HeyGenService {
     apiKeyOverride?: string,
   ): Promise<HeyGenCatalogAvatar[]> {
     const orgId = organizationId ?? 'platform';
-    let avatars: HeyGenAvatarRef[];
+    let avatars: HeyGenCatalogLook[];
     if (apiKeyOverride)
       avatars = await this.readAvatarCatalog({
         apiKey: apiKeyOverride,
@@ -468,13 +500,7 @@ export class HeyGenService {
         (connection, ownership) =>
           this.readAvatarCatalog(connection, ownership),
       );
-    return avatars.map((avatarRef, index) => ({
-      avatarId: avatarRef.lookId,
-      index,
-      name: avatarRef.label,
-      preview: avatarRef.preview ?? '',
-      avatarRef,
-    }));
+    return avatars.map((look, index) => toCatalogAvatar(look, index));
   }
 
   public async getAvatarPage(
@@ -508,15 +534,13 @@ export class HeyGenService {
       { ownership },
       cursor,
     );
-    const refs = await this.readAvatarCatalog(connection, ownership, page.data);
+    const looks = await this.readAvatarCatalog(
+      connection,
+      ownership,
+      page.data,
+    );
     return {
-      avatars: refs.map((avatarRef, index) => ({
-        avatarId: avatarRef.lookId,
-        index,
-        name: avatarRef.label,
-        preview: avatarRef.preview ?? '',
-        avatarRef,
-      })),
+      avatars: looks.map((look, index) => toCatalogAvatar(look, index)),
       ownership,
       nextCursor: page.has_more ? (page.next_token ?? null) : null,
     };
@@ -591,13 +615,13 @@ export class HeyGenService {
     ownership?: 'public' | 'private',
     pageItems?: Record<string, unknown>[],
     lookId?: string,
-  ): Promise<HeyGenAvatarRef[]> {
+  ): Promise<HeyGenCatalogLook[]> {
     const partitions = ownership
       ? [ownership]
       : connection.binding.kind === 'byok'
         ? (['public', 'private'] as const)
         : (['public'] as const);
-    const output: HeyGenAvatarRef[] = [];
+    const output: HeyGenCatalogLook[] = [];
     const groups = new Map<string, Promise<z.infer<typeof groupSchema>>>();
     for (const partition of partitions) {
       if (partition === 'private' && connection.binding.kind !== 'byok')
@@ -664,9 +688,9 @@ export class HeyGenService {
                               group.consent_status !== 'accepted'
                             ? 'Avatar consent is pending or rejected.'
                             : null;
-              return {
-                version: 1 as const,
-                source: 'heygen-look' as const,
+              const avatarRef: HeyGenAvatarRef = {
+                version: 1,
+                source: 'heygen-look',
                 provider: 'heygen' as const,
                 lookId: look.id,
                 groupId: look.group_id ?? null,
@@ -684,6 +708,7 @@ export class HeyGenService {
                 },
                 connection: this.savedConnection(connection.binding),
               };
+              return { avatarRef, gender: look.gender };
             }),
           )),
         );
@@ -733,8 +758,8 @@ export class HeyGenService {
       candidate.lookId,
     );
     const avatarRef = catalog.find(
-      (avatar) => avatar.lookId === candidate.lookId,
-    );
+      ({ avatarRef: avatar }) => avatar.lookId === candidate.lookId,
+    )?.avatarRef;
     if (!avatarRef)
       throw new BadRequestException(
         'The selected avatar is unavailable on this connection. Reselect an avatar.',

@@ -5,6 +5,7 @@ import { VoiceProvider } from '@genfeedai/contracts';
 import { getVoiceSpeechModel } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarRef,
+  HeyGenGender,
   HeyGenSpeechVoice,
 } from '@genfeedai/contracts/interfaces';
 import {
@@ -23,13 +24,19 @@ import { useHeyGenSpeechVoices } from '@hooks/data/integrations/use-heygen-speec
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import type { StudioPlaygroundType } from '@pages/studio/playground/types';
+import { normalizeIdentityGender } from '@pages/studio/playground/utils/studio-identity-selection';
 import { resolveStudioAssetUrl } from '@pages/studio/playground/utils/studio-playground-asset';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useMemo } from 'react';
 
 export interface StudioIdentityOption {
+  /** `name (source)`: the accessible name and the composer summary. */
   label: string;
+  name: string;
+  source: string;
   value: string;
+  /** Provider-stated gender; voices of the other gender are hidden for an avatar. */
+  gender?: HeyGenGender | null;
   preview?: string;
   avatarRef?: HeyGenAvatarRef;
   voiceRef?: DefaultVoiceRef;
@@ -63,13 +70,18 @@ function getVoiceName(voice: Voice): string {
   return voice.metadataLabel || voice.externalVoiceId || voice.id;
 }
 
+function toIdentityLabel(name: string, source: string) {
+  return { label: `${name} (${source})`, name, source };
+}
+
 function toCatalogVoiceOption(voice: Voice): StudioIdentityOption {
   return {
-    label: `${getVoiceName(voice)} (${voice.provider})`,
+    ...toIdentityLabel(getVoiceName(voice), voice.provider),
     value: encodeCatalogVoiceValue(
       voice.provider as VoiceProvider,
       String(voice.externalVoiceId),
     ),
+    gender: normalizeIdentityGender(voice.gender),
     preview: voice.sampleAudioUrl || undefined,
     voiceRef: buildDefaultVoiceRefFromVoice(voice) ?? {
       source: 'catalog' as const,
@@ -81,7 +93,7 @@ function toCatalogVoiceOption(voice: Voice): StudioIdentityOption {
 
 function toSpeechVoiceOption(voice: HeyGenSpeechVoice): StudioIdentityOption {
   return {
-    label: `${voice.name} (HeyGen Voice · ${voice.ownership})`,
+    ...toIdentityLabel(voice.name, `HeyGen Voice · ${voice.ownership}`),
     value: heyGenVoiceValue(voice),
     voiceRef: {
       source: 'catalog',
@@ -113,14 +125,18 @@ export function useStudioPlaygroundIdentities({
     () => [
       ...avatars
         .map((avatar) => ({
-          label: `${getIngredientDisplayLabel(avatar)} (Photo)`,
+          ...toIdentityLabel(getIngredientDisplayLabel(avatar), 'Photo'),
           value: resolveStudioAssetUrl(avatar) ?? '',
           preview: resolveStudioAssetUrl(avatar),
         }))
         .filter((option) => Boolean(option.value)),
       ...heygen.avatars.map((avatar) => ({
-        label: `${avatar.name} (${avatar.avatarRef.ownership === 'public' ? 'Public preset' : 'Personal HeyGen'})${avatar.avatarRef.readiness.reason ? ` · ${avatar.avatarRef.readiness.reason}` : ''}`,
+        ...toIdentityLabel(
+          avatar.name,
+          `${avatar.avatarRef.ownership === 'public' ? 'Public preset' : 'Personal HeyGen'}${avatar.avatarRef.readiness.reason ? ` · ${avatar.avatarRef.readiness.reason}` : ''}`,
+        ),
         value: heyGenAvatarValue(avatar.avatarRef),
+        gender: avatar.gender,
         preview: avatar.preview || undefined,
         avatarRef: avatar.avatarRef,
         disabled: !avatar.avatarRef.readiness.usable,
@@ -156,8 +172,9 @@ export function useStudioPlaygroundIdentities({
         )
         .map(toCatalogVoiceOption),
       ...heygen.voices.map((voice) => ({
-        label: `${voice.name} (HeyGen · ${voice.ownership})`,
+        ...toIdentityLabel(voice.name, `HeyGen · ${voice.ownership}`),
         value: heyGenVoiceValue(voice),
+        gender: voice.gender,
         preview: voice.preview || undefined,
         voiceRef: heyGenDefaultVoice(voice),
       })),

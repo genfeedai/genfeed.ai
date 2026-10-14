@@ -415,6 +415,7 @@ describe('BrandDetailIdentityCard.tsx', () => {
     const ready: HeyGenCatalogAvatar = {
       avatarId: 'look-1',
       name: 'Founder',
+      gender: null,
       preview: 'https://example.com/look.png',
       index: 0,
       avatarRef: {
@@ -450,6 +451,7 @@ describe('BrandDetailIdentityCard.tsx', () => {
           ...ready,
           avatarId: 'look-2',
           name: 'Processing',
+          gender: null,
           avatarRef: {
             ...ready.avatarRef,
             lookId: 'look-2',

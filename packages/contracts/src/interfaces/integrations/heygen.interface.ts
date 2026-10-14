@@ -31,9 +31,13 @@ export interface HeyGenAvatarRef {
   connection: HeyGenConnectionRef;
 }
 
+/** HeyGen's catalogue gender, normalized; null when HeyGen does not say. */
+export type HeyGenGender = 'female' | 'male';
+
 export interface HeyGenCatalogAvatar {
   avatarId: string;
   name: string;
+  gender: HeyGenGender | null;
   preview: string;
   index: number;
   avatarRef: HeyGenAvatarRef;
@@ -48,6 +52,7 @@ export interface HeyGenAvatarCatalogPage {
 export interface HeyGenCatalogVoice {
   voiceId: string;
   name: string;
+  gender: HeyGenGender | null;
   preview: string;
   index: number;
   ownership: 'private' | 'public';
