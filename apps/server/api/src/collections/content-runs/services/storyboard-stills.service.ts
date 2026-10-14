@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
-import type { StoryboardStoredRunConfig } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import {
+  type StoryboardStoredRunConfig,
+  storyboardStoredRunConfigSchema,
+} from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
 import {
   assertStoryboardEditable,
   assertStoryboardPlan,
@@ -161,7 +164,7 @@ export class StoryboardStillsService {
         throw new ConflictException(
           'A still for one of these shots is already generating.',
         );
-      return {
+      return storyboardStoredRunConfigSchema.parse({
         ...current,
         stillOperations: appendStillOperations(
           current.stillOperations ?? [],
@@ -175,7 +178,7 @@ export class StoryboardStillsService {
               : shot,
           ),
         },
-      };
+      });
     });
     // One at a time: each dispatch records its placeholder and hold in the
     // same run document, so parallel writers would only contend.
@@ -476,7 +479,7 @@ export class StoryboardStillsService {
     const updatedAt = new Date().toISOString();
     const plan = current.plan;
     const byShot = new Map(finished.map((op) => [op.shotId, op]));
-    return {
+    return storyboardStoredRunConfigSchema.parse({
       ...current,
       stillOperations: journal.map((op) => {
         const outcome = outcomes.get(op.operationId);
@@ -504,7 +507,7 @@ export class StoryboardStillsService {
           };
         }),
       },
-    };
+    });
   }
 
   private async settle(
