@@ -253,6 +253,11 @@ describe('PostAccountGenerationService', () => {
   }
 
   describe('start', () => {
+    it('creates only a bounded initial page for a large account run', async () => {
+      const posts = await service.start({ ...dto, count: 13 }, identity);
+      expect(posts).toHaveLength(10);
+      expect(postsService.create).toHaveBeenCalledTimes(10);
+    });
     it('refuses with the funding error before any placeholder or dispatch exists', async () => {
       billing.reserveRun.mockRejectedValueOnce(
         new HttpException('Insufficient credits', HttpStatus.PAYMENT_REQUIRED),
