@@ -7,6 +7,7 @@ import { Module } from '@nestjs/common';
 import { FreeTrialEmailsService } from './free-trial-emails.service';
 import { LifecycleEmailService } from './lifecycle-email.service';
 import { LifecycleEmailMaintenanceService } from './lifecycle-email-maintenance.service';
+import { LifecycleEmailWorkService } from './lifecycle-email-work.service';
 import { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.service';
 import { LifecycleEmailsController } from './lifecycle-emails.controller';
 
@@ -25,6 +26,7 @@ import { LifecycleEmailsController } from './lifecycle-emails.controller';
     LifecycleEmailWorkflowService,
     LifecycleEmailService,
     LifecycleEmailMaintenanceService,
+    LifecycleEmailWorkService,
   ],
 })
 export class LifecycleEmailsModule {}

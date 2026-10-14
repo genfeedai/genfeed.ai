@@ -8,12 +8,15 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
 import { describe, expect, it, vi } from 'vitest';
 import type { FreeTrialEmailsService } from './free-trial-emails.service';
-import {
-  completedEmailPeriod,
-  LifecycleEmailMaintenanceService,
-} from './lifecycle-email-maintenance.service';
+import { LifecycleEmailMaintenanceService } from './lifecycle-email-maintenance.service';
+import type { LifecycleEmailWorkService } from './lifecycle-email-work.service';
 import type { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.service';
 import type { SystemEmailEligibilityService } from './system-email-eligibility.service';
+
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  isSelfHostedDeployment: vi.fn(() => false),
+}));
 
 const sendDueTrialNotices = vi.fn().mockResolvedValue(null);
 // A paying organization whose latest grant makes 500 credits "low".
@@ -71,32 +74,21 @@ function fixture(count: number, isConnected = true) {
     {} as WorkflowExecutionQueueService,
     { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
     { resolve: resolveLowCredit } as unknown as LowCreditThresholdService,
+    {} as LifecycleEmailWorkService,
   );
   return { service, prisma, queueEmail, findForUser };
 }
 
 describe('system recap policy', () => {
-  it('uses the previous complete Monday to Monday week across year boundaries', () => {
-    expect(
-      completedEmailPeriod(new Date('2027-01-03T23:59:59Z'), true),
-    ).toEqual({
-      start: new Date('2026-12-21T00:00:00Z'),
-      end: new Date('2026-12-28T00:00:00Z'),
+  it('prepares recaps on the hourly run whatever its minute', async () => {
+    const { service, queueEmail } = fixture(1);
+    await service.recaps({
+      organizationId: 'org-1',
+      referenceDate: '2026-09-14T08:20:00.000Z',
     });
-    expect(
-      completedEmailPeriod(new Date('2027-01-04T00:00:00Z'), true),
-    ).toEqual({
-      start: new Date('2026-12-28T00:00:00Z'),
-      end: new Date('2027-01-04T00:00:00Z'),
-    });
-  });
-  it('uses the previous complete UTC day', () => {
-    expect(
-      completedEmailPeriod(new Date('2026-09-09T08:00:00Z'), false),
-    ).toEqual({
-      start: new Date('2026-09-08T00:00:00Z'),
-      end: new Date('2026-09-09T00:00:00Z'),
-    });
+    expect(queueEmail.mock.calls.map(([input]) => input.topic)).toEqual([
+      'content.daily',
+    ]);
   });
   it('does not queue a weekly recap for four outputs', async () => {
     const { service, queueEmail } = fixture(4);
@@ -272,6 +264,7 @@ function creditsFixture(overrides: {
     {} as WorkflowExecutionQueueService,
     { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
     { resolve: resolveLowCredit } as unknown as LowCreditThresholdService,
+    {} as LifecycleEmailWorkService,
   );
   return { service, prisma, queueEmail };
 }
@@ -366,17 +359,19 @@ describe('credit balance alerts', () => {
       select: { id: true },
     });
   });
-  it('evaluates balances once an hour, not on every five-minute tick', async () => {
-    const { service, prisma } = creditsFixture({ spendable: 400 });
+  it('evaluates balances on the hourly run whatever its minute', async () => {
+    const { service, queueEmail } = creditsFixture({ spendable: 400 });
     sendDueTrialNotices.mockClear();
     await service.credits({
       organizationId: 'org-1',
       referenceDate: '2026-09-14T08:20:00.000Z',
     });
-    expect(prisma.creditBalance.findFirst).not.toHaveBeenCalled();
-    expect(sendDueTrialNotices).not.toHaveBeenCalled();
+    expect(sendDueTrialNotices).toHaveBeenCalledOnce();
+    expect(queueEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ templateKey: 'credit-low' }),
+    );
   });
-  it('evaluates the free-trial notices on the hourly tick at the reference time', async () => {
+  it('evaluates the free-trial notices at the reference time', async () => {
     const { service } = creditsFixture({ spendable: 400 });
     sendDueTrialNotices.mockClear();
     await service.credits(request);
@@ -384,5 +379,87 @@ describe('credit balance alerts', () => {
       'org-1',
       new Date(request.referenceDate),
     );
+  });
+});
+
+describe('hourly system email sweep', () => {
+  function sweepFixture(organizationIds: string[]) {
+    const registered = new Map<
+      string,
+      (context: unknown) => Promise<unknown>
+    >();
+    const queueSystemWorkflow = vi.fn().mockResolvedValue(undefined);
+    const findOrganizationIds = vi.fn().mockResolvedValue(organizationIds);
+    const findMany = vi.fn(({ where }: { where: { id: { in: string[] } } }) =>
+      Promise.resolve(
+        where.id.in.map((id) => ({ id, userId: `owner-of-${id}` })),
+      ),
+    );
+    const service = new LifecycleEmailMaintenanceService(
+      { organization: { findMany } } as unknown as PrismaService,
+      {} as ConfigService,
+      {
+        registerAction: (
+          id: string,
+          handler: (context: unknown) => Promise<unknown>,
+        ) => registered.set(id, handler),
+        registerWorkflow: vi.fn(),
+      } as unknown as SystemWorkflowRunnerService,
+      {} as LifecycleEmailWorkflowService,
+      {} as EmailPerformanceService,
+      {} as SystemEmailEligibilityService,
+      {} as NotificationPreferenceService,
+      { queueSystemWorkflow } as unknown as WorkflowExecutionQueueService,
+      {} as FreeTrialEmailsService,
+      {} as LowCreditThresholdService,
+      { findOrganizationIds } as unknown as LifecycleEmailWorkService,
+    );
+    service.onModuleInit();
+    const discover = registered.get('lifecycle-email.sweep.discover');
+    if (!discover) throw new Error('discover action not registered');
+    return { discover, findMany, findOrganizationIds, queueSystemWorkflow };
+  }
+
+  it('queues one run per organization with work, and none for idle ones', async () => {
+    const { discover, findOrganizationIds, queueSystemWorkflow } = sweepFixture(
+      ['org-a', 'org-b'],
+    );
+    await expect(
+      discover({
+        input: { request: { referenceDate: request.referenceDate } },
+      }),
+    ).resolves.toEqual({ count: 2 });
+    expect(findOrganizationIds).toHaveBeenCalledWith(
+      new Date(request.referenceDate),
+    );
+    expect(
+      queueSystemWorkflow.mock.calls.map(([input]) => input.organizationId),
+    ).toEqual(['org-a', 'org-b']);
+    expect(queueSystemWorkflow.mock.calls[0]).toEqual([
+      expect.objectContaining({
+        canonicalId: 'lifecycle-email.organization',
+        userId: 'owner-of-org-a',
+        inputValues: {
+          request: {
+            organizationId: 'org-a',
+            referenceDate: request.referenceDate,
+          },
+        },
+      }),
+      // One job per organization per UTC hour.
+      `system-email-org-a-${Math.floor(new Date(request.referenceDate).getTime() / 3_600_000)}`,
+      expect.objectContaining({ attempts: 3 }),
+    ]);
+  });
+
+  it('queues nothing when no organization has work', async () => {
+    const { discover, findMany, queueSystemWorkflow } = sweepFixture([]);
+    await expect(
+      discover({
+        input: { request: { referenceDate: request.referenceDate } },
+      }),
+    ).resolves.toEqual({ count: 0 });
+    expect(findMany).not.toHaveBeenCalled();
+    expect(queueSystemWorkflow).not.toHaveBeenCalled();
   });
 });

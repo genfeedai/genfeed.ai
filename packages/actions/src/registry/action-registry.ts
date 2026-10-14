@@ -2577,11 +2577,6 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Runs one detected own-account breakout response through pricing, reservation and generation under its pinned initiating actor.',
   ),
   internalAction(
-    'email-product-signals.dispatch',
-    'Discover email product signals',
-    'Discover email product signals through a hidden system workflow.',
-  ),
-  internalAction(
     'email-product-signals.generations',
     'Queue long generation updates',
     'Queue long generation updates through a hidden system workflow.',

@@ -36,12 +36,16 @@ describe('FreeTrialEmailsService', () => {
           }
         : subject,
   );
+  const organizationFindMany = vi.fn();
   const emailMessageFindFirst = vi.fn();
   const queueEmail = vi.fn();
   const service = new FreeTrialEmailsService(
     {
       emailMessage: { findFirst: emailMessageFindFirst },
-      organization: { findFirst: organizationFindFirst },
+      organization: {
+        findFirst: organizationFindFirst,
+        findMany: organizationFindMany,
+      },
     } as unknown as PrismaService,
     {
       get: (key: string) =>
@@ -208,5 +212,59 @@ describe('FreeTrialEmailsService', () => {
       false,
     );
     expect(queueEmail).not.toHaveBeenCalled();
+  });
+
+  describe('notice window discovery', () => {
+    const now = new Date('2026-10-14T08:00:00.000Z');
+
+    it('selects organizations created 48 to 96 hours ago', async () => {
+      organizationFindMany.mockResolvedValue([
+        { id: 'org-1' },
+        { id: 'org-2' },
+      ]);
+      await expect(
+        service.findNoticeWindowOrganizationIds(now),
+      ).resolves.toEqual(['org-1', 'org-2']);
+      expect(organizationFindMany).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          createdAt: {
+            gt: new Date('2026-10-10T08:00:00.000Z'),
+            lte: new Date('2026-10-12T08:00:00.000Z'),
+          },
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('selects every organization that predates the rollout while the rollout clock is inside the window', async () => {
+      rolloutAt = '2026-10-11T00:00:00.000Z';
+      organizationFindMany.mockResolvedValue([]);
+      await service.findNoticeWindowOrganizationIds(now);
+      expect(organizationFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            createdAt: { lte: new Date('2026-10-12T08:00:00.000Z') },
+            isDeleted: false,
+          },
+        }),
+      );
+    });
+
+    it('selects nothing before the rollout clock reaches its first notice', async () => {
+      rolloutAt = '2026-10-13T00:00:00.000Z';
+      await expect(
+        service.findNoticeWindowOrganizationIds(now),
+      ).resolves.toEqual([]);
+      expect(organizationFindMany).not.toHaveBeenCalled();
+    });
+
+    it('selects nothing where the free trial is not enforced', async () => {
+      vi.spyOn(deployment, 'isSelfHostedDeployment').mockReturnValue(true);
+      await expect(
+        service.findNoticeWindowOrganizationIds(now),
+      ).resolves.toEqual([]);
+      expect(organizationFindMany).not.toHaveBeenCalled();
+    });
   });
 });

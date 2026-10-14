@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { EMAIL_SIGNAL_ACTIONS } from '@api/services/email-product-signals/email-product-signals.workflow';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export interface LifecycleMaintenanceRequest {
@@ -38,9 +39,9 @@ export function lifecycleMaintenanceWorkflows(): SystemWorkflowGraphDefinition[]
       },
       label: 'System Email Eligibility Sweep',
       description:
-        'Discovers active organizations for durable lifecycle recovery and product emails.',
+        'Finds the organizations with due lifecycle deliveries, recaps, credit or trial notices, or new product signals, and queues one run for each.',
       resultNodeId: 'discover',
-      version: 1,
+      version: 2,
     },
     {
       canonicalId: LIFECYCLE_MAINTENANCE_IDS.ORGANIZATION,
@@ -67,6 +68,18 @@ export function lifecycleMaintenanceWorkflows(): SystemWorkflowGraphDefinition[]
             actionId: LIFECYCLE_MAINTENANCE_IDS.CREDITS,
             id: 'credits',
           }),
+          createGenfeedActionNode({
+            actionId: EMAIL_SIGNAL_ACTIONS.GENERATIONS,
+            id: 'generations',
+          }),
+          createGenfeedActionNode({
+            actionId: EMAIL_SIGNAL_ACTIONS.RECEIPTS,
+            id: 'receipts',
+          }),
+          createGenfeedActionNode({
+            actionId: EMAIL_SIGNAL_ACTIONS.CONVERSIONS,
+            id: 'conversions',
+          }),
         ],
         edges: [
           {
@@ -85,9 +98,9 @@ export function lifecycleMaintenanceWorkflows(): SystemWorkflowGraphDefinition[]
       },
       label: 'Organization System Emails',
       description:
-        'Recovers due onboarding workflows, prepares eligible recaps and connection reminders, and evaluates spendable credits.',
+        'Recovers due onboarding workflows, prepares eligible recaps and connection reminders, evaluates spendable credits, queues long-generation updates and purchase receipts, and attributes confirmed product actions.',
       resultNodeId: 'credits',
-      version: 1,
+      version: 2,
     },
   ];
 }

@@ -1,8 +1,12 @@
-import { readFreeTrialState } from '@api/collections/credits/services/free-trial-state.util';
+import {
+  isFreeTrialEnforced,
+  readFreeTrialState,
+} from '@api/collections/credits/services/free-trial-state.util';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   APP_ROUTES,
+  FREE_TRIAL_DURATION_MS,
   FREE_TRIAL_EMAILS,
   FREE_TRIAL_ENDING_NOTICE_MS,
   FREE_TRIAL_NOTICE_GRACE_MS,
@@ -59,6 +63,39 @@ export class FreeTrialEmailsService {
       return null;
     }
     return (await this.queue(organizationId, notice)) ? notice : null;
+  }
+
+  /**
+   * The organizations whose "ends in 24 hours" or "has ended" notice can be
+   * due at `now`: the trial clock (`max(createdAt, rollout)`) started between
+   * 96 and 48 hours ago. It over-selects, since a paid organization is exempt
+   * and a sent notice is never repeated; `sendDueTrialNotices` decides.
+   */
+  async findNoticeWindowOrganizationIds(now: Date): Promise<string[]> {
+    if (!isFreeTrialEnforced()) {
+      return [];
+    }
+    const rolloutAt = resolveFreeTrialRolloutAt(
+      this.config.get('FREE_TRIAL_ROLLOUT_AT'),
+    );
+    const newest =
+      now.getTime() - (FREE_TRIAL_DURATION_MS - FREE_TRIAL_ENDING_NOTICE_MS);
+    const oldest =
+      now.getTime() - (FREE_TRIAL_DURATION_MS + FREE_TRIAL_NOTICE_GRACE_MS);
+    // An organization older than the rollout starts its clock at the rollout.
+    if (rolloutAt.getTime() > newest) {
+      return [];
+    }
+    const createdAt =
+      rolloutAt.getTime() > oldest
+        ? { lte: new Date(newest) }
+        : { gt: new Date(oldest), lte: new Date(newest) };
+    // tenant-scope-ignore: platform-wide trial discovery selects organization identifiers only; each queued run supplies its own organization scope.
+    const organizations = await this.prisma.organization.findMany({
+      select: { id: true },
+      where: { createdAt, isDeleted: false },
+    });
+    return organizations.map(({ id }) => id);
   }
 
   /**

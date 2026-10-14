@@ -1,62 +1,27 @@
-import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
+const DAY_MS = 86_400_000;
 
+/**
+ * Per-organization product-signal steps. They run as nodes of the lifecycle
+ * email organization workflow (`lifecycle-email-maintenance-workflow.ts`).
+ */
 export const EMAIL_SIGNAL_ACTIONS = {
-  DISPATCH: 'email-product-signals.dispatch',
   GENERATIONS: 'email-product-signals.generations',
   CONVERSIONS: 'email-product-signals.conversions',
   RECEIPTS: 'email-product-signals.receipts',
 } as const;
-export const EMAIL_SIGNAL_WORKFLOWS = {
-  SWEEP: 'email-product-signals.reconcile',
-  ORGANIZATION: 'email-product-signals.organization',
+
+/** Checkpoint streams that record how far each signal has scanned. */
+export const EMAIL_SIGNAL_STREAMS = {
+  GENERATION: 'generation',
+  RECEIPT: 'receipt',
 } as const;
 
-export function buildEmailSignalWorkflows(): SystemWorkflowGraphDefinition[] {
-  return [
-    {
-      canonicalId: EMAIL_SIGNAL_WORKFLOWS.SWEEP,
-      label: 'Email product signal discovery',
-      description:
-        'Dispatches scoped generation and confirmed product outcome reconciliation.',
-      version: 1,
-      resultNodeId: 'dispatch',
-      definition: {
-        nodes: [
-          createGenfeedActionNode({
-            id: 'dispatch',
-            actionId: EMAIL_SIGNAL_ACTIONS.DISPATCH,
-          }),
-        ],
-        edges: [],
-        inputVariables: [],
-      },
-    },
-    {
-      canonicalId: EMAIL_SIGNAL_WORKFLOWS.ORGANIZATION,
-      label: 'Email product signal reconciliation',
-      description:
-        'Queues generation results and receipts, and attributes confirmed product actions.',
-      version: 1,
-      resultNodeId: 'conversions',
-      definition: {
-        nodes: [
-          createGenfeedActionNode({
-            id: 'generations',
-            actionId: EMAIL_SIGNAL_ACTIONS.GENERATIONS,
-          }),
-          createGenfeedActionNode({
-            id: 'receipts',
-            actionId: EMAIL_SIGNAL_ACTIONS.RECEIPTS,
-          }),
-          createGenfeedActionNode({
-            id: 'conversions',
-            actionId: EMAIL_SIGNAL_ACTIONS.CONVERSIONS,
-          }),
-        ],
-        edges: [],
-        inputVariables: [],
-      },
-    },
-  ];
-}
+/** How far back a stream with no checkpoint yet looks. */
+export const EMAIL_SIGNAL_DEFAULT_LOOKBACK_MS = DAY_MS;
+
+/**
+ * Attribution reads a seven-day outcome window over messages accepted up to
+ * seven days before it, so a message accepted earlier than this can no longer
+ * convert.
+ */
+export const EMAIL_CONVERSION_ACCEPTED_LOOKBACK_MS = 14 * DAY_MS;

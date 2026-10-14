@@ -40,6 +40,7 @@ function fixture() {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     ingredient: { findMany: vi.fn().mockResolvedValue([]) },
+    emailMessage: { findMany: vi.fn().mockResolvedValue([]) },
     organization: {
       findFirst: vi
         .fn()
@@ -53,7 +54,6 @@ function fixture() {
     prisma as never,
     emails as never,
     config as never,
-    {} as never,
     {} as never,
   );
   return { service, prisma, emails };
@@ -257,5 +257,26 @@ describe('EmailProductSignalsService confirmed purchase receipts', () => {
     );
     expect(f.prisma.emailSignalCheckpoint.upsert).not.toHaveBeenCalled();
     expect(f.prisma.emailSignalCheckpoint.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('EmailProductSignalsService conversion attribution', () => {
+  it('reads the accepted-message cohort on every run, whatever the minute', async () => {
+    vi.setSystemTime(new Date('2026-09-09T12:20:00.000Z'));
+    const f = fixture();
+    await expect(f.service.conversions('org-1')).resolves.toEqual({ count: 0 });
+    expect(f.prisma.emailMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+          goal: { not: null },
+          acceptedAt: {
+            gte: new Date('2026-08-26T12:20:00.000Z'),
+            lte: new Date('2026-09-09T12:20:00.000Z'),
+          },
+        }),
+      }),
+    );
   });
 });

@@ -113,7 +113,7 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'lifecycle-emails',
     methodName: 'processLifecycleEmails',
     reason:
-      'Dispatches hidden lifecycle and product-signal workflows; business eligibility lives in graph actions.',
+      'Queues the hidden hourly system-email sweep; discovery and business eligibility live in graph actions.',
   },
   {
     file: 'apps/server/workers/src/crons/credentials/cron.credentials.service.ts',
