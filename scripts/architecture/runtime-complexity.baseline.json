@@ -24,7 +24,7 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 180,
+    "actual": 166,
     "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",
     "symbol": "ClipGenerationDispatchService.retryFailedClips"
