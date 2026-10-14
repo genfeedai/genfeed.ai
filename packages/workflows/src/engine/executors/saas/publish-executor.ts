@@ -43,7 +43,12 @@ export interface PublishOutput {
   postIds: string[];
   platforms: SocialPlatform[];
   scheduledFor: Date | null;
-  status: 'queued' | 'scheduled' | 'published';
+  /**
+   * `held`: the text came from a brand receipt nobody cleared, so the posts were
+   * saved as drafts instead of scheduled; `holdReason` says why.
+   */
+  status: 'queued' | 'scheduled' | 'published' | 'held';
+  holdReason?: string;
 }
 
 /**

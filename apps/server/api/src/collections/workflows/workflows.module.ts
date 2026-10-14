@@ -11,6 +11,7 @@ import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflow
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
+import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
@@ -89,6 +90,7 @@ import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collection
 import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WorkflowPostGenerationService } from '@api/collections/workflows/services/workflow-post-generation.service';
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
@@ -187,6 +189,7 @@ import { Module } from '@nestjs/common';
     AdPerformanceModule,
     AgentGoalsModule,
     AgentThreadsModule,
+    BrandedTextGenerationModule,
     BrandsCoreModule,
     CaptionsModule,
     ContentEngineModule,
@@ -253,6 +256,7 @@ import { Module } from '@nestjs/common';
     WorkflowMediaGenerationExecutorRegistrarService,
     WorkflowKnowledgeGroundingService,
     WorkflowContentExecutorRegistrarService,
+    WorkflowPostGenerationService,
     WorkflowAutomationExecutorRegistrarService,
     WorkflowTrendPublishExecutorRegistrarService,
     WorkflowEngineExecutorRegistryService,

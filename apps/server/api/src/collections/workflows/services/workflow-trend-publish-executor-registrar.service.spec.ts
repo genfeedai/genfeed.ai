@@ -1,7 +1,11 @@
 import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
-import { CredentialPlatform, Platform } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  Platform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import {
   createExecutableActionNode,
   type INodeExecutor,
@@ -32,6 +36,10 @@ function createHelper(): WorkflowEngineExecutorHelperService {
 function runPublishNode(
   postsService: { create: ReturnType<typeof vi.fn> },
   fanoutService: { resolveTargets: ReturnType<typeof vi.fn> },
+  options: {
+    prisma?: unknown;
+    schedule?: Record<string, unknown>;
+  } = {},
 ) {
   const engine = new WorkflowEngine();
 
@@ -48,7 +56,7 @@ function runPublishNode(
     undefined,
     undefined,
     undefined,
-    undefined,
+    options.prisma as never,
     undefined,
     postsService as never,
     fanoutService as never,
@@ -62,7 +70,7 @@ function runPublishNode(
       parameters: {
         caption: 'Launch post',
         platforms: ['twitter'],
-        schedule: { type: 'immediate' },
+        schedule: options.schedule ?? { type: 'immediate' },
       },
     }),
     new Map([['brand', 'brand-1']]),
@@ -167,5 +175,122 @@ describe('WorkflowTrendPublishExecutorRegistrarService', () => {
 
     expect(postsService.create).not.toHaveBeenCalled();
     expect(result.postIds).toEqual([]);
+  });
+});
+
+describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
+  const SCHEDULED = {
+    datetime: '2026-10-20T10:00:00.000Z',
+    type: 'scheduled',
+  };
+  const targets: PostAccountTarget[] = [
+    {
+      caption: 'Launch post',
+      credentialId: 'cred-1',
+      platform: Platform.TWITTER,
+    },
+  ];
+
+  function fixture(
+    receipts: { id: string; mode: string; state: string }[],
+    hasApprovedKit = false,
+  ) {
+    const prisma = {
+      brandOsRevision: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue(hasApprovedKit ? { id: 'rev-1' } : null),
+      },
+      brandedGenerationReceipt: {
+        findMany: vi.fn().mockResolvedValue(receipts),
+      },
+    };
+    const postsService = {
+      create: vi.fn().mockResolvedValue({ id: 'post-1' }),
+    };
+    const fanoutService = {
+      resolveTargets: vi.fn().mockResolvedValue(targets),
+    };
+    return { fanoutService, postsService, prisma };
+  }
+
+  it('saves a draft instead of scheduling text a provisional receipt left uncleared', async () => {
+    const { fanoutService, postsService, prisma } = fixture([
+      { id: 'receipt-1', mode: 'provisional_brand', state: 'needs_review' },
+    ]);
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: 'Launch post',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    expect(
+      postsService.create.mock.calls[0]?.[0].scheduledDate,
+    ).toBeUndefined();
+    expect(result).toMatchObject({
+      holdReason: 'provisional_brand',
+      postIds: ['post-1'],
+      scheduledFor: null,
+      status: 'held',
+    });
+    expect(prisma.brandedGenerationReceipt.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+  });
+
+  it('schedules the same text once the brand has an approved kit', async () => {
+    const { fanoutService, postsService, prisma } = fixture(
+      [{ id: 'receipt-1', mode: 'provisional_brand', state: 'needs_review' }],
+      true,
+    );
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    );
+    expect(result.status).toBe('scheduled');
+  });
+
+  it('schedules text no receipt ever produced', async () => {
+    const { fanoutService, postsService, prisma } = fixture([]);
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(result.status).toBe('scheduled');
+    expect(result).not.toHaveProperty('holdReason');
+  });
+
+  it('does not look at receipts when nothing is scheduled', async () => {
+    const { fanoutService, postsService, prisma } = fixture([
+      { id: 'receipt-1', mode: 'provisional_brand', state: 'needs_review' },
+    ]);
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+    })) as Record<string, unknown>;
+
+    expect(prisma.brandedGenerationReceipt.findMany).not.toHaveBeenCalled();
+    expect(result.status).toBe('queued');
   });
 });
