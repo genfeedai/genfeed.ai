@@ -41,11 +41,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
+import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
 import {
   buildContentAgentUpdatePrompt,
   useOpenContentAgentConversation,
 } from '../open-content-agent-conversation';
-import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
 import AgentActivitySection from './AgentActivitySection';
 import AgentDetailNeedsYou from './AgentDetailNeedsYou';
 import AgentOpportunityPanel from './AgentOpportunityPanel';

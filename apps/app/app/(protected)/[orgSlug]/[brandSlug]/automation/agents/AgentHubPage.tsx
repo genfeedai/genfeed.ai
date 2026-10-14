@@ -58,11 +58,11 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
+import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';
 import {
   buildContentAgentSetupPrompt,
   useOpenContentAgentConversation,
 } from './open-content-agent-conversation';
-import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';
 
 /** Per-viewer list/grid preference key for this collection. */
 const AGENT_HUB_SURFACE = 'automation.agents';
@@ -373,13 +373,7 @@ export default function AgentHubPage() {
 
     openContentAgentConversation(buildContentAgentSetupPrompt(brandId));
     router.replace(pathname, { scroll: false });
-  }, [
-    addIntent,
-    brandId,
-    openContentAgentConversation,
-    pathname,
-    router,
-  ]);
+  }, [addIntent, brandId, openContentAgentConversation, pathname, router]);
 
   useVisiblePolling(refresh, { intervalMs: AGENT_HUB_POLL_INTERVAL_MS });
 
