@@ -1,6 +1,7 @@
 import { PublishApprovalsController } from '@api/collections/publish-approvals/controllers/publish-approvals.controller';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
+import { BrandedPublishHoldService } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { MediaAssessmentModule } from '@api/services/media-assessment/media-assessment.module';
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -34,6 +35,7 @@ import { Module } from '@nestjs/common';
           artifactReferenceService,
           logger,
           mediaGate,
+          new BrandedPublishHoldService(prisma),
         ),
     },
   ],

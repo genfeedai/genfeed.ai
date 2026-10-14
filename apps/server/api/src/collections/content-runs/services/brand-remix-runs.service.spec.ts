@@ -2293,9 +2293,11 @@ describe('BrandRemixRunsService', () => {
           organizationId: 'org-1',
         }),
         expect.any(Function),
+        // The render owns its hold: webhook settlement at the clip length,
+        // released when HeyGen fails it.
         expect.objectContaining({
           groupId: 'run-1',
-          settleCreditsExternally: true,
+          settleCreditsExternally: false,
         }),
         expect.any(Function),
       );
@@ -2309,7 +2311,7 @@ describe('BrandRemixRunsService', () => {
       expect(providerText).not.toContain(sourcePost.text);
     });
 
-    it('settles one credit for every successful Avatar variant', async () => {
+    it('checks availability for Avatar variants but leaves charging to their render holds', async () => {
       const created = await createPersistedRun();
       let stored = created;
       let generatedCount = 0;
@@ -2352,23 +2354,22 @@ describe('BrandRemixRunsService', () => {
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith('org-1', 3);
+      // Each variant is held, settled and released by its own render; the
+      // run never deducts the estimate on top (#6933).
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        'org-1',
-        'user-1',
-        3,
-        'Brand remix generation',
-        ActivitySource.SCRIPT,
-        expect.objectContaining({
-          idempotencyKey: 'brand-remix.generate:generate-workflow-execution-1',
-          referenceId: 'run-1',
-        }),
-      );
+      ).not.toHaveBeenCalled();
+      expect(
+        avatarVideoGenerationService.generateAvatarVideo,
+      ).toHaveBeenCalledTimes(3);
+      for (const call of avatarVideoGenerationService.generateAvatarVideo.mock
+        .calls) {
+        expect(call[3]).toMatchObject({ settleCreditsExternally: false });
+      }
       expect(result.execution?.generationCredits).toMatchObject({
         isByokBypass: false,
         reservedAmount: 3,
-        settledAmount: 3,
+        settledAmount: 0,
       });
       expect(result.execution?.workflowExecutionId).toBe(
         'generate-workflow-execution-1',
@@ -2478,19 +2479,10 @@ describe('BrandRemixRunsService', () => {
       ).toHaveBeenCalledWith('org-1', 5);
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        'org-1',
-        'user-1',
-        5,
-        'Brand remix generation',
-        ActivitySource.SCRIPT,
-        expect.objectContaining({
-          idempotencyKey: 'brand-remix.generate:generate-workflow-execution-1',
-        }),
-      );
+      ).not.toHaveBeenCalled();
       expect(result.execution?.generationCredits).toMatchObject({
         reservedAmount: 5,
-        settledAmount: 5,
+        settledAmount: 0,
       });
       expect(creditRequest.creditsConfig.deferred).toBe(true);
     });

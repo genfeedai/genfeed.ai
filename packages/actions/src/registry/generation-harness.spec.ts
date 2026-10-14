@@ -61,6 +61,15 @@ describe('generation harness catalog', () => {
     expect(tool?.parameters.required).not.toContain('harness');
   });
 
+  it('declares the explicit raw opt-out on generate as an optional single-value enum', () => {
+    const tool = getToolByName('generate');
+    expect(tool?.parameters.properties.brandMode).toMatchObject({
+      enum: ['raw'],
+      type: 'string',
+    });
+    expect(tool?.parameters.required).not.toContain('brandMode');
+  });
+
   it('tells generate to use a key from get_generation_options', () => {
     const generate = getToolByName('generate');
     const generateFields = generate?.parameters.properties as

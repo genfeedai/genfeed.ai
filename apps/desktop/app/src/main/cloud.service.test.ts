@@ -124,29 +124,26 @@ describe('DesktopCloudService', () => {
     });
   });
 
-  it('generates desktop content through the credit-backed Genfeed server endpoint', async () => {
+  it('generates desktop content through the receipt-backed draft route under one brand', async () => {
+    const requests: Array<{ body: Record<string, unknown>; url: string }> = [];
     globalThis.fetch = (async (
       input: RequestInfo | URL,
       init?: RequestInit,
     ) => {
-      expect(String(input)).toBe(
-        'https://api.genfeed.ai/v1/posts/hook-generations',
-      );
       expect(init?.method).toBe('POST');
       expect(init?.headers).toMatchObject({
         Authorization: 'Bearer gf_desktop_key',
       });
-      expect(init?.body).toBe(
-        JSON.stringify({
-          count: 1,
-          platform: 'twitter',
-          topic: 'Launch Genfeed Desktop',
-        }),
-      );
+      requests.push({
+        body: JSON.parse(String(init?.body)) as Record<string, unknown>,
+        url: String(input),
+      });
 
       return new Response(
         JSON.stringify({
-          hooks: ['Launch faster with Genfeed Desktop.'],
+          brandedReceipt: { id: 'receipt-1', state: 'needs_review' },
+          description: 'Launch faster with Genfeed Desktop.',
+          postId: 'post-1',
         }),
         {
           headers: { 'content-type': 'application/json' },
@@ -157,22 +154,144 @@ describe('DesktopCloudService', () => {
 
     const service = new DesktopCloudService(environment, () => session);
     const result = await service.generateContent({
+      brandId: 'brand-1',
       platform: 'twitter',
       prompt: 'Launch Genfeed Desktop',
       publishIntent: 'review',
       type: 'hook',
     });
 
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.url).toBe(
+      'https://api.genfeed.ai/v1/posts/draft-generations',
+    );
+    expect(requests[0]?.body).toMatchObject({
+      brandId: 'brand-1',
+      platform: 'twitter',
+      prompt: 'Launch Genfeed Desktop',
+    });
+    expect(requests[0]?.body.requestKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
     expect(result).toEqual({
       data: {
         content: 'Launch faster with Genfeed Desktop.',
         hooks: ['Launch faster with Genfeed Desktop.'],
-        id: '',
+        id: 'post-1',
         platform: 'twitter',
         type: 'hook',
       },
       status: 'success',
     });
+  });
+
+  it('uses a fresh request key for every generation so a retry never replays another draft', async () => {
+    const keys: string[] = [];
+    globalThis.fetch = (async (
+      _input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      keys.push(
+        String(
+          (JSON.parse(String(init?.body)) as { requestKey: string }).requestKey,
+        ),
+      );
+      return new Response(JSON.stringify({ description: 'Draft.' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+    await service.generateHooks('topic', 'brand-1');
+    await service.generateHooks('topic', 'brand-1');
+
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+
+  it('keeps the draft id the caller supplied for generated content', async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({ description: 'Draft.', postId: 'post-9' }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        },
+      )) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+    const result = await service.generateContent({
+      brandId: 'brand-1',
+      platform: 'twitter',
+      prompt: 'topic',
+      publishIntent: 'review',
+      sourceDraftId: 'local-draft-1',
+      type: 'post',
+    });
+
+    expect(result.data.id).toBe('local-draft-1');
+  });
+
+  it('generates a hook through the draft route and returns it as the only hook', async () => {
+    let body: Record<string, unknown> = {};
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe(
+        'https://api.genfeed.ai/v1/posts/draft-generations',
+      );
+      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response(JSON.stringify({ description: 'A sharp hook.' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+    const result = await service.generateHooks('desktop launch', 'brand-1');
+
+    expect(result).toEqual({ data: ['A sharp hook.'], status: 'success' });
+    expect(body).toMatchObject({ brandId: 'brand-1', platform: 'twitter' });
+    expect(String(body.prompt)).toContain('desktop launch');
+  });
+
+  it('refuses cloud generation without a brand before any request is made', async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      return new Response('{}', { status: 200 });
+    }) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+
+    await expect(service.generateHooks('topic')).rejects.toThrow(
+      'Link a Genfeed brand',
+    );
+    await expect(
+      service.generateContent({
+        platform: 'twitter',
+        prompt: 'topic',
+        publishIntent: 'review',
+        type: 'post',
+      }),
+    ).rejects.toThrow('Link a Genfeed brand');
+    expect(calls).toBe(0);
+  });
+
+  it('fails when the server answers without generated text', async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ description: '' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      })) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+
+    await expect(service.generateHooks('topic', 'brand-1')).rejects.toThrow(
+      'no generated content',
+    );
   });
 
   it('maps agent run output and queued manual run responses', async () => {

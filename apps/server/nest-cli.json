@@ -61,6 +61,21 @@
       "sourceRoot": "api/src",
       "type": "application"
     },
+    "api-reference-data-sync": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "api/reference-data-sync.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "api/tsconfig.app.json"
+      },
+      "entryFile": "seeds/reference-data-sync.entrypoint",
+      "root": "api",
+      "sourceRoot": "api/src",
+      "type": "application"
+    },
     "api-credential-backfill": {
       "compilerOptions": {
         "builder": {

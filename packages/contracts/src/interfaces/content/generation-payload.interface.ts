@@ -12,6 +12,12 @@ export interface BaseGenerationPayload {
   model?: string;
   autoSelectModel?: boolean;
   harness?: boolean;
+  /**
+   * The only client-chosen brand mode: `raw` generates with the prompt exactly
+   * as typed and applies no brand identity. Approved and provisional modes are
+   * resolved on the server and never sent.
+   */
+  brandMode?: 'raw';
   /** Explicit Knowledge pick; omit to let the brand's Knowledge apply automatically. */
   knowledge?: KnowledgeSelection;
   prioritize?: RouterPriority;

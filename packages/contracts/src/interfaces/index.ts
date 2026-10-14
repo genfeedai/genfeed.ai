@@ -86,6 +86,7 @@ export * from './automation/workflow-builder.interface';
 export * from './automation/workflow-execution.interface';
 export * from './automation/workflow-template-example-output.interface';
 export * from './billing/agent-model-access.interface';
+export * from './billing/avatar-generation-quote.interface';
 export * from './billing/billing-account.interface';
 export * from './billing/cost-report.interface';
 export * from './billing/credits.interface';

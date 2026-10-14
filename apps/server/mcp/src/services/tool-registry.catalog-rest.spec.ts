@@ -535,17 +535,34 @@ describe('ToolRegistryService — agent result mapping', () => {
   it.each([
     [
       'edit',
-      { imageId: 'image-1', operation: 'edit', prompt: 'Change the sign' },
+      {
+        brandId: 'brand-1',
+        imageId: 'image-1',
+        operation: 'edit',
+        prompt: 'Change the sign',
+      },
     ],
     [
       'reframe',
-      { aspectRatio: '9:16', imageId: 'image-1', operation: 'reframe' },
+      {
+        aspectRatio: '9:16',
+        brandId: 'brand-1',
+        imageId: 'image-1',
+        operation: 'reframe',
+      },
     ],
     [
       'upscale',
-      { imageUrl: 'https://cdn.example.com/a.png', operation: 'upscale' },
+      {
+        brandId: 'brand-1',
+        imageUrl: 'https://cdn.example.com/a.png',
+        operation: 'upscale',
+      },
     ],
-    ['merge', { ids: ['clip-1', 'clip-2'], operation: 'merge' }],
+    [
+      'merge',
+      { brandId: 'brand-1', ids: ['clip-1', 'clip-2'], operation: 'merge' },
+    ],
   ])(
     'proxies transform_media %s through the agent executor with no MCP-side handler',
     async (_operation, args) => {
@@ -571,6 +588,7 @@ describe('ToolRegistryService — agent result mapping', () => {
     });
 
     const result = await callTool(registry, 'transform_media', {
+      brandId: 'brand-1',
       ids: ['clip-1', 'clip-2'],
       operation: 'merge',
     });
@@ -582,7 +600,10 @@ describe('ToolRegistryService — agent result mapping', () => {
   });
 
   it.each([
-    ['generate_content', { topic: 'Launch week', type: 'post' }],
+    [
+      'generate_content',
+      { brandId: 'brand-1', topic: 'Launch week', type: 'post' },
+    ],
     ['get_generation_options', { type: 'image' }],
   ])('proxies %s through the agent executor', async (name, args) => {
     const { client, registry } = build();
@@ -601,6 +622,7 @@ describe('ToolRegistryService — agent result mapping', () => {
     });
 
     const result = await callTool(registry, 'generate', {
+      brandId: 'brand-1',
       prompt: 'a cat',
       type: 'image',
     });
@@ -614,6 +636,7 @@ describe('ToolRegistryService — agent result mapping', () => {
     client.executeAgentTool.mockResolvedValue({ success: false });
 
     const result = await callTool(registry, 'generate', {
+      brandId: 'brand-1',
       prompt: 'a cat',
       type: 'image',
     });

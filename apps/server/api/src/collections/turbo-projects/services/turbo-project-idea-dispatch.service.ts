@@ -19,7 +19,10 @@ import {
   TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
 } from '@api/collections/turbo-projects/services/turbo-project-idea-dispatch-workflow.definition';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import {
+  type AvatarGenerationPrice,
+  AvatarVideoGenerationService,
+} from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
@@ -358,7 +361,12 @@ export class TurboProjectIdeaDispatchService implements OnModuleInit {
               'Avatar funding changed after the accepted quote. Retry with a fresh quote.',
             );
           }
-          await this.reserveLine(job, dispatch, project.brandId);
+          await this.reserveLine(
+            job,
+            dispatch,
+            project.brandId,
+            price.durationQuote,
+          );
         },
       );
       return;
@@ -440,16 +448,21 @@ export class TurboProjectIdeaDispatchService implements OnModuleInit {
     });
   }
 
-  /** Avatar lines reserve here, right before the provider call. */
+  /**
+   * Avatar lines reserve here, right before the provider call, keeping the
+   * frozen per-second quote so the hold settles to the real clip length.
+   */
   private async reserveLine(
     job: TurboProjectIdeaDispatchJob,
     dispatch: ITurboProjectItemDispatch,
     brandId: string | null | undefined,
+    durationQuote: AvatarGenerationPrice['durationQuote'],
   ): Promise<void> {
     const reservationId = await this.credits.reserve({
       actorUserId: job.userId,
       brandId,
       dispatch,
+      ...(durationQuote ? { durationQuote } : {}),
       organizationId: job.organizationId,
     });
     await this.markReserved(job, dispatch, reservationId);

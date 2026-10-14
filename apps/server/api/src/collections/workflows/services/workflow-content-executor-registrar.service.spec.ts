@@ -1,7 +1,10 @@
-import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { CredentialPlatform, Platform } from '@genfeedai/contracts';
+import type {
+  WorkflowPostGenerationInput,
+  WorkflowPostGenerationResult,
+} from '@api/collections/workflows/services/workflow-post-generation.types';
+import { Platform } from '@genfeedai/contracts';
 import {
   createExecutableActionNode,
   type INodeExecutor,
@@ -38,32 +41,34 @@ function createHelper(): WorkflowEngineExecutorHelperService {
   } as unknown as WorkflowEngineExecutorHelperService;
 }
 
-function createOpenRouterService() {
+function draft(overrides: Record<string, unknown> = {}) {
   return {
-    chatCompletion: vi.fn().mockResolvedValue({
-      choices: [{ message: { content: 'Draft body' } }],
-    }),
+    credentialId: 'cred-1',
+    description: 'Draft body',
+    holdReason: null,
+    id: 'post-1',
+    isHeldForReview: false,
+    label: 'Draft body',
+    platform: Platform.TWITTER,
+    receiptId: 'receipt-1',
+    status: 'draft',
+    ...overrides,
   };
 }
 
 function runPostGenNode(
   config: Record<string, unknown>,
-  services: {
-    credentialsService: { findOne: ReturnType<typeof vi.fn> };
-    fanoutService: { resolveTargets: ReturnType<typeof vi.fn> };
-    postsService: { create: ReturnType<typeof vi.fn> };
-  },
+  generate: ReturnType<typeof vi.fn>,
 ) {
   const engine = new WorkflowEngine();
 
   new WorkflowContentExecutorRegistrarService(
     createHelper(),
-    services.postsService as never,
-    services.credentialsService as never,
     undefined,
-    createOpenRouterService() as never,
     undefined,
-    services.fanoutService as never,
+    undefined,
+    undefined,
+    { generate } as never,
   ).register(engine);
 
   return engine.getExecutor('genfeedAction')?.(
@@ -95,8 +100,6 @@ function runTalkingHeadScriptNode(openRouterService: {
 
   new WorkflowContentExecutorRegistrarService(
     createHelper(),
-    undefined,
-    undefined,
     undefined,
     openRouterService as never,
   ).register(engine);
@@ -229,121 +232,133 @@ describe('WorkflowContentExecutorRegistrarService', () => {
     expect(engine.getRegisteredActionIds()).toContain('talkingHeadScript');
   });
 
-  it('persists a domain platform from a Prisma SCREAMING credential', async () => {
-    const postsService = {
-      create: vi.fn().mockResolvedValue({
-        description: 'Draft body',
-        id: 'post-1',
-        label: 'Draft body',
-        platform: Platform.TWITTER,
-        status: 'draft',
-      }),
-    };
-    // An explicit credentialId is exact: no fan-out, no platform guess.
-    const credentialsService = {
-      findOne: vi.fn().mockResolvedValue({
-        id: 'cred-1',
-        platform: 'TWITTER',
-      }),
-    };
-    const fanoutService = { resolveTargets: vi.fn() };
+  it('hands the node to the branded generation service as one named account', async () => {
+    const generate = vi.fn().mockResolvedValue({
+      drafts: [draft()],
+      failures: [],
+      groupId: 'group-1',
+    } satisfies WorkflowPostGenerationResult);
 
-    await runPostGenNode(
-      { credentialId: 'cred-1' },
-      { credentialsService, fanoutService, postsService },
-    );
+    const result = (await runPostGenNode(
+      { brandLabel: 'Acme', credentialId: 'cred-1', timezone: 'Europe/Rome' },
+      generate,
+    )) as Record<string, unknown>;
 
-    expect(fanoutService.resolveTargets).not.toHaveBeenCalled();
-    expect(credentialsService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        id: 'cred-1',
-        isConnected: true,
-        isDeleted: false,
-        organizationId: 'org-1',
-      }),
-    );
-    expect(postsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        credentialId: 'cred-1',
-        platform: CredentialPlatform.TWITTER,
-      }),
-    );
-    expect(postsService.create.mock.calls[0]?.[0].platform).toBe('twitter');
+    const call = generate.mock.calls[0]?.[0] as WorkflowPostGenerationInput;
+    expect(call).toMatchObject({
+      brandId: 'brand-1',
+      brandLabel: 'Acme',
+      credentialId: 'cred-1',
+      maxTokens: 500,
+      nodeId: 'post-gen',
+      prompt: 'Write a launch post',
+      timezone: 'Europe/Rome',
+    });
+    expect(call.platform).toBeUndefined();
+    expect(call.buildLabel('Hello world')).toBe('Hello world');
+    expect(result).toMatchObject({
+      description: 'Draft body',
+      failures: [],
+      groupId: 'group-1',
+      holdReason: null,
+      id: 'post-1',
+      isHeldForReview: false,
+      platform: Platform.TWITTER,
+      post: { id: 'post-1', label: 'Draft body', status: 'draft' },
+      postIds: ['post-1'],
+      receiptIds: ['receipt-1'],
+    });
   });
 
-  it('creates one post per connected account when the node names a platform', async () => {
-    const postsService = {
-      create: vi
-        .fn()
-        .mockResolvedValueOnce({
-          description: 'Draft body',
-          id: 'post-1',
-          label: 'Draft body',
-          platform: Platform.TWITTER,
-          status: 'draft',
-        })
-        .mockResolvedValueOnce({
+  it('reports one primary post and every receipt when a platform fans out to several accounts', async () => {
+    const generate = vi.fn().mockResolvedValue({
+      drafts: [
+        draft(),
+        draft({
+          credentialId: 'cred-2',
           description: 'Draft body, rephrased',
           id: 'post-2',
-          label: 'Draft body, rephrased',
-          platform: Platform.TWITTER,
-          status: 'draft',
+          receiptId: 'receipt-2',
         }),
-    };
-    const credentialsService = { findOne: vi.fn() };
-    const targets: PostAccountTarget[] = [
-      {
-        caption: 'Draft body',
-        credentialId: 'cred-1',
-        platform: Platform.TWITTER,
-      },
-      {
-        caption: 'Draft body, rephrased',
-        credentialId: 'cred-2',
-        platform: Platform.TWITTER,
-      },
-    ];
-    const fanoutService = {
-      resolveTargets: vi.fn().mockResolvedValue(targets),
-    };
+      ],
+      failures: [],
+      groupId: 'group-1',
+    } satisfies WorkflowPostGenerationResult);
 
     const result = (await runPostGenNode(
       { platform: Platform.TWITTER },
-      { credentialsService, fanoutService, postsService },
-    )) as { groupId: string; id: string; postIds: string[] };
+      generate,
+    )) as { id: string; postIds: string[]; receiptIds: string[] };
 
-    expect(credentialsService.findOne).not.toHaveBeenCalled();
-    expect(fanoutService.resolveTargets).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        platforms: [Platform.TWITTER],
-      }),
-    );
-    expect(postsService.create).toHaveBeenCalledTimes(2);
-    expect(result.postIds).toEqual(['post-1', 'post-2']);
-    // The node still reports one primary post so downstream nodes keep working.
+    const call = generate.mock.calls[0]?.[0] as WorkflowPostGenerationInput;
+    expect(call.platform).toBe(Platform.TWITTER);
     expect(result.id).toBe('post-1');
+    expect(result.postIds).toEqual(['post-1', 'post-2']);
+    expect(result.receiptIds).toEqual(['receipt-1', 'receipt-2']);
+  });
 
-    const first = postsService.create.mock.calls[0]?.[0];
-    const second = postsService.create.mock.calls[1]?.[0];
+  it('surfaces a held draft and the accounts that stopped without failing the node', async () => {
+    const generate = vi.fn().mockResolvedValue({
+      drafts: [
+        draft({ holdReason: 'provisional_brand', isHeldForReview: true }),
+      ],
+      failures: [
+        {
+          credentialId: 'cred-2',
+          reasonCode: 'provider_output_empty',
+          receiptId: 'receipt-2',
+        },
+      ],
+      groupId: 'group-1',
+    } satisfies WorkflowPostGenerationResult);
 
-    expect(second.description).toBe('Draft body, rephrased');
-    expect(first.groupId).toBe(result.groupId);
-    expect(second.groupId).toBe(result.groupId);
+    const result = (await runPostGenNode(
+      { platform: Platform.TWITTER },
+      generate,
+    )) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      failures: [
+        { credentialId: 'cred-2', reasonCode: 'provider_output_empty' },
+      ],
+      holdReason: 'provisional_brand',
+      isHeldForReview: true,
+    });
+  });
+
+  it('fails with the stable reason and receipt id when no account saved a draft', async () => {
+    const generate = vi.fn().mockResolvedValue({
+      drafts: [],
+      failures: [
+        {
+          credentialId: 'cred-1',
+          reasonCode: 'no_approved_revision',
+          receiptId: 'receipt-9',
+        },
+      ],
+      groupId: 'group-1',
+    } satisfies WorkflowPostGenerationResult);
+
+    await expect(
+      runPostGenNode({ credentialId: 'cred-1' }, generate),
+    ).rejects.toThrow('no_approved_revision (receipt receipt-9)');
   });
 
   it('fails when the node names neither an account nor a platform', async () => {
-    const postsService = { create: vi.fn() };
-    const credentialsService = { findOne: vi.fn() };
-    const fanoutService = { resolveTargets: vi.fn() };
+    const generate = vi.fn();
 
-    await expect(
-      runPostGenNode({}, { credentialsService, fanoutService, postsService }),
-    ).rejects.toThrow('postGen requires credentialId or platform');
-    expect(credentialsService.findOne).not.toHaveBeenCalled();
-    expect(fanoutService.resolveTargets).not.toHaveBeenCalled();
-    expect(postsService.create).not.toHaveBeenCalled();
+    await expect(runPostGenNode({}, generate)).rejects.toThrow(
+      'postGen requires credentialId or platform',
+    );
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it('does not register postGen without the branded generation service', () => {
+    const engine = new WorkflowEngine();
+    new WorkflowContentExecutorRegistrarService(createHelper()).register(
+      engine,
+    );
+
+    expect(engine.getRegisteredActionIds()).not.toContain('postGen');
   });
 });

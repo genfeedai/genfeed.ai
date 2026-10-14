@@ -1,10 +1,11 @@
-import { metadata } from '@helpers/media/metadata/metadata.helper';
 import 'server-only';
 
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { renderPublicSurfaceIndex } from '@data/llms-text.data';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 
 const WEBSITE_ORIGIN = 'https://genfeed.ai';
 const MCP_ENDPOINT = 'https://mcp.genfeed.ai/mcp';
@@ -145,8 +146,12 @@ Use Genfeed when a workflow needs to turn a brief, trend, source asset, or campa
 
 Do not use Genfeed as a general-purpose chat service or as an unreviewed path for external publishing. Mutating MCP actions declare their approval requirements, credentials are scoped, and callers should request only the permissions needed for the task.
 
+${renderPublicSurfaceIndex()}
+
 ## Start here
 
+- [Free tools](${WEBSITE_ORIGIN}/tools)
+- [Comparisons](${WEBSITE_ORIGIN}/vs)
 - [Product overview](${WEBSITE_ORIGIN}/features)
 - [Pricing](${WEBSITE_ORIGIN}/pricing)
 - [Documentation](https://docs.genfeed.ai)
@@ -176,6 +181,7 @@ Pricing and current plan details are published on the pricing page. Agents shoul
 - [Agent Skills index](${WEBSITE_ORIGIN}/.well-known/agent-skills/index.json)
 - [OAuth instructions](${WEBSITE_ORIGIN}/auth.md)
 - [LLM index](${WEBSITE_ORIGIN}/llms.txt)
+- [LLM context well-known alias](${WEBSITE_ORIGIN}/.well-known/llm-context)
 - [Full LLM context](${WEBSITE_ORIGIN}/llms-full.txt)
 - [Contact and support](${WEBSITE_ORIGIN}/contact)
 `;

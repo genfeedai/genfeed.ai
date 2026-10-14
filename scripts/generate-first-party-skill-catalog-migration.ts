@@ -154,7 +154,7 @@ const valuesSql = stubs.map((stub) => renderInsert(stub)).join(',\n');
 const sql = `-- First-party product skills from skills/*/SKILL.md.
 -- Original five handler identities are unchanged; this migration only inserts
 -- additional catalog-global rows. Full SKILL.md bodies are applied by
--- SkillCatalogSeedService on API boot and must not be duplicated here.
+-- SkillCatalogSeedService during reference-data sync and must not be duplicated here.
 -- Re-running is idempotent (ON CONFLICT DO NOTHING).
 
 UPDATE "skills"

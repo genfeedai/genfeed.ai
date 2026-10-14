@@ -1,0 +1,146 @@
+import type { IPublishApprovalHold } from '@api/publish-approvals/publish-approval-hold';
+import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
+import { BrandOsRevisionStatus, type PrismaClient } from '@genfeedai/prisma';
+import { ConflictException } from '@nestjs/common';
+
+const TEXT_LOOKUP_LIMIT = 20;
+
+type HoldPrisma = Pick<
+  PrismaClient,
+  'brandedGenerationReceipt' | 'brandOsRevision' | 'post'
+>;
+
+export type BrandedPublishHoldReason = 'needs_review' | 'provisional_brand';
+
+export interface BrandedPublishHold {
+  brandId: string;
+  receiptId: string;
+  reason: BrandedPublishHoldReason;
+}
+
+const HOLD_MESSAGES: Record<BrandedPublishHoldReason, string> = {
+  needs_review:
+    'This post is held: its generation receipt is not cleared (validation is unavailable or unconfirmed). A member must approve it in the app before it can publish.',
+  provisional_brand:
+    'This post is held: it was generated from a provisional brand kit that nobody has approved. A member must approve it in the app, or the brand needs an approved kit, before it can publish.',
+};
+
+/** A cleared receipt, or a raw one a member chose to generate without the brand. */
+function isCleared(receipt: { mode: string; state: string }): boolean {
+  return receipt.state === 'ready' || receipt.mode === 'raw';
+}
+
+/** Raised when a receipt-bound post may not be published unattended. */
+export class BrandedPublishHoldException extends ConflictException {
+  public readonly receiptId: string;
+  public readonly reason: BrandedPublishHoldReason;
+
+  constructor(hold: BrandedPublishHold) {
+    super({
+      brandedGenerationReceiptId: hold.receiptId,
+      code: 'branded_receipt_held',
+      detail: HOLD_MESSAGES[hold.reason],
+      holdReason: hold.reason,
+      title: 'Post held for review',
+    });
+    this.receiptId = hold.receiptId;
+    this.reason = hold.reason;
+  }
+}
+
+/**
+ * Keeps unattended publishing from sending out text its brand receipt did not
+ * clear (#5786). The receipt, not the post, is the authority: a post bound to
+ * an approved or provisional receipt that is not `ready` is held until a member
+ * approves it in the app, or, for a provisional receipt, until the brand has an
+ * approved kit. Posts with no receipt, and raw posts a member chose to
+ * generate without the brand, are not held.
+ */
+export class BrandedPublishHoldService implements IPublishApprovalHold {
+  constructor(private readonly prisma: HoldPrisma) {}
+
+  async findHold(
+    organizationId: string,
+    postId: string,
+  ): Promise<BrandedPublishHold | null> {
+    const post = await this.prisma.post.findFirst({
+      select: { brandId: true },
+      where: scopedWhere(organizationId, { id: postId }),
+    });
+    if (!post) return null;
+    const receipts = await this.prisma.brandedGenerationReceipt.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true, mode: true, state: true },
+      take: 1,
+      // Cleared and raw receipts never hold, so only the rest need the JSON
+      // path comparison.
+      where: scopedWhere(organizationId, {
+        brandId: post.brandId,
+        mode: { not: 'raw' },
+        projection: { equals: postId, path: ['artifact', 'id'] },
+        state: { not: 'ready' },
+      }),
+    });
+    return this.holdFor(organizationId, post.brandId, receipts);
+  }
+
+  /**
+   * The hold on text that is about to be copied into a new post (the workflow
+   * publish node saves a fresh post from a caption). Identical text that any
+   * receipt cleared is not held; text only uncleared receipts produced is.
+   */
+  async findHoldForText(
+    organizationId: string,
+    brandId: string,
+    text: string,
+  ): Promise<BrandedPublishHold | null> {
+    const receipts = await this.prisma.brandedGenerationReceipt.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true, mode: true, state: true },
+      take: TEXT_LOOKUP_LIMIT,
+      where: scopedWhere(organizationId, {
+        brandId,
+        projection: {
+          equals: hashBrandedGenerationTextV1(text),
+          path: ['artifact', 'version'],
+        },
+      }),
+    });
+    return this.holdFor(organizationId, brandId, receipts);
+  }
+
+  private async holdFor(
+    organizationId: string,
+    brandId: string,
+    receipts: readonly { id: string; mode: string; state: string }[],
+  ): Promise<BrandedPublishHold | null> {
+    if (receipts.length === 0 || receipts.some(isCleared)) return null;
+    const receipt = receipts[0];
+    if (receipt?.mode === 'provisional_brand') {
+      const approved = await this.prisma.brandOsRevision.findFirst({
+        select: { id: true },
+        where: scopedWhere(organizationId, {
+          brandId,
+          status: BrandOsRevisionStatus.APPROVED,
+        }),
+      });
+      return approved
+        ? null
+        : { brandId, reason: 'provisional_brand', receiptId: receipt.id };
+    }
+    return receipt?.mode === 'approved_brand'
+      ? { brandId, reason: 'needs_review', receiptId: receipt.id }
+      : null;
+  }
+
+  async assertPostPublishable(input: {
+    organizationId: string;
+    postId: string;
+    isHumanApproval: boolean;
+  }): Promise<void> {
+    if (input.isHumanApproval) return;
+    const hold = await this.findHold(input.organizationId, input.postId);
+    if (hold) throw new BrandedPublishHoldException(hold);
+  }
+}

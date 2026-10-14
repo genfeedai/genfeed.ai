@@ -203,4 +203,88 @@ describe('HeygenService', () => {
     );
     expect(result).toBe(response);
   });
+  it('quotes the generate body on the avatar quote endpoint with cancellation', async () => {
+    const abort = new AbortController();
+    mockPost.mockResolvedValueOnce({
+      data: {
+        data: {
+          attributes: {
+            billingMode: 'platform',
+            credits: 52,
+            estimatedSeconds: 4,
+            modelKey: 'heygen/avatar',
+          },
+          id: 'quote-1',
+          type: 'avatar-generation-quote',
+        },
+      },
+    });
+
+    const quote = await service.quote(
+      {
+        photoUrl: 'https://cdn.test/portrait.png',
+        text: 'Create a launch video',
+        voiceId: 'voice-1',
+        voiceProvider: 'heygen',
+      },
+      abort.signal,
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      'https://api.test.com/v1/videos/avatar/quote',
+      {
+        heygenVoiceId: 'voice-1',
+        photoUrl: 'https://cdn.test/portrait.png',
+        text: 'Create a launch video',
+      },
+      expect.objectContaining({ signal: abort.signal }),
+    );
+    expect(quote).toEqual({
+      billingMode: 'platform',
+      credits: 52,
+      estimatedSeconds: 4,
+      modelKey: 'heygen/avatar',
+    });
+  });
+
+  it('reads a BYOK quote with no per-second estimate', async () => {
+    mockPost.mockResolvedValueOnce({
+      data: {
+        data: {
+          attributes: {
+            billingMode: 'byok',
+            credits: 0,
+            modelKey: 'heygen/avatar-iv',
+          },
+          id: 'quote-2',
+          type: 'avatar-generation-quote',
+        },
+      },
+    });
+
+    await expect(
+      service.quote({ text: 'Hi', voiceId: 'v', voiceProvider: 'heygen' }),
+    ).resolves.toEqual({
+      billingMode: 'byok',
+      credits: 0,
+      estimatedSeconds: null,
+      modelKey: 'heygen/avatar-iv',
+    });
+  });
+
+  it.each([
+    { billingMode: 'free', credits: 1, modelKey: 'heygen/avatar' },
+    { billingMode: 'platform', credits: -1, modelKey: 'heygen/avatar' },
+    { billingMode: 'platform', credits: 1.5, modelKey: 'heygen/avatar' },
+    { billingMode: 'platform', credits: 1 },
+  ])(
+    'rejects a malformed quote %j instead of showing it',
+    async (attributes) => {
+      mockPost.mockResolvedValueOnce({ data: { data: { attributes } } });
+
+      await expect(
+        service.quote({ text: 'Hi', voiceId: 'v', voiceProvider: 'heygen' }),
+      ).rejects.toThrow('Avatar quote response is malformed');
+    },
+  );
 });

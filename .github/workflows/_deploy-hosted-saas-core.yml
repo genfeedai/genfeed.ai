@@ -354,6 +354,8 @@ jobs:
           tofu apply -input=false -auto-approve \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
+            -target=aws_cloudwatch_log_group.reference_data_sync \
+            -target=aws_ecs_task_definition.reference_data_sync \
             -target=aws_cloudwatch_log_group.boot_smoke \
             -target=aws_ecs_task_definition.boot_smoke \
             -target=aws_cloudwatch_log_group.worker_boot_smoke \
@@ -458,6 +460,23 @@ jobs:
             --subnets "$SUBNETS" \
             --security-groups "$SG" \
             --timeout-seconds 900
+
+      - name: Run reference-data sync (gated before services roll)
+        working-directory: ops/${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          TASK_DEFINITION=$(tofu output -raw reference_data_sync_task_definition_arn)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
+            --phase reference-data-sync \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 900 \
+            --stop-on-timeout
 
       - name: Tofu apply (roll services to new image)
         working-directory: ops/${{ env.TF_DIR }}

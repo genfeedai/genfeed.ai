@@ -21,7 +21,15 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import type { CuratedActionName } from '@genfeedai/actions';
-import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
+import {
+  describeMissingMcpBrand,
+  getToolByName,
+  getToolsForSurface,
+  isMcpBrandRequiredTool,
+  type McpBrandOption,
+  readMcpBrandId,
+} from '@genfeedai/actions';
+import { ActionOrigin } from '@genfeedai/contracts';
 import {
   type AgentToolResult,
   isAgentUntrustedContentSource,
@@ -131,6 +139,16 @@ export class AgentToolsController {
         );
       }
 
+      // MCP callers always name the brand (#5786); the MCP server enforces the
+      // same rule first, this keeps direct MCP-origin API calls from guessing one.
+      if (
+        getActionOriginContext().origin === ActionOrigin.MCP &&
+        isMcpBrandRequiredTool(name) &&
+        !readMcpBrandId(body.parameters)
+      ) {
+        return await this.brandRequiredResult(name, context);
+      }
+
       const result = await this.executor.executeTool(
         name,
         body.parameters ?? {},
@@ -158,6 +176,36 @@ export class AgentToolsController {
         'agentToolExecute',
       );
     }
+  }
+
+  private async brandRequiredResult(
+    name: string,
+    context: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const listing = await this.executor.executeTool('get_brands', {}, context);
+    const entries =
+      listing.success &&
+      listing.data !== null &&
+      typeof listing.data === 'object' &&
+      Array.isArray((listing.data as { brands?: unknown }).brands)
+        ? ((listing.data as { brands: unknown[] }).brands as unknown[])
+        : [];
+    const brands = entries.flatMap((entry): McpBrandOption[] => {
+      if (entry === null || typeof entry !== 'object') return [];
+      const brand = entry as Record<string, unknown>;
+      if (typeof brand.id !== 'string') return [];
+      const label = [brand.label, brand.name].find(
+        (value): value is string =>
+          typeof value === 'string' && value.trim().length > 0,
+      );
+      return [{ id: brand.id, label: label ?? brand.id }];
+    });
+    return {
+      creditsUsed: 0,
+      data: { brands, recoveryAction: 'select_brand' },
+      error: describeMissingMcpBrand(name, brands),
+      success: false,
+    };
   }
 
   @Post(':name/result-gate')

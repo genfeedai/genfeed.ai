@@ -14,11 +14,7 @@ import { withSkillWriteSession } from '@api/collections/skills/services/skill-wr
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  Injectable,
-  type OnApplicationBootstrap,
-  Optional,
-} from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 export type SkillCatalogSeedResult = {
   inserted: number;
@@ -27,7 +23,7 @@ export type SkillCatalogSeedResult = {
 };
 
 @Injectable()
-export class SkillCatalogSeedService implements OnApplicationBootstrap {
+export class SkillCatalogSeedService {
   private readonly context = 'SkillCatalogSeedService';
 
   constructor(
@@ -36,17 +32,8 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
     @Optional() private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
-  async onApplicationBootstrap(): Promise<void> {
-    try {
-      await this.reconcileCatalog();
-      await this.skillLibrary?.backfillExistingOrganizations();
-    } catch (error) {
-      this.logger.error(
-        'First-party skill catalog seed failed — agent skills may be incomplete',
-        error instanceof Error ? error : new Error(String(error)),
-        this.context,
-      );
-    }
+  async backfillOrganizations(): Promise<number> {
+    return this.skillLibrary?.backfillExistingOrganizations() ?? 0;
   }
 
   async reconcileCatalog(
@@ -57,10 +44,26 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
       skipped: 0,
       updated: 0,
     };
+    const failedSlugs: string[] = [];
 
     for (const definition of catalog) {
-      const outcome = await this.upsertDefinition(definition);
-      result[outcome] += 1;
+      try {
+        const outcome = await this.upsertDefinition(definition);
+        result[outcome] += 1;
+      } catch (error) {
+        failedSlugs.push(definition.slug);
+        this.logger.error(
+          `First-party skill catalog entry failed to reconcile: ${definition.slug}`,
+          error instanceof Error ? error : new Error(String(error)),
+          this.context,
+        );
+      }
+    }
+
+    if (failedSlugs.length > 0) {
+      throw new Error(
+        `First-party skill catalog reconcile failed for: ${failedSlugs.join(', ')}`,
+      );
     }
 
     this.logger.log(

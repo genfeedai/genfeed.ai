@@ -27,6 +27,8 @@ do not load every linked file. Add detailed entries to the catalog, keeping this
 - **Before implementation:** [system patterns](context/system-patterns.md),
   [project structure](context/project-structure.md), and
   [style guide](context/project-style-guide.md). Read the relevant sections.
+- **Data changes:** [seeding and data-change protocol](context/data-change-protocol.md).
+  Read before adding a catalog row, data migration, fixture seed, or database script.
 - **Rules and user corrections:** [permanent rules](reference_memory_catalog.md#rules-permanent--user-corrections).
   [Security and coding rules](reference_memory_catalog.md#rules-via-the-clauderules-symlink)
   distinguish universal invariants from file-scoped guidance.

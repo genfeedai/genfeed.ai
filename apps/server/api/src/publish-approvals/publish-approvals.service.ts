@@ -6,13 +6,16 @@ import {
 } from '@api/collections/posts/services/post-ingredient-links.util';
 import {
   buildApprovalProvenance,
+  isInteractiveApprovalOrigin,
   readApprovalOrigin,
+  readProvenanceOrigin,
 } from '@api/publish-approvals/publish-approval-action-origin';
 import {
   type ApprovalPost,
   PublishApprovalContractCodec,
   type PublishApprovalRow,
 } from '@api/publish-approvals/publish-approval-contract.codec';
+import type { IPublishApprovalHold } from '@api/publish-approvals/publish-approval-hold';
 import { digestPublishApprovalValue } from '@api/publish-approvals/publish-approval-integrity';
 import {
   PUBLISH_EXECUTION_LEASE_MS,
@@ -90,6 +93,8 @@ export class PublishApprovalsService {
     private readonly artifactReferenceService: AgentArtifactReferenceService,
     private readonly logger?: ServerLogger,
     private readonly mediaReadinessGate?: IMediaReadinessGate,
+    /** Holds back posts whose brand receipt is not cleared (#5786). */
+    private readonly publishHold?: IPublishApprovalHold,
   ) {}
 
   toPublicInterface(row: unknown): IPublishApproval {
@@ -171,7 +176,7 @@ export class PublishApprovalsService {
       input.postId,
       client,
     );
-    this.contractCodec.assertTargetStatus(post);
+    await this.assertCreatable(post);
     if (
       input.contextVersion !== undefined &&
       input.contextVersion !== post.agentContextVersion
@@ -368,6 +373,29 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(approval);
   }
 
+  /** The post must be an eligible target and not held by its brand receipt. */
+  private async assertCreatable(post: ApprovalPost): Promise<void> {
+    this.contractCodec.assertTargetStatus(post);
+    await this.publishHold?.assertPostPublishable({
+      isHumanApproval: isInteractiveApprovalOrigin(readApprovalOrigin()),
+      organizationId: post.organizationId,
+      postId: post.id,
+    });
+  }
+
+  /** A claim for a held post only goes through if a member minted the approval. */
+  private async assertClaimNotHeld(
+    approval: PublishApprovalRow,
+  ): Promise<void> {
+    await this.publishHold?.assertPostPublishable({
+      isHumanApproval: isInteractiveApprovalOrigin(
+        readProvenanceOrigin(approval.provenance),
+      ),
+      organizationId: approval.organizationId,
+      postId: approval.postId,
+    });
+  }
+
   async markQueued(
     approvalId: string,
     organizationId: string,
@@ -446,6 +474,7 @@ export class PublishApprovalsService {
         );
         throw error;
       }
+      await this.assertClaimNotHeld(approval);
       await this.assertCurrentAuthorization(approval);
       await this.assertApprovalScope(approval, post);
       try {

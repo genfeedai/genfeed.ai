@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { legacyRuntimeSettings } from './platform-runtime-config.util';
+import { legacyRuntimeSettings } from '../platform-runtime/platform-runtime-config.util';
 
 describe('legacy runtime configuration import', () => {
   it('imports configured values while leaving absent settings untouched', () => {

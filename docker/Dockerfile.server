@@ -251,7 +251,7 @@ RUN set -e; \
 # size gate in build-verify.yml. `test -f` alone passes a 0-byte file.
 RUN echo "Checking build outputs..." && \
     ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
-    for svc in api workers files mcp notifications telegram discord slack api-articles-seed api-harness-profile-seed; do \
+    for svc in api workers files mcp notifications telegram discord slack api-articles-seed api-harness-profile-seed api-reference-data-sync; do \
       if ! test -f "apps/server/dist/apps/$svc/main.js"; then \
         echo "❌ $svc bundle MISSING" && exit 1; \
       fi; \
@@ -262,6 +262,10 @@ RUN echo "Checking build outputs..." && \
       echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
     done
 
+# First-party skills live on disk (`skills/*/SKILL.md`). Copy them into the
+# builder so `--validate-runtime` can load the catalog without a database.
+COPY skills/ ./skills/
+
 # Execute the compiled seed entrypoint without touching a database. This proves
 # the production bundle contains its launch data and actually reaches its CLI
 # entrypoint rather than merely leaving a non-empty file on disk.
@@ -270,6 +274,9 @@ RUN node -r tsconfig-paths/register \
       --validate-runtime
 RUN node -r tsconfig-paths/register \
       apps/server/dist/apps/api-harness-profile-seed/main \
+      --validate-runtime
+RUN node -r tsconfig-paths/register \
+      apps/server/dist/apps/api-reference-data-sync/main \
       --validate-runtime
 
 # ==================================================

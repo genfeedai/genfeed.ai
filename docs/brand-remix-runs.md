@@ -166,9 +166,10 @@ The source video, keyframes and transcript are analysis-only. Output ratios are
 Clips longer than 20 seconds or ads longer than 90 seconds require repair. Guided
 identity likeness and lip synchronization require inspection of the actual output.
 
-Quotes expire after 15 minutes and cannot exceed 50 application credits per
-operation. Analysis is two credits, generated stills use the active model price,
-avatar clips use the existing avatar tariff, caption transcription is one credit,
+Quotes expire after 15 minutes. Analysis is two credits, generated stills use
+the active model price, avatar clips are priced per second from each scene's
+narration and settle to the clip length HeyGen returns (the unused part of the
+hold is refunded, an overrun is charged), caption transcription is one credit,
 and local assembly is free. Per-stage BYOK modes are explicit; vendor costs may
 be unknown and BYOK provider charges remain separate.
 

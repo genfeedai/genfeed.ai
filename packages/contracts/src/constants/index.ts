@@ -40,6 +40,7 @@ export * from './long-form-delivery.constant';
 export * from './lowest-cost-models.constant';
 export * from './media.constant';
 export * from './media-generation-billing.constant';
+export * from './media-prompt-brand-error-codes.constant';
 export * from './model-aspect-ratios.constant';
 export * from './model-brands.constant';
 export * from './model-capabilities.constant';

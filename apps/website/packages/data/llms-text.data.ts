@@ -7,6 +7,7 @@
  *   catalog (the same registry read as `/models`), never a hand-kept key list.
  */
 import { renderAgentConnectMarkdown } from '@data/agent-clients.data';
+import { competitors } from '@data/competitors.data';
 import { FAQ_CATEGORIES } from '@data/faq.data';
 import { integrations } from '@data/integrations.data';
 import { products } from '@data/products.data';
@@ -46,6 +47,97 @@ const CATEGORY_ORDER: readonly string[] = [
   ModelCategory.VIDEO_UPSCALE,
 ];
 
+/**
+ * Live public tools. The index and the homepage markdown both render this
+ * list, so an agent that reads either file sees the same routes.
+ */
+export const FREE_PUBLIC_TOOLS = [
+  {
+    description:
+      'Hub for the public tools below. Each one returns a result before signup.',
+    path: '/tools',
+    title: 'Free tools',
+  },
+  {
+    description:
+      'Find AI models for images, video, writing, voice, and music from the live catalog. No signup or API key.',
+    path: '/tools/ai-model-selector',
+    title: 'AI model selector',
+  },
+  {
+    description:
+      'Turn one public YouTube video into a standard article, LinkedIn article, X article, or newsletter.',
+    path: '/tools/youtube-long-form',
+    title: 'YouTube to long-form text',
+  },
+  {
+    description:
+      'Extract a timestamped transcript from a public YouTube video, find three short-form clip opportunities, and render one preview free.',
+    path: '/tools/youtube-clips',
+    title: 'YouTube transcript to clips',
+  },
+] as const;
+
+function appendPublicSurfaces(lines: string[], isDetailed: boolean): void {
+  lines.push('## Free tools');
+  lines.push('');
+  lines.push(
+    'Public tools that return a result before signup. Each URL below is a live page.',
+  );
+  lines.push('');
+  for (const tool of FREE_PUBLIC_TOOLS) {
+    if (isDetailed) {
+      lines.push(`### ${tool.title}`);
+      lines.push('');
+      lines.push(tool.description);
+      lines.push('');
+      lines.push(`URL: ${BASE_URL}${tool.path}`);
+      lines.push('');
+      continue;
+    }
+    lines.push(
+      `- [${tool.title}](${BASE_URL}${tool.path}): ${tool.description}`,
+    );
+  }
+  if (!isDetailed) lines.push('');
+
+  lines.push('## Comparisons');
+  lines.push('');
+  lines.push(
+    `Published comparisons between Genfeed and other content tools. The index is ${BASE_URL}/vs. Each URL below is a live page.`,
+  );
+  lines.push('');
+  if (!isDetailed) {
+    lines.push(
+      `- [Genfeed vs alternatives](${BASE_URL}/vs): Index of the comparison pages`,
+    );
+  }
+  for (const competitor of competitors) {
+    if (isDetailed) {
+      lines.push(`### Genfeed vs ${competitor.name}`);
+      lines.push('');
+      lines.push(competitor.tagline);
+      lines.push('');
+      lines.push(`Best fit for Genfeed: ${competitor.whenToUseGenFeed}`);
+      lines.push('');
+      lines.push(`URL: ${BASE_URL}/vs/${competitor.slug}`);
+      lines.push('');
+      continue;
+    }
+    lines.push(
+      `- [Genfeed vs ${competitor.name}](${BASE_URL}/vs/${competitor.slug}): ${competitor.tagline}`,
+    );
+  }
+  lines.push('');
+}
+
+/** Compact tool and comparison links for `/llms.txt` and the homepage markdown. */
+export function renderPublicSurfaceIndex(): string {
+  const lines: string[] = [];
+  appendPublicSurfaces(lines, false);
+  return lines.join('\n');
+}
+
 // ---------------------------------------------------------------------------
 // llms.txt (index)
 // ---------------------------------------------------------------------------
@@ -66,6 +158,8 @@ export function buildLlmsIndex(): string {
     'Use Genfeed for repeatable content workflows that connect research, AI generation, human review, scheduled publishing, and performance analytics. It is especially useful for multi-channel campaigns, media batches, repurposing source material, and agent-assisted operations with explicit approval boundaries.',
   );
   lines.push('');
+
+  appendPublicSurfaces(lines, false);
 
   lines.push('## Developer resources');
   lines.push('');
@@ -142,7 +236,9 @@ export function buildLlmsIndex(): string {
   lines.push(
     `- [Contact](${BASE_URL}/contact): Support, security, privacy, and sales`,
   );
-  lines.push(`- [Blog](${BASE_URL}/articles): Articles and updates`);
+  lines.push(
+    `- [Articles](${BASE_URL}/articles): Public articles and updates. The site has no /blog path; this URL is the article index.`,
+  );
   lines.push(`- [Privacy Policy](${BASE_URL}/privacy): Privacy policy`);
   lines.push(`- [Terms of Service](${BASE_URL}/terms): Terms of service`);
   lines.push(
@@ -238,6 +334,9 @@ export function buildLlmsFull(
     '- **Generative Engine Optimization**: Make long-form content citation-ready for AI answer engines with direct answer blocks, source attribution, and Article/FAQ/HowTo structured data',
   );
   s.push('');
+  s.push('---');
+  s.push('');
+  appendPublicSurfaces(s, true);
   s.push('---');
   s.push('');
   s.push(

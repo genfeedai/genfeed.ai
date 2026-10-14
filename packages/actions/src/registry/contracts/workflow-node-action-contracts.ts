@@ -917,8 +917,20 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: objectOutput(
         {
           description: STRING_SCHEMA,
+          // Accounts whose generation stopped before saving a draft; the node
+          // fails only when none saved.
+          failures: arraySchema(
+            objectOutput({
+              credentialId: STRING_SCHEMA,
+              reasonCode: STRING_SCHEMA,
+              receiptId: nullableSchema(STRING_SCHEMA),
+            }),
+          ),
           groupId: STRING_SCHEMA,
+          // Why a draft waits for a member: its brand receipt is not cleared.
+          holdReason: nullableSchema(STRING_SCHEMA),
           id: STRING_SCHEMA,
+          isHeldForReview: BOOLEAN_SCHEMA,
           knowledgeReceipts: arraySchema(KNOWLEDGE_RECEIPT_SCHEMA),
           platform: STRING_SCHEMA,
           post: objectOutput({
@@ -927,6 +939,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
             status: STRING_SCHEMA,
           }),
           postIds: arraySchema(STRING_SCHEMA),
+          receiptIds: arraySchema(STRING_SCHEMA),
           status: STRING_SCHEMA,
         },
         [
@@ -1039,12 +1052,21 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'schedule',
         'visibility',
       ]),
-      outputSchema: objectOutput({
-        platforms: arraySchema(STRING_SCHEMA),
-        postIds: arraySchema(STRING_SCHEMA),
-        scheduledFor: nullableSchema(STRING_SCHEMA),
-        status: enumSchema(['published', 'queued', 'scheduled'] as const),
-      }),
+      outputSchema: objectOutput(
+        {
+          holdReason: STRING_SCHEMA,
+          platforms: arraySchema(STRING_SCHEMA),
+          postIds: arraySchema(STRING_SCHEMA),
+          scheduledFor: nullableSchema(STRING_SCHEMA),
+          status: enumSchema([
+            'held',
+            'published',
+            'queued',
+            'scheduled',
+          ] as const),
+        },
+        ['platforms', 'postIds', 'scheduledFor', 'status'],
+      ),
     },
     reframe: {
       inputSchema: inputSchema([
