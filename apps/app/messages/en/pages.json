@@ -4767,6 +4767,10 @@
       "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
     }
   },
+  "adminOrganizationReleases": {
+    "title": "Releases",
+    "previewLabel": "Release Preview (sees unreleased modules)"
+  },
   "adminFlags": {
     "title": "Flags",
     "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection. Releases decide which cloud organizations see each module or page.",
