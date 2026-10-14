@@ -76,7 +76,7 @@ function toIdentityLabel(name: string, source: string) {
 
 function toCatalogVoiceOption(voice: Voice): StudioIdentityOption {
   return {
-    ...toIdentityLabel(getVoiceName(voice), voice.provider),
+    ...toIdentityLabel(getVoiceName(voice), String(voice.provider)),
     value: encodeCatalogVoiceValue(
       voice.provider as VoiceProvider,
       String(voice.externalVoiceId),
