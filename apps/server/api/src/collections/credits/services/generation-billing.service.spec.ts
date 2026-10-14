@@ -424,6 +424,31 @@ describe('GenerationBillingService', () => {
           status: CreditReservationStatus.EXPIRED,
         });
 
+        it('does not enqueue the terminal late charge when the overrun enqueue fails', async () => {
+          credits.findReservationForWorkload.mockResolvedValue(
+            endedAvatarHold(),
+          );
+          prisma.ingredient.findFirst.mockResolvedValue({
+            status: IngredientStatus.GENERATED,
+            userId: 'user_1',
+          });
+          queue.queueDeduction.mockImplementation(async (job) => {
+            if (job.idempotencyKey === 'media-generation-duration-topup:hold_1')
+              throw new Error('Redis unavailable');
+          });
+
+          await expect(
+            service.settleOutput('ing_1', 'org_1', { durationSeconds: 60 }),
+          ).rejects.toThrow('Redis unavailable');
+
+          expect(queue.queueDeduction).toHaveBeenCalledTimes(1);
+          expect(job0(queue)).toEqual(
+            expect.objectContaining({
+              idempotencyKey: 'media-generation-duration-topup:hold_1',
+            }),
+          );
+        });
+
         it('re-prices a late completion at the clip length instead of the hold', async () => {
           credits.findReservationForWorkload.mockResolvedValue(
             endedAvatarHold(),

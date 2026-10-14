@@ -408,6 +408,20 @@ describe('AvatarVideoBillingService.resolveFunding', () => {
   });
 
   describe('audio-driven holds', () => {
+    it('requires saved narration before funding a platform render from a mutable caller URL', async () => {
+      probeMediaFromUrl.mockResolvedValue({ durationSeconds: 1 });
+
+      await expect(
+        service.resolveFunding(
+          { audioUrl: 'https://caller.example/switchable.mp3', text: 'hi' },
+          { audioUrl: 'https://caller.example/switchable.mp3' },
+          'org-1',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(probeMediaFromUrl).not.toHaveBeenCalled();
+      expect(quoteSnapshotByKey).not.toHaveBeenCalled();
+    });
     it('holds a short script over long narration at the narration length', async () => {
       findFirst.mockResolvedValue({ metadata: { duration: 299.4 } });
 
