@@ -6,6 +6,13 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const deployment = vi.hoisted(() => ({ selfHosted: true }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  isSelfHostedDeployment: () => deployment.selfHosted,
+  isCloudDeployment: () => !deployment.selfHosted,
+}));
+
 const { guardedFetch, writeFileSync } = vi.hoisted(() => ({
   guardedFetch: vi.fn(),
   writeFileSync: vi.fn(),
@@ -24,6 +31,7 @@ describe('FilesMetadataController URL download', () => {
   const getVideoMetadata = vi.fn();
   const config = {
     get: (key: string) => {
+      if (key === 'GENFEEDAI_API_KEY') return 'internal-key';
       if (key === 'GENFEEDAI_CDN_URL') return 'http://minio:9000/bucket';
       if (key === 'GENFEEDAI_MICROSERVICES_FILES_URL')
         return 'http://files:3012';
@@ -38,6 +46,7 @@ describe('FilesMetadataController URL download', () => {
   );
 
   beforeEach(() => {
+    deployment.selfHosted = true;
     guardedFetch.mockReset();
     writeFileSync.mockClear();
     getVideoMetadata.mockReset().mockResolvedValue({ duration: 5 });
@@ -99,5 +108,44 @@ describe('FilesMetadataController URL download', () => {
     ).rejects.toMatchObject({ status: 413 });
     expect(writeFileSync).not.toHaveBeenCalled();
     expect(getVideoMetadata).not.toHaveBeenCalled();
+  });
+  it.each([undefined, '', 'wrong'])(
+    'rejects Cloud metadata without the internal key before fetching or probing',
+    async (key) => {
+      deployment.selfHosted = false;
+      await expect(
+        controller.getFileMetadata(
+          { url: 'https://audio.example/narration.mp3' },
+          key,
+        ),
+      ).rejects.toMatchObject({ status: 401 });
+      expect(guardedFetch).not.toHaveBeenCalled();
+      expect(getVideoMetadata).not.toHaveBeenCalled();
+    },
+  );
+  it('refuses the Cloud files origin even for an authenticated caller', async () => {
+    deployment.selfHosted = false;
+    guardedFetch.mockResolvedValue(new Response('audio'));
+    await expect(
+      controller.getFileMetadata(
+        { url: 'http://files:3012/v1/files/download/audios/other-tenant.wav' },
+        'internal-key',
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(guardedFetch).not.toHaveBeenCalled();
+    expect(getVideoMetadata).not.toHaveBeenCalled();
+  });
+  it('accepts authenticated Cloud public narration with the public destination guard', async () => {
+    deployment.selfHosted = false;
+    guardedFetch.mockResolvedValue(new Response('audio'));
+    await controller.getFileMetadata(
+      { url: 'https://audio.example/narration.mp3' },
+      'internal-key',
+    );
+    expect(guardedFetch).toHaveBeenCalledWith(
+      'https://audio.example/narration.mp3',
+      expect.anything(),
+      {},
+    );
   });
 });
