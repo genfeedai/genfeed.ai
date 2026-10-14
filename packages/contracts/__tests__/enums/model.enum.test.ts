@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 135 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(135);
+    it('should have 137 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(137);
     });
 
     it('should have correct values', () => {
@@ -296,12 +296,19 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.HEYGEN_VIDEO).toBe('heygen/heygen-video-1');
       expect(MODEL_KEYS.HEYGEN_VOICE).toBe('heygen/heygen-voice-1');
+      expect(MODEL_KEYS.ELEVENLABS_V4).toBe('elevenlabs/eleven_v4');
+      expect(MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2).toBe(
+        'elevenlabs/eleven_multilingual_v2',
+      );
+      expect(MODEL_KEYS.ELEVENLABS_FLASH_V2_5).toBe(
+        'elevenlabs/eleven_flash_v2_5',
+      );
     });
   });
 
   describe('ModelProvider', () => {
-    it('should have 13 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(13);
+    it('should have 14 members', () => {
+      expect(Object.values(ModelProvider)).toHaveLength(14);
     });
 
     it('should have correct values', () => {
@@ -311,6 +318,7 @@ describe('model.enum', () => {
       expect(ModelProvider.GENFEED_AI).toBe('genfeed-ai');
       expect(ModelProvider.MUREKA).toBe('mureka');
       expect(ModelProvider.HEYGEN).toBe('heygen');
+      expect(ModelProvider.ELEVENLABS).toBe('elevenlabs');
       expect(ModelProvider.HIGGSFIELD).toBe('higgsfield');
       expect(ModelProvider.CRUN).toBe('crun');
       expect(ModelProvider.GOOGLE).toBe('google');

@@ -27,7 +27,7 @@ const FALLBACK_BADGE_CLASS = 'bg-muted text-muted-foreground border-border';
 const MODEL_PROVIDER_BADGE_CLASSES: Record<ModelProvider, string> = {
   [ModelProvider.CRUN]: FALLBACK_BADGE_CLASS,
   [ModelProvider.ELEVENLABS]:
-    'bg-foreground/10 text-foreground border-foreground/20',
+    '[background-color:color-mix(in_srgb,#A1A1AA_15%,transparent)] text-[#D4D4D8] [border-color:color-mix(in_srgb,#A1A1AA_30%,transparent)]',
   [ModelProvider.FAL]:
     '[background-color:color-mix(in_srgb,#06B6D4_15%,transparent)] text-[#06B6D4] [border-color:color-mix(in_srgb,#06B6D4_30%,transparent)]',
   [ModelProvider.GENFEED_AI]:
