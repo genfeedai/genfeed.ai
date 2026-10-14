@@ -71,6 +71,7 @@ describe('FilesController', () => {
   let imageQueueService: ImageQueueService;
   let fileQueueService: FileQueueService;
   let youtubeQueueService: YoutubeQueueService;
+  let httpService: HttpService;
   let s3Service: S3Service;
   let uploadService: UploadService;
   let videoThumbnailService: VideoThumbnailService;
@@ -437,6 +438,7 @@ describe('FilesController', () => {
     imageQueueService = module.get<ImageQueueService>(ImageQueueService);
     fileQueueService = module.get<FileQueueService>(FileQueueService);
     youtubeQueueService = module.get<YoutubeQueueService>(YoutubeQueueService);
+    httpService = module.get<HttpService>(HttpService);
     s3Service = module.get<S3Service>(S3Service);
     uploadService = module.get<UploadService>(UploadService);
     videoThumbnailService = module.get<VideoThumbnailService>(
