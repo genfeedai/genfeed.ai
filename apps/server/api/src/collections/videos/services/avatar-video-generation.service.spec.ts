@@ -742,6 +742,13 @@ describe('AvatarVideoGenerationService', () => {
         expect.objectContaining({
           metadata: {
             assetId: 'avatar-ingredient-1',
+            // The photo render is held per second, so settlement re-prices it.
+            avatarDurationQuote: expect.objectContaining({
+              estimatedSeconds: 1,
+              snapshot: expect.objectContaining({
+                modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+              }),
+            }),
             submissionIntent: { version: 1, provider: ByokProvider.HEYGEN },
           },
         }),
