@@ -9,8 +9,12 @@
   `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT` and `SELFHOSTED_MCP_PORT` in `.env`
 - A runtime capable of running the published `linux/amd64` image (Docker Desktop
   can use emulation on Apple Silicon)
-- Disk capacity for the application image, PostgreSQL, and generated media. No
-  minimum RAM or disk figure is published yet.
+- About 8 GB of free disk (10 GB recommended): the images take about 7 GB, and
+  generated media needs more on top
+- RAM: no minimum is published. A clean Debian 13 install with 8 CPU and 15 GiB
+  RAM ran it fine, and idle PostgreSQL used about 59 MiB.
+- Debian 13 does not package Compose v2. Install `docker-compose-plugin` from
+  [Docker's official apt repository](https://docs.docker.com/engine/install/debian/).
 
 ## Quick Start
 
@@ -63,6 +67,18 @@ docker compose --env-file .env -f docker-compose.selfhosted.yml up -d
 This still runs the published GHCR image; it does not build the checked-out
 source. Unlike a release bundle, the source template defaults to the mutable
 `latest` tag unless `GENFEED_IMAGE_TAG` is set explicitly.
+
+## Troubleshooting
+
+### `P1001: Can't reach database server at postgres:5432`
+
+The app container cannot reach the `postgres` container, so containers on the
+Compose network cannot talk to each other. Common causes are a host firewall,
+an iptables or nftables `FORWARD` policy that drops bridge traffic, or a
+rootless Docker or user-namespace setup. See Docker's
+[networking](https://docs.docker.com/engine/network/) and
+[packet filtering and firewalls](https://docs.docker.com/engine/network/packet-filtering-firewalls/)
+docs.
 
 ## Community Auth Modes
 
