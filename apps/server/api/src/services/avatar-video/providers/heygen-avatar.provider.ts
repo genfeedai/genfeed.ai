@@ -108,7 +108,11 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
           )
         : await this.heygenService.generateNativeAvatarVideo(
             input.callbackId,
-            native?.avatarRef.lookId ?? '',
+            native?.avatarRef ?? {
+              avatarType: null,
+              lookId: '',
+              supportedEngines: [],
+            },
             { inputText: input.script, voiceId: voice.voiceId },
             connection.apiKey,
           );

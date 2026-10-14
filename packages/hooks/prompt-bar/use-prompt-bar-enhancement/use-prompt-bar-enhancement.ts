@@ -20,6 +20,7 @@ const MODEL_CATEGORY_TO_PROMPT_CATEGORY: Record<
   ModelCapabilityCategory,
   PromptCategory
 > = {
+  avatar: PromptCategory.MODELS_PROMPT_VIDEO,
   embedding: PromptCategory.MODELS_PROMPT_IMAGE,
   image: PromptCategory.MODELS_PROMPT_IMAGE,
   'image-edit': PromptCategory.MODELS_PROMPT_IMAGE,

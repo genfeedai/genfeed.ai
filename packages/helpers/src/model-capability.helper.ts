@@ -1,5 +1,6 @@
 import { ModelCategory } from '@genfeedai/contracts';
 import {
+  type AvatarModelCapability,
   type EmbeddingModelCapability,
   type ImageEditModelCapability,
   type ImageModelCapability,
@@ -189,6 +190,24 @@ function buildVoiceCapability(model: IModel): VoiceModelCapability {
   };
 }
 
+function buildAvatarCapability(model: IModel): AvatarModelCapability {
+  return {
+    ...buildBaseFields(model),
+    category: ModelCategory.AVATAR,
+    ...(model.hasDurationEditing != null && {
+      hasDurationEditing: model.hasDurationEditing,
+    }),
+    ...(model.aspectRatios != null && { aspectRatios: model.aspectRatios }),
+    ...(model.defaultAspectRatio != null && {
+      defaultAspectRatio: model.defaultAspectRatio,
+    }),
+    ...(model.durations != null && { durations: model.durations }),
+    ...(model.defaultDuration != null && {
+      defaultDuration: model.defaultDuration,
+    }),
+  };
+}
+
 function buildTextCapability(model: IModel): TextModelCapability {
   return {
     ...buildBaseFields(model),
@@ -231,6 +250,7 @@ const CATEGORY_BUILDERS: Record<
   [ModelCategory.VIDEO_EDIT]: buildVideoEditCapability,
   [ModelCategory.MUSIC]: buildMusicCapability,
   [ModelCategory.VOICE]: buildVoiceCapability,
+  [ModelCategory.AVATAR]: buildAvatarCapability,
   [ModelCategory.TEXT]: buildTextCapability,
   [ModelCategory.EMBEDDING]: buildEmbeddingCapability,
   [ModelCategory.IMAGE_UPSCALE]: buildImageUpscaleCapability,

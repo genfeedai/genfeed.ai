@@ -18,6 +18,7 @@ const DEFAULT_ASPECT_RATIO_BY_CATEGORY: Record<string, string> = {
   [ModelCategory.VIDEO]: '16:9',
   [ModelCategory.VIDEO_EDIT]: '16:9',
   [ModelCategory.VOICE]: '16:9',
+  [ModelCategory.AVATAR]: '9:16',
   [ModelCategory.IMAGE]: '1:1',
   [ModelCategory.IMAGE_EDIT]: '1:1',
 };

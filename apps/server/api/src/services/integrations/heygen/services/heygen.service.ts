@@ -31,6 +31,7 @@ import {
 import { heyGenAvatarCandidateSchema } from '@api/services/integrations/heygen/heygen-identity.schema';
 import type {
   HeyGenAvatarCandidate,
+  HeyGenNativeAvatar,
   ResolvedHeyGenConnection,
 } from '@api/services/integrations/heygen/heygen-identity.types';
 import type {
@@ -40,6 +41,10 @@ import type {
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
+import {
+  getEligibleHeyGenAvatarEngines,
+  type HeyGenAvatarEngine,
+} from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
   HeyGenAvatarRef,
@@ -203,15 +208,30 @@ export class HeyGenService {
     });
   }
 
+  /**
+   * Renders a trained look. Avatar IV is HeyGen's default engine for
+   * `type: avatar`, so it is never sent; Avatar V goes on the request as
+   * `engine: { type: 'avatar_v' }`. Either engine is checked against the look
+   * before the paid submission, because HeyGen answers 400 (or renders with an
+   * engine we did not price) otherwise.
+   */
   public async generateNativeAvatarVideo(
     metadataId: string,
-    avatarId: string,
+    avatar: HeyGenNativeAvatar,
     voiceInput: HeyGenSpeechInput,
     apiKey: string,
     aspectRatio: AvatarVideoAspectRatio = '9:16',
+    engine: HeyGenAvatarEngine = 'avatar_iv',
   ): Promise<string> {
     const speech =
       typeof voiceInput === 'string' ? { audioUrl: voiceInput } : voiceInput;
+    if (!getEligibleHeyGenAvatarEngines(avatar).includes(engine))
+      throw new BadRequestException(
+        engine === 'avatar_v'
+          ? 'Avatar V needs a digital-twin look that supports the Avatar V engine.'
+          : 'This look does not support the Avatar IV engine.',
+      );
+    const avatarId = avatar.lookId;
     if (
       !avatarId.trim() ||
       !apiKey ||
@@ -228,6 +248,7 @@ export class HeyGenService {
       ...(speech.audioUrl
         ? { audio_url: speech.audioUrl }
         : { script: speech.inputText, voice_id: speech.voiceId }),
+      ...(engine === 'avatar_v' ? { engine: { type: engine } } : {}),
       aspect_ratio: aspectRatio,
       resolution: aspectRatio === '1:1' ? '1080p' : '720p',
       callback_id: metadataId,
@@ -631,8 +652,11 @@ export class HeyGenService {
                   look.avatar_type,
                 )
                   ? 'Avatar type could not be verified.'
-                  : !look.supported_api_engines.includes('avatar_iv')
-                    ? 'This look does not support the default Avatar IV engine.'
+                  : getEligibleHeyGenAvatarEngines({
+                        avatarType: look.avatar_type,
+                        supportedEngines: look.supported_api_engines,
+                      }).length === 0
+                    ? 'This look supports no HeyGen avatar engine Genfeed can price.'
                     : partition === 'private' && look.status !== 'completed'
                       ? 'This look has not completed training.'
                       : partition === 'private' &&

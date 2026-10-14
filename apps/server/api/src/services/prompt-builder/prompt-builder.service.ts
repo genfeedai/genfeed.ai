@@ -45,6 +45,7 @@ export class PromptBuilderService {
       [ModelCategory.IMAGE_UPSCALE]: '',
       [ModelCategory.VIDEO_UPSCALE]: '',
       [ModelCategory.VOICE]: '',
+      [ModelCategory.AVATAR]: '',
       [ModelCategory.EMBEDDING]: '',
     };
 

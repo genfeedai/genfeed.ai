@@ -1052,6 +1052,58 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:34.961Z',
   },
   {
+    endpoint: 'heygen/avatar-iv',
+    provider: 'heygen',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0805,
+        when: {
+          avatar_type: 'digital_twin',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0385,
+        when: {
+          avatar_type: 'photo_avatar',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0805,
+        when: {
+          avatar_type: 'studio_avatar',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://app.heygen.com/developers/api?modal=pricing',
+    verifiedAt: '2026-10-10T07:18:30.000Z',
+  },
+  {
+    endpoint: 'heygen/avatar-v',
+    provider: 'heygen',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.12,
+        when: {
+          avatar_type: 'digital_twin',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://app.heygen.com/developers/api?modal=pricing',
+    verifiedAt: '2026-10-10T07:18:30.000Z',
+  },
+  {
     endpoint: 'heygen/heygen-voice-1',
     provider: 'heygen',
     rates: [

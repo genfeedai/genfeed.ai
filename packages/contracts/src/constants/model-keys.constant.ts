@@ -90,6 +90,8 @@ export const MODEL_KEYS = {
   MUREKA_V9: 'mureka/v9',
   ARGIL_ATOM: 'argil/atom',
   HEYGEN_AVATAR: 'heygen/avatar',
+  HEYGEN_AVATAR_IV: 'heygen/avatar-iv',
+  HEYGEN_AVATAR_V: 'heygen/avatar-v',
   HEYGEN_VIDEO: 'heygen/heygen-video-1',
   HEYGEN_VOICE: 'heygen/heygen-voice-1',
   REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1: 'deepseek-ai/deepseek-r1',

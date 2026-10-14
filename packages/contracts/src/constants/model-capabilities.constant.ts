@@ -13,7 +13,8 @@ export type ModelCapabilityCategory =
   | ModelCategory.VIDEO_EDIT
   | ModelCategory.VIDEO_UPSCALE
   | ModelCategory.MUSIC
-  | ModelCategory.VOICE;
+  | ModelCategory.VOICE
+  | ModelCategory.AVATAR;
 
 export interface BaseModelCapability {
   category: ModelCapabilityCategory;
@@ -110,6 +111,15 @@ export interface VoiceModelCapability extends BaseModelCapability {
   defaultDuration?: number;
 }
 
+export interface AvatarModelCapability extends BaseModelCapability {
+  category: ModelCategory.AVATAR;
+  hasDurationEditing?: boolean;
+  aspectRatios?: readonly string[];
+  defaultAspectRatio?: string;
+  durations?: readonly number[];
+  defaultDuration?: number;
+}
+
 export type ModelOutputCapability =
   | ImageModelCapability
   | ImageEditModelCapability
@@ -120,7 +130,8 @@ export type ModelOutputCapability =
   | TextModelCapability
   | EmbeddingModelCapability
   | MusicModelCapability
-  | VoiceModelCapability;
+  | VoiceModelCapability
+  | AvatarModelCapability;
 
 /** OpenAPI `quality` enum for GPT Image 1.5 / 2. Highest billed band is `high`. */
 export const GPT_IMAGE_QUALITY_OPTIONS = [
@@ -1007,9 +1018,13 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
 
+    /**
+     * Photo animation (`POST /v3/videos` with `type: image`). It has no
+     * verified per-second engine price, so it keeps the flat quote.
+     */
     [MODEL_KEYS.HEYGEN_AVATAR]: {
       aspectRatios: ASPECT_RATIOS.HEYGEN,
-      category: ModelCategory.VOICE,
+      category: ModelCategory.AVATAR,
       defaultAspectRatio: '16:9',
       defaultDuration: 10,
       durations: [5, 10, 15, 30],
@@ -1017,6 +1032,30 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 1,
       maxReferences: 1,
+    },
+    /**
+     * HeyGen Avatar IV on `POST /v3/videos` (`type: avatar`), the default
+     * engine for every look. Billed per output second by avatar type.
+     */
+    [MODEL_KEYS.HEYGEN_AVATAR_IV]: {
+      aspectRatios: ASPECT_RATIOS.HEYGEN,
+      category: ModelCategory.AVATAR,
+      defaultAspectRatio: '9:16',
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    /**
+     * HeyGen Avatar V (`engine: { type: 'avatar_v' }`). Only digital-twin
+     * looks whose `supported_api_engines` include `avatar_v`.
+     */
+    [MODEL_KEYS.HEYGEN_AVATAR_V]: {
+      aspectRatios: ASPECT_RATIOS.HEYGEN,
+      category: ModelCategory.AVATAR,
+      defaultAspectRatio: '9:16',
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
     },
     /**
      * HeyGen Voice (`heygen-voice-1`) on the synchronous
