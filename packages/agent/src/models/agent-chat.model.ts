@@ -16,6 +16,7 @@ import type {
   AgentThreadUiActionRun,
   AgentTransferPresentation,
   AgentUIBlock,
+  AgentUiBrandedReceipt,
   AnalyticsQueryReference,
   KnowledgeReceipt,
   KnowledgeSelection,
@@ -363,6 +364,8 @@ export interface AgentUiAction {
   clipRunState?: ClipRunCardState;
   /** Exact source versions whose passages grounded this generated output. */
   knowledgeReceipts?: KnowledgeReceipt[];
+  /** Branded-generation receipt behind this written proposal. */
+  brandedReceipt?: AgentUiBrandedReceipt;
 }
 
 export interface AgentToolCall {

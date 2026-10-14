@@ -38,6 +38,10 @@ import {
   buildVideoPayload,
 } from '@pages/studio/playground/utils/generation-payloads';
 import {
+  buildStudioAvatarRequest,
+  resolveStudioAvatarScript,
+} from '@pages/studio/playground/utils/studio-avatar-request';
+import {
   hasStudioAvatarSelection,
   hasStudioVoiceSelection,
 } from '@pages/studio/playground/utils/studio-identity-selection';
@@ -56,7 +60,10 @@ import {
   readStudioPlaygroundSessionJobs,
   writeStudioPlaygroundSessionJobs,
 } from '@pages/studio/playground/utils/studio-playground-session';
-import { buildStudioPromptData } from '@pages/studio/playground/utils/studio-playground-settings';
+import {
+  buildStudioPromptData,
+  resolveModelKey,
+} from '@pages/studio/playground/utils/studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
 import {
   resolveSpeakingVoiceProvider,
@@ -122,26 +129,6 @@ export interface StudioGenerationReferences {
   endFrameId?: string;
   imageReferenceIds?: string[];
   videoReferenceIds?: string[];
-}
-
-/**
- * Resolves the model key actually sent to the API. Auto routing and avatar
- * both let the backend pick, so they submit an empty key.
- */
-export function resolveModelKey(
-  settings: StudioPlaygroundSettings,
-  models: readonly IModel[],
-  hasModelSelection: boolean,
-): string {
-  if (!hasModelSelection || settings.modelKey === AUTO_MODEL_OPTION_VALUE) {
-    return '';
-  }
-
-  if (models.some((model) => model.key === settings.modelKey)) {
-    return settings.modelKey;
-  }
-
-  return models[0]?.key ?? '';
 }
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -1034,23 +1021,13 @@ export function useStudioGeneration({
 
           case 'avatar': {
             const service = await getHeyGenService();
-            // `avatarId` on this endpoint means a HeyGen catalog id. Genfeed
-            // portraits are our own ingredients, so they travel as `photoUrl`.
-            const data = await service.generate({
-              photoUrl: settings.avatarRef
-                ? undefined
-                : settings.avatarPhotoUrl,
-              avatarRef: settings.avatarRef,
-              useIdentity: true,
-              voiceRef: settings.voiceRef,
-              voiceProvider: settings.voiceRef?.provider,
-              text: promptData.speech?.trim() || promptData.text?.trim() || '',
-              voiceId: settings.voiceId,
-              // Auto routes among the engines the look supports.
-              ...(modelKey
-                ? { autoSelectModel: false, model: modelKey }
-                : { autoSelectModel: true, prioritize: settings.prioritize }),
-            });
+            const data = await service.generate(
+              buildStudioAvatarRequest(
+                settings,
+                resolveStudioAvatarScript(promptData.speech, promptData.text),
+                modelKey,
+              ),
+            );
             trackPendingIds([resolveJsonApiIngredientId(data)], pendingContext);
             isAccepted = true;
             break;

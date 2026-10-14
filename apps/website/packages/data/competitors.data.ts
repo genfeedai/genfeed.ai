@@ -616,6 +616,243 @@ export const competitors: Competitor[] = [
     whenToUseGenFeed:
       'You need AI content generation, multi-platform publishing, analytics, and automation',
   },
+  {
+    comparisonTable: [
+      { competitor: true, feature: 'Social Media Scheduling', genfeed: true },
+      {
+        competitor: 'Monthly allowance',
+        feature: 'AI Content Generation',
+        genfeed: true,
+      },
+      {
+        competitor: 'Monthly allowance',
+        feature: 'AI Video Generation',
+        genfeed: true,
+      },
+      {
+        competitor: 'Higher plans',
+        feature: 'AI Image Generation',
+        genfeed: true,
+      },
+      { competitor: false, feature: 'AI Voice & Avatars', genfeed: true },
+      { competitor: false, feature: 'Article Writing', genfeed: true },
+      {
+        competitor: true,
+        feature: 'Multi-Platform Publishing',
+        genfeed: true,
+      },
+      {
+        competitor: 'Channel analytics',
+        feature: 'ROI Tracking',
+        genfeed: true,
+      },
+      {
+        competitor: 'Team plan and above',
+        feature: 'Team Collaboration',
+        genfeed: true,
+      },
+      { competitor: true, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Open source and self-host', genfeed: true },
+      {
+        competitor: '$348-1188 or self-host',
+        feature: 'Entry price',
+        genfeed: 'Free + pay-per-output credits',
+      },
+    ],
+    genfeedAdvantages: [
+      'Generation is the product, not a monthly media allowance',
+      'Video, image, voice, and articles in one workspace',
+      'Review before anything publishes',
+      'Open source and self-hostable, same as Postiz',
+      'Connected-channel analytics after publish',
+    ],
+    name: 'Postiz',
+    pricing: '$29-99/month, or self-host',
+    slug: 'postiz',
+    strengths: [
+      'Open-source scheduler under AGPL-3.0',
+      'Posts to 30+ networks, including Bluesky and Mastodon',
+      'MCP, CLI, and API on every hosted plan',
+    ],
+    tagline: 'Open-source social scheduling with an agent copilot',
+    targetAudience:
+      'Creators, agencies, and teams who already have content to schedule',
+    weaknesses: [
+      'Scheduling comes first; generation is a capped allowance',
+      'Standard includes 3 AI videos a month and no AI images',
+      'No voice, avatar, or long-form article studio',
+      'Analytics are engagement counts, not revenue attribution',
+    ],
+    whenToUseCompetitor:
+      'You already produce the content and want an open-source scheduler that agents can post through',
+    whenToUseGenFeed:
+      'You want the draft, the media, a human review, and publishing in one workspace',
+  },
+  {
+    comparisonTable: [
+      { competitor: true, feature: 'AI Video Generation', genfeed: true },
+      { competitor: true, feature: 'AI Image Generation', genfeed: true },
+      {
+        competitor: 'Speak and characters',
+        feature: 'AI Voice & Avatars',
+        genfeed: true,
+      },
+      { competitor: false, feature: 'Article Writing', genfeed: true },
+      {
+        competitor: false,
+        feature: 'Multi-Platform Publishing',
+        genfeed: true,
+      },
+      { competitor: false, feature: 'ROI Tracking', genfeed: true },
+      {
+        competitor: 'Paid plans',
+        feature: 'Team Collaboration',
+        genfeed: true,
+      },
+      { competitor: 'API', feature: 'Automation Workflows', genfeed: true },
+      {
+        competitor: 'Free tier + credit plans',
+        feature: 'Entry price',
+        genfeed: 'Free + pay-per-output credits',
+      },
+    ],
+    genfeedAdvantages: [
+      'Video and image generation plus voice, articles, and publishing',
+      'A review step before a post goes live',
+      'Scheduling to connected channels',
+      'Workflows that repeat a campaign, not a single clip',
+    ],
+    name: 'Higgsfield',
+    pricing: 'Free tier, then credit plans',
+    slug: 'higgsfield',
+    strengths: [
+      'Image and video generation across many models',
+      'Social and ad creative, including a UGC builder',
+      'Public API for generation jobs',
+    ],
+    tagline: 'AI image and video studio for social clips and ads',
+    targetAudience: 'Creators and advertisers producing short AI video',
+    weaknesses: [
+      'A generation studio, not a publishing calendar',
+      'No long-form article workflow',
+      'No review queue tied to connected social accounts',
+      'Output stops when credits run out',
+    ],
+    whenToUseCompetitor:
+      'You want a credit studio for cinematic clips, images, and ad variants',
+    whenToUseGenFeed:
+      'You want those assets produced, reviewed, and published from the same workspace',
+  },
+  {
+    comparisonTable: [
+      { competitor: true, feature: 'AI Avatar Videos', genfeed: true },
+      { competitor: true, feature: 'AI Video Generation', genfeed: true },
+      {
+        competitor: 'Product stills',
+        feature: 'AI Image Generation',
+        genfeed: true,
+      },
+      { competitor: false, feature: 'Article Writing', genfeed: true },
+      {
+        competitor: false,
+        feature: 'Multi-Platform Publishing',
+        genfeed: true,
+      },
+      { competitor: false, feature: 'ROI Tracking', genfeed: true },
+      {
+        competitor: 'Scale plan',
+        feature: 'Team Collaboration',
+        genfeed: true,
+      },
+      { competitor: 'API', feature: 'Automation Workflows', genfeed: true },
+      {
+        competitor: '$468-5988',
+        feature: 'Entry price',
+        genfeed: 'Free + pay-per-output credits',
+      },
+    ],
+    genfeedAdvantages: [
+      'Avatar video plus image, voice, and articles',
+      'Publishing to connected channels after review',
+      'Campaign workflows, not only presenter clips',
+      'Pay-per-output credits instead of a large monthly credit bundle',
+    ],
+    name: 'Argil',
+    pricing: '$39-499/month',
+    slug: 'argil',
+    strengths: [
+      'Presenter videos from a photo and a short voice sample',
+      'Stock avatars plus custom avatar styles',
+      'Product and story clips, with an API on paid plans',
+    ],
+    tagline: 'AI presenter and product videos from credits',
+    targetAudience: 'Creators and brands who want a cloned presenter on camera',
+    weaknesses: [
+      'Built around avatar and product video',
+      'No social scheduling or channel analytics',
+      'No article studio',
+      'Credits refresh monthly and do not stack',
+    ],
+    whenToUseCompetitor:
+      'You need a cloned presenter or product video and will publish it yourself',
+    whenToUseGenFeed:
+      'You need the presenter clip plus the other formats, a review, and publishing',
+  },
+  {
+    comparisonTable: [
+      { competitor: true, feature: 'AI UGC Ad Videos', genfeed: true },
+      { competitor: true, feature: 'AI Video Generation', genfeed: true },
+      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'AI Image Generation', genfeed: true },
+      {
+        competitor: false,
+        feature: 'Multi-Platform Publishing',
+        genfeed: true,
+      },
+      { competitor: false, feature: 'ROI Tracking', genfeed: true },
+      {
+        competitor: 'Higher plans',
+        feature: 'Team Collaboration',
+        genfeed: true,
+      },
+      {
+        competitor: 'Higher plans',
+        feature: 'Automation Workflows',
+        genfeed: true,
+      },
+      {
+        competitor: 'In-app credit plans',
+        feature: 'Entry price',
+        genfeed: 'Free + pay-per-output credits',
+      },
+    ],
+    genfeedAdvantages: [
+      'Ad variants plus image, voice, articles, and other video',
+      'Review before a creative is scheduled',
+      'Publishing to connected channels from the same workspace',
+      'A public price: free to join, then pay for output',
+    ],
+    name: 'Arcads',
+    pricing: 'In-app credit plans',
+    slug: 'arcads',
+    strengths: [
+      'AI actors for paid-social UGC ads',
+      'Script-to-video with talking actors',
+      'Access to several video models inside one ad workflow',
+    ],
+    tagline: 'AI actors for UGC ad creatives',
+    targetAudience: 'Performance marketers producing actor-led ads',
+    weaknesses: [
+      'An ad-creative tool, not a content operating system',
+      'No publishing calendar',
+      'No article, image, or voice studio beside the ad',
+      'Plan prices are shown after sign-in, not on a public pricing page',
+    ],
+    whenToUseCompetitor:
+      'You need a batch of actor-led ad videos and already have somewhere to run them',
+    whenToUseGenFeed:
+      'You need the ad creative, the other content formats, and a reviewed publish step',
+  },
 ];
 
 export function getCompetitorBySlug(slug: string): Competitor | undefined {

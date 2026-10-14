@@ -163,8 +163,11 @@ Both tools are available in the `brand` toolset and in agent chat.
 
 ## Social accounts, brand scope, and media
 
-Use `get_brands` then pass `brandId` into generation and connection tools. Genfeed
-does not silently pick the first organization brand.
+Use `get_brands` then pass `brandId` into generation and connection tools.
+`brandId` is required on `generate`, `generate_content`, `generate_turbo_content`,
+`enhance_prompt` and `transform_media`, even when you own one brand: a call
+without it returns `brand_required` and your brand list. Genfeed does not silently
+pick a brand.
 
 `connect_social_account` returns a `connectionId` and a browser authorization URL.
 Poll `get_connection_status` with that id. Provider denial or failure is stored
@@ -236,13 +239,15 @@ shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
 | `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
 | `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
 | `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | |
+| `brand_required` | A generation tool (`generate`, `generate_content`, `generate_turbo_content`, `enhance_prompt`, `transform_media`) was called without `brandId` | none | `brands[]` of `{ id, label }`, the caller's brands |
 
 `message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted
 when they do not apply — `rate_limited` does not invent a URL. Paths are the
 app routes the product already uses; sign-in continues into the caller's
 organization. Fix `errors[]` and call the tool again. For
 `approval_pending`, hand the human `nextStepUrl` or call `resolve_approval`
-with the approval id in `message`.
+with the approval id in `message`. For `brand_required`, retry with one of the
+listed `brands[].id` values; no brand is ever picked for you.
 
 ## Tools
 

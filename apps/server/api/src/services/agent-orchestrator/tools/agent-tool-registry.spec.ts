@@ -11,6 +11,8 @@ import {
 import {
   getToolByName,
   getToolsForSurface,
+  isMcpBrandRequiredTool,
+  MCP_BRAND_REQUIRED_NOTE,
   toMcpTools,
 } from '@genfeedai/actions';
 
@@ -283,11 +285,25 @@ it('shows the agent and MCP the same definition of every shared tool', () => {
   );
   for (const tool of shared) {
     const mcp = mcpTools.get(String(tool.name));
-    expect(tool.description, tool.name).toBe(mcp?.description);
+    // The one deliberate divergence: MCP has no thread to take a brand from, so
+    // its generation tools say brandId is required (#5786). Everything else,
+    // including the rest of the description, must match the agent definition.
+    const isBrandRequired = isMcpBrandRequiredTool(String(tool.name));
+    expect(
+      isBrandRequired
+        ? mcp?.description.replace(` ${MCP_BRAND_REQUIRED_NOTE}`, '')
+        : mcp?.description,
+      tool.name,
+    ).toBe(tool.description);
+    const { brandId: _mcpBrand, ...mcpProperties } =
+      (mcp?.inputSchema.properties as Record<string, unknown>) ?? {};
     expect(tool.parameters, tool.name).toMatchObject({
-      properties: mcp?.inputSchema.properties,
+      properties: isBrandRequired ? mcpProperties : mcp?.inputSchema.properties,
       type: mcp?.inputSchema.type,
     });
+    if (isBrandRequired) {
+      expect(mcp?.inputSchema.required, tool.name).toContain('brandId');
+    }
     expect(tool.creditCost, tool.name).toBe(
       mcp?._meta['genfeed.ai/creditCost'],
     );

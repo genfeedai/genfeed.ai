@@ -53,6 +53,18 @@ describe('agent readiness metadata', () => {
     expect(HOMEPAGE_AGENT_MARKDOWN).toContain(
       'https://genfeed.ai/.well-known/api-catalog',
     );
+    expect(HOMEPAGE_AGENT_MARKDOWN).toContain(
+      'https://genfeed.ai/tools/ai-model-selector',
+    );
+    expect(HOMEPAGE_AGENT_MARKDOWN).toContain(
+      'https://genfeed.ai/tools/youtube-clips',
+    );
+    expect(HOMEPAGE_AGENT_MARKDOWN).toContain(
+      'https://genfeed.ai/tools/youtube-long-form',
+    );
+    expect(HOMEPAGE_AGENT_MARKDOWN).toContain('https://genfeed.ai/vs/buffer');
+    expect(HOMEPAGE_AGENT_MARKDOWN.match(/## Free tools/g)).toHaveLength(1);
+    expect(HOMEPAGE_AGENT_MARKDOWN.match(/## Comparisons/g)).toHaveLength(1);
   });
 
   it('documents the complete verified-email agent registration ceremony', () => {

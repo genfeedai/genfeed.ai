@@ -17,6 +17,7 @@ export const MCP_TOOL_ERROR_CODES = [
   'rate_limited',
   'validation_failed',
   'approval_pending',
+  'brand_required',
 ] as const;
 
 export type McpToolErrorCode = (typeof MCP_TOOL_ERROR_CODES)[number];
@@ -26,9 +27,16 @@ export interface McpToolFieldError {
   message: string;
 }
 
+export interface McpToolBrandOption {
+  id: string;
+  label: string;
+}
+
 export interface McpToolError {
   code: McpToolErrorCode;
   message: string;
+  /** The caller's brands, listed when a generation call omits `brandId`. */
+  brands?: McpToolBrandOption[];
   retryAfterSeconds?: number;
   nextStepUrl?: string;
   errors?: McpToolFieldError[];
@@ -107,6 +115,7 @@ function compactToolError(error: McpToolError): McpToolError {
   return {
     code: error.code,
     message: error.message,
+    ...(error.brands ? { brands: error.brands } : {}),
     ...(error.errors && error.errors.length > 0
       ? { errors: error.errors }
       : {}),

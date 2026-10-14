@@ -28,6 +28,16 @@ const MOCK_TOOLS = [
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
+  ...[
+    'enhance_prompt',
+    'generate_content',
+    'generate_turbo_content',
+    'transform_media',
+  ].map((name) => ({
+    name,
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  })),
   { name: 'get_account', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
   {
@@ -361,12 +371,13 @@ describe('ToolRegistryService', () => {
 
   it('handleToolCall generate returns a pending approval and does not run', async () => {
     const result = await service.handleToolCall({
-      arguments: { prompt: 'AI surfing', type: 'video' },
+      arguments: { brandId: 'brand-1', prompt: 'AI surfing', type: 'video' },
       name: 'generate',
     });
 
     expect(clientService.executeAgentTool).not.toHaveBeenCalled();
     expect(clientService.createApproval).toHaveBeenCalledWith('generate', {
+      brandId: 'brand-1',
       prompt: 'AI surfing',
       type: 'video',
     });
@@ -382,6 +393,98 @@ describe('ToolRegistryService', () => {
     );
   });
 
+  describe('generation brand requirement (#5786)', () => {
+    const brandListing = {
+      creditsUsed: 0,
+      data: {
+        brands: [
+          { id: 'brand-1', label: 'Acme', name: 'acme' },
+          { id: 'brand-2', label: '', name: 'Beta' },
+        ],
+      },
+      success: true,
+    };
+
+    it.each([
+      'generate',
+      'generate_content',
+      'generate_turbo_content',
+      'enhance_prompt',
+      'transform_media',
+    ])(
+      '%s without brandId lists the caller brands and neither queues nor runs',
+      async (name) => {
+        clientService.executeAgentTool.mockResolvedValueOnce(brandListing);
+
+        const result = await service.handleToolCall({
+          arguments: { prompt: 'AI surfing' },
+          name,
+        });
+
+        expect(clientService.executeAgentTool).toHaveBeenCalledTimes(1);
+        expect(clientService.executeAgentTool).toHaveBeenCalledWith(
+          'get_brands',
+          {},
+        );
+        expect(clientService.createApproval).not.toHaveBeenCalled();
+        expect(result).toMatchObject({
+          isError: true,
+          structuredContent: {
+            brands: [
+              { id: 'brand-1', label: 'Acme' },
+              { id: 'brand-2', label: 'Beta' },
+            ],
+            code: 'brand_required',
+          },
+        });
+        expect(JSON.stringify(result)).toContain('Acme (brand-1)');
+      },
+    );
+
+    it('treats a blank brandId as missing', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce(brandListing);
+
+      const result = await service.handleToolCall({
+        arguments: { brandId: '   ', prompt: 'x', type: 'image' },
+        name: 'generate',
+      });
+
+      expect(clientService.createApproval).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        structuredContent: { code: 'brand_required' },
+      });
+    });
+
+    it('still rejects with an empty list when the brand listing fails', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        error: 'unavailable',
+        success: false,
+      });
+
+      const result = await service.handleToolCall({
+        arguments: { prompt: 'x' },
+        name: 'generate_content',
+      });
+
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: { brands: [], code: 'brand_required' },
+      });
+      expect(JSON.stringify(result)).toContain('onboard_brand');
+    });
+
+    it('does not ask for a brand on tools outside the generation set', async () => {
+      await service.handleToolCall({ arguments: {}, name: 'get_trends' });
+
+      expect(clientService.executeAgentTool).toHaveBeenCalledWith(
+        'get_trends',
+        {},
+        undefined,
+      );
+    });
+  });
+
   it('handleToolCall generate presents the model quote as the approval estimate', async () => {
     clientService.createApproval.mockResolvedValueOnce({
       generationQuote: {
@@ -395,7 +498,7 @@ describe('ToolRegistryService', () => {
     });
 
     const result = await service.handleToolCall({
-      arguments: { prompt: 'AI surfing', type: 'video' },
+      arguments: { brandId: 'brand-1', prompt: 'AI surfing', type: 'video' },
       name: 'generate',
     });
 
@@ -422,7 +525,7 @@ describe('ToolRegistryService', () => {
     });
 
     const result = await service.handleToolCall({
-      arguments: { prompt: 'AI surfing', type: 'video' },
+      arguments: { brandId: 'brand-1', prompt: 'AI surfing', type: 'video' },
       name: 'generate',
     });
 
@@ -843,7 +946,7 @@ describe('ToolRegistryService', () => {
 
     it('does not gate tools without a requiredRole', async () => {
       await service.handleToolCall({
-        arguments: { prompt: 'x', type: 'video' },
+        arguments: { brandId: 'brand-1', prompt: 'x', type: 'video' },
         name: 'generate',
       });
 

@@ -94,4 +94,20 @@ describe('website next.config', () => {
       ]),
     );
   });
+
+  it('advertises the LLM index from robots-adjacent discovery', async () => {
+    const headers = await config.headers?.();
+    const rootHeaders = headers?.find((entry) => entry.source === '/(.*)');
+    const link = rootHeaders?.headers.find((header) => header.key === 'Link');
+    const redirects = await config.redirects?.();
+
+    expect(link?.value).toContain(
+      '<https://genfeed.ai/llms.txt>; rel="llm-context"; type="text/plain"',
+    );
+    expect(redirects).toContainEqual({
+      destination: '/llms.txt',
+      permanent: false,
+      source: '/.well-known/llm-context',
+    });
+  });
 });

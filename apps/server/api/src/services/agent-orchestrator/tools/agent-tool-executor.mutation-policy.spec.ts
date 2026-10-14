@@ -438,7 +438,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(threadHandler.execute).not.toHaveBeenCalled();
   });
 
-  it('runs draft_thread without an approval record because it saves nothing', async () => {
+  it('runs draft_thread without an approval record because it adds nothing to the thread', async () => {
     threadHandler.execute.mockResolvedValue({ success: true, creditsUsed: 0 });
     const result = await service.executeTool(
       'draft_thread',

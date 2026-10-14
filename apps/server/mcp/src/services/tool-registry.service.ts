@@ -1,13 +1,17 @@
 import {
   describeCreditPricing,
+  describeMissingMcpBrand,
   estimateToolCreditCost,
   getToolByName,
   getToolsetNames,
   getToolsForSurface,
   getToolsForToolsets,
+  isMcpBrandRequiredTool,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
+  type McpBrandOption,
   type McpToolOutput,
+  readMcpBrandId,
   requiresMcpApproval,
   type ToolsetName,
   toMcpTools,
@@ -381,6 +385,11 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.handleResolveApproval(args ?? {});
       }
 
+      // Rejected before any approval or charge: a generation always names its brand.
+      if (isMcpBrandRequiredTool(name) && !readMcpBrandId(args)) {
+        return await this.brandRequiredResult(name);
+      }
+
       // Declared approvals and credit spenders wait for confirmation.
       if (ToolRegistryService.requiresApproval(name, args)) {
         const approval = await this.clientService.createApproval(
@@ -413,6 +422,31 @@ export class ToolRegistryService implements OnModuleInit {
         isError: true,
       };
     }
+  }
+
+  private async brandRequiredResult(name: string) {
+    const brands = await this.listCallerBrands();
+    return mcpToolErrorResult({
+      brands,
+      code: 'brand_required',
+      message: describeMissingMcpBrand(name, brands),
+    });
+  }
+
+  private async listCallerBrands(): Promise<McpBrandOption[]> {
+    const result = await this.clientService.executeAgentTool('get_brands', {});
+    const brands = isRecord(result.data) ? result.data.brands : undefined;
+    if (!result.success || !Array.isArray(brands)) return [];
+    return brands.flatMap((brand): McpBrandOption[] => {
+      if (!isRecord(brand) || typeof brand.id !== 'string') return [];
+      const label =
+        typeof brand.label === 'string' && brand.label.trim()
+          ? brand.label
+          : typeof brand.name === 'string' && brand.name.trim()
+            ? brand.name
+            : brand.id;
+      return [{ id: brand.id, label }];
+    });
   }
 
   static classify(name: string): ExecutorKind {

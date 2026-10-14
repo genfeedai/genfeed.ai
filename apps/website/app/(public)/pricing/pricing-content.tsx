@@ -86,6 +86,8 @@ const PRICING_RULES = [
 
 interface OutputCostRow {
   credits: number;
+  /** Upper bound when the output's price depends on how it is rendered. */
+  maxCredits?: number;
   label: string;
   suffix?: string;
 }
@@ -94,7 +96,11 @@ const OUTPUT_COSTS: OutputCostRow[] = [
   { credits: INTERNAL_CREDIT_COSTS.image, label: 'Image (1K/2K)' },
   { credits: INTERNAL_CREDIT_COSTS.image4k, label: 'Image (4K)' },
   { credits: VIDEO_CREDIT_COSTS.video8s, label: 'Short video (8s)' },
-  { credits: AVATAR_CREDIT_COSTS.avatar4s, label: 'Avatar clip (4s)' },
+  {
+    credits: AVATAR_CREDIT_COSTS.avatar4s.minCredits,
+    label: 'Avatar clip (4s)',
+    maxCredits: AVATAR_CREDIT_COSTS.avatar4s.maxCredits,
+  },
   {
     credits: INTERNAL_CREDIT_COSTS.voicePerMinute,
     label: 'Voiceover',
@@ -106,12 +112,18 @@ const OUTPUT_COSTS: OutputCostRow[] = [
   },
 ];
 
-function formatCredits(credits: number): string {
-  return `${formatNumberWithCommas(credits)} credits`;
+function formatCredits(credits: number, maxCredits?: number): string {
+  return maxCredits === undefined
+    ? `${formatNumberWithCommas(credits)} credits`
+    : `${formatNumberWithCommas(credits)}–${formatNumberWithCommas(maxCredits)} credits`;
 }
 
-function formatCreditsDollars(credits: number): string {
-  return `$${(credits * CREDIT_VALUE_DOLLARS).toFixed(2)}`;
+function formatCreditsDollars(credits: number, maxCredits?: number): string {
+  const dollars = (value: number) =>
+    `$${(value * CREDIT_VALUE_DOLLARS).toFixed(2)}`;
+  return maxCredits === undefined
+    ? dollars(credits)
+    : `${dollars(credits)}–${dollars(maxCredits)}`;
 }
 
 function getOrderedPlans() {
@@ -413,9 +425,9 @@ export default function PricingContent() {
               >
                 <span className="text-sm text-surface/65">{row.label}</span>
                 <span className="text-sm font-semibold text-surface">
-                  {formatCredits(row.credits)}
+                  {formatCredits(row.credits, row.maxCredits)}
                   <span className="ml-2 font-normal text-surface/55">
-                    ≈ {formatCreditsDollars(row.credits)}
+                    ≈ {formatCreditsDollars(row.credits, row.maxCredits)}
                     {row.suffix ?? ''}
                   </span>
                 </span>

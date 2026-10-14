@@ -142,6 +142,128 @@ describe('AgentToolsController publishing scopes', () => {
     );
   });
 
+  describe('MCP generation brand requirement (#5786)', () => {
+    const brandListing = {
+      creditsUsed: 0,
+      data: {
+        brands: [
+          { id: 'brand-1', label: 'Acme', name: 'acme' },
+          { id: 'brand-2', label: '', name: 'Beta' },
+        ],
+      },
+      success: true,
+    };
+    const asMcp = <T>(callback: () => T): T =>
+      runWithActionOrigin({ origin: ActionOrigin.MCP }, callback);
+
+    it.each([
+      'generate',
+      'generate_content',
+      'generate_turbo_content',
+      'enhance_prompt',
+      'transform_media',
+    ])(
+      'rejects %s from MCP without brandId and lists the caller brands',
+      async (name) => {
+        executor.executeTool.mockReset();
+        executor.executeTool.mockResolvedValueOnce(brandListing);
+
+        const result = await asMcp(() =>
+          controller.execute(
+            name,
+            { parameters: { prompt: 'x' } },
+            apiKeyUser([]),
+            request,
+          ),
+        );
+
+        expect(executor.executeTool).toHaveBeenCalledTimes(1);
+        expect(executor.executeTool).toHaveBeenCalledWith(
+          'get_brands',
+          {},
+          expect.objectContaining({ organizationId: 'org-1' }),
+        );
+        expect(result).toMatchObject({
+          creditsUsed: 0,
+          data: {
+            brands: [
+              { id: 'brand-1', label: 'Acme' },
+              { id: 'brand-2', label: 'Beta' },
+            ],
+            recoveryAction: 'select_brand',
+          },
+          success: false,
+        });
+        expect(JSON.stringify(result)).toContain(`${name} requires brandId`);
+      },
+    );
+
+    it('does not substitute the API key default brand for a missing brandId', async () => {
+      executor.executeTool.mockReset();
+      executor.executeTool.mockResolvedValueOnce(brandListing);
+
+      await asMcp(() =>
+        controller.execute(
+          'generate',
+          { parameters: { prompt: 'x', type: 'image' } },
+          { ...apiKeyUser([]), brandId: 'brand-1' },
+          request,
+        ),
+      );
+
+      expect(executor.executeTool).not.toHaveBeenCalledWith(
+        'generate',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('dispatches an MCP generation that names its brand', async () => {
+      executor.executeTool.mockReset();
+      executor.executeTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        success: true,
+      });
+
+      await asMcp(() =>
+        controller.execute(
+          'generate',
+          { parameters: { brandId: 'brand-1', prompt: 'x', type: 'image' } },
+          apiKeyUser([]),
+          request,
+        ),
+      );
+
+      expect(executor.executeTool).toHaveBeenCalledTimes(1);
+      expect(executor.executeTool).toHaveBeenCalledWith(
+        'generate',
+        { brandId: 'brand-1', prompt: 'x', type: 'image' },
+        expect.anything(),
+      );
+    });
+
+    it('leaves non-MCP callers on the in-app brand scope', async () => {
+      executor.executeTool.mockReset();
+      executor.executeTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        success: true,
+      });
+
+      await controller.execute(
+        'generate',
+        { parameters: { prompt: 'x', type: 'image' } },
+        apiKeyUser([]),
+        request,
+      );
+
+      expect(executor.executeTool).toHaveBeenCalledWith(
+        'generate',
+        { prompt: 'x', type: 'image' },
+        expect.anything(),
+      );
+    });
+  });
+
   it('strips a spoofed confirmation origin from direct tool execution', async () => {
     executor.executeTool.mockResolvedValue({
       creditsUsed: 0,

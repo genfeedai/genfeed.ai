@@ -1,4 +1,5 @@
 export * from './agent-model-access.interface';
+export * from './avatar-generation-quote.interface';
 export * from './billing.tokens';
 export * from './billing-account.interface';
 export * from './cost-report.interface';

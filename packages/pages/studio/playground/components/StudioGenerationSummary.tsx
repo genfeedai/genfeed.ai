@@ -2,6 +2,7 @@
 
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
 import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
+import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import type { StudioGenerationSummaryProps } from '@genfeedai/props/studio/studio-playground.props';
@@ -70,21 +71,32 @@ export default function StudioGenerationSummary({
               ? 'summary.costContextLoading'
               : 'summary.costContextUnavailable',
           )
-        : estimate.status === 'estimated' &&
-            estimate.credits !== null &&
-            canSubmitStudioGeneration(runtime)
-          ? translate('estimatedCredits', {
-              credits: formatCreditBalanceExact(estimate.credits),
-            })
-          : estimate.status === 'auto'
-            ? translate('summary.estimateAfterSelection')
-            : estimate.status === 'loading'
-              ? translate('summary.estimateLoading')
-              : estimate.unavailableReason
-                ? translate(
-                    `summary.estimateReasons.${estimate.unavailableReason}`,
-                  )
-                : translate('summary.estimateUnavailable');
+        : estimate.status === 'estimated' && estimate.billingMode === 'byok'
+          ? translate('summary.byokEstimate')
+          : estimate.status === 'estimated' &&
+              estimate.credits !== null &&
+              canSubmitStudioGeneration(runtime)
+            ? estimate.estimatedSeconds !== undefined
+              ? translate('estimatedCreditsForSeconds', {
+                  credits: formatCreditBalanceExact(estimate.credits),
+                  seconds: estimate.estimatedSeconds,
+                })
+              : translate('estimatedCredits', {
+                  credits: formatCreditBalanceExact(estimate.credits),
+                })
+            : estimate.status === 'auto'
+              ? translate('summary.estimateAfterSelection')
+              : estimate.status === 'loading'
+                ? translate('summary.estimateLoading')
+                : type === 'avatar' &&
+                    estimate.unavailableReason ===
+                      AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT
+                  ? translate('summary.avatarEstimateNeedsInput')
+                  : estimate.unavailableReason
+                    ? translate(
+                        `summary.estimateReasons.${estimate.unavailableReason}`,
+                      )
+                    : translate('summary.estimateUnavailable');
 
   const quotedCredits =
     model?.provider === 'crun' && crunQuote?.quote?.isAvailable
@@ -99,15 +111,22 @@ export default function StudioGenerationSummary({
     crunQuote?.quote?.isAvailable &&
     crunQuote.quote.billingMode === 'byok'
       ? translate('crun.byok')
-      : canSubmitStudioGeneration(runtime) &&
-          quotedCredits !== null &&
-          quotedCredits !== undefined
-        ? `~${formatCreditBalanceExact(quotedCredits)}`
-        : estimate.status === 'loading' || crunQuote?.status === 'pending'
-          ? '…'
-          : estimate.status === 'auto'
-            ? translate('inspector.autoModel')
-            : '—';
+      : estimate.status === 'estimated' && estimate.billingMode === 'byok'
+        ? translate('summary.byokEstimate')
+        : canSubmitStudioGeneration(runtime) &&
+            quotedCredits !== null &&
+            quotedCredits !== undefined
+          ? estimate.estimatedSeconds !== undefined
+            ? `~${formatCreditBalanceExact(quotedCredits)} · ${translate(
+                'summary.estimatedSeconds',
+                { seconds: estimate.estimatedSeconds },
+              )}`
+            : `~${formatCreditBalanceExact(quotedCredits)}`
+          : estimate.status === 'loading' || crunQuote?.status === 'pending'
+            ? '…'
+            : estimate.status === 'auto'
+              ? translate('inspector.autoModel')
+              : '—';
   const compactBalance =
     balance !== null
       ? formatCreditBalanceExact(balance)

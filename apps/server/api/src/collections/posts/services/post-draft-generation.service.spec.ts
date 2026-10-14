@@ -505,6 +505,54 @@ describe('PostDraftGenerationService', () => {
       },
     );
 
+    it.each([
+      ['channel_limit_exceeded', 422],
+      ['artifact_persist_failed', 500],
+      ['dispatch_window_expired', 409],
+    ])(
+      'carries the known provider cost of a stopped %s after a recorded attempt',
+      async (reasonCode, status) => {
+        mockBrandedText.generate.mockResolvedValue({
+          hasNewDispatch: true,
+          kind: 'stopped',
+          postId: null,
+          reasonCode,
+          receipt: receipt(),
+        });
+        const error = await service
+          .generateDraftText(brandedDto, identity)
+          .catch((caught: unknown) => caught);
+
+        expect(error).toBeInstanceOf(BrandedGenerationBlockedException);
+        expect(error).toMatchObject({
+          isBillableFailure: true,
+          providerAttempt: { model: DEFAULT_MINI_TEXT_MODEL },
+          reasonCode,
+        });
+        expect((error as BrandedGenerationBlockedException).getStatus()).toBe(
+          status,
+        );
+      },
+    );
+
+    it('carries no cost when the stop came before any provider attempt', async () => {
+      mockBrandedText.generate.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'stopped',
+        postId: null,
+        reasonCode: 'provider_attempt_ref_unavailable',
+        receipt: receipt(),
+      });
+      const error = await service
+        .generateDraftText(brandedDto, identity)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toMatchObject({
+        isBillableFailure: false,
+        providerAttempt: null,
+      });
+    });
+
     it('answers 409 while the same request is still in progress', async () => {
       mockBrandedText.generate.mockResolvedValue({
         hasNewDispatch: false,

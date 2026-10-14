@@ -3,6 +3,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import {
   ideaDispatchKey,
   ideaPromptText,
+  ideaSpeechText,
   resolveIdeaGenerationParams,
 } from '@api/collections/turbo-projects/services/turbo-project-dispatch.util';
 import { readTurboProjectIdea } from '@api/collections/turbo-projects/services/turbo-project-idea.util';
@@ -18,7 +19,11 @@ import type {
   TurboProjectBillingMode,
 } from '@genfeedai/contracts/interfaces';
 import type { TurboProjectItem } from '@genfeedai/prisma';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 /** A quote stays acceptable this long, as Brand Remix quotes do. */
 export const TURBO_PROJECT_QUOTE_TTL_MS = 15 * 60_000;
@@ -32,9 +37,9 @@ type PricedModel = {
 /**
  * Prices idea generation before anything runs (#5463). Image and video ideas
  * resolve the model the generation will use and its price through the same
- * estimator the generation services charge with; avatar ideas use the fixed
- * avatar price. A format the organization pays with its own key quotes 0
- * platform credits.
+ * estimator the generation services charge with; avatar ideas are priced per
+ * second from their own script and settle to the clip length. A format the
+ * organization pays with its own key quotes 0 platform credits.
  */
 @Injectable()
 export class TurboProjectQuoteService {
@@ -54,11 +59,21 @@ export class TurboProjectQuoteService {
   }): Promise<ITurboProjectQuote> {
     const pricedByFormat = new Map<TurboIdeaFormat, PricedModel>();
     const items: ITurboProjectQuoteLine[] = [];
-    for (const { attempt, item } of input.items) {
+    const ideas = input.items.map(({ attempt, item }) => {
       const idea = readTurboProjectIdea(item.idea);
       if (!idea) {
         throw new ConflictException('Only idea items can be quoted.');
       }
+      // Only an avatar speaks a script. Name the idea that has none before
+      // pricing anything, instead of a generic pricing error mid-quote.
+      if (idea.format === 'avatar' && !ideaSpeechText(idea)) {
+        throw new BadRequestException(
+          `Avatar idea ${item.position + 1} has no script to speak. Add a script or caption before quoting.`,
+        );
+      }
+      return { attempt, idea, item };
+    });
+    for (const { attempt, idea, item } of ideas) {
       // An avatar is priced by its own script length, so only the other
       // formats share one price per format.
       let priced =

@@ -51,6 +51,12 @@ describe('website catalog getters', () => {
       expect(getCompetitorBySlug(slug)?.slug).toBe(slug);
     }
     expect(getCompetitorBySlug('missing-competitor')).toBeUndefined();
+    for (const slug of ['arcads', 'argil', 'higgsfield', 'postiz'] as const) {
+      const competitor = getCompetitorBySlug(slug);
+      expect(competitor?.slug).toBe(slug);
+      expect(competitor?.name.length).toBeGreaterThan(0);
+      expect(competitor?.comparisonTable.length).toBeGreaterThan(0);
+    }
 
     for (const slug of getAllIntegrationSlugs()) {
       expect(getIntegrationBySlug(slug)?.slug).toBe(slug);

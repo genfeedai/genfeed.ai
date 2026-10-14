@@ -324,6 +324,23 @@ export function ContentPreviewCard({
       {action.knowledgeReceipts?.length ? (
         <KnowledgeReceiptList receipts={action.knowledgeReceipts} />
       ) : null}
+      {action.brandedReceipt ? (
+        <p className="text-xs text-muted-foreground">
+          {translate(
+            action.brandedReceipt.state === 'ready'
+              ? 'receiptReady'
+              : 'receiptNeedsReview',
+          )}{' '}
+          <a
+            className="font-medium text-foreground underline underline-offset-2"
+            href={`${scopedHref('/settings/agent/receipts')}?receiptId=${encodeURIComponent(action.brandedReceipt.id)}`}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {translate('viewReceipt')}
+          </a>
+        </p>
+      ) : null}
       {resolvedImages && resolvedImages.length > 0 && (
         <AgentMediaArtifactPreview
           assets={resolvedImages.map((url, index) => ({
