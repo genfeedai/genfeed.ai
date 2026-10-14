@@ -31,3 +31,6 @@ a148c21c6aa16eae60af9ba885fff060edbe97b5:apps/app/app/(protected)/[orgSlug]/~/co
 # PR #4097 test-only opaque referral fixture. Generator-valid code, not a secret.
 876a302218851899416d3393f705ba2a244ca4c8:apps/app/app/(onboarding)/onboarding/post-signup/page.behavior.test.tsx:generic-api-key:409
 876a302218851899416d3393f705ba2a244ca4c8:apps/app/app/(onboarding)/onboarding/post-signup/page.behavior.test.tsx:generic-api-key:431
+
+# Studio lens catalog slug. A focal-length id, not a credential.
+7e523cbfdb05cf261320b6c45cf68aa66a78a740:apps/server/api/src/seeds/studio-element-catalog.ts:generic-api-key:441
