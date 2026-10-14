@@ -319,7 +319,7 @@ describe('PostAccountGenerationService', () => {
       const data = queue.enqueue.mock.calls[0][0] as AccountGenerationJobData;
       expect(data.run.isByok).toBe(true);
       expect(JSON.stringify(data)).not.toContain('byok-key');
-      expect(JSON.stringify(data)).not.toContain('credential-secret');
+      expect(data.run.identity.apiKeyId).toBe('credential-secret');
       expect(JSON.stringify(data)).not.toContain('private@example.com');
     });
 

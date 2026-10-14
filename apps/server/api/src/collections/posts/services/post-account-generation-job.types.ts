@@ -39,6 +39,7 @@ export function queuedAccountGenerationRun(
       organizationId: run.identity.organizationId,
       userId: run.identity.userId,
       isApiKey: run.identity.isApiKey,
+      apiKeyId: run.identity.apiKeyId,
       scopes: run.identity.scopes,
     },
     isByok: run.funding.apiKey !== undefined,

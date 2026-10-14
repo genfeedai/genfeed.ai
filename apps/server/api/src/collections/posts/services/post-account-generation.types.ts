@@ -12,7 +12,7 @@ export interface PostGenerationUpdateFields {
 
 export type AccountGenerationIdentity = Pick<
   AuthenticatedUser,
-  'brandId' | 'organizationId' | 'userId' | 'isApiKey' | 'scopes'
+  'brandId' | 'organizationId' | 'userId' | 'isApiKey' | 'apiKeyId' | 'scopes'
 >;
 
 /** Who pays for and owns a run's credit holds. */
