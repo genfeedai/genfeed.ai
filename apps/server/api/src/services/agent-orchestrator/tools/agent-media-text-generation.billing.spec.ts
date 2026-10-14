@@ -67,6 +67,22 @@ function createService(options: { hasCredits?: boolean } = {}) {
       },
     }),
   };
+  const contentContext = {
+    getSocialGenerationContext: vi
+      .fn()
+      .mockResolvedValue(['Pattern formula', 'Historical winners']),
+  };
+  const knowledgeSelection = {
+    resolveBrandedSourceIds: vi
+      .fn()
+      .mockImplementation(
+        async (
+          _org: string,
+          _brand: string,
+          selection: { sourceIds?: string[] } | undefined,
+        ) => selection?.sourceIds,
+      ),
+  };
   const service = new AgentMediaTextGenerationService(
     {} as never,
     brandedContentActions as never,
@@ -76,12 +92,16 @@ function createService(options: { hasCredits?: boolean } = {}) {
     membersService as never,
     credits as never,
     brandedTextActions as never,
+    contentContext as never,
+    knowledgeSelection as never,
   );
   return {
     brandedContentActions,
     brandedTextActions,
     credits,
     generationGateway,
+    contentContext,
+    knowledgeSelection,
     service,
   };
 }
@@ -115,6 +135,86 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
       expect.anything(),
       { brandId: 'brand-1' },
     );
+  });
+
+  it('passes historical pattern and performer observations through the same single branded dispatch', async () => {
+    const { service, brandedContentActions, contentContext } = createService();
+    await service.generateContent(
+      {
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+        additionalContext: ['User context'],
+      },
+      headless,
+    );
+    expect(contentContext.getSocialGenerationContext).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+      }),
+    );
+    expect(brandedContentActions.generateSocial).toHaveBeenCalledOnce();
+    expect(brandedContentActions.generateSocial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        additionalContext: [
+          'User context',
+          'Pattern formula',
+          'Historical winners',
+        ],
+      }),
+    );
+  });
+  it('grounds purpose selections with filtered source IDs and excludes unfiltered spaces', async () => {
+    const { service, brandedContentActions, knowledgeSelection } =
+      createService();
+    knowledgeSelection.resolveBrandedSourceIds.mockResolvedValueOnce([
+      'purpose-source',
+    ]);
+    await service.generateContent(
+      {
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+        knowledgePurposes: ['RESEARCH'],
+      },
+      {
+        ...headless,
+        knowledgeSelection: {
+          spaceIds: ['selected-space'],
+          purposes: ['RESEARCH'],
+        },
+      } as never,
+    );
+    expect(brandedContentActions.generateSocial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        knowledgeSourceIds: ['purpose-source'],
+        knowledgeSpaceIds: [],
+      }),
+    );
+  });
+  it('stops an empty purpose selection without dispatch or charge', async () => {
+    const { service, brandedContentActions, knowledgeSelection, credits } =
+      createService();
+    knowledgeSelection.resolveBrandedSourceIds.mockResolvedValueOnce([]);
+    const result = await service.generateContent(
+      {
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+        knowledgePurposes: ['RESEARCH'],
+      },
+      headless,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      creditsUsed: 0,
+      data: { code: 'knowledge_selection_empty' },
+    });
+    expect(brandedContentActions.generateSocial).not.toHaveBeenCalled();
+    expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
 
   it('refuses social generation without credits and charges nothing', async () => {

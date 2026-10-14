@@ -204,6 +204,27 @@ describe('active cadence workflow execution', () => {
       'organization',
     );
   });
+  it('refuses a missing receipt-bound draft while preserving paid usage', async () => {
+    const s = setup();
+    s.posts.patchOneWhere.mockResolvedValue(null);
+    s.autopilot.executeQueuedRun.mockImplementation(
+      async ({ draftGenerator }) => draftGenerator(s.input),
+    );
+    await expect(s.service.tryExecute(state)).rejects.toThrow(
+      'receipt-bound cadence draft',
+    );
+    expect(s.posts.create).not.toHaveBeenCalled();
+    expect(s.strategies.recordRun).toHaveBeenCalledWith(
+      'strategy',
+      expect.objectContaining({
+        contentGenerated: 0,
+        creditsUsed: GENERATE_CONTENT_TEXT_CREDITS,
+        status: AgentStrategyRunStatus.FAILED,
+      }),
+      'organization',
+    );
+  });
+
   it('retains paid usage when draft persistence fails and aborts the run', async () => {
     const s = setup();
     s.posts.patchOneWhere.mockRejectedValue(new Error('Persistence failed'));

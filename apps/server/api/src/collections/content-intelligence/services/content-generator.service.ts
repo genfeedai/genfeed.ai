@@ -388,6 +388,25 @@ export class ContentGeneratorService implements OnModuleInit {
     );
   }
 
+  async getSocialGenerationContext(
+    organizationId: string,
+    dto: GenerateContentDto,
+  ): Promise<string[]> {
+    const [patterns, performance] = await Promise.all([
+      this.patternStoreService.findByOrganization(organizationId, {
+        platform: dto.platform,
+        limit: 3,
+      }),
+      this.buildTopPerformerSystemPrompt(organizationId, dto),
+    ]);
+    const observations = patterns.map(
+      (pattern) =>
+        `Historical content pattern: ${SecurityUtil.sanitizePromptInput(pattern.extractedFormula, 1000)}`,
+    );
+    if (performance) observations.push(performance);
+    return observations;
+  }
+
   async generateContentWorkflow(
     userId: string | undefined,
     organizationId: string,

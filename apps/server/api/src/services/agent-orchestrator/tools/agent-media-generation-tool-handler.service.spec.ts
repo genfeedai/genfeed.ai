@@ -60,6 +60,18 @@ function createHandler() {
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       textGenerationCredits as never,
       {} as never,
+      { getSocialGenerationContext: vi.fn().mockResolvedValue([]) } as never,
+      {
+        resolveBrandedSourceIds: vi
+          .fn()
+          .mockImplementation(
+            async (
+              _org: string,
+              _brand: string,
+              selection: { sourceIds?: string[] } | undefined,
+            ) => selection?.sourceIds,
+          ),
+      } as never,
     ),
     assetGeneration,
     new AgentMediaTurboRunService(
