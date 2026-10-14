@@ -4,6 +4,7 @@
  * Combines the curated inputs into one list of registry rows:
  * - media generation keys from MODEL_OUTPUT_CAPABILITIES (image/video/voice/…)
  * - curated media defaults (label/cost/isDefault) from SELF_HOSTED_MODELS
+ * - product-text fallbacks that are not agent-chat models
  * - agent chat LLMs from AGENT_CHAT_MODELS (category TEXT)
  * - one legacy row per retired chat key, so a stored binding always resolves to
  *   a registry row instead of falling off the catalogue
@@ -12,18 +13,20 @@
  * start from this list; provider discovery adds drafts on top. These constants
  * are seed *input* only — never a parallel runtime allowlist.
  */
-import type { QualityTier } from '..';
 import {
   CostTier,
   ModelCategory,
   ModelLifecycle,
   ModelProvider,
+  PricingType,
+  QualityTier,
   SpeedTier,
 } from '..';
 import {
   AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
+  calculateAgentRoundCredits,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   getAgentChatModel,
   HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
@@ -332,6 +335,55 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
 }
 
 /**
+ * Gemini 3.8 Flash list price on OpenRouter (Google paid tier), read
+ * 2026-10-14. Prompt $0.75 / completion $3.75 per 1M through 2026-12-31;
+ * paid rates double on 2027-01-01. `cost` is one agent-round hold at the
+ * 1.7 chat margin (`calculateAgentRoundCredits`), not a per-token bill.
+ * The token columns stay USD per million for readers. Post enhancement
+ * quotes the flat `cost` — marking this `per-token` would treat those USD
+ * figures as credits per million and hold 1 credit.
+ */
+const PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING = {
+  completionPerMillion: 3.75,
+  promptPerMillion: 0.75,
+} as const;
+
+/**
+ * Product-text fallbacks that `MODEL_OUTPUT_CAPABILITIES` also lists.
+ *
+ * Applied after the media pass so they replace the inactive cost-0 row, and
+ * before agent chat so a real agent row of the same key still wins. They stay
+ * out of the agent picker (no `agent-chat` capability), out of public model
+ * lists, and off the category default.
+ */
+function buildProductTextCatalogEntries(): ModelCatalogSeedEntry[] {
+  const pricing = PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING;
+
+  return [
+    {
+      category: ModelCategory.TEXT,
+      cost: calculateAgentRoundCredits(pricing),
+      costTier: CostTier.MEDIUM,
+      description:
+        'Gemini 3.8 Flash — seed fallback for drafts and prompt enhancement when no Admin default text model is set. Not offered in the agent chat picker.',
+      inputCostPerMillionTokens: pricing.promptPerMillion,
+      isActive: true,
+      isDefault: false,
+      isHighlighted: false,
+      isPublic: false,
+      key: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+      label: 'Gemini 3.8 Flash',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens: pricing.completionPerMillion,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.OPENROUTER,
+      qualityTier: QualityTier.HIGH,
+      speedTier: SpeedTier.FAST,
+    },
+  ];
+}
+
+/**
  * Brand visual analysis models (#6727) as TEXT registry rows tagged
  * `brand-ocr` / `brand-detection`. They are platform tooling an operator picks
  * in Admin → Platform settings: never public, never a category default and
@@ -415,6 +467,9 @@ export const UNIFIED_MODEL_CATALOG: readonly ModelCatalogSeedEntry[] = (() => {
   const liveAgentKeys = new Set<string>();
 
   for (const entry of buildMediaCatalogEntries()) {
+    byKey.set(entry.key, entry);
+  }
+  for (const entry of buildProductTextCatalogEntries()) {
     byKey.set(entry.key, entry);
   }
   for (const entry of buildAgentCatalogEntries()) {
