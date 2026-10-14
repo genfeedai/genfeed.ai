@@ -107,6 +107,31 @@ describe('settleReservationAtDuration', () => {
     );
   });
 
+  it('caps the overrun at twice the hold and reports the excess', async () => {
+    const logger = { error: vi.fn(), warn: vi.fn() };
+
+    // 60 s costs 770 credits; the render may charge at most 2 x 154 = 308.
+    await expect(
+      settleReservationAtDuration(
+        { credits: credits as never, logger: logger as never },
+        { ...input, actualSeconds: 60 },
+      ),
+    ).resolves.toEqual({ settledCredits: HELD, topUpCredits: HELD });
+
+    expect(credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      HELD,
+      'Remix video (duration top-up)',
+      ActivitySource.VIDEO_GENERATION,
+      expect.any(Object),
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('per-render charge cap'),
+      expect.objectContaining({ forgoneCredits: 462 }),
+    );
+  });
+
   it('keeps the amount a retry already settled instead of re-pricing it', async () => {
     credits.findReservationForWorkload.mockResolvedValue(
       reservation({
