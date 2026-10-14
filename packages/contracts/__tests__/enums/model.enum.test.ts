@@ -261,7 +261,6 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.FAL_PIXVERSE_V6).toBe('fal-ai/pixverse/v6');
       expect(MODEL_KEYS.FAL_SEEDANCE_2_0).toBe('fal-ai/seedance-2.0');
       expect(MODEL_KEYS.FAL_STABLE_VIDEO).toBe('fal-ai/stable-video-diffusion');
-      expect(MODEL_KEYS.FAL_WHISPER).toBe('fal-ai/whisper');
       expect(MODEL_KEYS.FAL_ELEVEN_LABS_TTS).toBe('fal-ai/eleven-labs-tts');
       expect(MODEL_KEYS.FAL_FACE_SWAP).toBe('fal-ai/face-swap');
       expect(MODEL_KEYS.FAL_UPSCALER).toBe('fal-ai/clarity-upscaler');

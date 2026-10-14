@@ -109,6 +109,50 @@ describe('HeygenService', () => {
     },
   );
 
+  it('loads HeyGen Voice speech voices from their own endpoint with cancellation', async () => {
+    const voices = [
+      {
+        voiceId: 'clone-1',
+        name: 'Founder clone',
+        mode: 'instant',
+        language: 'en',
+        ownership: 'private',
+      },
+    ];
+    const abort = new AbortController();
+    mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          attributes: {
+            count: 1,
+            hasPersonalConnection: true,
+            provider: 'heygen',
+            voices,
+          },
+        },
+      },
+    });
+
+    await expect(service.fetchSpeechVoices(abort.signal)).resolves.toEqual({
+      hasPersonalConnection: true,
+      voices,
+    });
+    expect(mockGet).toHaveBeenCalledWith(
+      'https://api.test.com/v1/heygen/speech-voices',
+      {
+        handledErrorStatuses: [500, 502, 503, 504],
+        signal: abort.signal,
+      },
+    );
+  });
+
+  it('rethrows speech voice outages so the caller can degrade', async () => {
+    const failure = new Error('HeyGen unavailable');
+    mockGet.mockRejectedValueOnce(failure);
+
+    await expect(service.fetchSpeechVoices()).rejects.toBe(failure);
+  });
+
   it('loads a single ownership-bound page with continuation and cancellation', async () => {
     const page = { avatars: [], ownership: 'private', nextCursor: 'next' };
     const abort = new AbortController();

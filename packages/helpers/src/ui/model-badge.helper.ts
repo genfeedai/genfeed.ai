@@ -26,6 +26,8 @@ const FALLBACK_BADGE_CLASS = 'bg-muted text-muted-foreground border-border';
  */
 const MODEL_PROVIDER_BADGE_CLASSES: Record<ModelProvider, string> = {
   [ModelProvider.CRUN]: FALLBACK_BADGE_CLASS,
+  [ModelProvider.ELEVENLABS]:
+    'bg-foreground/10 text-foreground border-foreground/20',
   [ModelProvider.FAL]:
     '[background-color:color-mix(in_srgb,#06B6D4_15%,transparent)] text-[#06B6D4] [border-color:color-mix(in_srgb,#06B6D4_30%,transparent)]',
   [ModelProvider.GENFEED_AI]:
@@ -53,6 +55,7 @@ const MODEL_PROVIDER_BADGE_CLASSES: Record<ModelProvider, string> = {
 
 const MODEL_PROVIDER_LABELS: Record<ModelProvider, string> = {
   [ModelProvider.CRUN]: 'Crun',
+  [ModelProvider.ELEVENLABS]: 'ElevenLabs',
   [ModelProvider.FAL]: 'fal.ai',
   [ModelProvider.GENFEED_AI]: 'Genfeed',
   [ModelProvider.HEYGEN]: 'HeyGen',

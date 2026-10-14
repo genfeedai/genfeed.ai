@@ -14,6 +14,7 @@ import type {
   HeyGenAvatarCatalogPage,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
+  HeyGenSpeechVoiceCatalog,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -27,6 +28,14 @@ type HeygenVoicesResponse = ProviderCatalogResponse<
   'voices',
   {
     voices: HeyGenCatalogVoice[];
+    provider: 'heygen';
+    count: number;
+  }
+>;
+
+type HeygenSpeechVoicesResponse = ProviderCatalogResponse<
+  'speech-voices',
+  HeyGenSpeechVoiceCatalog & {
     provider: 'heygen';
     count: number;
   }
@@ -85,6 +94,41 @@ export class HeyGenController {
       );
       throwProviderCatalogError(
         'Failed to fetch HeyGen voices',
+        error,
+        HEYGEN_CATALOG_ERROR_OPTIONS,
+      );
+    }
+  }
+
+  /** HeyGen Voice (text-to-speech) voices; `voices` is the avatar video catalog. */
+  @Get('speech-voices')
+  async getSpeechVoices(
+    @CurrentUser() user: User,
+  ): Promise<HeygenSpeechVoicesResponse> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    this.loggerService.log(url);
+
+    try {
+      const catalog = await this.heygenService.getSpeechVoices(
+        user.organizationId,
+      );
+
+      return serializeProviderCatalog({
+        attributes: {
+          ...catalog,
+          count: catalog.voices.length,
+          provider: 'heygen',
+        },
+        type: 'speech-voices',
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
+      throwProviderCatalogError(
+        'Failed to fetch HeyGen Voice voices',
         error,
         HEYGEN_CATALOG_ERROR_OPTIONS,
       );

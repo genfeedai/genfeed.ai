@@ -623,6 +623,48 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:33.770Z',
   },
   {
+    endpoint: 'elevenlabs/eleven_flash_v2_5',
+    provider: 'elevenlabs',
+    rates: [
+      {
+        component: 'output',
+        unit: 'character',
+        unitPriceUsd: 0.00004,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://elevenlabs.io/pricing/api',
+    verifiedAt: '2026-10-14T09:00:00.000Z',
+  },
+  {
+    endpoint: 'elevenlabs/eleven_multilingual_v2',
+    provider: 'elevenlabs',
+    rates: [
+      {
+        component: 'output',
+        unit: 'character',
+        unitPriceUsd: 0.00008,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://elevenlabs.io/pricing/api',
+    verifiedAt: '2026-10-14T09:00:00.000Z',
+  },
+  {
+    endpoint: 'elevenlabs/eleven_v4',
+    provider: 'elevenlabs',
+    rates: [
+      {
+        component: 'output',
+        unit: 'character',
+        unitPriceUsd: 0.00008,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://elevenlabs.io/pricing/api',
+    verifiedAt: '2026-10-14T09:00:00.000Z',
+  },
+  {
     endpoint: 'fal-ai/elevenlabs/music',
     provider: 'fal',
     rates: [

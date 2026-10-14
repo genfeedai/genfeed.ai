@@ -1,11 +1,15 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioIdentityFieldsProps } from '@genfeedai/props/studio/studio-playground.props';
 import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
 import { useStudioPlaygroundIdentities } from '@pages/studio/playground/hooks/useStudioPlaygroundIdentities';
 import type { StudioPlaygroundType } from '@pages/studio/playground/types';
+import {
+  isStudioVoiceSelectionValid,
+  resolveSpeakingVoiceProvider,
+} from '@pages/studio/playground/utils/studio-voice-selection';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -18,7 +22,12 @@ import {
 } from '@ui/primitives/popover';
 import { Mic, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useState } from 'react';
+import { type ReactElement, useEffect, useState } from 'react';
+
+const HEYGEN_VOICE_NOT_CONNECTED_MESSAGE =
+  'No HeyGen Voice voices available. Connect your HeyGen account in Settings → Integrations to use your own voice clones.';
+const HEYGEN_VOICE_NO_CLONES_MESSAGE =
+  'No active HeyGen Voice clones yet. Create one in HeyGen, then reopen this picker.';
 
 function describeIdentitySettings(
   type: StudioPlaygroundType,
@@ -55,10 +64,13 @@ export default function StudioIdentityFields({
     isLoadingIdentities,
     retry,
     voiceOptions,
+    hasHeyGenPersonalConnection,
+    hasHeyGenSpeechVoices,
     hasMoreAvatars,
+    isHeyGenSpeechLoaded,
     loadMoreAvatars,
     isLoadingMoreAvatars,
-  } = useStudioPlaygroundIdentities();
+  } = useStudioPlaygroundIdentities({ modelKey: settings.modelKey, type });
 
   const avatarValue = settings.avatarRef
     ? heyGenAvatarValue(settings.avatarRef)
@@ -71,6 +83,29 @@ export default function StudioIdentityFields({
       (!settings.voiceRef?.ownership ||
         option.voiceRef?.ownership === settings.voiceRef.ownership),
   );
+  const isHeyGenVoiceChosen =
+    type === 'voice' &&
+    resolveSpeakingVoiceProvider(settings.modelKey) === VoiceProvider.HEYGEN;
+  const voiceUnavailableMessage =
+    isHeyGenVoiceChosen && isHeyGenSpeechLoaded && !hasHeyGenSpeechVoices
+      ? hasHeyGenPersonalConnection
+        ? HEYGEN_VOICE_NO_CLONES_MESSAGE
+        : HEYGEN_VOICE_NOT_CONNECTED_MESSAGE
+      : null;
+  // A saved Voice pick the chosen model (or HeyGen's current catalogue) can no
+  // longer speak is cleared so the user re-picks instead of sending a mismatch.
+  const isSavedVoiceStale =
+    type === 'voice' &&
+    Boolean(settings.voiceId) &&
+    (!isStudioVoiceSelectionValid(settings) ||
+      (settings.voiceRef?.provider === VoiceProvider.HEYGEN &&
+        isHeyGenSpeechLoaded &&
+        !selectedVoiceOption));
+  useEffect(() => {
+    if (isSavedVoiceStale) {
+      onChange({ voiceRef: undefined, voiceId: undefined });
+    }
+  }, [isSavedVoiceStale, onChange]);
   const avatarLabel = avatarOptions.find(
     (option) => option.value === avatarValue,
   )?.label;
@@ -323,10 +358,16 @@ export default function StudioIdentityFields({
               </p>
             ) : null}
             {!voiceOptions.length ? (
-              <p className="text-xs text-muted-foreground">
-                {translate(
-                  isLoadingIdentities ? 'identityLoading' : 'identityNoVoices',
-                )}
+              <p
+                className="text-xs text-muted-foreground"
+                role={voiceUnavailableMessage ? 'status' : undefined}
+              >
+                {voiceUnavailableMessage ??
+                  translate(
+                    isLoadingIdentities
+                      ? 'identityLoading'
+                      : 'identityNoVoices',
+                  )}
               </p>
             ) : null}
           </section>

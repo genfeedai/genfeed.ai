@@ -3,19 +3,33 @@ import { VoiceCreditsService } from '@api/collections/voices/services/voice-cred
 import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { RouterService } from '@api/services/router/router.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import {
   ActivityKey,
+  FileInputType,
   IngredientCategory,
   IngredientStatus,
+  MetadataExtension,
+  MODEL_KEYS,
+  ModelCategory,
+  RouterPriority,
+  VoiceProvider,
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { compileActionContract } from '@genfeedai/workflows/engine';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 describe('VoiceGenerationService', () => {
   const ingredientId = testId('ingredient');
@@ -28,12 +42,36 @@ describe('VoiceGenerationService', () => {
     organizationId: organizationId,
     userId,
   } as User;
+  const elevenLabsModel = MODEL_KEYS.ELEVENLABS_V4;
+  const platformConnection = {
+    apiKey: 'platform-key',
+    binding: { kind: 'platform', organizationId, provider: 'heygen' },
+  };
+  const byokConnection = {
+    apiKey: 'workspace-key',
+    binding: {
+      credentialVersionId: 'cred-1',
+      kind: 'byok',
+      organizationId,
+      provider: 'heygen',
+    },
+  };
   let elevenLabs: { generateAndUploadAudio: ReturnType<typeof vi.fn> };
-  let logger: { error: ReturnType<typeof vi.fn> };
+  let heygen: {
+    generateSpeech: ReturnType<typeof vi.fn>;
+    resolveSpeechConnection: ReturnType<typeof vi.fn>;
+  };
+  let files: { uploadToS3: ReturnType<typeof vi.fn> };
+  let router: { selectModel: ReturnType<typeof vi.fn> };
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   let shared: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let credits: {
     assertOrganizationCanAfford: ReturnType<typeof vi.fn>;
-    settleBackgroundGenerationCredits: ReturnType<typeof vi.fn>;
+    quoteSpeech: ReturnType<typeof vi.fn>;
+    settleSpeechCredits: ReturnType<typeof vi.fn>;
   };
   let voices: {
     findOne: ReturnType<typeof vi.fn>;
@@ -52,6 +90,50 @@ describe('VoiceGenerationService', () => {
   let notifications: { publishBackgroundTaskUpdate: ReturnType<typeof vi.fn> };
   let service: VoiceGenerationService;
 
+  function build(skillRuntime?: unknown): VoiceGenerationService {
+    return new VoiceGenerationService(
+      elevenLabs as unknown as ElevenLabsService,
+      heygen as unknown as HeyGenService,
+      files as unknown as FilesClientService,
+      router as unknown as RouterService,
+      logger as unknown as LoggerService,
+      shared as unknown as SharedService,
+      credits as unknown as VoiceCreditsService,
+      voices as unknown as VoicesService,
+      workflowRunner as never,
+      activities as never,
+      activities as never,
+      notifications as never,
+      skillRuntime as never,
+    );
+  }
+
+  function queued(overrides: Record<string, unknown> = {}) {
+    return {
+      ingredientId,
+      model: elevenLabsModel,
+      organizationId,
+      text: 'Hello',
+      userId,
+      voiceId: 'voice-1',
+      ...overrides,
+    };
+  }
+
+  function processingThenGenerated(): void {
+    voices.findOne
+      .mockResolvedValueOnce({
+        id: ingredientId,
+        status: IngredientStatus.PROCESSING,
+      })
+      .mockResolvedValue({
+        cdnUrl: 'https://example.com/generated.mp3',
+        duration: 90,
+        id: ingredientId,
+        status: IngredientStatus.GENERATED,
+      });
+  }
+
   beforeEach(() => {
     elevenLabs = {
       generateAndUploadAudio: vi.fn().mockResolvedValue({
@@ -63,7 +145,27 @@ describe('VoiceGenerationService', () => {
         },
       }),
     };
-    logger = { error: vi.fn() };
+    heygen = {
+      generateSpeech: vi.fn().mockResolvedValue({
+        audioUrl: 'https://files.heygen.ai/tts/voice.wav',
+        characters: 5,
+        duration: 1.5,
+      }),
+      resolveSpeechConnection: vi.fn().mockResolvedValue(platformConnection),
+    };
+    files = {
+      uploadToS3: vi.fn().mockResolvedValue({
+        duration: 1.4,
+        publicUrl: 'https://cdn.example.com/voice.wav',
+        s3Key: 'stored-voice.wav',
+      }),
+    };
+    router = {
+      selectModel: vi
+        .fn()
+        .mockResolvedValue({ selectedModel: elevenLabsModel }),
+    };
+    logger = { error: vi.fn(), warn: vi.fn() };
     shared = {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
@@ -71,7 +173,12 @@ describe('VoiceGenerationService', () => {
     };
     credits = {
       assertOrganizationCanAfford: vi.fn(),
-      settleBackgroundGenerationCredits: vi.fn(),
+      quoteSpeech: vi.fn().mockResolvedValue({
+        costSource: 'reviewed-provider',
+        credits: 2,
+        rateVersion: 'rate-v1',
+      }),
+      settleSpeechCredits: vi.fn(),
     };
     voices = {
       findOne: vi.fn().mockResolvedValue({
@@ -90,17 +197,7 @@ describe('VoiceGenerationService', () => {
       update: vi.fn().mockResolvedValue({ id: 'voice-activity' }),
     };
     notifications = { publishBackgroundTaskUpdate: vi.fn() };
-    service = new VoiceGenerationService(
-      elevenLabs as unknown as ElevenLabsService,
-      logger as unknown as LoggerService,
-      shared as unknown as SharedService,
-      credits as unknown as VoiceCreditsService,
-      voices as unknown as VoicesService,
-      workflowRunner as never,
-      activities as never,
-      activities as never,
-      notifications as never,
-    );
+    service = build();
   });
 
   it('persists a scoped voice activity and emits its durable result ID', async () => {
@@ -126,13 +223,7 @@ describe('VoiceGenerationService', () => {
       cdnUrl: 'https://example.com/voice.mp3',
       status: IngredientStatus.GENERATED,
     });
-    await service.executeQueuedGeneration({
-      ingredientId,
-      organizationId,
-      userId,
-      text: 'Hello',
-      voiceId: 'voice-1',
-    });
+    await service.executeQueuedGeneration(queued());
     expect(activities.update).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'voice-activity' }),
       expect.objectContaining({
@@ -151,13 +242,7 @@ describe('VoiceGenerationService', () => {
   });
 
   it('registers the queued voice executor during module initialization', async () => {
-    const params = {
-      ingredientId,
-      organizationId,
-      text: 'Hello',
-      userId,
-      voiceId: 'voice-1',
-    };
+    const params = queued();
     const result = {
       id: ingredientId,
       status: IngredientStatus.GENERATED,
@@ -193,7 +278,187 @@ describe('VoiceGenerationService', () => {
     },
   );
 
-  it('reserves credits, persists the placeholder, and enqueues the workflow', async () => {
+  describe('model selection at admission', () => {
+    beforeEach(() => {
+      voices.findOne.mockResolvedValue({
+        id: ingredientId,
+        status: IngredientStatus.PROCESSING,
+      });
+    });
+
+    it('routes Auto among the ElevenLabs speech models for a catalog voice', async () => {
+      await service.generate(user, {
+        autoSelectModel: true,
+        prioritize: RouterPriority.QUALITY,
+        text: 'Hello',
+        voiceId: 'voice-1',
+      });
+
+      expect(router.selectModel).toHaveBeenCalledWith({
+        category: ModelCategory.VOICE,
+        eligibleModelKeys: [
+          MODEL_KEYS.ELEVENLABS_V4,
+          MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
+          MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+        ],
+        organizationId,
+        prioritize: RouterPriority.QUALITY,
+        prompt: 'Hello',
+      });
+    });
+
+    it('routes Auto to HeyGen Voice only for a HeyGen Voice voice', async () => {
+      router.selectModel.mockResolvedValue({
+        selectedModel: MODEL_KEYS.HEYGEN_VOICE,
+      });
+
+      await service.generate(user, {
+        text: 'Hello',
+        voiceId: 'heygen-voice',
+        voiceProvider: VoiceProvider.HEYGEN,
+      });
+
+      expect(router.selectModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eligibleModelKeys: [MODEL_KEYS.HEYGEN_VOICE],
+          prioritize: RouterPriority.BALANCED,
+        }),
+      );
+      expect(shared.createMediaDocuments).toHaveBeenCalledWith(
+        user,
+        expect.objectContaining({
+          extension: MetadataExtension.WAV,
+          model: MODEL_KEYS.HEYGEN_VOICE,
+        }),
+      );
+    });
+
+    it('validates an explicit model through the router as the only candidate', async () => {
+      router.selectModel.mockResolvedValue({
+        selectedModel: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+      });
+
+      await service.generate(user, {
+        model: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+        text: 'Hello',
+        voiceId: 'voice-1',
+        voiceProvider: VoiceProvider.ELEVENLABS,
+      });
+
+      expect(router.selectModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eligibleModelKeys: [MODEL_KEYS.ELEVENLABS_FLASH_V2_5],
+        }),
+      );
+      expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputValues: expect.objectContaining({
+            model: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+          }),
+        }),
+        expect.anything(),
+      );
+    });
+
+    it.each([
+      [
+        MODEL_KEYS.HEYGEN_VOICE,
+        VoiceProvider.ELEVENLABS,
+        'cannot speak this voice',
+      ],
+      [MODEL_KEYS.HEYGEN_AVATAR, VoiceProvider.HEYGEN, 'is not a speech model'],
+    ])(
+      'refuses %s for a %s voice before routing or spending',
+      async (model, voiceProvider, message) => {
+        await expect(
+          service.generate(user, {
+            model,
+            text: 'Hello',
+            voiceId: 'voice-1',
+            voiceProvider,
+          }),
+        ).rejects.toThrow(message);
+        expect(router.selectModel).not.toHaveBeenCalled();
+        expect(shared.createMediaDocuments).not.toHaveBeenCalled();
+      },
+    );
+
+    it('refuses text over the chosen model limit before spending', async () => {
+      router.selectModel.mockResolvedValue({
+        selectedModel: MODEL_KEYS.HEYGEN_VOICE,
+      });
+
+      await expect(
+        service.generate(user, {
+          text: 'a'.repeat(5_001),
+          voiceId: 'heygen-voice',
+          voiceProvider: VoiceProvider.HEYGEN,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(credits.quoteSpeech).not.toHaveBeenCalled();
+      expect(shared.createMediaDocuments).not.toHaveBeenCalled();
+    });
+
+    it('holds the quoted credits for platform-funded speech', async () => {
+      credits.quoteSpeech.mockResolvedValue({
+        costSource: 'reviewed-provider',
+        credits: 27,
+        rateVersion: 'rate-v1',
+      });
+      // Five code points: the emoji is one character, not two UTF-16 units.
+      const text = 'Hi 👋!';
+
+      await service.generate(user, { text, voiceId: 'voice-1' });
+
+      expect(credits.quoteSpeech).toHaveBeenCalledWith({
+        characters: 5,
+        modelKey: elevenLabsModel,
+        organizationId,
+        provider: 'elevenlabs',
+      });
+      expect(credits.assertOrganizationCanAfford).toHaveBeenCalledWith(
+        organizationId,
+        27,
+      );
+    });
+
+    it('does not hold platform credits for a workspace HeyGen key', async () => {
+      router.selectModel.mockResolvedValue({
+        selectedModel: MODEL_KEYS.HEYGEN_VOICE,
+      });
+      heygen.resolveSpeechConnection.mockResolvedValue(byokConnection);
+
+      await service.generate(user, {
+        text: 'Hello',
+        voiceId: 'my-clone',
+        voiceProvider: VoiceProvider.HEYGEN,
+      });
+
+      expect(heygen.resolveSpeechConnection).toHaveBeenCalledWith(
+        organizationId,
+        'my-clone',
+      );
+      // Still quoted: an unpriced row is refused even when nothing is charged.
+      expect(credits.quoteSpeech).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: 'heygen' }),
+      );
+      expect(credits.assertOrganizationCanAfford).not.toHaveBeenCalled();
+    });
+
+    it('refuses before creating anything when the speech quote is unavailable', async () => {
+      credits.quoteSpeech.mockRejectedValue(
+        new ServiceUnavailableException('Speech pricing is unavailable'),
+      );
+
+      await expect(
+        service.generate(user, { text: 'Hello', voiceId: 'voice-1' }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(shared.createMediaDocuments).not.toHaveBeenCalled();
+      expect(workflowRunner.enqueueWorkflow).not.toHaveBeenCalled();
+    });
+  });
+
+  it('persists the placeholder with its model and enqueues the workflow', async () => {
     voices.findOne.mockResolvedValue({
       id: ingredientId,
       status: IngredientStatus.PROCESSING,
@@ -204,15 +469,13 @@ describe('VoiceGenerationService', () => {
       voiceId: 'voice-1',
     });
 
-    expect(credits.assertOrganizationCanAfford).toHaveBeenCalledWith(
-      organizationId,
-      1,
-    );
     expect(shared.createMediaDocuments).toHaveBeenCalledWith(
       user,
       expect.objectContaining({
         brandId,
         category: IngredientCategory.VOICE,
+        extension: MetadataExtension.MP3,
+        model: elevenLabsModel,
         organizationId,
         status: IngredientStatus.PROCESSING,
         voiceSource: 'generated',
@@ -225,6 +488,7 @@ describe('VoiceGenerationService', () => {
         canonicalId: 'voice.generate',
         inputValues: {
           ingredientId,
+          model: elevenLabsModel,
           organizationId,
           text: 'Hello',
           userId,
@@ -254,18 +518,7 @@ describe('VoiceGenerationService', () => {
         },
       ]),
     };
-    const pinned = new VoiceGenerationService(
-      elevenLabs as unknown as ElevenLabsService,
-      logger as unknown as LoggerService,
-      shared as unknown as SharedService,
-      credits as unknown as VoiceCreditsService,
-      voices as unknown as VoicesService,
-      workflowRunner as never,
-      activities as never,
-      activities as never,
-      notifications as never,
-      skillRuntime as never,
-    );
+    const pinned = build(skillRuntime);
     voices.findOne.mockResolvedValue({
       id: ingredientId,
       status: IngredientStatus.PROCESSING,
@@ -324,9 +577,10 @@ describe('VoiceGenerationService', () => {
     ).not.toThrow();
   });
 
-  it('re-reserves background work for an idempotent source-action retry', async () => {
+  it('re-enqueues an idempotent source-action retry with its accepted model', async () => {
     voices.findOne.mockResolvedValue({
       id: ingredientId,
+      modelUsed: MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
       status: IngredientStatus.PROCESSING,
     });
 
@@ -338,6 +592,7 @@ describe('VoiceGenerationService', () => {
 
     expect(result).toMatchObject({ id: ingredientId });
     expect(shared.createMediaDocuments).not.toHaveBeenCalled();
+    expect(router.selectModel).not.toHaveBeenCalled();
     expect(voices.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
         category: IngredientCategory.VOICE,
@@ -350,6 +605,7 @@ describe('VoiceGenerationService', () => {
       expect.objectContaining({
         inputValues: {
           ingredientId,
+          model: MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
           organizationId,
           text: 'Hello',
           userId,
@@ -362,44 +618,47 @@ describe('VoiceGenerationService', () => {
     );
   });
 
-  it('renders, settles, and returns the generated voice from the queued action', async () => {
-    voices.findOne
-      .mockResolvedValueOnce({
-        id: ingredientId,
-        status: IngredientStatus.PROCESSING,
-      })
-      .mockResolvedValue({
-        cdnUrl: 'https://example.com/generated.mp3',
-        duration: 90,
-        id: ingredientId,
-        status: IngredientStatus.GENERATED,
-      });
+  it('renders ElevenLabs speech with the chosen model and settles the exact quote', async () => {
+    processingThenGenerated();
 
-    const result = await service.executeQueuedGeneration({
-      ingredientId,
+    const result = await service.executeQueuedGeneration(
+      queued({ model: MODEL_KEYS.ELEVENLABS_FLASH_V2_5 }),
+    );
+
+    expect(credits.quoteSpeech).toHaveBeenCalledWith({
+      characters: 5,
+      modelKey: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
       organizationId,
-      text: 'Hello',
-      userId,
-      voiceId: 'voice-1',
+      provider: 'elevenlabs',
     });
-
     expect(elevenLabs.generateAndUploadAudio).toHaveBeenCalledWith(
       'voice-1',
       'Hello',
       ingredientId,
       organizationId,
       userId,
+      undefined,
+      { modelId: 'eleven_flash_v2_5' },
     );
     expect(voices.patchAll).toHaveBeenCalledWith(
       { id: ingredientId, isDeleted: false, organizationId },
       expect.objectContaining({
         duration: 90,
+        providerData: {
+          speechBilling: {
+            billingMode: 'platform',
+            characters: 5,
+            credits: 2,
+            modelKey: MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
+            rateVersion: 'rate-v1',
+          },
+        },
         s3Key: 'ingredients/musics/voice-1',
         status: IngredientStatus.GENERATED,
       }),
     );
-    expect(credits.settleBackgroundGenerationCredits).toHaveBeenCalledWith({
-      durationSeconds: 90,
+    expect(credits.settleSpeechCredits).toHaveBeenCalledWith({
+      credits: 2,
       ingredientId,
       organizationId,
       userId,
@@ -407,19 +666,164 @@ describe('VoiceGenerationService', () => {
     expect(result).toMatchObject({ id: ingredientId });
   });
 
-  it('preserves typed HTTP failures from deferred settlement', async () => {
-    voices.findOne
-      .mockResolvedValueOnce({
+  it('quotes the skill-rewritten text that is actually sent', async () => {
+    const skillRuntime = {
+      applyAuthorizedSkillPrompt: vi
+        .fn()
+        .mockResolvedValue('Hello there, friend'),
+    };
+    const withSkills = build(skillRuntime);
+    processingThenGenerated();
+
+    await withSkills.executeQueuedGeneration(
+      queued({ requestedSkillSlugs: ['narration'] }),
+    );
+
+    expect(credits.quoteSpeech).toHaveBeenCalledWith(
+      expect.objectContaining({ characters: 19 }),
+    );
+    expect(elevenLabs.generateAndUploadAudio).toHaveBeenCalledWith(
+      'voice-1',
+      'Hello there, friend',
+      ingredientId,
+      organizationId,
+      userId,
+      undefined,
+      { modelId: 'eleven_v4' },
+    );
+  });
+
+  describe('HeyGen Voice dispatch', () => {
+    it('speaks on the platform key, stores the WAV durably, and charges platform credits', async () => {
+      processingThenGenerated();
+
+      await service.executeQueuedGeneration(
+        queued({ model: MODEL_KEYS.HEYGEN_VOICE, voiceId: 'public-voice' }),
+      );
+
+      expect(heygen.resolveSpeechConnection).toHaveBeenCalledWith(
+        organizationId,
+        'public-voice',
+      );
+      expect(credits.quoteSpeech).toHaveBeenCalledWith({
+        characters: 5,
+        modelKey: MODEL_KEYS.HEYGEN_VOICE,
+        organizationId,
+        provider: 'heygen',
+      });
+      expect(heygen.generateSpeech).toHaveBeenCalledWith({
+        apiKeyOverride: 'platform-key',
+        organizationId,
+        text: 'Hello',
+        voiceId: 'public-voice',
+      });
+      expect(files.uploadToS3).toHaveBeenCalledWith(
+        `${ingredientId}.wav`,
+        'musics',
+        {
+          type: FileInputType.URL,
+          url: 'https://files.heygen.ai/tts/voice.wav',
+        },
+      );
+      expect(voices.patchAll).toHaveBeenCalledWith(
+        { id: ingredientId, isDeleted: false, organizationId },
+        expect.objectContaining({
+          duration: 1.5,
+          s3Key: 'stored-voice.wav',
+          status: IngredientStatus.GENERATED,
+        }),
+      );
+      expect(credits.settleSpeechCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ credits: 2, ingredientId }),
+      );
+      expect(elevenLabs.generateAndUploadAudio).not.toHaveBeenCalled();
+    });
+
+    it('never debits platform credits when the workspace HeyGen key speaks', async () => {
+      heygen.resolveSpeechConnection.mockResolvedValue(byokConnection);
+      processingThenGenerated();
+
+      await service.executeQueuedGeneration(
+        queued({ model: MODEL_KEYS.HEYGEN_VOICE, voiceId: 'my-clone' }),
+      );
+
+      expect(heygen.generateSpeech).toHaveBeenCalledWith(
+        expect.objectContaining({ apiKeyOverride: 'workspace-key' }),
+      );
+      expect(voices.patchAll).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          providerData: {
+            speechBilling: expect.objectContaining({ billingMode: 'byok' }),
+          },
+        }),
+      );
+      expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
+    });
+
+    it('counts HeyGen characters as Unicode code points on the exact text', async () => {
+      processingThenGenerated();
+
+      await service.executeQueuedGeneration(
+        queued({
+          model: MODEL_KEYS.HEYGEN_VOICE,
+          text: ' 🎙️ ok ',
+          voiceId: 'public-voice',
+        }),
+      );
+
+      // Space, microphone, variation selector, space, o, k, space.
+      expect(credits.quoteSpeech).toHaveBeenCalledWith(
+        expect.objectContaining({ characters: 7 }),
+      );
+      expect(heygen.generateSpeech).toHaveBeenCalledWith(
+        expect.objectContaining({ text: ' 🎙️ ok ' }),
+      );
+    });
+
+    it('refuses to dispatch without a reviewed rate and fails the ingredient', async () => {
+      voices.findOne.mockResolvedValue({
         id: ingredientId,
         status: IngredientStatus.PROCESSING,
-      })
-      .mockResolvedValue({
-        cdnUrl: 'https://example.com/generated.mp3',
-        duration: 90,
-        id: ingredientId,
-        status: IngredientStatus.GENERATED,
       });
-    credits.settleBackgroundGenerationCredits.mockRejectedValue(
+      credits.quoteSpeech.mockRejectedValue(
+        new ServiceUnavailableException('Speech pricing is unavailable'),
+      );
+
+      await expect(
+        service.executeQueuedGeneration(
+          queued({ model: MODEL_KEYS.HEYGEN_VOICE, voiceId: 'public-voice' }),
+        ),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(heygen.generateSpeech).not.toHaveBeenCalled();
+      expect(voices.patchAll).toHaveBeenLastCalledWith(
+        { id: ingredientId, isDeleted: false, organizationId },
+        { status: IngredientStatus.FAILED },
+      );
+      expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
+    });
+
+    it('fails without charging when the audio cannot be stored', async () => {
+      voices.findOne.mockResolvedValue({
+        id: ingredientId,
+        status: IngredientStatus.PROCESSING,
+      });
+      files.uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn/x.wav' });
+
+      await expect(
+        service.executeQueuedGeneration(
+          queued({ model: MODEL_KEYS.HEYGEN_VOICE, voiceId: 'public-voice' }),
+        ),
+      ).rejects.toMatchObject({
+        response: { detail: 'HeyGen Voice audio could not be stored' },
+      });
+      expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
+    });
+  });
+
+  it('preserves typed HTTP failures from deferred settlement', async () => {
+    processingThenGenerated();
+    credits.settleSpeechCredits.mockRejectedValue(
       new HttpException(
         { detail: 'Insufficient credits' },
         HttpStatus.PAYMENT_REQUIRED,
@@ -427,13 +831,7 @@ describe('VoiceGenerationService', () => {
     );
 
     await expect(
-      service.executeQueuedGeneration({
-        ingredientId,
-        organizationId,
-        text: 'Hello',
-        userId,
-        voiceId: 'voice-1',
-      }),
+      service.executeQueuedGeneration(queued()),
     ).rejects.toMatchObject({
       response: { detail: 'Insufficient credits' },
       status: HttpStatus.PAYMENT_REQUIRED,
@@ -456,13 +854,7 @@ describe('VoiceGenerationService', () => {
     );
 
     await expect(
-      service.executeQueuedGeneration({
-        ingredientId,
-        organizationId,
-        text: 'Hello',
-        userId,
-        voiceId: 'voice-1',
-      }),
+      service.executeQueuedGeneration(queued()),
     ).rejects.toMatchObject({
       response: { detail: 'provider unavailable' },
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -471,6 +863,7 @@ describe('VoiceGenerationService', () => {
       { id: ingredientId, isDeleted: false, organizationId },
       { status: IngredientStatus.FAILED },
     );
+    expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
     expect(activities.record).toHaveBeenCalledWith(
       expect.objectContaining({
         key: ActivityKey.VOICE_FAILED,
@@ -481,29 +874,56 @@ describe('VoiceGenerationService', () => {
     );
   });
 
-  it('reconciles a persisted voice before retrying provider work and settles once by asset identity', async () => {
+  it('reconciles a persisted voice before retrying provider work and settles its stored receipt', async () => {
     voices.findOne.mockResolvedValue({
       cdnUrl: 'https://example.com/generated.mp3',
       duration: 90,
       id: ingredientId,
+      providerData: {
+        speechBilling: {
+          billingMode: 'platform',
+          characters: 900,
+          credits: 25,
+          modelKey: elevenLabsModel,
+          rateVersion: 'rate-v1',
+        },
+      },
       status: IngredientStatus.GENERATED,
     });
 
-    const result = await service.executeQueuedGeneration({
-      ingredientId,
-      organizationId,
-      text: 'Hello',
-      userId,
-      voiceId: 'voice-1',
-    });
+    const result = await service.executeQueuedGeneration(queued());
 
     expect(result).toMatchObject({ id: ingredientId });
     expect(elevenLabs.generateAndUploadAudio).not.toHaveBeenCalled();
-    expect(credits.settleBackgroundGenerationCredits).toHaveBeenCalledWith({
-      durationSeconds: 90,
+    expect(credits.quoteSpeech).not.toHaveBeenCalled();
+    expect(credits.settleSpeechCredits).toHaveBeenCalledWith({
+      credits: 25,
       ingredientId,
       organizationId,
       userId,
     });
+  });
+
+  it('does not charge a persisted BYOK voice on replay', async () => {
+    voices.findOne.mockResolvedValue({
+      cdnUrl: 'https://example.com/generated.wav',
+      id: ingredientId,
+      providerData: {
+        speechBilling: {
+          billingMode: 'byok',
+          characters: 5,
+          credits: 2,
+          modelKey: MODEL_KEYS.HEYGEN_VOICE,
+          rateVersion: 'rate-v1',
+        },
+      },
+      status: IngredientStatus.GENERATED,
+    });
+
+    await service.executeQueuedGeneration(
+      queued({ model: MODEL_KEYS.HEYGEN_VOICE }),
+    );
+
+    expect(credits.settleSpeechCredits).not.toHaveBeenCalled();
   });
 });

@@ -216,6 +216,7 @@ export function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDef
       'text',
       'userId',
       'voiceId',
+      'model',
       'brandId',
       'requestedSkillSlugs',
       'pinnedSkills',
@@ -236,6 +237,7 @@ export function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDef
       { key: 'text', label: 'Text', required: true, type: 'string' },
       { key: 'userId', label: 'User', required: true, type: 'string' },
       { key: 'voiceId', label: 'Voice', required: true, type: 'string' },
+      { key: 'model', label: 'Speech model', required: true, type: 'string' },
       { key: 'brandId', label: 'Brand', required: false, type: 'string' },
       {
         key: 'requestedSkillSlugs',
