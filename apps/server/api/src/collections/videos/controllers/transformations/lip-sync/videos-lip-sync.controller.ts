@@ -1,18 +1,18 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { GenerationBillingRequest } from '@api/collections/credits/services/generation-billing.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
+import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -22,7 +22,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
-  ActivitySource,
   ByokProvider,
   categoryToPlural,
   IngredientCategory,
@@ -46,7 +45,6 @@ import {
   Post,
   Req,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -58,6 +56,7 @@ export class VideosLipSyncController {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
+    private readonly avatarBilling: AvatarVideoBillingService,
     private readonly byokService: ByokService,
     private readonly configService: ConfigService,
     private readonly failedGenerationService: FailedGenerationService,
@@ -92,19 +91,10 @@ export class VideosLipSyncController {
   }
 
   @Post('lip-sync')
-  // Fixed 1-credit charge, matching the sibling HeyGen route POST /videos/avatar.
-  // Charged through the standard CreditsGuard (balance gate) + CreditsInterceptor
-  // (deducts on success) path used across the API — replacing the previous
-  // manual inline credit deduction call, which double-tracked the
-  // charge outside the interceptor and diverged from every other credited route.
-  // Using a fixed `amount` (not `modelKey`) also avoids the CreditsGuard model
-  // lookup, so the route no longer depends on a `heygen/avatar` models-table row.
-  @Credits({
-    amount: 1,
-    description: 'Lip-sync photo avatar video generation',
-    source: ActivitySource.VIDEO_GENERATION,
-  })
-  @UseInterceptors(CreditsInterceptor)
+  // Priced on the per-second heygen/avatar row at the voice ingredient's
+  // measured length. The hold carries the frozen quote; the HeyGen webhook
+  // settles it to the duration HeyGen returns. No @Credits decorator: that
+  // path would also deduct a flat credit on the response.
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createLipSyncVideo(
     @Req() request: Request,
@@ -113,6 +103,8 @@ export class VideosLipSyncController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let ingredientId: string | undefined;
+    let billing: GenerationBillingRequest | undefined;
+    let providerAccepted = false;
 
     try {
       const imageIngredient = await this.resolveImageIngredient(
@@ -132,6 +124,18 @@ export class VideosLipSyncController {
         createLipSyncDto.voice,
         user.organizationId,
       );
+      const heygenByokKey = await this.byokService.resolveApiKey(
+        user.organizationId,
+        ByokProvider.HEYGEN,
+      );
+      const funded = await this.avatarBilling.fundLipSync({
+        audioIngredientId: String(audioIngredient.id),
+        brandId: imageIngredient.brandId ?? user.brandId,
+        organizationId: user.organizationId,
+        useCustomerKey: Boolean(heygenByokKey?.apiKey),
+        userId: user.userId ?? user.id,
+      });
+      billing = funded.request;
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
           origin: IngredientOrigin.GENERATED,
@@ -148,21 +152,40 @@ export class VideosLipSyncController {
         });
 
       ingredientId = String(ingredientData.id);
-      await this.dispatchLipSyncGeneration(
+      if (billing) {
+        await this.avatarBilling.bindRender(
+          billing,
+          funded.funding,
+          ingredientId,
+        );
+      }
+      const heygenVideoId = await this.dispatchLipSyncGeneration(
         user,
         imageIngredient,
         audioIngredient,
         ingredientId,
-        metadataData.id,
         url,
+        heygenByokKey?.apiKey,
+      );
+      providerAccepted = true;
+      await this.metadataService.patch(
+        metadataData.id,
+        new MetadataEntity({ externalId: heygenVideoId }),
+      );
+      await this.websocketService.publishVideoProgress(
+        WebSocketPaths.video(ingredientId),
+        0,
+        user.id,
+        getUserRoomName(user.id),
       );
 
       return serializeSingle(request, IngredientSerializer, ingredientData);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
 
-      // If ingredient was created but generation failed, mark as failed
-      if (ingredientId) {
+      // If ingredient was created but HeyGen did not accept the job, mark it
+      // failed and return the output hold. An accepted job settles on the webhook.
+      if (ingredientId && !providerAccepted) {
         const websocketUrl = WebSocketPaths.video(ingredientId);
         await this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
@@ -170,6 +193,10 @@ export class VideosLipSyncController {
           websocketUrl,
           user.id,
           getUserRoomName(user.id),
+        );
+        await this.avatarBilling.releaseGenerationHold(
+          ingredientId,
+          user.organizationId,
         );
       }
 
@@ -187,6 +214,8 @@ export class VideosLipSyncController {
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    } finally {
+      if (billing) await this.avatarBilling.releasePool(billing);
     }
   }
 
@@ -278,9 +307,9 @@ export class VideosLipSyncController {
     imageIngredient: IngredientDocument,
     audioIngredient: IngredientDocument,
     ingredientId: string,
-    metadataId: string,
     url: string,
-  ): Promise<void> {
+    heygenApiKey?: string,
+  ): Promise<string> {
     const photoUrl = await this.processingMediaUrl(
       user.organizationId,
       String(imageIngredient.id),
@@ -297,27 +326,13 @@ export class VideosLipSyncController {
       imageCategory: imageIngredient.category,
       photoUrl,
     });
-    const heygenByokKey = await this.byokService.resolveApiKey(
-      user.organizationId,
-      ByokProvider.HEYGEN,
-    );
-    const heygenVideoId = await this.heygenService.generatePhotoAvatarVideo(
+    return this.heygenService.generatePhotoAvatarVideo(
       ingredientId,
       photoUrl,
       audioUrl,
       user.organizationId,
       user.userId ?? user.id,
-      heygenByokKey?.apiKey,
-    );
-    await this.metadataService.patch(
-      metadataId,
-      new MetadataEntity({ externalId: heygenVideoId }),
-    );
-    await this.websocketService.publishVideoProgress(
-      WebSocketPaths.video(ingredientId),
-      0,
-      user.id,
-      getUserRoomName(user.id),
+      heygenApiKey,
     );
   }
 }

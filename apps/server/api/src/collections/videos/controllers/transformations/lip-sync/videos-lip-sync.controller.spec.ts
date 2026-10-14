@@ -1,5 +1,6 @@
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
@@ -23,7 +24,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { VideosLipSyncController } from '@api/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -38,7 +38,6 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -91,6 +90,12 @@ describe('VideosLipSyncController', () => {
     voice: audioIngredientId,
   };
 
+  let avatarBilling: {
+    bindRender: ReturnType<typeof vi.fn>;
+    fundLipSync: ReturnType<typeof vi.fn>;
+    releaseGenerationHold: ReturnType<typeof vi.fn>;
+    releasePool: ReturnType<typeof vi.fn>;
+  };
   let byokService: { resolveApiKey: ReturnType<typeof vi.fn> };
   let failedGenerationService: {
     handleFailedVideoGeneration: ReturnType<typeof vi.fn>;
@@ -108,6 +113,33 @@ describe('VideosLipSyncController', () => {
 
   beforeEach(async () => {
     personas = personasServiceStub();
+    avatarBilling = {
+      bindRender: vi.fn().mockResolvedValue(undefined),
+      fundLipSync: vi.fn(async (input: { useCustomerKey: boolean }) =>
+        input.useCustomerKey
+          ? {
+              funding: {
+                billingMode: 'byok',
+                credits: 0,
+                modelKey: 'heygen/avatar',
+              },
+            }
+          : {
+              funding: {
+                billingMode: 'platform',
+                credits: 65,
+                durationQuote: {
+                  estimatedSeconds: 5,
+                  snapshot: { credits: 65 },
+                },
+                modelKey: 'heygen/avatar',
+              },
+              request: { creditsConfig: { amount: 65 } },
+            },
+      ),
+      releaseGenerationHold: vi.fn().mockResolvedValue(undefined),
+      releasePool: vi.fn().mockResolvedValue(undefined),
+    };
     byokService = { resolveApiKey: vi.fn().mockResolvedValue(null) };
     failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
@@ -139,6 +171,7 @@ describe('VideosLipSyncController', () => {
       controllers: [VideosLipSyncController],
       providers: [
         { provide: GenerationQuoteGroupService, useValue: {} },
+        { provide: AvatarVideoBillingService, useValue: avatarBilling },
         { provide: ByokService, useValue: byokService },
         // CreditsInterceptor is now bound to the handler (@UseInterceptors); Nest
         // instantiates it at module compile, so its queue dependency must resolve.
@@ -201,19 +234,50 @@ describe('VideosLipSyncController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('charges a fixed 1-credit @Credits config (no modelKey) so CreditsInterceptor deducts a flat 1', () => {
-    // Locks the #1354 fix: the route must charge a fixed amount via the
-    // standard guard+interceptor path, NOT a modelKey (which would re-introduce
-    // the models-table lookup) and NOT a manual inline deduction.
-    const reflector = new Reflector();
-    const config = reflector.get<{ amount?: number; modelKey?: string }>(
-      CREDITS_KEY,
-      controller.createLipSyncVideo,
+  it('holds the per-second photo quote before HeyGen accepts the job', async () => {
+    await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+
+    expect(avatarBilling.fundLipSync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audioIngredientId: audioIngredientId,
+        organizationId,
+        useCustomerKey: false,
+        userId,
+      }),
+    );
+    expect(avatarBilling.bindRender).toHaveBeenCalledWith(
+      expect.objectContaining({ creditsConfig: { amount: 65 } }),
+      expect.objectContaining({ billingMode: 'platform', credits: 65 }),
+      ingredientDataId,
+    );
+    expect(avatarBilling.bindRender.mock.invocationCallOrder[0]).toBeLessThan(
+      heygenService.generatePhotoAvatarVideo.mock.invocationCallOrder[0],
+    );
+    expect(avatarBilling.releasePool).toHaveBeenCalled();
+    expect(avatarBilling.releaseGenerationHold).not.toHaveBeenCalled();
+  });
+
+  it('refuses an unpriced voice before creating an output', async () => {
+    avatarBilling.fundLipSync.mockRejectedValueOnce(
+      new HttpException('Add a saved narration with a known length', 400),
     );
 
-    expect(config).toBeDefined();
-    expect(config.amount).toBe(1);
-    expect(config.modelKey).toBeUndefined();
+    await expect(
+      controller.createLipSyncVideo(mockReq, mockUser, mockDto),
+    ).rejects.toBeInstanceOf(HttpException);
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+  });
+
+  it('skips the platform hold when the organization uses its own HeyGen key', async () => {
+    byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key-xyz' });
+
+    await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+
+    expect(avatarBilling.fundLipSync).toHaveBeenCalledWith(
+      expect.objectContaining({ useCustomerKey: true }),
+    );
+    expect(avatarBilling.bindRender).not.toHaveBeenCalled();
   });
 
   describe('character admission (#6040)', () => {

@@ -21,6 +21,8 @@ import { VideosLipSyncController } from '@api/collections/videos/controllers/tra
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
 import { VideosResizeController } from '@api/collections/videos/controllers/transformations/resize/videos-resize.controller';
 import { VideosUpscaleController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale.controller';
+import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
+import { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -74,6 +76,12 @@ import { Module } from '@nestjs/common';
     VideosModule,
     WorkflowsCoreModule,
   ],
-  providers: [CreditsGuard, CreditsInterceptor, ModelsGuard],
+  providers: [
+    AvatarVideoBillingService,
+    AvatarVideoModelService,
+    CreditsGuard,
+    CreditsInterceptor,
+    ModelsGuard,
+  ],
 })
 export class VideoTransformationsModule {}

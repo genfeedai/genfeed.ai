@@ -304,6 +304,64 @@ export class AvatarVideoBillingService {
     );
   }
 
+  /**
+   * Platform hold for `POST /videos/lip-sync`. The voice ingredient's measured
+   * duration is the meter; a missing duration refuses the render instead of
+   * charging a flat credit. A customer HeyGen key skips the platform hold.
+   */
+  async fundLipSync(input: {
+    audioIngredientId: string;
+    brandId?: string | null;
+    organizationId: string;
+    useCustomerKey: boolean;
+    userId: string;
+  }): Promise<{
+    funding: AvatarGenerationFunding;
+    request?: GenerationBillingRequest;
+  }> {
+    if (input.useCustomerKey) {
+      return {
+        funding: {
+          billingMode: 'byok',
+          credits: 0,
+          modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+        },
+      };
+    }
+    const audio = await this.prisma.ingredient.findFirst({
+      select: { metadata: { select: { duration: true } } },
+      where: {
+        id: input.audioIngredientId,
+        isDeleted: false,
+        organizationId: input.organizationId,
+      },
+    });
+    const measured = readAvatarDurationSeconds(audio?.metadata?.duration);
+    if (measured === undefined) {
+      throw new BadRequestException(
+        'Add a saved narration with a known length to price this avatar.',
+      );
+    }
+    const quote = await this.quotePhotoAnimation(Math.ceil(measured));
+    const request = await this.generationBilling.holdForService({
+      brandId: input.brandId,
+      credits: quote.credits,
+      description: 'Lip-sync photo avatar video generation',
+      organizationId: input.organizationId,
+      source: ActivitySource.VIDEO_GENERATION,
+      userId: input.userId,
+    });
+    return {
+      funding: {
+        billingMode: 'platform',
+        credits: quote.credits,
+        ...(quote.durationQuote ? { durationQuote: quote.durationQuote } : {}),
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+      },
+      request,
+    };
+  }
+
   releasePool(request: GenerationBillingRequest): Promise<void> {
     return this.generationBilling.releasePool(request);
   }

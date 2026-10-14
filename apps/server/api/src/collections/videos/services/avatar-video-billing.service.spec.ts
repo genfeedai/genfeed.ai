@@ -21,6 +21,93 @@ import {
 } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+describe('AvatarVideoBillingService.fundLipSync', () => {
+  const holdForService = vi.fn();
+  const quoteSnapshotByKey = vi.fn();
+  const findFirst = vi.fn();
+  const service = new AvatarVideoBillingService(
+    {} as CreditsUtilsService,
+    { holdForService } as unknown as GenerationBillingService,
+    { quoteSnapshotByKey } as unknown as ModelCreditQuoteService,
+    { error: vi.fn() } as unknown as LoggerService,
+    {} as AvatarVideoModelService,
+    {} as ByokService,
+    {} as HeyGenService,
+    { ingredient: { findFirst } } as unknown as PrismaService,
+  );
+
+  beforeEach(() => {
+    holdForService
+      .mockReset()
+      .mockResolvedValue({ creditsConfig: { amount: 65 } });
+    quoteSnapshotByKey.mockReset().mockResolvedValue(photoAnimationSnapshot(5));
+    findFirst.mockReset();
+  });
+
+  it('skips the platform hold when the organization uses its own HeyGen key', async () => {
+    const funded = await service.fundLipSync({
+      audioIngredientId: 'audio-1',
+      organizationId: 'org-1',
+      useCustomerKey: true,
+      userId: 'user-1',
+    });
+
+    expect(funded.request).toBeUndefined();
+    expect(funded.funding.billingMode).toBe('byok');
+    expect(findFirst).not.toHaveBeenCalled();
+    expect(quoteSnapshotByKey).not.toHaveBeenCalled();
+  });
+
+  it('refuses a voice ingredient with no measured duration', async () => {
+    findFirst.mockResolvedValue({ metadata: { duration: null } });
+
+    await expect(
+      service.fundLipSync({
+        audioIngredientId: 'audio-1',
+        organizationId: 'org-1',
+        useCustomerKey: false,
+        userId: 'user-1',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(quoteSnapshotByKey).not.toHaveBeenCalled();
+    expect(holdForService).not.toHaveBeenCalled();
+  });
+
+  it('holds the ceiled measured duration on the photo-avatar rate', async () => {
+    findFirst.mockResolvedValue({ metadata: { duration: 4.2 } });
+
+    const funded = await service.fundLipSync({
+      audioIngredientId: 'audio-1',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      useCustomerKey: false,
+      userId: 'user-1',
+    });
+
+    expect(findFirst).toHaveBeenCalledWith({
+      select: { metadata: { select: { duration: true } } },
+      where: { id: 'audio-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(quoteSnapshotByKey).toHaveBeenCalledWith(MODEL_KEYS.HEYGEN_AVATAR, {
+      duration: 5,
+    });
+    expect(holdForService).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        credits: 65,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
+    expect(funded.funding).toMatchObject({
+      billingMode: 'platform',
+      credits: 65,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+    });
+    expect(funded.request).toEqual({ creditsConfig: { amount: 65 } });
+  });
+});
+
 describe('AvatarVideoBillingService.quoteRender', () => {
   const modelCreditQuote = { quoteSnapshotByKey: vi.fn() };
   const service = new AvatarVideoBillingService(
