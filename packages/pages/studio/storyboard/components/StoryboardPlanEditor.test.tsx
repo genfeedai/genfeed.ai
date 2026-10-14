@@ -33,6 +33,12 @@ vi.mock('next-intl', async () => {
 });
 
 const modal = vi.hoisted(() => ({ openConfirm: vi.fn() }));
+// jsdom has no ResizeObserver; the Radix Slider in each shot card measures its thumb.
+class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+}
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
@@ -246,6 +252,7 @@ async function openTab(name: RegExp) {
 
 describe('persisted storyboard plan editor', () => {
   beforeAll(async () => {
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
     // Tooltip buttons swap their DOM node once the tooltip loads; settle that first.
     await preloadButtonTooltip();
   });
