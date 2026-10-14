@@ -74,6 +74,28 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     );
   });
 
+  it('prices the product-text fallback without offering it as agent chat', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+    );
+
+    // 10k prompt + 2k completion at $0.75 / $3.75 per 1M, × 1.7 / $0.01 = 3.
+    expect(row).toMatchObject({
+      category: ModelCategory.TEXT,
+      cost: 3,
+      inputCostPerMillionTokens: 0.75,
+      isActive: true,
+      isDefault: false,
+      isPublic: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens: 3.75,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.OPENROUTER,
+    });
+    expect(row?.capabilities ?? []).not.toContain(AGENT_CHAT_CAPABILITY);
+    expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
+  });
+
   it('seeds self-hosted chat models inactive so operators opt in', () => {
     const selfHostedRows = agentRows.filter(
       (entry) => entry.provider === ModelProvider.GENFEED_AI,

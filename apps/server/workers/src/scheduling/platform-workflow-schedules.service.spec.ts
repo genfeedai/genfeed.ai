@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('PlatformWorkflowSchedulesService', () => {
   const prisma = {
     agentStrategy: { findMany: vi.fn() },
+    member: { findMany: vi.fn() },
     organization: { findMany: vi.fn() },
+    session: { findMany: vi.fn() },
     workflow: { findFirst: vi.fn() },
     workflowExecution: { findFirst: vi.fn(), findMany: vi.fn() },
   };
@@ -14,6 +16,7 @@ describe('PlatformWorkflowSchedulesService', () => {
   const continuations = { reconcile: vi.fn() };
   const pendingExecutions = { reconcile: vi.fn() };
   const taskOrchestrator = { recoverStalledRollups: vi.fn() };
+  const moduleAccess = { canStartWork: vi.fn() };
   const service = new PlatformWorkflowSchedulesService(
     prisma as never,
     runner as never,
@@ -21,6 +24,7 @@ describe('PlatformWorkflowSchedulesService', () => {
     continuations as never,
     pendingExecutions as never,
     taskOrchestrator as never,
+    moduleAccess as never,
   );
   beforeEach(() => {
     vi.resetAllMocks();
@@ -37,6 +41,78 @@ describe('PlatformWorkflowSchedulesService', () => {
       { id: 'strategy-1', organizationId: 'org-1', config: {} },
     ]);
     runner.enqueueWorkflow.mockResolvedValue({ executionId: 'execution-1' });
+    // Active with Discovery by default, so the dispatch assertions below keep
+    // exercising the branches they target; the gate has its own tests.
+    prisma.member.findMany.mockResolvedValue([]);
+    prisma.session.findMany.mockImplementation(
+      async ({ where }: { where: { userId: { in: string[] } } }) =>
+        where.userId.in.map((userId) => ({ userId })),
+    );
+    moduleAccess.canStartWork.mockResolvedValue(true);
+  });
+
+  describe('active Discovery gate (#5634)', () => {
+    const gated = [
+      'content-learning.reconcile',
+      'analytics-sync',
+      'content-loop-autopilot',
+    ] as const;
+
+    it.each(gated)(
+      'skips %s for an organization with no session in the last 48h',
+      async (template) => {
+        prisma.session.findMany.mockResolvedValue([]);
+        await service.sweep(template, Date.UTC(2026, 9, 14));
+        expect(prisma.session.findMany).toHaveBeenCalledWith({
+          where: {
+            userId: { in: ['owner-1'] },
+            updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+          },
+          distinct: ['userId'],
+          select: { userId: true },
+        });
+        expect(moduleAccess.canStartWork).not.toHaveBeenCalled();
+        expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+        expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(gated)(
+      'skips %s for an active organization without Discovery access',
+      async (template) => {
+        moduleAccess.canStartWork.mockResolvedValue(false);
+        await service.sweep(template, 0);
+        expect(moduleAccess.canStartWork).toHaveBeenCalledWith(
+          'org-1',
+          'discovery',
+        );
+        expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+      },
+    );
+
+    it('admits an organization through a recently active member, not only the owner', async () => {
+      prisma.member.findMany.mockResolvedValue([
+        { organizationId: 'org-1', userId: 'member-1' },
+      ]);
+      prisma.session.findMany.mockResolvedValue([{ userId: 'member-1' }]);
+      await service.sweep('content-learning.reconcile', 0);
+      expect(prisma.member.findMany).toHaveBeenCalledWith({
+        where: { organizationId: { in: ['org-1'] }, isDeleted: false },
+        select: { organizationId: true, userId: true },
+      });
+      expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+      'content-learning.retention',
+      'proactive-agent-strategies',
+    ] as const)('leaves %s outside the activity gate', async (template) => {
+      prisma.session.findMany.mockResolvedValue([]);
+      await service.sweep(template, 120001);
+      expect(prisma.session.findMany).not.toHaveBeenCalled();
+      expect(moduleAccess.canStartWork).not.toHaveBeenCalled();
+      expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
+    });
   });
 
   it('delegates pending-execution reconciliation to its existing owner', async () => {
