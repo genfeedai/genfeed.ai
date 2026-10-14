@@ -1005,7 +1005,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     });
     const { executors, runner } = createRunner(
       undefined,
-      {},
+      { workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) } },
       { executePinnedManualWorkflow },
     );
     runner.onModuleInit();
@@ -1070,7 +1070,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     });
     const { executors, runner } = createRunner(
       undefined,
-      {},
+      { workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) } },
       { executePinnedManualWorkflow },
     );
     runner.onModuleInit();
@@ -1316,6 +1316,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
           { id: 'org-3', userId: 'owner-3' },
         ]),
       },
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
       workflow: {
         findFirst: vi.fn().mockResolvedValue({
           metadata: {
