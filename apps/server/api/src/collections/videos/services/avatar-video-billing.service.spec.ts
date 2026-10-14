@@ -32,7 +32,7 @@ describe('AvatarVideoBillingService.fundLipSync', () => {
     {} as CreditsUtilsService,
     { holdForService } as unknown as GenerationBillingService,
     { quoteSnapshotByKey } as unknown as ModelCreditQuoteService,
-    { error: vi.fn() } as unknown as LoggerService,
+    { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
     {} as AvatarVideoModelService,
     {} as ByokService,
     {} as HeyGenService,

@@ -53,6 +53,9 @@ import {
  */
 const DEFAULT_PLATFORM_SPEECH_MODEL_KEY = MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2;
 
+/** The catalog provider of platform speech: its rows are `elevenlabs/<model>`. */
+const PLATFORM_SPEECH_PROVIDER = 'elevenlabs';
+
 /** Owns admission, output funding and attachment recovery for an avatar render. */
 @Injectable()
 export class AvatarVideoBillingService {
@@ -145,7 +148,7 @@ export class AvatarVideoBillingService {
     const configured = (await this.platformSettings.getFeatureSettings())
       .elevenlabsModel;
     const speechModelKey = configured
-      ? `${VoiceProvider.ELEVENLABS}/${configured}`
+      ? `${PLATFORM_SPEECH_PROVIDER}/${configured}`
       : DEFAULT_PLATFORM_SPEECH_MODEL_KEY;
     const speechModel = VOICE_SPEECH_MODELS[speechModelKey];
     if (speechModel?.voiceProvider !== VoiceProvider.ELEVENLABS)
@@ -165,7 +168,7 @@ export class AvatarVideoBillingService {
       characters,
       modelKey: speechModelKey,
       organizationId,
-      provider: VoiceProvider.ELEVENLABS,
+      provider: PLATFORM_SPEECH_PROVIDER,
     });
     return {
       billingMode: 'platform',
