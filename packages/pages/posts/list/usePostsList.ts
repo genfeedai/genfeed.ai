@@ -363,6 +363,16 @@ export function usePostsList({
   const findAllPosts = useCallback(() => refreshPosts(), [refreshPosts]);
 
   useEffect(() => {
+    if (!isSocketReady || !brandId) return;
+    return subscribeToSocket(
+      WebSocketPaths.brand(brandId),
+      (data: { event?: string }) => {
+        if (data.event === 'account-generation-progress') void findAllPosts();
+      },
+    );
+  }, [brandId, isSocketReady, subscribeToSocket, findAllPosts]);
+
+  useEffect(() => {
     postsRef.current = posts;
   }, [posts]);
 

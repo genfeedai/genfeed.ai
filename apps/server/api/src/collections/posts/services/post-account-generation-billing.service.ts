@@ -1,15 +1,14 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import type {
   AccountGenerationFunding,
   AccountGenerationScope,
 } from '@api/collections/posts/services/post-account-generation.types';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import {
-  assertOrganizationCreditsAvailable,
-  resolveTextModelMinimumCredits,
-} from '@api/helpers/utils/credits/organization-credits-gate.util';
+import { assertOrganizationCreditsAvailable } from '@api/helpers/utils/credits/organization-credits-gate.util';
+import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { textDispatchApiKey } from '@api/services/byok/text-dispatch-byok.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ActivitySource } from '@genfeedai/contracts';
@@ -19,7 +18,11 @@ import {
   TEXT_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 const DESCRIPTION = 'Account text generation';
 /** A run has no fixed size, so its pool outlives the standard hold by this much per dispatch. */
@@ -60,14 +63,34 @@ export class PostAccountGenerationBillingService {
     if (dispatch) {
       return { apiKey, creditsPerDispatch: 0, poolReservationId: null };
     }
-    const creditsPerDispatch = await resolveTextModelMinimumCredits(
-      this.models,
-      model,
-    );
+    const pricedModel = await this.models.findOne({
+      key: baseModelKey(model),
+      isDeleted: false,
+    });
+    if (!pricedModel)
+      throw new ServiceUnavailableException({
+        code: 'PRICING_UNAVAILABLE',
+        message: 'Account generation pricing is unavailable for this model.',
+      });
+    const creditsPerDispatch =
+      pricedModel.pricingType === 'per-token'
+        ? getMinimumTextCredits(pricedModel)
+        : pricedModel.cost;
+    if (
+      creditsPerDispatch === null ||
+      creditsPerDispatch === undefined ||
+      !Number.isSafeInteger(creditsPerDispatch) ||
+      creditsPerDispatch < 0
+    )
+      throw new ServiceUnavailableException(
+        'account_generation_pricing_invalid',
+      );
     if (creditsPerDispatch <= 0) {
       return { apiKey, creditsPerDispatch: 0, poolReservationId: null };
     }
     const total = creditsPerDispatch * dispatchCount;
+    if (!Number.isSafeInteger(total))
+      throw new ConflictException('account_generation_credit_amount_invalid');
     await assertOrganizationCreditsAvailable(
       this.credits,
       scope.organizationId,
@@ -82,7 +105,10 @@ export class PostAccountGenerationBillingService {
         expiresAt: new Date(
           Date.now() +
             MEDIA_GENERATION_HOLD_TTL_MS +
-            dispatchCount * DISPATCH_WINDOW_MS,
+            Math.min(
+              dispatchCount * DISPATCH_WINDOW_MS,
+              30 * 24 * 60 * 60 * 1000,
+            ),
         ),
         idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:account-text:${runId}`,
         organizationId: scope.organizationId,
@@ -105,6 +131,21 @@ export class PostAccountGenerationBillingService {
       }
       throw error;
     }
+  }
+
+  async queuedApiKey(
+    model: string,
+    scope: AccountGenerationScope,
+    isByok: boolean,
+  ): Promise<string | undefined> {
+    if (!isByok) return undefined;
+    const dispatch = await this.textCredits.resolveDispatch(
+      scope.organizationId,
+      [model],
+    );
+    if (!dispatch)
+      throw new ConflictException('account_generation_byok_unavailable');
+    return textDispatchApiKey(dispatch, model);
   }
 
   /** The dispatch's own hold, carved out of the pool just before the provider call. */

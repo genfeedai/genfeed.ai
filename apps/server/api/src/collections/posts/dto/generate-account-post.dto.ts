@@ -3,17 +3,21 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { SocialGenerationFormat } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
   IsArray,
   IsEnum,
   IsIn,
   IsInt,
   IsOptional,
   IsString,
+  Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
 export class GenerateAccountPostDto {
   @IsString()
+  @MaxLength(10_000)
   @ApiProperty({
     description: 'Topic or prompt for generating account-aware social content',
     example: 'AI productivity tips',
@@ -23,6 +27,7 @@ export class GenerateAccountPostDto {
 
   @IsInt()
   @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
   @ApiProperty({
     description:
       'Number of posts to generate. There is no fixed cap: the run refuses when the credit balance cannot cover every dispatch.',
@@ -61,6 +66,7 @@ export class GenerateAccountPostDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(100)
   @IsEntityId({ each: true })
   @ApiProperty({
     description:
@@ -80,6 +86,7 @@ export class GenerateAccountPostDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(4096)
   @ApiProperty({
     description: 'Optional originating source URL for remix lineage fallback',
     required: false,

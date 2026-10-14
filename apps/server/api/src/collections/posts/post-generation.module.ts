@@ -9,6 +9,8 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PostAccountGenerationService } from '@api/collections/posts/services/post-account-generation.service';
 import { PostAccountGenerationBillingService } from '@api/collections/posts/services/post-account-generation-billing.service';
+import { PostAccountGenerationQueueService } from '@api/collections/posts/services/post-account-generation-queue.service';
+import { PostAccountGenerationRunnerService } from '@api/collections/posts/services/post-account-generation-runner.service';
 import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
@@ -22,11 +24,14 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
+import { ACCOUNT_GENERATION_QUEUE } from '@genfeedai/contracts/queue';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
+    BullModule.registerQueue({ name: ACCOUNT_GENERATION_QUEUE }),
     ContentLearningCoreModule,
     ActivitiesModule,
     ApiKeysModule,
@@ -48,6 +53,8 @@ import { Module } from '@nestjs/common';
     LoggerModule,
   ],
   providers: [
+    PostAccountGenerationQueueService,
+    PostAccountGenerationRunnerService,
     PostAccountGenerationBillingService,
     PostAccountGenerationService,
     PostAccountLearningService,
@@ -55,6 +62,10 @@ import { Module } from '@nestjs/common';
     PostGenerationService,
     PostThreadGenerationService,
   ],
-  exports: [PostGenerationService, PostThreadGenerationService],
+  exports: [
+    PostGenerationService,
+    PostThreadGenerationService,
+    PostAccountGenerationRunnerService,
+  ],
 })
 export class PostGenerationModule {}

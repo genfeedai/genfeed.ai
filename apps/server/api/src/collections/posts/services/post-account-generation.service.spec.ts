@@ -5,6 +5,8 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostAccountGenerationService } from '@api/collections/posts/services/post-account-generation.service';
 import type { AccountGenerationFunding } from '@api/collections/posts/services/post-account-generation.types';
+import type { AccountGenerationJobData } from '@api/collections/posts/services/post-account-generation-job.types';
+import { PostAccountGenerationRunnerService } from '@api/collections/posts/services/post-account-generation-runner.service';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import {
   CredentialPlatform,
@@ -68,6 +70,7 @@ describe('PostAccountGenerationService', () => {
   const activityRecorder = { record: vi.fn(), update: vi.fn() };
   const registry = { resolveModelKey: vi.fn() };
   const billing = {
+    queuedApiKey: vi.fn(),
     bindDispatch: vi.fn(),
     releaseDispatch: vi.fn(),
     releaseRun: vi.fn(),
@@ -84,6 +87,7 @@ describe('PostAccountGenerationService', () => {
   const postsService = {
     create: vi.fn(),
     find: vi.fn(),
+    findAll: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
     patchOneWhere: vi.fn(),
@@ -91,6 +95,13 @@ describe('PostAccountGenerationService', () => {
   const lineage = { recordPostRemixLineage: vi.fn() };
   const websocket = { emit: vi.fn() };
   let service: PostAccountGenerationService;
+  let runner: PostAccountGenerationRunnerService;
+  const queue = {
+    claim: vi.fn(),
+    renew: vi.fn(),
+    enqueue: vi.fn(),
+    release: vi.fn(),
+  };
 
   const funding = (
     overrides: Partial<AccountGenerationFunding> = {},
@@ -148,6 +159,14 @@ describe('PostAccountGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    for (const method of Object.values(queue))
+      method.mockReset().mockResolvedValue(undefined);
+    billing.queuedApiKey
+      .mockReset()
+      .mockImplementation(
+        async (_model: string, _scope: unknown, isByok: boolean) =>
+          isByok ? 'byok-key' : undefined,
+      );
     seam.generate.mockReset();
     seam.generateThread.mockReset();
     store = new Map();
@@ -200,6 +219,21 @@ describe('PostAccountGenerationService', () => {
             : doc.groupId === where.groupId,
         ),
     );
+    postsService.findAll.mockImplementation(
+      async (
+        where: { groupId: string; id: { not: string } },
+        options: { limit: number },
+      ) => ({
+        docs: [...store.values()]
+          .filter(
+            (doc) =>
+              doc.groupId === where.groupId &&
+              doc.id !== where.id.not &&
+              doc.targetExecutionState === TargetExecutionState.DRAFT,
+          )
+          .slice(0, options.limit),
+      }),
+    );
     postsService.patchOneWhere.mockImplementation(
       async (
         where: { id: string; targetExecutionState: string },
@@ -225,6 +259,16 @@ describe('PostAccountGenerationService', () => {
       postsService as never,
       lineage as never,
       websocket as never,
+      queue as never,
+    );
+    runner = new PostAccountGenerationRunnerService(
+      service,
+      queue as never,
+      billing as never,
+      accountContext as never,
+      postsService as never,
+      logger as never,
+      websocket as never,
     );
   });
 
@@ -245,10 +289,10 @@ describe('PostAccountGenerationService', () => {
     overrides: Partial<RunInput> = {},
   ): Promise<{ posts: PostDocument[] }> {
     const input = { ...dto, ...overrides };
-    // `start` runs the background work detached; the spy lets the test await it.
-    const execute = vi.spyOn(service, 'execute');
     const posts = await service.start(input, identity);
-    await execute.mock.results[0]?.value;
+    await runner.process(
+      queue.enqueue.mock.calls.at(-1)?.[0] as AccountGenerationJobData,
+    );
     return { posts };
   }
 
@@ -258,6 +302,151 @@ describe('PostAccountGenerationService', () => {
       expect(posts).toHaveLength(10);
       expect(postsService.create).toHaveBeenCalledTimes(10);
     });
+    it('does not generate or save provider keys during the HTTP request', async () => {
+      billing.reserveRun.mockResolvedValue(
+        funding({
+          apiKey: 'byok-key',
+          poolReservationId: null,
+          creditsPerDispatch: 0,
+        }),
+      );
+      await service.start(dto, {
+        ...identity,
+        apiKeyId: 'credential-secret',
+        emailAddresses: [{ emailAddress: 'private@example.com' }],
+      } as never);
+      expect(seam.generate).not.toHaveBeenCalled();
+      const data = queue.enqueue.mock.calls[0][0] as AccountGenerationJobData;
+      expect(data.run.isByok).toBe(true);
+      expect(JSON.stringify(data)).not.toContain('byok-key');
+      expect(JSON.stringify(data)).not.toContain('credential-secret');
+      expect(JSON.stringify(data)).not.toContain('private@example.com');
+    });
+
+    it('rejects overlapping runs before holding credits or creating posts', async () => {
+      queue.claim.mockRejectedValueOnce(
+        new HttpException('already active', 429),
+      );
+      await expect(service.start(dto, identity)).rejects.toMatchObject({
+        status: 429,
+      });
+      expect(billing.reserveRun).not.toHaveBeenCalled();
+      expect(postsService.create).not.toHaveBeenCalled();
+    });
+
+    it('processes a large run as bounded pages with unique receipts and one credit pool', async () => {
+      seam.generate.mockImplementation(seamAnswers(async () => 'ok'));
+      const posts = await service.start({ ...dto, count: 13 }, identity);
+      const first = queue.enqueue.mock.calls[0][0] as AccountGenerationJobData;
+      await runner.process(first);
+      expect(billing.releaseRun).not.toHaveBeenCalled();
+      expect(queue.enqueue).toHaveBeenCalledTimes(2);
+      const second = queue.enqueue.mock.calls[1][0] as AccountGenerationJobData;
+      expect(second.offset).toBe(10);
+      expect(second.postIds).toHaveLength(3);
+      expect(second.previousTexts).toHaveLength(10);
+      await runner.process(second);
+      expect(billing.releaseRun).toHaveBeenCalledTimes(1);
+      expect(billing.reserveRun).toHaveBeenCalledTimes(1);
+      expect(
+        [...store.values()].every(
+          (post) => post.targetExecutionState === TargetExecutionState.DRAFT,
+        ),
+      ).toBe(true);
+      expect(
+        seam.generate.mock.calls.map(
+          ([request]) => request.input.candidateIndex,
+        ),
+      ).toEqual(Array.from({ length: 13 }, (_, i) => i));
+      expect(
+        new Set([...store.values()].map((post) => post.brandedReceiptId)).size,
+      ).toBe(13);
+      expect(posts).toHaveLength(10);
+      expect(websocket.emit).toHaveBeenCalledWith(
+        '/brands/brand-1',
+        expect.objectContaining({ event: 'account-generation-progress' }),
+      );
+    });
+
+    it('stops a queued BYOK run when its key becomes unavailable', async () => {
+      billing.reserveRun.mockResolvedValue(
+        funding({
+          apiKey: 'byok-key',
+          poolReservationId: null,
+          creditsPerDispatch: 0,
+        }),
+      );
+      const posts = await service.start(dto, identity);
+      billing.queuedApiKey.mockRejectedValueOnce(
+        new Error('subscription unavailable'),
+      );
+      await expect(
+        runner.process(
+          queue.enqueue.mock.calls[0][0] as AccountGenerationJobData,
+        ),
+      ).rejects.toThrow('subscription unavailable');
+      expect(seam.generate).not.toHaveBeenCalled();
+      for (const post of posts)
+        expect(store.get(String(post.id))?.targetExecutionState).toBe(
+          TargetExecutionState.FAILED,
+        );
+      expect(queue.release).toHaveBeenCalled();
+    });
+
+    it('releases the lease and funding even when failure state persistence fails', async () => {
+      await service.start(dto, identity);
+      postsService.patchOneWhere.mockRejectedValueOnce(
+        new Error('DB unavailable'),
+      );
+      await runner.fail(
+        queue.enqueue.mock.calls[0][0] as AccountGenerationJobData,
+      );
+      expect(billing.releaseRun).toHaveBeenCalledTimes(1);
+      expect(queue.release).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('cleans up initial placeholders and the credit pool when enqueueing fails', async () => {
+      queue.enqueue.mockRejectedValueOnce(new Error('Redis unavailable'));
+      await expect(service.start(dto, identity)).rejects.toThrow(
+        'Redis unavailable',
+      );
+      expect(
+        [...store.values()].every(
+          (post) => post.targetExecutionState === TargetExecutionState.FAILED,
+        ),
+      ).toBe(true);
+      expect(billing.releaseRun).toHaveBeenCalledTimes(1);
+      expect(queue.release).toHaveBeenCalledTimes(1);
+      expect(seam.generate).not.toHaveBeenCalled();
+    });
+
+    it('keeps completed posts when the next page cannot be enqueued', async () => {
+      seam.generate.mockImplementation(seamAnswers(async () => 'ok'));
+      await service.start({ ...dto, count: 13 }, identity);
+      queue.enqueue.mockRejectedValueOnce(new Error('Redis unavailable'));
+      await expect(
+        runner.process(
+          queue.enqueue.mock.calls[0][0] as AccountGenerationJobData,
+        ),
+      ).rejects.toThrow('Redis unavailable');
+      expect(
+        [...store.values()]
+          .slice(0, 10)
+          .every(
+            (post) => post.targetExecutionState === TargetExecutionState.DRAFT,
+          ),
+      ).toBe(true);
+      expect(
+        [...store.values()]
+          .slice(10)
+          .every(
+            (post) => post.targetExecutionState === TargetExecutionState.FAILED,
+          ),
+      ).toBe(true);
+      expect(billing.releaseRun).toHaveBeenCalledTimes(1);
+    });
+
     it('refuses with the funding error before any placeholder or dispatch exists', async () => {
       billing.reserveRun.mockRejectedValueOnce(
         new HttpException('Insufficient credits', HttpStatus.PAYMENT_REQUIRED),
@@ -570,12 +759,13 @@ describe('PostAccountGenerationService', () => {
 
     it('records remix lineage and binds the learning decision of a completed post', async () => {
       seam.generate.mockImplementation(seamAnswers(async () => 'ok'));
-      const execute = vi.spyOn(service, 'execute');
       await service.start(
         { ...dto, count: 1, trendId: 'trend-1' } as never,
         identity,
       );
-      await execute.mock.results[0]?.value;
+      await runner.process(
+        queue.enqueue.mock.calls.at(-1)?.[0] as AccountGenerationJobData,
+      );
 
       expect(lineage.recordPostRemixLineage).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -654,6 +844,14 @@ describe('PostAccountGenerationService', () => {
         }));
       const { posts } = await run(overrides);
       vi.clearAllMocks();
+      for (const method of Object.values(queue))
+        method.mockReset().mockResolvedValue(undefined);
+      billing.queuedApiKey
+        .mockReset()
+        .mockImplementation(
+          async (_model: string, _scope: unknown, isByok: boolean) =>
+            isByok ? 'byok-key' : undefined,
+        );
       billing.reserveRun.mockResolvedValue(
         funding({ poolReservationId: 'pool-2' }),
       );

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { unavailableLearningReceiptV1 } from '@api/collections/content-learning/services/learning-generation-application.util';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { invalidThreadCountMessage } from '@api/collections/posts/controllers/operations/posts-generation.helpers';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -11,12 +12,20 @@ import {
 } from '@api/collections/posts/services/post-account-generation.types';
 import { PostAccountGenerationBillingService } from '@api/collections/posts/services/post-account-generation-billing.service';
 import {
+  type AccountGenerationPageOptions,
+  queuedAccountGenerationRun,
+} from '@api/collections/posts/services/post-account-generation-job.types';
+import {
   acceptsAccountText,
   buildAccountPostPrompt,
   buildAccountThreadPrompt,
   splitThreadText,
   withRunContext,
 } from '@api/collections/posts/services/post-account-generation-prompt.util';
+import {
+  ACCOUNT_GENERATION_PAGE_SIZE,
+  PostAccountGenerationQueueService,
+} from '@api/collections/posts/services/post-account-generation-queue.service';
 import {
   accountGenerationErrorCode,
   accountGenerationFailure,
@@ -55,6 +64,7 @@ import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnprocessableEntityException,
@@ -107,6 +117,7 @@ export class PostAccountGenerationService {
     private readonly postsService: PostsService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly queue: PostAccountGenerationQueueService,
   ) {}
 
   /**
@@ -119,39 +130,65 @@ export class PostAccountGenerationService {
     dto: GenerateAccountPostDto,
     identity: AccountGenerationIdentity,
   ): Promise<PostDocument[]> {
-    const context = await this.accountPublishingContextService.resolve({
-      brandId: identity.brandId,
-      credentialId: dto.credentialId,
-      organizationId: identity.organizationId,
-      sourceLineage: {
-        sourceReferenceIds: dto.sourceReferenceIds,
-        sourceUrl: dto.sourceUrl,
-        trendId: dto.trendId,
-      },
-      surface: dto.format === 'thread' ? 'thread' : 'post',
-    });
+    if (
+      !Number.isSafeInteger(dto.count) ||
+      dto.count < 1 ||
+      (dto.format === 'thread' && invalidThreadCountMessage(dto.count))
+    )
+      throw new BadRequestException('Invalid account generation count');
     const runId = randomUUID();
-    const run = await this.admit({
-      context,
-      dispatchCount: dto.format === 'thread' ? 1 : dto.count,
-      identity,
-      poolKey: runId,
-      runId,
-    });
-    let createdPosts: PostDocument[];
+    await this.queue.claim(identity.organizationId, runId);
+    let run: AccountGenerationRun | undefined;
+    let createdPosts: PostDocument[] = [];
     try {
+      const context = await this.accountPublishingContextService.resolve({
+        brandId: identity.brandId,
+        credentialId: dto.credentialId,
+        organizationId: identity.organizationId,
+        sourceLineage: {
+          sourceReferenceIds: dto.sourceReferenceIds,
+          sourceUrl: dto.sourceUrl,
+          trendId: dto.trendId,
+        },
+        surface: dto.format === 'thread' ? 'thread' : 'post',
+      });
+      run = await this.admit({
+        context,
+        dispatchCount: dto.format === 'thread' ? 1 : dto.count,
+        identity,
+        poolKey: runId,
+        runId,
+      });
       createdPosts = await this.createPlaceholders(dto, run);
+      await this.queue.enqueue({
+        dto,
+        offset: 0,
+        postIds: createdPosts.map((post) => String(post.id)),
+        previousTexts: [],
+        run: queuedAccountGenerationRun(run),
+      });
+      return createdPosts;
     } catch (error) {
-      await this.billing.releaseRun(run.funding, run.scope);
+      const cleanup = await Promise.allSettled([
+        ...createdPosts.map((post) =>
+          this.failPost(
+            post,
+            accountGenerationFailure('account_generation_queue_unavailable'),
+            null,
+          ),
+        ),
+        this.queue.release(identity.organizationId, runId),
+        ...(run ? [this.billing.releaseRun(run.funding, run.scope)] : []),
+      ]);
+      for (const result of cleanup)
+        if (result.status === 'rejected')
+          this.logger.error(
+            'Account generation admission cleanup failed',
+            result.reason,
+            { runId },
+          );
       throw error;
     }
-    this.execute(dto, run, createdPosts).catch((error) => {
-      this.logger.error(
-        'Failed to generate account content asynchronously',
-        error,
-      );
-    });
-    return createdPosts;
   }
 
   /**
@@ -211,13 +248,22 @@ export class PostAccountGenerationService {
     });
     const siblings = isThread
       ? []
-      : (await this.postsService.find({ ...scoped, groupId: runId }, []))
-          .filter(
-            (post) =>
-              post.id !== root.id &&
-              post.targetExecutionState === TargetExecutionState.DRAFT,
+      : (
+          await this.postsService.findAll(
+            {
+              ...scoped,
+              groupId: runId,
+              id: { not: root.id },
+              targetExecutionState: TargetExecutionState.DRAFT,
+            },
+            {
+              page: 1,
+              limit: ACCOUNT_GENERATION_PAGE_SIZE,
+              sort: { order: -1 },
+            },
+            false,
           )
-          .sort((left, right) => (left.order ?? 0) - (right.order ?? 0));
+        ).docs;
     let claimed: PostDocument | null;
     try {
       claimed = await this.postsService.patchOneWhere(
@@ -262,11 +308,17 @@ export class PostAccountGenerationService {
     dto: GenerateAccountPostDto,
     run: AccountGenerationRun,
     createdPosts: PostDocument[],
-  ): Promise<void> {
+    page: AccountGenerationPageOptions = {
+      isLastPage: true,
+      previousTexts: [],
+    },
+  ): Promise<string[] | undefined> {
     // The activity is created inside the try so a failure here cannot leave the
     // already-created placeholders stuck in PROCESSING (issue #861).
     let activity: ActivityDocument | undefined;
     const finished = new Set<string>();
+    const written: string[] = [...page.previousTexts];
+    let hasFailed = false;
     try {
       activity = await this.activityRecorder.record({
         brandId: run.identity.brandId,
@@ -275,7 +327,8 @@ export class PostAccountGenerationService {
         source: ActivitySource.POST_GENERATION,
         userId: run.identity.userId,
         value: JSON.stringify({
-          count: dto.count,
+          count: createdPosts.length,
+          requestedCount: dto.count,
           topic: dto.topic?.substring(0, 100),
           type: `${dto.format}-generation`,
         }),
@@ -286,10 +339,10 @@ export class PostAccountGenerationService {
         run.identity,
       );
       const units = this.plan(dto, run, createdPosts, session.receipts);
-      const written: string[] = [];
       let completedCount = 0;
       let firstCompletedPostId: string | undefined;
       for (const unit of units) {
+        await this.queue.renew(run.scope.organizationId, run.runId);
         const result = await this.dispatch(run, {
           ...unit,
           previousTexts: [...written],
@@ -316,6 +369,7 @@ export class PostAccountGenerationService {
         firstCompletedPostId,
       );
     } catch (error) {
+      hasFailed = true;
       this.logger.error('Failed to generate account content asynchronously', {
         error,
         platform: run.context.account.platform,
@@ -329,8 +383,10 @@ export class PostAccountGenerationService {
             null,
           );
     } finally {
-      await this.billing.releaseRun(run.funding, run.scope);
+      if (hasFailed || page.isLastPage)
+        await this.billing.releaseRun(run.funding, run.scope);
     }
+    return hasFailed ? undefined : written.slice(-ACCOUNT_GENERATION_PAGE_SIZE);
   }
 
   private async executeRetry(
@@ -427,37 +483,52 @@ export class PostAccountGenerationService {
     };
   }
 
-  private async createPlaceholders(
+  async createPlaceholders(
     dto: GenerateAccountPostDto,
     run: AccountGenerationRun,
+    offset = 0,
   ): Promise<PostDocument[]> {
     const isThread = dto.format === 'thread';
     const input = this.promptInput(dto, run);
     const createdPosts: PostDocument[] = [];
     let rootPostId: string | undefined;
-    for (let i = 0; i < dto.count; i++) {
-      const post = await this.postsService.create({
-        brandId: run.identity.brandId,
-        category: PostCategory.TEXT,
-        credentialId: dto.credentialId,
-        description: 'Generating...',
-        format: isThread ? PostFormat.THREAD : PostFormat.STANDARD,
-        groupId: run.runId,
-        ingredients: [],
-        label: '',
-        order: i,
-        organizationId: run.identity.organizationId,
-        parentId: isThread && i > 0 ? rootPostId : undefined,
-        platform: run.context.account.platform,
-        promptUsed: isThread
-          ? buildAccountThreadPrompt(input)
-          : buildAccountPostPrompt({ ...input, index: i }),
-        source: ACCOUNT_GENERATION_POST_SOURCE,
-        targetExecutionState: TargetExecutionState.PUBLISHING,
-        userId: run.identity.userId,
-      });
-      createdPosts.push(post);
-      if (i === 0) rootPostId = String(post.id);
+    const pageEnd = Math.min(dto.count, offset + ACCOUNT_GENERATION_PAGE_SIZE);
+    try {
+      for (let i = offset; i < pageEnd; i++) {
+        const post = await this.postsService.create({
+          brandId: run.identity.brandId,
+          category: PostCategory.TEXT,
+          credentialId: dto.credentialId,
+          description: 'Generating...',
+          format: isThread ? PostFormat.THREAD : PostFormat.STANDARD,
+          groupId: run.runId,
+          ingredients: [],
+          label: '',
+          order: i,
+          organizationId: run.identity.organizationId,
+          parentId: isThread && i > 0 ? rootPostId : undefined,
+          platform: run.context.account.platform,
+          promptUsed: isThread
+            ? buildAccountThreadPrompt(input)
+            : buildAccountPostPrompt({ ...input, index: i }),
+          source: ACCOUNT_GENERATION_POST_SOURCE,
+          targetExecutionState: TargetExecutionState.PUBLISHING,
+          userId: run.identity.userId,
+        });
+        createdPosts.push(post);
+        if (i === 0) rootPostId = String(post.id);
+      }
+    } catch (error) {
+      await Promise.allSettled(
+        createdPosts.map((post) =>
+          this.failPost(
+            post,
+            accountGenerationFailure('account_generation_placeholder_failed'),
+            null,
+          ),
+        ),
+      );
+      throw error;
     }
     return createdPosts;
   }
@@ -484,9 +555,9 @@ export class PostAccountGenerationService {
     return createdPosts.map((post, index) => ({
       basePrompt: buildAccountPostPrompt({
         ...this.promptInput(dto, run),
-        index,
+        index: post.order ?? index,
       }),
-      candidateIndex: index,
+      candidateIndex: post.order ?? index,
       format: 'text' as const,
       learning: receipts[index],
       posts: [post],

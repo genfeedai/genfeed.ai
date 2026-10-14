@@ -149,6 +149,44 @@ describe('PostAccountGenerationBillingService', () => {
     });
   });
 
+  describe('queued funding', () => {
+    it('never switches a funded platform run to a new BYOK key', async () => {
+      await expect(
+        service.queuedApiKey('openai/gpt-5-mini', scope, false),
+      ).resolves.toBeUndefined();
+      expect(textCredits.resolveDispatch).not.toHaveBeenCalled();
+    });
+    it('rechecks paid BYOK access at worker dispatch and refuses missing keys', async () => {
+      await expect(
+        service.queuedApiKey('openai/gpt-5-mini', scope, true),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(textCredits.resolveDispatch).toHaveBeenCalledWith('org-1', [
+        'openai/gpt-5-mini',
+      ]);
+    });
+    it('uses the current organization key without reserving credits for BYOK', async () => {
+      textCredits.resolveDispatch.mockResolvedValue({
+        keys: { openrouter: 'current-key' },
+      });
+      await expect(
+        service.queuedApiKey('openai/gpt-5-mini', scope, true),
+      ).resolves.toBe('current-key');
+      expect(credits.reserveCredits).not.toHaveBeenCalled();
+    });
+    it('refuses missing model pricing rather than treating it as free', async () => {
+      models.findOne.mockResolvedValue(null);
+      await expect(
+        service.reserveRun({
+          dispatchCount: 2,
+          model: 'missing',
+          runId: 'r',
+          scope,
+        }),
+      ).rejects.toMatchObject({ status: 503 });
+      expect(credits.reserveCredits).not.toHaveBeenCalled();
+    });
+  });
+
   describe('per dispatch', () => {
     const funding = {
       apiKey: undefined,
