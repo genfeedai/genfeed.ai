@@ -420,7 +420,10 @@
     "generationFailed": "{kind} generation failed",
     "noPreview": "No preview is available for this asset.",
     "unlockCredits": "Unlock more with credits",
-    "creditAmount": "{count} credits"
+    "creditAmount": "{count} credits",
+    "receiptReady": "Written with your approved brand kit.",
+    "receiptNeedsReview": "Written in a provisional style until you approve your own brand kit.",
+    "viewReceipt": "View receipt"
   },
   "mutationApproval": {
     "approve": "Approve",

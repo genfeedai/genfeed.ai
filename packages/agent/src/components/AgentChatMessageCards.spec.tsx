@@ -49,6 +49,50 @@ describe('ContentPreviewCard', () => {
     vi.useRealTimers();
   });
 
+  it.each([
+    ['ready', 'Written with your approved brand kit.'],
+    [
+      'needs_review',
+      'Written in a provisional style until you approve your own brand kit.',
+    ],
+  ] as const)(
+    'shows the brand receipt state %s with a link to the receipt',
+    (state, message) => {
+      render(
+        <ContentPreviewCard
+          action={{
+            brandedReceipt: { id: 'receipt-1', state },
+            id: 'content-gen-receipt-1',
+            textContent: 'A branded draft',
+            type: 'content_preview_card',
+          }}
+        />,
+      );
+
+      expect(screen.getByText(message, { exact: false })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'View receipt' }),
+      ).toHaveAttribute(
+        'href',
+        expect.stringContaining('/settings/agent/receipts?receiptId=receipt-1'),
+      );
+    },
+  );
+
+  it('shows no receipt line for a preview without a brand receipt', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          id: 'plain',
+          textContent: 'A plain draft',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: 'View receipt' })).toBeNull();
+  });
+
   it('requests approval only when the user clicks the delivered draft action', () => {
     const onUiAction = vi.fn();
     render(

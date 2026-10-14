@@ -6,12 +6,24 @@ generation through the saved receipt (#5786):
 create → resolve → dispatch → bind artifact → validate
 
 Callers today: `POST /posts/draft-generations` (`PostDraftGenerationService`,
-surface `api`, or `onboarding` for the agent first-content tool), the agent text
-actions (`BrandedTextRunnerService`, surface `agent`) and breakout text output.
-There is no unreceipted draft path: the mode is decided on the server by
-`BrandedModeResolverService` (an approved revision wins; otherwise the brand's
-live DRAFT, created from the Genfeed default style kit when none exists, runs as
-`provisional_brand`). Provisional output always completes as `needs_review`.
+surface `api`, or `onboarding` for the agent first-content tool), every agent
+text tool (surface `agent`) and breakout text output:
+
+- `refine_text` and `generate_reply_variants` (`BrandedTextActionsService`);
+- social `generate_content` and `draft_thread` replies
+  (`BrandedContentActionsService`), which return the receipt id to the chat.
+
+All agent tools run through `BrandedTextRunnerService`; none has an unreceipted
+fallback. There is no unreceipted draft path: the mode is decided on the server
+by `BrandedModeResolverService` (an approved revision wins; otherwise the
+brand's live DRAFT, created from the Genfeed default style kit when none
+exists, runs as `provisional_brand`). Provisional output always completes as
+`needs_review`.
+
+The receipt binds an artifact, so every completed agent generation also keeps
+its exact text as a DRAFT post (the receipt's artifact). The agent tools
+propose; they add nothing to a thread, schedule or publish until the user
+accepts through the approval-gated save tools.
 
 ## Guarantees
 
@@ -49,4 +61,6 @@ changed payload is rejected with `request_payload_conflict`.
 ## Not wired yet
 
 Account and thread generation, content-intelligence, Studio media prompts, MCP,
-workflows, schedules, batches and desktop adapters remain open on #5786.
+workflows, schedules, batches and desktop adapters remain open on #5786. The
+agent `generate_content` article and newsletter types are not text-seam
+surfaces yet.

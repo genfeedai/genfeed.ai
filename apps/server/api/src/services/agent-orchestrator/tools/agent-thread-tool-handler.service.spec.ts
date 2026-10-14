@@ -49,25 +49,37 @@ function createHandler() {
       );
     }),
   };
-  const threadGenerationService = {
-    draftThread: vi.fn(async () => ['Reply one', 'Reply two']),
+  const brandedContentActions = {
+    draftThreadReplies: vi.fn(
+      async (): Promise<Record<string, unknown>> => ({
+        hasNewDispatch: true,
+        kind: 'completed',
+        result: {
+          maxCharacters: 280,
+          platform: 'twitter',
+          posts: ['Reply one', 'Reply two'],
+          receiptId: 'receipt-1',
+          receiptState: 'ready',
+        },
+      }),
+    ),
   };
   const agentScopeContextService = { assertResourceBrand: vi.fn() };
   const handler = new AgentThreadToolHandler(
     loggerService as unknown as LoggerService,
     postsService as never,
-    threadGenerationService as never,
+    brandedContentActions as never,
     agentScopeContextService as never,
   );
   return {
     agentScopeContextService,
+    brandedContentActions,
     handler,
     loggerService,
     postsService,
     setChildren: (next: Child[]) => {
       children = next;
     },
-    threadGenerationService,
   };
 }
 
@@ -86,7 +98,7 @@ describe('AgentThreadToolHandler', () => {
   });
 
   describe('draft_thread', () => {
-    it('returns the proposed replies as a thread preview and saves nothing', async () => {
+    it('returns the proposed replies as a receipt-backed thread preview and adds nothing to the thread', async () => {
       const result = await h.handler.execute(
         'draft_thread',
         { count: 3, postId: 'post-1', tone: 'viral' },
@@ -95,12 +107,15 @@ describe('AgentThreadToolHandler', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
-        isSaved: false,
+        isAddedToThread: false,
         postId: 'post-1',
         proposedPosts: ['Reply one', 'Reply two'],
+        receiptId: 'receipt-1',
+        receiptState: 'ready',
       });
       expect(result.nextActions).toEqual([
         expect.objectContaining({
+          brandedReceipt: { id: 'receipt-1', state: 'ready' },
           contentFormat: 'thread',
           tweets: ['Reply one', 'Reply two'],
           type: 'content_preview_card',
@@ -108,11 +123,14 @@ describe('AgentThreadToolHandler', () => {
       ]);
       expect(h.postsService.create).not.toHaveBeenCalled();
       expect(h.postsService.patch).not.toHaveBeenCalled();
-      expect(h.threadGenerationService.draftThread).toHaveBeenCalledWith(
-        xPost,
-        { count: 3, tone: 'viral' },
-        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
-      );
+      expect(h.brandedContentActions.draftThreadReplies).toHaveBeenCalledWith({
+        actor: { organizationId: 'org-1', userId: 'user-1' },
+        brandId: 'brand-1',
+        count: 3,
+        originalContent: 'Launch day',
+        requestKey: expect.stringMatching(/^[0-9a-f-]{36}$/u),
+        tone: 'viral',
+      });
     });
 
     it('looks the post up inside the caller organization', async () => {
@@ -155,7 +173,9 @@ describe('AgentThreadToolHandler', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toContain(reason);
-        expect(h.threadGenerationService.draftThread).not.toHaveBeenCalled();
+        expect(
+          h.brandedContentActions.draftThreadReplies,
+        ).not.toHaveBeenCalled();
       },
     );
 
@@ -170,7 +190,7 @@ describe('AgentThreadToolHandler', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('already has thread children');
-      expect(h.threadGenerationService.draftThread).not.toHaveBeenCalled();
+      expect(h.brandedContentActions.draftThreadReplies).not.toHaveBeenCalled();
     });
 
     it('rejects an out-of-range count before touching the post', async () => {
@@ -185,7 +205,7 @@ describe('AgentThreadToolHandler', () => {
     });
 
     it('reports a generation failure without exposing the cause', async () => {
-      h.threadGenerationService.draftThread.mockRejectedValue(
+      h.brandedContentActions.draftThreadReplies.mockRejectedValue(
         new Error('provider key sk-secret rejected'),
       );
 
@@ -201,7 +221,17 @@ describe('AgentThreadToolHandler', () => {
     });
 
     it('fails when no valid reply came back', async () => {
-      h.threadGenerationService.draftThread.mockResolvedValue([]);
+      h.brandedContentActions.draftThreadReplies.mockResolvedValue({
+        hasNewDispatch: true,
+        kind: 'completed',
+        result: {
+          maxCharacters: 280,
+          platform: 'twitter',
+          posts: [],
+          receiptId: 'receipt-1',
+          receiptState: 'ready',
+        },
+      });
 
       const result = await h.handler.execute(
         'draft_thread',
@@ -211,6 +241,52 @@ describe('AgentThreadToolHandler', () => {
 
       expect(result.success).toBe(false);
       expect(result.nextActions).toBeUndefined();
+    });
+
+    it('reports a stopped generation with its reason and receipt', async () => {
+      h.brandedContentActions.draftThreadReplies.mockResolvedValue({
+        code: 'blocked',
+        kind: 'failed',
+        message: 'Your brand voice could not be applied (no_draft_revision).',
+        reasonCode: 'no_draft_revision',
+        receiptId: 'receipt-9',
+      });
+
+      const result = await h.handler.execute(
+        'draft_thread',
+        { count: 3, postId: 'post-1' },
+        ctx,
+      );
+
+      expect(result).toEqual({
+        creditsUsed: 0,
+        data: {
+          code: 'blocked',
+          reasonCode: 'no_draft_revision',
+          receiptId: 'receipt-9',
+        },
+        error: 'Your brand voice could not be applied (no_draft_revision).',
+        success: false,
+      });
+    });
+
+    it('needs a brand to write the replies for', async () => {
+      h.postsService.findOne.mockResolvedValue({
+        ...xPost,
+        brandId: undefined,
+      });
+
+      const result = await h.handler.execute(
+        'draft_thread',
+        { count: 3, postId: 'post-1' },
+        { organizationId: 'org-1', userId: 'user-1' },
+      );
+
+      expect(result).toMatchObject({
+        error: 'A brand is required to draft a thread.',
+        success: false,
+      });
+      expect(h.brandedContentActions.draftThreadReplies).not.toHaveBeenCalled();
     });
 
     it('enforces the thread brand scope', async () => {
@@ -229,7 +305,7 @@ describe('AgentThreadToolHandler', () => {
           scoped,
         ),
       ).rejects.toThrow('brand scope');
-      expect(h.threadGenerationService.draftThread).not.toHaveBeenCalled();
+      expect(h.brandedContentActions.draftThreadReplies).not.toHaveBeenCalled();
     });
   });
 

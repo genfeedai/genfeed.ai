@@ -13,8 +13,8 @@ function createHandler() {
   const aiActionsService = {
     execute: vi.fn(),
   };
-  const contentGeneratorService = {
-    generateContent: vi.fn(),
+  const brandedContentActions = {
+    generateSocial: vi.fn(),
   };
   const newslettersService = {
     generateDraft: vi.fn(),
@@ -53,7 +53,7 @@ function createHandler() {
   const handler = new AgentMediaGenerationToolHandler(
     new AgentMediaTextGenerationService(
       aiActionsService as never,
-      contentGeneratorService as never,
+      brandedContentActions as never,
       newslettersService as never,
       gateway as never,
       brandsService as never,
@@ -73,8 +73,8 @@ function createHandler() {
 
   return {
     aiActionsService,
+    brandedContentActions,
     brandsService,
-    contentGeneratorService,
     gateway,
     handler,
     newslettersService,
@@ -87,6 +87,21 @@ const context = {
   organizationId: 'organization-1',
   userId: 'user-1',
 };
+
+/** A completed receipt-backed social generation holding `posts`. */
+function socialDraft(posts: string[], receiptState = 'ready') {
+  return {
+    hasNewDispatch: true,
+    kind: 'completed',
+    result: {
+      maxCharacters: 280,
+      platform: 'twitter',
+      posts,
+      receiptId: 'receipt-1',
+      receiptState,
+    },
+  };
+}
 
 // Plain functions so suite-level mock resets cannot turn admission off.
 const textGenerationCredits = {
@@ -489,15 +504,10 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 
   it('emits a platform-aware output card for generated social content', async () => {
-    const { contentGeneratorService, handler } = createHandler();
-    contentGeneratorService.generateContent.mockResolvedValue([
-      {
-        content: 'Shipping is a feature. Momentum is the moat.',
-        hashtags: [],
-        hook: 'Shipping is a feature.',
-        patternUsed: 'contrarian',
-      },
-    ]);
+    const { brandedContentActions, handler } = createHandler();
+    brandedContentActions.generateSocial.mockResolvedValue(
+      socialDraft(['Shipping is a feature. Momentum is the moat. #ship']),
+    );
 
     const result = await handler.generateContent(
       { platform: 'twitter', topic: 'shipping velocity', type: 'post' },
@@ -505,69 +515,132 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     );
 
     expect(result.nextActions?.[0]).toMatchObject({
+      brandedReceipt: { id: 'receipt-1', state: 'ready' },
       contentFormat: 'social_post',
       platform: 'twitter',
-      textContent: 'Shipping is a feature. Momentum is the moat.',
+      textContent: 'Shipping is a feature. Momentum is the moat. #ship',
+      type: 'content_preview_card',
+    });
+    expect(result.data).toMatchObject({
+      content: 'Shipping is a feature. Momentum is the moat. #ship',
+      hashtags: ['#ship'],
+      receiptId: 'receipt-1',
+      receiptState: 'ready',
+    });
+  });
+
+  it('writes social drafts from the thread brand and the selected Knowledge through the seam', async () => {
+    const { brandedContentActions, handler } = createHandler();
+    brandedContentActions.generateSocial.mockResolvedValue(
+      socialDraft(['Thursday is ship day.'], 'needs_review'),
+    );
+
+    const result = await handler.generateContent(
+      { platform: 'twitter', topic: 'ship day', type: 'post' },
+      {
+        ...context,
+        knowledgeSelection: { sourceIds: ['source-1'], spaceIds: ['space-1'] },
+      },
+    );
+
+    expect(brandedContentActions.generateSocial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: { organizationId: 'organization-1', userId: 'user-1' },
+        brandId: 'brand-1',
+        isThread: false,
+        knowledgeSourceIds: ['source-1'],
+        knowledgeSpaceIds: ['space-1'],
+        platform: 'twitter',
+        topic: 'ship day',
+        variants: 1,
+      }),
+    );
+    expect(
+      brandedContentActions.generateSocial.mock.calls[0][0].requestKey,
+    ).toMatch(/^[0-9a-f-]{36}$/u);
+    expect(result.nextActions?.[0]).toMatchObject({
+      brandedReceipt: { id: 'receipt-1', state: 'needs_review' },
       type: 'content_preview_card',
     });
   });
 
-  it('grounds social drafts in the thread brand and shows their receipts', async () => {
-    const { contentGeneratorService, handler } = createHandler();
-    const receipt = {
-      excerpt: 'We ship every Thursday.',
-      kind: 'TEXT',
-      purpose: 'INSPIRATION',
-      relevance: 0.55,
-      sourceId: 'source-1',
-      title: 'Brand facts',
-      version: 1,
-      versionId: 'version-1',
-    };
-    contentGeneratorService.generateContent.mockResolvedValue([
-      {
-        content: 'Thursday is ship day.',
-        hashtags: [],
-        knowledgeReceipts: [receipt],
-        patternUsed: 'announcement',
-      },
-    ]);
+  it('refuses Knowledge purposes alone because a receipt cannot be grounded on them', async () => {
+    const { brandedContentActions, handler } = createHandler();
 
     const result = await handler.generateContent(
       { platform: 'twitter', topic: 'ship day', type: 'post' },
-      { ...context, knowledgeSelection: { sourceIds: ['source-1'] } },
+      {
+        ...context,
+        knowledgeSelection: { purposes: ['BRAND_TRUTH'] } as never,
+      },
     );
 
-    expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
-      'organization-1',
-      expect.objectContaining({
-        brandId: 'brand-1',
-        knowledge: { sourceIds: ['source-1'] },
-      }),
+    expect(result).toMatchObject({
+      data: { code: 'knowledge_purposes_unsupported' },
+      success: false,
+    });
+    expect(brandedContentActions.generateSocial).not.toHaveBeenCalled();
+  });
+
+  it('requires a topic before any generation', async () => {
+    const { brandedContentActions, handler } = createHandler();
+
+    const result = await handler.generateContent(
+      { platform: 'twitter', type: 'post' },
+      context,
     );
-    expect(result.nextActions?.[0]).toMatchObject({
-      knowledgeReceipts: [receipt],
-      type: 'content_preview_card',
+
+    expect(result).toMatchObject({
+      error: 'A topic is required to generate content.',
+      success: false,
+    });
+    expect(brandedContentActions.generateSocial).not.toHaveBeenCalled();
+  });
+
+  it('reports a stopped generation with its receipt and charges nothing', async () => {
+    const { brandedContentActions, handler } = createHandler();
+    brandedContentActions.generateSocial.mockResolvedValue({
+      code: 'blocked',
+      kind: 'failed',
+      message:
+        'Your brand voice could not be applied (x). Nothing was written.',
+      reasonCode: 'x',
+      receiptId: 'receipt-9',
+    });
+
+    const result = await handler.generateContent(
+      { platform: 'twitter', topic: 'ship day', type: 'post' },
+      context,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      data: { code: 'blocked', reasonCode: 'x', receiptId: 'receipt-9' },
+      error: 'Your brand voice could not be applied (x). Nothing was written.',
+      success: false,
     });
   });
 
   it('preserves generated thread segments as one structured preview', async () => {
-    const { contentGeneratorService, handler } = createHandler();
-    contentGeneratorService.generateContent.mockResolvedValue([
-      {
-        content:
-          'The first post hooks the reader.\n\nThe second post delivers the proof.\n\nThe final post closes the loop.',
-        hashtags: [],
-        patternUsed: 'thread',
-      },
-    ]);
+    const { brandedContentActions, handler } = createHandler();
+    brandedContentActions.generateSocial.mockResolvedValue(
+      socialDraft([
+        'The first post hooks the reader.',
+        'The second post delivers the proof.',
+        'The final post closes the loop.',
+      ]),
+    );
 
     const result = await handler.generateContent(
       { platform: 'twitter', topic: 'durable agents', type: 'thread' },
       context,
     );
 
+    expect(brandedContentActions.generateSocial).toHaveBeenCalledWith(
+      expect.objectContaining({ isThread: true }),
+    );
     expect(result.nextActions?.[0]).toMatchObject({
+      brandedReceipt: { id: 'receipt-1', state: 'ready' },
       contentFormat: 'thread',
       platform: 'twitter',
       textContent: 'The first post hooks the reader.',
@@ -817,22 +890,11 @@ describe('AgentMediaGenerationToolHandler saved article drafts', () => {
 });
 
 describe('AgentMediaGenerationToolHandler social variations', () => {
-  const variation = (content: string) => ({
-    body: `${content} body`,
-    content,
-    cta: 'Reply below',
-    hashtags: ['#launch'],
-    hook: `${content} hook`,
-    patternUsed: 'story',
-  });
-
   it('returns every LinkedIn variation when more than one is requested', async () => {
-    const { contentGeneratorService, handler } = createHandler();
-    contentGeneratorService.generateContent.mockResolvedValue([
-      variation('one'),
-      variation('two'),
-      variation('three'),
-    ]);
+    const { brandedContentActions, handler } = createHandler();
+    brandedContentActions.generateSocial.mockResolvedValue(
+      socialDraft(['one #launch', 'two', 'three']),
+    );
 
     const result = await handler.generateContent(
       {
@@ -844,23 +906,17 @@ describe('AgentMediaGenerationToolHandler social variations', () => {
       context,
     );
 
-    expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
-      context.organizationId,
+    expect(brandedContentActions.generateSocial).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: context.brandId,
         platform: 'linkedin',
-        variationsCount: 3,
+        variants: 3,
       }),
     );
     expect(result.data).toMatchObject({
-      content: 'one',
+      content: 'one #launch',
       variations: [
-        {
-          body: 'one body',
-          content: 'one',
-          cta: 'Reply below',
-          hook: 'one hook',
-        },
+        { content: 'one #launch', hashtags: ['#launch'] },
         { content: 'two' },
         { content: 'three' },
       ],
@@ -868,19 +924,18 @@ describe('AgentMediaGenerationToolHandler social variations', () => {
   });
 
   it('defaults to one variation and leaves the single-result shape unchanged', async () => {
-    const { contentGeneratorService, handler } = createHandler();
-    contentGeneratorService.generateContent.mockResolvedValue([
-      variation('one'),
-    ]);
+    const { brandedContentActions, handler } = createHandler();
+    brandedContentActions.generateSocial.mockResolvedValue(
+      socialDraft(['one']),
+    );
 
     const result = await handler.generateContent(
       { platform: 'linkedin', topic: 'a sales objection', type: 'post' },
       context,
     );
 
-    expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
-      context.organizationId,
-      expect.objectContaining({ variationsCount: 1 }),
+    expect(brandedContentActions.generateSocial).toHaveBeenCalledWith(
+      expect.objectContaining({ variants: 1 }),
     );
     expect(result.data).not.toHaveProperty('variations');
   });
@@ -888,7 +943,7 @@ describe('AgentMediaGenerationToolHandler social variations', () => {
   it.each([0, 6, 2.5, '3'])(
     'rejects variationsCount %s without generating',
     async (variationsCount) => {
-      const { contentGeneratorService, handler } = createHandler();
+      const { brandedContentActions, handler } = createHandler();
 
       const result = await handler.generateContent(
         { topic: 'a sales objection', type: 'post', variationsCount },
@@ -900,7 +955,7 @@ describe('AgentMediaGenerationToolHandler social variations', () => {
         error: 'variationsCount must be an integer from 1 to 5',
         success: false,
       });
-      expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
+      expect(brandedContentActions.generateSocial).not.toHaveBeenCalled();
     },
   );
 });

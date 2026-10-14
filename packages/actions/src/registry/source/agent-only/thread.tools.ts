@@ -4,7 +4,7 @@ export const AGENT_THREAD_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Propose reply posts that turn an existing X post into a thread. Nothing is saved: the proposed posts appear as a reviewable thread preview. Only for an X post with no replies yet. After the user accepts, call add_thread_posts with the posts they want.',
+      'Propose reply posts that turn an existing X post into a thread, written in the brand voice. Nothing is added to the thread: the proposed posts appear as a reviewable preview with a brand receipt (receiptId), and the exact text is kept on that receipt. Only for an X post with no replies yet. After the user accepts, call add_thread_posts with the posts they want.',
     name: 'draft_thread',
     parameters: {
       additionalProperties: false,
