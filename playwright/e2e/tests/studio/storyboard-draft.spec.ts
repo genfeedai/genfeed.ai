@@ -56,9 +56,15 @@ async function openStoryboardTab(
 ) {
   const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
   const open = page.getByRole('button', { name: 'Open details', exact: true });
-  // Wait for the sidebar (xl and up) or its drawer toggle to mount first.
-  await expect(tabs.or(open).first()).toBeVisible();
-  if (!(await tabs.isVisible())) await open.click();
+  const expand = page.getByRole('button', {
+    name: 'Expand details',
+    exact: true,
+  });
+  // Wait for the sidebar or a toggle to mount. A collapsed desktop rail keeps
+  // its tabs rendered behind the content, so prefer the toggles when present.
+  await expect(tabs.or(open).or(expand).first()).toBeVisible();
+  if (await expand.isVisible()) await expand.click();
+  else if (await open.isVisible()) await open.click();
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 }
 async function closeStoryboardDrawer(page: Page) {
