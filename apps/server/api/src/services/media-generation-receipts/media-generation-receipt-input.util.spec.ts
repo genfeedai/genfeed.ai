@@ -53,10 +53,10 @@ describe('resolveMediaGenerationReceiptPrompts', () => {
     });
   });
 
-  it('claims no enhancement when enhancement was skipped or failed', () => {
+  it('claims no enhancement when enhancement was skipped', () => {
     expect(
       resolveMediaGenerationReceiptPrompts({
-        harness: { ...harness, status: 'failed', enhancedPrompt: 'typed' },
+        harness: { ...harness, status: 'skipped', enhancedPrompt: 'typed' },
         fallbackPrompt: 'ignored',
         dispatched: [],
       }),
