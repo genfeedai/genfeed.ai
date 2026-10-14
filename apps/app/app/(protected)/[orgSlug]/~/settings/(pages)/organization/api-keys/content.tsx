@@ -45,6 +45,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isApiKeyLimitReached } from './api-key-create-error';
 
 const PRODUCT_API_KEY_PRESETS = [
   { labelKey: 'presets.mcp', scopes: API_KEY_SCOPE_PRESETS.mcp },
@@ -375,6 +376,10 @@ function AuthorizedApiKeysContent({
       NotificationsService.getInstance().success(translate('success.created'));
     } catch (error) {
       if (!isCurrent() || isCancelledRequest(error)) return;
+      if (isApiKeyLimitReached(error)) {
+        NotificationsService.getInstance().error(error.message);
+        return;
+      }
       logger.error('Failed to create Genfeed API key', error);
       NotificationsService.getInstance().error(translate('errors.create'));
     } finally {
