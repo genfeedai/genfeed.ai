@@ -254,7 +254,9 @@ describe('WorkflowLipSyncFundingService', () => {
         },
         submissionIntentProvider: ByokProvider.REPLICATE,
       });
-      expect(funding).toMatchObject({ apiKey: undefined, isByok: false });
+      // The platform Replicate key dispatches.
+      expect(funding.apiKey).toBeUndefined();
+      expect(funding.isByok).toBe(false);
     });
 
     it('dispatches on the customer Replicate key without a platform hold', async () => {
