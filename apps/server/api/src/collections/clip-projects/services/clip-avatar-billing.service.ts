@@ -6,8 +6,9 @@ import type {
   AvatarVideoSubmissionPlan,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /**
  * Funds one HeyGen avatar clip. The clip result is the hold's workload: the
@@ -35,6 +36,19 @@ export class ClipAvatarBillingService {
     userId: string;
   }): Promise<AvatarVideoSubmissionHold | undefined> {
     if (input.plan.isByok) return undefined;
+    if (
+      ![
+        MODEL_KEYS.HEYGEN_AVATAR,
+        MODEL_KEYS.HEYGEN_AVATAR_IV,
+        MODEL_KEYS.HEYGEN_AVATAR_V,
+      ].some((modelKey) => modelKey === input.plan.selection.modelKey)
+    )
+      throw new ServiceUnavailableException({
+        code: 'PRICING_UNAVAILABLE',
+        message:
+          'Platform clip billing is unavailable for this provider. Choose HeyGen or connect your own Argil key.',
+        modelKey: input.plan.selection.modelKey,
+      });
     const quote = await this.avatarBilling.quoteRender(
       input.plan.selection,
       estimateAvatarSpeechSeconds(input.script),

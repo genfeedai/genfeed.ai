@@ -60,6 +60,30 @@ describe('ArgilAvatarProvider', () => {
     });
   });
 
+  it('passes the resolved customer-key decision to clip funding before submission', async () => {
+    const fundSubmission = vi.fn().mockResolvedValue(undefined);
+    argilService.generateAvatarVideo.mockImplementation(
+      async (input: GenerateArgilVideoInput) => {
+        await input.beforeSubmission?.(true);
+        return 'video-1';
+      },
+    );
+    const result = await provider.generateVideo({
+      avatarId: 'avatar-1',
+      callbackId: 'clip-1',
+      fundSubmission,
+      organizationId: 'org-1',
+      script: 'Script',
+      userId: 'user-1',
+      voiceId: 'voice-1',
+    });
+    expect(result.status).toBe('processing');
+    expect(fundSubmission).toHaveBeenCalledWith({
+      isByok: true,
+      selection: { modelKey: 'argil/atom' },
+    });
+  });
+
   it('rejects reference-image jobs unsupported by Atom', async () => {
     const result = await provider.generateVideo({
       avatarId: 'avatar-1',
