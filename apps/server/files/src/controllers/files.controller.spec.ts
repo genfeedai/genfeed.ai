@@ -152,7 +152,7 @@ describe('FilesController', () => {
   };
 
   const mockConfigService = {
-    get: vi.fn((key: string) => {
+    get: vi.fn((key: string): string | null => {
       if (key === 'WEBSOCKET_URL') {
         return 'ws://localhost:3000';
       }
