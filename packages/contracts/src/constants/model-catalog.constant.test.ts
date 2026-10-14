@@ -473,6 +473,22 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(genjutsu?.providerCostUsd).toBeUndefined();
   });
 
+  it('seeds HeyGen photo animation active, public and priced per second', () => {
+    expect(
+      UNIFIED_MODEL_CATALOG.find(
+        (entry) => entry.key === MODEL_KEYS.HEYGEN_AVATAR,
+      ),
+    ).toMatchObject({
+      category: ModelCategory.AVATAR,
+      cost: 65,
+      isActive: true,
+      isPublic: true,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.HEYGEN,
+      providerCostUsd: 0.0385,
+    });
+  });
+
   it('seeds curated media rows with providerCostUsd for live-margin billing', () => {
     const curatedWithUsd = UNIFIED_MODEL_CATALOG.filter(
       (entry) => entry.isActive && entry.providerCostUsd != null,

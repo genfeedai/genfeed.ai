@@ -1,5 +1,5 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ModelLifecycle } from '@genfeedai/contracts';
+import { ModelLifecycle, PricingType } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_MODEL_KEYS,
   BRAND_DETECTION_CAPABILITY,
@@ -174,6 +174,29 @@ describe('ModelCatalogSeedService', () => {
     expect(call?.update).toMatchObject({
       isActive: true,
       isPublic: true,
+    });
+  });
+
+  it('activates and prices the existing unpriced heygen/avatar row per second', async () => {
+    const photoAvatar = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.HEYGEN_AVATAR,
+    );
+    if (!photoAvatar) throw new Error('Expected heygen/avatar in the catalog');
+    // Production holds the row the uncurated catalog seeded: inactive, cost 0.
+    prisma.model.findUnique.mockResolvedValueOnce({
+      cost: 0,
+      id: 'existing-id',
+    });
+
+    await service.reconcileCatalog([photoAvatar]);
+
+    expect(callForKey(MODEL_KEYS.HEYGEN_AVATAR)?.update).toMatchObject({
+      cost: 65,
+      costPerUnit: 13,
+      isActive: true,
+      isPublic: true,
+      pricingType: PricingType.PER_SECOND,
+      providerCostUsd: 0.0385,
     });
   });
 

@@ -1,4 +1,5 @@
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { MODEL_KEYS, SELF_HOSTED_MODELS } from '@genfeedai/contracts/constants';
 import type {
   ModelBillablePricingProfile,
   ModelBillableQuoteSnapshot,
@@ -49,6 +50,43 @@ export function avatarEngineSnapshot(
       modelKey: endpoint,
       provider: 'heygen',
       selectors: { avatar_type: avatarType },
+    },
+    marginMultiplier,
+    AVATAR_QUOTED_AT,
+  );
+  if (quote.status !== 'priced') throw new Error(quote.reason);
+  return quote.snapshot;
+}
+
+/**
+ * The `heygen/avatar` photo-animation row exactly as the curated catalog seeds
+ * it: no reviewed rate, priced from its configured per-second provider cost.
+ */
+export function photoAnimationProfile(): ModelBillablePricingProfile {
+  const row = SELF_HOSTED_MODELS.find(
+    (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR,
+  );
+  if (!row) throw new Error('The catalog must curate heygen/avatar');
+  return billableProfile({
+    cost: row.cost,
+    key: row.key,
+    pricingType: 'pricingType' in row ? (row.pricingType ?? null) : null,
+    provider: row.provider,
+    providerCostUsd: row.providerCostUsd,
+  });
+}
+
+/** A priced photo-animation admission snapshot at the given seconds. */
+export function photoAnimationSnapshot(
+  seconds: number,
+  marginMultiplier = 3.33,
+): ModelBillableQuoteSnapshot {
+  const quote = quoteModelBillablePricing(
+    photoAnimationProfile(),
+    {
+      duration: seconds,
+      modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+      provider: 'heygen',
     },
     marginMultiplier,
     AVATAR_QUOTED_AT,

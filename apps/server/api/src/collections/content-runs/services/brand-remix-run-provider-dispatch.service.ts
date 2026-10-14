@@ -215,9 +215,14 @@ export class BrandRemixRunProviderDispatchService {
     return lines.join('\n');
   }
 
-  /** The avatar unit price, from the same `heygen/avatar` row the guard uses. */
-  quoteAvatarCredits(): Promise<number> {
-    return this.avatarVideoGenerationService.quotePlatformCredits();
+  /**
+   * The avatar variant price from the per-second `heygen/avatar` row, at the
+   * length of the script the variant speaks.
+   */
+  quoteAvatarCredits(config: BrandRemixRunConfig): Promise<number> {
+    return this.avatarVideoGenerationService.quotePlatformCredits(
+      this.compileAvatarSpeech(config),
+    );
   }
 
   async resolveVariantCredits(params: {
@@ -244,7 +249,7 @@ export class BrandRemixRunProviderDispatchService {
         Number.isFinite(requested.amount) &&
         requested.amount > 0
           ? requested.amount
-          : await this.quoteAvatarCredits();
+          : await this.quoteAvatarCredits(params.config);
       return {
         amount: params.avatarByokBypass ? 0 : amount,
         isByokBypass: params.avatarByokBypass,

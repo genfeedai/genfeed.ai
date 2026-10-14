@@ -868,7 +868,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
           Number.isFinite(requestedAmount) &&
           requestedAmount > 0
             ? requestedAmount
-            : await this.dispatch.quoteAvatarCredits(),
+            : await this.dispatch.quoteAvatarCredits(params.config),
         deferred: true,
       };
     } else {

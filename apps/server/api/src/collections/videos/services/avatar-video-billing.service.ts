@@ -22,7 +22,11 @@ import { BusinessLogicException } from '@api/exceptions/business-logic.exception
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ByokProvider,
+  PricingType,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -79,9 +83,7 @@ export class AvatarVideoBillingService {
       ? undefined
       : await this.quoteRender(
           selection,
-          selection.engine
-            ? await this.estimateRenderSeconds(params, identity, organizationId)
-            : undefined,
+          await this.estimateRenderSeconds(params, identity, organizationId),
         );
     return {
       billingMode: isByok ? 'byok' : 'platform',
@@ -95,7 +97,7 @@ export class AvatarVideoBillingService {
   }
 
   /**
-   * The clip length an engine render is held for: a saved narration's measured
+   * The clip length a render is held for: a saved narration's measured
    * duration, else an estimate from the script. Settlement corrects either to
    * the duration HeyGen returns.
    */
@@ -138,34 +140,34 @@ export class AvatarVideoBillingService {
     });
   }
 
-  async quotePlatformCredits(): Promise<number> {
-    const credits = await this.modelCreditQuote.quoteByKey(
-      MODEL_KEYS.HEYGEN_AVATAR,
-    );
-    if (!Number.isFinite(credits) || !(credits > 0)) {
-      throw new BusinessLogicException(
-        'Avatar video pricing is not configured',
+  /**
+   * The photo-animation price of a script, for callers that quote before a
+   * render resolves its identity (remix runs and scenes): the per-second
+   * `heygen/avatar` row at the script's estimated length.
+   */
+  async quotePlatformCredits(script: string): Promise<number> {
+    if (!script.trim())
+      throw new BadRequestException('Add a script to price this avatar.');
+    return (
+      await this.quoteRender(
         { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
-        'PRICING_NOT_CONFIGURED',
-      );
-    }
-    return credits;
+        estimateAvatarSpeechSeconds(script),
+      )
+    ).credits;
   }
 
   /**
-   * Admission price for a render. Photo animation keeps the flat
-   * `heygen/avatar` quote. An engine row is priced per second from the reviewed
-   * `avatar_type` rate at the estimated clip length; the frozen quote rides on
-   * the hold so settlement re-prices it at the duration HeyGen returns. An
-   * avatar type the sheet does not price is refused, never guessed.
+   * Admission price for a render at its estimated clip length. Photo animation
+   * is priced on the per-second `heygen/avatar` row; an engine row from the
+   * reviewed `avatar_type` rate, and an avatar type the sheet does not price is
+   * refused, never guessed. The frozen quote rides on the hold so settlement
+   * re-prices it at the duration HeyGen returns.
    */
   async quoteRender(
     selection: AvatarModelSelection,
     estimatedSeconds: number | undefined,
   ): Promise<AvatarRenderQuote> {
-    if (!selection.engine)
-      return { credits: await this.quotePlatformCredits() };
-    if (!selection.avatarType)
+    if (selection.engine && !selection.avatarType)
       throw new BadRequestException(
         'The avatar type could not be verified, so the render cannot be priced.',
       );
@@ -173,6 +175,7 @@ export class AvatarVideoBillingService {
       throw new BadRequestException(
         'Add a script or a saved narration with a known length to price this avatar.',
       );
+    if (!selection.engine) return this.quotePhotoAnimation(estimatedSeconds);
     const snapshot = await this.modelCreditQuote.quoteSnapshotByKey(
       selection.modelKey,
       {
@@ -189,6 +192,34 @@ export class AvatarVideoBillingService {
         modelKey: selection.modelKey,
         title: 'Pricing is unavailable for this generation',
       });
+    return {
+      credits: snapshot.credits,
+      durationQuote: { estimatedSeconds, snapshot },
+    };
+  }
+
+  /**
+   * HeyGen bills photo animation at one per-second rate, so the row needs no
+   * reviewed selector. It must still be metered per second: a flat reading
+   * would bill one second as the whole clip, and zero would be a free render.
+   */
+  private async quotePhotoAnimation(
+    estimatedSeconds: number,
+  ): Promise<AvatarRenderQuote> {
+    const snapshot = await this.modelCreditQuote.quoteSnapshotByKey(
+      MODEL_KEYS.HEYGEN_AVATAR,
+      { duration: estimatedSeconds },
+    );
+    if (
+      snapshot.pricingProfile.pricingType !== PricingType.PER_SECOND ||
+      !Number.isFinite(snapshot.credits) ||
+      !(snapshot.credits > 0)
+    )
+      throw new BusinessLogicException(
+        'Avatar video pricing is not configured',
+        { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
+        'PRICING_NOT_CONFIGURED',
+      );
     return {
       credits: snapshot.credits,
       durationQuote: { estimatedSeconds, snapshot },
