@@ -37,6 +37,8 @@ const ALLOWED_FILES = new Set([
   'posting-cadence-copy.service.ts',
   'referrals.service.ts',
   'reply-generation.service.ts',
+  // Storyboard sketch stills: a quoted Studio route, not an agent tool; its spec verifies settle-on-render and release-on-failure.
+  'storyboard-stills.service.ts',
   'voice-credits.service.ts',
   'workflow-generation-billing.service.ts',
   'workflow-trend-publish-executor-registrar.service.ts',
