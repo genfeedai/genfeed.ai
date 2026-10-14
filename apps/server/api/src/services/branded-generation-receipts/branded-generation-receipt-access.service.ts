@@ -1,4 +1,5 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { isSystemBrandPrincipal } from '@api/authorization/brand-access/system-brand-principal.util';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
 import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
@@ -11,6 +12,18 @@ export class BrandedGenerationReceiptAccessService {
     actor: BrandedGenerationActorV1,
     tx: Prisma.TransactionClient,
   ): Promise<{ isOwnerOrAdmin: boolean }> {
+    if (isSystemBrandPrincipal({ ...actor, userId: actor.actorId })) {
+      const brand = await tx.brand.findFirst({
+        where: {
+          id: actor.brandId,
+          organizationId: actor.organizationId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+      if (!brand) throw new ForbiddenException('receipt_access_denied');
+      return { isOwnerOrAdmin: true };
+    }
     if (isCloudDeployment()) {
       const principal = { ...actor, userId: actor.actorId };
       try {
