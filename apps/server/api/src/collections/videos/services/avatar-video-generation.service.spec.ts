@@ -358,12 +358,8 @@ describe('AvatarVideoGenerationService', () => {
       SPEECH_PRICE,
     ],
     ['BYOK ElevenLabs speech', { elevenlabsVoiceId: 'voice-1' }, true, 0],
-    [
-      'Genfeed saved voice',
-      { clonedVoiceId: 'saved-voice-1' },
-      false,
-      AVATAR_PRICE,
-    ],
+    // Genfeed's own voices runtime has no per-character rate: included (#6932).
+    ['Genfeed saved voice', { clonedVoiceId: 'saved-voice-1' }, false, 0],
   ])(
     'quotes actual funding for %s with HeyGen BYOK',
     async (_label, voice, elevenLabsByok, cost) => {
@@ -415,7 +411,7 @@ describe('AvatarVideoGenerationService', () => {
   it.each([
     ['provider-owned speech', { heygenVoiceId: 'voice-1' }, false],
     ['platform-funded speech', { elevenlabsVoiceId: 'voice-1' }, true],
-    ['saved Genfeed voice', { clonedVoiceId: 'voice-1' }, true],
+    ['saved Genfeed voice', { clonedVoiceId: 'voice-1' }, false],
   ])(
     'settles direct HeyGen BYOK avatars correctly with %s',
     async (_label, voice, billable) => {
