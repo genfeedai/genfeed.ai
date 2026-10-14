@@ -101,6 +101,7 @@ export class ElevenLabsService {
       const voices: ElevenLabsVoice[] = [];
       for (const voiceType of PUBLIC_CATALOG_VOICE_TYPES) {
         let nextPageToken: string | undefined;
+        let hasMore = false;
         for (let page = 0; page < MAX_CATALOG_PAGES; page++) {
           const response = await client.voices.search({
             pageSize: ACCOUNT_VOICE_PAGE_SIZE_MAX,
@@ -108,8 +109,15 @@ export class ElevenLabsService {
             ...(nextPageToken ? { nextPageToken } : {}),
           });
           voices.push(...response.voices);
-          if (!response.hasMore || !response.nextPageToken) break;
+          hasMore = Boolean(response.hasMore && response.nextPageToken);
+          if (!hasMore) break;
           nextPageToken = response.nextPageToken;
+        }
+        if (hasMore) {
+          this.loggerService.warn(`${url} catalog page cap reached`, {
+            maxVoices: MAX_CATALOG_PAGES * ACCOUNT_VOICE_PAGE_SIZE_MAX,
+            voiceType,
+          });
         }
       }
 

@@ -181,10 +181,10 @@ describe('ElevenLabsAccountVoicesDialog', () => {
     expect(
       screen.getByRole('button', { name: 'Import Founder clone' }),
     ).toBeInTheDocument();
-    expect(mocks.findAccountVoices).toHaveBeenLastCalledWith({
-      pageToken: 'page-2',
-      search: undefined,
-    });
+    expect(mocks.findAccountVoices).toHaveBeenLastCalledWith(
+      { pageToken: 'page-2', search: undefined },
+      expect.any(AbortSignal),
+    );
     expect(
       screen.queryByRole('button', { name: 'Load more voices' }),
     ).not.toBeInTheDocument();
@@ -253,5 +253,53 @@ describe('ElevenLabsAccountVoicesDialog', () => {
         expect.any(AbortSignal),
       );
     });
+  });
+
+  it('drops a later page that belongs to a superseded search', async () => {
+    let resolveStalePage: (value: ElevenLabsAccountVoicePage) => void = () =>
+      undefined;
+    let staleSignal: AbortSignal | undefined;
+    mocks.findAccountVoices
+      .mockResolvedValueOnce(page({ hasMore: true, nextPageToken: 'page-2' }))
+      .mockImplementationOnce(
+        (_params: unknown, signal: AbortSignal) =>
+          new Promise<ElevenLabsAccountVoicePage>((resolve) => {
+            staleSignal = signal;
+            resolveStalePage = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(
+        page({
+          voices: [voice({ externalVoiceId: 'el-voice-9', name: 'Narrator' })],
+        }),
+      );
+
+    renderDialog();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Load more voices' }),
+    );
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Search your ElevenLabs voices' }),
+      { target: { value: 'narrator' } },
+    );
+    await screen.findByRole('button', { name: 'Import Narrator' });
+
+    expect(staleSignal?.aborted).toBe(true);
+    resolveStalePage(
+      page({
+        hasMore: true,
+        nextPageToken: 'stale-3',
+        voices: [voice({ externalVoiceId: 'el-voice-2', name: 'Stale page' })],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', { name: 'Import Stale page' }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Load more voices' }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -165,6 +165,23 @@ describe('ElevenLabsService', () => {
       ]);
     });
 
+    it('warns when the page cap leaves catalog voices unread', async () => {
+      const { loggerService, service } = createHarness();
+      voicesSearch.mockImplementation(async (request: { voiceType: string }) =>
+        request.voiceType === 'community'
+          ? { hasMore: true, nextPageToken: 'more', voices: [] }
+          : { hasMore: false, voices: [] },
+      );
+
+      await service.getVoices();
+
+      expect(loggerService.warn).toHaveBeenCalledTimes(1);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('catalog page cap reached'),
+        { maxVoices: 2000, voiceType: 'community' },
+      );
+    });
+
     it('logs and rethrows a provider failure', async () => {
       const { loggerService, service } = createHarness();
       const providerError = new Error('unauthorized');

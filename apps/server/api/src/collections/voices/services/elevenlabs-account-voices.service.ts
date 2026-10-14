@@ -282,7 +282,15 @@ export class ElevenLabsAccountVoicesService {
   ): Promise<SpeechVoiceSelection> {
     const saved =
       (isEntityId(voiceId)
-        ? await this.findVoiceRow(organizationId, { id: voiceId })
+        ? await this.findVoiceRow(organizationId, {
+            id: voiceId,
+            // Saved voice references only; generated speech assets are not.
+            OR: [
+              { voiceSource: { in: SAVED_REFERENCE_SOURCES } },
+              { isCloned: true },
+              { externalVoiceCatalogId: { not: null } },
+            ],
+          })
         : null) ??
       (await this.findVoiceRow(organizationId, {
         externalVoiceId: voiceId,

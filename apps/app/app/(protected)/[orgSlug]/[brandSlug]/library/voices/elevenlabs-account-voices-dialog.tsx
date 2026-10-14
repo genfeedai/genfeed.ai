@@ -24,7 +24,7 @@ import {
 import { Input } from '@ui/primitives/input';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -53,10 +53,14 @@ export default function ElevenLabsAccountVoicesDialog({
   const [hasError, setHasError] = useState(false);
   const [reload, setReload] = useState(0);
   const [importingId, setImportingId] = useState<string | null>(null);
+  // A later page belongs to the search that requested it; a new search
+  // cancels it so stale voices and cursors never land in the new list.
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reload deliberately refetches the first page.
   useEffect(() => {
     const controller = new AbortController();
+    loadMoreControllerRef.current?.abort();
     setIsLoading(true);
     setHasError(false);
 
@@ -83,22 +87,35 @@ export default function ElevenLabsAccountVoicesDialog({
     return () => controller.abort();
   }, [getVoicesService, search, reload]);
 
+  useEffect(() => () => loadMoreControllerRef.current?.abort(), []);
+
   const loadMore = useCallback(async () => {
     if (!nextPageToken) return;
+    loadMoreControllerRef.current?.abort();
+    const controller = new AbortController();
+    loadMoreControllerRef.current = controller;
     setIsLoadingMore(true);
     try {
       const service = await getVoicesService();
-      const page = await service.findAccountVoices({
-        pageToken: nextPageToken,
-        search: search || undefined,
-      });
+      const page = await service.findAccountVoices(
+        {
+          pageToken: nextPageToken,
+          search: search || undefined,
+        },
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
       setVoices((previous) => [...previous, ...page.voices]);
       setNextPageToken(page.hasMore ? page.nextPageToken : null);
     } catch (error) {
+      if (controller.signal.aborted) return;
       logger.error('Failed to load more ElevenLabs voices', error);
       notifications.error(translate('loadError'));
     } finally {
-      setIsLoadingMore(false);
+      if (loadMoreControllerRef.current === controller) {
+        loadMoreControllerRef.current = null;
+        setIsLoadingMore(false);
+      }
     }
   }, [getVoicesService, nextPageToken, notifications, search, translate]);
 

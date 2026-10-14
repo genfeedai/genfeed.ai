@@ -370,6 +370,12 @@ describe('ElevenLabsAccountVoicesService', () => {
             id: savedVoiceId,
             isDeleted: false,
             organizationId,
+            // Generated speech assets are never treated as voice references.
+            OR: [
+              { voiceSource: { in: ['imported', 'cloned'] } },
+              { isCloned: true },
+              { externalVoiceCatalogId: { not: null } },
+            ],
           }),
         }),
       );
