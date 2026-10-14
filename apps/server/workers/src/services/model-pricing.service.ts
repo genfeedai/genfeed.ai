@@ -113,6 +113,9 @@ const ABSOLUTE_MIN_COST = 2;
  */
 const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   'black-forest-labs/flux-1.1-pro': 0.04,
+  // Billed per input and output megapixel; the flat figure covers a 1 MP
+  // sketch with about 9 MP of references, matching the catalog row.
+  'black-forest-labs/flux-2-klein-4b': 0.01,
   'black-forest-labs/flux-2-pro': 0.05,
   'black-forest-labs/flux-dev': 0.025,
   'black-forest-labs/flux-schnell': 0.003,

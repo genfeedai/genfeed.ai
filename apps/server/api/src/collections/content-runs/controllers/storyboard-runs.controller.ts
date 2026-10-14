@@ -3,7 +3,9 @@ import {
   ApproveStoryboardPlanDto,
   CreateStoryboardRunDto,
   DraftStoryboardPlanDto,
+  GenerateStoryboardStillsDto,
   ListStoryboardRunsDto,
+  QuoteStoryboardStillsDto,
   ReplaceStoryboardCharacterDto,
   ResetStoryboardPlanDto,
   UpdateStoryboardPlanDto,
@@ -12,6 +14,7 @@ import {
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -43,6 +46,7 @@ export class StoryboardRunsController {
     private readonly runs: StoryboardRunsService,
     private readonly capabilities: StoryboardRunCapabilitiesService,
     private readonly characters: StoryboardCharacterReplaceService,
+    private readonly stills: StoryboardStillsService,
   ) {}
 
   @Post()
@@ -143,6 +147,51 @@ export class StoryboardRunsController {
       runId,
       shotId,
       operationId,
+    );
+  }
+
+  @Post(':runId/stills/quote')
+  quoteStills(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: QuoteStoryboardStillsDto,
+  ) {
+    return this.stills.quote(user.organizationId, brandId, runId, body);
+  }
+
+  @Post(':runId/stills')
+  async generateStills(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: GenerateStoryboardStillsDto,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.stills.generate(
+        user.organizationId,
+        brandId,
+        runId,
+        user.userId,
+        body,
+      ),
+    );
+  }
+
+  @Post(':runId/stills/reconcile')
+  async reconcileStills(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.stills.reconcile(user.organizationId, brandId, runId),
     );
   }
 

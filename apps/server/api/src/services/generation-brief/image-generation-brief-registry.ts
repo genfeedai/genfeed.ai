@@ -476,6 +476,11 @@ const IMAGE_GENERATION_BRIEF_EXEMPTION_ENTRIES: ReadonlyArray<
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
     'legacy_prompt_builder',
   ],
+  // Storyboard composes the complete sketch prompt and reference order.
+  [
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B,
+    'legacy_prompt_builder',
+  ],
   // Non-generative transforms: these mutate or upscale an existing image
   // rather than generating one from a brief.
   [MODEL_KEYS.FAL_FACE_SWAP, 'non_generative_transform'],

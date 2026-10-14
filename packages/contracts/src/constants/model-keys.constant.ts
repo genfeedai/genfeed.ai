@@ -53,6 +53,8 @@ export const MODEL_KEYS = {
     'black-forest-labs/flux-3-image-edit',
   REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV: 'black-forest-labs/flux-2-dev',
   REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX: 'black-forest-labs/flux-2-flex',
+  REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B:
+    'black-forest-labs/flux-2-klein-4b',
   REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO: 'black-forest-labs/flux-2-pro',
   REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO:
     'black-forest-labs/flux-kontext-pro',

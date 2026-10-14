@@ -221,9 +221,11 @@ export interface GenericImageInput extends BaseImageInput {
 }
 
 // Union of all image model inputs
+import type { Flux2KleinInput } from '@api/services/prompt-builder/builders/replicate/flux-2-klein.builder';
 import type { Flux3ImageInput } from '@api/services/prompt-builder/builders/replicate/flux-3-image.builder';
 
 export type ReplicateImageInput =
+  | Flux2KleinInput
   | Flux3ImageInput
   | ImagenInput
   | NanoBananaInput

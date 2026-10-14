@@ -3,6 +3,7 @@ import {
   characterStructuralAssociation,
 } from '@api/collections/content-runs/services/storyboard-character-replace-state';
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
+import { stillJournalSchema } from '@api/collections/content-runs/services/storyboard-still-state';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { brandRemixScenePipelineSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { storyboardRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
@@ -61,6 +62,7 @@ export const storyboardStoredRunConfigSchema = z
       importedState,
       migrationRecovery,
       characterReplacementOperations,
+      stillOperations,
       ...publicValue
     } = value as Record<string, unknown>;
     const config = storyboardRunConfigSchema.safeParse(publicValue);
@@ -81,6 +83,17 @@ export const storyboardStoredRunConfigSchema = z
       ctx.addIssue({
         code: 'custom',
         message: 'Invalid character recovery journal',
+      });
+      return z.NEVER;
+    }
+    const stills =
+      stillOperations === undefined
+        ? undefined
+        : stillJournalSchema.safeParse(stillOperations);
+    if (stills && !stills.success) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Invalid still generation journal',
       });
       return z.NEVER;
     }
@@ -130,6 +143,7 @@ export const storyboardStoredRunConfigSchema = z
       ...(journal?.success
         ? { characterReplacementOperations: journal.data }
         : {}),
+      ...(stills?.success ? { stillOperations: stills.data } : {}),
       ...(archive?.success ? { importedState: archive.data } : {}),
       ...(recovery?.success ? { migrationRecovery: recovery.data } : {}),
     };
@@ -141,6 +155,7 @@ export type StoryboardStoredRunConfig = z.infer<
 export function storyboardPublicConfig(config: StoryboardStoredRunConfig) {
   const {
     characterReplacementOperations: journal,
+    stillOperations: _stills,
     importedState: _archive,
     migrationRecovery: _recovery,
     ...publicValue

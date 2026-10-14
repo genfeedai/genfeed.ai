@@ -128,3 +128,25 @@ export class ReplaceStoryboardCharacterDto {
   @MaxLength(1000)
   prompt?: string;
 }
+
+export class QuoteStoryboardStillsDto extends ControlStoryboardRunDto {
+  @ApiProperty({ maxItems: 12, minItems: 1, required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  shotIds?: string[];
+}
+export class GenerateStoryboardStillsDto extends ControlStoryboardRunDto {
+  @ApiProperty({ maxItems: 12, minItems: 1, type: [String] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  shotIds!: string[];
+
+  @ApiProperty()
+  @IsString()
+  inputHash!: string;
+}

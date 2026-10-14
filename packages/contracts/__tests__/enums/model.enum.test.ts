@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 135 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(135);
+    it('should have 136 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(136);
     });
 
     it('should have correct values', () => {
@@ -141,6 +141,9 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO).toBe(
         'black-forest-labs/flux-2-pro',
+      );
+      expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B).toBe(
+        'black-forest-labs/flux-2-klein-4b',
       );
       expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO).toBe(
         'black-forest-labs/flux-kontext-pro',

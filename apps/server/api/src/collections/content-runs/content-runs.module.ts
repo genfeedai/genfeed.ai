@@ -39,6 +39,7 @@ import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
+import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -116,6 +117,7 @@ import { Module } from '@nestjs/common';
     StoryboardRunsService,
     StoryboardRunStoreService,
     StoryboardSourceService,
+    StoryboardStillsService,
     BrandRemixSceneService,
     BrandRemixSceneStoreService,
     BrandRemixSceneQuoteService,

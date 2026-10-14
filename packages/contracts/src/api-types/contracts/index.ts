@@ -74,6 +74,7 @@ export * from './storyboard-run-capabilities.contract';
 export * from './storyboard-run-quote.contract';
 export * from './storyboard-run-summary.contract';
 export * from './storyboard-source.contract';
+export * from './storyboard-still.contract';
 export * from './task-decomposition.contract';
 export * from './template-ranking.contract';
 export * from './tiktok-authorized-signals.contract';

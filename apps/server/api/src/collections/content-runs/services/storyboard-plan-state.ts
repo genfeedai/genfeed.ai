@@ -5,6 +5,7 @@ import {
   storyboardLegacyState,
   storyboardStoredRunConfigSchema,
 } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import { storyboardStillInput } from '@api/collections/content-runs/services/storyboard-still-state';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import {
   storyboardImportedPlanSchema,
@@ -84,7 +85,11 @@ export function assertStoryboardEditable(
   }
 }
 
-/** Submitted asset/freshness changes never manufacture a fresh generated still. */
+/**
+ * Submitted asset/freshness changes never manufacture a fresh generated still.
+ * Stills are server-owned: a still being generated stays `generating` across
+ * edits, and its job decides fresh or stale when it lands.
+ */
 export function editStoryboardPlan(
   config: StoryboardStoredRunConfig,
   submitted: StoryboardPlan,
@@ -118,15 +123,30 @@ export function editStoryboardPlan(
           JSON.stringify(conditioning(config.plan, old.id)) !==
             JSON.stringify(conditioning(submitted, shot.id)),
       );
-      const stale = styleChanged || castChanged || old?.action !== shot.action;
+      const stillInputChanged = Boolean(
+        old &&
+          config.plan &&
+          storyboardStillInput(config.plan, old.id).fingerprint !==
+            storyboardStillInput(submitted, shot.id).fingerprint,
+      );
+      const stale =
+        styleChanged ||
+        castChanged ||
+        stillInputChanged ||
+        old?.action !== shot.action;
       return {
         ...shot,
         stillAssetId: old?.stillAssetId,
-        stillFreshness: old?.stillAssetId
-          ? stale
-            ? 'stale'
-            : old.stillFreshness
-          : 'missing',
+        stillFreshness:
+          old?.stillFreshness === 'generating'
+            ? 'generating'
+            : old?.stillAssetId
+              ? stale
+                ? 'stale'
+                : old.stillFreshness
+              : old?.stillFreshness === 'failed' && !stale
+                ? 'failed'
+                : 'missing',
       };
     }),
   });

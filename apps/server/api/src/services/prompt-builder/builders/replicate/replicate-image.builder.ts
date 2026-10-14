@@ -1,4 +1,5 @@
 import { BaseReplicateBuilder } from '@api/services/prompt-builder/builders/replicate/base-replicate.builder';
+import { buildFlux2KleinInput } from '@api/services/prompt-builder/builders/replicate/flux-2-klein.builder';
 import { buildFlux3ImageInput } from '@api/services/prompt-builder/builders/replicate/flux-3-image.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
@@ -79,6 +80,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B,
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
     // Qwen
@@ -192,6 +194,18 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
 
       case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX:
         return this.buildFlux2FlexPrompt(model, params, promptText);
+
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B:
+        return buildFlux2KleinInput(
+          promptText,
+          params.references,
+          params.aspectRatio ??
+            (params.width && params.height
+              ? calculateAspectRatio(params.width, params.height)
+              : undefined),
+          params.resolution,
+          params.seed,
+        );
 
       case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO:
         return this.buildFluxKontextProPrompt(model, params, promptText);

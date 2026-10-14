@@ -28,6 +28,21 @@ export const ASPECT_RATIOS = {
     '3:4',
     '4:3',
   ] as const,
+  // Replicate black-forest-labs/flux-2-klein-4b input schema, 2026-10-14.
+  FLUX_2_KLEIN: [
+    'match_input_image',
+    '1:1',
+    '16:9',
+    '9:16',
+    '3:2',
+    '2:3',
+    '4:3',
+    '3:4',
+    '5:4',
+    '4:5',
+    '21:9',
+    '9:21',
+  ] as const,
   FLUX_V2: [
     'match_input_image',
     'custom',

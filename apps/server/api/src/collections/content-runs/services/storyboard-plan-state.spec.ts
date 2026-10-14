@@ -52,6 +52,51 @@ function fixture(): StoryboardNativeRunConfig {
   };
 }
 describe('Storyboard persisted edit and approval', () => {
+  it('keeps a generating still generating while the creator keeps editing', () => {
+    const config = fixture();
+    config.plan.shots[0] = {
+      ...config.plan.shots[0],
+      stillAssetId: undefined,
+      stillFreshness: 'generating',
+    };
+    config.plan.shots[1].stillFreshness = 'generating';
+    const plan = structuredClone(config.plan);
+    plan.shots[0].action = 'Edited while rendering';
+    plan.shots[1].notes = 'A note';
+    plan.shots[0].stillFreshness = 'missing';
+    const next = editStoryboardPlan(config, plan);
+    expect(next.plan.shots.map((shot) => shot.stillFreshness)).toEqual([
+      'generating',
+      'generating',
+    ]);
+  });
+  it('keeps a failed still failed until its inputs change', () => {
+    const config = fixture();
+    config.plan.shots[0] = {
+      ...config.plan.shots[0],
+      stillAssetId: undefined,
+      stillFreshness: 'failed',
+    };
+    const plan = structuredClone(config.plan);
+    plan.shots[0].notes = 'Not a still input';
+    expect(editStoryboardPlan(config, plan).plan.shots[0].stillFreshness).toBe(
+      'failed',
+    );
+    plan.shots[0].action = 'A new action';
+    expect(editStoryboardPlan(config, plan).plan.shots[0].stillFreshness).toBe(
+      'missing',
+    );
+  });
+  it('stales a still when its sketch format changes', () => {
+    const config = fixture();
+    const plan = structuredClone(config.plan);
+    plan.format = '16:9';
+    expect(
+      editStoryboardPlan(config, plan).plan.shots.map(
+        (shot) => shot.stillFreshness,
+      ),
+    ).toEqual(['stale', 'stale']);
+  });
   it('clears approval and quote while staling only the changed shot', () => {
     const config = fixture();
     config.approvedRevision = 1;

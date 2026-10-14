@@ -385,6 +385,14 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 4,
     },
+    [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B]: {
+      aspectRatios: ASPECT_RATIOS.FLUX_2_KLEIN,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 5,
+    },
     [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX]: {
       aspectRatios: ASPECT_RATIOS.FLUX_V2,
       category: ModelCategory.IMAGE,

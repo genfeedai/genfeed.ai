@@ -166,6 +166,29 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.003,
   },
   /**
+   * Draft model for storyboard sketch stills (#6738). Replicate bills $0.001
+   * per output megapixel plus $0.001 per input megapixel, and dispatch does
+   * not report input megapixels, so the flat row covers a 1 MP output with up
+   * to five references totalling about 9 MP.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 4,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
+    description:
+      'FLUX.2 klein 4B — sub-second draft generation and reference editing with up to five images. Storyboard uses it for black-and-white sketch stills.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B,
+    label: 'FLUX.2 klein 4B',
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'flux-2-klein-4b', owner: 'black-forest-labs' },
+    providerCostUsd: 0.01,
+  },
+  /**
    * Cloud default. H3 costs $0.08/s at 768P and $0.13/s at 2K. Seed the
    * conservative 2K rate; the shared resolution quote/reservation discounts
    * the published 768P draft band when selected.

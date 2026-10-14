@@ -14,6 +14,7 @@ const IDENTITY_404 =
 export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'black-forest-labs/flux-2-dev': INPUT_MEGAPIXELS,
   'black-forest-labs/flux-2-flex': INPUT_MEGAPIXELS,
+  'black-forest-labs/flux-2-klein-4b': INPUT_MEGAPIXELS,
   'bytedance/video-upscaler':
     'The public readme says the price depends on tier, resolution and frame rate, and the numeric table is only on the pricing tab.',
   'genfeed-ai/flux-dev': PRIVATE_DEPLOYMENT,
