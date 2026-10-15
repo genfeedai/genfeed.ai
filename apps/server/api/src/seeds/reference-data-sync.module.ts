@@ -6,11 +6,22 @@ import { StudioElementSeedService } from '@api/seeds/studio-element-seed.service
 import { StudioPresetSeedService } from '@api/seeds/studio-preset-seed.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { ConfigModule } from '@libs/config/config.module';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { RedisModule } from '@libs/redis/redis.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [ConfigModule, LoggerModule, PrismaModule, SkillsCoreModule],
+  imports: [
+    ConfigModule,
+    LoggerModule,
+    PrismaModule,
+    RedisModule.forRoot({
+      configModule: ConfigModule,
+      configService: ConfigService,
+    }),
+    SkillsCoreModule,
+  ],
   providers: [
     ModelCatalogSeedService,
     ReferenceDataSyncService,
