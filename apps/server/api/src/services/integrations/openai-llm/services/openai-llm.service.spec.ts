@@ -177,7 +177,7 @@ describe('OpenAiLlmService', () => {
       configService.get.mockReturnValue(undefined as never);
 
       await expect(service.chatCompletion(makeParams())).rejects.toThrow(
-        'OPENAI_API_KEY is not configured',
+        'Missing provider key: OPENAI_API_KEY',
       );
     });
 
@@ -245,7 +245,7 @@ describe('OpenAiLlmService', () => {
       configService.get.mockReturnValue(undefined as never);
 
       await expect(service.streamChatCompletion(makeParams())).rejects.toThrow(
-        'OPENAI_API_KEY is not configured',
+        'Missing provider key: OPENAI_API_KEY',
       );
     });
 

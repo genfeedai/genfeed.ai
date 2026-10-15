@@ -47,7 +47,7 @@ const CONFIG_PATTERNS: Array<{
   },
   {
     match:
-      /OPENROUTER_API_KEY|openrouter.*not configured|provider key is not configured/i,
+      /OPENROUTER_API_KEY|openrouter.*not configured|provider key is not configured|missing provider key/i,
     reason: AgentFailureReason.PROVIDER_CONFIGURATION,
     title: 'AI provider not connected',
     summary:

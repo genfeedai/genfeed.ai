@@ -9,6 +9,7 @@ import {
   type OpenRouterStreamTokenHandler,
   type OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -74,10 +75,15 @@ export class OpenRouterService {
       apiKeyOverride || this.configService.get('OPENROUTER_API_KEY');
 
     if (!apiKey) {
-      throw new Error('OPENROUTER_API_KEY is not configured');
+      throw new MissingProviderKeyException('OpenRouter', 'OPENROUTER_API_KEY');
     }
 
     return apiKey;
+  }
+
+  /** Fails fast, before any receipt or dispatch, when no key can be used. */
+  assertApiKeyAvailable(apiKeyOverride?: string): void {
+    this.resolveApiKey(apiKeyOverride);
   }
 
   /**

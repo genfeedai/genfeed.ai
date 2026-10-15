@@ -2,7 +2,15 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const mockedConfig = vi.hoisted(() => ({ isCloud: false }));
 
@@ -142,6 +150,71 @@ describe('OnboardingReadinessService local tool readiness', () => {
       claude: false,
       codex: false,
       detected: [],
+    });
+  });
+});
+
+describe('OnboardingReadinessService provider readiness', () => {
+  type ProviderReadiness = {
+    anyConfigured: boolean;
+    configured: string[];
+    textGenerationReady: boolean;
+  };
+
+  const readProviders = async (): Promise<ProviderReadiness> => {
+    vi.resetModules();
+    const { OnboardingReadinessService } = await import(
+      './onboarding-readiness.service'
+    );
+    const service = new OnboardingReadinessService(
+      {} as unknown as BrandsService,
+      {} as unknown as OrganizationSettingsService,
+      {} as unknown as OrganizationsService,
+      {} as unknown as UsersService,
+    ) as unknown as { getProviderReadiness: () => ProviderReadiness };
+
+    return service.getProviderReadiness();
+  };
+
+  beforeEach(() => {
+    for (const name of [
+      'REPLICATE_KEY',
+      'FAL_API_KEY',
+      'OPENAI_API_KEY',
+      'OPENROUTER_API_KEY',
+    ]) {
+      vi.stubEnv(name, '');
+    }
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('is not text-ready with no keys', async () => {
+    expect(await readProviders()).toMatchObject({
+      anyConfigured: false,
+      configured: [],
+      textGenerationReady: false,
+    });
+  });
+
+  it('is not text-ready with only an OpenAI key, because default text paths use OpenRouter', async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'sk-test');
+
+    expect(await readProviders()).toMatchObject({
+      anyConfigured: true,
+      configured: ['openai'],
+      textGenerationReady: false,
+    });
+  });
+
+  it('is text-ready once OPENROUTER_API_KEY is set', async () => {
+    vi.stubEnv('OPENROUTER_API_KEY', 'sk-or-test');
+
+    expect(await readProviders()).toMatchObject({
+      configured: ['openrouter'],
+      textGenerationReady: true,
     });
   });
 });

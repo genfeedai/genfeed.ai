@@ -44,10 +44,12 @@ export class OnboardingReadinessService {
     const replicate = this.isConfigured(process.env.REPLICATE_KEY);
     const fal = this.isConfigured(process.env.FAL_API_KEY);
     const openai = this.isConfigured(process.env.OPENAI_API_KEY);
+    const openrouter = this.isConfigured(process.env.OPENROUTER_API_KEY);
     const configured = [
       replicate ? 'replicate' : null,
       fal ? 'fal' : null,
       openai ? 'openai' : null,
+      openrouter ? 'openrouter' : null,
     ].filter((value): value is string => value !== null);
 
     return {
@@ -57,7 +59,9 @@ export class OnboardingReadinessService {
       imageGenerationReady: fal || replicate,
       openai,
       replicate,
-      textGenerationReady: openai,
+      // Default text paths (drafts, agent chat, prompt enhancement) route
+      // through OpenRouter; an OpenAI key alone only serves `openai/*` models.
+      textGenerationReady: openrouter,
     };
   }
 

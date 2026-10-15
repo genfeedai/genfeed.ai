@@ -5,6 +5,10 @@ import type {
   BrandedTextRunOutcomeV1,
   BrandedTextRunSpecV1,
 } from '@api/endpoints/ai-actions/branded-text-actions.types';
+import {
+  MISSING_PROVIDER_KEY_CODE,
+  MissingProviderKeyException,
+} from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { resolveAccountlessLearningReceipt } from '@api/services/branded-text-generation/accountless-learning-receipt.util';
@@ -57,55 +61,69 @@ export class BrandedTextRunnerService {
     );
     const { actor, gate } = spec;
     const brandMode = await this.modeResolver.resolve(actor, spec.brandId);
-    const outcome = await this.branded.generate({
-      initiatingActor: actor,
-      input: {
-        schemaVersion: 1,
-        actorId: actor.userId,
-        organizationId: actor.organizationId,
-        brandId: spec.brandId,
-        requestKey: spec.requestKey,
-        candidateIndex: 0,
-        surface: 'agent',
-        contentType: spec.contentType,
-        format: 'text',
-        ...brandMode,
-        originalPrompt: spec.prompt,
-        provider: 'openrouter',
-        model,
-        generationParameters: spec.generation,
-        platform: spec.platform,
-        objective: 'engagement',
-        knowledgeSourceIds: spec.knowledgeSourceIds ?? [],
-        knowledgeSpaceIds: spec.knowledgeSpaceIds ?? [],
-      },
-      privateLearning: await resolveAccountlessLearningReceipt(
-        this.learningDecisions,
-        {
-          brandId: spec.brandId,
+    const outcome = await this.branded
+      .generate({
+        initiatingActor: actor,
+        input: {
+          schemaVersion: 1,
+          actorId: actor.userId,
           organizationId: actor.organizationId,
-          originalPrompt: spec.sourceText,
-        },
-      ),
-      resolveApiKey: async () => undefined,
-      acceptText: (raw) => gate.normalize(raw) !== null,
-      persistText: async (raw) => {
-        const post = await this.posts.create({
           brandId: spec.brandId,
-          category: PostCategory.TEXT,
-          description: gate.normalize(raw) ?? raw,
-          format: PostFormat.STANDARD,
-          ingredients: [],
-          label: spec.label,
-          organizationId: actor.organizationId,
+          requestKey: spec.requestKey,
+          candidateIndex: 0,
+          surface: 'agent',
+          contentType: spec.contentType,
+          format: 'text',
+          ...brandMode,
+          originalPrompt: spec.prompt,
+          provider: 'openrouter',
+          model,
+          generationParameters: spec.generation,
           platform: spec.platform,
-          sourceActionId: spec.requestKey,
-          targetExecutionState: TargetExecutionState.DRAFT,
-          userId: actor.userId,
-        });
-        return { postId: String(post.id) };
-      },
-    });
+          objective: 'engagement',
+          knowledgeSourceIds: spec.knowledgeSourceIds ?? [],
+          knowledgeSpaceIds: spec.knowledgeSpaceIds ?? [],
+        },
+        privateLearning: await resolveAccountlessLearningReceipt(
+          this.learningDecisions,
+          {
+            brandId: spec.brandId,
+            organizationId: actor.organizationId,
+            originalPrompt: spec.sourceText,
+          },
+        ),
+        resolveApiKey: async () => undefined,
+        acceptText: (raw) => gate.normalize(raw) !== null,
+        persistText: async (raw) => {
+          const post = await this.posts.create({
+            brandId: spec.brandId,
+            category: PostCategory.TEXT,
+            description: gate.normalize(raw) ?? raw,
+            format: PostFormat.STANDARD,
+            ingredients: [],
+            label: spec.label,
+            organizationId: actor.organizationId,
+            platform: spec.platform,
+            sourceActionId: spec.requestKey,
+            targetExecutionState: TargetExecutionState.DRAFT,
+            userId: actor.userId,
+          });
+          return { postId: String(post.id) };
+        },
+      })
+      .catch((error: unknown) => {
+        if (error instanceof MissingProviderKeyException) return error;
+        throw error;
+      });
+
+    if (outcome instanceof MissingProviderKeyException) {
+      return {
+        kind: 'failed',
+        code: 'provider_unavailable',
+        message: `${outcome.message}. Add it to the server environment, then try again.`,
+        reasonCode: MISSING_PROVIDER_KEY_CODE,
+      };
+    }
 
     if (outcome.kind === 'in_progress') {
       return {

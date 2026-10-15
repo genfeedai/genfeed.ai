@@ -5,6 +5,7 @@ import type {
   Tool,
   ToolResultBlockParam,
 } from '@anthropic-ai/sdk/resources/messages';
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -34,7 +35,7 @@ export class AnthropicService {
       apiKeyOverride || this.configService.get('ANTHROPIC_API_KEY');
 
     if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is not configured');
+      throw new MissingProviderKeyException('Anthropic', 'ANTHROPIC_API_KEY');
     }
 
     return String(apiKey);
