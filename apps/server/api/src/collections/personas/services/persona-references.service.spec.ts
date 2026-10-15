@@ -612,13 +612,13 @@ describe('PersonaReferencesService', () => {
         references: rows('img-1', 'img-2'),
       });
 
-      await expect(service.syncPrimary(client, ORG, PERSONA)).resolves.toBe(
-        'img-2',
-      );
+      await expect(
+        service.syncPrimary(client as never, ORG, PERSONA),
+      ).resolves.toBe('img-2');
       expect(state.avatarIngredientId).toBe('img-2');
 
       state.deleted.clear();
-      await service.syncPrimary(client, ORG, PERSONA);
+      await service.syncPrimary(client as never, ORG, PERSONA);
       expect(state.avatarIngredientId).toBe('img-1');
     });
 
@@ -629,13 +629,13 @@ describe('PersonaReferencesService', () => {
       });
 
       await expect(
-        service.syncPrimary(client, ORG, PERSONA),
+        service.syncPrimary(client as never, ORG, PERSONA),
       ).resolves.toBeNull();
       expect(storedOrder()).toEqual(['legacy']);
       expect(state.avatarIngredientId).toBeNull();
 
       state.deleted.clear();
-      await service.syncPrimary(client, ORG, PERSONA);
+      await service.syncPrimary(client as never, ORG, PERSONA);
       expect(state.avatarIngredientId).toBe('legacy');
     });
 
@@ -645,7 +645,7 @@ describe('PersonaReferencesService', () => {
         references: rows('img-1', 'img-2'),
       });
 
-      await service.syncPrimary(client, ORG, PERSONA);
+      await service.syncPrimary(client as never, ORG, PERSONA);
 
       expect(client.persona.update).not.toHaveBeenCalled();
     });

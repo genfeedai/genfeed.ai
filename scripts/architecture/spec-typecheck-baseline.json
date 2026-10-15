@@ -9748,14 +9748,6 @@
       "code": 2503,
       "count": 1,
       "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
-      "fingerprint": "e573553c98f10789ebc4",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
       "fingerprint": "f1baa69fccf4f4f26418",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "workers"

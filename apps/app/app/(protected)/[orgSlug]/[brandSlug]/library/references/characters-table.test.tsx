@@ -57,6 +57,7 @@ describe('CharactersTable', () => {
             handle: 'anna',
             id: 'p1',
             label: 'Anna',
+            referenceIngredientIds: ['img-1'],
           },
         ]}
         isLoading={false}
@@ -73,8 +74,8 @@ describe('CharactersTable', () => {
       <CharactersTable
         canManageSharing={false}
         characters={[
-          { id: 'p1', label: 'Anna' },
-          { id: 'p2', label: 'Vincent' },
+          { id: 'p1', label: 'Anna', referenceIngredientIds: [] },
+          { id: 'p2', label: 'Vincent', referenceIngredientIds: [] },
         ]}
         isLoading={false}
         onCreate={vi.fn()}
