@@ -22,7 +22,7 @@ export default function AdminModelsToolbar({
   const translate = useTranslations('pages.models');
   return (
     <Container
-      label="Models"
+      label={translate('title')}
       icon={Cpu}
       titleVisibility="sr-only"
       moduleChrome

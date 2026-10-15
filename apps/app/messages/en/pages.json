@@ -3908,6 +3908,9 @@
     }
   },
   "models": {
+    "title": "Models",
+    "model": "Model",
+    "newModel": "New model",
     "loadError": "Models could not be loaded.",
     "catalogTitle": "Model catalog",
     "categoryAll": "All",

@@ -7,9 +7,11 @@ import { Button } from '@ui/primitives/button';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 
 export default function AdminModelsActions() {
+  const translate = useTranslations('pages.models');
   const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -67,14 +69,14 @@ export default function AdminModelsActions() {
         onBrandChange={handleAdminBrandChange}
       />
       <Button
-        ariaLabel="New model"
+        ariaLabel={translate('newModel')}
         icon={<Plus className={SHELL_ICON_CLASS} />}
         onClick={() => openModal(ModalEnum.MODEL)}
         size={ButtonSize.SM}
         variant={ButtonVariant.DEFAULT}
         withWrapper={false}
       >
-        Model
+        {translate('model')}
       </Button>
     </>
   );
