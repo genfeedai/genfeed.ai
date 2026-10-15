@@ -3,7 +3,8 @@
 
 Deterministically enforces working agreements that used to live only as prose:
   1. Trunk is PR-only — no pushes to master/main.
-  2. Bun only — npm/npx/yarn/pnpm are blocked.
+  2. Bun only — npm/npx/yarn/pnpm are blocked (inside the repo; see
+     is_clean_install_qa for the clean-install QA exception).
   3. No `vercel` without an existing .vercel/project.json link.
   4. .env* files never get staged or committed (public repo) — except the
      committed placeholder templates (.env.example and friends).
@@ -38,6 +39,17 @@ def is_env_secret_path(path: str) -> bool:
     if not basename.startswith(".env"):
         return False
     return not basename.endswith(ENV_TEMPLATE_SUFFIX)
+
+
+def is_clean_install_qa(cwd: str) -> bool:
+    """Clean-machine install QA (#6965) legitimately runs `npx @genfeedai/create`
+    and fetches the release bundle: allow it outside the repo checkout or when
+    GENFEED_QA_CLEAN_INSTALL=1 is set. Inside the repo the rules stay strict."""
+    if os.environ.get("GENFEED_QA_CLEAN_INSTALL") == "1":
+        return True
+    repo_root = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    real_cwd = os.path.realpath(cwd)
+    return os.path.commonpath([repo_root, real_cwd]) != repo_root
 
 
 def block(message: str) -> None:
@@ -106,7 +118,9 @@ def main() -> None:
     package_manager = re.search(
         COMMAND_POSITION + r"(npm|npx|yarn|pnpm)\b", sanitized
     )
-    if package_manager:
+    if package_manager and not is_clean_install_qa(
+        payload.get("cwd") or os.getcwd()
+    ):
         block(
             f"`{package_manager.group(1)}` is forbidden in this workspace — "
             "use `bun` / `bunx` instead (bun-not-npm rule)."

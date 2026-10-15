@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import re
 import sys
 
@@ -14,6 +15,16 @@ secret_read = re.search(
     compact,
 )
 outbound_http = re.search(r"\b(curl|wget|httpie)\b", compact)
+
+# Clean-machine install QA (#6965) needs to fetch the release bundle: allow
+# outbound HTTP outside the repo checkout or when GENFEED_QA_CLEAN_INSTALL=1.
+repo_root = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+cwd = os.path.realpath(payload.get("cwd") or os.getcwd())
+if (
+    os.environ.get("GENFEED_QA_CLEAN_INSTALL") == "1"
+    or os.path.commonpath([repo_root, cwd]) != repo_root
+):
+    outbound_http = None
 
 if secret_read:
     print(

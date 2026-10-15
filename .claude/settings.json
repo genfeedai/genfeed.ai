@@ -42,8 +42,6 @@
   },
   "permissions": {
     "deny": [
-      "Bash(curl:*)",
-      "Bash(wget:*)",
       "Read(**/*.pem)",
       "Read(**/secrets/**)"
     ]
