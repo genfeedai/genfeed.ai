@@ -89,7 +89,63 @@ for (const viewport of [
         }),
       )
       .toBe(true);
+    await image.click();
+    const chip = canvas.getByRole('button', {
+      name: 'Remove Image filter',
+      exact: true,
+    });
+    await expect(chip).toBeVisible();
     await page.keyboard.press('Escape');
+    await chip.focus();
+    await page.keyboard.press('Enter');
+    await expect(chip).toHaveCount(0);
+
+    if (viewport.width < 768) {
+      const open = page.getByRole('button', {
+        name: 'Open navigation menu',
+        exact: true,
+      });
+      await open.click();
+      const close = page.getByRole('button', {
+        name: 'Close navigation menu',
+        exact: true,
+      });
+      await expect(close).toBeVisible();
+      await close.click();
+      await expect(open).toBeVisible();
+      await open.click();
+      await expect(close).toBeVisible();
+      await close.click();
+    } else {
+      const sidebar = page.getByRole('complementary', {
+        name: 'Navigation',
+        exact: true,
+      });
+      const initialBounds = await sidebar.boundingBox();
+      expect(initialBounds?.width).toBeGreaterThan(100);
+      await page
+        .getByRole('button', { name: 'Collapse sidebar', exact: true })
+        .click();
+      const expand = page.getByRole('button', {
+        name: 'Expand sidebar',
+        exact: true,
+      });
+      await expect(expand).toBeVisible();
+      await expect
+        .poll(async () => (await sidebar.boundingBox())?.width ?? 0)
+        .toBeLessThan(10);
+      await expand.click();
+      await expect
+        .poll(async () => (await sidebar.boundingBox())?.width ?? 0)
+        .toBe(initialBounds?.width);
+    }
+    await expect(clear).toHaveCount(0);
+    await expect(
+      canvas.getByRole('button', { name: 'Filters', exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath('library-restored.png'),
+    });
     await expectNoErrorOverlay(page);
   });
 }
