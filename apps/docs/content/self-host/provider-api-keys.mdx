@@ -15,18 +15,19 @@ generation path to run.
 
 ## Supported keys
 
-All of these are optional and blank in `.env.example`.
+All of these are blank in `.env.example`. `OPENROUTER_API_KEY` is required for
+text generation and the agent; the others are optional.
 
 | Provider | Environment variable | Used for |
 | --- | --- | --- |
+| OpenRouter | `OPENROUTER_API_KEY` | Text generation and the agent (required for a first generation) |
 | OpenAI | `OPENAI_API_KEY` | Language models |
 | Anthropic | `ANTHROPIC_API_KEY` | Language models |
 | Replicate | `REPLICATE_KEY` | Hosted image, video, and other media models |
 | fal | `FAL_API_KEY` | Hosted media models, where a media path selects fal |
 | ElevenLabs | `ELEVENLABS_API_KEY` | Voice and audio |
 
-Other providers in the model registry (such as OpenRouter or xAI for language
-models) are listed in [Models and providers](/models) and are configured through
+Other providers in the model registry (such as xAI for language models) are listed in [Models and providers](/models) and are configured through
 [Integrations](/integrations/ai-providers).
 
 ## How to get each key
@@ -34,6 +35,7 @@ models) are listed in [Models and providers](/models) and are configured through
 Create an API key in each provider's own dashboard. Provider sites change, so
 follow their current instructions.
 
+- **OpenRouter:** create a key at [openrouter.ai/keys](https://openrouter.ai/keys).
 - **OpenAI:** create a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
 - **Anthropic:** create a key in the [Anthropic Console](https://console.anthropic.com/).
 - **Replicate:** create an API token at [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens).
@@ -51,7 +53,8 @@ balance, or account approval before a key can run a given model.
 2. Paste each key after its variable:
 
    ```env
-   OPENAI_API_KEY=sk-...
+   OPENROUTER_API_KEY=sk-or-...
+   OPENAI_API_KEY=""
    ANTHROPIC_API_KEY=""
    REPLICATE_KEY=""
    FAL_API_KEY=""
@@ -63,6 +66,10 @@ balance, or account approval before a key can run a given model.
    ```bash
    docker compose --env-file .env -f compose.yml up -d
    ```
+
+Use real keys only. If `OPENROUTER_API_KEY` is empty or still a template value,
+the install-readiness check reports text generation as not ready and the first
+agent turn fails with `OPENROUTER_API_KEY is not configured`.
 
 Keys in `.env` are server-side only. Never commit `.env` and never put a key in a
 `NEXT_PUBLIC_*` variable.

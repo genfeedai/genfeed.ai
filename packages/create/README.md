@@ -29,6 +29,16 @@ Node.js 24 (`>=24 <25`; other versions exit with an error), Docker Compose v2, a
 contains the release manifest, pinned environment, Compose file, and
 installation guide.
 
+## First sign-up and first generation
+
+Sign-up is enabled by default: open `http://localhost:3000` and create your
+account. To generate text, set a real `OPENROUTER_API_KEY` in the generated
+`.env` (create one at [openrouter.ai/keys](https://openrouter.ai/keys)) and
+re-run `docker compose --env-file .env -f compose.yml up -d`. Without it the
+readiness check reports text generation as not ready. Use real keys only:
+Settings validates each provider key before saving it, so placeholders are
+rejected.
+
 ## License
 
 AGPL-3.0

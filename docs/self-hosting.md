@@ -56,6 +56,40 @@ This starts:
 On first boot the container runs Prisma migrations and seeds one local
 workspace: one user, one organization, and one brand.
 
+## First sign-up and first generation
+
+A fresh install needs two things before it can run a generation: an account and
+a model key.
+
+1. **Add a model key.** Text generation and the agent use OpenRouter, so set a
+   real key in `.env`:
+
+   ```env
+   OPENROUTER_API_KEY=sk-or-...
+   ```
+
+   Create one at [openrouter.ai/keys](https://openrouter.ai/keys). Restart so the
+   container reads it (`docker compose --env-file .env -f compose.yml up -d`).
+   If the key is empty or still a template value, the install-readiness check
+   (`GET /v1/onboarding/install-readiness`) reports
+   `providers.textGenerationReady: false` and the first agent turn fails with
+   `OPENROUTER_API_KEY is not configured`. An `OPENAI_API_KEY` alone does not
+   make text generation ready. Image and video generation use `REPLICATE_KEY`
+   or `FAL_API_KEY` instead.
+2. **Sign up.** Open `http://localhost:3000` and create the first account.
+   Sign-up is enabled out of the box (`BETTER_AUTH_ENABLED=true` and
+   `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true` in `.env.example`). Email/password
+   needs no email provider. See [Community Auth Modes](#community-auth-modes)
+   to run without a login wall instead.
+3. **Finish onboarding**, then create your first task or generation.
+
+Provider keys are validated live. **Settings → API Keys** (the page the onboarding
+"Add my own API keys" action opens) calls the provider with the key before saving it, so placeholder text
+such as `your_key_here` is rejected with an "Invalid ... API key" error. Only
+real keys can be saved there. Keys set in `.env` are read at container start and
+are the way to configure the server-wide defaults; a placeholder in `.env` is
+treated as not configured.
+
 ## Source Checkout
 
 Contributors can inspect and edit the repository's Compose configuration:
@@ -88,20 +122,8 @@ docs.
 
 ## Community Auth Modes
 
-Community is single-tenant by default. The default installation `.env` runs without a
-login wall:
-
-```env
-BETTER_AUTH_ENABLED=false
-NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
-```
-
-BETTER_AUTH_ENABLED is read at container start and reaches the browser at runtime, while NEXT_PUBLIC_BETTER_AUTH_ENABLED is fixed when the image is built.
-
-That path needs no Better Auth account, no email provider, no Google OAuth
-client, and no cloud service. The seeded workspace opens locally.
-
-To require local sign-in for a team, enable Better Auth in `.env`:
+Community is single-tenant. The default installation `.env` turns local
+sign-up and sign-in on, so a fresh install can create its first user:
 
 ```env
 BETTER_AUTH_ENABLED=true
@@ -112,7 +134,19 @@ BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 BETTER_AUTH_SECRET=
 ```
 
-Email/password works with only the local Better Auth database. Add an email
+Email/password works with only the local Better Auth database: no email
+provider, no Google OAuth client, and no cloud service. To run a single-user
+workspace with no login wall instead, set both flags to `false` in `.env`; the
+seeded local workspace then opens without signing in.
+
+```env
+BETTER_AUTH_ENABLED=false
+NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
+```
+
+`BETTER_AUTH_ENABLED` is read at container start and reaches the browser at
+runtime, while `NEXT_PUBLIC_BETTER_AUTH_ENABLED` is fixed when the image is
+built. Add an email
 provider only for magic links, password reset, email verification, or member
 invites:
 

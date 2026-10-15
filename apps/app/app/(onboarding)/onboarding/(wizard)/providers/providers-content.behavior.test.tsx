@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
@@ -194,6 +200,7 @@ describe('ProvidersContent behavior', () => {
         fal: false,
         imageGenerationReady: true,
         openai: true,
+        openrouter: true,
         replicate: true,
         textGenerationReady: true,
       },
@@ -320,6 +327,7 @@ describe('ProvidersContent behavior', () => {
         fal: false,
         imageGenerationReady: true,
         openai: true,
+        openrouter: true,
         replicate: false,
         textGenerationReady: true,
       },
@@ -349,6 +357,37 @@ describe('ProvidersContent behavior', () => {
     expect(screen.getByText('Current')).toBeInTheDocument();
   });
 
+  it('flags a missing OpenRouter key and explains that provider keys are validated', async () => {
+    const readiness = await getInstallReadinessMock();
+    getInstallReadinessMock.mockResolvedValue({
+      ...readiness,
+      providers: {
+        ...readiness.providers,
+        anyConfigured: true,
+        configured: ['openai'],
+        openrouter: false,
+        textGenerationReady: false,
+      },
+    });
+
+    render(<ProvidersContent />);
+
+    const openRouterRow = (
+      await screen.findByRole('heading', { name: 'OpenRouter' })
+    ).parentElement?.parentElement;
+
+    expect(openRouterRow).toBeTruthy();
+    expect(
+      within(openRouterRow as HTMLElement).getByText('Missing server key'),
+    ).toBeVisible();
+    expect(
+      within(openRouterRow as HTMLElement).getByText(/OPENROUTER_API_KEY/),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/placeholder values are rejected/i),
+    ).toBeVisible();
+  });
+
   it('hides the local agent tools section when the deployment does not expose local tool detection', async () => {
     getInstallReadinessMock.mockResolvedValue({
       access: {
@@ -372,6 +411,7 @@ describe('ProvidersContent behavior', () => {
         fal: false,
         imageGenerationReady: true,
         openai: true,
+        openrouter: true,
         replicate: true,
         textGenerationReady: true,
       },

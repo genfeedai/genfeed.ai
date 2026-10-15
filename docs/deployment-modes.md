@@ -12,7 +12,7 @@ summary; the canonical, decision-of-record version is the ADR at
 | **Get it**            | app.genfeed.ai                                                               | Download the checksummed GitHub release bundle                  | Build from source; tagged macOS artifacts appear in GitHub Releases when published |
 | **Orgs**              | many (isolated tenants)                                                      | **one**                                                         | one                                                                                |
 | **Brands**            | many per org                                                                 | **many**                                                        | many                                                                               |
-| **Auth**              | Better Auth (email/password, magic link, Google)                             | Better Auth, self-hostable — none for solo, optional login wall | none for local/offline work; Better Auth for explicit Cloud connection             |
+| **Auth**              | Better Auth (email/password, magic link, Google)                             | Better Auth, self-hostable — local sign-up by default, optional no-login mode | none for local/offline work; Better Auth for explicit Cloud connection             |
 | **Storage**           | S3                                                                           | local filesystem                                                | Cloud shell by default; opt-in local PGlite + optional cloud sync                  |
 | **Generation**        | managed                                                                      | your own provider keys (BYOK), free                             | BYOK local, free                                                                   |
 | **Managed inference** | credit-backed managed providers; included credits depend on the current plan | buy cloud credits, use via API                                  | buy cloud credits, use via API                                                     |
@@ -21,10 +21,10 @@ summary; the canonical, decision-of-record version is the ADR at
 
 - **SaaS** — `GENFEED_CLOUD=1` (+ Better Auth, AWS, Stripe).
 - **Community** — leave `GENFEED_CLOUD` unset. The release bundle's default
-  `.env.example` runs single-user with no auth and seeds one workspace. Turn on
-  a login wall with `BETTER_AUTH_ENABLED=true` and
-  `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true` in the installation `.env` when a team
-  needs local accounts. A repository source checkout uses `docker/.env` instead.
+  `.env.example` enables local Better Auth sign-up
+  (`BETTER_AUTH_ENABLED=true`, `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true`) so the
+  first user can create an account. Set both to `false` in the installation
+  `.env` for a single-user workspace with no login wall. A repository source checkout uses `docker/.env` instead.
   Community is still one org and does not require a Better Auth cloud account.
 - **Desktop** — the Electron shell sets `NEXT_PUBLIC_DESKTOP_SHELL=1`. The
   current release workflow packages macOS only; this repository does not claim

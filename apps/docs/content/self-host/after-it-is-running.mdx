@@ -10,19 +10,23 @@ empty workspace to a first post you have reviewed and approved.
 
 ## 1. Open your workspace
 
-Open `http://localhost:3000`. With the default configuration there is no login
-wall: the first boot seeded one local user, one organization (slug `default`),
-and one brand, and the web UI opens straight into them.
+Open `http://localhost:3000`. Sign-up is on by default
+(`BETTER_AUTH_ENABLED=true` in `.env.example`), so create your account with
+email and password. That needs no email provider; magic links, password resets,
+and invites do. See [Configuration](/self-host/configuration#login-wall).
 
-If you turned on the login wall (`BETTER_AUTH_ENABLED=true`), create your
-account with email and password. That needs no email provider; magic links,
-password resets, and invites do. See [Configuration](/self-host/configuration#login-wall).
+If you set `BETTER_AUTH_ENABLED=false` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED=false`,
+there is no login wall: the first boot seeded one local user, one organization
+(slug `default`), and one brand, and the web UI opens straight into them.
 
 ## 2. Add model keys
 
 Generation needs at least one provider key, and self-hosting has no Genfeed
-credits. Add your keys to `.env` and recreate the stack, following
-[Provider API keys](/self-host/provider-api-keys).
+credits. Text generation and the agent need `OPENROUTER_API_KEY`; without it the
+install-readiness check reports text generation as not ready and the first agent
+turn fails. Add real keys to `.env` and recreate the stack, following
+[Provider API keys](/self-host/provider-api-keys). Settings checks each key with
+the provider before saving it, so placeholder values are rejected.
 
 ## 3. Connect an AI agent over MCP
 

@@ -77,6 +77,7 @@ const EMPTY_READINESS: InstallReadinessResponse = {
     fal: false,
     imageGenerationReady: false,
     openai: false,
+    openrouter: false,
     replicate: false,
     textGenerationReady: false,
   },

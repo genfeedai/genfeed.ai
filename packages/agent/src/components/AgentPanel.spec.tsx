@@ -214,6 +214,7 @@ function createCreditsInfoApiService() {
       fal: false,
       imageGenerationReady: true,
       openai: true,
+      openrouter: true,
       replicate: true,
       textGenerationReady: true,
     },

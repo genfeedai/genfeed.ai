@@ -27,6 +27,11 @@ export default function ProvidersStatusCard({
           from Organization → API Keys if you want provider control or BYOK
           billing.
         </p>
+        <p className="mt-3">
+          Use real keys only. Organization → API Keys checks each key with the
+          provider before saving, so placeholder values are rejected; keys in
+          your .env file are read when the container starts.
+        </p>
         <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
           {accessStatusLabel}
         </p>

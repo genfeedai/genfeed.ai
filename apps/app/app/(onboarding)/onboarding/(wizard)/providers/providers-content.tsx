@@ -78,6 +78,7 @@ const EMPTY_READINESS: InstallReadinessResponse = {
     fal: false,
     imageGenerationReady: false,
     openai: false,
+    openrouter: false,
     replicate: false,
     textGenerationReady: false,
   },
@@ -206,7 +207,13 @@ export default function ProvidersContent() {
         key: 'fal.ai',
       },
       {
-        description: 'General-purpose text and assistant capabilities.',
+        description:
+          'Required for text generation and the agent. Set OPENROUTER_API_KEY in your .env.',
+        enabled: readiness.providers.openrouter,
+        key: 'OpenRouter',
+      },
+      {
+        description: 'Optional native OpenAI models.',
         enabled: readiness.providers.openai,
         key: 'OpenAI',
       },
