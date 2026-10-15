@@ -37,9 +37,10 @@ describe('Cloud help article catalog', () => {
         `${article.label}${TITLE_SUFFIX}`.length,
         `${article.slug} title`,
       ).toBeLessThanOrEqual(TITLE_MAX_LENGTH);
-      expect(article.summary.length, `${article.slug} summary`).toBeLessThanOrEqual(
-        DESCRIPTION_MAX_LENGTH,
-      );
+      expect(
+        article.summary.length,
+        `${article.slug} summary`,
+      ).toBeLessThanOrEqual(DESCRIPTION_MAX_LENGTH);
       expect(article.summary.length, `${article.slug} summary`).toBeGreaterThan(
         60,
       );
@@ -63,7 +64,9 @@ describe('Cloud help article catalog', () => {
       expect(article.content, article.slug).not.toMatch(/<(script|style)\b/i);
 
       const links = [
-        ...article.content.matchAll(/https:\/\/genfeed\.ai\/articles\/([a-z0-9-]+)/g),
+        ...article.content.matchAll(
+          /https:\/\/genfeed\.ai\/articles\/([a-z0-9-]+)/g,
+        ),
       ].map((match) => match[1]);
       for (const slug of links) {
         expect(slugs.has(slug), `${article.slug} links to ${slug}`).toBe(true);

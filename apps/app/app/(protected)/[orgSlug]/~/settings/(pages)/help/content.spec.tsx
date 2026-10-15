@@ -17,7 +17,8 @@ vi.mock('@services/core/environment.service', () => ({
       get documentation() {
         return mocks.documentation;
       },
-      gettingStarted: 'https://genfeed.ai/articles/getting-started-with-genfeed-cloud',
+      gettingStarted:
+        'https://genfeed.ai/articles/getting-started-with-genfeed-cloud',
       selfHostedGettingStarted:
         'https://docs.genfeed.ai/self-host/installation',
       workflows: 'https://docs.genfeed.ai/guides/studio',
