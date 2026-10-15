@@ -140,6 +140,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'services/integrations/google-ads/controllers/google-ads.controller.ts',
     prefix: 'services/google-ads',
   },
+  organizations: {
+    file: 'collections/organizations/controllers/organizations.controller.ts',
+    prefix: 'organizations',
+  },
   adsGateway: {
     file: 'services/ads-gateway/ads-gateway.controller.ts',
     prefix: 'ads',
@@ -415,6 +419,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
 
   // ── Account management ──
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'organizations',
+    tools: ['list_orgs'],
+  },
   {
     method: 'Get',
     sub: ':ingredientId/metadata',

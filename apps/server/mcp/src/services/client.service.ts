@@ -6,6 +6,7 @@ import type {
   AgentUntrustedContentGateResult,
   IPublishingProviderReadiness,
   IReleaseGroup,
+  OrganizationOption,
 } from '@genfeedai/contracts/interfaces';
 import type {
   ArticleDraftInput,
@@ -502,6 +503,10 @@ export class ClientService {
 
   getCredits(): Promise<CreditsUsage> {
     return this.workspace.getCredits();
+  }
+
+  listOrganizations(): Promise<OrganizationOption[]> {
+    return this.workspace.listOrganizations();
   }
 
   listPersonas(

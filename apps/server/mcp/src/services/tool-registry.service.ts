@@ -144,6 +144,7 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
+  'list_orgs',
 ]);
 
 const isMetaAdsTool = (name: string): boolean =>

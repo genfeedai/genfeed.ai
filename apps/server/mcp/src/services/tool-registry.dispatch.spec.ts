@@ -67,6 +67,7 @@ describe('ToolRegistryService.classify', () => {
     ['generate_linkedin_content', 'unknown'],
     ['set_generation_settings', 'agent-executor'],
     ['get_job_status', 'account-management'],
+    ['list_orgs', 'account-management'],
     // Removed in favour of get_job_status: no executor claims it any more.
     ['get_video_status', 'unknown'],
     ['list_assets', 'agent-executor'],

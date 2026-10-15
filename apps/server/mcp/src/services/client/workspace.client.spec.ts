@@ -78,3 +78,36 @@ describe('approval-waiting job status (#6595)', () => {
     expect(get).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('organization listing', () => {
+  const get = vi.fn();
+  const client = new WorkspaceClient({
+    logger: { debug: vi.fn() },
+    request: async (
+      _operation: string,
+      call: (http: unknown) => Promise<unknown>,
+    ) => call({ get }),
+    failWith: vi.fn(),
+  } as unknown as BaseApiClient);
+
+  beforeEach(() => vi.resetAllMocks());
+
+  it('reads the caller memberships from the cross-organization list', async () => {
+    const organizations = [
+      { id: 'org-a', isActive: true, label: 'Acme' },
+      { id: 'org-b', isActive: false, label: 'Beta' },
+    ];
+    get.mockResolvedValueOnce({ data: organizations });
+
+    expect(await client.listOrganizations()).toEqual(organizations);
+    expect(get).toHaveBeenCalledWith('/organizations', {
+      params: { mine: true },
+    });
+  });
+
+  it('returns an empty list for an unexpected payload', async () => {
+    get.mockResolvedValueOnce({ data: { errors: [] } });
+
+    expect(await client.listOrganizations()).toEqual([]);
+  });
+});

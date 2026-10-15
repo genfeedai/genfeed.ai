@@ -1,3 +1,4 @@
+import type { OrganizationOption } from '@genfeedai/contracts/interfaces';
 import type { CreditsUsage } from '@mcp/shared/interfaces/post.interface';
 import type { AxiosResponse } from 'axios';
 import type { BaseApiClient } from './base-api-client';
@@ -43,6 +44,27 @@ export class WorkspaceClient {
         };
       },
       this.base.failWith('Failed to get credits usage'),
+    );
+  }
+
+  /**
+   * Every organization the token's user has an active membership in, with the
+   * one this token is bound to flagged `isActive`. Cross-org read — the same
+   * `?mine=true` list the web organization switcher uses.
+   */
+  listOrganizations(): Promise<OrganizationOption[]> {
+    this.base.logger.debug('Listing organizations');
+
+    return this.base.request(
+      'listing organizations',
+      async (http) => {
+        const response = await http.get('/organizations', {
+          params: { mine: true },
+        });
+        const data = response.data?.data ?? response.data;
+        return Array.isArray(data) ? (data as OrganizationOption[]) : [];
+      },
+      this.base.failWith('Failed to list organizations'),
     );
   }
 

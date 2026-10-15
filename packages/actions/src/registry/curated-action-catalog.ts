@@ -391,6 +391,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_meta_ad_accounts', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_meta_ad_creatives', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_meta_campaigns', surfaces: ['mcp'], toolset: 'ads' },
+  { name: 'list_orgs', surfaces: ['mcp'], toolset: 'onboarding' },
   {
     name: 'list_outlier_posts',
     surfaces: ['agent'],
