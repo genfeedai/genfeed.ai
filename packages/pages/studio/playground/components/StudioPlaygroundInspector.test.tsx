@@ -726,6 +726,91 @@ describe('StudioPlaygroundInspector', () => {
     ).toEqual(['Vary']);
   });
 
+  it('carries use as reference, make clips and source for a finished video', () => {
+    const ingredient = {
+      brandId: 'brand-1',
+      category: IngredientCategory.VIDEO,
+      id: 'vid-1',
+    } as IIngredient;
+    const parentJob = {
+      ...recipeJob,
+      id: 'source-job',
+      ingredientId: 'source-1',
+      type: 'video' as const,
+    };
+    const job = {
+      ...recipeJob,
+      ingredient,
+      ingredientId: 'vid-1',
+      parentId: 'source-1',
+      type: 'video' as const,
+    };
+    const onSelect = vi.fn();
+    const onUseAsReference = vi.fn();
+
+    render(
+      <StudioPlaygroundInspector
+        job={job}
+        onRemix={vi.fn()}
+        onSelect={onSelect}
+        onUseAsReference={onUseAsReference}
+        onUseInPost={vi.fn()}
+        onVary={vi.fn()}
+        parentJob={parentJob}
+        runJobs={[job]}
+      />,
+    );
+
+    const actions = screen.getByRole('group', { name: 'Asset actions' });
+    fireEvent.click(
+      within(actions).getByRole('button', {
+        name: /Use this video as a reference/,
+      }),
+    );
+    expect(onUseAsReference).toHaveBeenCalledWith(job);
+
+    expect(
+      within(actions).getByRole('link', { name: 'Make clips' }),
+    ).toHaveAttribute('href', '/acme/northstar/studio/clips/new?video=vid-1');
+
+    fireEvent.click(
+      within(actions).getByRole('button', {
+        name: 'Show the source of this video',
+      }),
+    );
+    expect(onSelect).toHaveBeenCalledWith(parentJob);
+  });
+
+  it('hides use as reference when the composer cannot accept the asset', () => {
+    const ingredient = {
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ing-1',
+    } as IIngredient;
+    const job = { ...recipeJob, ingredient };
+
+    render(
+      <StudioPlaygroundInspector
+        isUseAsReferenceEnabled={false}
+        job={job}
+        onRemix={vi.fn()}
+        onSelect={vi.fn()}
+        onUseAsReference={vi.fn()}
+        onUseInPost={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[job]}
+      />,
+    );
+
+    const actions = screen.getByRole('group', { name: 'Asset actions' });
+    expect(
+      within(actions).queryByRole('button', { name: /as a reference/ }),
+    ).toBeNull();
+    expect(
+      within(actions).queryByRole('link', { name: 'Make clips' }),
+    ).toBeNull();
+  });
+
   it('shows the enriched recipe instead of the raw composer text', () => {
     render(
       <StudioPlaygroundInspector

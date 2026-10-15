@@ -527,9 +527,13 @@ export default function StudioPlaygroundCard({
           )}
         </div>
 
+        {/* Grid cards hover like the Library: the masonry overlay owns the
+            actions; Inspector carries reference, clips and source. */}
         {isListView
           ? renderDetails(!job.ingredient)
-          : renderHoverDetails(!job.ingredient)}
+          : job.ingredient
+            ? null
+            : renderHoverDetails(true)}
       </article>
     );
   }

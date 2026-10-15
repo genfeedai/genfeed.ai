@@ -379,7 +379,7 @@ describe('StudioPlaygroundCard', () => {
     const assetActions = buildAssetActions();
     const onReprompt = vi.fn();
 
-    render(
+    const { container } = render(
       <StudioPlaygroundCard
         assetActions={assetActions}
         job={job}
@@ -391,15 +391,9 @@ describe('StudioPlaygroundCard', () => {
 
     expect(screen.getByTestId('shared-masonry-image')).toBeInTheDocument();
     expect(screen.queryByText(generatedJob.prompt)).not.toBeInTheDocument();
-    expect(
-      screen
-        .getByText(new RegExp(generatedJob.modelKey))
-        .closest('[data-asset-hover-details]'),
-    ).toHaveClass(
-      'opacity-100',
-      '[@media(hover:hover)]:opacity-0',
-      '[@media(hover:hover)]:group-focus-within:opacity-100',
-    );
+    // Hydrated grid cards hover like the Library: the masonry overlay is the
+    // only hover layer.
+    expect(container.querySelector('[data-asset-hover-details]')).toBeNull();
 
     const imageProps = masonryMocks.image.mock.calls.at(-1)?.[0];
     expect(imageProps?.onCopyPrompt).toBe(assetActions.onCopyPrompt);
@@ -468,11 +462,10 @@ describe('StudioPlaygroundCard', () => {
     expect(props?.isActionsEnabled).toBe(true);
     expect(props?.onOpenInEditor).toBe(assetActions.onOpenInEditor);
     expect(props?.onResize).toBe(assetActions.onResize);
-    const makeClips = screen.getByRole('link', { name: 'Make clips' });
-    expect(makeClips).toHaveAttribute(
-      'href',
-      `/my-org/my-brand/studio/clips/new?video=${ingredient.id}`,
-    );
+    // Make clips lives in the Inspector, not on the grid card.
+    expect(
+      screen.queryByRole('link', { name: 'Make clips' }),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps video transformations off until the clip is a persisted asset', () => {
@@ -527,7 +520,7 @@ describe('StudioPlaygroundCard', () => {
         onReprompt={vi.fn()}
         onSelect={onSelect}
         parentJob={parentJob}
-        view={ViewType.GRID}
+        view={ViewType.LIST}
       />,
     );
 
