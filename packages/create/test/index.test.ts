@@ -13,7 +13,7 @@ import {
   readPackageVersion,
   resolveReleaseTag,
   verifyReleaseChecksum,
-} from '../src/index';
+} from '../src/index.js';
 
 describe('release identity', () => {
   it.each([
