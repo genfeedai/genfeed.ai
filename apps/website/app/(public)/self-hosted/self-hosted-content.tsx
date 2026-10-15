@@ -35,11 +35,12 @@ cp .env.example .env && docker compose --env-file .env -f compose.yml up -d`;
 const REQUIREMENTS = [
   'Docker Compose v2 (Docker Engine with the Compose plugin, or Docker Desktop)',
   'Node.js 24 (>=24 <25), only for the npx command. The release bundle does not need Node.',
-  'About 8 GB of free disk (10 GB recommended)',
+  'About 10 GB of free disk (15 GB recommended)',
   'Free ports 3000 (web), 3010 (API), and 3014 (MCP)',
 ] as const;
 
 const PROVIDER_KEYS = [
+  'OpenRouter',
   'OpenAI',
   'Anthropic',
   'Replicate',
@@ -220,8 +221,9 @@ export default function SelfHostedContent() {
               <p className="text-sm leading-relaxed text-surface/60">
                 Self-hosting does not include Genfeed credits. To generate
                 content, add your own keys ({PROVIDER_KEYS.join(', ')}) to{' '}
-                <code>.env</code> and pay those providers directly. The keys are
-                optional and blank by default. The Community image does not
+                <code>.env</code> and pay those providers directly. An
+                OpenRouter key is required for text generation; the other keys
+                are optional. The Community image does not
                 start GPU or local-model services.
               </p>
             </div>

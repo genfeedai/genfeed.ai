@@ -24,7 +24,7 @@ hosted product at [genfeed.ai](https://genfeed.ai) (**SaaS**). Same code, three
   need it.
 - Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`.
 - Free host ports 3000 (web), 3010 (API) and 3014 (MCP).
-- About 8 GB of free disk (10 GB recommended); the images take about 7 GB.
+- About 10 GB of free disk (15 GB recommended); a fresh install measured about 9.5 GB.
 - RAM: no minimum is published. Tested on 8 CPU / 15 GiB.
 - Debian 13 provides Compose v2 in its
   [`docker-compose` package](https://packages.debian.org/trixie/docker-compose).
@@ -50,7 +50,8 @@ cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
 
 The bundle pins the image for its release, applies Prisma migrations, and seeds
 one local user, organization, and brand. No Genfeed Cloud account is required.
-Add a provider key to `.env` when you want to run generation.
+Add an OpenRouter key (`OPENROUTER_API_KEY`) to `.env` before you run text
+generation; without it the first generation fails with "Missing provider key".
 
 `npx @genfeedai/create my-genfeed` downloads, checksums, and starts the same
 bundle. Checksums, auth, providers, and upgrades:

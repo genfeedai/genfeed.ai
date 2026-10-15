@@ -14,19 +14,27 @@ Open `http://localhost:3000`. With the default configuration there is no login
 wall: the first boot seeded one local user, one organization (slug `default`),
 and one brand, and the web UI opens straight into them.
 
-If you turned on the login wall (`BETTER_AUTH_ENABLED=true`), create your
-account with email and password. That needs no email provider; magic links,
-password resets, and invites do. See [Configuration](/self-host/configuration#login-wall).
+If you turned on the login wall (`BETTER_AUTH_ENABLED=true`), there is no open sign-up form for email
+and password: the login page offers Google and Magic Link, which need Google
+OAuth credentials or `RESEND_API_KEY`. Without either, create the account with a
+request to `POST /v1/auth/sign-up/email` and sign in at `/login/password`. The
+exact steps, and what the new account does and does not see, are in
+[Create the first user](/self-host/installation#create-the-first-user).
 
 ## 2. Add model keys
 
-Generation needs at least one provider key, and self-hosting has no Genfeed
-credits. Add your keys to `.env` and recreate the stack, following
-[Provider API keys](/self-host/provider-api-keys).
+Text generation needs an OpenRouter key, and self-hosting has no Genfeed
+credits. Uncomment `OPENROUTER_API_KEY` in `.env`, paste your key, and recreate
+the stack, following [Provider API keys](/self-host/provider-api-keys). Without
+it, your first generation fails with `Missing provider key: OPENROUTER_API_KEY`.
+Image, video, and voice generation need their own keys (Replicate or fal, and
+ElevenLabs).
+
+Check that it works by requesting a short text draft in the web UI. If it fails, see [Troubleshooting](/self-host/troubleshooting#missing-provider-key).
 
 ## 3. Connect an AI agent over MCP
 
-Your instance serves MCP on port `3014`. The login wall does not protect it:
+Your instance serves MCP on port `3014`. It does not depend on the login wall:
 the MCP server always requires a bearer credential.
 
 For Claude Code, register the dedicated content connector, then open `/mcp`,

@@ -10,8 +10,8 @@
 - A runtime capable of running the published `linux/amd64` image (Docker Desktop
   can use emulation on Apple Silicon). Compose selects this image architecture;
   ARM hosts must have AMD64 emulation enabled in their Docker runtime.
-- About 8 GB of free disk (10 GB recommended): the images take about 7 GB, and
-  generated media needs more on top
+- About 10 GB of free disk (15 GB recommended): a fresh install measured about
+  9.5 GB, and generated media needs more on top
 - RAM: no minimum is published. A clean Debian 13 install with 8 CPU and 15 GiB
   RAM ran it fine, and idle PostgreSQL used about 59 MiB.
 - Debian 13 provides Compose v2 in its
@@ -112,9 +112,15 @@ BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 BETTER_AUTH_SECRET=
 ```
 
-Email/password works with only the local Better Auth database. Add an email
-provider only for magic links, password reset, email verification, or member
-invites:
+Email/password accounts live in the local Better Auth database and need no email
+provider, but the login page itself only offers Google and Magic Link. With
+neither configured, create the first account with
+`POST http://localhost:3010/v1/auth/sign-up/email` (JSON body `name`, `email`,
+`password`), then sign in at `http://localhost:3000/login/password`. The new
+account gets its own organization, not the seeded `default` workspace. The login
+wall gates the web UI only: the API on port 3010 still resolves unauthenticated
+requests to the local user, so do not expose it publicly. Add an email provider
+for magic links, password reset, email verification, or member invites:
 
 ```env
 RESEND_API_KEY=re_...

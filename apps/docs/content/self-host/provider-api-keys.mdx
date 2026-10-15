@@ -1,6 +1,6 @@
 ---
 title: Provider API Keys
-description: 'Bring your own model keys for self-hosted Genfeed: OpenAI, Anthropic, Replicate, fal, and ElevenLabs. Where to get each key and how to add it.'
+description: 'Bring your own model keys for self-hosted Genfeed: OpenRouter (required for text), OpenAI, Anthropic, Replicate, fal, and ElevenLabs. Where to get each key and how to add it.'
 ---
 
 # Provider API Keys
@@ -10,23 +10,58 @@ that you supply. Self-hosting has **no Genfeed credits**: you create accounts
 with the providers you want, add their keys to your instance, and pay those
 providers directly under their own terms.
 
-The application starts and works without any key. Add a key when you want a
-generation path to run.
+The application starts and works without any key, but **text generation needs
+an OpenRouter key**. Without one, the first chat, agent run, or draft fails with
+`Missing provider key: OPENROUTER_API_KEY`. Add that key first.
 
 ## Supported keys
 
-All of these are optional and blank in `.env.example`.
+| Provider | Environment variable | Required? | Used for |
+| --- | --- | --- | --- |
+| OpenRouter | `OPENROUTER_API_KEY` | **Yes, for any text generation** | Chat, agents, post drafts, prompt enhancement, newsletters, and workflow LLM steps |
+| OpenAI | `OPENAI_API_KEY` | No | Direct access to `openai/*` models, where a path routes there |
+| Anthropic | `ANTHROPIC_API_KEY` | No | Direct access to `anthropic/*` models, where a path routes there |
+| Replicate | `REPLICATE_KEY` | For media | Hosted image, video, and other media models |
+| fal | `FAL_API_KEY` | For media, where a path selects fal | Hosted media models |
+| ElevenLabs | `ELEVENLABS_API_KEY` | For voice | Voice and audio |
 
-| Provider | Environment variable | Used for |
-| --- | --- | --- |
-| OpenAI | `OPENAI_API_KEY` | Language models |
-| Anthropic | `ANTHROPIC_API_KEY` | Language models |
-| Replicate | `REPLICATE_KEY` | Hosted image, video, and other media models |
-| fal | `FAL_API_KEY` | Hosted media models, where a media path selects fal |
-| ElevenLabs | `ELEVENLABS_API_KEY` | Voice and audio |
+In the self-hosted `.env.example`, `OPENROUTER_API_KEY` is commented out so that
+an empty value is never passed to the container. Uncomment it and paste your key.
+The other keys start blank.
 
-Other providers in the model registry (such as OpenRouter or xAI for language
-models) are listed in [Models and providers](/models) and are configured through
+### Can another provider replace OpenRouter?
+
+Not for the default paths. The routing rules, checked against the code, are:
+
+- Model ids starting with `openai/` go to OpenAI when `OPENAI_API_KEY` is set, and
+  ids starting with `anthropic/` go to Anthropic when `ANTHROPIC_API_KEY` is set.
+- Every other model id goes to OpenRouter. An `openai/*` or `anthropic/*` id with
+  no direct key also falls back to OpenRouter.
+- Branded drafts (post drafts written in a brand's voice) are OpenRouter-only,
+  whatever other keys you have.
+- Replicate, fal, and ElevenLabs are media and voice providers. They never
+  generate text.
+
+So an OpenAI-only or Anthropic-only install still fails on the default models. If
+you want OpenAI or Anthropic models, you can reach them through OpenRouter with
+the same single key, and the direct keys are an optional addition.
+
+An OpenRouter key saved for an organization in the app also satisfies this
+requirement. See [Per organization](#per-organization-in-the-app).
+
+### Which key does a feature need?
+
+| Feature | Key |
+| --- | --- |
+| Chat and agents | `OPENROUTER_API_KEY` |
+| Post and branded drafts | `OPENROUTER_API_KEY` |
+| Prompt enhancement | `OPENROUTER_API_KEY` |
+| Newsletters and workflow LLM steps | `OPENROUTER_API_KEY` |
+| Image and video generation | `REPLICATE_KEY` or `FAL_API_KEY`, depending on the model |
+| Voice and audio | `ELEVENLABS_API_KEY` |
+
+Other providers in the model registry (such as xAI) are listed in
+[Models and providers](/models) and are configured through
 [Integrations](/integrations/ai-providers).
 
 ## How to get each key
@@ -34,6 +69,7 @@ models) are listed in [Models and providers](/models) and are configured through
 Create an API key in each provider's own dashboard. Provider sites change, so
 follow their current instructions.
 
+- **OpenRouter:** create a key at [openrouter.ai/keys](https://openrouter.ai/keys). Add credits first, because most models need a funded balance.
 - **OpenAI:** create a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
 - **Anthropic:** create a key in the [Anthropic Console](https://console.anthropic.com/).
 - **Replicate:** create an API token at [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens).
@@ -48,17 +84,19 @@ balance, or account approval before a key can run a given model.
 ### Deployment-wide, in `.env`
 
 1. Open the `.env` next to your `compose.yml`.
-2. Paste each key after its variable:
+2. Uncomment `OPENROUTER_API_KEY` and paste each key after its variable:
 
    ```env
-   OPENAI_API_KEY=sk-...
+   OPENROUTER_API_KEY=sk-or-...
+   OPENAI_API_KEY=""
    ANTHROPIC_API_KEY=""
    REPLICATE_KEY=""
    FAL_API_KEY=""
    ELEVENLABS_API_KEY=""
    ```
 
-3. Recreate the stack so the container reads the new values:
+3. Recreate the stack so the container reads the new values. A plain
+   `docker compose restart` does not re-read `.env`:
 
    ```bash
    docker compose --env-file .env -f compose.yml up -d
@@ -83,6 +121,20 @@ issues, and read the container logs:
 ```bash
 docker compose --env-file .env -f compose.yml logs genfeed
 ```
+
+## Missing provider key error
+
+If a generation fails with this message, the key it names is not set:
+
+```text
+Missing provider key: OPENROUTER_API_KEY
+```
+
+The API answers with HTTP `503` and `code: "missing_provider_key"`. Agent and
+draft flows show it as "AI provider not connected". Add the key as described
+above and recreate the stack; no data is lost and no credit is charged for the
+failed attempt, so you can run the same generation again. See
+[Troubleshooting](/self-host/troubleshooting#missing-provider-key).
 
 ## Privacy and cost
 

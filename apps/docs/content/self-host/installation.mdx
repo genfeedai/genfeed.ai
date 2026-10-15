@@ -16,7 +16,18 @@ and neither needs a repository clone.
 | [From source](#option-3-from-source-contributors) | Contributors changing Genfeed itself | Node.js 24, Bun, Git, Docker Compose v2 |
 
 Check the [system requirements](/self-host/system-requirements) first. Plan on about
-8 GB of free disk, and free ports `3000`, `3010`, and `3014`.
+10 GB of free disk (15 GB recommended), and free ports `3000`, `3010`, and `3014`.
+
+Whichever option you pick, you configure the instance with one `.env` file of
+environment variables. After you edit it, recreate the stack
+(`docker compose --env-file .env -f compose.yml up -d`); a plain `restart` does
+not re-read `.env`. When something looks wrong, start with
+`docker compose --env-file .env -f compose.yml logs genfeed`, and see
+[Troubleshooting](/self-host/troubleshooting).
+
+**Before you start:** have an [OpenRouter key](/self-host/provider-api-keys) ready.
+You can start the stack without it, but the first text generation fails until it
+is set.
 
 ## Option 1: `npx` one command
 
@@ -76,10 +87,70 @@ curl http://localhost:3010/v1/health
 This is a process-level check. It does not prove that the database, queues, or
 any model provider are ready.
 
+### Create the first user
+
+How you get in depends on one setting, `BETTER_AUTH_ENABLED`. These steps were
+read from the code and have not been run end to end on a clean install, so tell
+us if something differs.
+
+**Default (`BETTER_AUTH_ENABLED=false`): there is nothing to sign up for.**
+Open `http://localhost:3000`. The first boot seeded one local user
+(`admin@localhost`, which has no password), one organization with the slug
+`default`, and one brand. Every request that reaches the web UI or API runs as
+that user, so anyone who can reach your ports has full access. Keep the ports on
+your own machine or behind your network's access controls.
+
+**With the login wall (`BETTER_AUTH_ENABLED=true`):**
+
+1. Set the switch in `.env`, then recreate the stack. The container entrypoint
+   reads it at start, and makes the browser-side `NEXT_PUBLIC_BETTER_AUTH_ENABLED`
+   follow it, so a plain restart is not enough. Setting both to `true` is fine:
+
+   ```env
+   BETTER_AUTH_ENABLED=true
+   NEXT_PUBLIC_BETTER_AUTH_ENABLED=true
+   ```
+
+   `BETTER_AUTH_SECRET` can stay empty: the container generates one and keeps it
+   in `/data/.better-auth-secret`.
+2. Create your account. The login page offers **Google** and **Magic Link**
+   only. Both need setup: Magic Link needs `RESEND_API_KEY` to send the email,
+   and Google needs `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
+   With neither configured, create an email and password account through the
+   API instead:
+
+   ```bash
+   curl -X POST http://localhost:3010/v1/auth/sign-up/email \
+     -H 'Content-Type: application/json' \
+     -d '{"name":"Your Name","email":"you@example.com","password":"a-long-unique-password"}'
+   ```
+
+   Email verification is skipped on a self-hosted install with no mailer, so the
+   account works immediately. If you add `RESEND_API_KEY` later and verification
+   is switched on, new accounts must verify by email.
+3. Sign in at `http://localhost:3000/login/password` with that email and
+   password.
+
+What to expect:
+
+- The new account gets its **own** organization and brand. It does not take over
+  the seeded `default` workspace, and `admin@localhost` has no password, so you
+  cannot sign in as it.
+- The login wall gates the **web UI**. The API on port `3010` still treats a
+  request with no bearer token as the local user, and the MCP server on `3014`
+  always needs a bearer credential. Do not publish port `3010` to the internet;
+  put the stack behind a [reverse proxy](/self-host/reverse-proxy) that you
+  control.
+- If sign-in fails behind a custom domain, set `BETTER_AUTH_URL` and
+  `BETTER_AUTH_TRUSTED_ORIGINS` to your public API and app URLs. See
+  [Configuration](/self-host/configuration#login-wall).
+
 ### Add your own keys
 
-Self-hosted Genfeed has no Genfeed credits and the model keys in `.env` start
-blank. Add the provider keys you want in `.env` and recreate the stack. See
+Self-hosted Genfeed has no Genfeed credits. **Add an OpenRouter key before your
+first generation:** uncomment `OPENROUTER_API_KEY` in `.env`, paste the key, and
+recreate the stack. Without it, text generation fails with
+`Missing provider key: OPENROUTER_API_KEY`. Other keys are optional. See
 [Provider API keys](/self-host/provider-api-keys).
 
 ### Source checkout Compose file
