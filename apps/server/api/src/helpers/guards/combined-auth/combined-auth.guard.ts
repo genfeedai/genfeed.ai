@@ -11,6 +11,7 @@ import {
   type AdminIpRequest,
   isAdminIpAllowed,
 } from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
+import { isLocalIdentityPeer } from '@api/helpers/utils/local-identity/local-identity-peer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -49,12 +50,14 @@ import { Observable } from 'rxjs';
  *  1. @Public() routes → allow immediately
  *  2. @OptionalAuth() routes → allow only when Authorization is absent;
  *     reject a presented invalid header; validate a bearer or API key
- *  3. LOCAL mode → allow and inject local identity for downstream guards/controllers
- *  4. HYBRID mode → opportunistic auth:
- *     - Has token? → validate (Better Auth or API key)
- *     - No token? → allow and inject local identity
- *     - @RequiresCloudAuth() routes → require valid token
- *  5. CLOUD mode → require auth (Better Auth or API key)
+ *  3. LOCAL mode (self-host, `BETTER_AUTH_ENABLED` off) → a request from this
+ *     machine or the Docker network gets the seeded local identity; any other
+ *     peer must present a valid API key
+ *  4. Everything else → require a valid Better Auth JWT or API key. When
+ *     `BETTER_AUTH_ENABLED` is on there is no tokenless fallback at all,
+ *     whatever the peer address.
+ *     @RequiresCloudAuth() routes additionally reject tokenless requests on
+ *     self-host with the cloud-connection message.
  */
 interface CachedIdentity {
   defaultBrand: Brand;
@@ -292,8 +295,10 @@ export class CombinedAuthGuard implements CanActivate {
       return this.resolveTokenGuard(context, presentedToken);
     }
 
-    // 3. LOCAL mode: skip all auth and inject a default local identity
-    if (isSelfHostedDeployment() && !isBetterAuthEnabled()) {
+    // 3. LOCAL mode: the seeded local identity is for this machine and the
+    // Docker network only. Remote peers fall through to credential checks.
+    const isLocalMode = isSelfHostedDeployment() && !isBetterAuthEnabled();
+    if (isLocalMode && isLocalIdentityPeer(request)) {
       if (this.requiresCloudAuth(context)) {
         throw new UnauthorizedException(
           'This endpoint requires a cloud connection',
@@ -308,37 +313,23 @@ export class CombinedAuthGuard implements CanActivate {
 
     // A presented header that attempts the Bearer scheme but fails strict
     // parsing (blank token, or surplus whitespace-separated fields) is a
-    // malformed credential, not an absent one — it must never be downgraded
-    // to anonymous/local-admin access in HYBRID mode, nor silently deferred
-    // to a downstream guard in CLOUD mode. A header presenting some other
-    // scheme entirely (e.g. `Basic ...` from an nginx reverse-proxy doing
-    // its own HTTP basic auth in front of the app) carries no Bearer
-    // credential at all, so it is treated the same as an absent header —
-    // in CLOUD mode that still ends in 401 once the downstream guard runs.
+    // malformed credential, not an absent one, and is never deferred to a
+    // downstream guard. A header presenting some other scheme entirely (e.g.
+    // `Basic ...` from an nginx reverse-proxy doing its own HTTP basic auth in
+    // front of the app) carries no Bearer credential at all, so it is treated
+    // the same as an absent header and ends in 401 below.
     if (authHeader !== undefined && !token && isBearerScheme(authHeader)) {
       throw new UnauthorizedException('Unauthorized');
     }
 
-    // 4. HYBRID mode: opportunistic auth
-    if (isSelfHostedDeployment() && isBetterAuthEnabled()) {
-      // @RequiresCloudAuth() routes must have a valid token
-      if (this.requiresCloudAuth(context) && !token) {
-        throw new UnauthorizedException(
-          'This endpoint requires a cloud connection',
-        );
-      }
-
-      // No token? Allow through with a local identity for downstream guards/controllers
-      if (!token) {
-        await this.injectLocalIdentity(request);
-        return true;
-      }
-
-      // Has token — validate it (API key / Better Auth)
-      return this.resolveTokenGuard(context, token);
+    // @RequiresCloudAuth() routes must have a valid token on self-host
+    if (isSelfHostedDeployment() && this.requiresCloudAuth(context) && !token) {
+      throw new UnauthorizedException(
+        'This endpoint requires a cloud connection',
+      );
     }
 
-    // 5. CLOUD mode: require auth (API key / Better Auth)
+    // 4. Require auth (API key / Better Auth). No tokenless fallback.
     return this.resolveTokenGuard(context, token);
   }
 }
