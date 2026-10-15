@@ -681,6 +681,22 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 1,
     },
+    // Backup Topaz route on fal, seeded inactive: the upscale services still
+    // dispatch to Replicate, and fal's watcher keeps these contracts current.
+    [MODEL_KEYS.FAL_TOPAZ_IMAGE_UPSCALE]: {
+      category: ModelCategory.IMAGE_UPSCALE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+      maxUpscaleFactor: 6,
+    },
+    [MODEL_KEYS.FAL_TOPAZ_VIDEO_UPSCALE]: {
+      category: ModelCategory.VIDEO_UPSCALE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+      maxUpscaleFactor: 4,
+    },
 
     [MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO]: {
       aspectRatios: ['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'],

@@ -140,6 +140,8 @@ export const MODEL_KEYS = {
   FAL_ELEVEN_LABS_TTS: 'fal-ai/eleven-labs-tts',
   FAL_FACE_SWAP: 'fal-ai/face-swap',
   FAL_UPSCALER: 'fal-ai/clarity-upscaler',
+  FAL_TOPAZ_IMAGE_UPSCALE: 'fal-ai/topaz/upscale/image',
+  FAL_TOPAZ_VIDEO_UPSCALE: 'fal-ai/topaz/upscale/video',
   GENFEED_AI_FLUX_DEV: 'genfeed-ai/flux-dev',
   GENFEED_AI_FLUX_DEV_PULID: 'genfeed-ai/flux-dev-pulid',
   GENFEED_AI_Z_IMAGE_TURBO: 'genfeed-ai/z-image-turbo',

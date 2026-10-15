@@ -46,6 +46,10 @@ export interface ReplicateContractSyncResult {
   version: string;
 }
 
+/** Replicate's billing config names no metric, only a priced "unit". */
+const OPAQUE_BILLING_METRIC_FAILURE =
+  'unmapped_metric:unspecified_billing_metric';
+
 /**
  * Replicate exposes no version, and so no OpenAPI document, for some official
  * models (MiniMax H3). Their billing tiers are then read against the schema
@@ -170,6 +174,16 @@ export class ReplicateModelContractSyncService {
         version: contract.version,
       };
     }
+
+    if (
+      reviewed &&
+      isRecord(reviewed.contract.pricing) &&
+      reviewed.contract.pricing.source === 'provider-model-page' &&
+      candidate.billingFailure === OPAQUE_BILLING_METRIC_FAILURE
+    )
+      // The page bills an unnamed "unit" (Topaz), so it cannot confirm or
+      // contradict the reviewed sheet; the reviewed rate stays as reviewed.
+      return { drifted: false, quarantined, version: contract.version };
 
     if (reviewed) {
       // Reviewed rates exist but this refresh produced none we can read.
