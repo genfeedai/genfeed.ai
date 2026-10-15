@@ -66,6 +66,9 @@ describe.skipIf(!connectionString)(
         invalidate: vi.fn().mockResolvedValue(undefined),
         invalidateByTags: vi.fn().mockResolvedValue(undefined),
       } as never,
+      {
+        invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+      } as never,
       { get: () => ({ unscheduleWorkflow }) } as never,
     );
 
@@ -495,6 +498,9 @@ describe.skipIf(!connectionString)(
         {
           invalidate: vi.fn().mockResolvedValue(undefined),
           invalidateByTags: vi.fn().mockResolvedValue(undefined),
+        } as never,
+        {
+          invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
         } as never,
         { get: () => ({ unscheduleWorkflow }) } as never,
       );

@@ -48,7 +48,9 @@ import {
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
@@ -164,6 +166,7 @@ export class BrandRelocationService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
@@ -963,7 +966,20 @@ export class BrandRelocationService {
         CACHE_PATTERNS.BRANDS_LIST(sourceOrgId),
         CACHE_PATTERNS.BRANDS_LIST(destOrgId),
       );
-      await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
+      await this.cacheInvalidationService.invalidateByTags([
+        CACHE_TAGS.BRANDS,
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(sourceOrgId),
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(destOrgId),
+      ]);
+      // Members' bootstrap payload (brand list, active brand) is cached per
+      // user and organization; without this both orgs show the pre-move
+      // brands until the cache expires.
+      await this.accessBootstrapCacheService.invalidateForOrganization(
+        sourceOrgId,
+      );
+      await this.accessBootstrapCacheService.invalidateForOrganization(
+        destOrgId,
+      );
     } catch (error: unknown) {
       // The move is committed; a cache that stays stale expires on its own.
       this.logger.warn('Brand relocation cache invalidation failed', {

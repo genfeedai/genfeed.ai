@@ -21,6 +21,7 @@ import {
   SECOND_ORDER_TARGETS,
 } from '@api/collections/brands/constants/brand-org-cascade.constants';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
@@ -76,6 +77,9 @@ describe('BrandRelocationService', () => {
   let queryRaw: ReturnType<typeof vi.fn>;
   let executeRaw: ReturnType<typeof vi.fn>;
   let transactionSpy: ReturnType<typeof vi.fn>;
+  let accessBootstrapCacheService: {
+    invalidateForOrganization: ReturnType<typeof vi.fn>;
+  };
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
@@ -121,6 +125,9 @@ describe('BrandRelocationService', () => {
       invalidate: vi.fn(),
       invalidateByTags: vi.fn(),
     };
+    accessBootstrapCacheService = {
+      invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+    };
     prismaProxy = new Proxy(
       {},
       {
@@ -157,6 +164,7 @@ describe('BrandRelocationService', () => {
       prismaProxy as unknown as PrismaService,
       logger as unknown as LoggerService,
       cacheInvalidationService as unknown as CacheInvalidationService,
+      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       moduleRef as unknown as ModuleRef,
     );
   });
@@ -913,7 +921,18 @@ describe('BrandRelocationService', () => {
       cacheInvalidationService.invalidate.mock.calls.flat();
     expect(invalidatedKeys).toContain(`brands:list:${SOURCE_ORG}`);
     expect(invalidatedKeys).toContain(`brands:list:${DEST_ORG}`);
-    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      'brands',
+      `brand-ctx:${SOURCE_ORG}`,
+      `brand-ctx:${DEST_ORG}`,
+    ]);
+    // Members of both orgs must see the move on their next bootstrap.
+    expect(
+      accessBootstrapCacheService.invalidateForOrganization,
+    ).toHaveBeenCalledWith(SOURCE_ORG);
+    expect(
+      accessBootstrapCacheService.invalidateForOrganization,
+    ).toHaveBeenCalledWith(DEST_ORG);
 
     expect(result).toEqual({
       brand: { id: BRAND_ID, organizationId: DEST_ORG },
