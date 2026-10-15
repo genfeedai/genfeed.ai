@@ -860,6 +860,14 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
   // A post's ordered media links carry the post's organization; the link has
   // no brand key of its own, so it follows the post.
   secondOrderChild('postIngredient', 'post_ingredients', POST_PARENT),
+  // A character's ordered reference images carry the character's
+  // organization; the row has no brand key, so it follows its persona (not the
+  // image, which a shared character may take from another brand).
+  secondOrderChild('personaReference', 'persona_references', {
+    fkField: 'personaId',
+    parentBrandField: 'brandId',
+    parentDelegate: 'persona',
+  }),
   {
     delegate: 'taskComment',
     table: 'task_comments',

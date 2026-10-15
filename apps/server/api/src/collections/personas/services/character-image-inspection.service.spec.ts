@@ -69,7 +69,10 @@ describe('CharacterImageInspectionService', () => {
           organizationId: 'org-1',
           brandId: 'brand-1',
           isDeleted: false,
-          OR: [{ avatarIngredientId: 'image-1' }],
+          OR: [
+            { avatarIngredientId: 'image-1' },
+            { references: { some: { ingredientId: 'image-1' } } },
+          ],
         },
       }),
     );
@@ -123,6 +126,7 @@ describe('CharacterImageInspectionService', () => {
       });
       const alternatives = [
         { avatarIngredientId: 'image-1' },
+        { references: { some: { ingredientId: 'image-1' } } },
         ...(personaId ? [{ id: personaId }] : []),
       ];
       expect(prisma.persona.findFirst).toHaveBeenCalledWith(

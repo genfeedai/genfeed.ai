@@ -1,4 +1,8 @@
 import { isPersonaAvailableToBrand } from '@api/collections/personas/utils/persona-availability.util';
+import {
+  PERSONA_REFERENCES_SELECT,
+  personaReferencesAnyWhere,
+} from '@api/collections/personas/utils/persona-references.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PersonaStatus } from '@genfeedai/contracts';
@@ -12,6 +16,7 @@ const GRANT_PERSONA_SELECT = {
   handle: true,
   id: true,
   label: true,
+  references: PERSONA_REFERENCES_SELECT,
   status: true,
 } as const;
 
@@ -57,7 +62,10 @@ function keepGrantsOfCurrentOwner<T extends OwnerCheckedGrantRow>(
 export class PersonaGrantReadService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Active grants whose character owns, or has outputs among, the assets. */
+  /**
+   * Active grants whose character has any of the assets as a reference image
+   * (primary or not), or has outputs among them.
+   */
   async findReferenceGrants(params: {
     ingredientIds: readonly string[];
     organizationId: string;
@@ -73,6 +81,10 @@ export class PersonaGrantReadService {
             avatarIngredientId: true,
             id: true,
             ingredients: { select: { id: true }, where: { id: { in: ids } } },
+            references: {
+              select: { ingredientId: true, position: true },
+              where: { ingredientId: { in: ids } },
+            },
             ...OWNER_CHECK_PERSONA_SELECT,
           },
         },
@@ -82,7 +94,7 @@ export class PersonaGrantReadService {
           is: {
             isDeleted: false,
             OR: [
-              { avatarIngredientId: { in: ids } },
+              ...personaReferencesAnyWhere(ids),
               { ingredients: { some: { id: { in: ids } } } },
             ],
           },
@@ -123,6 +135,7 @@ export class PersonaGrantReadService {
           select: {
             avatarIngredientId: true,
             handle: true,
+            references: PERSONA_REFERENCES_SELECT,
             ...OWNER_CHECK_PERSONA_SELECT,
           },
         },

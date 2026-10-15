@@ -16,6 +16,11 @@ export interface PersonaDocument
   isShared?: boolean;
   owningBrandId?: string | null;
   owningBrandName?: string | null;
+  /**
+   * Computed: every live reference image, primary first, set by
+   * `withReferenceIngredientIds`.
+   */
+  referenceIngredientIds?: string[];
   bio?: string | null;
   contentStrategy?: Record<string, unknown> | null;
   emoji?: string | null;

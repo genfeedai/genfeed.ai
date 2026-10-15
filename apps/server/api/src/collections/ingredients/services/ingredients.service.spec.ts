@@ -2,6 +2,7 @@ import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -53,6 +54,7 @@ describe('IngredientsService', () => {
   };
   let prisma: PrismaService;
   const invalidateByTags = vi.fn();
+  const personaReferences = { resyncForIngredients: vi.fn() };
 
   const brandId = testId('brand');
   const ingredientId = testId('ingredient');
@@ -72,6 +74,9 @@ describe('IngredientsService', () => {
 
   beforeEach(async () => {
     invalidateByTags.mockReset().mockResolvedValue(1);
+    personaReferences.resyncForIngredients
+      .mockReset()
+      .mockResolvedValue(undefined);
     ingredientDelegate = {
       count: vi.fn().mockResolvedValue(1),
       create: vi.fn().mockResolvedValue(mockIngredient),
@@ -88,6 +93,7 @@ describe('IngredientsService', () => {
       providers: [
         IngredientsService,
         { provide: CacheService, useValue: { invalidateByTags } },
+        { provide: PersonaReferencesService, useValue: personaReferences },
         { provide: PrismaService, useValue: prisma },
         {
           provide: LoggerService,
@@ -806,6 +812,107 @@ describe('IngredientsService', () => {
           ).not.toThrow();
         }
       });
+    });
+  });
+
+  describe('character reference re-sync on soft delete', () => {
+    const editor = { brandId: 'brand-1', userId: 'user-1' };
+    const editable = {
+      brandId: 'brand-1',
+      id: 'ing-1',
+      scope: AssetScope.USER,
+      userId: 'user-1',
+    };
+
+    it('re-mirrors the primary reference after a single soft delete', async () => {
+      ingredientDelegate.findFirst.mockResolvedValue(editable);
+      ingredientDelegate.update.mockResolvedValue({
+        id: 'ing-1',
+        isDeleted: true,
+        organizationId: 'org-1',
+      });
+
+      await runWithTenantContext({ organizationId: 'org-1' }, () =>
+        service.softDeleteOneScoped({
+          editor,
+          id: 'ing-1',
+          organizationId: 'org-1',
+        }),
+      );
+
+      expect(personaReferences.resyncForIngredients).toHaveBeenCalledWith(
+        'org-1',
+        ['ing-1'],
+      );
+    });
+
+    it('re-mirrors only the ids a bulk soft delete actually removed', async () => {
+      ingredientDelegate.findMany.mockResolvedValue([
+        editable,
+        { ...editable, id: 'ing-2', userId: 'other-user' },
+      ]);
+
+      await service.bulkSoftDeleteScoped({
+        editor,
+        ids: ['ing-1', 'ing-2'],
+        organizationId: 'org-1',
+      });
+
+      expect(personaReferences.resyncForIngredients).toHaveBeenCalledWith(
+        'org-1',
+        ['ing-1'],
+      );
+    });
+
+    it('re-mirrors after remove() and a PATCH of isDeleted', async () => {
+      await runWithTenantContext({ organizationId }, () =>
+        service.remove(ingredientId),
+      );
+      expect(personaReferences.resyncForIngredients).toHaveBeenCalledWith(
+        organizationId,
+        [ingredientId],
+      );
+
+      personaReferences.resyncForIngredients.mockClear();
+      await service.patch(ingredientId, { isDeleted: true }).catch(() => null);
+      expect(personaReferences.resyncForIngredients).toHaveBeenCalledWith(
+        organizationId,
+        [ingredientId],
+      );
+    });
+
+    it('never fails the delete when the re-sync fails', async () => {
+      ingredientDelegate.findFirst.mockResolvedValue(editable);
+      ingredientDelegate.update.mockResolvedValue({
+        id: 'ing-1',
+        isDeleted: true,
+        organizationId: 'org-1',
+      });
+      personaReferences.resyncForIngredients.mockRejectedValue(
+        new Error('db down'),
+      );
+
+      await expect(
+        runWithTenantContext({ organizationId: 'org-1' }, () =>
+          service.softDeleteOneScoped({
+            editor,
+            id: 'ing-1',
+            organizationId: 'org-1',
+          }),
+        ),
+      ).resolves.toMatchObject({ id: 'ing-1' });
+    });
+
+    it('skips the re-sync when nothing was deleted', async () => {
+      ingredientDelegate.findFirst.mockResolvedValue(null);
+
+      await service.softDeleteOneScoped({
+        editor,
+        id: 'missing',
+        organizationId: 'org-1',
+      });
+
+      expect(personaReferences.resyncForIngredients).not.toHaveBeenCalled();
     });
   });
 

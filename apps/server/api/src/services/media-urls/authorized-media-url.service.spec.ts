@@ -285,6 +285,46 @@ describe('AuthorizedMediaUrlService', () => {
       expect(result[0].url).toContain('signed=1');
     });
 
+    it('serves every reference image of a granted character, not only the primary', async () => {
+      const { service, prisma } = await setup();
+      const sideId = testId('ingredient', 2);
+      prisma.personaGrant.findMany.mockResolvedValue([
+        grantRow({
+          persona: {
+            avatarIngredientId: ingredientId,
+            references: [{ ingredientId: sideId, position: 1 }],
+          },
+        }),
+      ]);
+
+      await service.projectGrantedCharacterMedia(recipientScope, [sideId]);
+
+      expect(prisma.personaGrant.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            persona: {
+              is: {
+                isDeleted: false,
+                OR: [
+                  { avatarIngredientId: { in: [sideId] } },
+                  { references: { some: { ingredientId: { in: [sideId] } } } },
+                ],
+              },
+            },
+          }),
+        }),
+      );
+      // Only the requested reference is read, from the owning organization.
+      expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { in: [sideId] },
+            organizationId: ownerOrganizationId,
+          }),
+        }),
+      );
+    });
+
     it('serves nothing after revocation, outside the granted brands, or without a brand', async () => {
       const { service, prisma } = await setup();
 

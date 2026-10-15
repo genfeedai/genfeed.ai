@@ -33,6 +33,33 @@ export interface BrandCharacterListItem {
   label: string;
   owningBrandId?: string | null;
   owningBrandName?: string | null;
+  /** Every live reference image of the character, primary first. */
+  referenceIngredientIds: string[];
+}
+
+/**
+ * One reference image of a character. `position` is its index among the live
+ * references (0 = primary, mirrored to `avatarIngredientId`).
+ */
+export interface CharacterReferenceItem {
+  ingredientId: string;
+  position: number;
+}
+
+export interface CharacterReferencesInput {
+  ingredientIds: string[];
+}
+
+export interface CharacterReferenceUsageCharacter {
+  handle: string | null;
+  id: string;
+  label: string;
+}
+
+/** Characters of the organization that use an asset as a reference image. */
+export interface CharacterReferenceUsage {
+  characters: CharacterReferenceUsageCharacter[];
+  ingredientId: string;
 }
 
 export interface BrandCharacterCandidate {

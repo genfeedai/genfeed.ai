@@ -46,6 +46,7 @@ describe('PersonasService', () => {
     };
     personaAvailabilityAudit: { create: ReturnType<typeof vi.fn> };
     personaGrant: { findMany: ReturnType<typeof vi.fn> };
+    personaReference: { createMany: ReturnType<typeof vi.fn> };
   };
 
   beforeEach(async () => {
@@ -75,6 +76,7 @@ describe('PersonasService', () => {
       },
       personaAvailabilityAudit: { create: vi.fn() },
       personaGrant: { findMany: vi.fn().mockResolvedValue([]) },
+      personaReference: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
     };
     prisma.$transaction.mockImplementation(
       async (callback: (tx: typeof prisma) => Promise<unknown>) =>
@@ -128,7 +130,7 @@ describe('PersonasService', () => {
     ).rejects.toBeInstanceOf(ValidationException);
   });
   it('reuses a completed brand image as the character reference', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({ id: 'image-1' });
+    prisma.ingredient.findMany.mockResolvedValue([{ id: 'image-1' }]);
     const create = vi
       .spyOn(service, 'create')
       .mockResolvedValue({ id: 'persona-1' } as Awaited<
@@ -142,10 +144,10 @@ describe('PersonasService', () => {
       handle: 'anna',
       label: 'Anna',
     });
-    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          id: 'image-1',
+          id: { in: ['image-1'] },
           brandId: 'brand-1',
           organizationId: 'org-1',
           isDeleted: false,
@@ -160,9 +162,21 @@ describe('PersonasService', () => {
         handle: 'anna',
       }),
     );
+    // The approved image is also stored as the primary reference.
+    expect(prisma.personaReference.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          ingredientId: 'image-1',
+          organizationId: 'org-1',
+          personaId: 'persona-1',
+          position: 0,
+        },
+      ],
+      skipDuplicates: true,
+    });
   });
   it('rejects missing, deleted, foreign-brand or unfinished source images before saving', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue(null);
+    prisma.ingredient.findMany.mockResolvedValue([]);
     const create = vi.spyOn(service, 'create');
     await expect(
       service.createFromApprovedSheet({
@@ -175,6 +189,7 @@ describe('PersonasService', () => {
       }),
     ).rejects.toBeInstanceOf(ValidationException);
     expect(create).not.toHaveBeenCalled();
+    expect(prisma.personaReference.createMany).not.toHaveBeenCalled();
   });
 
   it('resolves brand-scoped character handles to canonical stills', async () => {
@@ -202,6 +217,118 @@ describe('PersonasService', () => {
         }),
       }),
     );
+  });
+
+  it('resolves each handle to all of its live references, handles in request order', async () => {
+    prisma.persona.findMany.mockResolvedValue([
+      {
+        avatarIngredientId: 'bob-1',
+        handle: 'bob',
+        references: [
+          {
+            ingredient: { isDeleted: false },
+            ingredientId: 'bob-2',
+            position: 1,
+          },
+          {
+            ingredient: { isDeleted: false },
+            ingredientId: 'bob-1',
+            position: 0,
+          },
+        ],
+      },
+      {
+        avatarIngredientId: 'anna-1',
+        handle: 'anna',
+        references: [
+          {
+            ingredient: { isDeleted: false },
+            ingredientId: 'anna-1',
+            position: 0,
+          },
+          {
+            ingredient: { isDeleted: true },
+            ingredientId: 'anna-x',
+            position: 1,
+          },
+          {
+            ingredient: { isDeleted: false },
+            ingredientId: 'shared',
+            position: 2,
+          },
+        ],
+      },
+      {
+        avatarIngredientId: 'legacy',
+        handle: 'cleo',
+        references: [],
+      },
+    ]);
+    grantReads.findHandleGrants.mockResolvedValue([
+      {
+        persona: {
+          avatarIngredientId: 'dan-1',
+          handle: 'dan',
+          references: [
+            {
+              ingredient: { isDeleted: false },
+              ingredientId: 'dan-1',
+              position: 0,
+            },
+            {
+              ingredient: { isDeleted: false },
+              ingredientId: 'shared',
+              position: 1,
+            },
+          ],
+        },
+      },
+    ]);
+
+    await expect(
+      service.resolveCharacterHandles({
+        brandId: 'brand-1',
+        handles: ['anna', 'Bob', 'dan', 'cleo', 'anna'],
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      resolvedIngredientIds: [
+        'anna-1',
+        'shared',
+        'bob-1',
+        'bob-2',
+        'dan-1',
+        'legacy',
+      ],
+      unresolvedHandles: [],
+    });
+  });
+
+  it('names a handle whose every reference is in the trash', async () => {
+    prisma.persona.findMany.mockResolvedValue([
+      {
+        avatarIngredientId: null,
+        handle: 'anna',
+        references: [
+          {
+            ingredient: { isDeleted: true },
+            ingredientId: 'anna-1',
+            position: 0,
+          },
+        ],
+      },
+    ]);
+
+    await expect(
+      service.resolveCharacterHandles({
+        brandId: 'brand-1',
+        handles: ['anna'],
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      resolvedIngredientIds: [],
+      unresolvedHandles: ['anna'],
+    });
   });
 
   it('names handles that are missing or have no canonical still', async () => {
@@ -271,7 +398,7 @@ describe('PersonasService', () => {
     });
 
     it('defaults new characters to the owning brand only', async () => {
-      prisma.ingredient.findFirst.mockResolvedValue({ id: 'image-1' });
+      prisma.ingredient.findMany.mockResolvedValue([{ id: 'image-1' }]);
       const create = vi
         .spyOn(service, 'create')
         .mockResolvedValue({ id: 'persona-1' } as Awaited<
@@ -297,7 +424,7 @@ describe('PersonasService', () => {
     });
 
     it('applies an all-brands choice at creation for an admin', async () => {
-      prisma.ingredient.findFirst.mockResolvedValue({ id: 'image-1' });
+      prisma.ingredient.findMany.mockResolvedValue([{ id: 'image-1' }]);
       prisma.member.findFirst.mockResolvedValue(adminMember);
       prisma.brand.findMany.mockResolvedValue([
         { id: 'brand-a' },
@@ -327,7 +454,7 @@ describe('PersonasService', () => {
     });
 
     it('refuses sharing at creation for a member who is not owner or admin', async () => {
-      prisma.ingredient.findFirst.mockResolvedValue({ id: 'image-1' });
+      prisma.ingredient.findMany.mockResolvedValue([{ id: 'image-1' }]);
       prisma.member.findFirst.mockResolvedValue({ role: { key: 'creator' } });
       const create = vi.spyOn(service, 'create');
 
@@ -346,7 +473,7 @@ describe('PersonasService', () => {
     });
 
     it('rejects a new handle that a shared character already uses in the brand', async () => {
-      prisma.ingredient.findFirst.mockResolvedValue({ id: 'image-1' });
+      prisma.ingredient.findMany.mockResolvedValue([{ id: 'image-1' }]);
       prisma.persona.findMany.mockResolvedValue([
         {
           availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
@@ -865,6 +992,11 @@ describe('PersonasService', () => {
             where: expect.objectContaining({
               OR: [
                 { avatarIngredientId: { in: ['asset-1'] } },
+                {
+                  references: {
+                    some: { ingredientId: { in: ['asset-1'] } },
+                  },
+                },
                 { ingredients: { some: { id: { in: ['asset-1'] } } } },
               ],
               isDeleted: false,
@@ -888,6 +1020,35 @@ describe('PersonasService', () => {
 
         expect(admission.availableAvatarIds).toEqual(new Set(['img-1']));
         expect(admission.personaId).toBe('persona-1');
+      });
+
+      it('admits any reference of a character, not only the primary', async () => {
+        prisma.persona.findMany.mockResolvedValue([
+          avatarRow({
+            availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+            references: [{ ingredientId: 'img-3', position: 2 }],
+          }),
+        ]);
+
+        const admission = await admit(['img-3', 'asset-1']);
+
+        expect(admission.availableAvatarIds).toEqual(new Set(['img-3']));
+        expect(admission.personaIdByAssetId.get('img-3')).toBe('persona-1');
+        expect(admission.personaIdByAssetId.has('asset-1')).toBe(false);
+      });
+
+      it('refuses a secondary reference of a character the brand lost', async () => {
+        prisma.persona.findMany.mockResolvedValue([
+          avatarRow({
+            availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+            availableBrandIds: ['brand-a'],
+            references: [{ ingredientId: 'img-3', position: 1 }],
+          }),
+        ]);
+
+        await expect(admit(['img-3'])).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
       });
 
       it('rejects a character reference once the brand lost access and logs it', async () => {
@@ -1023,6 +1184,28 @@ describe('PersonasService', () => {
         });
       });
 
+      it('maps every granted reference to its owning organization, not only the primary', async () => {
+        grantReads.findReferenceGrants.mockResolvedValue([
+          grantedRow({
+            persona: {
+              avatarIngredientId: 'avatar-g',
+              id: 'persona-g',
+              ingredients: [],
+              references: [
+                { ingredientId: 'avatar-g', position: 0 },
+                { ingredientId: 'side-g', position: 1 },
+              ],
+            },
+          }),
+        ]);
+
+        const admission = await admit(['side-g']);
+
+        expect(admission.availableAvatarIds).toEqual(new Set(['side-g']));
+        expect(admission.grantedAvatarOwners.get('side-g')).toBe('org-owner');
+        expect(admission.personaId).toBe('persona-g');
+      });
+
       it('refuses a granted character the receiving brand was not granted', async () => {
         grantReads.findReferenceGrants.mockResolvedValue([
           grantedRow({
@@ -1120,6 +1303,18 @@ describe('PersonasService', () => {
               handle: 'anna',
               id: 'persona-g',
               label: 'Anna',
+              references: [
+                {
+                  ingredient: { isDeleted: false },
+                  ingredientId: 'side-g',
+                  position: 1,
+                },
+                {
+                  ingredient: { isDeleted: false },
+                  ingredientId: 'avatar-g',
+                  position: 0,
+                },
+              ],
             },
           },
         ]);
@@ -1131,10 +1326,12 @@ describe('PersonasService', () => {
 
         expect(mentions).toEqual([
           expect.objectContaining({
+            avatarIngredientId: 'avatar-g',
             grantedByOrganizationName: 'Vincent',
             handle: 'anna',
             hasReferenceImage: true,
             isGranted: true,
+            referenceIngredientIds: ['avatar-g', 'side-g'],
           }),
         ]);
       });
@@ -1220,12 +1417,62 @@ describe('PersonasService', () => {
 
       expect(mentions[0]).toMatchObject({
         availableBrandCount: 3,
+        // No reference rows yet: the avatar is the only reference.
+        avatarIngredientId: 'img-1',
+        hasReferenceImage: true,
         isShared: true,
         owningBrandName: 'Podcast',
+        referenceIngredientIds: ['img-1'],
       });
       expect(mentions[1]).toMatchObject({
         availableBrandCount: 1,
+        avatarIngredientId: null,
+        hasReferenceImage: false,
         isShared: false,
+        referenceIngredientIds: [],
+      });
+    });
+
+    it('lists every live reference of a mention, primary first', async () => {
+      prisma.persona.findMany.mockResolvedValue([
+        {
+          availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+          availableBrandIds: [],
+          avatarIngredientId: 'img-1',
+          brand: { label: 'Personal' },
+          brandId: 'brand-a',
+          handle: 'anna',
+          id: 'p1',
+          label: 'Anna',
+          references: [
+            {
+              ingredient: { isDeleted: false },
+              ingredientId: 'img-3',
+              position: 2,
+            },
+            {
+              ingredient: { isDeleted: true },
+              ingredientId: 'img-2',
+              position: 1,
+            },
+            {
+              ingredient: { isDeleted: false },
+              ingredientId: 'img-1',
+              position: 0,
+            },
+          ],
+        },
+      ]);
+
+      const [mention] = await service.listCharacterMentions({
+        brandId: 'brand-a',
+        organizationId: orgId,
+      });
+
+      expect(mention).toMatchObject({
+        avatarIngredientId: 'img-1',
+        hasReferenceImage: true,
+        referenceIngredientIds: ['img-1', 'img-3'],
       });
     });
 

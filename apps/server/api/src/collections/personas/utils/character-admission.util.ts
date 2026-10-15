@@ -1,4 +1,6 @@
+import type { PersonaReferenceRow } from '@api/collections/personas/services/persona-references.types';
 import { isPersonaAvailableToBrand } from '@api/collections/personas/utils/persona-availability.util';
+import { characterAssetIdsFromRow } from '@api/collections/personas/utils/persona-references.util';
 import type { PersonaAvailabilityFields } from '@genfeedai/contracts/interfaces';
 
 /**
@@ -23,11 +25,15 @@ export type CharacterAdmissionPath = (typeof CHARACTER_ADMISSION_PATHS)[number];
 
 /** Outcome of admitting a request's character references. */
 export interface CharacterAdmission {
-  /** Reference ids that are a character's avatar the active brand may use. */
+  /**
+   * Requested ids that are a reference image (primary or not) of a character
+   * the active brand may use.
+   */
   availableAvatarIds: Set<string>;
   /**
-   * Avatar ids that belong to a character granted by another organization,
-   * mapped to that owning organization (#6037).
+   * Reference image ids (every reference, not only the primary) that belong
+   * to a character granted by another organization, mapped to that owning
+   * organization (#6037).
    */
   grantedAvatarOwners: Map<string, string>;
   /** Character to link the output to, or null when no character is involved. */
@@ -40,6 +46,8 @@ interface OwnCharacterRow extends PersonaAvailabilityFields {
   avatarIngredientId: string | null;
   id: string;
   ingredients: readonly { id: string }[];
+  /** Stored reference rows; absent reads as `[avatarIngredientId]`. */
+  references?: readonly PersonaReferenceRow[];
 }
 
 interface GrantedCharacterRow
@@ -49,24 +57,27 @@ interface GrantedCharacterRow
     avatarIngredientId: string | null;
     id: string;
     ingredients: readonly { id: string }[];
+    references?: readonly PersonaReferenceRow[];
   };
 }
 
 interface Candidate {
-  avatarId: string | null;
   hasOutputs: boolean;
   isUsable: boolean;
   outputIds: readonly string[];
   owner?: string;
   personaId: string;
+  /** Every reference image of the character (avatar plus stored rows). */
+  referenceIds: readonly string[];
 }
 
 /**
  * Decides admission for the assets of one request against the organization's
  * own characters and the characters granted to it (#6037). A group of
- * candidates for one asset (the avatar of a character, or an output linked to
- * one) is refused when it exists and none is usable by the brand; an output linked
- * to a character that is no longer a candidate (revoked grant) is refused.
+ * candidates for one asset (any reference image of a character, or an output
+ * linked to one) is refused when it exists and none is usable by the brand;
+ * an output linked to a character that is no longer a candidate (revoked
+ * grant) is refused.
  */
 export function evaluateCharacterAdmission(params: {
   brandId: string | null | undefined;
@@ -79,16 +90,15 @@ export function evaluateCharacterAdmission(params: {
 }): CharacterAdmission {
   const candidates: Candidate[] = [
     ...params.rows.map((row) => ({
-      avatarId: row.avatarIngredientId,
       // An output linked to a character with no owning brand was never
-      // brand-scoped, so only avatars of such characters are refused.
+      // brand-scoped, so only reference images of such characters are refused.
       hasOutputs: row.brandId !== null,
       isUsable: isPersonaAvailableToBrand(row, params.brandId),
       outputIds: row.ingredients.map((ingredient) => ingredient.id),
       personaId: row.id,
+      referenceIds: characterAssetIdsFromRow(row),
     })),
     ...params.grantRows.map((grant) => ({
-      avatarId: grant.persona.avatarIngredientId,
       hasOutputs: true,
       isUsable: isPersonaAvailableToBrand(
         { ...grant, brandId: null },
@@ -97,6 +107,7 @@ export function evaluateCharacterAdmission(params: {
       outputIds: grant.persona.ingredients.map((ingredient) => ingredient.id),
       owner: grant.ownerOrganizationId,
       personaId: grant.persona.id,
+      referenceIds: characterAssetIdsFromRow(grant.persona),
     })),
   ];
   const admission = noCharacterAdmission();
@@ -117,8 +128,8 @@ export function evaluateCharacterAdmission(params: {
         personaIds: orphaned.flatMap((output) => output.personaId ?? []),
       });
     }
-    const avatarOwners = candidates.filter(
-      (candidate) => candidate.avatarId === id,
+    const avatarOwners = candidates.filter((candidate) =>
+      candidate.referenceIds.includes(id),
     );
     const outputOwners = candidates.filter(
       (candidate) => candidate.hasOutputs && candidate.outputIds.includes(id),
