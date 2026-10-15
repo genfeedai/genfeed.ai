@@ -7,7 +7,7 @@ export const serviceOffering = {
   cta: 'Book a call',
   startingMonthlyPrice: STARTING_MONTHLY_PRICE,
   priceLabel: `From ${formatPrice(STARTING_MONTHLY_PRICE)}/month`,
-  priceNote: '+ usage at cost + performance fee',
+  priceNote: '+ usage at cost + performance fee per contract',
   description:
     'Our team plans, produces, and publishes your content and tests it against your best ads. You approve what goes out.',
   includes: [
@@ -15,6 +15,7 @@ export const serviceOffering = {
     'Our team runs production and publishing',
     'Usage billed at cost',
     'Fee only on winning creatives',
+    'Custom LoRA models quoted separately',
   ],
   process: [
     {

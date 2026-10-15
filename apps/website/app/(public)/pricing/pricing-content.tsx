@@ -221,6 +221,9 @@ export default function PricingContent() {
               </div>
 
               <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
+                <span className="text-sm font-medium text-surface/55">
+                  From
+                </span>
                 <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
                   {formatPrice(serviceOffering.startingMonthlyPrice)}
                 </span>
