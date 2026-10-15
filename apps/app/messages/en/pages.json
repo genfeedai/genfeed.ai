@@ -3955,7 +3955,7 @@
     "deleteConfirmation": "Are you sure you want to delete \"{label}\"? This action cannot be undone.",
     "searchModels": "Search models",
     "moreOptions": "More options for {label}",
-    "pricingDetails": "Pricing details",
+    "editModel": "Edit model",
     "noModelsFound": "No models found",
     "emptySearchHint": "No models match your search. Clear it to see the catalog.",
     "emptyFilterHint": "No models are available for this filter. Change the filters or refresh the list.",

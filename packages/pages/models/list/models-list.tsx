@@ -9,7 +9,7 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { CircleCheck, CircleX, Coins, Cpu, Info, Trash2 } from 'lucide-react';
+import { CircleCheck, CircleX, Cpu, Info, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import AdminModelsFilters from './components/AdminModelsFilters';
@@ -58,24 +58,25 @@ export default function ModelsList({
     onRefreshRegister,
   });
 
-  // Actions - info button for all users; pricing, review and delete for
-  // admins. All render as icon-only row actions revealed on hover/focus.
+  // One way to see a model's details: on the admin pricing page a row click
+  // expands its pricing inline and the pencil opens the editor; elsewhere a
+  // row click (or the info action) opens the read-only details.
+  const isPricingInline = isAdminScope && Boolean(onPricingDetails);
+  const handleRowClick =
+    isPricingInline && onPricingDetails ? onPricingDetails : handleViewDetails;
   const actions: TableAction<IModel>[] = useMemo(
     () => [
-      {
-        icon: <Info />,
-        onClick: handleViewDetails,
-        tooltip: translate('viewDetails'),
-      },
-      ...(isAdminScope && onPricingDetails
-        ? [
-            {
-              icon: <Coins />,
-              onClick: onPricingDetails,
-              tooltip: translate('pricingDetails'),
-            },
-          ]
-        : []),
+      isPricingInline
+        ? {
+            icon: <Pencil />,
+            onClick: handleViewDetails,
+            tooltip: translate('editModel'),
+          }
+        : {
+            icon: <Info />,
+            onClick: handleViewDetails,
+            tooltip: translate('viewDetails'),
+          },
       ...(isAdminScope
         ? [
             {
@@ -136,7 +137,7 @@ export default function ModelsList({
     ],
     [
       isAdminScope,
-      onPricingDetails,
+      isPricingInline,
       translate,
       handleViewDetails,
       openConfirm,
@@ -196,7 +197,7 @@ export default function ModelsList({
         columns={columns}
         actions={actions}
         renderExpandedRow={renderExpandedRow}
-        onRowClick={handleViewDetails}
+        onRowClick={handleRowClick}
         getRowKey={(model: IModel) => model.id}
         emptyLabel={translate('noModelsFound')}
         emptyState={

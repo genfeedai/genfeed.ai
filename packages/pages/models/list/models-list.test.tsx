@@ -165,22 +165,33 @@ describe('ModelsList', () => {
     });
   });
 
-  it('opens inline pricing from its row action without opening the model editor', async () => {
+  it('expands inline pricing from a row click and edits from the single pencil action', async () => {
     const onPricingDetails = vi.fn();
     renderModelsList(PageScope.SUPERADMIN, undefined, {
       onPricingDetails,
       renderExpandedRow: () => <div>Provider pricing evidence</div>,
     });
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Pricing details' }),
-    );
+    const row = (await screen.findAllByText('Flux Dev'))
+      .map((label) => label.closest('tr'))
+      .find((candidate) => candidate !== null);
+    if (!row) throw new Error('Missing model row');
+    fireEvent.click(row);
 
     expect(onPricingDetails).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'model-1' }),
     );
     expect(screen.getByText('Provider pricing evidence')).toBeInTheDocument();
     expect(mockOpenModal).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: 'Pricing details' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'View Details' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'Edit model' }).length,
+    ).toBeGreaterThan(0);
   });
 
   it('includes retired models on the admin All listing', async () => {
