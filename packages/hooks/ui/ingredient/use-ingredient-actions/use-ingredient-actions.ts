@@ -1,4 +1,4 @@
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useOptionalConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
@@ -158,7 +158,7 @@ export function useIngredientActions({
     AssetsService.getInstance(token),
   );
 
-  const { openConfirm } = useConfirmModal();
+  const confirmModal = useOptionalConfirmModal();
   const getCharacterReferenceWarning = useCharacterReferenceDeleteWarning();
 
   // UI state
@@ -600,17 +600,18 @@ export function useIngredientActions({
         };
 
         // A character that keeps this asset as a reference image loses it on
-        // delete, so that case asks first. Any other asset deletes as before.
-        const characterReferenceWarning = await getCharacterReferenceWarning([
-          ingredient.id,
-        ]);
+        // delete, so that case asks first. Any other asset deletes as before,
+        // as does any surface without the global confirm dialog.
+        const characterReferenceWarning = confirmModal
+          ? await getCharacterReferenceWarning([ingredient.id])
+          : undefined;
 
-        if (!characterReferenceWarning) {
+        if (!confirmModal || !characterReferenceWarning) {
           await deleteIngredient();
           return;
         }
 
-        openConfirm({
+        confirmModal.openConfirm({
           children: characterReferenceWarning,
           confirmLabel: 'Move to Trash',
           isError: true,
@@ -626,7 +627,7 @@ export function useIngredientActions({
       getIngredientsService,
       notificationsService,
       onRefresh,
-      openConfirm,
+      confirmModal,
     ],
   );
 

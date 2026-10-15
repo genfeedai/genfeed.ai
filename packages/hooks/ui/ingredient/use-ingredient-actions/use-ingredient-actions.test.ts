@@ -32,12 +32,9 @@ const { mockCopyToClipboard, mockOpenModal, mockSubscribe } = vi.hoisted(
 );
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.context',
   () => ({
-    useConfirmModal: () => ({
-      closeConfirm: vi.fn(),
-      openConfirm: mockOpenConfirm,
-    }),
+    useOptionalConfirmModal: () => ({ openConfirm: mockOpenConfirm }),
   }),
 );
 
