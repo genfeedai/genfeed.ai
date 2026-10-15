@@ -12,7 +12,8 @@ empty workspace to a first post you have reviewed and approved.
 
 Open `http://localhost:3000`. Sign-up is on by default
 (`BETTER_AUTH_ENABLED=true` in `.env.example`), so create your account with
-email and password. That needs no email provider; magic links, password resets,
+the [first-user steps](/self-host/installation#create-the-first-user). An
+email/password account needs no email provider; magic links, password resets,
 and invites do. See [Configuration](/self-host/configuration#login-wall).
 
 If you set `BETTER_AUTH_ENABLED=false` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED=false`,
@@ -30,7 +31,7 @@ the provider before saving it, so placeholder values are rejected.
 
 ## 3. Connect an AI agent over MCP
 
-Your instance serves MCP on port `3014`. The login wall does not protect it:
+Your instance serves MCP on port `3014`. It does not depend on the login wall:
 the MCP server always requires a bearer credential.
 
 For Claude Code, register the dedicated content connector, then open `/mcp`,

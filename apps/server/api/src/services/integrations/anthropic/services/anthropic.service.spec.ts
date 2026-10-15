@@ -214,7 +214,7 @@ describe('AnthropicService', () => {
       configService.get.mockReturnValue(undefined);
 
       await expect(service.chatCompletion(defaultParams)).rejects.toThrow(
-        'ANTHROPIC_API_KEY is not configured',
+        'Missing provider key: ANTHROPIC_API_KEY',
       );
     });
 
@@ -633,7 +633,7 @@ describe('AnthropicService', () => {
       configService.get.mockReturnValue(undefined);
 
       await expect(service.streamChatCompletion(defaultParams)).rejects.toThrow(
-        'ANTHROPIC_API_KEY is not configured',
+        'Missing provider key: ANTHROPIC_API_KEY',
       );
     });
   });

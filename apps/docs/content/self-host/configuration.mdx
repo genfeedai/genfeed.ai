@@ -38,15 +38,18 @@ API, and MCP server always listen on `3000`, `3010`, and `3014`.
 
 ## Model provider keys
 
-All blank by default. See [Provider API keys](/self-host/provider-api-keys) for
-how to get each one. Use real keys: an empty or placeholder value counts as not
-configured, and Settings rejects keys the provider does not accept.
+See [Provider API keys](/self-host/provider-api-keys) for how to get each one and
+which features need which key. `OPENROUTER_API_KEY` is the one to set first:
+text generation fails with `Missing provider key: OPENROUTER_API_KEY` without
+it. All provider keys are blank in `.env.example`; set a real key and recreate the
+stack. Empty or placeholder values count as not configured; Settings validates
+each key with the provider before saving it.
 
 | Variable | Provider |
 | --- | --- |
-| `OPENROUTER_API_KEY` | OpenRouter. Required for text generation and the agent. |
-| `OPENAI_API_KEY` | OpenAI |
-| `ANTHROPIC_API_KEY` | Anthropic |
+| `OPENROUTER_API_KEY` | OpenRouter (required for chat, agents, drafts, and other text generation) |
+| `OPENAI_API_KEY` | OpenAI (optional; `openai/*` models only) |
+| `ANTHROPIC_API_KEY` | Anthropic (optional; `anthropic/*` models only) |
 | `REPLICATE_KEY` | Replicate |
 | `FAL_API_KEY` | fal |
 | `ELEVENLABS_API_KEY` | ElevenLabs |
@@ -66,8 +69,11 @@ account. To run a single-user workspace with no login wall instead, set
 | `BETTER_AUTH_TRUSTED_ORIGINS` | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in |
 | `BETTER_AUTH_SECRET` | Generated | Leave empty to let the container generate one and keep it at `/data/.better-auth-secret` |
 
-Email and password sign-in works with only the local database. Add email or
-Google sign-in only for the features that need them:
+The email and password accounts live in the local database and need no mail
+provider, but the login page itself offers only Google and Magic Link. See
+[Create the first user](/self-host/installation#create-the-first-user) for how
+to create the first account. Add email or Google sign-in for the features that
+need them:
 
 | Variable | Needed for |
 | --- | --- |
@@ -86,7 +92,9 @@ The login wall protects the REST API on port `3010` as well as the web UI.
 remote client cannot pass as a local one by sending a header.
 
 Turning the login wall off does not turn off MCP authentication; see
-[MCP server](/api-reference/mcp#authentication).
+[MCP server](/api-reference/mcp#authentication). The login wall also gates only
+the web UI: see the [security note](/self-host/installation#create-the-first-user)
+before you expose port `3010`.
 
 ## Public URLs
 

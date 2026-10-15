@@ -1,3 +1,4 @@
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -26,7 +27,7 @@ export class OpenAiLlmService {
     const apiKey = apiKeyOverride || this.configService.get('OPENAI_API_KEY');
 
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+      throw new MissingProviderKeyException('OpenAI', 'OPENAI_API_KEY');
     }
 
     return String(apiKey);

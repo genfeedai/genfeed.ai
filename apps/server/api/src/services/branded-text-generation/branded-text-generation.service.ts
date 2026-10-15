@@ -109,6 +109,9 @@ export class BrandedTextGenerationService {
     await this.brandAccess.assert(request.initiatingActor, input.brandId);
     const parameters = this.assertPreconditions(input, format);
     const apiKey = await request.resolveApiKey(input.model);
+    // A missing key never succeeds on retry, so refuse before a receipt exists:
+    // a stopped receipt would answer a same-key retry with the old stop.
+    this.openRouter.assertApiKeyAvailable(apiKey);
     const actor: BrandedGenerationActorV1 = {
       organizationId: input.organizationId,
       brandId: input.brandId,

@@ -151,6 +151,7 @@ export async function seedApprovedBrandIdentity(
 
 /** Fake OpenRouter: the text provider. Records every call; each call answers a fresh text. */
 export class FakeOpenRouter {
+  assertApiKeyAvailable = () => undefined;
   readonly calls: Array<{ model: string; prompt: string }> = [];
   /** What the provider answered with, for reconciling an answer the caller never recorded. */
   readonly issued: Array<{ id: string; model: string; text: string }> = [];
