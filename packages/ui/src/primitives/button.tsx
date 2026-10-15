@@ -8,7 +8,6 @@ import type {
   ReactElement,
   ReactNode,
 } from 'react';
-import { HoverAnimatedIconSlot } from './animated-icons/hover-animated-icon-slot';
 import {
   type ButtonStyleProps,
   buttonVariants,
@@ -68,7 +67,6 @@ function Button({
   isDisabled = false,
   isLoading = false,
   isPingEnabled = false,
-  isStatic = false,
   label,
   onClick,
   onMouseDown,
@@ -99,13 +97,7 @@ function Button({
     <>
       {/* The spinner is decorative: its "Loading" label must not join the
           button's accessible name while an action is pending. */}
-      {isLoading ? (
-        <Spinner aria-hidden="true" />
-      ) : icon ? (
-        // Button stays server-renderable: the hover animation lives in a
-        // client slot that listens to this button from inside it.
-        <HoverAnimatedIconSlot defaultSizeClassName="size-4" icon={icon} />
-      ) : null}
+      {isLoading ? <Spinner aria-hidden="true" /> : (icon ?? null)}
       {isLoading && !icon ? null : (children ?? label)}
     </>
   );
@@ -134,7 +126,7 @@ function Button({
         className={cn(
           // Lucide defaults to 24px; buttons use 16px unless the icon sets size.
           '[&_svg:not([class*="size-"])]:size-4',
-          buttonVariants({ isStatic, size, variant: resolvedVariant }),
+          buttonVariants({ size, variant: resolvedVariant }),
           transformClass,
           className,
         )}

@@ -1,0 +1,58 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Product motion policy — elements do not animate.
+
+   Hover, open, press and enter states switch instantly. Two kinds of element
+   keep their motion:
+   - the page menu (app rail + sidebar), opted in with `data-motion="allow"`
+     on its container;
+   - progress indicators that must read as alive: the Genfeed loader,
+     spinners, skeletons and progress bars.
+
+   Durations collapse instead of resetting to `none`, matching the
+   reduced-motion block in globals.css: `forwards` entrance animations land
+   on their final frame and `transitionend` / `animationend` still fire for
+   code that waits on them. Imported by the product app only; the marketing
+   site keeps its own motion.
+   ────────────────────────────────────────────────────────────────────────── */
+:where(*):not(
+  [data-motion="allow"],
+  [data-motion="allow"] *,
+  [class*="genfeed-loader"],
+  .animate-spin,
+  .animate-pulse,
+  .animate-shimmer,
+  .animate-text-shimmer,
+  .masonry-skeleton,
+  [role="progressbar"],
+  [role="progressbar"] *
+),
+:where(*):not(
+  [data-motion="allow"],
+  [data-motion="allow"] *,
+  [class*="genfeed-loader"],
+  .animate-spin,
+  .animate-pulse,
+  .animate-shimmer,
+  .animate-text-shimmer,
+  .masonry-skeleton,
+  [role="progressbar"],
+  [role="progressbar"] *
+)::before,
+:where(*):not(
+  [data-motion="allow"],
+  [data-motion="allow"] *,
+  [class*="genfeed-loader"],
+  .animate-spin,
+  .animate-pulse,
+  .animate-shimmer,
+  .animate-text-shimmer,
+  .masonry-skeleton,
+  [role="progressbar"],
+  [role="progressbar"] *
+)::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+}

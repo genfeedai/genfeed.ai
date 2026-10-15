@@ -1,4 +1,5 @@
 @import "../../../packages/styles/globals.css";
+@import "../../../packages/styles/motion-policy.css";
 @import "../../../packages/ui/src/components/editors/rich-editor.css";
 
 /* Product-app class sources only. Do not add the marketing site here. */

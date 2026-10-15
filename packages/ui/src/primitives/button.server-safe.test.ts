@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * Server Components on the website render `Button` directly. A hook call in it
  * fails their static export ("Attempted to call … from the server"), so
- * anything stateful belongs in a client child such as HoverAnimatedIconSlot.
+ * anything stateful belongs in a client child component.
  */
 describe('Button stays server-renderable', () => {
   const source = readFileSync(join(__dirname, 'button.tsx'), 'utf8');

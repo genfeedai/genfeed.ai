@@ -16,6 +16,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [end_to_end_implementation](end_to_end_implementation.md) — wire the full user path, never half-architecture
 - [feedback_finish_diagnosed_surface](feedback_finish_diagnosed_surface.md) — finish every leftover on a diagnosed incident surface in the same pass
 - [ui_primitives](ui_primitives.md) — every surface, including MCP previews, composes shared UI components; no raw HTML controls
+- [feedback_motion_page_menu_only](feedback_motion_page_menu_only.md) — app elements do not animate; only the page menu (`data-motion="allow"`) and loaders keep motion, enforced by `packages/styles/motion-policy.css`
 - [proxy_middleware](proxy_middleware.md) — Next.js 16 renamed `middleware.ts` → `proxy.ts`
 - [ready_pr_default](ready_pr_default.md) — ready PRs by default; draft only on request
 - [no_external_symlinks](no_external_symlinks.md) — internal symlinks only (public repo)
