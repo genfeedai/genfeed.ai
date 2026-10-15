@@ -453,7 +453,7 @@ When generating newsletter content, always output:
 If you have access to Genfeed tools, use them for enhanced results:
 
 - Use `create_post` to draft directly into the platform
-- Use `rate_content` to score content quality
+- Assess content quality with this skill’s rubric; do not assume a rating tool is available.
 - Use brand context from the conversation for voice consistency
 - Reference the user's content patterns and top-performing posts when available
 

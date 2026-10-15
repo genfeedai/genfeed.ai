@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 /**
  * TikTok Ads read tools. Unlike Meta and Google, TikTok has no per-platform
@@ -28,9 +29,10 @@ export function handleTikTokAdsTool(
         a.until as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `TikTok Campaign Insights:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `TikTok Campaign Insights:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -45,11 +47,12 @@ export function handleTikTokAdsTool(
         a.datePreset as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} top-performing TikTok ads:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} top-performing TikTok ads:\n\n${formatToolData(result)}`
                 : 'No TikTok top performers found.',
             type: 'text' as const,
           },
@@ -61,11 +64,12 @@ export function handleTikTokAdsTool(
         a.credentialId as string,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} TikTok ad accounts:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} TikTok ad accounts:\n\n${formatToolData(result)}`
                 : 'No TikTok ad accounts found.',
             type: 'text' as const,
           },
@@ -79,11 +83,12 @@ export function handleTikTokAdsTool(
         a.campaignId as string,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} TikTok ad groups:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} TikTok ad groups:\n\n${formatToolData(result)}`
                 : 'No TikTok ad groups found.',
             type: 'text' as const,
           },
@@ -97,11 +102,12 @@ export function handleTikTokAdsTool(
         a.adGroupId as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} TikTok ads:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} TikTok ads:\n\n${formatToolData(result)}`
                 : 'No TikTok ads found.',
             type: 'text' as const,
           },
@@ -114,11 +120,12 @@ export function handleTikTokAdsTool(
         a.adAccountId as string,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} TikTok campaigns:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} TikTok campaigns:\n\n${formatToolData(result)}`
                 : 'No TikTok campaigns found.',
             type: 'text' as const,
           },

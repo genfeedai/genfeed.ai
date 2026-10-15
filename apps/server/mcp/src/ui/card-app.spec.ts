@@ -289,13 +289,11 @@ it('replaces content on empty, error and approval results', () => {
   expect(document.body.textContent).toContain('Approval required');
 });
 
-it('shows long article text, usage zeroes, and truncated list counts', () => {
+it('shows long article text and truncated list counts', () => {
   result('get_articles', { title: 'Article', content: 'a'.repeat(900) });
   expect(document.querySelector('button[aria-expanded]')?.textContent).toBe(
     'Read more',
   );
-  result('get_account', { usage: { currentBalance: 0 } });
-  expect(document.querySelector('.metric')?.textContent).toBe('0');
   result(
     'list_assets',
     Array.from({ length: 30 }, (_, id) => ({ id: String(id) })),

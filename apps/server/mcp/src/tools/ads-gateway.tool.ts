@@ -1,6 +1,7 @@
 import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import type { AdsGatewayInsightsParams } from '@mcp/services/client/client.types';
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 /**
  * Platform-generic ads gateway tools.
@@ -39,9 +40,10 @@ export function handleAdsGatewayTool(
     get_ads_ad_insights: async (a) => {
       const result = await client.getAdsAdInsights(toGatewayParams(a, 'adId'));
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Ad Insights (${a.platform}):\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Ad Insights (${a.platform}):\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -52,9 +54,10 @@ export function handleAdsGatewayTool(
         toGatewayParams(a, 'adSetId'),
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Ad Set Insights (${a.platform}):\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Ad Set Insights (${a.platform}):\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],

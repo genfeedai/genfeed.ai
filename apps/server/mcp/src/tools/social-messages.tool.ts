@@ -3,6 +3,7 @@ import type {
   SocialConversationListParams,
 } from '@mcp/services/client/social-messages.client';
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export const SOCIAL_MESSAGES_TOOL_NAMES = new Set([
   'list_social_conversations',
@@ -34,7 +35,7 @@ export function handleSocialMessagesTool(
         requiredString(a, 'messageId'),
       );
 
-      return textJsonResult('Approved and published social draft', result);
+      return textDataResult('Approved and published social draft', result);
     },
     assign_social_conversation: async (a) => {
       const result = await client.assignSocialConversation(
@@ -42,7 +43,7 @@ export function handleSocialMessagesTool(
         optionalNullableString(a, 'assignedOwnerId'),
       );
 
-      return textJsonResult('Updated social conversation assignment', result);
+      return textDataResult('Updated social conversation assignment', result);
     },
     create_social_reply_draft: async (a) => {
       const result = await client.createSocialReplyDraft(
@@ -50,7 +51,7 @@ export function handleSocialMessagesTool(
         socialActionParams(a),
       );
 
-      return textJsonResult('Created social reply draft', result);
+      return textDataResult('Created social reply draft', result);
     },
     get_social_conversation: async (a) => {
       const result = await client.getSocialConversation(
@@ -61,17 +62,18 @@ export function handleSocialMessagesTool(
         },
       );
 
-      return textJsonResult('Social conversation', result);
+      return textDataResult('Social conversation', result);
     },
     list_social_conversations: async (a) => {
       const result = await client.listSocialConversations(listParams(a));
 
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.conversations.length > 0
-                ? `Found ${result.conversations.length} social conversations:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.conversations.length} social conversations:\n\n${formatToolData(result)}`
                 : 'No social conversations found.',
             type: 'text' as const,
           },
@@ -83,7 +85,7 @@ export function handleSocialMessagesTool(
         requiredString(a, 'conversationId'),
       );
 
-      return textJsonResult('Marked social conversation resolved', result);
+      return textDataResult('Marked social conversation resolved', result);
     },
     post_social_reply: async (a) => {
       const result = await client.postSocialReply(
@@ -91,7 +93,7 @@ export function handleSocialMessagesTool(
         socialActionParams(a),
       );
 
-      return textJsonResult('Published social reply', result);
+      return textDataResult('Published social reply', result);
     },
     reject_social_draft: async (a) => {
       const result = await client.rejectSocialDraft(
@@ -100,7 +102,7 @@ export function handleSocialMessagesTool(
         optionalString(a, 'reason'),
       );
 
-      return textJsonResult('Rejected social draft', result);
+      return textDataResult('Rejected social draft', result);
     },
     send_social_dm: async (a) => {
       const result = await client.sendSocialDm(
@@ -108,7 +110,7 @@ export function handleSocialMessagesTool(
         socialActionParams(a),
       );
 
-      return textJsonResult('Sent social DM', result);
+      return textDataResult('Sent social DM', result);
     },
     tag_social_conversation: async (a) => {
       const result = await client.updateSocialTags(
@@ -116,7 +118,7 @@ export function handleSocialMessagesTool(
         requiredStringArray(a, 'tags'),
       );
 
-      return textJsonResult('Updated social conversation tags', result);
+      return textDataResult('Updated social conversation tags', result);
     },
   };
 
@@ -160,11 +162,12 @@ function socialActionParams(args: Record<string, unknown>): SocialActionParams {
   };
 }
 
-function textJsonResult(label: string, data: unknown) {
+function textDataResult(label: string, data: unknown) {
   return {
+    structuredContent: { data },
     content: [
       {
-        text: `${label}:\n\n${JSON.stringify(data, null, 2)}`,
+        text: `${label}:\n\n${formatToolData(data)}`,
         type: 'text' as const,
       },
     ],

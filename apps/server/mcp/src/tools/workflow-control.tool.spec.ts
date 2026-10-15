@@ -37,7 +37,10 @@ describe('handleWorkflowControlTool system workflow catalog', () => {
       includeNonInstallable: false,
       installedOnly: false,
     });
-    expect(result.content[0].text).toContain('daily-trends-digest');
+    expect(result).toMatchObject({
+      structuredContent: { data: [{ canonicalId: 'daily-trends-digest' }] },
+    });
+    expect(result.content[0].text).not.toContain('daily-trends-digest');
   });
 
   it('forwards catalog filters', async () => {
@@ -68,7 +71,10 @@ describe('handleWorkflowControlTool system workflow catalog', () => {
       brandId: 'brand-1',
       canonicalId: 'daily-trends-digest',
     });
-    expect(result.content[0].text).toContain('workflow-1');
+    expect(result).toMatchObject({
+      structuredContent: { data: { id: 'workflow-1' } },
+    });
+    expect(result.content[0].text).not.toContain('workflow-1');
   });
 
   it('rejects an install without a canonicalId', async () => {

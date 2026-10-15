@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 import { executionFailureResult } from '@mcp/tools/execution-failure-result';
 
 type WorkflowControlToolResult = Promise<{
@@ -44,12 +45,14 @@ function requiredBooleanArg(
   return value;
 }
 
-function jsonText(label: string, payload: unknown) {
+function textDataResult(label: string, payload: unknown) {
+  const failure = executionFailureResult(payload);
   return {
-    ...executionFailureResult(payload),
+    ...failure,
+    structuredContent: { data: payload, ...failure.structuredContent },
     content: [
       {
-        text: `${label}:\n\n${JSON.stringify(payload, null, 2)}`,
+        text: `${label}:\n\n${formatToolData(payload)}`,
         type: 'text' as const,
       },
     ],
@@ -69,24 +72,24 @@ export function handleWorkflowControlTool(
       const workflow = await client.duplicateWorkflow(
         requiredStringArg(a, 'workflowId'),
       );
-      return jsonText('Workflow duplicated', workflow);
+      return textDataResult('Workflow duplicated', workflow);
     },
     get_workflow_run: async (a) => {
       const run = await client.getWorkflowRun(requiredStringArg(a, 'runId'));
-      return jsonText('Workflow run', run);
+      return textDataResult('Workflow run', run);
     },
     install_system_workflow: async (a) => {
       const workflow = await client.installSystemWorkflow({
         brandId: optionalStringArg(a, 'brandId'),
         canonicalId: requiredStringArg(a, 'canonicalId'),
       });
-      return jsonText('System workflow installed', workflow);
+      return textDataResult('System workflow installed', workflow);
     },
     inspect_workflow: async (a) => {
       const workflow = await client.inspectWorkflow(
         requiredStringArg(a, 'workflowId'),
       );
-      return jsonText('Workflow', workflow);
+      return textDataResult('Workflow', workflow);
     },
     list_system_workflow_catalog: async (a) => {
       const entries = await client.listSystemWorkflowCatalog({
@@ -94,7 +97,7 @@ export function handleWorkflowControlTool(
         includeNonInstallable: a.includeNonInstallable === true,
         installedOnly: a.installedOnly === true,
       });
-      return jsonText('System workflow catalog', entries);
+      return textDataResult('System workflow catalog', entries);
     },
     list_workflow_runs: async (a) => {
       const runs = await client.listWorkflowRuns({
@@ -104,7 +107,7 @@ export function handleWorkflowControlTool(
         trigger: optionalStringArg(a, 'trigger'),
         workflowId: optionalStringArg(a, 'workflowId'),
       });
-      return jsonText('Workflow runs', runs);
+      return textDataResult('Workflow runs', runs);
     },
     set_workflow_schedule: async (a) => {
       const result = await client.setWorkflowSchedule(
@@ -115,7 +118,7 @@ export function handleWorkflowControlTool(
           timezone: optionalStringArg(a, 'timezone'),
         },
       );
-      return jsonText('Workflow schedule updated', result);
+      return textDataResult('Workflow schedule updated', result);
     },
   };
 

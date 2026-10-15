@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 import { storyboardToolSchemas } from '@mcp/tools/storyboard.schemas';
 
 export const STORYBOARD_TOOL_NAMES = new Set<string>([
@@ -9,7 +10,8 @@ export const STORYBOARD_TOOL_NAMES = new Set<string>([
 
 function textResult(result: unknown) {
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+    structuredContent: { data: result },
+    content: [{ type: 'text' as const, text: formatToolData(result) }],
   };
 }
 

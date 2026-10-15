@@ -20,7 +20,6 @@ describe('MCP Apps card contract', () => {
       'generate',
       'transform_media',
       'get_articles',
-      'get_account',
     ]) {
       const tool = tools.find((item) => item.name === name);
       expect(tool, name).toBeDefined();
@@ -249,16 +248,21 @@ describe('MCP Apps card contract', () => {
     },
   );
 
-  it('maps job category and usage zeroes; bounds lists and user text', () => {
+  it('maps job categories, leaves account lookups as messages, and bounds lists', () => {
     expect(
       buildCardView('get_job_status', { id: 'job', category: 'VIDEO' })
         ?.cards[0].kind,
     ).toBe('video');
     expect(
-      buildCardView('get_account', {
-        usage: { currentBalance: 0, usage7Days: 0, breakdown: [] },
-      })?.cards,
-    ).toHaveLength(2);
+      buildCardView('get_account', { usage: { currentBalance: 0 } }),
+    ).toBeUndefined();
+    const account = toMcpTools(getToolsForSurface('mcp')).find(
+      (tool) => tool.name === 'get_account',
+    );
+    if (!account) throw new Error('Missing get_account');
+    expect(withCardMetadata(account)._meta).not.toHaveProperty(
+      'openai/outputTemplate',
+    );
     expect(buildCardView('get_account', { profile: { role: 'admin' } })).toBe(
       undefined,
     );

@@ -45,7 +45,7 @@ Compare this post against our brand voice guidelines
 - **Variant comparison**: Compares rewrites against expected upside and newly introduced risk
 - **Platform-specific criteria**: Character limits, tone, format requirements per platform
 - **Brand voice comparison**: Analyze against guidelines, flag deviations, suggest corrections
-- **Genfeed integration**: Uses `rate_content` for scoring, references brand voice profiles
+- **Genfeed integration**: Uses the review rubric for scoring and references available brand voice profiles
 
 ## License
 

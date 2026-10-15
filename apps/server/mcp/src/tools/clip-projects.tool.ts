@@ -4,6 +4,7 @@ import type {
   GenerateClipsParams,
 } from '@mcp/services/client/clips.client';
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export const CLIP_PROJECTS_TOOL_NAMES = new Set([
   'analyze_clip_project',
@@ -41,7 +42,7 @@ export function handleClipProjectsTool(
         youtubeUrl: requiredString(a, 'youtubeUrl'),
       });
 
-      return textJsonResult('Started clip analysis', result);
+      return textDataResult('Started clip analysis', result);
     },
     create_clip_project_from_youtube: async (a) => {
       const avatarId = optionalString(a, 'avatarId');
@@ -74,26 +75,26 @@ export function handleClipProjectsTool(
         youtubeUrl: requiredString(a, 'youtubeUrl'),
       });
 
-      return textJsonResult('Started clip factory from YouTube', result);
+      return textDataResult('Started clip factory from YouTube', result);
     },
     generate_clips: async (a) => {
       const result = await client.generateClips(generateClipsParams(a));
 
-      return textJsonResult('Started clip generation', result);
+      return textDataResult('Started clip generation', result);
     },
     get_clip_highlights: async (a) => {
       const result = await client.getClipHighlights(
         requiredString(a, 'projectId'),
       );
 
-      return textJsonResult('Clip highlights', result);
+      return textDataResult('Clip highlights', result);
     },
     get_clip_project: async (a) => {
       const result = await client.getClipProject(
         requiredString(a, 'projectId'),
       );
 
-      return textJsonResult('Clip project', result);
+      return textDataResult('Clip project', result);
     },
     list_clip_projects: async (a) => {
       const result = await client.listClipProjects({
@@ -102,11 +103,12 @@ export function handleClipProjectsTool(
       });
 
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} clip projects:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} clip projects:\n\n${formatToolData(result)}`
                 : 'No clip projects found.',
             type: 'text' as const,
           },
@@ -176,11 +178,12 @@ function editedHighlights(
   });
 }
 
-function textJsonResult(label: string, data: unknown) {
+function textDataResult(label: string, data: unknown) {
   return {
+    structuredContent: { data },
     content: [
       {
-        text: `${label}:\n\n${JSON.stringify(data, null, 2)}`,
+        text: `${label}:\n\n${formatToolData(data)}`,
         type: 'text' as const,
       },
     ],

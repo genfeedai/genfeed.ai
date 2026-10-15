@@ -292,8 +292,10 @@ describe('ToolRegistryService — approval queue', () => {
     });
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('requires approval');
-    expect(result.content[0].text).toContain('apr-1');
-    expect(result.content[0].text).toContain('approval_pending');
+    expect(result).toMatchObject({
+      structuredContent: { approvalId: 'apr-1', code: 'approval_pending' },
+    });
+    expect(result.content[0].text).not.toContain('apr-1');
   });
 
   it('queues Instagram remix creation instead of executing it immediately', async () => {

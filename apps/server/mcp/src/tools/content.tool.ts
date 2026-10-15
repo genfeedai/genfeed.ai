@@ -52,7 +52,7 @@ export async function handleContentTool(
         content: [
           {
             type: 'text' as const,
-            text: `Reviewed article saved as a draft. ID: ${article.id}. Get a preview before requesting publication.`,
+            text: 'Reviewed article saved as a draft. Get a preview before requesting publication.',
           },
         ],
       };
@@ -65,7 +65,7 @@ export async function handleContentTool(
         content: [
           {
             type: 'text' as const,
-            text: `Private article preview (expires in ${preview.expiresInSeconds} seconds): ${preview.url}`,
+            text: `Private article preview (expires in ${preview.expiresInSeconds} seconds). [Open preview](${preview.url})`,
           },
         ],
       };
@@ -78,7 +78,7 @@ export async function handleContentTool(
         content: [
           {
             type: 'text' as const,
-            text: `Article publication status: ${article.status}. ID: ${article.id}.`,
+            text: `Article publication status: ${article.status}.`,
           },
         ],
       };
@@ -105,7 +105,7 @@ export async function handleContentTool(
           structuredContent: { data: article },
           content: [
             {
-              text: `Article: ${article.title}\n\nID: ${article.id}\nStatus: ${article.status}\nWord Count: ${article.wordCount}\nCreated: ${article.createdAt}\n\nContent Preview:\n${article.content?.substring(0, 500)}...`,
+              text: `Article: ${article.title}\n\nStatus: ${article.status}\nWord Count: ${article.wordCount}\nCreated: ${article.createdAt}\n\nContent Preview:\n${article.content?.substring(0, 500)}...`,
               type: 'text' as const,
             },
           ],

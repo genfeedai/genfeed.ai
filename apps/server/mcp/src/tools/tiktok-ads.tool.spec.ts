@@ -39,7 +39,10 @@ describe('handleTikTokAdsTool', () => {
     });
 
     expect(client.listTikTokAdAccounts).toHaveBeenCalledWith('credential-1');
-    expect(result.content[0].text).toContain('advertiser-1');
+    expect(result).toMatchObject({
+      structuredContent: { data: [{ id: 'advertiser-1' }] },
+    });
+    expect(result.content[0].text).not.toContain('advertiser-1');
   });
 
   it('lists campaigns scoped to a credential and advertiser account', async () => {
@@ -54,7 +57,10 @@ describe('handleTikTokAdsTool', () => {
       'credential-1',
       'advertiser-1',
     );
-    expect(result.content[0].text).toContain('campaign-1');
+    expect(result).toMatchObject({
+      structuredContent: { data: [{ id: 'campaign-1' }] },
+    });
+    expect(result.content[0].text).not.toContain('campaign-1');
   });
 
   it('forwards the full date range to campaign insights', async () => {
@@ -114,7 +120,10 @@ describe('handleTikTokAdsTool', () => {
       'advertiser-1',
       'campaign-1',
     );
-    expect(result.content[0].text).toContain('adgroup-1');
+    expect(result).toMatchObject({
+      structuredContent: { data: [{ id: 'adgroup-1' }] },
+    });
+    expect(result.content[0].text).not.toContain('adgroup-1');
   });
 
   it('lists ads without an ad group filter', async () => {

@@ -39,6 +39,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [spec-workflow-only-action-execution](spec-workflow-only-action-execution.md) — full Website/API/Agent/MCP/worker refactor and YouTube-to-long-form acceptance contract
 - [page_org_brand_scope](page_org_brand_scope.md) — org always selected; brand empty (`~/`) or brand selected on every customer list
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
+- [Readable MCP results](feedback_mcp_readable_results.md) — readable messages; identifiers and full payloads stay structured
 - [curated_action_surface_boundaries](curated_action_surface_boundaries.md) — why each agent-only / MCP-only action stays that way
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
 - [spec-native-referral-credits](spec-native-referral-credits.md) — native first-touch referral attribution and recurring PAYG credit rewards

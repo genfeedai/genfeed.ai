@@ -630,7 +630,7 @@ When creating ad copy, always deliver in this structure:
 
 If you have access to Genfeed tools, use them for enhanced results:
 
-- Use `generate_ad_pack` for full creative assembly including visuals and copy variants
+- Use `find_tools` to discover available creative tools before assembling visuals and copy variants.
 - Use `list_ads_research` for competitive intelligence on what ads competitors are running
 - Use `create_ad_remix_workflow` for systematic variant testing pipelines
 - Use brand context from the conversation for voice consistency

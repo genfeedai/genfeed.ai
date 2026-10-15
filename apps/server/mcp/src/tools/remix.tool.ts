@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 import { remixToolSchemas } from '@mcp/tools/remix.schemas';
 
 export const REMIX_TOOL_NAMES = new Set(Object.keys(remixToolSchemas));
@@ -55,6 +56,7 @@ export async function handleRemixTool(
       throw new Error(`Unknown remix tool: ${name}`);
   }
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+    structuredContent: { data: result },
+    content: [{ type: 'text' as const, text: formatToolData(result) }],
   };
 }

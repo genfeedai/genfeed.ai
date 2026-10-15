@@ -40,7 +40,10 @@ describe('handleGoogleAdsTool', () => {
 
     expect(client.listGoogleAdsCustomers).toHaveBeenCalled();
     expect(result.content[0].text).toContain('Found 1 Google Ads accounts');
-    expect(result.content[0].text).toContain('123-456');
+    expect(result).toMatchObject({
+      structuredContent: { data: [{ id: '123-456', name: 'Genfeed' }] },
+    });
+    expect(result.content[0].text).not.toContain('123-456');
   });
 
   it('reports an empty customer list instead of dumping an empty array', async () => {
@@ -109,7 +112,7 @@ describe('handleGoogleAdsTool', () => {
       '999-888',
     );
     expect(result.content[0].text).toContain('Campaign Metrics');
-    expect(result.content[0].text).toContain('conversions');
+    expect(result.content[0].text).toContain('Conversions');
   });
 
   it('forwards the date range to ad group insights', async () => {

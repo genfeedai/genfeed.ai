@@ -577,9 +577,11 @@ Use this during Phase 3 (Days 8-10) to draft the warmup thread brief directly in
 - Store the full tweet-by-tweet breakdown in the post metadata
 - Include the posting time recommendation in the scheduling metadata
 
-### `publish_post`
+### Publishing through Genfeed
 
-Only invoke `publish_post` after the user confirms:
+Resolve the chosen brand with `get_brands` and its connected channel with `list_brand_publishing_readiness`. Check `get_scheduler_capabilities` and `validate_scheduler_target` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
+
+Only request scheduling or publishing after the user confirms:
 
 - Thread is value-only with no promotional content, links, or follow CTAs
 - Final tweet ends with a genuine open question (not engagement bait)

@@ -44,8 +44,12 @@ describe('handleEditorTool', () => {
       name: 'Launch cut',
       sourceVideoIds: ['video-2', 'video-1'],
     });
-    expect(result.content[0]?.text).toContain('"/studio/editor/editor-1"');
-    expect(result.content[0]?.text).toContain('"id": "editor-1"');
+    expect(result.content[0]?.text).toContain('[Open in Editor](');
+    expect(result.structuredContent.data).toMatchObject({
+      id: 'editor-1',
+      editorPath: '/studio/editor/editor-1',
+    });
+    expect(result.content[0]?.text).not.toContain('ID:');
   });
 
   it('omits a blank name so the API keeps Untitled Project', async () => {

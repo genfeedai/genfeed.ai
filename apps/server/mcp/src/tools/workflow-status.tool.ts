@@ -20,9 +20,10 @@ export async function handleWorkflowStatusTool(
       );
 
       return {
+        structuredContent: { data: workflow },
         content: [
           {
-            text: `Workflow Status: ${workflow.name}\n\nID: ${workflow.id}\nStatus: ${workflow.status}\nVersion: ${workflow.version ?? 'N/A'}\nNodes: ${workflow.nodeCount ?? 0}\nLast Run: ${workflow.lastRunAt || 'Never'}\nNext Run: ${workflow.nextRunAt || 'Not scheduled'}`,
+            text: `Workflow Status: ${workflow.name}\n\nStatus: ${workflow.status}\nVersion: ${workflow.version ?? 'N/A'}\nNodes: ${workflow.nodeCount ?? 0}\nLast Run: ${workflow.lastRunAt || 'Never'}\nNext Run: ${workflow.nextRunAt || 'Not scheduled'}`,
             type: 'text' as const,
           },
         ],
@@ -32,11 +33,12 @@ export async function handleWorkflowStatusTool(
       const templates = await client.listWorkflowTemplates();
 
       return {
+        structuredContent: { data: templates },
         content: [
           {
             text:
               templates.length > 0
-                ? `Available Workflow Templates:\n\n${templates.map((t) => `- ${t.name} (${t.id})\n  ${t.description}\n  Category: ${t.category}${t.creditsRequired ? `\n  Credits: ${t.creditsRequired}` : ''}`).join('\n\n')}`
+                ? `Available Workflow Templates:\n\n${templates.map((t) => `- ${t.name}\n  ${t.description}\n  Category: ${t.category}${t.creditsRequired ? `\n  Credits: ${t.creditsRequired}` : ''}`).join('\n\n')}`
                 : 'No workflow templates available.',
             type: 'text' as const,
           },

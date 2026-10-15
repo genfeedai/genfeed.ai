@@ -452,7 +452,7 @@ describe('catalog REST handlers — workflows', () => {
     const result = await callTool(registry, 'list_workflow_templates', {});
 
     expect(result.content[0].text).toContain('Available Workflow Templates');
-    expect(result.content[0].text).toContain('Digest (template-1)');
+    expect(result.content[0].text).toContain('Digest');
     expect(result.content[0].text).toContain('Credits: 5');
   });
 

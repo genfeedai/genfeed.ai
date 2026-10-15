@@ -10,6 +10,7 @@ import type {
   ToolDiscoveryEntry,
   ToolDiscoverySource,
 } from '@mcp/shared/interfaces/tool-discovery.interface';
+import { readableLabel } from '@mcp/shared/utils/tool-result-text.util';
 
 /** MCP-surfaced meta tools handled entirely in-process — no API call. */
 export const TOOL_DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -168,9 +169,21 @@ function handleDescribeTool(
     );
   }
 
-  return textResult(`${tool.name}:\n\n${JSON.stringify(tool, null, 2)}`, {
-    tool,
+  const properties = tool.inputSchema?.properties ?? {};
+  const required = new Set(tool.inputSchema?.required ?? []);
+  const parameters = Object.entries(properties).map(([key, value]) => {
+    const description =
+      value !== null && typeof value === 'object' && 'description' in value
+        ? value.description
+        : undefined;
+    return `- ${key}${required.has(key) ? ' (required)' : ' (optional)'}${typeof description === 'string' ? `: ${description}` : ''}`;
   });
+  return textResult(
+    `${tool.title || readableLabel(tool.name)}\n\n${tool.description}\n\nParameters:\n${parameters.length ? parameters.join('\n') : 'None.'}`,
+    {
+      tool,
+    },
+  );
 }
 
 /** Plain Levenshtein edit distance — no dependency for a small, bounded input. */

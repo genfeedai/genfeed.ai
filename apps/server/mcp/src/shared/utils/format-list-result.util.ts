@@ -4,6 +4,8 @@ export function formatListResult(
   qualifier = '',
 ): string {
   return items.length > 0
-    ? `Found ${items.length} ${noun}${qualifier}:\n\n${JSON.stringify(items, null, 2)}`
+    ? `Found ${items.length} ${noun}${qualifier}:\n\n${formatToolData(items)}`
     : `No ${noun} found${qualifier}.`;
 }
+
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
