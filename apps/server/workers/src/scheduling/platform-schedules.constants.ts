@@ -137,8 +137,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     pattern: '*/15 * * * *',
     timezone: 'UTC',
   },
+  // Provider prices change rarely; a weekly refresh is inside the 10-day
+  // staleness window (`MODEL_PRICING_REFRESH_STALE_DAYS`).
   [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: {
-    pattern: '0 7 * * *',
+    pattern: '0 7 * * 0',
     timezone: 'UTC',
   },
   // Admission already refuses an expired trial; this only removes the
@@ -218,8 +220,9 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     pattern: '*/5 * * * *',
     timezone: 'UTC',
   },
+  // Weekly, an hour before fal (see FAL_MODEL_DISCOVERY).
   [PLATFORM_SCHEDULED_TASKS.REPLICATE_MODEL_DISCOVERY]: {
-    pattern: '0 6 * * *',
+    pattern: '0 6 * * 0',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.REVIEW_GATE_TIMEOUT]: {
