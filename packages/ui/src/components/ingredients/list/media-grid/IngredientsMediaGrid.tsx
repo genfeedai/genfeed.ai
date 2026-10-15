@@ -20,6 +20,8 @@ import {
 import IngredientTimeGroupHeading from './ingredient-time-group-heading';
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
+const NOOP = () => {};
+
 function IngredientsMediaGridSkeleton() {
   return (
     <OrderedMasonry>
@@ -36,13 +38,14 @@ function IngredientsMediaGridSkeleton() {
 }
 
 export default function IngredientsMediaGrid({
-  emptyLabel,
+  emptyLabel = '',
   emptyDescription,
   items,
   isLoading,
-  isActionsEnabled,
-  isDragEnabled,
-  selectedIds,
+  isActionsEnabled = false,
+  isDragEnabled = false,
+  isTimeGroupingEnabled = true,
+  selectedIds = [],
   onDeleteIngredient,
   onMarkArchived,
   onConvertToPortrait,
@@ -79,6 +82,9 @@ export default function IngredientsMediaGrid({
     );
   }
 
+  const reviewHandler = onReviewUpdated ?? onRefresh;
+  const isReviewEnabled = isActionsEnabled && Boolean(reviewHandler);
+
   const renderIngredient = (ingredient: IIngredient) => {
     const isSelected = selectedIds.includes(ingredient.id);
 
@@ -113,8 +119,8 @@ export default function IngredientsMediaGrid({
           />
           <IngredientTileOverlays
             ingredient={ingredient}
-            isReviewEnabled={Boolean(isActionsEnabled)}
-            onReviewUpdated={onReviewUpdated ?? onRefresh}
+            isReviewEnabled={isReviewEnabled}
+            onReviewUpdated={reviewHandler ?? NOOP}
           />
         </div>
       );
@@ -143,14 +149,16 @@ export default function IngredientsMediaGrid({
         />
         <IngredientTileOverlays
           ingredient={ingredient}
-          isReviewEnabled={Boolean(isActionsEnabled)}
-          onReviewUpdated={onReviewUpdated ?? onRefresh}
+          isReviewEnabled={isReviewEnabled}
+          onReviewUpdated={reviewHandler ?? NOOP}
         />
       </div>
     );
   };
 
-  const timeGroups = groupIngredientsByTime(items);
+  const timeGroups = isTimeGroupingEnabled
+    ? groupIngredientsByTime(items)
+    : null;
 
   const renderMasonry = (columnItems: IIngredient[]) => (
     <OrderedMasonry>{columnItems.map(renderIngredient)}</OrderedMasonry>

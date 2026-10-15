@@ -45,11 +45,6 @@ describe('LazyMasonry', () => {
     expect(typeof LazyMasonry.LazyMasonryVideo).toBe('function');
   });
 
-  it('should export LazyMasonryGrid', () => {
-    expect(LazyMasonry.LazyMasonryGrid).toBeDefined();
-    expect(typeof LazyMasonry.LazyMasonryGrid).toBe('function');
-  });
-
   it('should render LazyMasonryImage when mounted', async () => {
     const { getByTestId } = render(<LazyMasonry.LazyMasonryImage />);
     await waitFor(() => {
@@ -64,13 +59,6 @@ describe('LazyMasonry', () => {
     });
   });
 
-  it('should render LazyMasonryGrid when mounted', async () => {
-    const { getByTestId } = render(<LazyMasonry.LazyMasonryGrid />);
-    await waitFor(() => {
-      expect(getByTestId('lazy-component')).toBeInTheDocument();
-    });
-  });
-
   it('should have all exported components as functions', () => {
     const exports = Object.values(LazyMasonry);
     exports.forEach((exportedItem) => {
@@ -80,6 +68,6 @@ describe('LazyMasonry', () => {
 
   it('should have correct number of exported components', () => {
     const exports = Object.keys(LazyMasonry);
-    expect(exports.length).toBe(3); // LazyMasonryImage, LazyMasonryVideo, LazyMasonryGrid
+    expect(exports.length).toBe(2); // LazyMasonryImage, LazyMasonryVideo
   });
 });

@@ -47,5 +47,3 @@ export function LazyMasonryImage(props: MasonryImageProps) {
 export function LazyMasonryVideo(props: MasonryVideoProps) {
   return <MasonryVideoComponent {...props} />;
 }
-
-export { LazyMasonryGrid } from './lazy-masonry.helpers';

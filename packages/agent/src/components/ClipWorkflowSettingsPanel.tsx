@@ -144,7 +144,7 @@ export function ClipWorkflowSettingsPanel({
             <SelectContent>
               <SelectItem value="">No workflow binding</SelectItem>
               {workflows.map((wf) => (
-                <SelectItem key={wf.id} value={wf.id}>
+                <SelectItem className="normal-case" key={wf.id} value={wf.id}>
                   {wf.name}
                 </SelectItem>
               ))}
