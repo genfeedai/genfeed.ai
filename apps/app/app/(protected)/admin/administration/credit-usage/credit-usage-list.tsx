@@ -1,10 +1,9 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
 import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
 import type { IOrganizationCreditUsage } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { SubscriptionsService } from '@services/billing/subscriptions.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
@@ -12,9 +11,8 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
-import { ChartColumn } from 'lucide-react';
+import { ChartColumn, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import CreditHoldsPanel from './credit-holds-panel';
@@ -58,18 +56,6 @@ export default function CreditUsageList() {
   };
 
   const columns: TableColumn<IOrganizationCreditUsage>[] = [
-    {
-      header: t('holdsColumn'),
-      key: 'organizationId',
-      render: (row) => (
-        <Button
-          variant={ButtonVariant.SECONDARY}
-          onClick={() => setSelectedOrganization(row)}
-        >
-          {t('reviewHolds')}
-        </Button>
-      ),
-    },
     {
       header: 'Organization',
       key: 'organizationName',
@@ -134,6 +120,14 @@ export default function CreditUsageList() {
     },
   ];
 
+  const actions: TableAction<IOrganizationCreditUsage>[] = [
+    {
+      icon: <ShieldAlert />,
+      onClick: (row) => setSelectedOrganization(row),
+      tooltip: t('reviewHolds'),
+    },
+  ];
+
   return (
     <Container
       label="Credit Usage"
@@ -146,6 +140,7 @@ export default function CreditUsageList() {
       <AppTable<IOrganizationCreditUsage>
         items={creditUsage}
         isLoading={isLoading}
+        actions={actions}
         columns={columns}
         getRowKey={(row) => row.organizationId}
         emptyLabel="No organization credit usage found"

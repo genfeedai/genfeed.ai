@@ -8,11 +8,13 @@ import {
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IngredientTabsPostsProps } from '@genfeedai/props/content/ingredient.props';
+import type { TableAction } from '@genfeedai/props/ui/display/table.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
+import { ExternalLink } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function IngredientTabsPosts({
@@ -105,30 +107,21 @@ export default function IngredientTabsPosts({
         </Badge>
       ),
     },
+  ];
+
+  const actions: TableAction<IPost>[] = [
     {
-      header: 'Link',
-      key: 'url',
-      render: (p: IPost) => {
-        if (p.url) {
-          return (
-            <a
-              href={p.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              View
-            </a>
-          );
-        }
-        return '-';
-      },
+      href: (p) => p.url || undefined,
+      icon: <ExternalLink />,
+      isExternal: true,
+      tooltip: 'View post',
     },
   ];
 
   return (
     <AppTable<IPost>
       items={posts}
+      actions={actions}
       columns={columns}
       getRowKey={(p) => p.id}
       isLoading={isLoading}

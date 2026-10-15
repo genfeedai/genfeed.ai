@@ -8,6 +8,7 @@ import {
   SourcePostActionType,
 } from '@genfeedai/contracts';
 import type { ISourcePost } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -41,6 +42,7 @@ import {
   HoverCardTrigger,
 } from '@ui/primitives/hover-card';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   buildSourcePostVariationsHref,
   buildTrendSourceAgentHref,
@@ -300,22 +302,33 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
   );
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    // Icon-only row actions, revealed on row hover or keyboard focus like the
+    // shared table's `actions` group. Kept as a component because each row
+    // owns request state and a per-row overflow menu.
+    <div
+      className={cn(
+        'flex items-center justify-end gap-1',
+        hoverRevealClassName({ at: 'lg' }),
+      )}
+    >
       {item.remixSelector ? (
         <Button
+          ariaLabel={translateCard('actions.remix')}
           icon={<Sparkles className="size-3.5" />}
-          label={translateCard('actions.remix')}
           onClick={handleRemix}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.ICON}
+          tooltip={translateCard('actions.remix')}
+          tooltipPosition="left"
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
         />
       ) : (
         <SimpleTooltip label={translateCard('actions.remixUnavailable')}>
           <Button
+            ariaLabel={translateCard('actions.remix')}
             icon={<Sparkles className="size-3.5" />}
             isDisabled
-            label={translateCard('actions.remix')}
-            size={ButtonSize.SM}
+            size={ButtonSize.ICON}
             variant={ButtonVariant.GHOST}
           />
         </SimpleTooltip>
@@ -628,7 +641,11 @@ export default function DeskTableView({
       },
       {
         className: 'text-right',
-        header: translateDesk('tableHeaders.actions'),
+        header: (
+          <span className="sr-only">
+            {translateDesk('tableHeaders.actions')}
+          </span>
+        ),
         key: 'actions',
         render: (item) => (
           <DeskRowActions

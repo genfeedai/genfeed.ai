@@ -79,14 +79,43 @@ describe('Table', () => {
 
     const action = screen.getByTestId('action-button');
     expect(action).toHaveClass('size-11', 'lg:size-8', '[&_svg]:size-3.5');
-    expect(action.closest('td')?.firstElementChild).toHaveClass(
+    expect(action).toHaveAccessibleName('Edit item');
+    const group = action.closest('td')?.firstElementChild;
+    expect(group).toHaveClass(
       'opacity-100',
       'pointer-events-auto',
       '[@media(hover:hover)]:lg:opacity-0',
       '[@media(hover:hover)]:lg:group-focus-within:opacity-100',
-      '[@media(hover:hover)]:lg:group-focus-within:translate-x-0',
-      'transition-[opacity,transform]',
     );
+    // Motion policy: the group shows and hides instantly, never slides in.
+    expect(group?.className).not.toMatch(/translate-x|transition/);
+  });
+
+  it('renders link row actions as icon-only anchors and omits unresolved ones', () => {
+    render(
+      <Table
+        items={[
+          { id: 'item-1', name: 'First item' },
+          { id: 'item-2', name: 'Second item' },
+        ]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        actions={[
+          {
+            href: (item) =>
+              item.id === 'item-1' ? `/items/${item.id}` : undefined,
+            icon: <svg aria-hidden="true" />,
+            tooltip: (item) => `Open ${item.name}`,
+          },
+        ]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const link = screen.getByRole('link', { name: 'Open First item' });
+    expect(link).toHaveAttribute('href', '/items/item-1');
+    expect(link).toHaveAttribute('data-testid', 'action-button');
+    expect(link.textContent).toBe('');
+    expect(screen.queryByRole('link', { name: 'Open Second item' })).toBeNull();
   });
 
   it('activates onRowClick from keyboard Enter and Space', async () => {

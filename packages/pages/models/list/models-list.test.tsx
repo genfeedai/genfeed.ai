@@ -149,7 +149,7 @@ describe('ModelsList', () => {
       page: 2,
     });
     expect(
-      await screen.findByRole('button', { name: 'More options for Flux Dev' }),
+      await screen.findByRole('button', { name: 'Delete' }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Image 1')).not.toBeInTheDocument();
   });
@@ -165,20 +165,15 @@ describe('ModelsList', () => {
     });
   });
 
-  it('opens inline pricing from the overflow menu without opening the model editor', async () => {
+  it('opens inline pricing from its row action without opening the model editor', async () => {
     const onPricingDetails = vi.fn();
     renderModelsList(PageScope.SUPERADMIN, undefined, {
       onPricingDetails,
       renderExpandedRow: () => <div>Provider pricing evidence</div>,
     });
 
-    const trigger = await screen.findByRole('button', {
-      name: 'More options for Flux Dev',
-    });
-    fireEvent.pointerDown(trigger);
-    fireEvent.click(trigger);
     fireEvent.click(
-      await screen.findByRole('menuitem', { name: 'Pricing details' }),
+      await screen.findByRole('button', { name: 'Pricing details' }),
     );
 
     expect(onPricingDetails).toHaveBeenCalledWith(

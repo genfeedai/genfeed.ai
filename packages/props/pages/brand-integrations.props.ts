@@ -28,14 +28,6 @@ export interface AccountStatusBadgeProps {
   health?: AccountHealthSummary;
 }
 
-export interface AccountRowActionsMenuProps {
-  connection: BrandDetailSocialConnection;
-  isReconnectDisabled: boolean;
-  onDisconnect: (connection: BrandDetailSocialConnection) => void;
-  onOpenSettings: (connection: BrandDetailSocialConnection) => void;
-  onReconnect: (connection: BrandDetailSocialConnection) => void;
-}
-
 export type AccountSettingsSection = 'health' | 'import' | 'postingTimes';
 
 export interface AccountSettingsSectionsProps {
