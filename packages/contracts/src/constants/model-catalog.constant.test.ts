@@ -648,6 +648,8 @@ describe('model version lifecycle', () => {
       MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
       MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
       MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
     ])
       expect(byKey.get(key)?.lifecycle, key).toBe(ModelLifecycle.RETIRED);
   });
