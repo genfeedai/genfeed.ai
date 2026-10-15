@@ -55,7 +55,11 @@ const {
   dispatchOpenTaskComposerSpy: vi.fn(),
   identifyAnalyticsOrganizationSpy: vi.fn(),
   identifyAnalyticsUserSpy: vi.fn(),
-  shellState: { isAuthLoaded: true, isShellThrowing: false },
+  shellState: {
+    isAuthLoaded: true,
+    isShellThrowing: false,
+    isSignedIn: undefined as boolean | undefined,
+  },
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
@@ -457,7 +461,7 @@ vi.mock('@/hooks/useOptionalAuth', () => ({
     // agent API service, which is the only thing that keeps the shell body from
     // mounting.
     isLoaded: shellState.isAuthLoaded,
-    isSignedIn: shellState.isAuthLoaded,
+    isSignedIn: shellState.isSignedIn ?? shellState.isAuthLoaded,
   }),
 }));
 
@@ -585,6 +589,8 @@ describe('AppProtectedLayout', () => {
     mockPathname.value = '/workspace';
     shellState.isAuthLoaded = true;
     shellState.isShellThrowing = false;
+    shellState.isSignedIn = undefined;
+    mockRouter.refresh.mockClear();
     sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
     mockBrandState.organizationId = 'org-123';
@@ -1312,6 +1318,52 @@ describe('AppProtectedLayout', () => {
         includePromptBarProvider: false,
       }),
     );
+  });
+
+  it('does not refresh the route when the shell mounts already signed in', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(mockRouter.refresh).not.toHaveBeenCalled();
+  });
+
+  it('does not refresh the route when auth finishes loading after mount', () => {
+    shellState.isAuthLoaded = false;
+    const { rerender } = render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    shellState.isAuthLoaded = true;
+    rerender(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(mockRouter.refresh).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the route once after a signed-out session signs in', () => {
+    shellState.isSignedIn = false;
+    const { rerender } = render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    shellState.isSignedIn = true;
+    rerender(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(mockRouter.refresh).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the topbar frame on a canvas route while the shell body is still booting', () => {
