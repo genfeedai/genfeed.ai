@@ -59,7 +59,7 @@ export default function IngredientQuickActions(
       assetId={asset.id}
       imageUrl={asset.cdnUrl || asset.ingredientUrl || ''}
     >
-      {(characterAction, addActions = []) => (
+      {(characterAction, addActions) => (
         <IngredientQuickActionsContent
           {...props}
           characterActions={
