@@ -14,7 +14,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ReleaseAnalyticsTable from '@pages/posts/release/release-analytics-table';

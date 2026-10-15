@@ -16,7 +16,6 @@ import {
   type ConversationComposerActionInvocation,
   type ConversationComposerDispatchResult,
   ConversationComposerShellProvider,
-  ConversationDockPanel,
   getConversationComposerAction,
   resolveConversationComposerDestinationHref,
   useAgentChatStore,
@@ -39,6 +38,7 @@ import {
 } from '@ui/layout/context-inspector-toggle/ContextInspectorToggle';
 import { Button } from '@ui/primitives/button';
 import { Drawer, DrawerContent } from '@ui/primitives/drawer';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -118,6 +118,20 @@ import {
   useWorkspaceSurfaceAdapter,
   WorkspaceSurfaceAdapterProvider,
 } from './WorkspaceSurfaceAdapterContext';
+
+const loadConversationDockPanel = () =>
+  import('@genfeedai/agent/components/ConversationDockPanel').then(
+    (module) => module.ConversationDockPanel,
+  );
+
+// The dock conversation (timeline, markdown, Tiptap composer, model pickers)
+// renders only after the dock is first opened. Keeping it out of this chunk
+// keeps ~2.3 MB of JS off the path every workspace page waits on.
+const ConversationDockPanel = dynamic(loadConversationDockPanel, {
+  loading: () => null,
+});
+
+const DOCK_PANEL_PREFETCH_TIMEOUT_MS = 8000;
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -651,6 +665,25 @@ function UniversalWorkspaceShellContent({
       closeAgentDock?.();
     }
   }, [closeAgentDock, isAgentDockOpen, isAgentRoute]);
+
+  // Warm the conversation chunk once the page is idle so the first open does
+  // not wait on the network.
+  useEffect(() => {
+    if (!isAgentDockHost || hasOpenedAgentDock) {
+      return;
+    }
+    const prefetch = () => {
+      void loadConversationDockPanel();
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(prefetch, {
+        timeout: DOCK_PANEL_PREFETCH_TIMEOUT_MS,
+      });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timeout = window.setTimeout(prefetch, 2000);
+    return () => window.clearTimeout(timeout);
+  }, [hasOpenedAgentDock, isAgentDockHost]);
 
   // Mount the conversation on first open, or when a registered overlay needs
   // its composer before the dock was ever opened.

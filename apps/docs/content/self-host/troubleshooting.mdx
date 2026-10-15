@@ -94,6 +94,13 @@ The model keys in `.env` start blank, and self-hosting has no Genfeed credits.
 Add the key for the provider behind the model you chose, recreate the stack, and
 try a small request. See [Provider API keys](/self-host/provider-api-keys).
 
+If a turn fails with `OPENROUTER_API_KEY is not configured`, set a real
+`OPENROUTER_API_KEY` in `.env` and recreate the stack. Text generation and the
+agent use OpenRouter, and the install-readiness check reports text generation as
+not ready until the key is set. Keys must be real: Settings validates each key
+with the provider before saving it (a placeholder shows "Invalid ... API key"),
+and a placeholder in `.env` counts as not configured.
+
 The Community image does not start GPU or local-model services, so a model that
 needs your own ComfyUI or GPU host will not run unless you point
 `DARKROOM_COMFYUI_URL` at one.

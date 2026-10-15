@@ -88,8 +88,10 @@ function isLocalPeerAddress(ip: string): boolean {
  * deployment's `trust proxy` setting: no forwarded header is believed unless
  * `TRUST_PROXY` names the proxy. A request that still carries a proxy's client
  * attribution is refused rather than judged on the proxy's own address, so a
- * reverse proxy on this host or the Docker gateway never turns a remote client
- * into a local one.
+ * reverse proxy reporting a remote client cannot turn it into a local one.
+ * Docker port NAT can omit that attribution entirely, so Compose must also
+ * publish the API on host loopback only. An address check cannot distinguish
+ * a real Docker peer from an unattributed connection through its gateway.
  */
 export function isLocalIdentityPeer(request: AdminIpRequest): boolean {
   if (hasUntrustedClientAttribution(request)) {

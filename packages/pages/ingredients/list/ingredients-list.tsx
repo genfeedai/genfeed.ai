@@ -31,6 +31,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Alert from '@ui/feedback/alert/Alert';
+import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
 import IngredientsListHeader from '@ui/ingredients/list/header/IngredientsListHeader';
@@ -103,6 +104,9 @@ export default function IngredientsList({
     loadError,
     isLoadingFolders,
     isMerging,
+    hasMoreIngredients,
+    isLoadingMoreIngredients,
+    loadMoreIngredients,
     filteredIngredients,
     mediaIngredients,
     hasFilteredEmptyState,
@@ -420,6 +424,14 @@ export default function IngredientsList({
               onScopeChange={handleScopeChange}
               onCopyPrompt={handleCopyPrompt}
               onReprompt={handleReprompt}
+            />
+            {/* Older assets stream in a viewport and a half before the end. */}
+            <InfiniteScroll
+              enabled={!isLoading}
+              hasMore={hasMoreIngredients}
+              isLoading={isLoadingMoreIngredients}
+              onLoadMore={loadMoreIngredients}
+              rootMargin="0px 0px 1200px 0px"
             />
           </div>
         </div>

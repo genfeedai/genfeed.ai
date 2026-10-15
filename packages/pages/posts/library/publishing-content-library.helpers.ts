@@ -10,7 +10,7 @@ import type {
   IPost,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type {

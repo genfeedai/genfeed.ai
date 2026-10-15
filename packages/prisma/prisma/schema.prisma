@@ -2430,6 +2430,10 @@ model Ingredient {
   @@index([organizationId, updatedAt, id], map: "ingredients_org_updated_at_id_idx")
   @@index([organizationId, origin, isDeleted, createdAt(sort: Desc)], map: "ingredients_org_origin_created_at_idx")
   @@index([organizationId, personaId, isDeleted, createdAt(sort: Desc)], map: "ingredients_org_persona_created_at_idx")
+  // Brand Library list (offset and keyset pages) + its count. `id` desc matches
+  // the (createdAt, id) keyset order; trailing status/category keep the count
+  // index-only (no heap visit per row).
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc), status, category], map: "ingredients_org_brand_library_idx")
   @@map("ingredients")
 }
 
@@ -6184,6 +6188,8 @@ model Evaluation {
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
+  // Latest evaluation per content row, attached to every content list page.
+  @@index([organizationId, contentType, contentId, isDeleted, updatedAt(sort: Desc)], map: "evaluations_org_content_target_idx")
   @@map("evaluations")
 }
 

@@ -49,8 +49,24 @@ cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
 | MCP server | `http://localhost:3014` |
 
 The bundle pins the image for its release, applies Prisma migrations, and seeds
-one local user, organization, and brand. No Genfeed Cloud account is required.
-Add a provider key to `.env` when you want to run generation.
+one local workspace. No Genfeed Cloud account is required.
+
+For a first generation, do these in order:
+
+1. Set `OPENROUTER_API_KEY` in `.env` to a real key from
+   [openrouter.ai/keys](https://openrouter.ai/keys). Text generation and the
+   agent need it. Without it the install-readiness check reports text
+   generation as not ready. Then restart with the same `docker compose up -d`
+   command so the container reads the new value.
+2. Open `http://localhost:3000` and create your account. Sign-up is on by
+   default (`BETTER_AUTH_ENABLED=true` in `.env`), so the first visitor can
+   register. No email provider is needed for email/password.
+3. Complete onboarding, then start a task or generation.
+
+Keys are checked for real. **Settings → API Keys** validates each provider key
+against the provider before saving, so placeholder text is rejected there.
+Keys in `.env` are never accepted as placeholders either: an empty or
+template value counts as not configured.
 
 `npx @genfeedai/create my-genfeed` downloads, checksums, and starts the same
 bundle. Checksums, auth, providers, and upgrades:
@@ -70,8 +86,10 @@ it to yourself over MCP.
    curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
    tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
    cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
-3. Wait for http://localhost:3000 to answer. The seed creates one user,
-   organization (slug `default`), and brand.
+3. Wait for http://localhost:3000 to answer. Sign-up is open by default; the
+   seed also creates one organization (slug `default`) and brand. Put a real
+   OpenRouter key in `.env` as `OPENROUTER_API_KEY` and restart before
+   generating.
 4. For Claude Code, register its dedicated content connector:
    claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
 5. Open /mcp, select genfeed and complete browser OAuth. For other clients,

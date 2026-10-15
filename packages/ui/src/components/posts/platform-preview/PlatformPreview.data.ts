@@ -14,7 +14,7 @@ import {
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
-import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
 
 import type {
   CaptionPreviewState,
