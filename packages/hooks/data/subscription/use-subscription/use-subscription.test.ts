@@ -1,5 +1,5 @@
 import { SubscriptionStatus } from '@genfeedai/contracts';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseAuthIdentity = vi.fn();
@@ -74,11 +74,11 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-const mockNotificationsService = {
+const mockNotificationsService = vi.hoisted(() => ({
   error: vi.fn(),
   info: vi.fn(),
   success: vi.fn(),
-};
+}));
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
@@ -197,6 +197,34 @@ describe('useSubscription', () => {
 
       expect(result.current.error).toBeNull();
     });
+
+    it.each([
+      new Error('Balance unavailable'),
+      { errors: [{ detail: 'Temporarily unavailable', status: '503' }] },
+    ])(
+      'exposes a failed balance read and clears it after retry (%j)',
+      async (failure) => {
+        mockSubscriptionsService.getCreditsBreakdown.mockRejectedValue(failure);
+        const { result } = renderHook(() => useSubscription(), {
+          wrapper: createQueryWrapper(),
+        });
+
+        await waitFor(() => expect(result.current.error).toBeTruthy());
+        expect(result.current.creditsBreakdown).toBeNull();
+
+        mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue({
+          total: 500,
+        });
+        await act(async () => {
+          await result.current.refreshCreditsBreakdown();
+        });
+
+        await waitFor(() => {
+          expect(result.current.error).toBeNull();
+          expect(result.current.creditsBreakdown).toEqual({ total: 500 });
+        });
+      },
+    );
 
     it('should return isSubscriptionActive', async () => {
       const { result } = renderHook(() => useSubscription(), {

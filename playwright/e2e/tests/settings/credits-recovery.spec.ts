@@ -35,6 +35,9 @@ test('a failed credit balance explains the failure and recovers without checkout
     settings.canvas.getByText('Your credit balance could not be loaded.'),
   ).toBeVisible();
   await expect(settings.canvas.getByText('Credits Left')).toHaveCount(0);
+  await expect(
+    page.getByRole('dialog', { name: 'Request failed', exact: true }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: testInfo.outputPath('balance-unavailable.png'),
   });
