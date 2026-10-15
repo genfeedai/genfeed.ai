@@ -9,6 +9,8 @@ export const personaAttributes = createEntityAttributes([
   'bio',
   'profileImageUrl',
   'avatar',
+  // Character reference image; the References table and @mentions read it.
+  'avatarIngredientId',
   'avatarProvider',
   'avatarExternalId',
   'voice',

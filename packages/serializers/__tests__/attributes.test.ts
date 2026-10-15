@@ -1175,6 +1175,10 @@ describe('Serializer Attributes', () => {
       const unique = new Set(personaAttributes);
       expect(unique.size).toBe(personaAttributes.length);
     });
+
+    it('exposes the reference image the References table renders', () => {
+      expect(personaAttributes).toContain('avatarIngredientId');
+    });
   });
 
   describe('postAttributes', () => {
