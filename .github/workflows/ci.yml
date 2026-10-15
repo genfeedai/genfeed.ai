@@ -655,6 +655,20 @@ jobs:
           else
             TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test:cron --affected --filter=@genfeedai/workers
           fi
+      # MCP e2e specs (apps/server/mcp/test/e2e) run under their own Vitest
+      # config, outside `test`. They boot the real MCP request path against an
+      # in-process fake API, so they need no database or Redis.
+      - name: Run MCP e2e specs
+        if: ${{ !cancelled() && matrix.group == 'server' }}
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            bunx turbo run test:e2e --filter=@genfeedai/mcp
+          else
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test:e2e --affected --filter=@genfeedai/mcp
+          fi
 
   # App tests. The planner emits the shard matrix: on the affected tier it
   # counts the exact Vitest changed graph and picks one, two, or four shards;

@@ -456,6 +456,25 @@ test('server workspace leg runs the workers cron specs with affected selection',
   );
 });
 
+test('server workspace leg runs the MCP e2e specs with affected selection', () => {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    'utf8',
+  );
+  const e2eStep = workflow.slice(
+    workflow.indexOf('      - name: Run MCP e2e specs'),
+    workflow.indexOf('\n  # App tests.'),
+  );
+  assert.match(
+    e2eStep,
+    /if: \$\{\{ !cancelled\(\) && matrix\.group == 'server' \}\}/,
+  );
+  assert.match(
+    e2eStep,
+    /if \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test:e2e --filter=@genfeedai\/mcp\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test:e2e --affected --filter=@genfeedai\/mcp\n {10}fi/,
+  );
+});
+
 test('UI shards retain the environment gate, dependency builds, distinct cache arguments and failure semantics', () => {
   const workflow = readFileSync(
     new URL('../../.github/workflows/ci.yml', import.meta.url),
