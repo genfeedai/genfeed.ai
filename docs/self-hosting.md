@@ -72,8 +72,11 @@ source. Unlike a release bundle, the source template defaults to the mutable
 
 ### `P1001: Can't reach database server at postgres:5432`
 
-The app container cannot reach the `postgres` container, so containers on the
-Compose network cannot talk to each other. Common causes are a host firewall,
+The app cannot establish a database connection to `postgres:5432`. First check
+that PostgreSQL is running and ready, and inspect its logs. Use `docker compose ps`
+and `docker compose logs postgres` with the same Compose file and options used to
+start your installation. If PostgreSQL is healthy, investigate container
+connectivity. Possible causes include a host firewall,
 an iptables or nftables `FORWARD` policy that drops bridge traffic, or a
 rootless Docker or user-namespace setup. See Docker's
 [networking](https://docs.docker.com/engine/network/) and
