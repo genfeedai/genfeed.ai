@@ -1,6 +1,7 @@
 import { PRICING_ATTENTION_SELECT } from '@api/collections/models/services/public-model-catalog.types';
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import type {
   ModelBillablePricingProfile,
   ModelPricingAttention,
@@ -27,6 +28,7 @@ export type PricingAttentionModel = Pick<
   | 'isDeleted'
   | 'isFree'
   | 'key'
+  | 'lifecycle'
   | 'minCost'
   | 'outputCostPerMillionTokens'
   | 'pendingProviderContractVersion'
@@ -55,7 +57,8 @@ export type PricingAttentionContract = Pick<
 /**
  * What an operator has to act on for one registry row. The admin pricing page
  * and the public catalog filter share this, so a model the panel shows red is
- * exactly a model customers are not offered.
+ * exactly a model customers are not offered. A RETIRED row never bills itself:
+ * dispatch resolves its successor, so it needs no price.
  */
 export function classifyModelRowPricingAttention(
   model: PricingAttentionModel,
@@ -73,7 +76,8 @@ export function classifyModelRowPricingAttention(
     hasTokenPricing:
       (model.inputCostPerMillionTokens ?? 0) > 0 ||
       (model.outputCostPerMillionTokens ?? 0) > 0,
-    isActive: model.isActive,
+    isActive:
+      model.isActive && String(model.lifecycle) !== ModelLifecycle.RETIRED,
     isFree: model.isFree,
     margin,
     now,

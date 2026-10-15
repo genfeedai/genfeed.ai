@@ -166,6 +166,87 @@ const LEGACY_FLUX_MEDIA_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Older versions of a family whose newer same-category model is in the
+ * catalog. They stay selectable and keep their price; the picker labels them
+ * Legacy and points at the successor.
+ */
+const LEGACY_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
+  [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4]:
+    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
+  [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5]:
+    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
+  [MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3]: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+  [MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST]:
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
+  [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA]:
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
+  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST]:
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]:
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER]:
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO]:
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+  [MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST]:
+    MODEL_KEYS.REPLICATE_MINIMAX_H3,
+};
+
+/**
+ * Models the provider no longer serves (its model page and API return 404).
+ * A stored key resolves to the successor at dispatch, and a retired row is
+ * never offered or priced itself.
+ */
+const RETIRED_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
+  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO]:
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+  [MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT]:
+    AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+  [MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST]: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+};
+
+/**
+ * Genfeed fleet deployments retired on Genfeed Cloud, where no fleet price
+ * exists. Self-hosted installs keep them for their own ComfyUI. Fleet LoRA
+ * models return as new catalog keys with an approved price.
+ */
+const HOSTED_RETIRED_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
+  [MODEL_KEYS.GENFEED_AI_FLUX_DEV]:
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  [MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID]:
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV]:
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID]:
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA]:
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE]:
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  [MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN]:
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO]:
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
+  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA]:
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
+};
+
+function mediaLifecycle(
+  key: string,
+  curated: (typeof SELF_HOSTED_MODELS)[number] | undefined,
+): ModelLifecycle {
+  if (RETIRED_MEDIA_SUCCESSORS[key]) return ModelLifecycle.RETIRED;
+  if (LEGACY_FLUX_MEDIA_KEYS.has(key) || LEGACY_MEDIA_SUCCESSORS[key])
+    return ModelLifecycle.LEGACY;
+  if (curated && 'lifecycle' in curated && curated.lifecycle)
+    return curated.lifecycle;
+  return curated?.isDefault || curated?.isHighlighted
+    ? ModelLifecycle.RECOMMENDED
+    : ModelLifecycle.AVAILABLE;
+}
+
+/**
  * Every media key we know how to call, so Settings → Models lists the real
  * catalogue rather than the four curated defaults.
  *
@@ -193,13 +274,7 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
         !(curated && 'isActive' in curated && curated.isActive === false),
       isDefault: curated?.isDefault ?? false,
       isHighlighted: curated?.isHighlighted ?? false,
-      lifecycle: LEGACY_FLUX_MEDIA_KEYS.has(key)
-        ? ModelLifecycle.LEGACY
-        : curated && 'lifecycle' in curated && curated.lifecycle
-          ? curated.lifecycle
-          : curated?.isDefault || curated?.isHighlighted
-            ? ModelLifecycle.RECOMMENDED
-            : ModelLifecycle.AVAILABLE,
+      lifecycle: mediaLifecycle(key, curated),
       isPublic: isCurated,
       key,
       label: curated?.label ?? MEDIA_LABEL_OVERRIDES[key] ?? labelFromKey(key),
@@ -235,8 +310,12 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     if (curated?.providerConfig) {
       entry.config = curated.providerConfig;
     }
-    if (curated && 'succeededBy' in curated && curated.succeededBy) {
-      entry.succeededBy = curated.succeededBy;
+    const succeededBy =
+      (curated && 'succeededBy' in curated ? curated.succeededBy : undefined) ??
+      RETIRED_MEDIA_SUCCESSORS[key] ??
+      LEGACY_MEDIA_SUCCESSORS[key];
+    if (succeededBy) {
+      entry.succeededBy = succeededBy;
     }
     if ('aspectRatios' in capability && capability.aspectRatios) {
       entry.aspectRatios = capability.aspectRatios;
@@ -538,13 +617,36 @@ function applyLowestCostDefaults(
  * Development, staging, and e2e (`isCloudQualityDefaultsEnabled === false`)
  * promote the lowest-cost image / video / chat rows so a generate does not
  * bill Seedance / Nano Banana / a mid-tier chat model.
+ *
+ * Genfeed Cloud (`isCloud`) also retires the Genfeed fleet deployments, which
+ * have no Cloud price.
  */
 export function getModelCatalogForDeployment(
   isCloudQualityDefaultsEnabled: boolean,
+  { isCloud = false }: { isCloud?: boolean } = {},
 ): readonly ModelCatalogSeedEntry[] {
-  if (isCloudQualityDefaultsEnabled) {
-    return UNIFIED_MODEL_CATALOG;
-  }
+  const catalog = isCloudQualityDefaultsEnabled
+    ? UNIFIED_MODEL_CATALOG
+    : applyLowestCostDefaults(UNIFIED_MODEL_CATALOG);
 
-  return applyLowestCostDefaults(UNIFIED_MODEL_CATALOG);
+  return isCloud ? retireHostedFleetModels(catalog) : catalog;
+}
+
+function retireHostedFleetModels(
+  catalog: readonly ModelCatalogSeedEntry[],
+): ModelCatalogSeedEntry[] {
+  return catalog.map((entry) => {
+    const succeededBy = HOSTED_RETIRED_MEDIA_SUCCESSORS[entry.key];
+    return succeededBy
+      ? {
+          ...entry,
+          isActive: false,
+          isDefault: false,
+          isHighlighted: false,
+          isPublic: false,
+          lifecycle: ModelLifecycle.RETIRED,
+          succeededBy,
+        }
+      : entry;
+  });
 }

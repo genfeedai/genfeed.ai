@@ -49,6 +49,7 @@ export const PRICING_ATTENTION_SELECT = {
   isDeleted: true,
   isFree: true,
   key: true,
+  lifecycle: true,
   minCost: true,
   outputCostPerMillionTokens: true,
   pendingProviderContractVersion: true,
