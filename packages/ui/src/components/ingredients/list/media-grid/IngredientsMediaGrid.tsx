@@ -5,34 +5,20 @@ import type {
   IIngredient,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredient.props';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
-import IngredientReviewActions from '@ui/ingredients/IngredientReviewActions';
-import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
-import IngredientTagChips from '@ui/ingredients/ingredient-tag-chips';
+import IngredientTileOverlays from '@ui/ingredients/ingredient-tile-overlays';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 
 import IngredientTimeGroupHeading from './ingredient-time-group-heading';
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
-
-/** Reveal provenance with the card actions on hover or keyboard focus. */
-const ORIGIN_BADGE_CLASS = cn(
-  'pointer-events-none absolute bottom-1.5 left-1.5 z-10 transition-opacity',
-  hoverRevealClassName({ isInteractive: false }),
-);
-
-/** Tags sit just above the origin label and never intercept a click either. */
-const TAG_CHIPS_CLASS =
-  'pointer-events-none absolute bottom-8 left-1.5 right-1.5 z-10';
 
 function IngredientsMediaGridSkeleton() {
   return (
@@ -125,26 +111,10 @@ export default function IngredientsMediaGrid({
             onPortraitVideo={onConvertToPortrait}
             onGenerateCaptions={onGenerateCaptions}
           />
-          <IngredientTagChips
-            className={TAG_CHIPS_CLASS}
-            tags={ingredient.tags}
-          />
-          {isActionsEnabled ? (
-            <div
-              className={cn(
-                'absolute bottom-1.5 right-1.5 z-20 transition-opacity',
-                hoverRevealClassName(),
-              )}
-            >
-              <IngredientReviewActions
-                ingredient={ingredient}
-                onUpdated={onReviewUpdated ?? onRefresh}
-              />
-            </div>
-          ) : null}
-          <IngredientOriginBadge
-            className={ORIGIN_BADGE_CLASS}
-            origin={ingredient.origin}
+          <IngredientTileOverlays
+            ingredient={ingredient}
+            isReviewEnabled={Boolean(isActionsEnabled)}
+            onReviewUpdated={onReviewUpdated ?? onRefresh}
           />
         </div>
       );
@@ -171,26 +141,10 @@ export default function IngredientsMediaGrid({
           onScopeChange={onScopeChange}
           onConvertToVideo={onConvertToVideo}
         />
-        <IngredientTagChips
-          className={TAG_CHIPS_CLASS}
-          tags={ingredient.tags}
-        />
-        {isActionsEnabled ? (
-          <div
-            className={cn(
-              'absolute bottom-1.5 right-1.5 z-20 transition-opacity',
-              hoverRevealClassName(),
-            )}
-          >
-            <IngredientReviewActions
-              ingredient={ingredient}
-              onUpdated={onReviewUpdated ?? onRefresh}
-            />
-          </div>
-        ) : null}
-        <IngredientOriginBadge
-          className={ORIGIN_BADGE_CLASS}
-          origin={ingredient.origin}
+        <IngredientTileOverlays
+          ingredient={ingredient}
+          isReviewEnabled={Boolean(isActionsEnabled)}
+          onReviewUpdated={onReviewUpdated ?? onRefresh}
         />
       </div>
     );

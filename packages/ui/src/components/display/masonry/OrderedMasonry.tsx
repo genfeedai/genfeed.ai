@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useMasonryGrid } from '@genfeedai/hooks/ui/use-masonry-grid/use-masonry-grid';
 import type { OrderedMasonryProps } from '@genfeedai/props/content/masonry.props';
 import { Children, isValidElement, useMemo } from 'react';
@@ -7,6 +8,13 @@ import { Children, isValidElement, useMemo } from 'react';
 const TILE_WIDTH = 240;
 const TILE_GAP = 8;
 const COLUMNS = { desktop: 5, mobile: 1, tablet: 3 };
+
+/**
+ * Hovering (or keyboard-focusing) one tile quietly recedes its siblings. One
+ * definition for every grid built on this component (Library, Studio).
+ */
+const SIBLING_DIM_CLASS =
+  '[&>[data-masonry-item]]:transition-opacity [&>[data-masonry-item]]:duration-300 [&>[data-masonry-item]]:ease-out motion-reduce:[&>[data-masonry-item]]:transition-none [@media(hover:hover)]:[&:has(>[data-masonry-item]:hover)>[data-masonry-item]:not(:hover):not(:focus-within)]:opacity-90 [&:has(>[data-masonry-item]_:focus-visible)>[data-masonry-item]:not(:focus-within):not(:hover)]:opacity-90';
 
 /** Keep source and keyboard order while packing mixed native media heights. */
 export default function OrderedMasonry({
@@ -36,7 +44,7 @@ export default function OrderedMasonry({
   return (
     <div
       ref={containerRef}
-      className={className}
+      className={cn(SIBLING_DIM_CLASS, className)}
       data-masonry-layout="ordered"
       style={{
         display: isLayoutReady ? 'block' : 'grid',

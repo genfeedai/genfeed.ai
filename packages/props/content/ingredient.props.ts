@@ -106,6 +106,14 @@ export interface IngredientReviewActionsProps {
   onUpdated: (ingredient: IIngredient) => void;
 }
 
+/** Hover layer every media grid tile shares: tags, review and provenance. */
+export interface IngredientTileOverlaysProps {
+  ingredient: IIngredient;
+  /** Review (validate / reject) needs a persisted, actionable asset. */
+  isReviewEnabled: boolean;
+  onReviewUpdated: (ingredient: IIngredient) => void;
+}
+
 export interface IngredientInspectorRailProps {
   ingredient: IIngredient;
   className?: string;

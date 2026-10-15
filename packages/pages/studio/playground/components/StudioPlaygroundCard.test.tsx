@@ -49,6 +49,12 @@ vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
   },
 }));
 
+vi.mock('@ui/ingredients/ingredient-tile-overlays', () => ({
+  default: ({ ingredient }: { ingredient: { id: string } }) => (
+    <div data-testid={`tile-overlays-${ingredient.id}`} />
+  ),
+}));
+
 vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
   LazyMasonryImage: (props: MasonryImageProps) => {
     masonryMocks.image(props);
@@ -391,9 +397,10 @@ describe('StudioPlaygroundCard', () => {
 
     expect(screen.getByTestId('shared-masonry-image')).toBeInTheDocument();
     expect(screen.queryByText(generatedJob.prompt)).not.toBeInTheDocument();
-    // Hydrated grid cards hover like the Library: the masonry overlay is the
-    // only hover layer.
+    // Hydrated grid cards share the Library tile overlays instead of the
+    // Studio-only hover bar.
     expect(container.querySelector('[data-asset-hover-details]')).toBeNull();
+    expect(screen.getByTestId(`tile-overlays-${ingredient.id}`)).toBeVisible();
 
     const imageProps = masonryMocks.image.mock.calls.at(-1)?.[0];
     expect(imageProps?.onCopyPrompt).toBe(assetActions.onCopyPrompt);
