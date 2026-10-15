@@ -52,7 +52,7 @@ describe('CLI entry point', () => {
   it('runs main, reports the failure, and sets a non-zero exit code', async () => {
     process.argv = [process.argv[0], entryPath, 'demo-project'];
 
-    await import('../src/index');
+    await import('../src/index.js');
 
     await vi.waitFor(() => {
       expect(process.exitCode).toBe(1);
@@ -66,7 +66,7 @@ describe('CLI entry point', () => {
     stubNodeVersion('20.19.0');
     process.argv = [process.argv[0], entryPath, 'demo-project'];
 
-    await import('../src/index');
+    await import('../src/index.js');
 
     await vi.waitFor(() => {
       expect(process.exitCode).toBe(1);
@@ -80,7 +80,7 @@ describe('CLI entry point', () => {
   it('stays inert when the process has no script argument', async () => {
     process.argv = [process.argv[0], ''];
 
-    await import('../src/index');
+    await import('../src/index.js');
     await new Promise((resolvePromise) => setImmediate(resolvePromise));
 
     expect(consolaMock.error).not.toHaveBeenCalled();
@@ -90,7 +90,7 @@ describe('CLI entry point', () => {
   it('stays inert when the script argument cannot be resolved', async () => {
     process.argv = [process.argv[0], '/nonexistent/genfeed-cli-entry.js'];
 
-    await import('../src/index');
+    await import('../src/index.js');
     await new Promise((resolvePromise) => setImmediate(resolvePromise));
 
     expect(consolaMock.error).not.toHaveBeenCalled();
