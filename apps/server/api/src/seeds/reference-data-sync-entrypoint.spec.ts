@@ -44,6 +44,7 @@ describe('self-hosted reference sync bootstrap', () => {
           cwd: root,
           env: {
             GENFEEDAI_API_URL: 'http://localhost:4567',
+            NODE_ENV: 'test',
             PATH: `${bin}:${process.env.PATH}`,
             ...(parentPort ? { PORT: parentPort } : {}),
             SYNC_PORT_TRACE: trace,
