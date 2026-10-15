@@ -6,6 +6,9 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 function build() {
   const client = {
     createApproval: vi.fn(),
+    createScheduledRelease: vi.fn(),
+    updateScheduledRelease: vi.fn(),
+    controlScheduledRelease: vi.fn(),
     executeAgentTool: vi.fn(),
     resolveApproval: vi.fn(),
   };
@@ -22,6 +25,62 @@ function build() {
 }
 
 describe('Claude connector execution boundary', () => {
+  it.each([
+    {
+      name: 'create_scheduled_release',
+      arguments: {
+        release: {
+          baseContent: 'Review this exact copy',
+          title: 'Launch',
+          timezone: 'Europe/Malta',
+          status: 'scheduled',
+          scheduledDate: '2030-01-01T12:00:00Z',
+          recurrence: { frequency: 'weekly', interval: 1 },
+          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+        },
+      },
+    },
+    {
+      name: 'update_scheduled_release',
+      arguments: {
+        releaseId: 'release-1',
+        scope: 'release',
+        changes: { baseContent: 'Changed live copy' },
+      },
+    },
+    {
+      name: 'control_scheduled_release',
+      arguments: { releaseId: 'release-1', action: 'publish-now' },
+    },
+    {
+      name: 'control_scheduled_release',
+      arguments: { releaseId: 'release-1', action: 'resume' },
+    },
+  ])('queues $name without executing a public-channel write', async (call) => {
+    const { registry, client } = build();
+    client.createApproval.mockResolvedValue({
+      id: 'approval-1',
+      status: 'PENDING',
+      toolName: call.name,
+      arguments: call.arguments,
+    });
+    const result = await registry.handleToolCall(call);
+    expect(client.createApproval).toHaveBeenCalledExactlyOnceWith(
+      call.name,
+      call.arguments,
+    );
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: { code: 'approval_pending' },
+    });
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
+    expect(client.resolveApproval).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).not.toContain('call `resolve_approval`');
+  });
+
   it.each([
     'generate',
     'transform_media',

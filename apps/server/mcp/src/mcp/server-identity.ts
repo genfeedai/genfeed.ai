@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { McpAccessMode } from '@genfeedai/actions';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { MCP_BRAND_ICON_FILES } from './brand-icons';
 
@@ -19,13 +19,13 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Call find_tools when a request needs a capability that is not in the current tool list.',
 ].join(' ');
 
-export function buildClaudeMcpServerInstructions(appUrl: string): string {
+export function buildClaudeMcpServerInstructions(): string {
   return [
     'Genfeed connects Claude to brands, drafts, scheduling and analytics.',
     'Call get_account and get_brands first; use onboard_brand when onboarding is incomplete.',
     'Write copy yourself, then use create_post or create_article_draft to save it for review.',
     'Never schedule anything unless the user explicitly asks. Use existing assets from list_assets.',
-    `Image, video and audio creation happens in Genfeed Studio at ${appUrl}${APP_ROUTES.STUDIO.PLAYGROUND}. Open that link; never attempt generation, workflows, batches or remix through this connector. Opening Studio does not start generation.`,
+    'Image, video and audio generation, workflows, batches and remix are unavailable through this connector.',
     'Use find_tools to discover supported content operations. Toolset changes cannot enable generation.',
   ].join(' ');
 }
@@ -38,11 +38,15 @@ export function buildClaudeMcpServerInstructions(appUrl: string): string {
 export function getMcpServerInfo(
   publicMcpUrl: string,
   websiteUrl: string,
+  accessMode: McpAccessMode = 'standard',
 ): Implementation {
   const origin = new URL(publicMcpUrl).origin;
 
   return {
-    description: MCP_SERVER_DESCRIPTION,
+    description:
+      accessMode === 'claude'
+        ? 'Manage brands, drafts, scheduled releases and analytics in Genfeed.'
+        : MCP_SERVER_DESCRIPTION,
     icons: Object.entries(MCP_BRAND_ICON_FILES).map(
       ([path, { mimeType, sizes, theme }]) => ({
         mimeType,

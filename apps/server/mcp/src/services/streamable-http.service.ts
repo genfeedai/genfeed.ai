@@ -10,11 +10,7 @@ import {
   getMcpServerInfo,
   MCP_SERVER_INSTRUCTIONS,
 } from '@mcp/mcp/server-identity';
-import {
-  getPublicAppUrl,
-  getPublicMcpUrl,
-  getPublicWebsiteUrl,
-} from '@mcp/mcp/setup-page';
+import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -166,6 +162,7 @@ export class StreamableHttpService {
     const serverInfo = getMcpServerInfo(
       getPublicMcpUrl(),
       getPublicWebsiteUrl(),
+      accessMode,
     );
     const server = new Server(serverInfo, {
       capabilities: {
@@ -174,7 +171,7 @@ export class StreamableHttpService {
       },
       instructions:
         accessMode === 'claude'
-          ? buildClaudeMcpServerInstructions(getPublicAppUrl())
+          ? buildClaudeMcpServerInstructions()
           : MCP_SERVER_INSTRUCTIONS,
     });
 
