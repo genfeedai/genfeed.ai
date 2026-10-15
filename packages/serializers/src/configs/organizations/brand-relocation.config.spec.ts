@@ -2,7 +2,7 @@ import { BrandRelocationSerializer } from '@serializers/server/organizations/bra
 
 describe('BrandRelocationSerializer', () => {
   it('exposes the outcome without exposing the command payload or authority', () => {
-    const document = new BrandRelocationSerializer().serialize({
+    const document = BrandRelocationSerializer.serialize({
       id: 'move-1',
       brandId: 'brand-1',
       organizationId: 'source',

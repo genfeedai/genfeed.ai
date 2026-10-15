@@ -3,13 +3,17 @@ import {
   type BrandRelocationActingUser,
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
+import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import { type Prisma, PrismaClient } from '@genfeedai/prisma';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import type { Queue } from 'bullmq';
 import {
   afterAll,
   beforeAll,
@@ -683,6 +687,46 @@ describe.skipIf(!connectionString)(
           ConflictException,
         );
         await assertNothingMoved(s);
+      });
+    });
+
+    it('accepts processing immediately, runs on the worker, and polls done under the original tenant', async () => {
+      const s = await seed(prisma);
+      const queue = { add: vi.fn().mockResolvedValue({}), getJob: vi.fn() };
+      const recorder = { record: vi.fn().mockResolvedValue({}) };
+      const jobs = new BrandRelocationJobsService(
+        prisma as unknown as PrismaService,
+        queue as unknown as Queue,
+        service,
+        recorder as unknown as ActivityRecorderService,
+        logger as never,
+      );
+      const id = randomUUID();
+      await runWithTenantContext({ organizationId: s.source }, async () => {
+        const accepted = await jobs.enqueue(
+          s.brand,
+          id,
+          { organizationId: s.destination },
+          s.actor,
+        );
+        expect(accepted.status).toBe('processing');
+        expect((await orgOf(s)).brand).toBe(s.source);
+        await jobs.process(id, true);
+        const completed = await jobs.get(s.brand, id, s.actor);
+        expect(completed).toMatchObject({
+          status: 'done',
+          summary: expect.objectContaining({ workflowsMoved: 1 }),
+        });
+        expect((await orgOf(s)).brand).toBe(s.destination);
+        const replay = await jobs.enqueue(
+          s.brand,
+          id,
+          { organizationId: s.destination },
+          s.actor,
+        );
+        expect(replay.status).toBe('done');
+        expect(queue.add).toHaveBeenCalledOnce();
+        expect(recorder.record).toHaveBeenCalledTimes(2);
       });
     });
 
