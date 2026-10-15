@@ -314,15 +314,12 @@ export default function Searchbar({
 
   const isCollapsed = isCollapsible && !isOpen;
 
-  // One structure in both states: the root eases its width while the input
-  // fades, so opening reads as the field growing out of the icon rather than
-  // a swap. The open icon sits where the trigger's glyph was (16px centre).
+  // One structure in both states, no motion: the open icon sits where the
+  // trigger's glyph was (16px centre), so opening does not shift the icon.
   return (
     <div
       className={cn(
         'relative min-w-0',
-        isCollapsible &&
-          'transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
         isCollapsible ? (isOpen ? 'w-64' : 'w-8') : null,
         className,
       )}
@@ -370,8 +367,6 @@ export default function Searchbar({
           'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
           showIcon && (isCollapsible ? 'pl-8' : 'pl-10'),
           showClearButton && displayedValue && 'pr-8',
-          isCollapsible &&
-            'transition-opacity duration-200 ease-out motion-reduce:transition-none',
           isCollapsed && 'pointer-events-none opacity-0',
           inputClassName,
         )}

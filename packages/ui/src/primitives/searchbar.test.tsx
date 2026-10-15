@@ -148,14 +148,15 @@ describe('Searchbar with onSearch', () => {
 });
 
 describe('collapsible Searchbar', () => {
-  it('grows the same field out of the icon instead of swapping elements', () => {
+  it('opens the same field in place of the icon without motion', () => {
     const { container } = render(
       <Searchbar ariaLabel="Search generations" isCollapsible value="" />,
     );
     const root = screen.getByTestId('collapsible-search');
     const hiddenInput = container.querySelector('input');
 
-    expect(root).toHaveClass('transition-[width]', 'w-8');
+    expect(root).toHaveClass('w-8');
+    expect(root.className).not.toMatch(/transition/);
     expect(root).toHaveAttribute('data-state', 'closed');
     expect(hiddenInput).toHaveAttribute('aria-hidden', 'true');
     expect(hiddenInput).toHaveAttribute('tabindex', '-1');
