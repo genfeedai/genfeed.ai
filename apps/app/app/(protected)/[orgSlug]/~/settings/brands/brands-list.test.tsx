@@ -167,7 +167,11 @@ describe('BrandsList', () => {
     render(<BrandsList />);
     expect(screen.getByText('Test Brand')).toBeInTheDocument();
     expect(screen.getByText('@testbrand')).toBeInTheDocument();
-    expect(screen.getByText('3 connected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: '3 connected: Instagram, TikTok, YouTube',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('shows the brand logo, or the brand initial when none is uploaded', () => {
@@ -178,7 +182,7 @@ describe('BrandsList', () => {
       expect.stringContaining('cdn.example.com'),
     );
     expect(screen.getByText('N')).toBeInTheDocument();
-    expect(screen.getByText('0 connected')).toBeInTheDocument();
+    expect(screen.getByText('None')).toBeInTheDocument();
   });
 
   it('requests the organization by the query param the API accepts', async () => {

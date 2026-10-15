@@ -23,6 +23,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState } from '@ui/card/EmptyState';
+import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -251,9 +252,15 @@ function BrandsListContent() {
         header: 'Platforms',
         key: 'credentials',
         render: (brand: Brand) => (
-          <span className="text-sm text-foreground/70">
-            {brand.totalCredentials} connected
-          </span>
+          <PlatformAvatarStack
+            emptyLabel="None"
+            items={(brand.credentials ?? []).map((credential) => ({
+              id: credential.id,
+              label: credential.label,
+              platform: credential.platform,
+              username: credential.externalHandle,
+            }))}
+          />
         ),
       },
       {
