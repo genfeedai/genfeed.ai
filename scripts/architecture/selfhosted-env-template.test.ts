@@ -22,10 +22,7 @@ function readEnvTemplate(relativePath: string): Map<string, string> {
 
 describe('self-hosted release env template (docker/.env.example)', () => {
   const template = readEnvTemplate('docker/.env.example');
-  const raw = readFileSync(
-    path.join(REPO_ROOT, 'docker/.env.example'),
-    'utf8',
-  );
+  const raw = readFileSync(path.join(REPO_ROOT, 'docker/.env.example'), 'utf8');
 
   it('declares OPENROUTER_API_KEY so text generation can be configured', () => {
     expect(template.has('OPENROUTER_API_KEY')).toBe(true);

@@ -383,9 +383,7 @@ describe('ProvidersContent behavior', () => {
     expect(
       within(openRouterRow as HTMLElement).getByText(/OPENROUTER_API_KEY/),
     ).toBeVisible();
-    expect(
-      screen.getByText(/placeholder values are rejected/i),
-    ).toBeVisible();
+    expect(screen.getByText(/placeholder values are rejected/i)).toBeVisible();
   });
 
   it('hides the local agent tools section when the deployment does not expose local tool detection', async () => {
