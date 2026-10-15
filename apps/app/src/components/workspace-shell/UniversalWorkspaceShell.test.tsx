@@ -76,6 +76,10 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@genfeedai/agent/components/ConversationDockPanel', () => ({
+  ConversationDockPanel: () => <div data-testid="dock-conversation" />,
+}));
+
 vi.mock('@genfeedai/agent', () => ({
   ConversationComposerShellProvider: ({
     artifactReferences,
@@ -217,7 +221,6 @@ vi.mock('@genfeedai/agent', () => ({
     }
     return null;
   },
-  ConversationDockPanel: () => <div data-testid="dock-conversation" />,
   resolveConversationComposerDestinationHref: ({
     activeHref,
     orgHref,
@@ -1454,7 +1457,9 @@ describe('UniversalWorkspaceShell', () => {
 
       const region = screen.getByRole('region', { name: 'Agent' });
       expect(region).toHaveAttribute('data-chrome', 'bubble');
-      expect(within(region).getByTestId('dock-conversation')).toBeVisible();
+      expect(
+        await within(region).findByTestId('dock-conversation'),
+      ).toBeVisible();
       expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
         'tabindex',
         '0',
