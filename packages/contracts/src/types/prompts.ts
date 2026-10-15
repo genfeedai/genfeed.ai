@@ -1,7 +1,3 @@
-// =============================================================================
-// PROMPT LIBRARY TYPES
-// =============================================================================
-
 // Style settings for image generation
 export interface IStyleSettings {
   mood?: string;
@@ -71,10 +67,6 @@ export interface IQueryPrompts {
   sortBy?: 'createdAt' | 'useCount' | 'name';
   sortOrder?: 'asc' | 'desc';
 }
-
-// =============================================================================
-// STYLE PRESETS
-// =============================================================================
 
 export const CAMERA_PRESETS = [
   'wide-angle',

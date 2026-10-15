@@ -181,7 +181,6 @@ describe('compileNanoBanana2GenerationBrief', () => {
     expect(nanoBanana2LiteResult.evidence.profileId).toBe(
       'nano-banana-2-lite-capability',
     );
-    // Nano Banana Pro, Nano Banana 2, and Nano Banana 2.1 have
     // `resolution: { supported: true }` on their capability profile, but the
     // brief carries no resolution-tier value to map onto it, so the dispatch
     // never sets `resolution`.

@@ -96,7 +96,6 @@ export function AgentPanel({
 
   const threadLabel = activeThread?.title || activeThreadId || 'new-session';
 
-  // Fetch credits info on mount
   useEffect(() => {
     if (!isActive) {
       return;

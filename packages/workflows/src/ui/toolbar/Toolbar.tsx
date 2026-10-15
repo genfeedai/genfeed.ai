@@ -230,7 +230,6 @@ export function Toolbar({
         canUndo: state.pastStates.length > 0,
       });
     });
-    // Initialize state
     const temporal = useWorkflowStore.temporal.getState();
     setHistoryState({
       canRedo: temporal.futureStates.length > 0,

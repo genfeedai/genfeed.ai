@@ -66,7 +66,6 @@ function AutoPaginationContent({
         // Remove page param if going to page 1
         params.delete('page');
       } else {
-        // Set page param
         params.set('page', page.toString());
       }
 

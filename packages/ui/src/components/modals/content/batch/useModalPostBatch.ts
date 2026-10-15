@@ -66,7 +66,6 @@ export interface UseModalPostBatchReturn {
   handleTabChange: (tab: 'setup' | 'platforms') => void;
   handleNextStep: () => void;
   handlePreviousStep: () => void;
-  // platform configs
   platformConfigs: IPostPlatformConfig[];
   applyEnabledCredentialIds: (credentialIds: string[]) => void;
   togglePlatform: (credentialId: string) => void;

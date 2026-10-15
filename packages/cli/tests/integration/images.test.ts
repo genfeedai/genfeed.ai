@@ -34,14 +34,12 @@ describe.skipIf(!hasCredentials)('integration/images', () => {
       width: 1024,
     };
 
-    // Validate required fields exist
     expect(request.text).toBeTruthy();
     expect(request.brandId).toBeTruthy();
     expect(typeof request.text).toBe('string');
     expect(typeof request.brandId).toBe('string');
     expect(request).not.toHaveProperty('brand');
 
-    // Validate optional fields types
     expect(typeof request.width).toBe('number');
     expect(typeof request.height).toBe('number');
     expect(typeof request.model).toBe('string');

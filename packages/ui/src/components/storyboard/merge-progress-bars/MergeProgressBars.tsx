@@ -11,7 +11,6 @@ export default function MergeProgressBars({
 }: MergeProgressBarsProps) {
   return (
     <div className={cn('space-y-6', className)}>
-      {/* Overall Progress Bar */}
       {overallProgress !== undefined && (
         <div className="mb-8">
           <div className="flex justify-between mb-2">

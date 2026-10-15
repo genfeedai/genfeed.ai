@@ -68,7 +68,6 @@ export function EngagementOpportunityCard({
         </p>
       )}
 
-      {/* Original post preview */}
       {originalPost && (
         <div className="mb-3 rounded border border-border bg-muted p-3">
           <div className="mb-1 flex items-center gap-1.5">
@@ -87,7 +86,6 @@ export function EngagementOpportunityCard({
         </div>
       )}
 
-      {/* Draft reply */}
       <div className="mb-3">
         <label
           htmlFor="engagement-reply"
@@ -110,7 +108,6 @@ export function EngagementOpportunityCard({
         )}
       </div>
 
-      {/* Action buttons */}
       <div className="flex gap-2">
         <Button
           variant={ButtonVariant.DEFAULT}

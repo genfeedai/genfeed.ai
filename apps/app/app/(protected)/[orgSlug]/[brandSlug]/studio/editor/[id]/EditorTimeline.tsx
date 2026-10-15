@@ -25,7 +25,6 @@ function TimeRuler({
 }) {
   const markers: { frame: number; label: string; major: boolean }[] = [];
 
-  // Calculate marker interval based on zoom level
   const secondFrames = fps;
   const interval =
     zoom > 2 ? secondFrames : zoom > 0.5 ? secondFrames * 5 : secondFrames * 10;

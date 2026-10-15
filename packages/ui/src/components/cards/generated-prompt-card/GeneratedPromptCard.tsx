@@ -67,7 +67,6 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
       )}
       bodyClassName="gap-0 p-0"
     >
-      {/* Reject button */}
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
@@ -85,14 +84,12 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
       />
 
       <div className="p-5 space-y-4">
-        {/* Prompt text */}
         <div className="pr-8">
           <p className="text-sm text-foreground/90 leading-relaxed">
             {prompt.text}
           </p>
         </div>
 
-        {/* Metadata tags */}
         <div className="flex flex-wrap gap-2">
           {prompt.style && (
             <MetadataTag
@@ -126,7 +123,6 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           )}
         </div>
 
-        {/* Action buttons */}
         <div className="flex items-center gap-2 border-t border-border pt-2">
           <Button
             variant={ButtonVariant.DEFAULT}
@@ -152,7 +148,6 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           </Button>
         </div>
 
-        {/* Media type indicator */}
         <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
           <MediaIcon className="size-3" />
           <span className="capitalize">{targetMedia}</span>

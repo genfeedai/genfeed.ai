@@ -53,7 +53,6 @@ const TURBO_TEST_GROUPS = {
     '--filter=@genfeedai/website',
     '--filter=@genfeedai/docs',
     // Temporarily disabled while desktop is not an active delivery surface:
-    // '--filter=@genfeedai/desktop',
     '--filter=@genfeedai/mobile',
   ],
 };

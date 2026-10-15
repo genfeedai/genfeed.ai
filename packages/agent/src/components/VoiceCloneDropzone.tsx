@@ -27,7 +27,6 @@ export function VoiceCloneDropzone({
 }: VoiceCloneDropzoneProps): ReactElement {
   return (
     <>
-      {/* Audio dropzone */}
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
@@ -68,7 +67,6 @@ export function VoiceCloneDropzone({
         />
       </Button>
 
-      {/* Clone button */}
       <Button
         variant={ButtonVariant.DEFAULT}
         onClick={onClone}

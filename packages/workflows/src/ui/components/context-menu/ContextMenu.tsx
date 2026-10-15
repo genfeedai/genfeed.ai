@@ -23,7 +23,6 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [position, setPosition] = useState({ x, y });
 
-  // Calculate position to keep menu on screen
   useEffect(() => {
     if (menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
@@ -32,12 +31,10 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       let newX = x;
       let newY = y;
 
-      // Check right edge
       if (x + rect.width + padding > window.innerWidth) {
         newX = x - rect.width;
       }
 
-      // Check bottom edge
       if (y + rect.height + padding > window.innerHeight) {
         newY = y - rect.height;
       }

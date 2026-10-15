@@ -91,7 +91,6 @@ export default function DropdownTags({
         onToggle={() => !isDisabled && setIsOpen(!isOpen)}
       />
 
-      {/* Dropdown Menu rendered via portal */}
       {dropdownPortal}
     </div>
   );

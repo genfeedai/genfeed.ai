@@ -209,10 +209,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
   },
 
-  // ===========================================================================
-  // EFFECTS NODES
-  // ===========================================================================
-
   'effect-color-grade': {
     category: 'effects',
     configSchema: {

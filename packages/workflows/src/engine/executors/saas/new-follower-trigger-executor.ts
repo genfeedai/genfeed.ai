@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type FollowerTriggerPlatform = 'twitter' | 'instagram';
 
 export interface NewFollowerTriggerOutput {
@@ -39,10 +35,6 @@ export type NewFollowerChecker = (params: {
   minFollowerCount?: number;
   lastFollowerId: string | null;
 }) => Promise<NewFollowerTriggerOutput | null>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * New Follower Trigger Executor

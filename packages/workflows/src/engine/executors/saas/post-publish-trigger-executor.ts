@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 /**
  * Output shape of the postPublishTrigger node. When a workflow is rooted at
  * this trigger, the engine injects the `post-published` event payload directly
@@ -34,10 +30,6 @@ export interface PostPublishTriggerOutput {
   /** Brand the content belongs to. */
   brandId: string | null;
 }
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Post Publish Trigger Executor

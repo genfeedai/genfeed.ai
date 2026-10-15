@@ -62,11 +62,9 @@ describe('OutputNode', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<OutputNode {...defaultProps} />);
 
-    // Check node has correct color scheme
     expect(container.querySelector('.bg-red-50')).toBeInTheDocument();
     expect(container.querySelector('.border-red-400')).toBeInTheDocument();
 
-    // Check selected state styling
     const { container: selectedContainer } = render(
       <OutputNode {...defaultProps} selected={true} />,
     );

@@ -14,8 +14,6 @@ export type {
   WorkspaceTaskOutputGroup,
 } from '@props/workspace/workspace-task-inspector.props';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 export function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
 }

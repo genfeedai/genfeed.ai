@@ -381,9 +381,6 @@ export class SocialMonitorService {
     return template ? template(contentId, username) : '';
   }
 
-  // ==================== Platform-Specific Implementations ====================
-
-  // --- Twitter ---
   /**
    * Official X API first (conversation search); Apify only as fallback.
    */
@@ -611,7 +608,6 @@ export class SocialMonitorService {
       }));
   }
 
-  // --- Instagram ---
   private async getInstagramComments(
     postUrl: string,
     limit: number,
@@ -883,7 +879,6 @@ export class SocialMonitorService {
     }));
   }
 
-  // --- Reddit ---
   private async getRedditComments(
     postUrl: string,
     limit: number,

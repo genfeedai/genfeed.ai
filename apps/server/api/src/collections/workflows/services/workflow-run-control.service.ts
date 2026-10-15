@@ -52,7 +52,6 @@ export class WorkflowRunControlService {
       throw new NotFoundException('Workflow');
     }
 
-    // Validate nodes exist
     const workflowNodeIds = workflow.nodes.map((n) => n.id);
     const invalidNodes = nodeIds.filter((id) => !workflowNodeIds.includes(id));
     if (invalidNodes.length > 0) {

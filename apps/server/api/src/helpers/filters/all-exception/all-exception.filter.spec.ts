@@ -60,10 +60,8 @@ describe('AllExceptionFilter', () => {
   });
 
   beforeEach(() => {
-    // Clear all mocks
     vi.clearAllMocks();
 
-    // Setup mock services
     mockLoggerService = {
       error: vi.fn(),
       log: vi.fn(),
@@ -84,7 +82,6 @@ describe('AllExceptionFilter', () => {
       }),
     };
 
-    // Setup mock request and response
     mockRequest = {
       body: {},
       headers: {},
@@ -169,7 +166,6 @@ describe('AllExceptionFilter', () => {
       return null;
     });
 
-    // Create new filter instance with development config
     const devFilter = new AllExceptionFilterClass(
       mockLoggerService,
       mockConfigService,

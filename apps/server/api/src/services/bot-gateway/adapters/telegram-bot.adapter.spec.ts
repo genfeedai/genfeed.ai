@@ -64,8 +64,6 @@ describe('TelegramBotAdapter', () => {
     expect(adapter.platform).toBe(CredentialPlatform.TELEGRAM);
   });
 
-  // ─────────────────────────── validateSignature ───────────────────────
-
   describe('validateSignature', () => {
     it('returns true for matching secret', () => {
       expect(adapter.validateSignature('', WEBHOOK_SECRET)).toBe(true);
@@ -98,8 +96,6 @@ describe('TelegramBotAdapter', () => {
     });
   });
 
-  // ─────────────────────────── getInteractionType ──────────────────────
-
   describe('getInteractionType', () => {
     it('returns APPLICATION_COMMAND for slash commands', () => {
       expect(adapter.getInteractionType(makeUpdate('/status'))).toBe(
@@ -115,8 +111,6 @@ describe('TelegramBotAdapter', () => {
       expect(adapter.getInteractionType(makeUpdate())).toBeNull();
     });
   });
-
-  // ───────────────────────────── parseMessage ──────────────────────────
 
   describe('parseMessage', () => {
     it('parses /status command', () => {
@@ -168,8 +162,6 @@ describe('TelegramBotAdapter', () => {
     });
   });
 
-  // ──────────────────────── buildImmediateResponse ─────────────────────
-
   describe('buildImmediateResponse', () => {
     it('returns ok:true with default message', () => {
       const res = adapter.buildImmediateResponse(BotResponseType.DEFERRED);
@@ -184,8 +176,6 @@ describe('TelegramBotAdapter', () => {
       expect(res).toEqual({ message: 'processing', ok: true });
     });
   });
-
-  // ──────────────────────── sendFollowupMessage ────────────────────────
 
   describe('sendFollowupMessage', () => {
     it('calls Telegram sendMessage endpoint', async () => {
@@ -214,8 +204,6 @@ describe('TelegramBotAdapter', () => {
       ).rejects.toThrow('TELEGRAM_BOT_TOKEN is not configured');
     });
   });
-
-  // ─────────────────────────── extractChatId ───────────────────────────
 
   describe('extractChatId', () => {
     it('extracts chat id from message', () => {

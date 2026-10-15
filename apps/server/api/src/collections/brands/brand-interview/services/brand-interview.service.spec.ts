@@ -669,8 +669,6 @@ describe('BrandInterviewService', () => {
     });
   });
 
-  // ── Expert Path positioning ───────────────────────────────────────────────
-
   describe('Expert Path positioning', () => {
     const SCORE = {
       dimensions: [],

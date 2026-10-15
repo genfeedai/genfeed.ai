@@ -194,12 +194,9 @@ const PRODUCT_UI_PREFIXES = [
   'packages/agent/src/',
   'packages/ui/src/',
 ] as const;
-// `packages/ui/workflow-builder/` currently resolves to nothing on disk; it is
-// carried forward verbatim from check-raw-ui-controls so scope parity is exact
-// and the entry starts enforcing the moment that directory is (re)introduced.
 const APP_PAGES_WORKFLOW_BUILDER_PREFIXES = [
   ...APP_PAGES_PREFIXES,
-  'packages/ui/workflow-builder/',
+  'packages/ui/src/components/workflow-builder/',
 ] as const;
 const JSX_EXTS = ['.tsx', '.jsx'] as const;
 
@@ -701,7 +698,7 @@ const BOUNDED_GLOBS = [
   'packages/agent/src/**/*.{tsx,jsx}',
   'packages/pages/**/*.{tsx,jsx}',
   'packages/ui/src/**/*.{tsx,jsx}',
-  'packages/ui/workflow-builder/**/*.{tsx,jsx}',
+  'packages/ui/src/components/workflow-builder/**/*.{tsx,jsx}',
   'packages/workflows/src/ui/**/*.{tsx,jsx}',
 ];
 const BOUNDED_GLOB_IGNORE = [

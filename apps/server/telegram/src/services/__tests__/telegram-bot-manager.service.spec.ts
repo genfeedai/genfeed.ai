@@ -234,7 +234,6 @@ describe('TelegramBotManager', () => {
 
   describe('shutdown', () => {
     it('should shutdown all bots and clear state', async () => {
-      // Setup a bot first
       httpService.get.mockReturnValue(
         of(httpResponse([toApiIntegration(mockIntegration)])),
       );
@@ -404,7 +403,6 @@ describe('TelegramBotManager', () => {
       // Add integration first
       await service.addIntegration(mockIntegration);
 
-      // Update it
       const updatedIntegration = {
         ...mockIntegration,
         config: { ...mockIntegration.config, defaultWorkflow: 'new-workflow' },

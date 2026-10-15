@@ -222,10 +222,6 @@ export interface ListExecutionsParams {
   offset?: number;
 }
 
-// =============================================================================
-// BATCH WORKFLOW TYPES
-// =============================================================================
-
 interface BatchOutputSummary {
   id: string;
   category: string;

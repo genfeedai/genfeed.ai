@@ -132,7 +132,6 @@ export function useContextMenu() {
       const selectedNodes = filterItemsByIdLookup(nodes, nodeIdLookup);
       if (selectedNodes.length < 2) return;
 
-      // Calculate average Y position
       const avgY =
         selectedNodes.reduce((sum, n) => sum + n.position.y, 0) /
         selectedNodes.length;
@@ -157,7 +156,6 @@ export function useContextMenu() {
       const selectedNodes = filterItemsByIdLookup(nodes, nodeIdLookup);
       if (selectedNodes.length < 2) return;
 
-      // Calculate average X position
       const avgX =
         selectedNodes.reduce((sum, n) => sum + n.position.x, 0) /
         selectedNodes.length;
@@ -177,7 +175,6 @@ export function useContextMenu() {
   const pasteNodes = useCallback(() => {
     if (!clipboard) return;
 
-    // Convert the context menu position to flow coordinates
     const flowPosition = reactFlow.screenToFlowPosition({
       x: position.x,
       y: position.y,
@@ -189,7 +186,6 @@ export function useContextMenu() {
     // Add nodes and edges to the store
     addNodesAndEdges(pasteData.nodes, pasteData.edges);
 
-    // Select the pasted nodes
     setSelectedNodeIds(pasteData.nodes.map((n) => n.id));
   }, [
     clipboard,

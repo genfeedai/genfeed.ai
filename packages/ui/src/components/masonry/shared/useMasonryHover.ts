@@ -107,7 +107,6 @@ export function useMasonryHover({
     onHoverStateChangeRef.current = onHoverStateChange;
   }, [onHoverStateChange]);
 
-  // Handle container hover changes
   useEffect(() => {
     if (prevContainerHoveredRef.current !== isContainerHovered) {
       prevContainerHoveredRef.current = isContainerHovered;

@@ -36,7 +36,6 @@ vi.mock('@libs/security/destination-guard', async (importOriginal) => ({
   safeFetch: vi.fn(),
 }));
 
-// Mock sharp
 vi.mock('sharp', () => {
   const mockSharp = vi.fn().mockImplementation(() => ({
     jpeg: vi.fn().mockReturnThis(),

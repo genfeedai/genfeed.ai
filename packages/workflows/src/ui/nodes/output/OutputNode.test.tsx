@@ -40,14 +40,12 @@ vi.mock('../BaseNode', () => ({
   ),
 }));
 
-// Mock Next.js Image
 vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
     <span aria-label={alt} data-src={src} data-testid="next-image" role="img" />
   ),
 }));
 
-// Mock Button
 vi.mock('@genfeedai/ui/primitives/button', () => ({
   Button: ({
     children,
@@ -71,7 +69,6 @@ vi.mock('@genfeedai/ui/primitives/button', () => ({
   ),
 }));
 
-// Mock stores
 vi.mock('../../stores/workflow', () => ({
   useWorkflowStore: (selector: (state: unknown) => unknown) => {
     const state = { edges: [], updateNodeData: vi.fn() };

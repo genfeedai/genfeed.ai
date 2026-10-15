@@ -52,8 +52,6 @@ function restoreBrowserStorage(
   Reflect.deleteProperty(globalThis, name);
 }
 
-// ─── MemoryCache ─────────────────────────────────────────────────────────────
-
 describe('MemoryCache', () => {
   let cache: MemoryCache<string>;
 
@@ -131,8 +129,6 @@ describe('MemoryCache', () => {
   });
 });
 
-// ─── createCacheKey ───────────────────────────────────────────────────────────
-
 describe('createCacheKey', () => {
   it('joins primitive parts with ":"', () => {
     expect(createCacheKey('user', 42, true)).toBe('user:42:true');
@@ -147,8 +143,6 @@ describe('createCacheKey', () => {
     expect(createCacheKey(null, undefined)).toBe('null:null');
   });
 });
-
-// ─── Global cache helpers ─────────────────────────────────────────────────────
 
 describe('setCacheItem / getCacheItem', () => {
   beforeEach(() => clearCache());
@@ -190,8 +184,6 @@ describe('setCacheItem / getCacheItem', () => {
   });
 });
 
-// ─── isCacheExpired ───────────────────────────────────────────────────────────
-
 describe('isCacheExpired', () => {
   it('returns true for a timestamp in the past', () => {
     expect(isCacheExpired(Date.now() - 1000)).toBe(true);
@@ -201,8 +193,6 @@ describe('isCacheExpired', () => {
     expect(isCacheExpired(Date.now() + 10000)).toBe(false);
   });
 });
-
-// ─── createMemoryCache ────────────────────────────────────────────────────────
 
 describe('createMemoryCache', () => {
   it('stores and retrieves with prefix', () => {
@@ -249,8 +239,6 @@ describe('createMemoryCache', () => {
     expect(c.get('b')).toBeNull();
   });
 });
-
-// ─── browser storage caches ─────────────────────────────────────────────────
 
 describe('browser storage caches', () => {
   const originalLocalStorage = Object.getOwnPropertyDescriptor(
@@ -335,8 +323,6 @@ describe('browser storage caches', () => {
     ).not.toThrow();
   });
 });
-
-// ─── RateLimiter ─────────────────────────────────────────────────────────────
 
 describe('RateLimiter', () => {
   beforeEach(() => {

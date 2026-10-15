@@ -18,10 +18,6 @@ import {
   selectCloudWorkflowEditKey,
 } from '@/features/workflows/stores/cloud-workflow-snapshot';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 interface CloudWorkflowState {
   /** Cloud workflow ID (mirrors workflowStore.workflowId) */
   workflowId: string | null;
@@ -98,15 +94,7 @@ export interface CloudWorkflowStore
   extends CloudWorkflowState,
     CloudWorkflowActions {}
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
 const AUTO_SAVE_DEBOUNCE_MS = 2000;
-
-// =============================================================================
-// STORE
-// =============================================================================
 
 /**
  * Cloud-specific workflow store.
@@ -176,10 +164,6 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       }
     },
 
-    // ---------------------------------------------------------------------------
-    // Actions
-    // ---------------------------------------------------------------------------
-
     loadFromCloud: async (workflowId, service) => {
       set({ cloudError: null, isCloudLoading: true });
 
@@ -226,7 +210,6 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         // Set the workflowId on the shared store so execution/save knows the ID
         useWorkflowStore.setState({ isDirty: false, workflowId: data.id });
 
-        // Update cloud-specific state
         set({
           inputVariables: data.inputVariables ?? [],
           isCloudLoading: false,
@@ -341,10 +324,8 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         let savedData: CloudWorkflowData;
 
         if (workflowId) {
-          // Update existing workflow
           savedData = await service.update(workflowId, payload);
         } else {
-          // Create new workflow
           savedData = await service.create({
             ...payload,
             ...(pendingBrandId ? { brandId: pendingBrandId } : {}),
@@ -487,9 +468,6 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         throw error;
       }
     },
-    // ---------------------------------------------------------------------------
-    // Initial State
-    // ---------------------------------------------------------------------------
     workflowId: null,
   }),
 );

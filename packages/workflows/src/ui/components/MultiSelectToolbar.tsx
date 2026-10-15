@@ -176,14 +176,12 @@ function MultiSelectToolbarComponent({
         transform: 'translateX(-50%)',
       }}
     >
-      {/* Selection count */}
       <span className="px-1.5 text-xs font-medium text-muted-foreground">
         {selectedNodeIds.length}
       </span>
 
       <div className="h-4 w-px bg-border" />
 
-      {/* Stack Horizontal */}
       <Button
         withWrapper={false}
         variant={ButtonVariant.GHOST}
@@ -194,7 +192,6 @@ function MultiSelectToolbarComponent({
         <AlignHorizontalSpaceAround className="size-3.5" />
       </Button>
 
-      {/* Stack Vertical */}
       <Button
         withWrapper={false}
         variant={ButtonVariant.GHOST}
@@ -205,7 +202,6 @@ function MultiSelectToolbarComponent({
         <AlignVerticalSpaceAround className="size-3.5" />
       </Button>
 
-      {/* Grid */}
       <Button
         withWrapper={false}
         variant={ButtonVariant.GHOST}
@@ -233,7 +229,6 @@ function MultiSelectToolbarComponent({
 
       <div className="h-4 w-px bg-border" />
 
-      {/* Group / Ungroup */}
       {selectedGroup ? (
         <Button
           withWrapper={false}

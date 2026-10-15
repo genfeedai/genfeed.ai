@@ -104,7 +104,6 @@ export default function AgentCampaignDetailPage() {
         }
         setCampaign(fetchedCampaign);
 
-        // Fetch status separately
         try {
           const statusResponse = await service.getStatus(campaignId);
           if (!isCurrentLoad()) return;

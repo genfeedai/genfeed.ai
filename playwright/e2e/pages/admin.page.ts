@@ -32,7 +32,6 @@ export class AdminPage {
   readonly templateCards: Locator;
   readonly templateEmptyState: Locator;
 
-  // CRM
   readonly crmLeadsTable: Locator;
   readonly crmCompaniesTable: Locator;
   readonly crmTasksContent: Locator;
@@ -84,7 +83,6 @@ export class AdminPage {
       '[data-testid="empty-state"], .empty-state',
     );
 
-    // CRM
     this.crmLeadsTable = page.locator(
       'table, [data-testid="leads-table"], [role="table"]',
     );
@@ -106,8 +104,6 @@ export class AdminPage {
     );
     this.skeleton = page.locator('[data-testid="skeleton"], .skeleton');
   }
-
-  // ---------- Navigation ----------
 
   async gotoOverview(): Promise<void> {
     await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {

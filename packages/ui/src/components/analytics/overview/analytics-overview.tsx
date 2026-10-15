@@ -18,7 +18,6 @@ export default function AnalyticsOverview({
   showPostsCount = true,
   className = '',
 }: AnalyticsOverviewProps) {
-  // Calculate totals from analytics data
   const totals = analytics.reduce(
     (acc, item) => {
       acc.totalPosts += 1;
@@ -39,7 +38,6 @@ export default function AnalyticsOverview({
     },
   );
 
-  // Calculate average engagement rate
   if (analytics.length > 0) {
     totals.avgEngagementRate = totals.avgEngagementRate / analytics.length;
   }

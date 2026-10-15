@@ -293,10 +293,6 @@ describe('convertRatioToOrientation', () => {
   });
 });
 
-// ============================================================================
-// IModel-based overload tests
-// ============================================================================
-
 function createMockModel(overrides: Partial<ModelLike> = {}): ModelLike {
   return {
     category: ModelCategory.IMAGE,

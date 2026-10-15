@@ -127,17 +127,14 @@ describe('SchedulePanel', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<SchedulePanel {...defaultProps} />);
 
-    // Check panel has correct container classes
     const panel = container.firstChild;
     expect(panel).toBeInTheDocument();
 
-    // Check collapsed state styling
     const { container: collapsedContainer } = render(
       <SchedulePanel {...defaultProps} isCollapsed={true} />,
     );
     expect(collapsedContainer.firstChild).toBeInTheDocument();
 
-    // Check enabled state styling
     const { container: enabledContainer } = render(
       <SchedulePanel {...defaultProps} isEnabled={true} />,
     );

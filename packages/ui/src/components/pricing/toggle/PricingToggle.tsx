@@ -18,7 +18,6 @@ export default function PricingToggle({
           ariaLabel="Toggle yearly pricing"
           onClick={() => setIsYearly(!isYearly)}
         >
-          {/* Background pill that slides */}
           <div
             className={`absolute bg-primary shadow-sm transition-transform duration-300 ease-in-out h-8 w-48 ${
               isYearly ? 'translate-x-48' : 'translate-x-0'

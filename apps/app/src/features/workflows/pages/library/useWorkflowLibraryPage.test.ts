@@ -5,10 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
 
-// ---------------------------------------------------------------------------
-// Hoisted mocks
-// ---------------------------------------------------------------------------
-
 const mocks = vi.hoisted(() => ({
   href: vi.fn((path: string) => `/org/brand${path}`),
   push: vi.fn(),

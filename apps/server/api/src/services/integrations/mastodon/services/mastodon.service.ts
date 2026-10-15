@@ -127,7 +127,6 @@ export class MastodonService {
 
     normalized = trimTrailingCharacter(normalized, '/');
 
-    // Parse and validate the hostname
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(normalized);

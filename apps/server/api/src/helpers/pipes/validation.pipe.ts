@@ -131,7 +131,6 @@ export class ValidationPipe implements PipeTransform<unknown> {
       return cleanedValue;
     }
 
-    // Handle non-JSON API format
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }

@@ -1,9 +1,5 @@
 import type { ComfyUIPrompt } from '@genfeedai/contracts/types';
 
-// =============================================================================
-// Z-IMAGE TURBO — fast image generation
-// =============================================================================
-
 export interface ZImageTurboParams {
   prompt: string;
   seed?: number;
@@ -97,12 +93,6 @@ export function buildZImageTurboPrompt(
     },
   };
 }
-
-// =============================================================================
-// Z-IMAGE TURBO + LoRA — face-consistent via trained LoRA (no PuLID needed)
-// Split loading: UNETLoader + CLIPLoader + LoraLoader + VAELoader
-// Z-Image is Lumina2-based (Qwen text encoder), uses euler_ancestral, cfg 1.0
-// =============================================================================
 
 export interface ZImageTurboLoraParams extends ZImageTurboParams {
   loraPath: string;

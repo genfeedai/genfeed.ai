@@ -63,8 +63,6 @@ describe('MetaAdsService - Write Operations', () => {
     vi.clearAllMocks();
   });
 
-  // ─── createCampaign ──────────────────────────────────────────────────────
-
   describe('createCampaign', () => {
     const defaultParams: CreateCampaignParams = {
       name: 'Summer Sale 2024',

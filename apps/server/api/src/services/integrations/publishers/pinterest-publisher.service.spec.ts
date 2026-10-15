@@ -40,7 +40,6 @@ describe('PinterestPublisherService', () => {
   const mockIngredientId = testId('ingredient');
   const mockBoardId = 'board-123456789';
 
-  // Mock credential
   const mockCredential = {
     id: mockCredentialId,
     accessToken: 'encrypted-access-token',
@@ -53,7 +52,6 @@ describe('PinterestPublisherService', () => {
     userId: mockUserId,
   } as unknown as CredentialDocument;
 
-  // Mock organization
   const mockOrganization = {
     id: mockOrganizationId,
     isDeleted: false,
@@ -136,7 +134,6 @@ describe('PinterestPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Create publish context helper
   const createPublishContext = (
     post: PostEntity,
     settings: ChannelTargetSettings = {},
@@ -154,7 +151,6 @@ describe('PinterestPublisherService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Mock EncryptionUtil
     vi.spyOn(EncryptionUtil, 'decrypt').mockImplementation((value) => {
       return `decrypted-${value}`;
     });

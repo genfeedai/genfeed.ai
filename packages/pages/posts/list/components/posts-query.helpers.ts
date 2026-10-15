@@ -114,12 +114,10 @@ export async function fetchPosts({
     Object.assign(query, mapPostsListStatusFilter(filterStatus || status));
   }
 
-  // Add search filter
   if (filterSearch) {
     query.search = filterSearch;
   }
 
-  // Add sort filter
   if (filterSort) {
     query.sort = filterSort;
   }

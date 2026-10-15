@@ -74,7 +74,6 @@ function DownloadNodeComponent(props: NodeProps) {
       const response = await fetch(activeMedia);
       const blob = await response.blob();
 
-      // Create object URL and trigger download
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;

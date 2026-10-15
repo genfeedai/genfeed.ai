@@ -31,7 +31,6 @@ export class WebhookClientService {
     metadata?: MetadataEntity | null,
   ): Promise<void> {
     try {
-      // Fetch organization settings
       const settings = await this.organizationSettingsService.findOne({
         organizationId: organizationId,
       });

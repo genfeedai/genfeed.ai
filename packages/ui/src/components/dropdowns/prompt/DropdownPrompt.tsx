@@ -42,7 +42,6 @@ export default function DropdownPrompt({
       const scrollY = window.scrollY || window.pageYOffset;
       const scrollX = window.scrollX || window.pageXOffset;
 
-      // Dropdown width is 320px (w-80 = 20rem)
       const dropdownWidth = 320;
       const viewportWidth = window.innerWidth;
 
@@ -82,7 +81,6 @@ export default function DropdownPrompt({
     }
   }, [isOpen]);
 
-  // Handle copy prompt
   const handleCopyPrompt = (e?: ReactMouseEvent) => {
     if (e) {
       e.stopPropagation();
@@ -97,7 +95,6 @@ export default function DropdownPrompt({
     setIsOpen(false);
   };
 
-  // Handle prompt text click
   const handlePromptTextClick = (e: ReactMouseEvent) => {
     e.stopPropagation();
     handleCopyPrompt();

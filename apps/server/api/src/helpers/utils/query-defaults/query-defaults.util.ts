@@ -109,7 +109,6 @@ export const QueryDefaultsUtil = {
       return DEFAULT_STATUSES;
     }
 
-    // Handle array input
     if (Array.isArray(status)) {
       const statusArray = status.map((s) => String(s).trim()).filter(Boolean); // Remove empty strings
       return statusArray.length > 0 ? { in: statusArray } : DEFAULT_STATUSES;
@@ -148,7 +147,6 @@ export const QueryDefaultsUtil = {
       return { not: 'failed' };
     }
 
-    // Handle array input
     if (Array.isArray(status)) {
       const statusArray = status.map((s) => String(s).trim()).filter(Boolean); // Remove empty strings
       return statusArray.length > 0 ? { in: statusArray } : { not: 'failed' };
@@ -196,7 +194,6 @@ export const QueryDefaultsUtil = {
       return value !== 'false' && value !== '0' && value !== '';
     }
 
-    // Handle boolean values
     return Boolean(value);
   },
 };

@@ -74,7 +74,6 @@ function VoiceChangeNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
-        {/* Preserve Original Audio Toggle */}
         <div className="flex items-center gap-2 nodrag">
           <Checkbox
             id={`preserve-${id}`}

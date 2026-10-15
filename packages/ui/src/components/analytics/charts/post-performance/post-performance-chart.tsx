@@ -105,7 +105,6 @@ export function PostPerformanceChart({
 
   return (
     <div className={className}>
-      {/* Metric Toggle Buttons */}
       <div className="flex flex-wrap gap-2 mb-4">
         {(Object.keys(METRIC_COLORS) as MetricType[]).map((metric) => (
           <Button

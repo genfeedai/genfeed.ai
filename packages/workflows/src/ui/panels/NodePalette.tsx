@@ -83,7 +83,6 @@ const ICONS: Record<string, typeof Image> = {
   Puzzle,
   Scissors,
   Search,
-  // AI
   Sparkles,
   Captions,
   Video,

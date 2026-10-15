@@ -13,10 +13,6 @@ import {
   UseCaseBadge,
 } from './ModelBrowserBadges';
 
-// =============================================================================
-// MODEL CARD
-// =============================================================================
-
 export type ModelCardProps = {
   model: ProviderModel;
   onSelect: (model: ProviderModel) => void;
@@ -34,7 +30,6 @@ export function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
       className="group w-full rounded-card shadow-border bg-card text-left transition hover:shadow-border-strong overflow-hidden"
     >
       <div className="flex items-stretch">
-        {/* Thumbnail or placeholder - full height */}
         {model.thumbnail && !imgError ? (
           <Image
             unoptimized
@@ -52,7 +47,6 @@ export function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
         )}
 
         <div className="min-w-0 flex-1 p-4">
-          {/* Name and provider */}
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-medium text-foreground">
               {model.displayName}
@@ -60,12 +54,10 @@ export function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
             {isRecent && <Clock className="size-3 text-muted-foreground" />}
           </div>
 
-          {/* Model ID */}
           <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
             {model.id}
           </p>
 
-          {/* Badges */}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <ProviderBadge provider={model.provider} />
             {model.capabilities.map((cap) => (
@@ -79,7 +71,6 @@ export function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
             }, [])}
           </div>
 
-          {/* Description and pricing */}
           {(model.description || model.pricing) && (
             <div className="mt-2 flex items-center justify-between gap-2">
               {model.description && (

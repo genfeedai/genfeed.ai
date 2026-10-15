@@ -3,7 +3,6 @@ import type { UseAnimatedCounterOptions } from '@genfeedai/hooks/ui/use-animated
 import * as React from 'react';
 import { afterAll, beforeAll, vi } from 'vitest';
 
-// Ensure DOM environment is available
 if (typeof global.document === 'undefined') {
   const { JSDOM } = require('jsdom');
   const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {

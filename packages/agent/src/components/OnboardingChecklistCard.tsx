@@ -69,7 +69,6 @@ export function OnboardingChecklistCard({
         </div>
       )}
 
-      {/* Progress bar */}
       <div className="mb-3">
         <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
           <span>

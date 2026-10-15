@@ -5,7 +5,6 @@ export function playAudio(url: string, onEnded?: () => void) {
     return;
   }
 
-  // Create a new audio instance
   const audio = new Audio(url);
 
   // Add ended event listener if provided
@@ -22,7 +21,6 @@ export function playAudio(url: string, onEnded?: () => void) {
     }
   };
 
-  // Play the audio
   audio.play().catch((error) => {
     logger.error('Failed to play audio:', error);
   });

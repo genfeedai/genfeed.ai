@@ -68,7 +68,6 @@ function initializePlatformIntegration(): void {
   // Cleanup previous integration
   cleanup();
 
-  // Set current platform
   currentPlatform = platform;
 
   // Inject global styles (only once)
@@ -245,8 +244,6 @@ function setupNavigationListeners(): void {
   };
 }
 
-// === Side Panel Integration ===
-
 function notifyPlatformDetected(): void {
   const platform = getCurrentPlatform();
   const platformName = platform ? getPlatformName() : null;
@@ -394,7 +391,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 });
 
-// === Keyboard Shortcuts ===
 // Cmd/Ctrl+Shift+R → Remix
 // Cmd/Ctrl+Shift+Y → Reply
 // Cmd/Ctrl+Shift+I → Idea (save highlighted text)
@@ -480,7 +476,6 @@ watchContentTheme();
 setupNavigationListeners();
 initializePlatformIntegration();
 
-// Notify side panel of initial platform detection
 notifyPlatformDetected();
 
 // Initialize Twitter image hover if on Twitter

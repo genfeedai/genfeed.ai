@@ -17,12 +17,6 @@ export {
   buildZImageTurboPrompt,
 } from './z-image-prompt-builder';
 
-// =============================================================================
-// FLUX 2 DEV — text-to-image via split UNET + Mistral 3 encoder + VAE
-// Uses CLIPTextEncode + FluxGuidance (Mistral CLIP lacks T5-XXL tokenizer).
-// KSampler cfg=1.0 because guidance is handled by the FluxGuidance node.
-// =============================================================================
-
 export interface Flux2DevParams {
   prompt: string;
   seed?: number;
@@ -123,13 +117,6 @@ export function buildFlux2DevPrompt(params: Flux2DevParams): ComfyUIPrompt {
     },
   };
 }
-
-// =============================================================================
-// FLUX 2 DEV + PuLID — face-consistent image generation
-// Uses CLIPTextEncode + FluxGuidance (Mistral CLIP lacks T5-XXL tokenizer).
-// ApplyPulid requires: eva_clip (PulidEvaClipLoader) + face_analysis
-// (PulidInsightFaceLoader) + method/weight/start_at/end_at
-// =============================================================================
 
 export interface Flux2PulidParams extends Flux2DevParams {
   faceImage: string;
@@ -273,11 +260,6 @@ export function buildFlux2DevPulidPrompt(
     },
   };
 }
-
-// =============================================================================
-// FLUX 2 DEV + PuLID + 4K UPSCALE — face-consistent with 4x upscale
-// Base 832x1216 (Instagram 4:5) → 4x → 3328x4864
-// =============================================================================
 
 export interface Flux2PulidUpscaleParams extends Flux2PulidParams {
   upscaleModel?: string;
@@ -432,10 +414,6 @@ export function buildFlux2DevPulidUpscalePrompt(
   };
 }
 
-// =============================================================================
-// FLUX 2 DEV + PuLID + LoRA — face-consistent with LoRA customization
-// =============================================================================
-
 export interface Flux2PulidLoraParams extends Flux2PulidParams {
   loraPath: string;
   loraStrength?: number;
@@ -589,10 +567,6 @@ export function buildFlux2DevPulidLoraPrompt(
     },
   };
 }
-
-// =============================================================================
-// FLUX 2 KLEIN — fast generation with 9B model
-// =============================================================================
 
 export interface Flux2KleinParams {
   prompt: string;

@@ -54,7 +54,6 @@ describe('HedraController', () => {
     expect(controller).toBeDefined();
   });
 
-  // --- getVoices ---
   it('should return voices with provider hedra', async () => {
     hedraService.getVoices.mockResolvedValue([{ id: 'v1', name: 'TestVoice' }]);
     const result = await controller.getVoices(mockUser);
@@ -77,7 +76,6 @@ describe('HedraController', () => {
     expect(loggerService.error).toHaveBeenCalled();
   });
 
-  // --- getAvatars ---
   it('should return avatars with correct count', async () => {
     hedraService.getAvatars.mockResolvedValue([{ id: 'a1' }, { id: 'a2' }]);
     const result = await controller.getAvatars(mockUser);
@@ -93,7 +91,6 @@ describe('HedraController', () => {
     );
   });
 
-  // --- getJobStatus ---
   it('should return job status with jobId in attributes', async () => {
     hedraService.getJobStatus.mockResolvedValue({
       status: 'completed',
@@ -129,7 +126,6 @@ describe('HedraController', () => {
     }
   });
 
-  // --- getStatus ---
   it('should return connected status when voices call succeeds', async () => {
     const result = await controller.getStatus(mockUser);
     expect(result.data.type).toBe('service-status');

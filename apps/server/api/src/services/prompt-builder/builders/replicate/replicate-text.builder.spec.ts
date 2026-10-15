@@ -34,8 +34,6 @@ describe('ReplicateTextBuilder', () => {
     builder = new ReplicateTextBuilder();
   });
 
-  // ─── getSupportedModels ─────────────────────────────────────────────────────
-
   describe('getSupportedModels', () => {
     it('returns all supported text models', () => {
       const models = builder.getSupportedModels();
@@ -62,8 +60,6 @@ describe('ReplicateTextBuilder', () => {
     });
   });
 
-  // ─── buildPrompt: unsupported model ────────────────────────────────────────
-
   describe('buildPrompt — unsupported model', () => {
     it('throws for an unknown model key', () => {
       expect(() =>
@@ -71,8 +67,6 @@ describe('ReplicateTextBuilder', () => {
       ).toThrow('Unsupported text model');
     });
   });
-
-  // ─── DeepSeekR1 ────────────────────────────────────────────────────────────
 
   describe('DeepSeek R1', () => {
     const model = MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1;
@@ -108,8 +102,6 @@ describe('ReplicateTextBuilder', () => {
       expect(result.top_p).toBe(0.9);
     });
   });
-
-  // ─── GPT-5.2 ───────────────────────────────────────────────────────────────
 
   describe('GPT 5.2', () => {
     const model = MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2;

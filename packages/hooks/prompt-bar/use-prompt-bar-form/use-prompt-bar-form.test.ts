@@ -3,7 +3,6 @@ import { usePromptBarForm } from '@hooks/prompt-bar/use-prompt-bar-form/use-prom
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-// Mock react-hook-form
 vi.mock('react-hook-form', () => ({
   useForm: vi.fn(() => ({
     control: {},
@@ -24,12 +23,10 @@ vi.mock('react-hook-form', () => ({
   }),
 }));
 
-// Mock schema resolver
 vi.mock('@hookform/resolvers/standard-schema', () => ({
   standardSchemaResolver: vi.fn(() => vi.fn()),
 }));
 
-// Mock schema
 vi.mock('@genfeedai/client/schemas', () => ({
   PromptTextareaSchema: {},
   promptTextareaSchema: {},

@@ -121,7 +121,6 @@ integrationDescribe('Payment Processing Integration Tests (Stripe)', () => {
   let mockStripe: ReturnType<typeof createStripeMock>;
 
   beforeAll(async () => {
-    // Create mock Stripe client
     mockStripe = createStripeMock();
 
     moduleRef = await Test.createTestingModule({

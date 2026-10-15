@@ -154,7 +154,6 @@ export default function WorkflowBuilder({
           isReadOnly={isReadOnly}
         />
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Panel - Node Palette */}
           <div
             className={`border-r border-border bg-background transition-[width] duration-300 ${
               isPaletteCollapsed ? 'w-12' : 'w-64'

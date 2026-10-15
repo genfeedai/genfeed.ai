@@ -1,9 +1,5 @@
 import type { NodeStatus, ValidationResult } from '@genfeedai/contracts/types';
 
-// =============================================================================
-// DEBUG TYPES
-// =============================================================================
-
 export interface DebugPayload {
   nodeId: string;
   nodeName: string;
@@ -12,10 +8,6 @@ export interface DebugPayload {
   input: Record<string, unknown>;
   timestamp: string;
 }
-
-// =============================================================================
-// JOB TYPES
-// =============================================================================
 
 export interface Job {
   nodeId: string;
@@ -65,19 +57,11 @@ export interface ExecutionData {
   }>;
 }
 
-// =============================================================================
-// NODE EXECUTION TYPES
-// =============================================================================
-
 export interface NodeExecution {
   executionId: string;
   nodeIds: string[];
   eventSource: EventSource;
 }
-
-// =============================================================================
-// STORE TYPES
-// =============================================================================
 
 export interface ExecutionState {
   isRunning: boolean;
@@ -125,10 +109,6 @@ export interface ExecutionStore
     ExecutionActions,
     JobActions,
     HelperActions {}
-
-// =============================================================================
-// STATUS MAPPING
-// =============================================================================
 
 export const STATUS_MAP: Record<string, NodeStatus> = {
   complete: 'complete',

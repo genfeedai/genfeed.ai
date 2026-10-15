@@ -5,7 +5,6 @@
 
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-// Import services
 import { UsersService } from '@api/collections/users/services/users.service';
 import {
   createTestBrand,
@@ -67,7 +66,6 @@ describe('Authentication E2E Tests', () => {
   beforeEach(async () => {
     await dbHelper.clearDatabase();
 
-    // Create test user
     const testUserId = generateIdString();
     testUser = createTestUser({
       id: testUserId,

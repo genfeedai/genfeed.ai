@@ -104,7 +104,6 @@ function NegativePromptSelectorComponent({
   // Parse the current value to determine which checkboxes should be checked
   const checkedTerms = useMemo(() => parseNegativePrompt(value), [value]);
 
-  // Extract and track custom terms separately
   const [customText, setCustomText] = useState(() => extractCustomTerms(value));
 
   // Count selected items for collapsed summary: checked predefined options
@@ -112,7 +111,6 @@ function NegativePromptSelectorComponent({
   const selectedCount =
     [...checkedTerms].filter(isKnownTerm).length + (customText.trim() ? 1 : 0);
 
-  // Handle checkbox toggle
   const handleCheckboxChange = useCallback(
     (optionValue: string, checked: boolean) => {
       const newChecked = new Set(checkedTerms);
@@ -129,7 +127,6 @@ function NegativePromptSelectorComponent({
     [checkedTerms, customText, onChange],
   );
 
-  // Handle custom text input
   const handleCustomChange = useCallback(
     (newCustomText: string) => {
       setCustomText(newCustomText);
@@ -140,7 +137,6 @@ function NegativePromptSelectorComponent({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Collapsible header */}
       <Button
         withWrapper={false}
         variant={ButtonVariant.GHOST}
@@ -163,10 +159,8 @@ function NegativePromptSelectorComponent({
         </div>
       </Button>
 
-      {/* Expandable content */}
       {isExpanded && (
         <>
-          {/* Checkbox grid */}
           <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
             {NEGATIVE_PROMPT_OPTIONS.map((option) => {
               const isChecked = checkedTerms.has(option.value.toLowerCase());

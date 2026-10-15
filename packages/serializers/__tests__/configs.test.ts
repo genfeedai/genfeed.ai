@@ -61,7 +61,6 @@ describe('Serializer Configurations', () => {
       expect(result.data).toHaveProperty('id', 'post-123');
       expect(result.data).toHaveProperty('attributes');
 
-      // Check attributes
       expect(result.data.attributes).toHaveProperty('label', 'Test Post');
       expect(result.data.attributes).toHaveProperty(
         'description',

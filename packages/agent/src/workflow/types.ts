@@ -1,7 +1,3 @@
-// =============================================================================
-// WORKFLOW PHASES
-// =============================================================================
-
 export const WORKFLOW_PHASES = [
   'exploring',
   'clarifying',
@@ -24,10 +20,6 @@ export const PHASE_LABELS: Record<WorkflowPhase, string> = {
   verifying: 'Verify',
 };
 
-// =============================================================================
-// GATE CONDITIONS
-// =============================================================================
-
 export type GateTrigger = 'gate_met' | 'force_advance' | 'rollback';
 export type Actor = 'user' | 'agent';
 
@@ -40,10 +32,6 @@ export interface PhaseTransition {
   actor: Actor;
 }
 
-// =============================================================================
-// CLARIFYING PHASE
-// =============================================================================
-
 export type QuestionType = 'multiple_choice' | 'free_text';
 
 export interface Question {
@@ -53,10 +41,6 @@ export interface Question {
   options?: string[];
   answer?: string;
 }
-
-// =============================================================================
-// PROPOSING PHASE
-// =============================================================================
 
 export interface ApproachTradeoffs {
   pros: string[];
@@ -71,10 +55,6 @@ export interface Approach {
   recommended: boolean;
 }
 
-// =============================================================================
-// VERIFICATION PHASE
-// =============================================================================
-
 export type EvidenceType = 'test_result' | 'screenshot' | 'log' | 'diff';
 
 export interface Evidence {
@@ -85,10 +65,6 @@ export interface Evidence {
   passed: boolean;
 }
 
-// =============================================================================
-// MESSAGES
-// =============================================================================
-
 export interface PhaseMessage {
   id: string;
   phase: WorkflowPhase;
@@ -96,10 +72,6 @@ export interface PhaseMessage {
   content: string;
   timestamp: number;
 }
-
-// =============================================================================
-// STATE
-// =============================================================================
 
 export interface AgentWorkflowState {
   phase: WorkflowPhase;
@@ -111,10 +83,6 @@ export interface AgentWorkflowState {
   messages: PhaseMessage[];
   isLocked: boolean;
 }
-
-// =============================================================================
-// ACTIONS
-// =============================================================================
 
 export interface AgentWorkflowActions {
   // Phase transitions

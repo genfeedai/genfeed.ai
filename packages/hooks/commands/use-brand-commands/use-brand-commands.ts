@@ -52,7 +52,6 @@ export function useBrandCommands({
       onBrandSwitch,
     );
 
-    // Register all commands
     registerCommands(commands);
 
     return () => {

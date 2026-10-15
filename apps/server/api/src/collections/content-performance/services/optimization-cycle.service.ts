@@ -4,8 +4,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
-// ─── Interfaces ──────────────────────────────────────────────────────
-
 export interface OptimizationCycleOptions {
   cycleNumber?: number;
   startDate?: Date | string;
@@ -83,8 +81,6 @@ export interface RankedContentResult {
   promptUsed?: string;
   measuredAt?: Date;
 }
-
-// ─── Service ─────────────────────────────────────────────────────────
 
 @Injectable()
 export class OptimizationCycleService {
@@ -175,8 +171,6 @@ export class OptimizationCycleService {
         };
       });
   }
-
-  // ─── Private ─────────────────────────────────────────────────────
 
   private buildWhereFilter(
     organizationId: string,

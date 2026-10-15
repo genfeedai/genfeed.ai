@@ -130,7 +130,6 @@ function VideoInputNodeComponent(props: NodeProps) {
 
   return (
     <BaseNode {...props} headerActions={headerActions}>
-      {/* Hidden file input */}
       <Input
         ref={fileInputRef}
         type="file"
@@ -165,7 +164,6 @@ function VideoInputNodeComponent(props: NodeProps) {
         </div>
       )}
 
-      {/* Video Preview or Empty State */}
       {nodeData.video ? (
         <div
           className={

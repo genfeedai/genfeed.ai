@@ -7,10 +7,6 @@ import { PROVIDER_COLORS } from './model-browser-badges.constants';
 export { CapabilityBadge } from './CapabilityBadge';
 export { UseCaseBadge } from './UseCaseBadge';
 
-// =============================================================================
-// PROVIDER BADGE
-// =============================================================================
-
 const PROVIDER_LABELS: Record<ProviderType, string> = {
   [ProviderTypeEnum.REPLICATE]: 'Replicate',
   [ProviderTypeEnum.FAL]: 'fal.ai',

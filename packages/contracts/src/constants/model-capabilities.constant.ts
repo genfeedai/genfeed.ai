@@ -369,7 +369,6 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
 
-    // xAI Grok Image
     [MODEL_KEYS.REPLICATE_XAI_GROK_IMAGINE_IMAGE]: {
       aspectRatios: ASPECT_RATIOS.GROK_IMAGE,
       category: ModelCategory.IMAGE,
@@ -1522,10 +1521,6 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
       maxUpscaleFactor: 4,
     },
-
-    // =========================================================================
-    // GENFEED AI SELF-HOSTED MODELS (ComfyUI on gpu.genfeed.ai)
-    // =========================================================================
 
     [MODEL_KEYS.GENFEED_AI_FLUX_DEV]: {
       aspectRatios: ASPECT_RATIOS.FLUX_STANDARD,

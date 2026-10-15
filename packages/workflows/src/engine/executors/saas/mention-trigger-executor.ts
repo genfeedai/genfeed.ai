@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type MentionTriggerPlatform = 'twitter' | 'instagram' | 'threads';
 
 export interface MentionTriggerOutput {
@@ -42,10 +38,6 @@ export type MentionChecker = (params: {
   excludeKeywords?: string[];
   lastMentionId: string | null;
 }) => Promise<MentionTriggerOutput | null>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Mention Trigger Executor

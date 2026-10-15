@@ -110,7 +110,6 @@ function ReframeNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
-        {/* Input Type Indicator */}
         {!hasInput && (
           <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
             Connect an image or video input
@@ -123,7 +122,6 @@ function ReframeNodeComponent(props: NodeProps) {
           </div>
         )}
 
-        {/* Model Selection (only for images) */}
         {inputType === 'image' && (
           <div className="space-y-1.5">
             <Label className="text-xs" id={`reframe-model-${id}`}>

@@ -134,7 +134,6 @@ export function IngredientAlternativesCard({
 
   return (
     <div className="mt-2 overflow-hidden border border-border bg-background">
-      {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         {isImage ? (
           <Image className="size-4 text-primary" />
@@ -147,7 +146,6 @@ export function IngredientAlternativesCard({
       </div>
 
       <div className="space-y-3 p-3">
-        {/* Alternatives grid */}
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {alternatives.map((alt, index) => {
             const isSelected = selectedIndex === index;

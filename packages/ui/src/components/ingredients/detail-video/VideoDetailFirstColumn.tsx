@@ -116,7 +116,6 @@ export default function VideoDetailFirstColumn({
         )}
       </div>
 
-      {/* Captioned Versions Quick Access */}
       {childIngredients && childIngredients.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-foreground/80">

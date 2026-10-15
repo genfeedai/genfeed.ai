@@ -128,7 +128,6 @@ function TextToSpeechNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
-        {/* API Key Warning */}
         {!TTS_ENABLED && (
           <div className="flex items-start gap-2 p-2 bg-warning/10 border border-warning/30 rounded text-xs">
             <TriangleAlert className="size-4 text-warning flex-shrink-0 mt-0.5" />
@@ -146,7 +145,6 @@ function TextToSpeechNodeComponent(props: NodeProps) {
           </div>
         )}
 
-        {/* Provider Selection */}
         <div>
           <label
             htmlFor={`tts-provider-${id}`}

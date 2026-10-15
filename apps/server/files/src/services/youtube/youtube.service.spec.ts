@@ -5,7 +5,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked } from 'vitest';
 
-// Mock googleapis
 vi.mock('googleapis', () => ({
   google: {
     auth: {
@@ -24,7 +23,6 @@ vi.mock('googleapis', () => ({
   },
 }));
 
-// Mock axios
 const axiosMock = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('axios', () => ({ default: axiosMock, get: axiosMock.get }));
 

@@ -15,14 +15,11 @@ import { GenFeedStatusBar } from '@/statusBar';
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<void> {
-  // Initialize error tracking
   initializeErrorTracking('extension');
 
-  // Initialize services
   const authService = AuthService.initialize(context);
   await authService.loadStoredAuth();
 
-  // Create and register the sidebar webview providers
   const presetsProvider = new PresetsViewProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -59,7 +56,6 @@ export async function activate(
   const statusBar = new GenFeedStatusBar(context);
   statusBar.start();
 
-  // Register all commands
   registerCommands(context, {
     analyticsProvider,
     galleryProvider,

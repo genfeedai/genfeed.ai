@@ -63,7 +63,6 @@ export function VideoCompletionFunnel({
     },
   ];
 
-  // Calculate drop-off rates
   const dropOffs = [
     {
       from: 'Started',
@@ -91,7 +90,6 @@ export function VideoCompletionFunnel({
 
   return (
     <div className={className}>
-      {/* Funnel Visualization */}
       <div className="relative" style={{ height }}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
@@ -109,7 +107,6 @@ export function VideoCompletionFunnel({
           <div className="space-y-4">
             {stages.map((stage, index) => (
               <div key={stage.label} className="space-y-2">
-                {/* Stage Bar */}
                 <div className="flex items-center gap-4">
                   <div className="w-32 text-sm font-medium">{stage.label}</div>
                   <div className="flex-1">

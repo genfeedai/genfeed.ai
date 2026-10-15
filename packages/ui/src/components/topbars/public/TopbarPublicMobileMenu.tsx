@@ -78,7 +78,6 @@ export default function TopbarPublicMobileMenu({
     // One layer below the header (`z-50`): the scrim dims the page, not the
     // bar, so the close button and the header CTA stay visible and tappable.
     <div className="lg:hidden fixed inset-0 z-40">
-      {/* Backdrop */}
       <Button
         type="button"
         variant={ButtonVariant.UNSTYLED}
@@ -89,7 +88,6 @@ export default function TopbarPublicMobileMenu({
         ariaLabel="Close menu"
       />
 
-      {/* Menu Panel */}
       <div
         className="relative z-10 mt-20 max-h-[calc(100dvh-5rem)] w-full overflow-y-auto overscroll-contain border-b border-border bg-background"
         id={id}

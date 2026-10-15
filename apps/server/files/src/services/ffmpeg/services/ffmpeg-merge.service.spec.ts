@@ -22,7 +22,6 @@ vi.mock('node:fs', () => ({
   },
 }));
 
-// Use a stable path mock
 vi.mock('node:path', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:path')>();
   return {

@@ -47,8 +47,6 @@ export class TikTokAdsService {
     private readonly logger: LoggerService,
   ) {}
 
-  // ─── Read Operations ────────────────────────────────────────────────────────
-
   async getAdAccounts(accessToken: string): Promise<TikTokAdAccount[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

@@ -27,7 +27,6 @@ vi.mock('../BaseNode', () => ({
   ),
 }));
 
-// Mock Next.js Image
 vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
     <span aria-label={alt} data-src={src} data-testid="next-image" role="img" />
@@ -128,7 +127,6 @@ vi.mock('../../hooks/useNodeExecution', () => ({
   }),
 }));
 
-// Mock model registry
 vi.mock('../../lib/models/registry', () => ({
   DEFAULT_IMAGE_MODEL: 'nano-banana',
   IMAGE_MODEL_ID_MAP: {},

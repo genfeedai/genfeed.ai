@@ -123,7 +123,6 @@ export function useIngredientsLayout({
       type: typeParam || '',
     };
 
-    // Initialize query to match filters
     const initialQuery: IFilters = {};
     Object.entries(initialFilters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {

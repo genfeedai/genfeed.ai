@@ -12,7 +12,6 @@ export default function OnboardingProgress({
 
   return (
     <div className="w-full">
-      {/* Progress bar */}
       <Progress
         value={progressPercent}
         aria-label="Onboarding progress"
@@ -22,7 +21,6 @@ export default function OnboardingProgress({
         className="h-1 bg-background-tertiary rounded-full overflow-hidden mb-6"
       />
 
-      {/* Step labels */}
       <div className="flex justify-between">
         {stepLabels.map((label, index) => {
           const isCompleted = index < currentStep;
@@ -30,7 +28,6 @@ export default function OnboardingProgress({
 
           return (
             <div key={label} className="flex items-center gap-2">
-              {/* Step indicator */}
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-2xs font-bold transition-colors duration-300 ${
                   isCompleted

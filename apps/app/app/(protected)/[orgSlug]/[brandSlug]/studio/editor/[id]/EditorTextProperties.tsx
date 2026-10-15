@@ -50,7 +50,6 @@ function EditorTextProperties({
         Properties
       </h4>
 
-      {/* Text content */}
       <div>
         <span className="text-xs text-muted-foreground block mb-1">Text</span>
         <Textarea
@@ -62,7 +61,6 @@ function EditorTextProperties({
         />
       </div>
 
-      {/* Font family */}
       <div>
         <span className="text-xs text-muted-foreground block mb-1">Font</span>
         <Select
@@ -83,7 +81,6 @@ function EditorTextProperties({
         </Select>
       </div>
 
-      {/* Font size */}
       <div>
         <label className="text-xs text-muted-foreground block mb-1">
           Size: {overlay.fontSize}px
@@ -98,7 +95,6 @@ function EditorTextProperties({
         />
       </div>
 
-      {/* Font weight */}
       <div>
         <span className="text-xs text-muted-foreground block mb-1">Weight</span>
         <Select
@@ -121,7 +117,6 @@ function EditorTextProperties({
         </Select>
       </div>
 
-      {/* Text color */}
       <div>
         <span className="text-xs text-muted-foreground block mb-1">Color</span>
         <div className="flex flex-wrap gap-1">

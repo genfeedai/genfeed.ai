@@ -136,7 +136,6 @@ describe('Workflow Registry', () => {
       expect(Array.isArray(workflow.inputTypes)).toBe(true);
       expect(Array.isArray(workflow.outputTypes)).toBe(true);
 
-      // Ensure non-empty arrays
       expect(workflow.tags.length).toBeGreaterThan(0);
       expect(workflow.inputTypes.length).toBeGreaterThan(0);
       expect(workflow.outputTypes.length).toBeGreaterThan(0);

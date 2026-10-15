@@ -112,7 +112,6 @@ function SocialPublishNodeComponent({
 
   return (
     <div className="space-y-3">
-      {/* Platform Selection */}
       <div className="grid grid-cols-4 gap-1 p-1 bg-background">
         {PLATFORMS.map((p) => (
           <Button

@@ -7,10 +7,6 @@ import type {
 import { create } from 'zustand';
 import type { PromptLibraryService } from '../provider/types';
 
-// =============================================================================
-// Module-level API configuration
-// =============================================================================
-
 let _promptApi: PromptLibraryService | null = null;
 
 /**
@@ -23,10 +19,6 @@ let _promptApi: PromptLibraryService | null = null;
 export function configurePromptLibrary(api: PromptLibraryService): void {
   _promptApi = api;
 }
-
-// =============================================================================
-// Store
-// =============================================================================
 
 interface PromptLibraryStore {
   // State

@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface VignetteConfig {
   enabled: boolean;
   intensity: number; // 0-100
@@ -49,10 +45,6 @@ export type LensEffectsProcessor = (params: {
   filterChain: string;
   config: LensEffectsConfig;
 }) => Promise<LensEffectsResult>;
-
-// ---------------------------------------------------------------------------
-// Filter chain builder
-// ---------------------------------------------------------------------------
 
 /**
  * Builds an FFmpeg filter chain for lens effects.

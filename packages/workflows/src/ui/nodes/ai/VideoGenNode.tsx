@@ -112,7 +112,6 @@ function VideoGenNodeComponent(props: NodeProps) {
       disabledInputs={disabledInputs}
     >
       <div className="flex-1 flex flex-col gap-3 min-h-0">
-        {/* Dynamic Schema Inputs */}
         {schemaProperties && (
           <SchemaInputs
             schema={schemaProperties}
@@ -132,7 +131,6 @@ function VideoGenNodeComponent(props: NodeProps) {
           </div>
         )}
 
-        {/* Output Preview */}
         {nodeData.outputVideo ? (
           <div
             className={
@@ -152,7 +150,6 @@ function VideoGenNodeComponent(props: NodeProps) {
                 preload: 'metadata',
               }}
             />
-            {/* Processing overlay spinner */}
             {nodeData.status === 'processing' && (
               <ProcessingOverlay onStop={handleStop} />
             )}
@@ -166,7 +163,6 @@ function VideoGenNodeComponent(props: NodeProps) {
           </div>
         )}
 
-        {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <CircleAlert className="size-3" />
@@ -175,7 +171,6 @@ function VideoGenNodeComponent(props: NodeProps) {
         )}
       </div>
 
-      {/* Model Browser Modal */}
       {ModelBrowserModal && (
         <ModelBrowserModal
           isOpen={isModelBrowserOpen}

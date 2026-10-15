@@ -90,7 +90,6 @@ export function useCanvasKeyboardShortcuts({
       if (e.key === 'f' && !isMod && !e.shiftKey) {
         e.preventDefault();
         if (selectedNodeIds.length > 0) {
-          // Fit to selected nodes
           const selectedNodes = filterItemsByIdLookup(
             nodes,
             selectedNodeIdLookup,

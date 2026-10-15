@@ -48,10 +48,6 @@ export function isCanonicalSystemWorkflow(workflow: {
   return getSystemWorkflowMetadata(workflow.metadata)?.immutable === true;
 }
 
-// =============================================================================
-// WORKFLOW API SERVICE
-// =============================================================================
-
 /**
  * Cloud API service for visual workflow editor operations.
  *
@@ -101,10 +97,6 @@ export class WorkflowApiService extends HTTPBaseService {
     const data = (payload as { data?: unknown }).data;
     return Boolean(data && typeof data === 'object' && 'type' in data);
   }
-
-  // ---------------------------------------------------------------------------
-  // CRUD
-  // ---------------------------------------------------------------------------
 
   /** List one page of workflows for the current organization */
   async listPage(params?: Record<string, unknown>): Promise<{

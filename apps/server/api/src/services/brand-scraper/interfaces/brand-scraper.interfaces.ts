@@ -171,7 +171,6 @@ export interface WebsiteScrapingResult {
     alt?: string;
   }>;
 
-  // Social links
   socialLinks: {
     twitter?: string;
     facebook?: string;

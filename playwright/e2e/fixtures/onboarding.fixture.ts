@@ -33,10 +33,6 @@ import { setupOnboardingConversationMocks } from '../utils/onboarding-conversati
  * @module onboarding.fixture
  */
 
-// ----------------------------------------------------------------------------
-// Type Definitions
-// ----------------------------------------------------------------------------
-
 interface OnboardingFixtures {
   /**
    * A page with mocked authentication for an onboarding user that starts at
@@ -74,20 +70,12 @@ interface OnboardingProgressRequestPayload {
   onboardingStepsCompleted?: unknown;
 }
 
-// ----------------------------------------------------------------------------
-// Mock Session Data
-// ----------------------------------------------------------------------------
-
 const MOCK_SESSION = {
   expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   organizationId: 'mock-org-id-e2e-test',
   sessionId: 'mock-session-id-e2e-onboarding',
   userId: 'mock-user-id-e2e-onboarding',
 };
-
-// ----------------------------------------------------------------------------
-// Onboarding-Specific Mock Data
-// ----------------------------------------------------------------------------
 
 function generateOnboardingMockUser(
   completedSteps: readonly string[] = [],
@@ -195,10 +183,6 @@ function buildOnboardingBootstrapPayload(
     streak: null,
   };
 }
-
-// ----------------------------------------------------------------------------
-// Auth Setup for Onboarding User
-// ----------------------------------------------------------------------------
 
 async function setupBetterAuthMocksForOnboarding(
   page: Page,

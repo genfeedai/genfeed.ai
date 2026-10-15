@@ -121,7 +121,6 @@ describe('useFocusFirstInput', () => {
         useFocusFirstInput<HTMLFormElement>(),
       );
 
-      // ref.current is null
       expect(result.current.current).toBeNull();
       // Should handle gracefully
     });

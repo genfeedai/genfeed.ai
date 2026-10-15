@@ -8,7 +8,6 @@ test.describe('Auth Fixture Validation', () => {
   test('should have Better Auth API mocks set up for authenticated page', async ({
     authenticatedPage,
   }) => {
-    // Check that cookies are set
     const cookies = await authenticatedPage.context().cookies();
     const sessionCookie = cookies.find((c) => c.name === '__session');
     const clientUatCookie = cookies.find((c) => c.name === '__client_uat');
@@ -24,7 +23,6 @@ test.describe('Auth Fixture Validation', () => {
   test('should have localStorage with auth state', async ({
     authenticatedPage,
   }) => {
-    // Check localStorage
     const betterAuthJwt = await authenticatedPage.evaluate(() =>
       localStorage.getItem('__better_auth_client_jwt'),
     );

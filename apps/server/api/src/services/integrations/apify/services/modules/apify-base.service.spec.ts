@@ -342,8 +342,6 @@ describe('ApifyBaseService', () => {
     expect(result).toEqual({ data: [], source: 'hosted' });
   });
 
-  // ─── Pure utility methods ────────────────────────────────────────────────
-
   it('calculateEngagementMetrics computes correct values', () => {
     const metrics = service.calculateEngagementMetrics(
       10000, // views
@@ -457,8 +455,6 @@ describe('ApifyBaseService', () => {
     expect(service.ACTORS.TWITTER_SCRAPER).toBeDefined();
     expect(service.ACTORS.INSTAGRAM_SCRAPER).toBeDefined();
   });
-
-  // ─── Account-limit circuit breaker ───────────────────────────────────────
 
   describe('Apify account usage limit', () => {
     let nowSpy: ReturnType<typeof vi.spyOn>;

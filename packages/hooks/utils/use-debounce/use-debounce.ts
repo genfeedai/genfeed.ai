@@ -95,7 +95,6 @@ export function useDebouncedAPI<
       // Cancel any pending requests
       cancel();
 
-      // Create new abort controller
       abortControllerRef.current = new AbortController();
 
       timeoutRef.current = setTimeout(async () => {

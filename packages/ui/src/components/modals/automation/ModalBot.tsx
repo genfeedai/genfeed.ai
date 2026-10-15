@@ -72,7 +72,6 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
         )}
 
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-          {/* Basic Information */}
           <div className="space-y-4">
             <FormControl label="Bot Name">
               <Input

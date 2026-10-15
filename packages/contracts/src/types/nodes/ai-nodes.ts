@@ -1,7 +1,3 @@
-// =============================================================================
-// AI NODE DATA
-// =============================================================================
-
 import type { BaseNodeData } from './base';
 import type { ProviderType, SelectedModel } from './providers';
 

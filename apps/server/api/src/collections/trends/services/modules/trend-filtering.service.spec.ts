@@ -61,8 +61,6 @@ describe('TrendFilteringService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── calculateViralityScore ────────────────────────────────────────────────
-
   describe('calculateViralityScore', () => {
     it('should return 0 for zero-value trend', () => {
       const oldDate = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -110,8 +108,6 @@ describe('TrendFilteringService', () => {
       expect(service.calculateViralityScore(trend)).toBe(20);
     });
   });
-
-  // ─── filterTrendsByBrandDescription ───────────────────────────────────────
 
   describe('filterTrendsByBrandDescription', () => {
     const trends = [
@@ -166,8 +162,6 @@ describe('TrendFilteringService', () => {
       expect(result).toHaveLength(3);
     });
   });
-
-  // ─── filterTrendsByPreferences ────────────────────────────────────────────
 
   describe('filterTrendsByPreferences', () => {
     const trends = [
@@ -227,8 +221,6 @@ describe('TrendFilteringService', () => {
       expect(result[0].topic).toContain('vegan');
     });
   });
-
-  // ─── getRelatedTrends ─────────────────────────────────────────────────────
 
   describe('getRelatedTrends', () => {
     it('should return empty array when topic has no meaningful keywords', async () => {

@@ -59,10 +59,6 @@ import {
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { create } from 'zustand';
 
-// ---------------------------------------------------------------------------
-// Terminal session types (T1-T2 / T6)
-// ---------------------------------------------------------------------------
-
 export type TerminalSessionKind = 'claude' | 'codex' | 'genfeed' | 'shell';
 
 export interface TerminalSessionDto {
@@ -458,9 +454,6 @@ interface AgentChatActions {
       status: Exclude<AgentThreadUiActionState['status'], 'pending'>;
     },
   ) => void;
-  // ---------------------------------------------------------------------------
-  // Terminal session management (T1-T2 / T6)
-  // ---------------------------------------------------------------------------
   /** Bulk-replace sessions map (called on terminal:list response + prune). */
   setTerminalSessionsByThread: (map: TerminalSessionsByThread) => void;
   /** Register a newly created session for a thread key. */

@@ -14,10 +14,6 @@ import {
   createSafeWebhookHttpsAgent,
 } from './webhook-validator.util';
 
-// ---------------------------------------------------------------------------
-// assertSafeWebhookUrl — scheme checks
-// ---------------------------------------------------------------------------
-
 describe('assertSafeWebhookUrl — scheme', () => {
   it('throws for non-URL strings', async () => {
     await expect(assertSafeWebhookUrl('not-a-url')).rejects.toBeInstanceOf(
@@ -37,10 +33,6 @@ describe('assertSafeWebhookUrl — scheme', () => {
     ).resolves.toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// assertSafeWebhookUrl — private IPv4 literals
-// ---------------------------------------------------------------------------
 
 describe('assertSafeWebhookUrl — blocked IPv4 literals', () => {
   const blocked = [

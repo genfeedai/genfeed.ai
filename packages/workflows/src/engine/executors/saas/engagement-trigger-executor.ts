@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type EngagementTriggerPlatform = 'twitter' | 'instagram' | 'threads';
 
 export type EngagementMetricType = 'likes' | 'comments' | 'shares' | 'views';
@@ -38,10 +34,6 @@ export type EngagementChecker = (params: {
   threshold: number;
   lastCheckedPostId: string | null;
 }) => Promise<EngagementTriggerOutput | null>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Engagement Trigger Executor

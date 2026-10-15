@@ -20,11 +20,9 @@ describe('PromptBarDivider', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<PromptBarDivider />);
 
-    // Check divider has correct container classes
     const divider = container.firstChild;
     expect(divider).toBeInTheDocument();
 
-    // Check divider line styling
     const dividerLine = container.querySelector('.border-t, .border-b, hr');
     expect(dividerLine || divider).toBeInTheDocument();
   });

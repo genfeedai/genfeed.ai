@@ -131,7 +131,6 @@ export default function AgentContent() {
           </div>
         </section>
 
-        {/* What the agent can do */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h2" className="text-2xl font-bold text-center mb-8">
             What the agent can do
@@ -175,7 +174,6 @@ export default function AgentContent() {
           </div>
         </section>
 
-        {/* Three surfaces */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-3">
             {SURFACES.map((surface) => {
@@ -202,7 +200,6 @@ export default function AgentContent() {
           </div>
         </section>
 
-        {/* Install the CLI */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
             Install the CLI
@@ -232,7 +229,6 @@ export default function AgentContent() {
           </div>
         </section>
 
-        {/* Skills */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-8">
             <div className="flex flex-row flex-col md:flex-row items-center gap-8">
@@ -259,7 +255,6 @@ export default function AgentContent() {
           </div>
         </section>
 
-        {/* CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
             <div className="flex justify-center mb-4">

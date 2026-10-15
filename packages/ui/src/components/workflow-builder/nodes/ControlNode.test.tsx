@@ -65,7 +65,6 @@ describe('ControlNode', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<ControlNode {...defaultProps} />);
 
-    // Check node has correct color scheme
     expect(
       container.querySelector('.bg-secondary') ||
         container.querySelector('[class*="bg-"]'),
@@ -75,7 +74,6 @@ describe('ControlNode', () => {
         container.querySelector('[class*="border-"]'),
     ).toBeInTheDocument();
 
-    // Check selected state styling
     const { container: selectedContainer } = render(
       <ControlNode {...defaultProps} selected={true} />,
     );

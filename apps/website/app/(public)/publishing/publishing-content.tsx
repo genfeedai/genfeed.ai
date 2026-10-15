@@ -158,7 +158,6 @@ export default function PublishingContent() {
         description="Publish your content, everywhere, instantly."
       >
         {/* -------------------------------------------------------- */}
-        {/*  Highlight Card                                           */}
         {/* -------------------------------------------------------- */}
         <section className="gsap-hero max-w-4xl mx-auto pb-16 px-6">
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-8">
@@ -195,7 +194,6 @@ export default function PublishingContent() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/*  Platform Visual Grid                                     */}
         {/* -------------------------------------------------------- */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="mb-8">
@@ -222,7 +220,6 @@ export default function PublishingContent() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/*  Features Grid                                            */}
         {/* -------------------------------------------------------- */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <div className="mb-8">
@@ -257,7 +254,6 @@ export default function PublishingContent() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/*  How It Works                                             */}
         {/* -------------------------------------------------------- */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="mb-8">
@@ -279,22 +275,18 @@ export default function PublishingContent() {
                     <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 h-16 gen-divider-accent" />
                   )}
 
-                  {/* Step number */}
                   <Text className="text-2xs font-black uppercase tracking-widest text-surface/50 mb-3">
                     Step {index + 1}
                   </Text>
 
-                  {/* Icon */}
                   <div className="size-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] mb-4">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
 
-                  {/* Label */}
                   <Heading as="h4" className="font-semibold text-surface mb-1">
                     {step.label}
                   </Heading>
 
-                  {/* Sublabel */}
                   <Text className="text-xs text-surface/65 leading-relaxed">
                     {step.sublabel}
                   </Text>
@@ -305,7 +297,6 @@ export default function PublishingContent() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/*  Pricing CTA                                              */}
         {/* -------------------------------------------------------- */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-6 sm:p-12 text-center">

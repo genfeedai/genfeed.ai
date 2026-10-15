@@ -5,7 +5,6 @@ import { Tag } from '@genfeedai/models/content/tag.model';
 import { TagSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),

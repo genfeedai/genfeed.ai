@@ -27,7 +27,6 @@ describe('useDebounce', () => {
 
     expect(result.current).toBe('initial');
 
-    // Change value
     rerender({ value: 'changed' });
     expect(result.current).toBe('initial'); // Should still be initial
 

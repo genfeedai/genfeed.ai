@@ -88,7 +88,6 @@ export const TWITTER_SELECTORS: Record<string, SelectorConfig> = {
     semantic: findSubmitButtonSemantic,
   },
 
-  // Tweet container
   tweetContainer: {
     description: 'Individual tweet container',
     fallbacks: [

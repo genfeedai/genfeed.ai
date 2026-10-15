@@ -2,14 +2,11 @@
 
 // Auto-layout (Dagre-based node arrangement)
 export { getLayoutedNodes } from './autoLayout';
-// Bezier editor
 export { CubicBezierEditor } from './CubicBezierEditor';
 // Canvas pointer/click target helpers
 export { isEventFromHandle } from './canvasEvents';
 export type { CostBreakdown, NodeCostEstimate } from './costCalculator';
-// Cost calculator
 export { calculateWorkflowCost, formatCost } from './costCalculator';
-// Deduplicated fetch
 export { clearFetchCache, deduplicatedFetch } from './deduplicatedFetch';
 export type { EasingFunction, EasingPresetName } from './easing';
 // Easing utilities

@@ -48,7 +48,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-// Mock services
 vi.mock('@genfeedai/services/billing/stripe.service', () => ({
   StripeService: {
     getInstance: vi.fn(() => mockStripeService),

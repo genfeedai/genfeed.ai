@@ -1,5 +1,3 @@
-// ─── Constants ───────────────────────────────────────────────────────
-
 export const IMAGE_SCORING_PROMPT = `You are a professional social media content quality analyst.
 Rate this image content quality 1-10 for social media use, with short feedback notes and concrete suggestions.
 

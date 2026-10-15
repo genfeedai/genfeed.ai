@@ -10,10 +10,6 @@ import { expect } from '@playwright/test';
  * @module test-helpers
  */
 
-// ----------------------------------------------------------------------------
-// Wait Helpers
-// ----------------------------------------------------------------------------
-
 /**
  * Waits for a specific network request to complete
  *
@@ -119,10 +115,6 @@ export async function waitForToast(
   return toast;
 }
 
-// ----------------------------------------------------------------------------
-// Navigation Helpers
-// ----------------------------------------------------------------------------
-
 /**
  * Navigates to a specific route and waits for it to load
  *
@@ -164,10 +156,6 @@ export async function selectDropdownOption(
   await page.click(triggerSelector);
   await page.getByRole('option', { name: optionText }).click();
 }
-
-// ----------------------------------------------------------------------------
-// Form Helpers
-// ----------------------------------------------------------------------------
 
 /**
  * Fills a form field by label
@@ -212,10 +200,6 @@ export async function submitForm(
   await page.click(submitSelector);
   await page.waitForLoadState('domcontentloaded');
 }
-
-// ----------------------------------------------------------------------------
-// Assertion Helpers
-// ----------------------------------------------------------------------------
 
 /**
  * Asserts that a page has a specific title
@@ -275,10 +259,6 @@ export async function assertListCount(
   const items = page.locator(listSelector);
   await expect(items).toHaveCount(count);
 }
-
-// ----------------------------------------------------------------------------
-// Interaction Helpers
-// ----------------------------------------------------------------------------
 
 /**
  * Clicks a button by its text content
@@ -347,10 +327,6 @@ export async function dragAndDrop(
   await source.dragTo(target);
 }
 
-// ----------------------------------------------------------------------------
-// Modal/Dialog Helpers
-// ----------------------------------------------------------------------------
-
 /**
  * Waits for a modal to appear
  *
@@ -410,10 +386,6 @@ export async function confirmDialog(page: Page): Promise<void> {
     }
   }
 }
-
-// ----------------------------------------------------------------------------
-// Storage/State Helpers
-// ----------------------------------------------------------------------------
 
 /**
  * Sets local storage items
@@ -481,10 +453,6 @@ export async function setCookies(
     })),
   );
 }
-
-// ----------------------------------------------------------------------------
-// Screenshot/Debug Helpers
-// ----------------------------------------------------------------------------
 
 /**
  * Takes a screenshot with a descriptive name

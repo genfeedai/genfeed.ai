@@ -597,8 +597,6 @@ function upload(artefacts: Artefacts, prefix: string): void {
   }
 }
 
-// ─── Entrypoint ─────────────────────────────────────────────────────────────
-
 /**
  * Every scene at once, and one refusal does not take the batch down with it.
  *

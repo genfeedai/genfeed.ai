@@ -66,7 +66,6 @@ export function planPartialExecution(
   const errors: string[] = [];
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
-  // Validate selected nodes exist
   for (const nodeId of selectedNodeIds) {
     if (!nodeMap.has(nodeId)) {
       errors.push(`Node ${nodeId} not found in workflow`);

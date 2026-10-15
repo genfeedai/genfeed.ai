@@ -95,7 +95,6 @@ export default function ModalGallery({
     onClose();
   };
 
-  // Get format label
   const getFormatLabel = (formatValue?: IngredientFormat) => {
     const fmt = formatValue || localFormat;
     switch (fmt) {
@@ -205,7 +204,6 @@ export default function ModalGallery({
           onUseAccountReference={handleUseAccountReference}
         />
 
-        {/* Content area with scroll */}
         <div className="flex-1 overflow-y-auto p-4">
           <ModalGalleryContent
             category={category}

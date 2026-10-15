@@ -27,7 +27,6 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8">
-        {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
           {logoUrl && (
             <Image
@@ -55,7 +54,6 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
             />
           ) : null}
 
-          {/* Step content */}
           <div className={isBrandSetup ? 'mt-6' : 'mt-12'}>{children}</div>
 
           {showCloudFooter ? (

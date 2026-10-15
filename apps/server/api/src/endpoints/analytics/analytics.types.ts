@@ -8,10 +8,6 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IEntityAnalyticsStats } from '@genfeedai/contracts/interfaces';
 
-// ---------------------------------------------------------------------------
-// Admin summary
-// ---------------------------------------------------------------------------
-
 /** Stable projection serialized by GET /analytics. */
 export interface AnalyticsAdminSummary {
   activeBots: number;
@@ -33,10 +29,6 @@ export interface AnalyticsAdminSummary {
   viewsGrowth: number;
 }
 
-// ---------------------------------------------------------------------------
-// Date range
-// ---------------------------------------------------------------------------
-
 /** Parsed date range covering both current and previous periods */
 export interface DateRange {
   startDate: Date;
@@ -44,10 +36,6 @@ export interface DateRange {
   previousStartDate: Date;
   previousEndDate: Date;
 }
-
-// ---------------------------------------------------------------------------
-// Entity-leaderboard internal types
-// ---------------------------------------------------------------------------
 
 /**
  * Organization document with aggregated fields.
@@ -146,10 +134,6 @@ export interface PaginationSlice<TItem> {
     totalPages: number;
   };
 }
-
-// ---------------------------------------------------------------------------
-// Analytics-export internal types
-// ---------------------------------------------------------------------------
 
 export interface ExportPostData {
   id: string;

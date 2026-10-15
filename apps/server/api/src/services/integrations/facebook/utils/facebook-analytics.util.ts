@@ -57,7 +57,6 @@ export function parseFacebookAnalytics(
     ? 'likes.summary.total_count'
     : 'reactions.summary.total_count';
 
-  // Extract insights metrics
   const getInsightValue = (metricName: string): number => {
     const insight = (insights as FacebookInsight[]).find(
       (i) => i.name === metricName,
@@ -71,10 +70,8 @@ export function parseFacebookAnalytics(
     (data.comments?.summary?.total_count ?? 0) +
     (data.shares?.count ?? 0);
 
-  // Calculate engagement rate
   const engagementRate = views > 0 ? (interactions / views) * 100 : 0;
 
-  // Extract reaction breakdown
   const reactions: Record<string, number> = {};
   if (data.reactions?.data) {
     (data.reactions.data as FacebookReaction[]).forEach((reaction) => {

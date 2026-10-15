@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export interface SendEmailResult {
   /** Whether an email was dispatched. False when the upstream node skipped. */
   sent: boolean;
@@ -30,10 +26,6 @@ export type EmailSender = (params: {
   subject: string;
   to: string;
 }) => Promise<void>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Send Email Executor

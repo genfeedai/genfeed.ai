@@ -68,9 +68,6 @@ describe('AnalyticsExportService', () => {
     });
   });
 
-  // ==========================================================================
-  // exportData
-  // ==========================================================================
   describe('exportData', () => {
     beforeEach(() => {
       mockPostsService.findAll.mockResolvedValue({ docs: [] });
@@ -343,9 +340,6 @@ describe('AnalyticsExportService', () => {
     });
   });
 
-  // ==========================================================================
-  // exportVideoStatsCsv
-  // ==========================================================================
   describe('exportVideoStatsCsv', () => {
     it('should return CSV with video stats fields', async () => {
       mockPostsService.findAll.mockResolvedValue({

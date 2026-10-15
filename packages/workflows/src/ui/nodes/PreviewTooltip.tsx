@@ -14,7 +14,6 @@ interface PreviewTooltipProps {
   isVisible: boolean;
 }
 
-// Calculate tooltip position based on anchor and viewport
 function calculatePosition(anchorRect: DOMRect): {
   top: number;
   left: number;
@@ -31,7 +30,6 @@ function calculatePosition(anchorRect: DOMRect): {
   const spaceAbove = anchorRect.top - padding;
   const placement = spaceAbove >= tooltipHeight + offset ? 'top' : 'bottom';
 
-  // Calculate vertical position
   const top =
     placement === 'top'
       ? anchorRect.top - tooltipHeight - offset
@@ -55,12 +53,10 @@ export function PreviewTooltip({
 }: PreviewTooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Get media info
   const mediaInfo = useMemo(() => {
     return getMediaFromNode(nodeType, nodeData);
   }, [nodeType, nodeData]);
 
-  // Calculate position
   const position = useMemo(() => {
     if (!anchorRect) return null;
     return calculatePosition(anchorRect);

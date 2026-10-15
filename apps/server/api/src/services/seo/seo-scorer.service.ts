@@ -153,8 +153,6 @@ export class SeoScorerService {
     return scorecard;
   }
 
-  // ─── Persistence ────────────────────────────────────────────────────────
-
   private async persist(
     type: SeoScorableType,
     id: string,

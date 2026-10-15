@@ -70,7 +70,6 @@ export function BrandCreateCard({
         </p>
       )}
 
-      {/* Name input */}
       <div className="mb-3">
         <label
           className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
@@ -87,7 +86,6 @@ export function BrandCreateCard({
         />
       </div>
 
-      {/* Description input */}
       <div className="mb-3">
         <label
           className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
@@ -111,7 +109,6 @@ export function BrandCreateCard({
         </p>
       )}
 
-      {/* Create button */}
       <Button
         variant={ButtonVariant.DEFAULT}
         onClick={handleCreate}

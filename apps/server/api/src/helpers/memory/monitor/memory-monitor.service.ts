@@ -25,7 +25,6 @@ export class MemoryMonitorService implements OnModuleDestroy {
     private readonly loggerService: LoggerService,
     private readonly configService: ConfigService,
   ) {
-    // Get max heap size from V8
     const heapStats = v8.getHeapStatistics();
     this.maxHeapSize = heapStats.heap_size_limit;
 
@@ -47,7 +46,6 @@ export class MemoryMonitorService implements OnModuleDestroy {
    * Start memory monitoring
    */
   private startMonitoring(intervalMs = 30_000): void {
-    // Check every 30 seconds
     this.monitorInterval = setInterval(() => {
       this.checkMemory();
     }, intervalMs);

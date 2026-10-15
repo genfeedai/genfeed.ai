@@ -2,12 +2,6 @@ import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ────────────────────────────────────────────────────────────
-// Mocks — everything outside the hook. `@genfeedai/client/schemas`
-// is deliberately left real: the pending/failed predicates are part
-// of what these tests cover.
-// ────────────────────────────────────────────────────────────
-
 const {
   mergeProgress,
   mockImagesFindOne,
@@ -140,10 +134,6 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 import { useStoryboardWorkspace } from './use-storyboard-workspace';
-
-// ────────────────────────────────────────────────────────────
-// Fixtures
-// ────────────────────────────────────────────────────────────
 
 function makeImage(id: string): IImage {
   return {

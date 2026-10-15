@@ -117,7 +117,6 @@ export class TemplatesService {
       purpose: dto.purpose,
     });
 
-    // Extract variables from template content
     const extractedVariables = this.extractVariables(dto.content);
 
     // Merge extracted with provided variables

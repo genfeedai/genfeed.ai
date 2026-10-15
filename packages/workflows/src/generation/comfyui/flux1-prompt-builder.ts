@@ -1,9 +1,5 @@
 import type { ComfyUIPrompt } from '@genfeedai/contracts/types';
 
-// =============================================================================
-// FLUX DEV — text-to-image via FLUX.1 Dev checkpoint
-// =============================================================================
-
 export interface FluxDevParams {
   prompt: string;
   seed?: number;
@@ -85,10 +81,6 @@ export function buildFluxDevPrompt(params: FluxDevParams): ComfyUIPrompt {
     },
   };
 }
-
-// =============================================================================
-// FLUX DEV + PuLID — face-consistent image generation (Flux 1)
-// =============================================================================
 
 export interface PulidFluxParams {
   prompt: string;

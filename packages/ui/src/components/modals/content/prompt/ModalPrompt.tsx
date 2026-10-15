@@ -79,7 +79,6 @@ export default function ModalPrompt({
   return (
     <Modal id={ModalEnum.PROMPT} title="Prompt Details" error={error}>
       <div className="space-y-6">
-        {/* First row (Original Prompt) full width */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-semibold">{rows[0].label}</h4>
@@ -98,7 +97,6 @@ export default function ModalPrompt({
           </p>
         </div>
 
-        {/* Remaining rows in two columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {rows.slice(1).map((row) => (
             <div key={row.label}>

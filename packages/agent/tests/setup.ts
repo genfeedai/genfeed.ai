@@ -18,7 +18,6 @@ beforeAll(async () => {
   await preloadButtonTooltip();
 }, TOOLTIP_PRELOAD_TIMEOUT_MS);
 
-// Ensure DOM environment is available
 if (typeof global.document === 'undefined') {
   const { JSDOM } = require('jsdom');
   const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {

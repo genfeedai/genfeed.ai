@@ -450,7 +450,6 @@ describe('SkillRegistryService', () => {
 
       await service.getRegistry();
 
-      // Expire cache
       getMutableService().cacheExpiresAt = 0;
 
       await service.getBundleStripePriceId();

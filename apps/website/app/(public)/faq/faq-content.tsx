@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-// Map category names to icons
 const CATEGORY_ICONS: Record<string, ReactNode> = {
   'Content Creation': <Sparkles className="size-5" />,
   'Features & Access': <Box className="size-5" />,
@@ -49,10 +48,8 @@ export default function FAQContent() {
         title="FAQ"
         description="Pricing, features, and how to get access to Genfeed"
       >
-        {/* Two-column layout */}
         <section className="max-w-4xl mx-auto pb-8">
           <div className="gsap-grid grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12">
-            {/* Left column - FAQ content */}
             <div className="space-y-12">
               <div className="gsap-hero">
                 <h2 className="text-4xl font-semibold mb-4">
@@ -101,10 +98,8 @@ export default function FAQContent() {
               ))}
             </div>
 
-            {/* Right column - Sticky sidebar */}
             <div className="hidden lg:block">
               <div className="sticky top-24 space-y-6">
-                {/* Category navigation */}
                 <div className="gen-card-spotlight p-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                     Jump to

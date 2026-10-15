@@ -67,7 +67,6 @@ describe('useEvaluation', () => {
     scoped.key = 'scope-a';
     scoped.invalidate.mockResolvedValue(undefined);
 
-    // Setup useAuthedService mock
     (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
       vi.fn().mockResolvedValue({
         evaluateArticle: mockEvaluateArticle,
@@ -81,7 +80,6 @@ describe('useEvaluation', () => {
       }),
     );
 
-    // Setup NotificationsService mock
     (
       NotificationsService.getInstance as ReturnType<typeof vi.fn>
     ).mockReturnValue({

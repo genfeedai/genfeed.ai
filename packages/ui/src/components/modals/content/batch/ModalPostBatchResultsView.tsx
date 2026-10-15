@@ -24,7 +24,6 @@ export default function ModalPostBatchResultsView({
   return (
     <div className="h-full flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-2">Submission Status</h2>
 
@@ -40,7 +39,6 @@ export default function ModalPostBatchResultsView({
           </p>
         </div>
 
-        {/* Platform statuses */}
         <div className="space-y-2">
           {platformStatuses.map((status) => {
             const PlatformIcon =

@@ -16,8 +16,6 @@ import type {
 import type { ClipsApiClient } from '@props/studio/clips-api.props';
 import type { ReactNode } from 'react';
 
-// ─── Shared Types ─────────────────────────────────────────────────
-
 export type AvatarProvider = 'argil' | 'genfeedai' | 'heygen';
 
 export type ClipStatus = ClipResultStatus;
@@ -47,8 +45,6 @@ export interface ClipProjectSummary {
   sourceVideoUrl?: string;
   status: string;
 }
-
-// ─── Data Interfaces ──────────────────────────────────────────────
 
 export interface ProviderOption {
   value: AvatarProvider;
@@ -107,8 +103,6 @@ export interface ProjectState {
   source?: ClipSourceContract;
   hookApproval?: HookClipApprovalStatus;
 }
-
-// ─── Component Props ──────────────────────────────────────────────
 
 export interface ViralityBadgeProps {
   score: number;

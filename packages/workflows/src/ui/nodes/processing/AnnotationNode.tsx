@@ -22,7 +22,6 @@ function AnnotationNodeComponent(props: NodeProps) {
     (state) => state.getConnectedInputs,
   );
 
-  // Get the input image from connections
   const connectedInputs = getConnectedInputs(id);
   const inputImage =
     (connectedInputs.get('image') as string) ?? nodeData.inputImage;
@@ -71,7 +70,6 @@ function AnnotationNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       <div className="flex flex-col gap-3">
-        {/* Preview */}
         {inputImage ? (
           <div className="relative">
             <Image
@@ -96,7 +94,6 @@ function AnnotationNodeComponent(props: NodeProps) {
           </div>
         )}
 
-        {/* Edit Button */}
         <Button
           withWrapper={false}
           onClick={handleEditAnnotations}
@@ -112,7 +109,6 @@ function AnnotationNodeComponent(props: NodeProps) {
           {nodeData.hasAnnotations ? 'Edit Annotations' : 'Add Annotations'}
         </Button>
 
-        {/* Annotation Count */}
         {nodeData.hasAnnotations && (
           <p className="text-center text-xs text-muted-foreground">
             {nodeData.annotations?.length ?? 0} annotation

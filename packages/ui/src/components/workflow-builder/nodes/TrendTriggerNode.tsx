@@ -97,7 +97,6 @@ function TrendTriggerNodeComponent({
 
   return (
     <div className="space-y-3">
-      {/* Platform Selection */}
       <div>
         <span id={platformGroupId} className="text-xs text-muted-foreground">
           Platform

@@ -29,7 +29,6 @@ export default function ModalGalleryFooter({
   return (
     <div className="border-t border-white/[0.08] p-4 mt-4">
       <div className="flex justify-between items-center mb-4">
-        {/* Pagination on the left */}
         <div className="flex items-center">
           {!isLoading && (
             <Pagination
@@ -40,9 +39,7 @@ export default function ModalGalleryFooter({
           )}
         </div>
 
-        {/* Action buttons to the right */}
         <div className="flex items-center gap-2">
-          {/* Image action buttons - references tab */}
           {category === IngredientCategory.IMAGE &&
             activeTab === 'references' &&
             selectedItems.length > 0 && (

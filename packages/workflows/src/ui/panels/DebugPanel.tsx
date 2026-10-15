@@ -52,7 +52,6 @@ function PayloadCard({ payload }: PayloadCardProps) {
 
   return (
     <div className="border border-border overflow-hidden">
-      {/* Header - always visible */}
       <Button
         withWrapper={false}
         variant={ButtonVariant.GHOST}
@@ -79,7 +78,6 @@ function PayloadCard({ payload }: PayloadCardProps) {
         </div>
       </Button>
 
-      {/* Expanded content */}
       {isExpanded && (
         <div className="border-t border-border p-3 bg-muted/30">
           <div className="flex items-center justify-between mb-2">
@@ -117,7 +115,6 @@ function DebugPanelComponent() {
 
   return (
     <PanelContainer className="w-80 h-full border-l border-border bg-background flex flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Bug className="size-4 text-muted-foreground" />
@@ -151,7 +148,6 @@ function DebugPanelComponent() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {debugPayloads.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">

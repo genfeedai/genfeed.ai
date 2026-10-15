@@ -23,7 +23,6 @@ export default function XArticleAssetsBar({
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-4">
-        {/* Stats */}
         <div className="flex items-center gap-4 text-sm text-foreground/60">
           <span className="tabular-nums">
             {metadata.wordCount.toLocaleString()} words
@@ -35,7 +34,6 @@ export default function XArticleAssetsBar({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Copy Full Article */}
           <Button
             label="Copy for X Article"
             variant={ButtonVariant.SECONDARY}
@@ -68,7 +66,6 @@ export default function XArticleAssetsBar({
             />
           )}
 
-          {/* Header ImageIcon */}
           {hasHeaderImage ? (
             <div className="flex items-center gap-2">
               <div className="relative h-10 w-16 overflow-hidden rounded border border-white/[0.08]">

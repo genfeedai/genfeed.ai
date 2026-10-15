@@ -123,7 +123,6 @@ export class DiscordController {
       );
     }
 
-    // Get user info
     const userInfo = await this.discordService.getUserInfo(
       tokenData.access_token,
     );

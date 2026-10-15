@@ -18,7 +18,6 @@ vi.mock('file-saver', () => ({
   saveAs: mockSaveAs,
 }));
 
-// Mock ingredient type util
 vi.mock('@utils/media/ingredient-type.util', () => ({
   getIngredientExtension: vi.fn((ingredient: IIngredient) => {
     if (ingredient.category === IngredientCategory.VIDEO) {
@@ -38,7 +37,6 @@ vi.mock('@utils/media/ingredient-type.util', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock window.open
 const mockWindowOpen = vi.fn();
 global.window = {
   ...global.window,

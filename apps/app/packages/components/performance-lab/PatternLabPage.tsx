@@ -196,7 +196,6 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
     >
       {filterBar}
 
-      {/* Error state */}
       {error && !isLoading && (
         <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
@@ -208,7 +207,6 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
         </Alert>
       )}
 
-      {/* Loading skeleton */}
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {SKELETON_IDS.map((id) => (
@@ -217,7 +215,6 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
         </div>
       )}
 
-      {/* Empty state */}
       {!isLoading && !error && patterns.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="p-4 bg-background-tertiary mb-4">
@@ -234,7 +231,6 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
         </div>
       )}
 
-      {/* Pattern grid */}
       {!isLoading && !error && patterns.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {patterns.map((pattern) => (

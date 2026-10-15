@@ -59,10 +59,6 @@ const videoActionVerbSchema = z.enum([
 ]);
 const videoDispatchModeSchema = z.enum(['native', 'fabricated']);
 
-// ---------------------------------------------------------------------------
-// Support (compiler resolution)
-// ---------------------------------------------------------------------------
-
 export const prunaaiPVideoCompileSupportSchema = z
   .object({
     compilerId: z.literal(PRUNAAI_P_VIDEO_COMPILER_ID),
@@ -112,10 +108,6 @@ export const videoGenerationBriefSupportSchema = z.union([
   remainingVideoCompileSupportSchema,
   videoGenerationBriefExemptSupportSchema,
 ]);
-
-// ---------------------------------------------------------------------------
-// Evidence
-// ---------------------------------------------------------------------------
 
 export const videoGenerationBriefCompileEvidenceOutputSchema = z
   .object({
@@ -254,10 +246,6 @@ export const H3_MAX_VIDEO_COMPILER_ID = 'h3-max-video-compiler';
 export const HEYGEN_VIDEO_COMPILER_ID = 'heygen-video-compiler';
 export const HIGGSFIELD_GENJUTSU_VIDEO_COMPILER_ID =
   'higgsfield-genjutsu-video-compiler';
-
-// ---------------------------------------------------------------------------
-// Dispatch shapes
-// ---------------------------------------------------------------------------
 
 export const prunaaiPVideoDispatchSchema = z
   .object({

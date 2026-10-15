@@ -14,7 +14,6 @@ const normalizeOriginalError = (
     return undefined;
   }
 
-  // Handle primitive types
   if (typeof originalError !== 'object') {
     const primitiveValue =
       typeof originalError === 'string' ||

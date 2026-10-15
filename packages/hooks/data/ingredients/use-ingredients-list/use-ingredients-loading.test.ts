@@ -148,7 +148,6 @@ describe('useIngredientsLoading', () => {
 
   it('initializes isLoading state', () => {
     const { result } = renderHook(() => useIngredientsLoading(baseProps));
-    // isLoading is a boolean
     expect(typeof result.current.isLoading).toBe('boolean');
   });
 

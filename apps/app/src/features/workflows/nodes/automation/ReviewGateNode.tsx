@@ -244,7 +244,6 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         Pause workflow for human review and approval before proceeding.
       </NodeDescription>
 
-      {/* Media Preview */}
       {data.inputMedia && (
         <MediaPreview
           src={data.inputMedia}
@@ -254,14 +253,12 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         />
       )}
 
-      {/* Caption preview */}
       {data.inputCaption && (
         <div className="p-2 bg-tertiary text-xs max-h-16 overflow-y-auto">
           {data.inputCaption}
         </div>
       )}
 
-      {/* Notification Channels */}
       {isPending && (
         <div className="space-y-2">
           <span className="text-xs text-muted-foreground">Notify via</span>
@@ -312,7 +309,6 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         </div>
       )}
 
-      {/* Timeout settings */}
       {isPending && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -336,7 +332,6 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         </div>
       )}
 
-      {/* Approval actions */}
       {showApprovalButtons && (
         <div className="flex gap-2">
           <NodeButton
@@ -358,7 +353,6 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         </div>
       )}
 
-      {/* Status details */}
       {data.approvalStatus === ReviewGateStatus.APPROVED && data.approvedBy && (
         <div className="text-xs text-muted-foreground">
           Approved by {data.approvedBy} at{' '}

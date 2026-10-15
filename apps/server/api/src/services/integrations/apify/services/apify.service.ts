@@ -60,16 +60,12 @@ export class ApifyService {
     private readonly loggerService: LoggerService,
   ) {}
 
-  // ==================== Base (delegated to ApifyBaseService) ====================
-
   /**
    * Run an Apify actor and wait for results
    */
   runActor<T>(actorId: string, input: object): Promise<T[]> {
     return this.baseService.runActor<T>(actorId, input);
   }
-
-  // ==================== TikTok ====================
 
   getTikTokTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.tiktokService.getTikTokTrends(options);
@@ -116,8 +112,6 @@ export class ApifyService {
     return this.tiktokService.searchTikTokByHashtag(hashtag, options);
   }
 
-  // ==================== Instagram ====================
-
   getInstagramTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.instagramService.getInstagramTrends(options);
   }
@@ -161,8 +155,6 @@ export class ApifyService {
   ): Promise<ApifyInstagramPost[]> {
     return this.instagramService.searchInstagramByHashtag(hashtag, options);
   }
-
-  // ==================== Twitter/X ====================
 
   getTwitterTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.twitterService.getTwitterTrends(options);
@@ -213,8 +205,6 @@ export class ApifyService {
     return this.twitterService.searchTwitterTweets(query, options);
   }
 
-  // ==================== YouTube ====================
-
   getYouTubeTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.youtubeService.getYouTubeTrends(options);
   }
@@ -256,8 +246,6 @@ export class ApifyService {
     return this.youtubeService.searchYouTubeVideos(query, options);
   }
 
-  // ==================== Reddit ====================
-
   getRedditTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.redditService.getRedditTrends(options);
   }
@@ -294,8 +282,6 @@ export class ApifyService {
     return this.redditService.searchRedditPosts(query, options);
   }
 
-  // ==================== LinkedIn ====================
-
   getLinkedInProfilePosts(
     profileUrl: string,
     options?: { limit?: number },
@@ -308,13 +294,9 @@ export class ApifyService {
     );
   }
 
-  // ==================== Pinterest ====================
-
   getPinterestTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     return this.pinterestService.getPinterestTrends(options);
   }
-
-  // ==================== Hashtags (Multi-Platform) ====================
 
   /**
    * Get trending hashtags from a specific platform

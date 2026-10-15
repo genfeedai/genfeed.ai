@@ -184,14 +184,10 @@ describe('ReplicatePromptBuilder', () => {
     });
 
     it('should return false for non-Replicate models', () => {
-      // Use a non-replicate model key
       expect(builder.supportsModel(MODEL_KEYS.HEYGEN_AVATAR)).toBe(false);
     });
   });
 
-  // ==========================================================================
-  // OpenAI Sora Models
-  // ==========================================================================
   describe('buildPrompt - OpenAI Sora 2', () => {
     it('should build prompt for Sora 2', () => {
       const result = builder.buildPrompt(
@@ -264,9 +260,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Google Veo Models
-  // ==========================================================================
   describe('buildPrompt - Google Veo 2', () => {
     it('should build prompt for Veo 2', () => {
       const result = builder.buildPrompt(
@@ -410,9 +403,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Google Imagen Models
-  // ==========================================================================
   describe('buildPrompt - Google Imagen', () => {
     it('should build prompt for Imagen 4', () => {
       const result = builder.buildPrompt(
@@ -449,9 +439,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Google Nano Banana Models
-  // ==========================================================================
   describe('buildPrompt - Google Nano Banana', () => {
     it('should build prompt for Nano Banana with image input', () => {
       const result = builder.buildPrompt(
@@ -488,9 +475,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Ideogram Models
-  // ==========================================================================
   describe('buildPrompt - Ideogram Character', () => {
     it('should build prompt for Ideogram Character with required reference', () => {
       const result = builder.buildPrompt(
@@ -543,9 +527,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // ByteDance SeeDream Models
-  // ==========================================================================
   describe('buildPrompt - ByteDance SeeDream', () => {
     it('should build prompt for SeeDream 4', () => {
       const result = builder.buildPrompt(
@@ -578,9 +559,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // FLUX Models
-  // ==========================================================================
   describe('buildPrompt - FLUX 1.1 Pro', () => {
     it('should build prompt for FLUX 1.1 Pro', () => {
       const result = builder.buildPrompt(
@@ -737,9 +715,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Meta MusicGen
-  // ==========================================================================
   describe('buildPrompt - Meta MusicGen', () => {
     it('should build prompt for MusicGen', () => {
       const result = builder.buildPrompt(
@@ -769,9 +744,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Topaz Models
-  // ==========================================================================
   describe('buildPrompt - Topaz Image Upscale', () => {
     it('should build prompt for image upscaling', () => {
       const result = builder.buildPrompt(
@@ -810,9 +782,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Luma Models
-  // ==========================================================================
   describe('buildPrompt - Luma Reframe Image', () => {
     it('should build prompt for Luma Reframe Image', () => {
       const result = builder.buildPrompt(
@@ -848,9 +817,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // WAN Video Models
-  // ==========================================================================
   describe('buildPrompt - WAN Video 2.2 I2V Fast', () => {
     it('should build prompt for WAN Video with image', () => {
       const result = builder.buildPrompt(
@@ -917,9 +883,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Kling Models
-  // ==========================================================================
   describe('buildPrompt - Kling V2.1', () => {
     it('should build prompt for Kling V2.1', () => {
       const result = builder.buildPrompt(
@@ -997,9 +960,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // LLM Models
-  // ==========================================================================
   describe('buildPrompt - DeepSeek R1', () => {
     it('should build prompt for DeepSeek R1', () => {
       const result = builder.buildPrompt(
@@ -1099,9 +1059,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Custom/Trained Models
-  // ==========================================================================
   describe('buildPrompt - Custom Models', () => {
     it('should handle custom trained models via generic image builder', () => {
       const customModel = 'genfeedai/custom-flux:v1' as string;
@@ -1127,9 +1084,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Trained-model safety checker (ADR-PROMPT-MODERATION-STANCE / #3012)
-  // ==========================================================================
   describe('buildTrainedModelPrompt - safety checker', () => {
     it('keeps disable_safety_checker true on the trained-model owner path', () => {
       const result = buildTrainedModelPrompt(
@@ -1167,9 +1121,6 @@ describe('ReplicatePromptBuilder', () => {
     });
   });
 
-  // ==========================================================================
-  // Edge Cases
-  // ==========================================================================
   describe('Edge Cases', () => {
     it('should handle empty params', () => {
       const result = builder.buildPrompt(

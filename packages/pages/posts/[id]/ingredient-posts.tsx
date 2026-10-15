@@ -41,7 +41,6 @@ export default function IngredientPosts({
 
   return (
     <Container>
-      {/* Back button */}
       <div className="mb-6">
         <Button asChild variant={ButtonVariant.GHOST}>
           <Link href={getPublishingPostsHref()}>
@@ -51,9 +50,7 @@ export default function IngredientPosts({
         </Button>
       </div>
 
-      {/* Ingredient header */}
       <div className="mb-8 flex flex-col md:flex-row gap-6 items-start">
-        {/* Thumbnail */}
         <div className="relative size-32 bg-background overflow-hidden flex-shrink-0">
           {ingredient.thumbnailUrl ? (
             <Image
@@ -70,7 +67,6 @@ export default function IngredientPosts({
           )}
         </div>
 
-        {/* Info */}
         <div className="flex-1">
           <h2 className="text-3xl font-bold mb-2">
             {ingredient.metadataLabel || 'Untitled Ingredient'}
@@ -82,7 +78,6 @@ export default function IngredientPosts({
             </p>
           )}
 
-          {/* Metrics */}
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <FileText className="text-xl text-primary" />
@@ -99,7 +94,6 @@ export default function IngredientPosts({
             </div>
           </div>
 
-          {/* Category */}
           {ingredient.category && (
             <div className="mt-4">
               <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-primary/10 text-primary">
@@ -110,7 +104,6 @@ export default function IngredientPosts({
         </div>
       </div>
 
-      {/* Posts grid */}
       {posts.length === 0 ? (
         <CardEmpty
           label={EMPTY_STATES.POSTS_YET}

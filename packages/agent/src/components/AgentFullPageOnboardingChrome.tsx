@@ -47,7 +47,6 @@ export function AgentFullPageOnboardingChrome({
 
   return (
     <>
-      {/* Desktop sidebar */}
       <div className="w-80 shrink-0 border-l border-foreground/[0.06] max-md:hidden">
         <AgentOnboardingChecklist
           brandContext={brandContext}
@@ -62,7 +61,6 @@ export function AgentFullPageOnboardingChrome({
         />
       </div>
 
-      {/* Mobile bottom bar + drawer */}
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}

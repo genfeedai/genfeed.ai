@@ -156,20 +156,17 @@ describe('Organizations E2E Tests', () => {
   beforeEach(async () => {
     await dbHelper.clearDatabase();
 
-    // Create test user
     testUser = createTestUser({
       id: generateIdString(),
       email: 'org-test@example.com',
     });
 
-    // Create test organization
     testOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Test Organization for E2E',
       userId: testUser.id,
     });
 
-    // Create test brand
     testBrand = createTestBrand({
       id: generateIdString(),
       label: 'Test Brand',

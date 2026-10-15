@@ -45,8 +45,6 @@ describe('SkillCheckoutController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── createCheckout ─────────────────────────────────────────────────────
-
   describe('createCheckout', () => {
     it('should call service and return its result', async () => {
       const mockResult = { url: 'https://checkout.stripe.com/pay/cs_test_abc' };

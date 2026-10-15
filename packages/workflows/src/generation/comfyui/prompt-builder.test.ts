@@ -157,10 +157,6 @@ describe('buildFluxDevPrompt (legacy Flux 1)', () => {
   });
 });
 
-// =============================================================================
-// Flux 2 PuLID + 4K Upscale — full pipeline verification (#61)
-// =============================================================================
-
 describe('buildFlux2DevPulidUpscalePrompt', () => {
   const baseParams: Flux2PulidUpscaleParams = {
     faceImage: 'test-face.png',
@@ -170,9 +166,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
 
   const prompt = buildFlux2DevPulidUpscalePrompt(baseParams);
 
-  // ---------------------------------------------------------------------------
-  // Split loading — UNETLoader + CLIPLoader (no CheckpointLoaderSimple)
-  // ---------------------------------------------------------------------------
   describe('split loading', () => {
     it('uses UNETLoader with flux2 dev fp8 model', () => {
       expect(prompt['1']).toEqual({
@@ -207,9 +200,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // PuLID face consistency pipeline
-  // ---------------------------------------------------------------------------
   describe('PuLID pipeline', () => {
     it('loads PuLID model adapter', () => {
       expect(prompt['3']).toEqual({
@@ -259,9 +249,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Text encoding — CLIPTextEncode → FluxGuidance
-  // ---------------------------------------------------------------------------
   describe('text encoding', () => {
     it('encodes positive prompt via CLIPLoader output', () => {
       expect(prompt['8']).toEqual({
@@ -294,9 +281,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Sampling — KSampler wiring
-  // ---------------------------------------------------------------------------
   describe('sampling', () => {
     it('KSampler receives PuLID-modified model from ApplyPulid', () => {
       expect(prompt['13'].inputs.model).toEqual(['7', 0]);
@@ -328,9 +312,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // VAEDecode — latent → pixel
-  // ---------------------------------------------------------------------------
   describe('VAE decode', () => {
     it('decodes sampler output using separate VAELoader', () => {
       expect(prompt['14']).toEqual({
@@ -343,9 +324,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // 4x Upscale pipeline
-  // ---------------------------------------------------------------------------
   describe('upscale pipeline', () => {
     it('loads 4x-UltraSharp upscale model by default', () => {
       expect(prompt['15']).toEqual({
@@ -379,9 +357,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Default dimensions — Instagram 4:5 base for 4x upscale
-  // ---------------------------------------------------------------------------
   describe('default dimensions', () => {
     it('defaults to 832x1216 (Instagram 4:5 at base resolution)', () => {
       expect(prompt['12'].inputs.width).toBe(832);
@@ -389,9 +364,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Parameter passthrough
-  // ---------------------------------------------------------------------------
   describe('parameter passthrough', () => {
     it('passes custom dimensions', () => {
       const custom = buildFlux2DevPulidUpscalePrompt({
@@ -454,9 +426,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Node count — ensures no orphan or missing nodes
-  // ---------------------------------------------------------------------------
   describe('graph integrity', () => {
     it('has exactly 17 nodes', () => {
       expect(Object.keys(prompt)).toHaveLength(17);
@@ -483,9 +452,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Structural parity with non-upscale PuLID variant
-  // ---------------------------------------------------------------------------
   describe('parity with buildFlux2DevPulidPrompt', () => {
     const base = buildFlux2DevPulidPrompt({
       faceImage: 'test-face.png',

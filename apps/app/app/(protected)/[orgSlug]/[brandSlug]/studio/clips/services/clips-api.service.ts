@@ -39,10 +39,6 @@ export type {
   SubmitHookApprovalPayload,
 } from '@genfeedai/props/studio/clips-api.props';
 
-// ─── API Response Types ───────────────────────────────────────────
-
-// ─── Service ──────────────────────────────────────────────────────
-
 export class ClipsApiService implements ClipsApiClient {
   private readonly apiEndpoint: string;
   private readonly getToken: () => Promise<string>;

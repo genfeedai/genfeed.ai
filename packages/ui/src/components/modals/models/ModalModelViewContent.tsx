@@ -52,7 +52,6 @@ export default function ModalModelViewContent({
   return (
     <>
       <div className="space-y-6">
-        {/* Badges row */}
         <div className="flex flex-wrap gap-2">
           <Badge
             className={`border text-xs uppercase ${getModelProviderBadgeClass(model.provider)}`}

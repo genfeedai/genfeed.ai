@@ -9,9 +9,6 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function makeItem(overrides: Record<string, unknown> = {}) {
   return {
     _id: 'test-object-id',
@@ -122,9 +119,6 @@ describe('ContentExecutionService', () => {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // atomic plan execution actions
-  // ---------------------------------------------------------------------------
   describe('atomic plan execution actions', () => {
     it('should validate the plan exists before executing', async () => {
       await executePlanAtomically(orgId, brandId, planId, userId);
@@ -263,9 +257,6 @@ describe('ContentExecutionService', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // executeSingleItem
-  // ---------------------------------------------------------------------------
   describe('executeSingleItem', () => {
     it('should fetch the item and execute it', async () => {
       const item = makeItem();
@@ -349,9 +340,6 @@ describe('ContentExecutionService', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // executeSingleItem — SKILL type
-  // ---------------------------------------------------------------------------
   describe('executeItem (SKILL type)', () => {
     it('should set item status to EXECUTING, then COMPLETED on success', async () => {
       const item = makeItem({ skillSlug: 'seo-blog' });
@@ -477,9 +465,6 @@ describe('ContentExecutionService', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // executeItem — MEDIA_PIPELINE type
-  // ---------------------------------------------------------------------------
   describe('executeItem (media pipeline type)', () => {
     const pipelineItem = makeItem({
       pipelineSteps: [

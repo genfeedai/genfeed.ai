@@ -17,10 +17,8 @@
 #     files are checked.
 #   • CI (no arguments): the whole in-scope tree is scanned.
 #
-# Baseline: scripts/lint-no-bespoke-card.allowlist freezes the surfaces that
-# legitimately (or, for now, historically) carry the signature so the gate is
-# green on master. New violations anywhere else fail. See that file's header for
-# the permanent-vs-migrate split and the tracking issue.
+# Baseline: scripts/lint-no-bespoke-card.allowlist freezes the permanent
+# non-card surfaces. New violations anywhere else fail. See that file's header.
 #
 # Portability: pure POSIX ERE (grep -E). No `grep -P`, `\b`, or lookaheads — the
 # pre-commit hook runs on macOS (BSD grep) and CI runs on Linux (GNU grep).

@@ -195,8 +195,6 @@ export const FLUX_SCHNELL_CAPABILITY_PROFILE =
 
 const ALL_IMAGE_REFERENCE_ROLES = [...imageGenerationReferenceRoleValues];
 
-// --- Imagen (3 / 3 Fast / 4 / 4 Fast / 4 Ultra) --------------------------
-
 export const imagenDispatchDefaultsSchema = z
   .object({
     outputFormat: generationCapabilityIdSchema,
@@ -289,8 +287,6 @@ export const IMAGEN_4_ULTRA_CAPABILITY_PROFILE = buildImagenCapabilityProfile(
   IMAGEN_4_ULTRA_MODEL_KEY,
 );
 
-// --- Nano Banana family ---------------------------------------------------
-
 export const nanoBananaDispatchDefaultsSchema = z
   .object({ outputFormat: generationCapabilityIdSchema })
   .strict();
@@ -350,8 +346,6 @@ export const NANO_BANANA_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: NANO_BANANA_CAPABILITY_PROFILE_VERSION,
   });
-
-// --- Nano Banana 2 family (Pro / 2 / 2 Lite) ------------------------------
 
 export const nanoBanana2DispatchDefaultsSchema = z
   .object({
@@ -476,8 +470,6 @@ export const NANO_BANANA_2_1_CAPABILITY_PROFILE =
     hasSafetyFilterLevel: false,
   });
 
-// --- SeeDream 4 ------------------------------------------------------------
-
 export const seedream4DispatchDefaultsSchema = z
   .object({ enhancePrompt: z.boolean() })
   .strict();
@@ -535,8 +527,6 @@ export const SEEDREAM_4_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: SEEDREAM_4_CAPABILITY_PROFILE_VERSION,
   });
-
-// --- SeeDream 4.5 (shared with SeeDream 5 Lite) ---------------------------
 
 export const seedream45DispatchDefaultsSchema = z
   .object({ size: generationCapabilityIdSchema })
@@ -605,8 +595,6 @@ export const SEEDREAM_5_LITE_CAPABILITY_PROFILE =
     SEEDREAM_5_LITE_MODEL_KEY,
   );
 
-// --- SeeDream 5 Pro ---------------------------------------------------------
-
 export const seedream5ProDispatchDefaultsSchema = z
   .object({
     outputFormat: generationCapabilityIdSchema.optional(),
@@ -657,8 +645,6 @@ export const SEEDREAM_5_PRO_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: SEEDREAM_5_PRO_CAPABILITY_PROFILE_VERSION,
   });
-
-// --- Ideogram Character ------------------------------------------------------
 
 export const ideogramCharacterDispatchDefaultsSchema = z
   .object({ magicPromptOption: generationCapabilityIdSchema })
@@ -725,8 +711,6 @@ export const IDEOGRAM_CHARACTER_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: IDEOGRAM_CAPABILITY_PROFILE_VERSION,
   });
-
-// --- Ideogram V3 (Balanced / Quality / Turbo) ------------------------------
 
 export const ideogramV3DispatchDefaultsSchema = z
   .object({ magicPromptOption: generationCapabilityIdSchema })
@@ -806,8 +790,6 @@ export const IDEOGRAM_V3_TURBO_CAPABILITY_PROFILE =
     IDEOGRAM_V3_TURBO_MODEL_KEY,
   );
 
-// --- FLUX 1.1 Pro ------------------------------------------------------------
-
 export const flux11ProDispatchDefaultsSchema = z
   .object({
     outputFormat: generationCapabilityIdSchema,
@@ -876,8 +858,6 @@ export const FLUX_1_1_PRO_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: FLUX_1_1_PRO_CAPABILITY_PROFILE_VERSION,
   });
-
-// --- FLUX 2 Dev --------------------------------------------------------------
 
 export const flux2DevDispatchDefaultsSchema = z
   .object({
@@ -948,8 +928,6 @@ export const FLUX_2_DEV_CAPABILITY_PROFILE =
     version: FLUX_2_DEV_CAPABILITY_PROFILE_VERSION,
   });
 
-// --- FLUX 2 Flex --------------------------------------------------------------
-
 export const flux2FlexDispatchDefaultsSchema = z
   .object({
     guidance: z.number().min(0).max(10),
@@ -1011,8 +989,6 @@ export const FLUX_2_FLEX_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: FLUX_2_FLEX_CAPABILITY_PROFILE_VERSION,
   });
-
-// --- FLUX 2 Pro (shared with FLUX 2 Max) -------------------------------------
 
 export const flux2ProDispatchDefaultsSchema = z
   .object({
@@ -1082,8 +1058,6 @@ export const FLUX_2_MAX_CAPABILITY_PROFILE = buildFlux2ProCapabilityProfile(
   FLUX_2_MAX_CAPABILITY_PROFILE_ID,
   FLUX_2_MAX_MODEL_KEY,
 );
-
-// --- FLUX Kontext Pro (shared with FLUX Kontext Max) -------------------------
 
 export const fluxKontextProDispatchDefaultsSchema = z
   .object({
@@ -1177,8 +1151,6 @@ export const FLUX_KONTEXT_MAX_CAPABILITY_PROFILE =
     FLUX_KONTEXT_MAX_MODEL_KEY,
   );
 
-// --- Qwen Image ---------------------------------------------------------------
-
 export const qwenImageDispatchDefaultsSchema = z
   .object({
     disableSafetyChecker: z.boolean(),
@@ -1244,8 +1216,6 @@ export const QWEN_IMAGE_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: QWEN_IMAGE_CAPABILITY_PROFILE_VERSION,
   });
-
-// --- RunwayML Gen4 Image Turbo -------------------------------------------------
 
 export const runwayGen4ImageTurboDispatchDefaultsSchema = z
   .object({ resolution: generationCapabilityIdSchema })

@@ -154,7 +154,6 @@ function ExecutionItem({
 
       {isExpanded && (
         <div className="border-t border-white/[0.08] p-3">
-          {/* Progress */}
           {execution.status === WorkflowExecutionStatus.RUNNING && (
             <div className="mb-3">
               <div className="flex justify-between text-xs mb-1">
@@ -165,14 +164,12 @@ function ExecutionItem({
             </div>
           )}
 
-          {/* Error message */}
           {execution.error && (
             <Alert type={AlertCategory.ERROR} className="mb-3 text-sm">
               {execution.error}
             </Alert>
           )}
 
-          {/* Node results */}
           {execution.nodeResults.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-xs font-medium">Node Results</h4>
@@ -196,7 +193,6 @@ function ExecutionItem({
             </div>
           )}
 
-          {/* Trigger info */}
           <div className="mt-3 text-xs opacity-60">
             Triggered: {execution.trigger}
           </div>

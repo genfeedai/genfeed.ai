@@ -16,7 +16,6 @@ export default function VideoTrimTimeline({
   isGeneratingThumbnails,
   onRangeChange,
 }: VideoTrimTimelineProps) {
-  // Calculate trim duration
   const trimDuration = endTime - startTime;
 
   // Generate marks for the timeline
@@ -34,7 +33,6 @@ export default function VideoTrimTimeline({
 
   return (
     <div className="w-full space-y-4">
-      {/* Thumbnails Strip */}
       <div className="relative w-full h-20 overflow-hidden bg-muted">
         {isGeneratingThumbnails ? (
           <div className="flex items-center justify-center h-full">

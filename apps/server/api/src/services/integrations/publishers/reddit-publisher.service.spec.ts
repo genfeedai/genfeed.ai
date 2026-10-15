@@ -42,7 +42,6 @@ describe('RedditPublisherService', () => {
   const mockIngredientId = testId('ingredient');
   const mockSubreddit = 'testsubreddit';
 
-  // Mock credential
   const mockCredential = {
     id: mockCredentialId,
     accessToken: 'encrypted-access-token',
@@ -62,7 +61,6 @@ describe('RedditPublisherService', () => {
     externalId: undefined,
   } as unknown as CredentialDocument;
 
-  // Mock organization
   const mockOrganization = {
     id: mockOrganizationId,
     isDeleted: false,
@@ -103,7 +101,6 @@ describe('RedditPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Create publish context helper
   const createPublishContext = (
     post: PostEntity,
     credential = mockCredential,

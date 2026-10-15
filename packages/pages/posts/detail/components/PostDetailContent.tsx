@@ -98,7 +98,6 @@ export interface PostDetailContentProps {
   handleToggleFirstComment: (checked: boolean) => Promise<void>;
   handleUpdateChild: (childId: string, updates: Partial<IPost>) => void;
 
-  // Auto-save refs
   autoSaveRefs: {
     currentDescriptions: React.MutableRefObject<Map<string, string>>;
     lastSavedDescriptions: React.MutableRefObject<Map<string, string>>;

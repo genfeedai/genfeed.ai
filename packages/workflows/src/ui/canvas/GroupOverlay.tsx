@@ -127,7 +127,6 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
-  // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const nodeStartPositionsRef = useRef<Map<
@@ -183,7 +182,6 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
     [handleNameSubmit],
   );
 
-  // Handle drag start on group header
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (group.isLocked) return;
@@ -219,7 +217,6 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
     dragStartRef.current = null;
   });
 
-  // Handle drag move and end
   useEffect(() => {
     if (!isDragging) return;
 
@@ -265,7 +262,6 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
 
   return (
     <>
-      {/* Group Header - draggable */}
       <div
         onPointerDown={handleMouseDown}
         className={clsx(
@@ -284,7 +280,6 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           width: bounds.width,
         }}
       >
-        {/* Editable Name */}
         {isEditing ? (
           <Input
             ref={inputRef}
@@ -319,7 +314,6 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           </Button>
         )}
         <div className="flex items-center gap-1">
-          {/* Color Picker */}
           <div className="relative" ref={colorPickerRef}>
             <Button
               withWrapper={false}
@@ -400,7 +394,6 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
         </div>
       </div>
 
-      {/* Lock Badge */}
       {group.isLocked && (
         <div
           className={clsx(

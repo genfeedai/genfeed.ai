@@ -334,7 +334,6 @@ export function VoiceCloneCard({
         </p>
       )}
 
-      {/* Audio preview if provided */}
       {action.audioUrl && (
         <div className="mb-3">
           <AudioPreviewPlayer
@@ -371,7 +370,6 @@ export function VoiceCloneCard({
         <VoiceCloneProgress progress={progress} />
       )}
 
-      {/* Error */}
       {error && (
         <p className="mt-3 flex items-center gap-1 text-xs text-red-500">
           <CircleAlert className="size-4" />

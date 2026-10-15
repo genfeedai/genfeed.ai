@@ -1,7 +1,3 @@
-// =============================================================================
-// NODE DATA UNION & WORKFLOW TYPES
-// =============================================================================
-
 import type { Edge, Node } from '@xyflow/react';
 import type {
   ImageGenNodeData,
@@ -79,10 +75,6 @@ export type WorkflowNodeData =
   | WorkflowInputNodeData
   | WorkflowOutputNodeData
   | WorkflowRefNodeData;
-
-// =============================================================================
-// WORKFLOW NODE & EDGE
-// =============================================================================
 
 export type WorkflowNode = Node<
   WorkflowNodeData,

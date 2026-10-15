@@ -87,7 +87,6 @@ export function useWebsocketPrompt<T = unknown>(
       const event = WebSocketPaths.prompt(promptId);
       const notificationsService = NotificationsService.getInstance();
 
-      // Set up timeout handler
       timeoutRef.current = setTimeout(() => {
         logger.error(`Websocket prompt timed out for ${promptId}`);
         notificationsService.error(timeoutMessage);

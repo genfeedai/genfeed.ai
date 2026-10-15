@@ -3,7 +3,6 @@ import { useMasonryGrid } from '@hooks/ui/use-masonry-grid/use-masonry-grid';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock ResizeObserver
 class MockResizeObserver {
   static instances: MockResizeObserver[] = [];
   readonly callback: ResizeObserverCallback;
@@ -136,7 +135,6 @@ describe('useMasonryGrid', () => {
     it('can call recalculateLayout without error', () => {
       const { result } = renderHook(() => useMasonryGrid(mockItems));
 
-      // Set isClient to true by advancing timers
       act(() => {
         vi.runAllTimers();
       });

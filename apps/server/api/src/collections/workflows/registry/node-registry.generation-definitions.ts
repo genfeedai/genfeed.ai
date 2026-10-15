@@ -457,10 +457,6 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
   },
 
-  // ===========================================================================
-  // AI NODES
-  // ===========================================================================
-
   'ai-lip-sync': {
     category: 'ai',
     configSchema: {

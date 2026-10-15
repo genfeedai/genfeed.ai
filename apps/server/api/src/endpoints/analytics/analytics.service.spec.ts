@@ -152,18 +152,12 @@ describe('AnalyticsService', () => {
     service = module.get<AnalyticsService>(AnalyticsService);
   });
 
-  // ==========================================================================
-  // Initialization
-  // ==========================================================================
   describe('initialization', () => {
     it('should be defined', () => {
       expect(service).toBeDefined();
     });
   });
 
-  // ==========================================================================
-  // getTimeSeriesData
-  // ==========================================================================
   describe('getTimeSeriesData', () => {
     it('should return time series data for date range', async () => {
       const startDate = '2025-01-01';
@@ -233,9 +227,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // getOverview
-  // ==========================================================================
   describe('getOverview', () => {
     beforeEach(() => {
       mockPrismaService.organization.count.mockResolvedValue(5);
@@ -327,9 +318,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // getBestPostingTimes
-  // ==========================================================================
   describe('getBestPostingTimes', () => {
     it('should return best posting times per platform', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
@@ -387,9 +375,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // getTopContent
-  // ==========================================================================
   describe('getTopContent', () => {
     it('should return top performing content', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
@@ -575,9 +560,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // getPlatformComparison
-  // ==========================================================================
   describe('getPlatformComparison', () => {
     it('returns IPlatformComparison rows with domain platform ids', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
@@ -651,9 +633,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // getGrowthTrends
-  // ==========================================================================
   describe('getGrowthTrends', () => {
     it('should return growth trends by day', async () => {
       mockPrismaService.$queryRaw
@@ -775,9 +754,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // getEngagementBreakdown
-  // ==========================================================================
   describe('getEngagementBreakdown', () => {
     it('should return engagement breakdown', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
@@ -874,9 +850,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // getViralHooks
-  // ==========================================================================
   describe('getViralHooks', () => {
     it('should return viral hooks analysis', async () => {
       mockPrismaService.$queryRaw
@@ -1040,9 +1013,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ==========================================================================
-  // soft deletes (genfeedai/genfeed.ai#5419)
-  // ==========================================================================
   describe('soft-deleted post_analytics rows', () => {
     const range = ['2025-01-01', '2025-01-31'] as const;
     const reads: Array<

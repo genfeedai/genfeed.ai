@@ -93,10 +93,6 @@ export function createExpertPathMockState(): ExpertPathMockState {
   };
 }
 
-// ----------------------------------------------------------------------------
-// Payload builders
-// ----------------------------------------------------------------------------
-
 function buildPositioningScore(): IExpertPositioningScore {
   const dimensions = EXPERT_POSITIONING_DIMENSIONS.map((dimension, index) => {
     const score = index === EXPERT_POSITIONING_DIMENSIONS.length - 1 ? 4 : 8;

@@ -19,7 +19,6 @@ beforeAll(async () => {
     ].join('');
   }
 
-  // Set test environment
   process.env.NODE_ENV = 'test';
 
   // Mock Redis URL (tests should mock Redis operations)

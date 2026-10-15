@@ -67,11 +67,9 @@ describe('ProcessNode', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<ProcessNode {...defaultProps} />);
 
-    // Check node has correct color scheme
     expect(container.querySelector('.bg-blue-50')).toBeInTheDocument();
     expect(container.querySelector('.border-blue-400')).toBeInTheDocument();
 
-    // Check selected state styling
     const { container: selectedContainer } = render(
       <ProcessNode {...defaultProps} selected={true} />,
     );

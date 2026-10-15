@@ -4,10 +4,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 /**
  * Structural shape of a ranked trend item. Kept local (not imported from
  * `@genfeedai/helpers`) so the engine package retains its minimal dependency
@@ -112,10 +108,6 @@ function utcDateKey(): string {
   // layer), so Date is available here. UTC day boundary, documented.
   return new Date().toISOString().slice(0, 10);
 }
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Trend Digest Executor

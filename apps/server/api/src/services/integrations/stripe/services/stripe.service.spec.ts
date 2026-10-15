@@ -238,7 +238,6 @@ describe('StripeService', () => {
   });
 
   describe('PAYG min/max enforcement', () => {
-    // 1 credit = $0.01 → min $10 = 1,000 credits, max $10,000 = 1,000,000 credits
     it('rejects a below-minimum quantity (999 credits) without calling Stripe', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')

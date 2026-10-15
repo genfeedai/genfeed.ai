@@ -87,7 +87,6 @@ export const elementPresetSchema: z.ZodType<Partial<IPreset>> =
       .transform((value) => value ?? undefined),
   });
 
-// Schema for style elements
 export const elementStyleSchema: z.ZodType<Partial<IElementStyle>> =
   elementBaseSchema.extend({
     model: z.string().optional(),
@@ -109,7 +108,6 @@ export const elementBlacklistSchema: z.ZodType<Partial<IElementBlacklist>> =
     isDefault: z.boolean(),
   });
 
-// Schema for sound elements
 export const elementSoundSchema: z.ZodType<Partial<IPlatformElement>> =
   elementBaseSchema.extend({
     isActive: z.boolean().optional(),

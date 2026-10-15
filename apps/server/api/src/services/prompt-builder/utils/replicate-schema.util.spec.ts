@@ -13,9 +13,6 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('ReplicateSchemaUtil', () => {
-  // =========================================================================
-  // replicateModelIdToSlug
-  // =========================================================================
   describe('replicateModelIdToSlug', () => {
     it('should extract model name from owner/model format', () => {
       expect(replicateModelIdToSlug('google/imagen-4')).toBe('imagen-4');
@@ -54,9 +51,6 @@ describe('ReplicateSchemaUtil', () => {
     });
   });
 
-  // =========================================================================
-  // detectImageReferenceFields
-  // =========================================================================
   describe('detectImageReferenceFields', () => {
     it('should detect image_input field', () => {
       const schema: ReplicateModelSchema = {
@@ -105,9 +99,6 @@ describe('ReplicateSchemaUtil', () => {
     });
   });
 
-  // =========================================================================
-  // isArrayImageField
-  // =========================================================================
   describe('isArrayImageField', () => {
     it('should return true for array URI fields', () => {
       const schema: ReplicateModelSchema = {
@@ -135,9 +126,6 @@ describe('ReplicateSchemaUtil', () => {
     });
   });
 
-  // =========================================================================
-  // getArrayImageLimit
-  // =========================================================================
   describe('getArrayImageLimit', () => {
     it('should parse "Maximum N images" pattern', () => {
       const schema: ReplicateModelSchema = {
@@ -186,9 +174,6 @@ describe('ReplicateSchemaUtil', () => {
     });
   });
 
-  // =========================================================================
-  // schemaHasField
-  // =========================================================================
   describe('schemaHasField', () => {
     const schema: ReplicateModelSchema = {
       properties: {

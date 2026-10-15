@@ -111,14 +111,12 @@ export default function SuccessContent() {
 
   return (
     <div ref={sectionRef} className="max-w-lg mx-auto text-center pt-24">
-      {/* Success icon */}
       <div className="success-icon opacity-0 flex justify-center mb-8">
         <div className="size-20 bg-secondary shadow-border rounded-full flex items-center justify-center">
           <CircleCheck className="size-10 text-success" />
         </div>
       </div>
 
-      {/* Headline */}
       <h1 className="success-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl text-balance">
         Welcome to Genfeed!
       </h1>
@@ -136,7 +134,6 @@ export default function SuccessContent() {
         </div>
       </div>
 
-      {/* Preview image */}
       {previewUrl && (
         <div className="success-preview opacity-0 flex justify-center mb-10">
           <Image
@@ -149,7 +146,6 @@ export default function SuccessContent() {
         </div>
       )}
 
-      {/* Content type preferences */}
       <div className="success-preferences opacity-0 mb-10">
         <p className="text-sm text-muted-foreground mb-4">
           What do you want to create?

@@ -1,7 +1,3 @@
-// =============================================================================
-// CANONICAL COST TYPES
-// =============================================================================
-
 /** Per-node cost estimate (used in UI cost calculators and API cost services) */
 export interface NodeCostEstimate {
   nodeId: string;

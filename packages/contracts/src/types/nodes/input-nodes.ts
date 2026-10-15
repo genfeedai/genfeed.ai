@@ -1,7 +1,3 @@
-// =============================================================================
-// INPUT NODE DATA
-// =============================================================================
-
 import type { BaseNodeData } from './base';
 
 export interface CommentTriggerNodeData extends BaseNodeData {

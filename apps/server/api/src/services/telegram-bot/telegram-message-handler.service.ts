@@ -189,7 +189,6 @@ export class TelegramMessageHandlerService {
       return;
     }
 
-    // Handle "default" keyword
     let text = ctx.message.text;
     if (text.toLowerCase() === 'default' && currentInput.defaultValue) {
       text = currentInput.defaultValue;

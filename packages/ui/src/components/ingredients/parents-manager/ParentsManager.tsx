@@ -97,14 +97,12 @@ export default function ParentsManager({
     const updatedParents = [...parents, newParent];
     setParents(updatedParents);
 
-    // Update available ingredients
     setAvailableIngredients((prev) =>
       prev.filter((ing: IIngredient) => ing.id !== parentId),
     );
 
     setIsDropdownOpen(false);
 
-    // Notify parent component
     const parentIds = updatedParents.map((p) => p.id);
     onParentsChange?.(parentIds);
   };
@@ -129,7 +127,6 @@ export default function ParentsManager({
       );
     }
 
-    // Notify parent component
     const parentIds = updatedParents.map((p) => p.id);
     onParentsChange?.(parentIds);
   };

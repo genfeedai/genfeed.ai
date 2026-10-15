@@ -843,9 +843,6 @@ describe('ThreadsService (coverage)', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // getThreadInsights
-  // ---------------------------------------------------------------------------
   describe('getThreadInsights', () => {
     it('should throw when credential is not found', async () => {
       mockCredentialMissing();

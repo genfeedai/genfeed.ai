@@ -212,7 +212,6 @@ export class ElementsBlacklistsController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    // Enrich the update DTO
     const enrichedDto = await this.enrichUpdateDto(updateDto);
 
     // `BaseService.patch` writes by id alone, which the tenant guard rejects;

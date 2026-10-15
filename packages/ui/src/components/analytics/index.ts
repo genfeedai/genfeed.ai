@@ -1,10 +1,8 @@
 // Overview
 export { default as AnalyticsOverview } from '@ui/analytics/overview/analytics-overview';
 
-// Platform breakdown
 export { default as PlatformAnalyticsBreakdown } from '@ui/analytics/platform-breakdown/platform-analytics-breakdown';
 
-// Post dashboard
 export { default as PublicationAnalyticsDashboard } from '@ui/analytics/post-dashboard/publication-analytics-dashboard';
 
 // Top posts

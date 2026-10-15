@@ -104,7 +104,6 @@ export class RolesGuard implements CanActivate {
         )
       : [];
 
-    // Extract organization ID from the authenticated session first.
     const organizationId = this.extractOrganizationId(req, user);
 
     if (!organizationId) {

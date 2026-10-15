@@ -79,7 +79,6 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     }
   }, [nodeData.template]);
 
-  // Get available variables from connected prompt nodes
   const availableVariables = useMemo((): AvailableVariable[] => {
     const vars: AvailableVariable[] = [];
     const nodesById = new Map(nodes.map((node) => [node.id, node]));
@@ -124,7 +123,6 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     textareaRef,
   });
 
-  // Compute unresolved variables client-side
   const unresolvedVars = useMemo(() => {
     const varPattern = /@(\w+)/g;
     const unresolved: string[] = [];

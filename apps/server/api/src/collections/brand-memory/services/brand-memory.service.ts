@@ -358,7 +358,6 @@ export class BrandMemoryService extends BaseService<
     const now = new Date();
     const fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Fetch last 30 days of memory rows
     const rows = await this.delegate.findMany({
       where: scopedWhere(organizationId, {
         brandId,
@@ -366,7 +365,6 @@ export class BrandMemoryService extends BaseService<
       }),
     });
 
-    // Compute top performing formats in-memory
     const formatMap = new Map<
       string,
       { totalEngagement: number; count: number }

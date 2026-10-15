@@ -32,8 +32,6 @@ type TestThreadChildUpdate = {
   targetExecutionState: TargetExecutionState;
 };
 
-// ─── Concrete subclass for testing abstract base ──────────────────────────────
-
 class TestPublisher extends BasePublisherService {
   readonly platform: CredentialPlatform = CredentialPlatform.TWITTER;
   readonly supportsTextOnly: boolean = true;

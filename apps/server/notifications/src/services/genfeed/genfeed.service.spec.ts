@@ -9,7 +9,6 @@ import { GenFeedService } from '@notifications/services/genfeed/genfeed.service'
 import axios from 'axios';
 import type { Mock, Mocked } from 'vitest';
 
-// Mock axios
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
 

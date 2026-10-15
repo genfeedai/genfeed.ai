@@ -66,7 +66,6 @@ export function NodeSearch() {
 
   const handleSelectNode = useCallback(
     (node: WorkflowNode) => {
-      // Select the node
       setSelectedNodeIds([node.id]);
 
       // Fit view to the selected node with animation
@@ -130,7 +129,6 @@ export function NodeSearch() {
           </DialogTitle>
         </DialogHeader>
 
-        {/* Content */}
         <div role="listbox" tabIndex={0} onKeyDown={handleKeyDown}>
           <FormSearchbar
             ariaLabel="Search nodes"

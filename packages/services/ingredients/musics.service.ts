@@ -24,7 +24,6 @@ export class MusicsService extends IngredientsService<Music> {
   }
 
   public async post(body: Partial<IMusic>) {
-    // Use the MusicSerializer to properly serialize the data
     const data = MusicSerializer.serialize(body);
     return await this.instance
       .post<JsonApiResponseDocument>('', data) // Empty string for root path, data as second argument

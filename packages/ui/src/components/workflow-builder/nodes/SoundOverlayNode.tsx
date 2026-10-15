@@ -71,7 +71,6 @@ function SoundOverlayNodeComponent({
 
   return (
     <div className="space-y-3">
-      {/* Input Status */}
       <div className="space-y-2">
         <div
           className={`flex items-center gap-2 p-2 border ${

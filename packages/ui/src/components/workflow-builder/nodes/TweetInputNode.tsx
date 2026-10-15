@@ -77,7 +77,6 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
 
   return (
     <div className="space-y-3">
-      {/* Mode Toggle */}
       <div className="flex gap-1 p-1 bg-background">
         <Button
           onClick={() => handleModeChange('url')}

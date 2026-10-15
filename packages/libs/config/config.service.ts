@@ -11,7 +11,6 @@ import {
   elevenlabsSchema,
   falSchema,
   fleetSchema,
-  // AI
   generalAiSchema,
   // Genfeed
   genfeedaiUrlsSchema,
@@ -143,7 +142,6 @@ const apiSpecificSchema = {
   PGSSLROOTCERT: Joi.string().optional().allow(''),
   PRISMA_POSTGRES_CA_FILE: Joi.string().optional().allow(''),
   REPLICATE_API_TOKEN: Joi.string().optional().allow(''),
-  // Solana (optional)
   SOLANA_KEY: Joi.string().optional().allow(''),
   SOLANA_URL: Joi.string().optional().allow(''),
 };

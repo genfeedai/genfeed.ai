@@ -179,8 +179,6 @@ const HOOK_STOP_WORDS = new Set([
 
 const MAX_WINNER_KEYWORDS = 8;
 
-// ─── Service ─────────────────────────────────────────────────────────
-
 @Injectable()
 export class ContentOptimizationService implements OnModuleInit {
   private readonly logContext = 'ContentOptimizationService';
@@ -237,8 +235,6 @@ export class ContentOptimizationService implements OnModuleInit {
     }
   }
 
-  // ─── 1. Content Performance Analysis ─────────────────────────────
-
   async analyzePerformance(
     organizationId: string,
     brandId: string,
@@ -263,8 +259,6 @@ export class ContentOptimizationService implements OnModuleInit {
     );
   }
 
-  // ─── 2. Prompt Optimization ──────────────────────────────────────
-
   async optimizePrompt(
     organizationId: string,
     brandId: string,
@@ -279,8 +273,6 @@ export class ContentOptimizationService implements OnModuleInit {
       },
     );
   }
-
-  // ─── 3. query Recommendations ─────────────────────────────────
 
   async getRecommendations(
     organizationId: string,

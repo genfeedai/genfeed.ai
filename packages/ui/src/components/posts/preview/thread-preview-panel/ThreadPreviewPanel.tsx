@@ -34,7 +34,6 @@ function PostPreviewItem({ content, index, isLast }: PostPreviewItemProps) {
 
   return (
     <div className="flex gap-3">
-      {/* Number badge and connector line */}
       <div className="flex flex-col items-center">
         <div className="size-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium shrink-0">
           {index + 1}
@@ -42,7 +41,6 @@ function PostPreviewItem({ content, index, isLast }: PostPreviewItemProps) {
         {!isLast && <div className="w-0.5 flex-1 bg-muted mt-2 min-h-8" />}
       </div>
 
-      {/* Post content */}
       <div className="flex-1">
         <Card bodyClassName="p-4">
           {content ? (

@@ -61,10 +61,6 @@ import { isAgentCliTerminalAvailable } from './agent-terminal-availability';
 
 export type { AgentCliTerminalController } from '@genfeedai/agent/components/agent-cli-terminal.helpers';
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
-
 export function useAgentCliTerminal(
   apiService: AgentApiService,
   authReady = true,

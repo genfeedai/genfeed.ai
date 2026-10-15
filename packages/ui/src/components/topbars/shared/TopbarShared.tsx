@@ -17,7 +17,6 @@ export default function TopbarShared({
     <header className="size-full bg-transparent">
       <div className="flex size-full items-center justify-between pl-4 pr-2 sm:pl-6 sm:pr-3 lg:pl-8 lg:pr-2">
         <div className="flex items-center gap-1">
-          {/* Mobile hamburger */}
           {onMenuToggle ? (
             <Button
               type="button"

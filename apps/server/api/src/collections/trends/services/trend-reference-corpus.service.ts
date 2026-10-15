@@ -124,7 +124,6 @@ export class TrendReferenceCorpusService {
       }
     }
 
-    // Find existing lineage record
     const existing = await this.prisma.trendRemixLineage.findFirst({
       where: scopedWhere(payload.organizationId, {
         postId: payload.postId,

@@ -85,14 +85,12 @@ function SubtitleNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="space-y-3">
-        {/* Input Status */}
         <div className="text-xs text-muted-foreground">
           {hasRequiredInputs
             ? 'Ready to burn subtitles'
             : 'Connect video and subtitle text'}
         </div>
 
-        {/* Style Selection */}
         <div>
           <label
             className="text-xs text-muted-foreground block mb-1"

@@ -41,7 +41,6 @@ export default function ModalGalleryHeader({
 
   return (
     <>
-      {/* Account reference section */}
       {category === IngredientCategory.IMAGE && accountReference && (
         <div className="mb-4 flex items-center gap-3 p-3 bg-background">
           <div className="relative size-10 flex-shrink-0 overflow-hidden">
@@ -63,7 +62,6 @@ export default function ModalGalleryHeader({
         </div>
       )}
 
-      {/* Tabs - only show for images */}
       {category === IngredientCategory.IMAGE && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
@@ -76,7 +74,6 @@ export default function ModalGalleryHeader({
                 tabs={tabs}
               />
 
-              {/* Upload Button */}
               <Button
                 label="Upload"
                 icon={<Upload className="size-4" />}

@@ -60,7 +60,6 @@ describe('TwitterPublisherService', () => {
   const mockCredentialId = testId('credential');
   const mockIngredientId = testId('ingredient');
 
-  // Mock credential
   const mockCredential = {
     id: mockCredentialId,
     accessToken: 'encrypted-access-token',
@@ -74,7 +73,6 @@ describe('TwitterPublisherService', () => {
     userId: mockUserId,
   } as unknown as CredentialDocument;
 
-  // Mock organization
   const mockOrganization = {
     id: mockOrganizationId,
     isDeleted: false,
@@ -162,7 +160,6 @@ describe('TwitterPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Create publish context helper
   const createPublishContext = (
     post: PublishContext['post'],
     settings: ChannelTargetSettings = {},
@@ -180,7 +177,6 @@ describe('TwitterPublisherService', () => {
     // Reset all mocks
     vi.clearAllMocks();
 
-    // Mock EncryptionUtil
     vi.spyOn(EncryptionUtil, 'decrypt').mockImplementation((value) => {
       return `decrypted-${value}`;
     });

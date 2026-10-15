@@ -2,10 +2,6 @@ import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { isBrandReadyForTurbo } from './turbo-readiness';
 
-// ────────────────────────────────────────────────────────────
-// Fixtures
-// ────────────────────────────────────────────────────────────
-
 function makeCredential(platform: string): ICredential {
   return {
     id: `cred-${platform}`,

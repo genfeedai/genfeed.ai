@@ -42,7 +42,6 @@ describe('FacebookPublisherService', () => {
   const mockIngredientId = testId('ingredient');
   const mockPageId = 'page-123456789';
 
-  // Mock credential
   const mockCredential = {
     id: mockCredentialId,
     accessToken: 'encrypted-access-token',
@@ -55,7 +54,6 @@ describe('FacebookPublisherService', () => {
     userId: mockUserId,
   } as unknown as CredentialDocument;
 
-  // Mock organization
   const mockOrganization = {
     id: mockOrganizationId,
     isDeleted: false,
@@ -145,7 +143,6 @@ describe('FacebookPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Create publish context helper
   const createPublishContext = (
     post: PostEntity,
     settings: ChannelTargetSettings = {},

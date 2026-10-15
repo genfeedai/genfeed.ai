@@ -114,11 +114,9 @@ describe('NodeConfigPanel', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<NodeConfigPanel {...defaultProps} />);
 
-    // Check panel has correct container classes
     const panel = container.firstChild;
     expect(panel).toBeInTheDocument();
 
-    // Check form inputs have correct styling
     const inputs = container.querySelectorAll('input, select, textarea');
     expect(inputs.length).toBeGreaterThanOrEqual(0);
   });

@@ -91,7 +91,6 @@ export function useArticleDetail({
     form.category !== initialFormRef.current.category ||
     form.tags !== initialFormRef.current.tags;
 
-  // Fetch article
   const fetchArticle = useCallback(async () => {
     if (!resolvedId) {
       setIsLoading(false);

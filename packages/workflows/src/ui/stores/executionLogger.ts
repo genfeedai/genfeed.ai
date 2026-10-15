@@ -1,9 +1,5 @@
 import type { WorkflowUILogger } from '../provider/types';
 
-// =============================================================================
-// Module-level logger configuration
-// =============================================================================
-
 /**
  * Injected logger for the execution store and its SSE handlers.
  *

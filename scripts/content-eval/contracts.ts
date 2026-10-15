@@ -46,8 +46,6 @@ export type CallRole = (typeof CALL_ROLES)[number];
 export const ABORT_REASONS = ['spend', 'error'] as const;
 export type AbortReason = (typeof ABORT_REASONS)[number];
 
-// ─── Thresholds ─────────────────────────────────────────────────────────────
-
 /**
  * Pass/fail gates. Changed only in a PR that links the report justifying the
  * new value (#4921 FR 8); the version is written into every report.
@@ -69,8 +67,6 @@ export const CONTENT_EVAL_THRESHOLDS = {
 } as const;
 
 export type ContentEvalThresholds = typeof CONTENT_EVAL_THRESHOLDS;
-
-// ─── Suite config ───────────────────────────────────────────────────────────
 
 export const contestantSchema = z.object({
   /** Stable id within a run, e.g. `openai/gpt-5.6-luna` or `…#brief`. */
@@ -95,8 +91,6 @@ export const suiteConfigSchema = z.object({
   tieBand: z.number().min(0).max(1),
 });
 export type SuiteConfig = z.infer<typeof suiteConfigSchema>;
-
-// ─── Dispatcher port ────────────────────────────────────────────────────────
 
 export interface EvalMessageTextPart {
   text: string;
@@ -154,8 +148,6 @@ export interface EvalDispatcher {
   close(): Promise<void>;
   readonly kind: DispatcherKind;
 }
-
-// ─── Provenance ─────────────────────────────────────────────────────────────
 
 export const llmCallSettingsSchema = z.object({
   maxTokens: z.number().int().positive(),
@@ -231,8 +223,6 @@ export interface SpendCharge {
   provenance: CallProvenance;
 }
 
-// ─── Summaries ──────────────────────────────────────────────────────────────
-
 export const contestantSummarySchema = z.object({
   acceptedCount: z.number().int().nonnegative(),
   contestantId: z.string().min(1),
@@ -280,8 +270,6 @@ export const suiteOutcomeSchema = z.object({
   media: z.unknown().optional(),
 });
 export type SuiteOutcome = z.infer<typeof suiteOutcomeSchema>;
-
-// ─── Report ─────────────────────────────────────────────────────────────────
 
 const digestSchema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
 
@@ -337,8 +325,6 @@ export const contentEvalReportSchema = z.object({
   workingTreeDirty: z.boolean(),
 });
 export type ContentEvalReport = z.infer<typeof contentEvalReportSchema>;
-
-// ─── Suite runner ───────────────────────────────────────────────────────────
 
 export interface SuiteContext {
   config: SuiteConfig;
@@ -441,8 +427,6 @@ export interface CrossFamilyCheckInput {
   generatorRegistryKeys: string[];
   judgeRegistryKeys: string[];
 }
-
-// ─── Harness internals ──────────────────────────────────────────────────────
 
 export interface LoadedFixture {
   digest: string;

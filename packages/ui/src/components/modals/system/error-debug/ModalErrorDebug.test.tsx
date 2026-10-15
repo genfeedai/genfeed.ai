@@ -229,7 +229,6 @@ describe('ModalErrorDebug', () => {
     fireEvent.click(expandButton);
     expect(screen.queryByText(/"error":/)).not.toBeInTheDocument();
 
-    // Click to expand
     fireEvent.click(expandButton);
     expect(screen.getByText(/"error":/)).toBeInTheDocument();
   });

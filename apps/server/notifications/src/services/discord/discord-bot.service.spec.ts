@@ -410,10 +410,8 @@ describe('DiscordBotService', () => {
 
       mockClient.channels.fetch.mockResolvedValue(mockChannel);
 
-      // Create webhook
       await service.getOrCreateWebhook('channel-123', 'Test');
 
-      // Clear cache
       service.clearWebhookCache('channel-123', 'Test');
 
       // Next call should fetch again

@@ -55,7 +55,6 @@ describe('Custom Exceptions Test Suite', () => {
   // vi timeout configured in vitest.config(10000);
 
   beforeEach(() => {
-    // Use fake timers to prevent timer leaks
     vi.useFakeTimers();
   });
 

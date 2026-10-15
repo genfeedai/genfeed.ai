@@ -111,7 +111,6 @@ export default function PostDetailHeader({
   const isEditable = scope === PageScope.PUBLISHING && !isPublished;
   const canCreateRemix = post.status === PostStatus.PUBLIC;
 
-  // Can expand to thread if:
   // - It's a Twitter/X post
   // - It's editable (not published)
   // - It doesn't already have children (not already a thread)

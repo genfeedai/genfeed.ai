@@ -42,7 +42,6 @@ export function useRequiredInputs(
       };
     }
 
-    // Get edges that target this node
     const connectedHandles = new Set<string>();
     for (const edge of incomingEdges) {
       if (edge.targetHandle) {
@@ -50,7 +49,6 @@ export function useRequiredInputs(
       }
     }
 
-    // Check each input handle
     const connectionStatus = new Map<string, boolean>();
     const missingInputs: string[] = [];
 

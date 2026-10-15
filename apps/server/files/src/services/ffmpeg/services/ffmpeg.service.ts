@@ -27,10 +27,6 @@ export class FFmpegService {
     private readonly effects: FFmpegEffectsService,
   ) {}
 
-  // ============================================================
-  // Core Operations (delegated to FFmpegCoreService)
-  // ============================================================
-
   async probe(inputPath: string): Promise<FFprobeData> {
     return this.core.probe(inputPath);
   }

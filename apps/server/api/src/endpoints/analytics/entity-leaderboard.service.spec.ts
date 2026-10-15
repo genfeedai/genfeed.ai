@@ -145,9 +145,6 @@ describe('EntityLeaderboardService', () => {
     });
   });
 
-  // ==========================================================================
-  // getOrganizationsLeaderboard
-  // ==========================================================================
   describe('getOrganizationsLeaderboard', () => {
     const mockOrgId = 'org-cuid-1';
     const mockOrgs = [

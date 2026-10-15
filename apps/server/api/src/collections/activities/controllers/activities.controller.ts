@@ -152,7 +152,6 @@ export class ActivitiesController {
     @Body() updateActivityDto: UpdateActivityDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Find and verify ownership
     const activity = await this.activitiesService.findOne({
       id: activityId,
       OR: [

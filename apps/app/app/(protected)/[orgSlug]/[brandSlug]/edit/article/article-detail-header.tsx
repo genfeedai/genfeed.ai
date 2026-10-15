@@ -39,7 +39,6 @@ export default function ArticleDetailHeader({
       </div>
 
       <div className="flex max-w-full flex-wrap gap-2">
-        {/* Publish */}
         {canPublish && (
           <Button
             label={
@@ -65,7 +64,6 @@ export default function ArticleDetailHeader({
           />
         )}
 
-        {/* Archive */}
         {canArchive && (
           <Button
             label="Archive"
@@ -97,7 +95,6 @@ export default function ArticleDetailHeader({
           }
         />
 
-        {/* Copy Full Article (X Article only) */}
         {hasXArticleSections && (
           <Button
             label="Copy for X Article"
@@ -108,7 +105,6 @@ export default function ArticleDetailHeader({
           />
         )}
 
-        {/* Save */}
         <Button
           icon={
             isDirty ? (
@@ -130,7 +126,6 @@ export default function ArticleDetailHeader({
           onClick={onSave}
         />
 
-        {/* Delete */}
         {!isNew && (
           <Button
             label="Delete"

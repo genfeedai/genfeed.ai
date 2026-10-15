@@ -62,7 +62,6 @@ describe('HttpExceptionFilter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup mock services
     mockLoggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -85,7 +84,6 @@ describe('HttpExceptionFilter', () => {
       }),
     };
 
-    // Setup mock request and response
     mockRequest = {
       body: {},
       headers: {},

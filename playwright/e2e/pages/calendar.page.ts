@@ -25,7 +25,6 @@ export class CalendarPage {
   // view. See #5381.
   readonly contentTypeFilterTrigger: Locator;
 
-  // Calendar grid
   readonly calendarGrid: Locator;
   readonly calendarEvent: Locator;
   readonly calendarDayCell: Locator;
@@ -40,7 +39,6 @@ export class CalendarPage {
   readonly weekViewButton: Locator;
   readonly monthViewButton: Locator;
 
-  // Filter controls
   readonly listViewLink: Locator;
 
   // Modal
@@ -112,7 +110,6 @@ export class CalendarPage {
       'button:has-text("Month"),' + ' [data-testid="view-month"]',
     );
 
-    // Filter controls
     this.listViewLink = page.locator(
       `a[href$="${APP_ROUTES.PUBLISHING.POSTS}"]`,
     );

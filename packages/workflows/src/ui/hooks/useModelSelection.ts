@@ -41,7 +41,6 @@ export function useModelSelection<
     (model: ProviderModel) => {
       const internalModel = (modelMap[model.id] ?? fallbackModel) as TModel;
 
-      // Extract defaults from the new model's schema
       const schemaDefaults = getSchemaDefaults(model.inputSchema);
 
       const selectedModel: SelectedModelData = {

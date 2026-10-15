@@ -74,7 +74,6 @@ export function AiTextActionCard({
         </p>
       )}
 
-      {/* Text preview */}
       {textContent && (
         <AgentGeneratedTextCard
           title="Current Text"
@@ -85,7 +84,6 @@ export function AiTextActionCard({
         />
       )}
 
-      {/* Action pills */}
       <div className="mb-3">
         <p className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
           Choose action

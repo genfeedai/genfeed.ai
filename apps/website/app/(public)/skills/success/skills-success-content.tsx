@@ -21,7 +21,6 @@ export default function SkillsSuccessContent() {
         title={<>Purchase Complete</>}
         description="Check your email for your receipt ID, then install your skills."
       >
-        {/* Install Instructions */}
         <WebSection maxWidth="md" className="gsap-hero">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-fill/5 border border-edge/10 mb-8">
@@ -30,7 +29,6 @@ export default function SkillsSuccessContent() {
             </div>
           </div>
 
-          {/* Terminal Block */}
           <div
             className={
               'overflow-hidden border border-edge/10 bg-black/40' /* design-system-allow-content-color -- terminal content */
@@ -78,7 +76,6 @@ export default function SkillsSuccessContent() {
           </div>
         </WebSection>
 
-        {/* Back CTA */}
         <CtaSection
           bg="subtle"
           title="Ready to Go"

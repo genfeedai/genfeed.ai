@@ -235,7 +235,6 @@ export class RedisCacheInterceptor implements NestInterceptor {
       return false;
     }
 
-    // Check custom condition
     if (options.condition && !options.condition(result)) {
       return false;
     }

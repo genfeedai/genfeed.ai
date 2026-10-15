@@ -1,10 +1,6 @@
 import type { NodeDefinition } from '@api/collections/workflows/registry/node-registry';
 
 export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
-  // ===========================================================================
-  // INPUT NODES
-  // ===========================================================================
-
   'input-image': {
     category: 'input',
     configSchema: {
@@ -310,10 +306,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     outputs: {},
   },
 
-  // ===========================================================================
-  // OUTPUT NODES
-  // ===========================================================================
-
   'output-save': {
     category: 'output',
     configSchema: {
@@ -508,10 +500,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       video: { label: 'Reversed Video', type: 'video' },
     },
   },
-
-  // ===========================================================================
-  // PROCESSING NODES
-  // ===========================================================================
 
   'process-transform': {
     category: 'processing',
