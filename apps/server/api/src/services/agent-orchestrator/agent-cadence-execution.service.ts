@@ -126,22 +126,13 @@ export class AgentCadenceExecutionService {
               !data.content.trim()
             )
               return { creditsUsed: result.creditsUsed };
-            const draft = await this.posts.create({
-              agentStrategyId: strategyId,
-              brandId: strategy.brandId ?? undefined,
-              category: PostCategory.TEXT,
-              description: data.content,
-              label: input.opportunity.topic,
-              ingredients: [],
-              organizationId: state.organizationId,
-              userId: state.userId,
-              platform: parsePlatform(input.platform) ?? undefined,
-              source: 'agent-cadence',
-              sourceActionId: input.opportunity.id,
-              workflowExecutionId: state.executionId,
-              agentThreadId: state.threadId,
-              targetExecutionState: TargetExecutionState.DRAFT,
-            });
+            const draft = await this.adoptDraft(
+              state,
+              strategyId,
+              strategy.brandId ?? undefined,
+              input,
+              data,
+            );
             generatedCount++;
             return {
               draft: draft as PostDocument,
@@ -180,6 +171,55 @@ export class AgentCadenceExecutionService {
         state.organizationId,
       );
     }
+  }
+
+  private async adoptDraft(
+    state: PreparedAgentTurnState,
+    strategyId: string,
+    brandId: string | undefined,
+    input: Parameters<CadenceDraftGenerator>[0],
+    data: Record<string, unknown>,
+  ): Promise<PostDocument> {
+    if (typeof data.postId !== 'string' || typeof data.receiptId !== 'string')
+      throw new CadenceGenerationUnavailableError(
+        'Cadence generation did not return a receipt-bound draft. No replacement draft was created.',
+      );
+    const draft = await this.posts.patchOneWhere(
+      {
+        id: data.postId,
+        organizationId: state.organizationId,
+        brandId: brandId,
+        userId: state.userId,
+        isDeleted: false,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      },
+      {
+        agentStrategyId: strategyId,
+        brandId: brandId ?? undefined,
+        category: PostCategory.TEXT,
+        label: input.opportunity.topic,
+        ingredients: [],
+        organizationId: state.organizationId,
+        userId: state.userId,
+        platform: parsePlatform(input.platform) ?? undefined,
+        source: 'agent-cadence',
+        sourceActionId: input.opportunity.id,
+        workflowExecutionId: state.executionId,
+        agentThreadId: state.threadId,
+        targetExecutionState: TargetExecutionState.DRAFT,
+        brandedReceiptId: data.receiptId,
+        brandedReceiptState:
+          typeof data.receiptState === 'string'
+            ? data.receiptState
+            : 'needs_review',
+      },
+      [],
+    );
+    if (!draft)
+      throw new CadenceGenerationUnavailableError(
+        'The receipt-bound cadence draft is no longer available in this scope.',
+      );
+    return draft;
   }
 
   private async evaluateQuality(

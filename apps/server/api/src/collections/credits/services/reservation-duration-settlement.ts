@@ -1,7 +1,9 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   type DurationSettlement,
+  durationSettlementMetadata,
   readHeldDurationQuote,
+  reportDurationSettlement,
   resolveDurationSettlement,
 } from '@api/collections/credits/services/generation-duration-settlement';
 import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
@@ -91,22 +93,17 @@ export async function settleReservationAtDuration(
     quote,
     input.actualSeconds,
   );
-  if (settlement.unresolvedReason)
-    deps.logger?.warn(
-      'Per-second generation settled at its admission estimate',
-      {
-        organizationId: input.organizationId,
-        reason: settlement.unresolvedReason,
-        reservationId: reservation.id,
-      },
-    );
+  // The top-up is capped per render at
+  // `MEDIA_GENERATION_DURATION_MAX_CHARGE_HOLD_MULTIPLE` times the hold, the
+  // same bound the service-owned settlement applies; the excess is reported.
+  const held = { quote, settlement };
+  if (deps.logger)
+    reportDurationSettlement(deps.logger, reservation, held, {
+      ingredientId: input.workloadId,
+      organizationId: input.organizationId,
+    });
   const settledCredits = await settleHold(deps.credits, input, reservation, {
-    durationSettlement: {
-      actualCredits: settlement.actualCredits ?? null,
-      actualSeconds: settlement.actualSeconds ?? null,
-      estimatedSeconds: quote.estimatedSeconds,
-      heldCredits: reservation.amount,
-    },
+    durationSettlement: durationSettlementMetadata(reservation.amount, held),
     settlement,
   });
   // An overrun only follows a hold that settled whole; a hold an earlier
@@ -139,7 +136,7 @@ async function settleHold(
   input: ReservationDurationSettlementInput,
   reservation: ICreditReservation,
   evidence: {
-    durationSettlement: Record<string, number | null>;
+    durationSettlement: Record<string, unknown>;
     settlement: DurationSettlement;
   },
 ): Promise<number> {

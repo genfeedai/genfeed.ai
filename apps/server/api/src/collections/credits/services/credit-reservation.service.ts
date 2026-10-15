@@ -167,7 +167,8 @@ export class CreditReservationService {
     if (!Number.isFinite(input.amount) || !(input.amount > 0)) {
       throw new BusinessLogicException('Bound output amount must be positive');
     }
-    const idempotencyKey = `${MEDIA_GENERATION_WORKLOAD_TYPE}:${input.workloadId}`;
+    const workloadType = input.workloadType ?? MEDIA_GENERATION_WORKLOAD_TYPE;
+    const idempotencyKey = `${workloadType}:${input.workloadId}`;
 
     try {
       return await this.runSerializable(async (tx) => {
@@ -248,7 +249,7 @@ export class CreditReservationService {
             source: pool.source,
             status: CreditReservationStatus.RESERVED,
             workloadId: input.workloadId,
-            workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+            workloadType,
           },
         });
         return this.toReservation(created);

@@ -91,6 +91,9 @@ export interface IPost extends IBaseEntity {
   sourceWorkflowName?: string | null;
   contentRunId?: string | null;
   generationId?: string | null;
+  /** Branded generation receipt that produced the text, with its state when the dispatch finished. */
+  brandedReceiptId?: string | null;
+  brandedReceiptState?: string | null;
   variantId?: string | null;
   workflowExecutionId?: string | null;
 }

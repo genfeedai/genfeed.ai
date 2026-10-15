@@ -5,6 +5,8 @@ import type {
   ResolveGenerationBrandServiceLike,
 } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
+import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
@@ -189,14 +191,6 @@ function stoppedTextResult(outcome: TextActionFailureV1): AgentToolResult {
   };
 }
 
-const KNOWLEDGE_PURPOSES_UNSUPPORTED_RESULT: AgentToolResult = {
-  creditsUsed: 0,
-  data: { code: 'knowledge_purposes_unsupported' },
-  error:
-    'Knowledge purposes cannot ground a receipt-backed draft. Select Knowledge sources or a space instead.',
-  success: false,
-};
-
 function readTextList(value: unknown): string[] | undefined {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
@@ -217,6 +211,8 @@ export class AgentMediaTextGenerationService {
     private readonly membersService: ResolveGenerationBrandMembersServiceLike,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly brandedTextActions: BrandedTextActionsService,
+    private readonly contentGenerator: ContentGeneratorService,
+    private readonly knowledgeSelection: KnowledgeSelectionService,
   ) {}
 
   /**
@@ -626,13 +622,6 @@ export class AgentMediaTextGenerationService {
       };
     }
     const knowledge = resolveToolKnowledgeSelection(params, ctx);
-    if (
-      knowledge?.purposes?.length &&
-      !knowledge.sourceIds?.length &&
-      !knowledge.spaceIds?.length
-    ) {
-      return KNOWLEDGE_PURPOSES_UNSUPPORTED_RESULT;
-    }
     const brandId = await this.resolveBrandId(params, ctx);
     if (!brandId) {
       return {
@@ -644,18 +633,53 @@ export class AgentMediaTextGenerationService {
     if (!(await this.hasTextGenerationCredits(ctx))) {
       return INSUFFICIENT_TEXT_CREDITS_RESULT;
     }
+    const actor = resolveToolSchedulePrincipal(ctx) ?? {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    };
+    const knowledgeSourceIds =
+      await this.knowledgeSelection.resolveBrandedSourceIds(
+        ctx.organizationId,
+        brandId,
+        knowledge,
+        actor,
+      );
+    if (knowledge?.purposes?.length && !knowledgeSourceIds?.length)
+      return {
+        creditsUsed: 0,
+        success: false,
+        data: { code: 'knowledge_selection_empty' },
+        error:
+          'No visible knowledge sources match this selection. Choose sources before generating.',
+      };
+    const intelligencePlatform = Object.values(
+      ContentIntelligencePlatform,
+    ).find((value) => value === platform);
+    const observations = intelligencePlatform
+      ? await this.contentGenerator.getSocialGenerationContext(
+          ctx.organizationId,
+          {
+            brandId,
+            platform: intelligencePlatform,
+            topic,
+            variationsCount,
+          },
+        )
+      : [];
     const isThread = normalizedType === 'thread';
     const outcome: BrandedPostsOutcomeV1 =
       await this.brandedContentActions.generateSocial({
-        actor: resolveToolSchedulePrincipal(ctx) ?? {
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-        },
-        additionalContext: readTextList(params.additionalContext),
+        actor,
+        additionalContext: [
+          ...(readTextList(params.additionalContext) ?? []),
+          ...observations,
+        ],
         brandId,
         isThread,
-        knowledgeSourceIds: knowledge?.sourceIds,
-        knowledgeSpaceIds: knowledge?.spaceIds,
+        knowledgeSourceIds,
+        knowledgeSpaceIds: knowledge?.purposes?.length
+          ? []
+          : knowledge?.spaceIds,
         platform,
         requestKey: randomUUID(),
         topic,
@@ -669,7 +693,7 @@ export class AgentMediaTextGenerationService {
         `Agent tool: generate_content (${normalizedType})`,
       );
     }
-    const { posts, receiptId, receiptState } = outcome.result;
+    const { posts, postId, receiptId, receiptState } = outcome.result;
     const content = isThread ? posts.join('\n\n') : posts[0];
 
     return {
@@ -678,6 +702,7 @@ export class AgentMediaTextGenerationService {
       data: {
         content,
         hashtags: extractHashtags(content),
+        postId,
         receiptId,
         receiptState,
         ...(variationsCount > 1 && !isThread

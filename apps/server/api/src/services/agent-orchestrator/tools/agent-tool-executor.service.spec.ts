@@ -1135,6 +1135,18 @@ describe('AgentToolExecutorService', () => {
         membersService as never,
         textGenerationCredits as never,
         {} as never,
+        { getSocialGenerationContext: vi.fn().mockResolvedValue([]) } as never,
+        {
+          resolveBrandedSourceIds: vi
+            .fn()
+            .mockImplementation(
+              async (
+                _org: string,
+                _brand: string,
+                selection: { sourceIds?: string[] } | undefined,
+              ) => selection?.sourceIds,
+            ),
+        } as never,
       ),
       assetGenerationService,
       new AgentMediaTurboRunService(
@@ -6456,6 +6468,20 @@ describe('AgentToolExecutorService', () => {
           membersService as never,
           textGenerationCredits as never,
           {} as never,
+          {
+            getSocialGenerationContext: vi.fn().mockResolvedValue([]),
+          } as never,
+          {
+            resolveBrandedSourceIds: vi
+              .fn()
+              .mockImplementation(
+                async (
+                  _org: string,
+                  _brand: string,
+                  selection: { sourceIds?: string[] } | undefined,
+                ) => selection?.sourceIds,
+              ),
+          } as never,
         ),
         new AgentMediaAssetGenerationService(
           loggerService,

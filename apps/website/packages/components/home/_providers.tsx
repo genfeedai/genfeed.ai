@@ -1,17 +1,22 @@
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getProviderBrands } from '@genfeedai/helpers';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
+import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import Link from 'next/link';
 
 const EYEBROW_CLASS =
   'text-xs font-bold uppercase tracking-widest text-surface/72';
 
+const FEATURED_PROVIDER_COUNT = 5;
+
 /**
- * The providers wall.
+ * The homepage teaser for the model catalog.
  *
- * Every tile is derived from the model catalog at build time, so this section
- * is a view of what the app can actually run — not a second list that drifts
- * from it. Adding a provider anywhere in `MODEL_KEYS` adds it here.
+ * The full, grouped list lives at `/models`. This section only states the
+ * value and names the providers with the most models, derived from the same
+ * catalog (`MODEL_KEYS`) so counts and names can never drift from it.
  */
 export default function HomeProviders(): React.ReactElement {
   const brands = getProviderBrands();
@@ -19,6 +24,7 @@ export default function HomeProviders(): React.ReactElement {
     (total, brand) => total + brand.modelCount,
     0,
   );
+  const featuredBrands = brands.slice(0, FEATURED_PROVIDER_COUNT);
 
   return (
     <section
@@ -26,64 +32,62 @@ export default function HomeProviders(): React.ReactElement {
       className="gen-section-spacing border-b border-edge/5"
     >
       <div className="container mx-auto px-6">
-        <div className="flex flex-col mb-10 max-w-3xl gap-4" data-reveal="up">
-          <Text className={EYEBROW_CLASS}>Providers</Text>
-          <Heading
-            id="home-providers-heading"
-            as="h2"
-            className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
+        <div
+          className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between"
+          data-reveal="up"
+        >
+          <div className="flex max-w-3xl flex-col gap-4">
+            <Text className={EYEBROW_CLASS}>Models</Text>
+            <Heading
+              id="home-providers-heading"
+              as="h2"
+              className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
+            >
+              Your models, one workspace.
+            </Heading>
+            <Text className="max-w-2xl text-base leading-7 gen-text-muted">
+              {modelCount} models from {brands.length} providers behind a single
+              brief. Bring your own keys or run on ours.
+            </Text>
+          </div>
+
+          <ButtonTracked
+            asChild
+            size={ButtonSize.PUBLIC}
+            trackingData={{ action: 'see_all_models' }}
+            trackingName="home_providers_click"
+            variant={ButtonVariant.SECONDARY}
           >
-            Your models, one workspace.
-          </Heading>
-          <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            {modelCount} models from {brands.length} providers — Higgsfield,
-            Replicate, fal.ai and the rest — behind a single brief. Bring your
-            own keys or run on ours.
-          </Text>
+            <Link href="/models">See all models</Link>
+          </ButtonTracked>
         </div>
 
         <ul
           aria-labelledby="home-providers-heading"
-          className="grid grid-cols-2 gap-px bg-edge/5 sm:grid-cols-3 lg:grid-cols-4"
+          className="mt-10 flex flex-wrap items-center gap-x-10 gap-y-4 border-t border-edge/5 pt-8"
         >
-          {brands.map((brand) => {
+          {featuredBrands.map((brand) => {
             const Icon = getModelBrandIcon(brand.iconKey);
 
             return (
               <li
                 key={brand.slug}
-                className="flex flex-col gap-3 bg-background p-6"
+                className="flex items-center gap-3"
                 data-reveal="up"
               >
-                <div className="flex items-center gap-3">
-                  {Icon ? (
-                    <Icon aria-hidden className="size-6 shrink-0" />
-                  ) : (
-                    <span
-                      aria-hidden
-                      className="flex size-6 shrink-0 items-center justify-center text-sm font-semibold"
-                    >
-                      {brand.label.charAt(0)}
-                    </span>
-                  )}
-                  <Heading
-                    as="h3"
-                    className="truncate text-base font-semibold text-surface"
+                {Icon ? (
+                  <Icon aria-hidden className="size-6 shrink-0" />
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex size-6 shrink-0 items-center justify-center text-sm font-semibold"
                   >
-                    {brand.label}
-                  </Heading>
-                </div>
-
-                <Text className="text-sm text-surface/72">
-                  {brand.modelCount}{' '}
-                  {brand.modelCount === 1 ? 'model' : 'models'}
-                </Text>
-
-                {brand.categories.length > 0 && (
-                  <Text className="text-xs uppercase tracking-widest text-surface/60">
-                    {brand.categories.join(' · ')}
-                  </Text>
+                    {brand.label.charAt(0)}
+                  </span>
                 )}
+                <Text className="text-base font-semibold text-surface">
+                  {brand.label}
+                </Text>
               </li>
             );
           })}

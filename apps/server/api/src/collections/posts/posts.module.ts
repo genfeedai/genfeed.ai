@@ -21,6 +21,7 @@ import { PostGroupsModule } from '@api/collections/post-groups/post-groups.modul
 import { AnalyticsCollectionModule } from '@api/collections/posts/analytics-collection.module';
 import { PostsAnalyticsController } from '@api/collections/posts/controllers/analytics/posts-analytics.controller';
 import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
+import { PostsAccountGenerationRetryController } from '@api/collections/posts/controllers/operations/posts-account-generation-retry.controller';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
@@ -61,6 +62,7 @@ import { Module } from '@nestjs/common';
     ContentMentionsController,
     PostsAnalyticsController,
     PostsGenerationController,
+    PostsAccountGenerationRetryController,
     PostsThreadDraftController,
     PostsOperationsController,
     PostsRetryController,

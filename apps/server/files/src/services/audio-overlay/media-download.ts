@@ -1,4 +1,5 @@
 import type { ConfigService } from '@files/config/config.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { safeFetch } from '@libs/security/destination-guard';
 
 export async function downloadPublicMedia(
@@ -8,7 +9,10 @@ export async function downloadPublicMedia(
 ): Promise<Buffer> {
   const cdnUrl = config?.get('GENFEEDAI_CDN_URL');
   const filesUrl = config?.get('GENFEEDAI_MICROSERVICES_FILES_URL');
-  const configuredOrigins = [cdnUrl, filesUrl]
+  const configuredOrigins = [
+    cdnUrl,
+    isSelfHostedDeployment() ? filesUrl : undefined,
+  ]
     .filter(
       (value): value is string => typeof value === 'string' && value.length > 0,
     )
@@ -18,6 +22,14 @@ export async function downloadPublicMedia(
       ? new URL(url, filesUrl || cdnUrl).href
       : url;
   const origin = new URL(resolvedUrl).origin;
+  if (
+    !isSelfHostedDeployment() &&
+    filesUrl &&
+    origin === new URL(filesUrl).origin
+  )
+    throw new Error(
+      'Cloud media cannot download from the files service origin',
+    );
   const isConfiguredStorage = configuredOrigins.includes(origin);
   const response = await safeFetch(
     resolvedUrl,

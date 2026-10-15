@@ -8,6 +8,7 @@ import {
   assertValidChannelTargetSchedule,
   assertVisibilitySupported,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import type { PostGenerationUpdateFields } from '@api/collections/posts/services/post-account-generation.types';
 import {
   batchSchedulePosts,
   type PostBatchScheduleItem,
@@ -119,17 +120,18 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   userId?: string;
 };
 
-export type PostUpdateInput = Partial<UpdatePostDto> & {
-  agentStrategyId?: string;
-  brandId?: string;
-  organizationId?: string;
-  platform?: CredentialPlatform;
-  reviewDecision?: PersistedReviewDecision;
-  reviewFeedback?: string;
-  reviewedAt?: Date;
-  targetSettings?: Prisma.InputJsonValue;
-  userId?: string;
-};
+export type PostUpdateInput = Partial<UpdatePostDto> &
+  PostGenerationUpdateFields & {
+    agentStrategyId?: string;
+    brandId?: string;
+    organizationId?: string;
+    platform?: CredentialPlatform;
+    reviewDecision?: PersistedReviewDecision;
+    reviewFeedback?: string;
+    reviewedAt?: Date;
+    targetSettings?: Prisma.InputJsonValue;
+    userId?: string;
+  };
 
 @Injectable()
 export class PostsService extends BaseService<

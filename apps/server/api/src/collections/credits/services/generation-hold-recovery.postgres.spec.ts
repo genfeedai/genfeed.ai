@@ -180,6 +180,7 @@ describe.skipIf(!connectionString)(
         {} as never,
         logger as never,
         { invalidateForOrganization: vi.fn() } as never,
+        { queueDeduction: vi.fn() } as never,
       );
     });
     afterEach(async () => {

@@ -15,6 +15,8 @@ export function resolveByokApiKeyOverride(
   return (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride;
 }
 
+export const MAX_RECEIPTED_THREAD_POSTS = 9;
+
 export function invalidThreadCountMessage(
   count: number,
 ): { detail: string; title: string } | undefined {
@@ -25,9 +27,10 @@ export function invalidThreadCountMessage(
     };
   }
 
-  if (count > 25) {
+  // A receipt binds the whole thread, and one artifact holds at most nine posts.
+  if (count > MAX_RECEIPTED_THREAD_POSTS) {
     return {
-      detail: 'Thread generation supports at most 25 posts',
+      detail: `Thread generation supports at most ${MAX_RECEIPTED_THREAD_POSTS} posts`,
       title: 'Invalid thread count',
     };
   }
