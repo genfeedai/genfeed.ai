@@ -567,6 +567,24 @@ describe('BaseService', () => {
       expect(result.items[0].id).toBe('1');
     });
 
+    it('maps keyset cursor links into the next cursor and hasNext', async () => {
+      service.getInstanceForTest().get.mockResolvedValue({
+        data: {
+          data: [{ id: '1', name: 'Test' }],
+          links: { cursor: { hasMore: true, limit: 30, nextCursor: 'abc' } },
+        },
+      });
+
+      const result = await service.findAllPage({ paging: 'cursor' });
+
+      expect(result).toMatchObject({
+        hasNext: true,
+        nextCursor: 'abc',
+        pageSize: 30,
+      });
+      expect(result.items[0]).toBeInstanceOf(TestModel);
+    });
+
     it('does not persist the allowlist for the next request on the same service', async () => {
       service
         .getInstanceForTest()

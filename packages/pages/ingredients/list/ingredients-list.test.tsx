@@ -264,6 +264,40 @@ describe('IngredientsList', () => {
     );
   });
 
+  it('streams older assets through an infinite-scroll sentinel after the grid', () => {
+    const loadMoreIngredients = vi.fn();
+    const observed: IntersectionObserverCallback[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        disconnect = vi.fn();
+        observe = vi.fn();
+        constructor(callback: IntersectionObserverCallback) {
+          observed.push(callback);
+        }
+      },
+    );
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(
+      buildIngredientsListReturn({
+        filteredIngredients: [{ id: 'image-1' }],
+        hasMoreIngredients: true,
+        isLoadingMoreIngredients: false,
+        loadMoreIngredients,
+      }),
+    );
+
+    render(<IngredientsList type="images" />);
+
+    expect(screen.getByTestId('infinite-scroll-sentinel')).toBeInTheDocument();
+    observed[0]?.(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
+    expect(loadMoreIngredients).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
   it('moves folder navigation out of the asset grid for Library routes', () => {
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
