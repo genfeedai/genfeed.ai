@@ -536,6 +536,10 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/ui/src/tokens/$1'),
       },
       {
+        find: /^@ui\/styles\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/styles/$1'),
+      },
+      {
         find: /^@ui\/components\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/components/$1'),
       },
