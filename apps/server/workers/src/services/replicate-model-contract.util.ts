@@ -16,6 +16,7 @@ import {
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { hashReplicateProviderContract } from '@libs/utils/provider-contract.util';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
+import { resolveOpenapiProperties } from '@workers/services/openapi-property.util';
 
 export interface ReplicateContractPricing {
   /** What the public model page said about billing (#6196). */
@@ -95,6 +96,7 @@ export function prepareReplicateModelContract(
   const { billingFailure, observed } = observeRates(
     pricing.billing,
     schemas.input,
+    openapi,
     endpoint,
   );
 
@@ -202,15 +204,18 @@ export function prepareReplicateModelContract(
 function observeRates(
   billing: ReplicateBillingObservation | undefined,
   inputSchema: Record<string, unknown>,
+  openapi: Record<string, unknown>,
   endpoint: string,
 ): { billingFailure: string | null; observed: ObservedRates | null } {
   if (!billing)
     return { billingFailure: 'no_billing_observation', observed: null };
   if (billing.status === 'unavailable')
     return { billingFailure: billing.reason, observed: null };
-  const properties = isRecord(inputSchema.properties)
-    ? inputSchema.properties
-    : {};
+  // Replicate keeps enums in `components.schemas` behind `allOf` refs.
+  const properties = resolveOpenapiProperties(
+    isRecord(inputSchema.properties) ? inputSchema.properties : {},
+    openapi,
+  );
   const mapping = mapReplicateBillingTiers(billing.tiers, properties, endpoint);
   if (mapping.status === 'failed')
     return { billingFailure: mapping.reason, observed: null };

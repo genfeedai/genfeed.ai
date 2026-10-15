@@ -92,6 +92,40 @@ describe('checked-in Replicate variant selectors', () => {
       }),
     ).toMatchObject({ status: 'ok', selectors: { model_variant: 'video_in' } });
   });
+  it('freezes Ideogram 4.5 when its source images are a nullable array defaulting to null', () => {
+    const fixture = REPLICATE_VARIANT_FIXTURES['ideogram-ai/ideogram-4-5'];
+    if (!fixture) throw new Error('Missing evidence ideogram-ai/ideogram-4-5');
+    // The live 2026-10-15 schema, which the fixture predates.
+    const result = mapReplicateBillingTiers(
+      fixture.tiers,
+      {
+        ...fixture.inputProperties,
+        images: {
+          default: null,
+          items: { format: 'uri', type: 'string' },
+          nullable: true,
+          title: 'Images',
+          type: 'array',
+        },
+      },
+      'ideogram-ai/ideogram-4-5',
+    );
+    if (result.status !== 'ok') throw new Error(result.reason);
+    for (const [input, variant] of [
+      [{ quality: 'medium' }, 'medium'],
+      [
+        { images: ['https://example.test/source.png'], quality: 'medium' },
+        'medium-with-source-images',
+      ],
+    ] as const)
+      expect(
+        resolveVariantSelectors(result.variantRules ?? [], {
+          input,
+          kind: 'dispatch',
+        }),
+      ).toMatchObject({ selectors: { model_variant: variant }, status: 'ok' });
+  });
+
   it('quarantines Seedance 1.5 when billing resolution is absent from the schema', () => {
     const fixture = REPLICATE_VARIANT_FIXTURES['bytedance/seedance-1.5-pro'];
     if (!fixture) throw new Error('missing Seedance 1.5 evidence');

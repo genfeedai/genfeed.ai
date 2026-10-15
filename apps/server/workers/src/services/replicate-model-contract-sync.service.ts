@@ -63,7 +63,10 @@ export class ReplicateModelContractSyncService {
     pricing: ReplicateContractPricing,
     now = new Date(),
   ): Promise<ReplicateContractSyncResult> {
-    const endpoint = `${providerModel.owner}/${providerModel.name}`;
+    // The registry row's endpoint, which differs from the hosted model for an
+    // alias row (FLUX.3 Edit); a contract only prices the row it matches.
+    const endpoint =
+      model.endpoint || `${providerModel.owner}/${providerModel.name}`;
     const modelKey = model.key ?? endpoint;
     const prisma = this.modelsService.prisma;
     const candidate = prepareReplicateModelContract(

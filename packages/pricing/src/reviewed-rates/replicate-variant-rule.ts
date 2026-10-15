@@ -46,7 +46,9 @@ function presenceType(
     property.type === 'array' &&
     variantRecord(property.items) &&
     property.items.type === 'string' &&
+    // A nullable array defaulting to null is absent, like an empty one.
     (property.default === undefined ||
+      property.default === null ||
       (Array.isArray(property.default) && property.default.length === 0))
   )
     return 'array';

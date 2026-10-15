@@ -214,6 +214,26 @@ describe('ReplicateModelContractSyncService', () => {
     });
   });
 
+  it('files the contract under an alias row endpoint, not the hosted model', async () => {
+    const { modelProviderContract, service } = harness();
+
+    await service.synchronizeModel(
+      {
+        ...registryModel(),
+        endpoint: 'google/imagen-4-alias',
+        key: 'google/imagen-4-alias',
+      },
+      providerModel(),
+      ModelCategory.IMAGE,
+      pricing(),
+      new Date('2026-09-01T10:00:00.000Z'),
+    );
+
+    expect(
+      modelProviderContract.upsert.mock.calls[0]?.[0].create.endpoint,
+    ).toBe('google/imagen-4-alias');
+  });
+
   it('stores the rates the model page states as a pending contract for an unreviewed model', async () => {
     const { modelProviderContract, service } = harness();
     const now = new Date('2026-10-05T00:00:00.000Z');
@@ -597,6 +617,62 @@ describe('Replicate derived billing refresh', () => {
       }),
     );
   });
+  it('reads an enum Replicate keeps behind an allOf $ref', async () => {
+    const { service, modelProviderContract } = harness();
+    // Replicate's real shape: the property points at components.schemas.quality.
+    const openapi = validOpenapi({
+      prompt: { type: 'string' },
+      quality: {
+        allOf: [{ $ref: '#/components/schemas/quality' }],
+        default: 'auto',
+      },
+    });
+    const components = openapi.components as {
+      schemas: Record<string, unknown>;
+    };
+    components.schemas.quality = {
+      enum: ['low', 'medium', 'high', 'auto'],
+      type: 'string',
+    };
+
+    await service.synchronizeModel(
+      {
+        ...registryModel(),
+        endpoint: 'openai/gpt-image-2',
+        key: 'openai/gpt-image-2',
+      },
+      {
+        ...providerModel(openapi),
+        name: 'gpt-image-2',
+        owner: 'openai',
+        url: 'https://replicate.com/openai/gpt-image-2',
+      },
+      ModelCategory.IMAGE,
+      {
+        ...pricing(),
+        billing: {
+          sourceUrl: 'https://replicate.com/openai/gpt-image-2',
+          status: 'ok',
+          tiers,
+        },
+      },
+    );
+
+    expect(
+      modelProviderContract.upsert.mock.calls[0]?.[0].create.pricing,
+    ).toMatchObject({
+      rates: [expect.objectContaining({ when: { model_variant: 'medium' } })],
+      variantRules: [
+        expect.objectContaining({
+          derive: expect.objectContaining({
+            default: 'auto',
+            field: 'quality',
+          }),
+        }),
+      ],
+    });
+  });
+
   it('retains billing-default drift on an approved model as a pending review', async () => {
     const first = harness();
     const row = {
