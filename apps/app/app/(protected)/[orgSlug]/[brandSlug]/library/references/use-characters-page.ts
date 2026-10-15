@@ -11,6 +11,7 @@ import type {
   BrandCharacterCandidate,
   BrandCharacterListItem,
   BrandCharacterSheetStep,
+  CharacterReferenceItem,
   IImage,
 } from '@genfeedai/contracts/interfaces';
 import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
@@ -399,6 +400,27 @@ export function useCharactersPage(): CharactersPageState {
     ],
   );
 
+  const applyReferences = useCallback(
+    (characterId: string, references: CharacterReferenceItem[]) => {
+      const referenceIngredientIds = [...references]
+        .sort((first, second) => first.position - second.position)
+        .map((reference) => reference.ingredientId);
+      setCharacters((current) =>
+        current.map((character) =>
+          character.id === characterId
+            ? {
+                ...character,
+                avatarIngredientId: referenceIngredientIds[0] ?? null,
+                referenceIngredientIds,
+              }
+            : character,
+        ),
+      );
+      window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
+    },
+    [],
+  );
+
   const openCreateDialog = useCallback(() => {
     setIsCreateDialogOpen(true);
   }, []);
@@ -425,6 +447,7 @@ export function useCharactersPage(): CharactersPageState {
       setHandle,
       setLabel,
     },
+    applyReferences,
     approveCandidate,
     availabilityControls: {
       character: availabilityCharacter,

@@ -14,7 +14,9 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   inspect: vi.fn(),
   create: vi.fn(),
+  add: vi.fn(),
   success: vi.fn(),
+  error: vi.fn(),
 }));
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org-1', brandId: 'brand-1' }),
@@ -24,10 +26,13 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
     listCharacters: mocks.list,
     inspectImage: mocks.inspect,
     createFromSheet: mocks.create,
+    addReferences: mocks.add,
   }),
 }));
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
-  NotificationsService: { getInstance: () => ({ success: mocks.success }) },
+  NotificationsService: {
+    getInstance: () => ({ success: mocks.success, error: mocks.error }),
+  },
 }));
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: { handle?: string }) =>
@@ -68,6 +73,7 @@ describe('SaveAsCharacter', () => {
       label: null,
     });
     mocks.create.mockResolvedValue({ id: 'character-1' });
+    mocks.add.mockResolvedValue([]);
   });
   it('saves the existing asset without regeneration, labels it, and refreshes mentions', async () => {
     const refresh = vi.fn();
@@ -262,5 +268,82 @@ describe('SaveAsCharacter', () => {
       }),
     ).toBeDisabled();
     expect(mocks.inspect).not.toHaveBeenCalled();
+  });
+  describe('adding to an existing character (#7004)', () => {
+    const anna = {
+      id: 'character-1',
+      avatarIngredientId: 'image-0',
+      handle: 'anna',
+      label: 'Anna',
+      referenceIngredientIds: ['image-0'],
+    };
+    it('offers Add to @handle next to Save as character and appends the image', async () => {
+      mocks.list.mockResolvedValue([anna]);
+      const refresh = vi.fn();
+      window.addEventListener('genfeed:characters:changed', refresh);
+      mount();
+      expect(
+        await screen.findByRole('button', { name: 'saveExisting.action' }),
+      ).toBeInTheDocument();
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'saveExisting.addTo anna' }),
+      );
+      await waitFor(() =>
+        expect(mocks.add).toHaveBeenCalledWith('character-1', ['image-1']),
+      );
+      await waitFor(() =>
+        expect(mocks.success).toHaveBeenCalledWith(
+          'saveExisting.addSuccess anna',
+        ),
+      );
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(mocks.create).not.toHaveBeenCalled();
+      window.removeEventListener('genfeed:characters:changed', refresh);
+    });
+    it('reports a failed add without changing the character', async () => {
+      mocks.list.mockResolvedValue([anna]);
+      mocks.add.mockRejectedValue(new Error('rejected'));
+      mount();
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'saveExisting.addTo anna' }),
+      );
+      await waitFor(() =>
+        expect(mocks.error).toHaveBeenCalledWith('saveExisting.addError'),
+      );
+      expect(mocks.success).not.toHaveBeenCalled();
+    });
+    it('does not offer characters that already use the image', async () => {
+      mocks.list.mockResolvedValue([
+        { ...anna, referenceIngredientIds: ['image-0', 'image-1'] },
+      ]);
+      mount();
+      await screen.findByRole('button', { name: 'saveExisting.saved anna' });
+      expect(
+        screen.queryByRole('button', { name: 'saveExisting.addTo anna' }),
+      ).not.toBeInTheDocument();
+    });
+    it('disables a character that is at the reference limit', async () => {
+      mocks.list.mockResolvedValue([
+        {
+          ...anna,
+          referenceIngredientIds: Array.from(
+            { length: 14 },
+            (_, index) => `image-${index + 10}`,
+          ),
+        },
+      ]);
+      mount();
+      expect(
+        await screen.findByRole('button', { name: 'saveExisting.addTo anna' }),
+      ).toBeDisabled();
+    });
+    it('skips characters granted by another organization', async () => {
+      mocks.list.mockResolvedValue([{ ...anna, isGranted: true }]);
+      mount();
+      await screen.findByRole('button', { name: 'saveExisting.action' });
+      expect(
+        screen.queryByRole('button', { name: 'saveExisting.addTo anna' }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

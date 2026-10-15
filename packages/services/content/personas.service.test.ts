@@ -128,4 +128,34 @@ describe('PersonasService', () => {
     expect(findAllPages).toHaveBeenCalledWith({ brandId: 'b2' }, signal);
     expect(result).toEqual([expect.objectContaining({ id: 'p1' })]);
   });
+
+  it('manages ordered character references through the references routes', async () => {
+    const items = [{ ingredientId: 'img-2', position: 0 }];
+    const get = vi.fn().mockResolvedValue({ data: { data: items } });
+    const post = vi.fn().mockResolvedValue({ data: { data: items } });
+    const put = vi.fn().mockResolvedValue({ data: { data: items } });
+    const del = vi.fn().mockResolvedValue({ data: { data: items } });
+    (service as unknown as { instance: unknown }).instance = {
+      delete: del,
+      get,
+      post,
+      put,
+    };
+
+    expect(await service.listReferences('p1')).toEqual(items);
+    expect(await service.addReferences('p1', ['img-2'])).toEqual(items);
+    expect(await service.reorderReferences('p1', ['img-2', 'img-1'])).toEqual(
+      items,
+    );
+    expect(await service.removeReference('p1', 'img-1')).toEqual(items);
+
+    expect(get).toHaveBeenCalledWith('/p1/references');
+    expect(post).toHaveBeenCalledWith('/p1/references', {
+      ingredientIds: ['img-2'],
+    });
+    expect(put).toHaveBeenCalledWith('/p1/references', {
+      ingredientIds: ['img-2', 'img-1'],
+    });
+    expect(del).toHaveBeenCalledWith('/p1/references/img-1');
+  });
 });
