@@ -33,14 +33,12 @@ async function main(): Promise<void> {
   const logger = app.get(LoggerService);
 
   try {
-    logger.log('Starting protected Fal model discovery and synchronization');
+    logger.log('Starting protected Fal registry synchronization');
     const summary = await app
       .get(CronFalModelWatcherService)
-      .discoverNewModels();
+      .refreshRegistryModels();
     logger.log('Fal model synchronization completed', {
-      draftsCreated: summary.draftsCreated,
       errors: summary.errors,
-      newModelsFound: summary.newModelsFound,
       providerContractsDrifted: summary.providerContractsDrifted,
       providerContractsQuarantined: summary.providerContractsQuarantined,
       providerContractsSynchronized: summary.providerContractsSynchronized,

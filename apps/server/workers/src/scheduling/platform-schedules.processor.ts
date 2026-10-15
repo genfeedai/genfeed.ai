@@ -129,7 +129,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       [PLATFORM_SCHEDULED_TASKS.ENGAGEMENT_TRIGGERS]: () =>
         this.engagementTriggers.processArmedRules(),
       [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: () =>
-        this.falModelWatcher.discoverNewModels(),
+        this.falModelWatcher.refreshRegistryModels(),
       [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY]: () =>
         this.credits.expireFreeTrials(),
       [PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH]: () =>

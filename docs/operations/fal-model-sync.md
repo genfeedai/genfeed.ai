@@ -5,10 +5,16 @@ from the workers service every Sunday at 07:00 UTC. The job uses the workers
 process `FAL_API_KEY`: Genfeed SaaS supplies its platform worker key; Community
 operators may configure their own key in the deployment environment.
 
+Synchronization refreshes only the Fal endpoints already in the model
+registry. Fal lists more than a thousand endpoints, so the job never drafts new
+ones; add a Fal model to the catalog first. Endpoints are requested ten at a
+time, the most Fal accepts with OpenAPI expansion. An endpoint Fal cannot
+address by its exact id is recorded as `model_fetch_failed`.
+
 Synchronization is deliberately review-gated:
 
-- new and changed endpoints are inactive while their candidate contract awaits
-  operator review;
+- changed endpoints keep charging their reviewed rate while the candidate
+  contract awaits operator review;
 - unsupported schemas, currencies, unmapped conditional prices, and billing units are
   quarantined and cannot be approved;
 - a failed synchronization records freshness failure state without replacing

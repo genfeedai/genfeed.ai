@@ -21,7 +21,7 @@ describe('PlatformSchedulesProcessor', () => {
   };
   const credentials = { refreshExpiringTokens: handler() };
   const engagement = { processArmedRules: handler() };
-  const falModels = { discoverNewModels: handler() };
+  const falModels = { refreshRegistryModels: handler() };
   const ingredients = {
     checkStuckProcessingIngredients: handler(),
     refreshMissingMetadataDimensions: handler(),
@@ -114,7 +114,7 @@ describe('PlatformSchedulesProcessor', () => {
       ],
       [
         PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY,
-        falModels.discoverNewModels,
+        falModels.refreshRegistryModels,
       ],
       [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY, credits.expireFreeTrials],
       [

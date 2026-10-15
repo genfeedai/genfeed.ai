@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -8,8 +8,6 @@ import { ConfigService } from '@workers/config/config.service';
 import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type {
   IFalModel,
-  IModelCategoryDecision,
-  IModelDiscoveryInput,
   IModelDiscoveryRunSummary,
 } from '@workers/interfaces/model-discovery.interface';
 import {
@@ -17,7 +15,6 @@ import {
   FalModelContractSyncService,
   type FalSyncModelRecord,
 } from '@workers/services/fal-model-contract-sync.service';
-import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import {
   dispatchModelPriceChangeAlert,
   dispatchModelPricingUnavailableAlert,
@@ -26,25 +23,6 @@ import {
 /** Lifecycle status fal reports for endpoints that still accept requests */
 const FAL_MODEL_STATUS_ACTIVE = 'active';
 
-/**
- * fal publishes a task-shaped category (`text-to-image`) where the registry
- * stores an output-shaped one. Anything unmapped falls through to the shared
- * description-based detection.
- */
-const FAL_CATEGORY_MAP: Record<string, ModelCategory> = {
-  'audio-to-text': ModelCategory.VOICE,
-  'image-to-image': ModelCategory.IMAGE_EDIT,
-  'image-to-video': ModelCategory.VIDEO,
-  llm: ModelCategory.TEXT,
-  'speech-to-text': ModelCategory.VOICE,
-  'text-to-audio': ModelCategory.MUSIC,
-  'text-to-image': ModelCategory.IMAGE,
-  'text-to-speech': ModelCategory.VOICE,
-  'text-to-video': ModelCategory.VIDEO,
-  'video-to-video': ModelCategory.VIDEO_EDIT,
-  vision: ModelCategory.TEXT,
-};
-
 @Injectable()
 export class CronFalModelWatcherService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -52,7 +30,6 @@ export class CronFalModelWatcherService {
   constructor(
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
-    private readonly modelDiscoveryService: ModelDiscoveryService,
     private readonly configService: ConfigService,
     private readonly activityRecorder: ActivityRecorderService,
     private readonly falPlatformClient: FalPlatformClient,
@@ -60,15 +37,11 @@ export class CronFalModelWatcherService {
   ) {}
 
   /**
-   * Weekly fal model discovery cron.
-   * Polls the fal model search API, diffs against the `Model` registry, and
-   * creates draft rows for anything new. Drafts stay `isActive: false` until an
-   * operator approves them — this cron never activates a model.
-   *
-   * Runs weekly on Sunday at 7 AM UTC, an hour after the Replicate watcher so
-   * the two providers never contend for the same registry rows.
+   * Refresh the schema and price contract of every fal endpoint already in the
+   * registry. Fal lists well over a thousand endpoints, so this never drafts
+   * new ones: an operator adds a fal model to the catalog first.
    */
-  async discoverNewModels(): Promise<IModelDiscoveryRunSummary> {
+  async refreshRegistryModels(): Promise<IModelDiscoveryRunSummary> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
 
@@ -89,10 +62,6 @@ export class CronFalModelWatcherService {
     }
 
     try {
-      // Step 1: Fetch all known provider identities from the registry. The diff
-      // only needs provider + endpoint, so read them straight off the delegate
-      // instead of pulling every row's JSONB config through
-      // `modelsService.find`.
       const registryRows = await this.modelsService.prisma.model.findMany({
         select: {
           endpoint: true,
@@ -103,32 +72,29 @@ export class CronFalModelWatcherService {
           provider: true,
           reviewedProviderContractVersion: true,
         },
-        where: { isDeleted: false, organizationId: null },
+        where: {
+          isDeleted: false,
+          organizationId: null,
+          provider: ModelProvider.FAL,
+        },
       });
-      const existingFalModels = new Map<string, FalSyncModelRecord>(
-        registryRows
-          .filter((row) => row.provider === ModelProvider.FAL)
-          .map((row) => [row.endpoint || row.key, row] as const),
+      const registryModels = new Map<string, FalSyncModelRecord>(
+        registryRows.map((row) => [row.endpoint || row.key, row] as const),
       );
 
       this.logger.log(
-        `${url} loaded ${existingFalModels.size} existing fal endpoints`,
+        `${url} loaded ${registryModels.size} registry fal endpoints`,
       );
+      if (registryModels.size === 0) return summary;
 
-      // Step 2: Poll authenticated, OpenAPI-expanded Fal model search.
-      const falModels = await this.falPlatformClient.fetchModels();
+      const falModels = await this.falPlatformClient.fetchModels([
+        ...registryModels.keys(),
+      ]);
       summary.totalPolled = falModels.length;
 
-      this.logger.log(`${url} polled ${falModels.length} models from fal`);
-
-      // Step 3: Keep only routable, non-deprecated endpoints
       const routableModels = falModels.filter((model) =>
         this.isRoutableModel(model),
       );
-
-      this.logger.log(`${url} ${routableModels.length} routable fal endpoints`);
-
-      // Step 4: Fetch account-specific pricing for the exact endpoint set.
       const pricing = await this.falPlatformClient.fetchPricing(
         routableModels.map((model) => model.endpoint_id),
       );
@@ -144,42 +110,39 @@ export class CronFalModelWatcherService {
         pricingByEndpoint.set(endpoint, endpointPrices);
       }
 
-      // Step 5: Diff against the registry.
-      const newModels = routableModels.filter(
-        (model) => !existingFalModels.has(model.endpoint_id),
+      const routableEndpoints = new Set(
+        routableModels.map((model) => model.endpoint_id),
       );
-
-      summary.newModelsFound = newModels.length;
-
-      if (newModels.length === 0) {
-        this.logger.log(`${url} no new fal models discovered`);
-      }
-
-      this.logger.log(
-        `${url} found ${newModels.length} new models to process`,
-        {
-          models: newModels.map((model) => model.endpoint_id),
-        },
-      );
-
-      // Step 6: Create missing drafts, then persist a versioned contract for
-      // every endpoint. Candidate writes never replace reviewed runtime fields.
       for (const model of routableModels) {
-        await this.syncRoutableModel(
-          model,
-          existingFalModels,
-          pricingByEndpoint,
-          summary,
-          url,
+        const registryModel = registryModels.get(model.endpoint_id);
+        if (registryModel)
+          await this.syncRegistryModel(
+            model,
+            registryModel,
+            pricingByEndpoint,
+            summary,
+            url,
+          );
+      }
+      for (const [endpoint, registryModel] of registryModels) {
+        if (routableEndpoints.has(endpoint)) continue;
+        summary.errors++;
+        await this.falContractSyncService.recordFailure(
+          'model_fetch_failed',
+          summary.timestamp,
+          registryModel.id,
+        );
+        await this.sendFailureAlert(
+          endpoint,
+          'model_fetch_failed',
+          summary.timestamp,
         );
       }
 
-      // Step 7: Log low-cardinality observability only. Raw schemas, pricing,
-      // account metadata, and credentials never enter logs.
+      // Low-cardinality observability only. Raw schemas, pricing, account
+      // metadata, and credentials never enter logs.
       this.logger.log(`${url} completed`, {
-        draftsCreated: summary.draftsCreated,
         errors: summary.errors,
-        newModelsFound: summary.newModelsFound,
         providerContractsDrifted: summary.providerContractsDrifted,
         providerContractsQuarantined: summary.providerContractsQuarantined,
         providerContractsSynchronized: summary.providerContractsSynchronized,
@@ -206,99 +169,22 @@ export class CronFalModelWatcherService {
     }
   }
 
-  /**
-   * A fal endpoint is only worth drafting when generation can actually reach it.
-   *
-   * Provider-aware identity lets any active fal endpoint reach `FalService`,
-   * including partner namespaces that overlap Replicate `owner/model` keys.
-   * Discovery therefore filters only on upstream lifecycle state.
-   */
+  /** Fal still accepts requests for this endpoint. */
   private isRoutableModel(model: IFalModel): boolean {
     const status = model.metadata?.status;
 
     return !status || status === FAL_MODEL_STATUS_ACTIVE;
   }
 
-  /**
-   * Build the shared discovery input from a Fal endpoint. The provider endpoint
-   * stays verbatim while the discovery service derives a collision-safe public
-   * key; `owner` is the first segment and `name` carries the remaining path.
-   */
-  private async buildDiscoveryInput(
+  /** Synchronize one registry fal endpoint; never throws. */
+  private async syncRegistryModel(
     model: IFalModel,
-  ): Promise<IModelDiscoveryInput> {
-    const [owner, ...rest] = model.endpoint_id.split('/');
-    const metadata = model.metadata;
-    const displayName = metadata?.display_name?.trim();
-    const decision = await this.decideModelCategory(model);
-
-    return {
-      category: decision.category,
-      description: metadata?.description || '',
-      endpoint: model.endpoint_id,
-      name: rest.join('/'),
-      owner: owner as string,
-      provider: ModelProvider.FAL,
-      providerUrl:
-        metadata?.model_url || `https://fal.ai/models/${model.endpoint_id}`,
-      versionId: null,
-      ...(decision.confidence !== undefined
-        ? { categoryConfidence: decision.confidence }
-        : {}),
-      ...(displayName ? { label: displayName } : {}),
-    };
-  }
-
-  /**
-   * Map the fal task category onto a registry category. A mapped task category
-   * is fal's own structural statement about the endpoint, so it short-circuits
-   * the shared classification (#4869) the same way an unambiguous output
-   * schema does; anything unmapped falls through to it.
-   */
-  private async decideModelCategory(
-    model: IFalModel,
-  ): Promise<IModelCategoryDecision> {
-    const category = model.metadata?.category?.toLowerCase();
-    const mapped = category ? FAL_CATEGORY_MAP[category] : undefined;
-
-    if (mapped) {
-      return { category: mapped, source: 'provider-metadata' };
-    }
-
-    return this.modelDiscoveryService.classifyCategory({
-      description: model.metadata?.description,
-      endpoint: model.endpoint_id,
-      provider: ModelProvider.FAL,
-      schema: model.openapi,
-      tags: [...(category ? [category] : []), ...(model.metadata?.tags ?? [])],
-    });
-  }
-
-  /** Draft (when new) and synchronize one routable fal endpoint; never throws. */
-  private async syncRoutableModel(
-    model: IFalModel,
-    existingFalModels: ReadonlyMap<string, FalSyncModelRecord>,
+    registryModel: FalSyncModelRecord,
     pricingByEndpoint: ReadonlyMap<string, Array<Record<string, unknown>>>,
     summary: IModelDiscoveryRunSummary,
     url: string,
   ): Promise<void> {
-    let registryModel = existingFalModels.get(model.endpoint_id);
     try {
-      if (!registryModel) {
-        const discoveryInput = await this.buildDiscoveryInput(model);
-        const draft =
-          await this.modelDiscoveryService.createDraftModel(discoveryInput);
-
-        if (!draft) return;
-        summary.draftsCreated++;
-        registryModel = draft;
-        await this.sendDiscoveryNotification(
-          model.endpoint_id,
-          discoveryInput.category,
-          draft.cost ?? 0,
-        );
-      }
-
       const syncResult = await this.falContractSyncService.synchronizeModel(
         registryModel,
         model,
@@ -318,25 +204,23 @@ export class CronFalModelWatcherService {
       }
     } catch (error: unknown) {
       summary.errors++;
-      if (registryModel?.id) {
-        await this.falContractSyncService.recordFailure(
-          'contract_sync_failed',
-          summary.timestamp,
-          registryModel.id,
-        );
-        await this.sendFailureAlert(
-          model.endpoint_id,
-          'contract_sync_failed',
-          summary.timestamp,
-        );
-      }
+      await this.falContractSyncService.recordFailure(
+        'contract_sync_failed',
+        summary.timestamp,
+        registryModel.id,
+      );
+      await this.sendFailureAlert(
+        model.endpoint_id,
+        'contract_sync_failed',
+        summary.timestamp,
+      );
       this.logger.error(`${url} failed to process model ${model.endpoint_id}`, {
         reason: error instanceof Error ? error.name : 'unknown',
       });
     }
   }
 
-  /** Ops Discord for a model whose refresh threw. */
+  /** Ops Discord for a model whose refresh threw or could not be fetched. */
   private async sendFailureAlert(
     modelKey: string,
     code: string,
@@ -383,48 +267,6 @@ export class CronFalModelWatcherService {
       this.logger.error(`${this.constructorName} pricing alert failed`, {
         error,
       });
-    }
-  }
-
-  /**
-   * Send a Discord notification for a newly discovered model.
-   * Silently swallows errors to avoid failing the watcher.
-   */
-  private async sendDiscoveryNotification(
-    modelKey: string,
-    category: string,
-    estimatedCost: number,
-  ): Promise<void> {
-    try {
-      // Platform event: no tenant. A model is announced once.
-      await this.activityRecorder.dispatch({
-        deduplicationKey: `message.model-discovery/${modelKey}`,
-        messages: [
-          {
-            destination: null,
-            message: {
-              action: 'model_discovery',
-              payload: {
-                category,
-                estimatedCost,
-                modelKey,
-                provider: ModelProvider.FAL,
-                // Commercial pricing remains in the private provider-contract table.
-                providerCostUsd: 0,
-              },
-              type: 'discord',
-            },
-          },
-        ],
-        organizationId: null,
-        source: { id: modelKey, type: 'model' },
-        topic: 'operator.alerts',
-      });
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName} notification failed for ${modelKey}`,
-        { error },
-      );
     }
   }
 }
