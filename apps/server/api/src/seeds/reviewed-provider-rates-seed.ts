@@ -7,6 +7,7 @@ import { HEYGEN_SCHEMA_FIXTURES } from '@api/seeds/fixtures/heygen-rate-schemas'
 import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.types';
 import flux3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/flux-3-image.schema.json';
 import ideogramOpenapi from '@api/services/prompt-builder/builders/replicate/fixtures/ideogram-4-5.schema.json';
+import minimaxH3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/minimax-h3.schema.json';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import {
@@ -36,6 +37,11 @@ const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   'ideogram-ai/ideogram-4-5': {
     openapi: ideogramOpenapi,
     schemaFamily: 'ideogram-image-edit-v1',
+  },
+  // Replicate exposes no version, so no OpenAPI document is ever observed.
+  'minimax/h3': {
+    openapi: minimaxH3Openapi,
+    schemaFamily: 'replicate-video-v1',
   },
   ...ELEVENLABS_SCHEMA_FIXTURES,
   ...HEYGEN_SCHEMA_FIXTURES,

@@ -1,0 +1,79 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "minimax/h3",
+    "description": "Replicate does not publish a version or OpenAPI document for minimax/h3. Fields and output come from https://replicate.com/minimax/h3/llms.txt (retrieved 2026-10-15); the resolution and duration ranges come from its readme."
+  },
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "title": "Input",
+        "required": ["prompt"],
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "description": "Text prompt for generation"
+          },
+          "first_frame_image": {
+            "type": "string",
+            "format": "uri",
+            "title": "First Frame Image",
+            "description": "First frame image for video generation. The output video will have the same aspect ratio as this image."
+          },
+          "last_frame_image": {
+            "type": "string",
+            "format": "uri",
+            "title": "Last Frame Image",
+            "description": "Last frame image for video generation. The final frame of the output video will match this image."
+          },
+          "reference_image_urls": {
+            "type": "array",
+            "title": "Reference Image Urls",
+            "description": "Public URLs for up to 9 reference images.",
+            "items": { "type": "string", "format": "uri" },
+            "maxItems": 9
+          },
+          "reference_video_urls": {
+            "type": "array",
+            "title": "Reference Video Urls",
+            "description": "Public URLs for up to 3 reference videos.",
+            "items": { "type": "string", "format": "uri" },
+            "maxItems": 3
+          },
+          "reference_audio_urls": {
+            "type": "array",
+            "title": "Reference Audio Urls",
+            "description": "Public URLs for up to 3 reference audio clips.",
+            "items": { "type": "string", "format": "uri" },
+            "maxItems": 3
+          },
+          "duration": {
+            "type": "integer",
+            "title": "Duration",
+            "description": "Output duration in seconds.",
+            "minimum": 4,
+            "maximum": 15
+          },
+          "resolution": {
+            "type": "string",
+            "title": "Resolution",
+            "description": "Output resolution.",
+            "enum": ["768P", "2K"]
+          },
+          "ratio": {
+            "type": "string",
+            "title": "Ratio",
+            "description": "Output aspect ratio. Required for text-to-video; adaptive for image-to-video."
+          }
+        }
+      },
+      "Output": {
+        "type": "string",
+        "title": "Output",
+        "format": "uri"
+      }
+    }
+  }
+}
