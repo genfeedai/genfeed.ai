@@ -3,7 +3,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Self-Host Genfeed',
-  'Genfeed is open source. Self-host the full content OS on your own infrastructure with Docker, or skip the ops and start free on managed cloud.',
+  'Genfeed is open source. Self-host it with Docker Compose using one npx command or a checksummed release bundle, bring your own model provider keys, or start free on managed cloud.',
   '/self-hosted',
 );
 

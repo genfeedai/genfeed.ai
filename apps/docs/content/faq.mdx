@@ -1,58 +1,67 @@
 ---
-description: 'Find answers about Genfeed Community, Cloud, supported clients, deployment choices, providers, models, publishing, billing, privacy, and support.'
+description: 'Find answers about running your own Genfeed instance: install options, supported clients, provider keys, models, publishing, privacy, licensing, and support.'
 ---
 
 # Frequently Asked Questions
 
 ## What is Genfeed?
 
-Genfeed is a content workflow platform with a self-hosted Community
-distribution, a hosted Cloud product, and source clients for desktop, mobile,
-browser, and VS Code.
+Genfeed is an open-source, AGPL-3.0 content workflow platform you run on your own
+infrastructure. The self-hosted distribution is a single-tenant Docker stack with
+the web app, REST API, workers, and MCP server. The repository also contains
+source for desktop, mobile, browser, and VS Code clients.
 
-## Which distribution should I use?
+## How do I install it?
 
-Use Community when you want to operate the single-tenant Docker stack and bring
-your own providers. Use Cloud when you want the hosted service and managed
-capabilities. The desktop client is macOS-first and connects to Cloud or a
-self-hosted server, with an optional local workspace; mobile and extension
-source does not imply a public store listing.
-
-See [Deployment Options](/deployment).
+Run `npx @genfeedai/create my-genfeed` (Node 24) or download the checksummed
+release bundle and start it with Docker Compose v2. See
+[Installation Options](/self-host/installation) and
+[System Requirements](/self-host/system-requirements).
 
 ## Which content types and models are supported?
 
 The provider registry includes text, image, video, and voice/audio adapters.
-Specific models vary with provider availability, configuration, account access,
-and region. See [Available Models](/models).
+Specific models vary with the provider keys you configure, account access, and
+region. See [Models and Providers](/models) and
+[Provider API Keys](/self-host/provider-api-keys).
+
+## Do I need model provider keys?
+
+Yes, to generate content. Self-hosted Genfeed has no Genfeed credits: you add
+your own keys for providers such as OpenAI, Anthropic, Replicate, fal, and
+ElevenLabs, and you pay those providers directly. The keys in
+`.env.example` are optional and blank by default. See
+[Provider API Keys](/self-host/provider-api-keys).
+
+## Can I run open-source models locally?
+
+Not with the standard image. It does not start GPU or local-model services. You
+can register a separately operated ComfyUI workflow through the provider
+registry; see [Provider Registry](/self-host/provider-registry).
 
 ## Can I collaborate with a team?
 
-Multi-tenant organization and team-governance surfaces belong to Cloud or
-commercial deployments. Community is one organization per deployment and may
-enable a local Better Auth login wall.
+A self-hosted deployment is single-tenant: one organization per deployment. You
+can enable the Better Auth login wall so people sign in with their own
+accounts; see [Configuration](/self-host/configuration#login-wall).
 
-## Is Community free to run?
+## Is it free to run?
 
-Genfeed does not meter local/BYOK execution. You still pay for your own
-infrastructure and any external model providers you configure. Review the
-repository and package-specific licenses before redistribution.
-
-## What does Cloud cost?
-
-Use the [current pricing page](https://genfeed.ai/pricing). These docs do not
-hard-code trial, plan, credit, seat, support, or SLA terms.
+Genfeed is licensed AGPL-3.0 and does not meter your usage. You pay for your own
+infrastructure and any external model or publishing providers you configure.
+Review the repository license before redistributing a modified version.
 
 ## Does self-hosting keep all data local?
 
 Application records and local assets remain on infrastructure you operate.
-Prompts and media sent to an external model or publishing provider leave the
-deployment under that provider's terms. Fully local processing requires local
-provider infrastructure.
+Prompts and media sent to an external model or publishing provider leave your
+deployment under that provider's terms. Fully local processing requires a local
+provider path that you operate yourself.
 
 ## Where do I report a problem?
 
 Use the [GitHub issue forms](https://github.com/genfeedai/genfeed.ai/issues/new/choose)
 for reproducible public bugs and feature requests. No response time is
-guaranteed. Do not report suspected vulnerabilities publicly; follow the
+guaranteed. Check [Troubleshooting](/self-host/troubleshooting) first. Do not
+report suspected vulnerabilities publicly; follow the
 [Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy).

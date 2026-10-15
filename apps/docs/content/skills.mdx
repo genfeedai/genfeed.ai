@@ -12,7 +12,7 @@ file. The agent loads it, reads the instructions inside, and applies them when t
 task matches.
 
 Skills carry knowledge, not credentials or code. They work in any agent that
-supports the `SKILL.md` convention, with or without a Genfeed account.
+supports the `SKILL.md` convention, with or without a running Genfeed instance.
 
 ## What a product skill is
 
@@ -152,26 +152,26 @@ same problem.
 - A **skill** is knowledge. It tells the agent what good output looks like and
   how to get there. It needs no account and no network access.
 - The **MCP server** is capability. It gives the agent authenticated tools to
-  generate images and video, run workflows, publish posts, and read analytics
-  from your Genfeed workspace.
+  generate media with your provider keys, run workflows, draft and schedule
+  posts, and read analytics from your own Genfeed instance.
 
 Used together, the agent plans with the skill and executes with the tools: the
 `x-content-creator` skill shapes the thread, then the MCP `create_post` tool
 schedules it.
 
-Claude uses the dedicated OAuth connector for brands, drafts, existing assets, scheduling and analytics. Media creation happens in Genfeed Studio; creative skills do not enable generation through this connector. Open `/mcp` after adding it and complete browser authorization:
+Connect Claude Code to your instance's dedicated content connector, then open
+`/mcp` and complete browser authorization:
 
 ```bash
-claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
 ```
 
-Agents that only need discovery — no key, no tool calls — can read
-[`genfeed.ai/.well-known/agent.json`](https://genfeed.ai/.well-known/agent.json),
-which advertises the agent's headline capabilities and its MCP and REST entry
-points.
+Other clients use `http://localhost:3014/mcp`. See
+[MCP server](/api-reference/mcp#connect-to-your-instance) for every client and for
+API-key setup.
 
 ## Next steps
 
-- [MCP Server](/api-reference/mcp) — endpoints, authentication, and client setup
-- [How to prompt AI content: the CLEAR framework](https://genfeed.ai/articles/how-to-prompt-ai-content-clear-framework) — the framework skills build on
+- [MCP server](/api-reference/mcp) — endpoints, authentication, and client setup
+- [After it is running](/self-host/after-it-is-running) — first steps on a new instance
 - [Skill catalog](https://github.com/genfeedai/genfeed.ai/blob/master/skills/README.md) — every published product skill

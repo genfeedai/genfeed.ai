@@ -6,7 +6,7 @@
 set -euo pipefail
 
 BOUNDARY_ADR=".agents/memory/architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md"
-DOCS_FILE="apps/docs/content/core/execution-boundaries.mdx"
+DOCS_FILE="apps/docs/content/self-host/architecture.mdx"
 
 extract_version() {
   awk '

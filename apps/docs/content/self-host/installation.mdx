@@ -1,0 +1,178 @@
+---
+title: Installation Options
+description: 'Install self-hosted Genfeed with one npx command, the checksummed release bundle and Docker Compose, or from source if you are contributing.'
+---
+
+# Installation Options
+
+There are three ways to run Genfeed. Most people should pick the first or second:
+both start the same published release as a single container next to PostgreSQL,
+and neither needs a repository clone.
+
+| Option | Best for | Needs |
+| --- | --- | --- |
+| [`npx @genfeedai/create`](#option-1-npx-one-command) | The fastest start | Docker Compose v2, Node.js 24 |
+| [Release bundle](#option-2-release-bundle-with-docker-compose) | Servers, CI, or machines without Node.js | Docker Compose v2 |
+| [From source](#option-3-from-source-contributors) | Contributors changing Genfeed itself | Node.js 24, Bun, Git, Docker Compose v2 |
+
+Check the [system requirements](/self-host/system-requirements) first. Plan on about
+8 GB of free disk, and free ports `3000`, `3010`, and `3014`.
+
+## Option 1: `npx` one command
+
+```bash
+npx @genfeedai/create my-genfeed
+```
+
+This downloads the release bundle, verifies its checksum and manifest, validates
+the Compose file, and starts it with Docker Compose.
+
+It needs Node.js 24 (`>=24 <25`). On any other Node version, use the release
+bundle below. `@genfeedai/create` is separate from the
+[`@genfeedai/cli`](/api-reference/cli) terminal client, which needs Node.js
+22.12 or newer.
+
+## Option 2: Release bundle with Docker Compose
+
+The release bundle is a checksummed tarball of the latest stable release. It
+runs as one container alongside PostgreSQL, so there is no git clone and no
+build step.
+
+```bash
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256
+tar -xzf genfeed-selfhosted.tar.gz
+cd genfeed-selfhosted-v*
+cp .env.example .env
+docker compose --env-file .env -f compose.yml up -d
+```
+
+On macOS, use `shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256` for the
+checksum step.
+
+The bundle contains `compose.yml`, `.env.example`, and a manifest. The manifest
+and Compose file pin the exact application image for that release. On first
+boot the container applies database migrations and seeds one local user, one
+organization, and one brand. The default configuration has no login wall.
+
+### Open it
+
+| Surface    | Address                 |
+| ---------- | ----------------------- |
+| Web UI     | `http://localhost:3000` |
+| REST API   | `http://localhost:3010` |
+| MCP server | `http://localhost:3014` |
+
+PostgreSQL is reachable only inside the Compose network, and Redis runs inside
+the Genfeed container. Neither is published on a host port.
+
+Confirm that the API process responds:
+
+```bash
+curl http://localhost:3010/v1/health
+```
+
+This is a process-level check. It does not prove that the database, queues, or
+any model provider are ready.
+
+### Add your own keys
+
+Self-hosted Genfeed has no Genfeed credits and the model keys in `.env` start
+blank. Add the provider keys you want in `.env` and recreate the stack. See
+[Provider API keys](/self-host/provider-api-keys).
+
+### Source checkout Compose file
+
+A repository checkout also contains `docker/docker-compose.selfhosted.yml`. It
+is configuration for contributors: it still runs a published image and does not
+build your checked-out code. Unlike a release bundle, its template defaults to
+the mutable `latest` image tag unless you set `GENFEED_IMAGE_TAG`.
+
+## Option 3: From source (contributors)
+
+Use this path only if you are changing Genfeed itself. To run Genfeed, use option 1 or 2.
+
+### Requirements
+
+- Node.js `>=24 <25`
+- Latest stable Bun (see `.bun-version`)
+- Git
+- Docker Engine with Docker Compose v2, for local PostgreSQL 17 and Redis 7
+
+This repository is Bun-only. npm, Yarn, and pnpm installs can produce an
+unsupported dependency tree.
+
+### Set up the workspace
+
+```bash
+git clone https://github.com/genfeedai/genfeed.ai.git
+cd genfeed.ai
+bun install
+cp .env.example .env.local
+```
+
+Before syncing the environment, edit `.env.local` and set at least the local
+database credentials used by `docker/local/docker-compose.yml`:
+
+```env
+DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
+REDIS_URL=redis://localhost:6379
+```
+
+Then generate workspace environment files and start the dependencies:
+
+```bash
+bun run env:sync local --prune-legacy
+docker compose -f docker/local/docker-compose.yml up -d postgres redis
+```
+
+Install the Portless HTTPS startup service once per machine (idempotent; it may
+request administrator approval to bind port `443` and trust the local CA):
+
+```bash
+bun run dev:setup
+```
+
+Verify with `bun run dev:doctor`. Interactive development uses clean HTTPS
+routes such as `https://app.genfeed.localhost`, not fixed ports.
+
+Run the minimum backend and the app in separate terminals:
+
+```bash
+bun run dev:backend:min   # api + files + notifications
+```
+
+```bash
+bun run dev:app           # https://app.genfeed.localhost/
+```
+
+Other common entry points:
+
+| Command | Starts |
+| --- | --- |
+| `bun run dev` | Full stack (app + backend + docs + website) |
+| `bun run dev:backend` | Full backend (+ mcp + workers) |
+| `bun run dev:docs` | Docs site |
+| `bun run dev:debug:*` | Fixed-port debug only (explicit) |
+
+Use the scripts in the root and workspace `package.json` files rather than
+inventing service commands. Source-development Prisma migrations run through:
+
+```bash
+bun run --cwd packages/prisma db:migrate
+```
+
+See the
+[contribution guide](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md)
+for focused checks, Portless hosts, and pull-request requirements. Report
+suspected vulnerabilities through the
+[security policy](https://github.com/genfeedai/genfeed.ai/security/policy), not a
+public issue.
+
+## Next steps
+
+- [System requirements](/self-host/system-requirements)
+- [Provider API keys](/self-host/provider-api-keys)
+- [After it is running](/self-host/after-it-is-running)
+- [Troubleshooting](/self-host/troubleshooting)

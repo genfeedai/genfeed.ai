@@ -1,0 +1,61 @@
+---
+description: "Understand the reviewed model registry in a self-hosted Genfeed instance: OpenRouter text curation, Replicate media discovery, and provider configuration."
+---
+
+# Provider Registry
+
+Your instance stores reviewed model records behind one generation-facing surface. Text models are curated through OpenRouter and media models are discovered from verified Replicate owners. For the keys you add, see [Provider API keys](/self-host/provider-api-keys).
+
+## Registry Layers
+
+| Layer              | File                                                                         | Role                                                                                |
+| ------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Model records      | `packages/services/ai/models.service.ts`                                     | Returns reviewed model records already known to the app                             |
+| Replicate watcher  | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`  | Creates inactive review drafts for models from verified Replicate owners            |
+| Agent model filter | `packages/agent/src/hooks/use-agent-registry-models.ts`                      | Filters reviewed registry records for the shared agent model selector                |
+| BYOK access        | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before deployment-level fallback at execution time |
+| Generation tools   | `packages/actions/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate` (image, video, voice and music by `type`)      |
+
+## How Discovery Works
+
+The weekly watcher reads Replicate's catalog, restricts results to verified owners, de-duplicates them by model key, and creates inactive records for operator review. It never activates a discovered model automatically.
+
+Agent text-model choices come from reviewed model records. The agent hook limits those records to active text models with agent capabilities, OpenRouter-backed rows, or supported legacy entries before passing them to the shared selector.
+
+fal.ai remains a supported execution integration where a media path explicitly selects it, but Genfeed does not ingest the fal.ai catalog into the model table.
+
+## Provider Configuration
+
+Provider discovery and provider execution are related but separate:
+
+| Concern                     | Configuration              | Used by                                                     |
+| --------------------------- | -------------------------- | ----------------------------------------------------------- |
+| OpenRouter text execution   | `OPENROUTER_API_KEY`       | Curated agent and text-generation paths                     |
+| Replicate discovery/runtime | `REPLICATE_KEY`            | Replicate watcher and generation integrations               |
+| fal.ai runtime execution    | `FAL_API_KEY`              | Explicit fal.ai generation integrations                     |
+| Organization BYOK execution | Organization BYOK settings | Runtime provider resolution in `ByokProviderFactoryService` |
+
+A self-hosted instance does not require every provider key. At least one generation-capable provider must be configured for real generation, but docs and registry tests can run without live provider credentials.
+
+## Stable V1 Generation Surface
+
+For v1, callers should treat these as the stable generation-facing surfaces:
+
+- Core Loop Step 3 docs: [Generation Service](/core-loop/generation-service)
+- Agent tool metadata: `packages/actions/src/registry/source.ts`
+- Agent tool registry/UI mapping: `packages/actions/src/registry/tool-registry.ts`
+- Internal media APIs: `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`
+- Skill execution path: `apps/server/api/src/services/skill-executor/*`
+- Replicate discovery path: `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`
+
+Lower-level provider APIs and experimental model sync jobs can change as long as this stable surface keeps accepting the documented tool inputs and returns normalized generated media records.
+
+## Verification
+
+Provider registry behavior is covered by:
+
+- `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts`
+- `apps/server/workers/src/services/model-discovery.service.spec.ts`
+- `apps/server/api/src/services/byok/byok-provider-map.util.spec.ts`
+
+The repository CI runs these suites in their owning workspaces.

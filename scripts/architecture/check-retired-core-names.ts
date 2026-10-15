@@ -39,7 +39,6 @@ export const RETIRED_PACKAGE_NAMES = [
 
 /** `core` directories that predate the rule. The list may only shrink. */
 export const EXISTING_CORE_DIRECTORIES: ReadonlySet<string> = new Set([
-  'apps/docs/content/core',
   'apps/server/api/src/endpoints/core',
   'apps/server/api/src/queues/core',
   'packages/client/src/schemas/core',

@@ -47,6 +47,8 @@ export class Post extends BaseEntity implements IPost {
   declare public externalShortcode?: string;
   declare public groupId?: string;
   declare public generationId?: string | null;
+  declare public brandedReceiptId?: string | null;
+  declare public brandedReceiptState?: string | null;
   declare public url?: string;
   declare public scheduledDate?: string | null;
   declare public uploadedAt: string;

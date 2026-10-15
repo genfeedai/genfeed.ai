@@ -30,7 +30,7 @@ export const DESCRIPTION_MIN_LENGTH = 110;
 export const DESCRIPTION_MAX_LENGTH = 160;
 
 export const FALLBACK_DESCRIPTION =
-  'Documentation for Genfeed.ai — the open-source AI OS for content creation, covering self-hosted Community, hosted Cloud, and the API.';
+  'Documentation for self-hosting Genfeed, the open-source AI OS for content creation: install, configure, and use the API, MCP, and CLI.';
 
 /** Markdown blocks that are structure, not prose worth describing a page with. */
 const NON_PROSE_BLOCK = /^(#{1,6}\s|\||<|:::|>|\s*[-*+]\s|\s*\d+[.)]\s|---$)/;

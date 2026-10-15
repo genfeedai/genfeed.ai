@@ -5,7 +5,7 @@ description: 'Configure and verify signed Genfeed webhooks for publishing, gener
 
 # Webhooks
 
-Genfeed can send signed outbound webhooks when asynchronous work reaches a terminal outcome: scheduled publishing, image/video/article generation, and workflow executions. Webhooks use the organization webhook endpoint and secret configured in organization settings.
+Genfeed can send signed outbound webhooks when asynchronous work reaches a terminal outcome: scheduled publishing, image/video/article generation, and workflow executions. Webhooks use the organization webhook endpoint and secret configured in your instance's organization settings. Your receiving endpoint must be reachable from the Genfeed container.
 
 ## Endpoint Configuration
 
@@ -116,7 +116,7 @@ Generation events carry a `generation.kind` of `image`, `video`, or `article`, s
     "provider": "genfeedai",
     "completedAt": "2026-07-07T10:00:00.000Z",
     "output": {
-      "url": "https://cdn.genfeed.ai/ingredients/images/ingredient_123.png",
+      "url": "https://files.example.com/ingredients/images/ingredient_123.png",
       "storageKey": "ingredients/images/ingredient_123",
       "mimeType": "image/png"
     },

@@ -1,65 +1,37 @@
-import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
-import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
 import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto';
-import {
-  GenerateTweetsDto,
-  TweetTone,
-} from '@api/collections/posts/dto/generate-tweets.dto';
 import { type PostDocument } from '@api/collections/posts/post.schema';
-import {
-  PostAccountLearningService,
-  type PostAccountLearningSession,
-} from '@api/collections/posts/services/post-account-learning.service';
+import { PostAccountGenerationService } from '@api/collections/posts/services/post-account-generation.service';
 import {
   type PostDraftGenerationOptions,
   PostDraftGenerationService,
 } from '@api/collections/posts/services/post-draft-generation.service';
-import {
-  extractPostGenerationLabel,
-  parsePostGenerationContent,
-} from '@api/collections/posts/services/post-generation-text.util';
+import { extractPostGenerationLabel } from '@api/collections/posts/services/post-generation-text.util';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
-  ActivityEntityModel,
-  ActivityKey,
-  ActivitySource,
-  CredentialPlatform,
   ModelCategory,
-  PostCategory,
-  PostFormat,
   PromptTemplateKey,
-  Status,
   SystemPromptKey,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
-  AccountPublishingContext,
   PostDraftGenerationInput,
   PostDraftGenerationResult,
-  SocialGenerationFormat,
 } from '@genfeedai/contracts/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -73,8 +45,8 @@ type GenerationMetadata = Pick<
 >;
 
 /**
- * Stable facade for post AI generation: account-content background work,
- * delegated thread expansion, enhancement, hook variations, and shared text
+ * Stable facade for post AI generation: receipt-backed account and thread
+ * runs, delegated thread expansion, enhancement, hook variations, and shared text
  * helpers. Extracted from
  * `PostsOperationsController` so the controller stays a thin HTTP boundary
  * (issue #691), mirroring the existing posts analytics service split.
@@ -82,39 +54,21 @@ type GenerationMetadata = Pick<
 @Injectable()
 export class PostGenerationService {
   constructor(
-    private readonly accountPublishingContextService: AccountPublishingContextService,
-
-    private readonly activityRecorder: ActivityRecorderService,
     private readonly apiKeysService: ApiKeysService,
     private readonly brandsService: BrandsService,
-    private readonly logger: LoggerService,
     private readonly membersService: MembersService,
-    private readonly postAccountLearningService: PostAccountLearningService,
+    private readonly postAccountGenerationService: PostAccountGenerationService,
     private readonly postDraftGenerationService: PostDraftGenerationService,
     private readonly postThreadGenerationService: PostThreadGenerationService,
     private readonly postsService: PostsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
     private readonly templatesService: TemplatesService,
-    private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
-    private readonly websocketService: NotificationsPublisherService,
   ) {}
 
   // ==========================================================================
   // TEXT HELPERS
   // ==========================================================================
-
-  /**
-   * Parse AI-generated content into an array of tweets
-   * Handles JSON arrays and fallback to marker-based splitting
-   */
-  parseTweetContent(
-    content: string,
-    maxCount: number,
-    context?: Pick<AccountPublishingContext, 'constraints'>,
-  ): string[] {
-    return parsePostGenerationContent(content, maxCount, context);
-  }
 
   /**
    * Extract a label from tweet text (first ~50 characters, truncated at word boundary)
@@ -123,542 +77,25 @@ export class PostGenerationService {
     return extractPostGenerationLabel(tweetText, maxLength);
   }
 
-  private buildRemixMetadata(
-    dto: Pick<
-      GenerateTweetsDto,
-      'sourceReferenceIds' | 'sourceUrl' | 'trendId'
-    >,
-  ): Record<string, unknown> | undefined {
-    const metadata: Record<string, unknown> = {};
-
-    if (dto.sourceReferenceIds?.length) {
-      metadata.sourceReferenceIds = dto.sourceReferenceIds.map((id) =>
-        String(id),
-      );
-    }
-
-    if (dto.sourceUrl) {
-      metadata.sourceUrl = dto.sourceUrl;
-    }
-
-    if (dto.trendId) {
-      metadata.trendId = String(dto.trendId);
-      metadata.trendIds = [String(dto.trendId)];
-    }
-
-    return Object.keys(metadata).length > 0 ? metadata : undefined;
-  }
-
-  private getAccountContextSurface(
-    format: SocialGenerationFormat,
-  ): AccountPublishingContext['surface'] {
-    return format === 'thread' ? 'thread' : 'post';
-  }
-
-  private getSystemPromptForPlatform(
-    platform: CredentialPlatform,
-  ): SystemPromptKey {
-    switch (platform) {
-      case CredentialPlatform.INSTAGRAM:
-        return SystemPromptKey.INSTAGRAM;
-      case CredentialPlatform.LINKEDIN:
-        return SystemPromptKey.LINKEDIN;
-      case CredentialPlatform.TIKTOK:
-        return SystemPromptKey.TIKTOK;
-      case CredentialPlatform.YOUTUBE:
-        return SystemPromptKey.YOUTUBE;
-      case CredentialPlatform.TWITTER:
-        return SystemPromptKey.TWITTER;
-      default:
-        return SystemPromptKey.BRAND_CONTEXT;
-    }
-  }
-
-  private appendPublishingContextToPrompt(
-    prompt: string,
-    context: AccountPublishingContext,
-  ): string {
-    return [
-      prompt,
-      '',
-      'Account publishing context:',
-      ...context.promptHints.map((hint) => `- ${hint}`),
-      ...context.constraints.notes.map((note) => `- ${note}`),
-      '',
-      'Do not repeat recent account posts. Keep the output tailored to this selected account.',
-    ].join('\n');
-  }
-
-  // ==========================================================================
-  // ACCOUNT CONTENT GENERATION
-  // ==========================================================================
-
-  private async recordGeneratedPostLineage(params: {
-    dto: Pick<
-      GenerateTweetsDto,
-      'sourceReferenceIds' | 'sourceUrl' | 'trendId'
-    >;
-    draftType: 'thread' | 'tweet';
-    platform: CredentialPlatform;
-    postId: string;
-    identity: Pick<AuthenticatedUser, 'brandId' | 'organizationId'>;
-    prompt: string;
-  }): Promise<void> {
-    const metadata = this.buildRemixMetadata(params.dto);
-
-    if (!metadata) {
-      return;
-    }
-
-    await this.trendReferenceCorpusService.recordPostRemixLineage({
-      brandId: params.identity.brandId,
-      draftType: params.draftType,
-      generatedBy: 'posts-generation',
-      metadata,
-      organizationId: params.identity.organizationId,
-      platforms: [params.platform],
-      postId: params.postId,
-      prompt: params.prompt,
-    });
-  }
-
-  private async resolveAccountPublishingContext(
-    dto: Pick<
-      GenerateAccountPostDto,
-      'credentialId' | 'format' | 'sourceReferenceIds' | 'sourceUrl' | 'trendId'
-    >,
-    identity: Pick<AuthenticatedUser, 'brandId' | 'organizationId'>,
-  ): Promise<AccountPublishingContext> {
-    return this.accountPublishingContextService.resolve({
-      brandId: identity.brandId,
-      credentialId: dto.credentialId,
-      organizationId: identity.organizationId,
-      sourceLineage: {
-        sourceReferenceIds: dto.sourceReferenceIds,
-        sourceUrl: dto.sourceUrl,
-        trendId: dto.trendId,
-      },
-      surface: this.getAccountContextSurface(dto.format),
-    });
-  }
-
-  private async createProcessingPostsForAccount(
-    dto: GenerateAccountPostDto,
-    identity: GenerationMetadata,
-    context: AccountPublishingContext,
-  ): Promise<PostDocument[]> {
-    const createdPosts: PostDocument[] = [];
-    const groupId = randomUUID();
-    let rootPostId: string | undefined;
-
-    for (let i = 0; i < dto.count; i++) {
-      const post = await this.postsService.create({
-        brandId: identity.brandId,
-        category: PostCategory.TEXT,
-        credentialId: dto.credentialId,
-        description: 'Generating...',
-        format:
-          dto.format === 'thread' ? PostFormat.THREAD : PostFormat.STANDARD,
-        groupId,
-        ingredients: [],
-        label: '',
-        order: i,
-        organizationId: identity.organizationId,
-        parentId: dto.format === 'thread' && i > 0 ? rootPostId : undefined,
-        platform: context.account.platform,
-        targetExecutionState: TargetExecutionState.PUBLISHING,
-        userId: identity.userId,
-      });
-
-      createdPosts.push(post);
-
-      if (i === 0) {
-        rootPostId = String(post.id);
-      }
-    }
-
-    return createdPosts;
-  }
-
-  private async buildAccountGenerationPrompt(
-    dto: GenerateAccountPostDto,
-    context: AccountPublishingContext,
-    identity: Pick<AuthenticatedUser, 'organizationId'>,
-  ): Promise<string> {
-    const tone = dto.tone || TweetTone.PROFESSIONAL;
-    const isTwitter = context.account.platform === CredentialPlatform.TWITTER;
-
-    if (isTwitter) {
-      const template =
-        dto.format === 'thread'
-          ? PromptTemplateKey.THREAD_GENERATION
-          : PromptTemplateKey.TWEET_GENERATION;
-      const prompt = await this.templatesService.getRenderedPrompt(
-        template,
-        {
-          count: dto.count,
-          tone,
-          topic: dto.topic,
-        },
-        identity.organizationId,
-      );
-
-      return this.appendPublishingContextToPrompt(prompt, context);
-    }
-
-    const limit =
-      context.constraints.maxCharacters ??
-      context.constraints.maxWeightedCharacters ??
-      5000;
-
-    return this.appendPublishingContextToPrompt(
-      [
-        `Generate ${dto.count} ${context.account.platform} ${dto.format === 'thread' ? 'thread posts' : 'social posts'} for the selected account.`,
-        `Topic: ${dto.topic}`,
-        `Tone: ${tone}`,
-        `Maximum length per post: ${limit} characters.`,
-        'Return only the generated posts, one per line. Do not include numbering unless necessary for clarity.',
-      ].join('\n'),
-      context,
-    );
-  }
-
-  private async generateParsedAccountPosts(params: {
-    context: AccountPublishingContext;
-    count: number;
-    input: Record<string, unknown>;
-    model: string;
-    organizationId: string;
-    beforeRepairAttempt?: () => Promise<void>;
-  }): Promise<string[]> {
-    const maxAttempts =
-      params.context.account.platform === CredentialPlatform.TWITTER ? 3 : 1;
-    let content = '';
-    let input = params.input;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      if (attempt > 0) await params.beforeRepairAttempt?.();
-      content =
-        (await this.replicateService.generateTextCompletionSync(
-          params.model,
-          input,
-        )) ?? '';
-
-      if (!content) {
-        throw new Error('No content generated from AI service');
-      }
-
-      const lines = this.parseTweetContent(
-        content,
-        params.count,
-        params.context,
-      );
-
-      if (lines.length >= params.count) {
-        return lines;
-      }
-
-      if (attempt < maxAttempts - 1) {
-        const repairPrompt = this.appendPublishingContextToPrompt(
-          [
-            'Regenerate the social content so every item satisfies the account constraints.',
-            `Required item count: ${params.count}`,
-            'Invalid previous output:',
-            content,
-            'Return only valid posts, one per line.',
-          ].join('\n'),
-          params.context,
-        );
-        const built = await this.promptBuilderService.buildPrompt(
-          params.model,
-          {
-            maxTokens: TEXT_GENERATION_LIMITS.postTweetGeneration,
-            modelCategory: ModelCategory.TEXT,
-            prompt: repairPrompt,
-            systemPromptTemplate: this.getSystemPromptForPlatform(
-              params.context.account.platform,
-            ),
-            temperature: 0.7,
-            useTemplate: false,
-          },
-          params.organizationId,
-        );
-        input = built.input;
-      }
-    }
-
-    return this.parseTweetContent(content, params.count, params.context);
-  }
-
-  /**
-   * Resolve the publishing context, create PROCESSING placeholder posts, and
-   * kick off background content generation. Returns the created posts so the
-   * caller can respond immediately while generation continues asynchronously.
-   */
+  /** Starts an account or thread run through the branded seam; the placeholders return at once. */
   async startAccountContentGeneration(
     dto: GenerateAccountPostDto,
     identity: GenerationMetadata,
   ): Promise<PostDocument[]> {
-    const context = await this.resolveAccountPublishingContext(dto, identity);
-    const createdPosts = await this.createProcessingPostsForAccount(
-      dto,
-      identity,
-      context,
-    );
-
-    this.generateAccountContentAsync(
-      dto,
-      createdPosts,
-      identity,
-      context,
-    ).catch((error) => {
-      this.logger.error(
-        'Failed to generate account content asynchronously',
-        error,
-      );
-    });
-
-    return createdPosts;
+    return this.postAccountGenerationService.start(dto, identity);
   }
 
-  async generateAccountContentAsync(
-    dto: GenerateAccountPostDto,
-    createdPosts: PostDocument[],
-    identity: GenerationMetadata,
-    context: AccountPublishingContext,
-  ): Promise<void> {
-    // Create the PROCESSING activity inside the try so a failure here cannot
-    // exit the method while leaving the already-created posts stuck in
-    // PROCESSING — the catch marks every post FAILED regardless (issue #861).
-    let activity: ActivityDocument | undefined;
-
-    try {
-      activity = await this.activityRecorder.record({
-        brandId: identity.brandId,
-        key: ActivityKey.POST_PROCESSING,
-        organizationId: identity.organizationId,
-        source: ActivitySource.POST_GENERATION,
-        userId: identity.userId,
-        value: JSON.stringify({
-          count: dto.count,
-          topic: dto.topic?.substring(0, 100),
-          type: `${dto.format}-generation`,
-        }),
-      });
-
-      const prompt = await this.buildAccountGenerationPrompt(
-        dto,
-        context,
-        identity,
-      );
-      const model = DEFAULT_MINI_TEXT_MODEL;
-      const { input } = await this.promptBuilderService.buildPrompt(
-        model,
-        {
-          maxTokens:
-            dto.format === 'thread'
-              ? TEXT_GENERATION_LIMITS.postThreadGeneration
-              : TEXT_GENERATION_LIMITS.postTweetGeneration,
-          modelCategory: ModelCategory.TEXT,
-          prompt,
-          systemPromptTemplate: this.getSystemPromptForPlatform(
-            context.account.platform,
-          ),
-          temperature: 0.8,
-          useTemplate: false,
-        },
-        identity.organizationId,
-      );
-
-      const learning = await this.postAccountLearningService.resolve(
-        dto,
-        createdPosts,
-        identity,
-      );
-      const generatedLines = await this.generateParsedAccountPosts({
-        beforeRepairAttempt: () =>
-          this.postAccountLearningService.revalidate(learning),
-        context,
-        count: dto.count,
-        input,
-        model,
-        organizationId: identity.organizationId,
-      });
-
-      let completedCount = 0;
-      let firstCompletedPostId: string | undefined;
-      for (
-        let i = 0;
-        i < createdPosts.length && i < generatedLines.length;
-        i++
-      ) {
-        const post = createdPosts[i];
-        const postText = generatedLines[i];
-        const completed = await this.completeGeneratedAccountPost(
-          dto,
-          post,
-          postText,
-          identity,
-          context,
-          { session: learning, index: i },
-        );
-        if (completed) {
-          completedCount++;
-          firstCompletedPostId ??= String(post.id);
-        }
-      }
-
-      for (let i = generatedLines.length; i < createdPosts.length; i++) {
-        await this.handleGeneratedPostFailure(
-          String(createdPosts[i].id ?? createdPosts[i].id),
-          new Error('Insufficient valid posts generated'),
-        );
-      }
-      try {
-        await this.activityRecorder.update(activity, {
-          key:
-            completedCount === createdPosts.length
-              ? ActivityKey.POST_GENERATED
-              : ActivityKey.POST_FAILED,
-          isRead: false,
-          value: JSON.stringify({
-            resultId: firstCompletedPostId,
-            completedCount,
-            totalCount: createdPosts.length,
-            ...(completedCount < createdPosts.length
-              ? { error: 'Some posts could not be generated' }
-              : {}),
-          }),
-        });
-      } catch (activityError) {
-        this.logger.error(
-          'Failed to finalize post generation activity',
-          activityError,
-        );
-      }
-    } catch (error) {
-      this.logger.error('Failed to generate account content asynchronously', {
-        error,
-        platform: context.account.platform,
-      });
-
-      if (activity) {
-        try {
-          await this.activityRecorder.update(activity, {
-            key: ActivityKey.POST_FAILED,
-            value: JSON.stringify({
-              error: (error as Error)?.message || 'Generation failed',
-            }),
-          });
-        } catch (activityError) {
-          // Never let an activity-update failure short-circuit the cleanup
-          // below — placeholder posts must still be marked FAILED, otherwise
-          // they stay stuck in PROCESSING forever.
-          this.logger.error(
-            'Failed to mark activity as failed during account content cleanup',
-            { activityError, platform: context.account.platform },
-          );
-        }
-      }
-
-      for (const post of createdPosts) {
-        await this.handleGeneratedPostFailure(String(post.id), error);
-      }
-    }
-  }
-
-  private async completeGeneratedAccountPost(
-    dto: GenerateAccountPostDto,
-    post: PostDocument,
-    postText: string,
-    identity: GenerationMetadata,
-    context: AccountPublishingContext,
-    learning: { session: PostAccountLearningSession; index: number },
-  ): Promise<boolean> {
-    const postId = String(post.id);
-    const learningReceipt = learning.session.receipts[learning.index];
-    try {
-      const updatedPost = await this.postsService.patch(
-        postId,
-        {
-          description: postText,
-          label: this.extractLabelFromTweet(postText),
-          targetExecutionState: TargetExecutionState.DRAFT,
-        },
-        [
-          { path: 'ingredients', select: ['id', 'cdnUrl'] },
-          {
-            path: 'credential',
-            select: ['id', 'label', 'externalHandle'],
-          },
-        ],
-      );
-      await this.postAccountLearningService.bindArtifact(
-        learning.session,
-        learning.index,
-        postId,
-        postText,
-      );
-      await this.websocketService.emit(WebSocketPaths.post(postId), {
-        result: updatedPost,
-        status: Status.COMPLETED,
-        ...(learningReceipt ? { learningReceipt } : {}),
-      });
-      await this.activityRecorder.record({
-        brandId: identity.brandId,
-        entityId: postId,
-        entityModel: ActivityEntityModel.POST,
-        key: ActivityKey.POST_GENERATED,
-        organizationId: identity.organizationId,
-        source: ActivitySource.POST_GENERATION,
-        userId: identity.userId,
-        value: postId,
-      });
-
-      try {
-        await this.recordGeneratedPostLineage({
-          draftType: dto.format === 'thread' ? 'thread' : 'tweet',
-          dto,
-          platform: context.account.platform,
-          postId,
-          prompt: dto.topic,
-          identity,
-        });
-      } catch (lineageError) {
-        this.logger.warn('Failed to record post remix lineage', {
-          error:
-            lineageError instanceof Error
-              ? lineageError.message
-              : String(lineageError),
-          postId,
-        });
-      }
-      return true;
-    } catch (error) {
-      await this.handleGeneratedPostFailure(postId, error);
-      return false;
-    }
-  }
-
-  private async handleGeneratedPostFailure(
+  /** Retries one failed placeholder under a new request key. */
+  async retryAccountContentGeneration(
     postId: string,
-    error: unknown,
-  ): Promise<void> {
-    try {
-      await this.postsService.patch(postId, {
-        targetExecutionState: TargetExecutionState.FAILED,
-      });
-
-      await this.websocketService.emit(WebSocketPaths.post(postId), {
-        error: (error as Error)?.message || 'Generation failed',
-        status: Status.FAILED,
-      });
-    } catch (patchError) {
-      this.logger.error(
-        `Failed to update post ${postId} to FAILED status`,
-        patchError,
-      );
-    }
+    requestKey: string,
+    identity: GenerationMetadata,
+  ): Promise<PostDocument> {
+    return this.postAccountGenerationService.retry(
+      postId,
+      requestKey,
+      identity,
+    );
   }
 
   // ==========================================================================

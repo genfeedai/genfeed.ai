@@ -82,6 +82,8 @@ export class PostEntity extends BaseEntity {
   declare readonly lastAttemptAt?: Date;
   declare readonly promptUsed?: string;
   declare readonly generationId?: string;
+  declare readonly brandedReceiptId?: string | null;
+  declare readonly brandedReceiptState?: string | null;
   declare readonly contentRunId?: string;
   declare readonly personaId?: string;
   declare readonly variantId?: string;

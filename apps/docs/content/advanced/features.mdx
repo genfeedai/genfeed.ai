@@ -1,36 +1,31 @@
 ---
-description: 'Review Genfeed workflow orchestration, webhooks, realtime events, publishing integrations, analytics, agent tools, and extension surfaces.'
+description: 'Review Genfeed workflow orchestration, webhooks, realtime events, publishing integrations, analytics, agent tools, and extension surfaces in your instance.'
 ---
 
 # Advanced Surfaces
 
 Genfeed's source tree includes workflow orchestration, webhooks, realtime
 events, publishing integrations, analytics modules, agent tools, and extension
-clients. Availability depends on deployment mode, provider configuration, and
-commercial entitlement.
+clients. Availability depends on your release and on the provider credentials
+you configure.
 
 ## Verify before relying on a surface
 
-1. Confirm the module or client exists in the current release.
-2. Confirm the route or workflow node is registered for your deployment mode.
+1. Confirm the module or client exists in the release you run.
+2. Confirm the route or workflow node is registered on your instance.
 3. Confirm required provider credentials and approvals.
-4. Confirm whether execution is local/BYOK or an explicit managed Cloud call.
-5. Run a focused end-to-end check for the path you intend to operate.
+4. Run a focused end-to-end check for the path you intend to operate.
 
 ## Boundaries
 
-- Community is a single-tenant web/API/MCP Docker distribution.
-- Cloud owns managed operations, multi-tenant governance, and managed
-  publishing/analytics surfaces.
-- Organization billing ships in every image and is gated at runtime by
-  `hasOrganizationBilling()`; broader managed inference infrastructure is
-  private and is not shipped here.
+- The self-hosted image is a single-tenant web/API/MCP Docker distribution.
+- Execution uses your own provider keys; there are no Genfeed credits.
 - Desktop is macOS-first. Mobile and extension workspaces do not imply public
   store listings.
 
 No SOC 2, GDPR, encryption, SSO/SAML, support, or SLA claim should be inferred
-from the presence of source code. Use formal commercial and security materials
-for any such requirement.
+from the presence of source code. You are responsible for the security of your
+deployment; see [Reverse Proxy and HTTPS](/self-host/reverse-proxy).
 
-See [Capabilities](/features), [Deployment Options](/deployment), and
-[Execution Boundaries](/core/execution-boundaries).
+See [Capabilities](/features), [Installation Options](/self-host/installation),
+and [Architecture](/self-host/architecture).

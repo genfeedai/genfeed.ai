@@ -17,11 +17,11 @@ describe('account thread generation', () => {
     expect(isAccountThreadFormat('single')).toBe(false);
   });
 
-  it('rejects thread counts outside 2-25', () => {
+  it('rejects thread counts outside 2-9, the most one receipt can bind', () => {
     expect(invalidThreadCountMessage(1)?.title).toBe('Invalid thread count');
-    expect(invalidThreadCountMessage(26)?.detail).toContain('at most 25');
+    expect(invalidThreadCountMessage(10)?.detail).toContain('at most 9');
     expect(invalidThreadCountMessage(2)).toBeUndefined();
-    expect(invalidThreadCountMessage(25)).toBeUndefined();
+    expect(invalidThreadCountMessage(9)).toBeUndefined();
   });
 });
 

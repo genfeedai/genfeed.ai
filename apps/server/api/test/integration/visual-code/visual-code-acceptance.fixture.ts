@@ -27,6 +27,8 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MembersService } from '@api/collections/members/services/members.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { VisualProjectsController } from '@api/collections/visual-projects/controllers/visual-projects.controller';
 import { VisualProjectAssetsService } from '@api/collections/visual-projects/services/visual-project-assets.service';
 import { VisualProjectAuthoringService } from '@api/collections/visual-projects/services/visual-project-authoring.service';
@@ -1135,6 +1137,8 @@ export async function createVisualCodeAcceptanceFixture(
         AgentModelAccessService,
         OrganizationModuleAccessService,
         OrganizationPaidAccessService,
+        PlatformSettingsService,
+        BrandVisionModelCatalogService,
         IngredientsService,
         MembersService,
         OrganizationSettingsService,

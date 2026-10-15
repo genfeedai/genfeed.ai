@@ -1,96 +1,135 @@
 ---
 title: MCP Server Integration
-description: 'Connect Claude Code, Codex, and other Streamable HTTP clients to Genfeed MCP tools for content, workflows, publishing, analytics, and ads.'
+description: 'Connect Claude Code, Codex, and other Streamable HTTP clients to the MCP server on your own Genfeed instance for content, workflows, publishing, and analytics.'
 ---
 
 # MCP Server
 
-Use the hosted Genfeed MCP server to give your agent permission-scoped access to content, workflows, publishing, analytics, and ads.
+Your Genfeed instance runs an MCP server that gives your agent permission-scoped
+access to content, workflows, publishing, analytics, and ads. It starts with the
+rest of the stack; no extra install is needed.
 
-**Endpoint:** `https://mcp.genfeed.ai/mcp`
+**Endpoint:** `http://localhost:3014/mcp` on a default install. If you run behind
+your own domain, use that MCP URL instead (see
+[Reverse Proxy and HTTPS](/self-host/reverse-proxy)).
 
 **Transport:** Streamable HTTP.
 
-**Default authentication:** browser OAuth; no manually created API key.
+**Authentication:** a scoped API key from your instance, or browser OAuth where
+your client supports it. See [Authentication](#authentication).
 
-Open the [guided Connect Genfeed flow](https://app.genfeed.ai/connect) to choose
-your client and authorize access. The page supplies setup instructions; your
-client owns sign-in, consent, and the resulting access token.
+Examples on this page use the default local address. Replace
+`http://localhost:3014` with your MCP origin and `http://localhost:3010` with your
+API origin if they differ.
 
-## Connect via OAuth
+## Connect to your instance
 
-Add Genfeed using the instructions below, complete sign-in and consent in your
-browser, and return to your client. Genfeed advertises its authorization server
-through `/.well-known/oauth-protected-resource`.
+Start your stack first (see [Installation Options](/self-host/installation)),
+then connect a client.
 
 ### Claude Code
 
-```bash
-claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude
-```
-
-Open `/mcp` inside Claude Code, select `genfeed`, and authenticate. Follow the
-browser sign-in and consent flow, then return to Claude Code.
-
-### Codex
+Register the dedicated content connector, then open `/mcp` inside Claude Code,
+select `genfeed`, and complete browser OAuth:
 
 ```bash
-codex mcp add genfeed --url https://mcp.genfeed.ai/mcp
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
 ```
 
-If authorization did not open during setup, run:
+Media creation happens separately in Genfeed Studio in your instance's web app.
+Configure your deployment's public app, API, and MCP URLs so OAuth discovery
+points at addresses your browser can reach; see
+[Configuration](/self-host/configuration#public-urls).
+
+### Codex and other clients
+
+Point the client at the standard `http://localhost:3014/mcp` endpoint with a
+scoped API key. Create the key in your web app under **Settings → API keys**
+using the **MCP** preset (for the default seeded organization,
+`http://localhost:3000/default/~/settings/api-keys`), or use the guided
+**Connect** page at `/connect` in your web app, which creates an MCP-scoped key
+and runs a verification check. Export the key in the MCP client's environment,
+not in the Genfeed container's `.env`:
 
 ```bash
-codex mcp login genfeed
+export GENFEED_API_KEY=gf_live_xxx
+codex mcp add genfeed --url http://localhost:3014/mcp --bearer-token-env-var GENFEED_API_KEY
 ```
 
-Alternatively, add this to your user-level `~/.codex/config.toml` and run the
-login command above:
+To enter the key without putting its value in shell history:
+
+```bash
+read -s GENFEED_API_KEY && export GENFEED_API_KEY
+```
+
+Codex reads the named environment variable. Do not paste credentials into
+chats, commits, or shared logs. Inspect and update an existing Genfeed server
+entry before switching authentication methods; preserve unrelated servers.
+
+You can also add the server in your user-level `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.genfeed]
-url = "https://mcp.genfeed.ai/mcp"
+url = "http://localhost:3014/mcp"
+bearer_token_env_var = "GENFEED_API_KEY"
 ```
 
-### Other MCP clients
+In any other client that supports remote Streamable HTTP, add the endpoint as a
+custom MCP server and supply the key as a bearer token. Genfeed uses standard
+discovery, registration, and PKCE flows for OAuth, so compatible clients can
+authorize in the browser instead, but each client still needs a verification run
+on your deployment. Source compatibility does not establish that a given
+client's OAuth, reconnect, or media flows work.
 
-In a client that supports remote Streamable HTTP and OAuth, add the endpoint as
-a custom MCP server and follow its browser authorization flow. Installation and
-availability depend on the client and your plan. If OAuth is unsupported, update
-your client or use the advanced manual-key setup below. No application deep link
-is required.
+### Verify access
 
-Genfeed uses standard discovery, registration, and PKCE flows. Clients that
-implement these protocols are expected to be compatible, but each client still
-needs a recorded verification run. Source compatibility does not establish that
-its OAuth, reconnect, or media flows work in a deployed client.
+Ask your agent: **"List my Genfeed brands."** A successful scoped read verifies
+access. `codex mcp list` or `claude mcp list` can diagnose configuration, but a
+server entry or copied command alone does not prove authorization.
 
-On 2026-09-24, the installed Codex connector successfully read brands, scheduler
-capabilities, and publishing readiness. An explicit `get_brand` returned
-“Brand was not found in this organization”; the merged #5017 repair needs a
-deployed retest. Facebook readiness also disagreed with its hidden scheduler
-status (#5126). This read-only run did not observe the client version or deployed
-SHA, and did not verify browser OAuth, two-brand isolation, or media costs.
-Native Grok remains blocked on human terms acknowledgement (#4889); the separate
-2026-09-23 Cursor/Grok Bot tool-read pass is not a native Grok pass. Claude Code
-and Claude Desktop live acceptance remains unverified. See
-`docs/external-agent-content-journey.md` for the dated evidence and remaining gates.
+If consent is denied or the login expires, restart authorization through
+`codex mcp login genfeed` or Claude Code's `/mcp`. Check the account and
+organization on the consent screen. Revoke unwanted access from your instance's
+API key settings.
 
-### Authorization server conformance
+Client syntax was checked against Codex CLI 0.153.2 (`mcp add --help` and
+`mcp login --help`) and the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
+
+## Authentication
+
+Turning off the web login wall (`BETTER_AUTH_ENABLED=false`) does not disable MCP
+authentication: the standard `/mcp` endpoint still requires a bearer token. See
+[Configuration](/self-host/configuration#login-wall). Authenticated requests
+carry either an API key you created or an access token managed by an OAuth
+client:
+
+```http
+Authorization: Bearer <api-key-or-access-token>
+```
+
+Missing, invalid, or expired tokens return 401 errors. An OAuth client should
+use its refresh token on a 401 before restarting browser authorization. Keys
+remain copy-once; see [API Keys](/api-reference/api-keys) for scopes, rotation,
+and revocation. Use the **MCP** preset, which is approval-first and excludes
+direct publishing.
+
+The endpoint accepts `POST`, `GET`, and `DELETE`.
+
+### OAuth conformance
 
 What a spec-compliant client can rely on:
 
 - **Discovery (RFC 9728).** Protected-resource metadata is served at both
-  `https://mcp.genfeed.ai/.well-known/oauth-protected-resource` and the
-  path-suffixed `https://mcp.genfeed.ai/.well-known/oauth-protected-resource/mcp`
-  with identical bodies. A `401` from `/mcp` carries a `WWW-Authenticate` header
-  pointing at that metadata. Authorization-server metadata is at
-  `https://api.genfeed.ai/.well-known/oauth-authorization-server`. Both
-  documents are readable cross-origin.
-- **Resource identifier (RFC 8707).** The `resource` is
-  `https://mcp.genfeed.ai/mcp` for the standard connector or
-  `https://mcp.genfeed.ai/mcp/claude` for Claude. Claude discovery is at
-  `/.well-known/oauth-protected-resource/mcp/claude`. Send it on the authorize and token requests.
+  `http://localhost:3014/.well-known/oauth-protected-resource` and the
+  path-suffixed `.../oauth-protected-resource/mcp`, with identical bodies. A
+  `401` from `/mcp` carries a `WWW-Authenticate` header pointing at that
+  metadata. Authorization-server metadata is served by your API at
+  `http://localhost:3010/.well-known/oauth-authorization-server`. Both documents
+  are readable cross-origin.
+- **Resource identifier (RFC 8707).** The `resource` is your MCP URL ending in
+  `/mcp` for the standard connector, or `/mcp/claude` for Claude. Claude
+  discovery is at `/.well-known/oauth-protected-resource/mcp/claude`. Send it on
+  the authorize and token requests.
 - **Registration (RFC 7591).** `POST /v1/oauth/register` with `redirect_uris`;
   `token_endpoint_auth_method` is `none`.
 - **Authorization.** `code_challenge_method` must be `S256`. `state` is
@@ -103,63 +142,29 @@ What a spec-compliant client can rely on:
   consumed refresh token revokes the whole chain. A narrower `scope` may be
   requested on refresh; a wider one is rejected.
 - **Revocation (RFC 7009).** `POST /v1/oauth/revoke` with the refresh token
-  ends the connection. Revoking the key from Genfeed's API key settings has the
-  same effect.
+  ends the connection. Revoking the key from your instance's API key settings
+  has the same effect.
 
-### Verify access
-
-Ask your agent: **“List my Genfeed brands.”** A successful scoped read verifies
-access. `codex mcp list` or `claude mcp list` can diagnose configuration, but a
-server entry or copied command alone does not prove authorization. The Genfeed
-setup page cannot observe a third-party client's OAuth completion.
-
-If consent is denied or the login expires, restart authorization through
-`codex mcp login genfeed` or Claude Code's `/mcp`. Check the account and organization
-on the consent screen. Revoke unwanted access from Genfeed's API key settings.
-
-Client syntax was checked against Codex CLI 0.153.2 (`mcp add --help` and
-`mcp login --help`) and the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
-
-## Advanced: manual API key
-
-Use this for headless environments or non-Claude clients without browser OAuth. The Claude connector requires browser OAuth. Select
-**Advanced: manual API key** in [Connect Genfeed](https://app.genfeed.ai/connect)
-to create or select a scoped key and run the authenticated verification check.
-Keys remain copy-once. See [API Keys](/api-reference/api-keys) for rotation and revocation.
-
-In a Bash terminal where your client runs, enter the key without putting its
-value in shell history:
-
-```bash
-read -s GENFEED_API_KEY && export GENFEED_API_KEY
-```
-
-Then choose your client:
-
-```bash
-codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY
-```
-
-Codex reads the named environment variable. Do not paste credentials
-into chats, commits, or shared logs. Inspect and update an existing Genfeed server
-entry before switching authentication methods; preserve unrelated servers.
+The OAuth issuer and redirect URLs are derived from your public URL
+configuration, so they must be reachable from the browser doing the sign-in.
 
 ## Create a brand from a URL
 
 Organization owners and admins can call `create_brand_from_url` with an HTTP or
 HTTPS `url`, an optional `label`, and optional `approve` (default `false`). A
-successful scan costs one credit and returns the brand id, revision id, draft or
-approved revision status, completeness score, incomplete fields, and `reviewUrl`.
-Review the guide at that URL before generating content. Set `approve: true` only
-when you want to approve the guide in the same call.
+successful scan returns the brand id, revision id, draft or approved revision
+status, completeness score, incomplete fields, and `reviewUrl`. Review the guide
+at that URL before generating content. Set `approve: true` only when you want to
+approve the guide in the same call.
 
 URL checks time out after eight seconds and reject blocked destinations before
 creating a brand. If processing takes more than twenty seconds after creation,
 the response includes `brandId`, `reviewUrl`, and `scanStatus: running`. Poll
 `get_brand_scan_status` with that `brandId` for the current guide and completeness.
-A failed scan keeps the brand and releases its reserved credit. If voice analysis
-is unavailable, the completed response includes `voiceAnalysis: unavailable`.
-Both tools are available in the `brand` toolset and in agent chat.
+If voice analysis is unavailable, the completed response includes
+`voiceAnalysis: unavailable`. Both tools are available in the `brand` toolset
+and in agent chat. The scan uses the model provider keys you configured; see
+[Provider API Keys](/self-host/provider-api-keys).
 
 ## Social accounts, brand scope, and media
 
@@ -177,12 +182,11 @@ credential.
 
 An image `generate` call returns structured artifact metadata plus a native image part when
 the client supports it, with a text fallback. Video results are downloadable files
-or open links — they do not claim inline playback. `selectedContext` is task-only
+or open links; they do not claim inline playback. `selectedContext` is task-only
 and is not saved as Knowledge.
 
 The CLI equivalents are `gf connect <platform>`, `gf gen image --brand --context`,
-and `gf status <id>`. Client evidence lives in the repository file
-`docs/external-agent-content-journey.md`.
+and `gf status <id>`; see [CLI](/api-reference/cli).
 
 ## Brand context
 
@@ -191,7 +195,7 @@ chat: identity, guidelines, voice (including writing rules and real example
 posts), strategy and topics, custom instructions, prompt seeds, performance
 insights, proven patterns, Brand Knowledge, recent posts, saved memories,
 active skills, the chat model, the context budget, and the rendered system
-prompt. It is read-only and charges no credits.
+prompt. It is read-only.
 
 | Argument | Description |
 | --- | --- |
@@ -201,9 +205,10 @@ prompt. It is read-only and charges no credits.
 
 Call it at the start of a session so your agent writes in the brand's voice
 with the same context the in-app agent uses. The Genfeed desktop app does this
-automatically when it runs the agent on your own Claude Code or Codex CLI; see
-[Deployment Options](/deployment#desktop). The same snapshot is shown in
-**Brand settings → Agent context** ([Brands](/cloud/brands#what-the-agent-knows)).
+automatically when it runs the agent on your own Claude Code or Codex CLI; see the
+[desktop README](https://github.com/genfeedai/genfeed.ai/blob/master/apps/desktop/README.md#agent-on-your-claude-code-or-codex-subscription).
+The same snapshot is shown in **Brand settings → Agent context**
+([Brands](/guides/brands#what-the-agent-knows)).
 
 ## Publishing readiness
 
@@ -226,38 +231,39 @@ not evidence that the provider has banned the account.
 ## Tool errors
 
 A gating failure is a tool result with `isError: true`. `structuredContent`
-is the contract below — not a generic 500 and not a bare string. The same
+is the contract below, not a generic 500 and not a bare string. The same
 object is `error.data` on the JSON-RPC response when the Streamable HTTP
 transport rejects the request before a tool runs (missing credential, or the
 shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
 
 | `code` | When | `nextStepUrl` | Extra fields |
 | --- | --- | --- | --- |
-| `unauthorized` | Missing or rejected bearer credential (`401`) | `/connect` on the app origin — the same Connect Genfeed sign-in the server already advertises | |
-| `plan_required` | Paid-plan, subscription, plan-limit, or organization-billing gate (`hasOrganizationBilling()`, `PLAN_LIMIT_EXCEEDED`) | `/settings/subscription` | |
-| `insufficient_credits` | Ledger rejection (`INSUFFICIENT_CREDITS`, HTTP 402) | `/settings/credits` | |
+| `unauthorized` | Missing or rejected bearer credential (`401`) | `/connect` on your app origin | |
 | `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
 | `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
 | `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | |
 | `brand_required` | A generation tool (`generate`, `generate_content`, `generate_turbo_content`, `enhance_prompt`, `transform_media`) was called without `brandId` | none | `brands[]` of `{ id, label }`, the caller's brands |
 
 `message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted
-when they do not apply — `rate_limited` does not invent a URL. Paths are the
-app routes the product already uses; sign-in continues into the caller's
-organization. Fix `errors[]` and call the tool again. For
-`approval_pending`, hand the human `nextStepUrl` or call `resolve_approval`
-with the approval id in `message`. For `brand_required`, retry with one of the
-listed `brands[].id` values; no brand is ever picked for you.
+when they do not apply; `rate_limited` does not invent a URL. Paths are app
+routes on your instance; sign-in continues into the caller's organization. Fix
+`errors[]` and call the tool again. For `approval_pending`, hand the human
+`nextStepUrl` or call `resolve_approval` with the approval id in `message`. For
+`brand_required`, retry with one of the listed `brands[].id` values; no brand is
+ever picked for you.
 
 ## Tools
 
-Each call uses the permissions on the authorized token or manual key.
+Each call uses the permissions on the authorized token or key.
 
 - **Content and media:** articles, images, videos, music, avatars, Turbo runs.
 - **Workflows:** list, create, execute, inspect status.
 - **Publishing:** list and publish social posts.
 - **Analytics and ads:** analytics, campaigns, Google Ads, Meta Ads.
 - **Agents and admin:** threads, approvals, role-gated admin tools.
+
+Generation tools call the model providers whose keys you configured; see
+[Provider API Keys](/self-host/provider-api-keys).
 
 ## Toolsets
 
@@ -274,7 +280,7 @@ To expose the available content journey, including generation and analytics,
 select these toolsets explicitly:
 
 ```text
-https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler
+http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler
 ```
 
 - **`core` is always included** and cannot be excluded. It holds discovery and
@@ -307,7 +313,7 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler
 | `clips` | Clip project creation, analysis, and highlight extraction from source video. |
 | `knowledge` | Capture, search, and manage brand knowledge sources. |
 | `agent-chat` | Chat with the account and coordinate work across agents: send messages, list and transfer conversations, and request assets from another agent. |
-| `skills-pro` | Verify and install entitled Skills Pro packs. |
+| `skills-pro` | Verify and install Skills Pro packs. |
 
 ### Saved remix handoff
 
@@ -316,7 +322,7 @@ profile so discovery includes the inspiration, content, generation, analytics,
 brand, and scheduler toolsets:
 
 ```text
-https://mcp.genfeed.ai/mcp?toolsets=inspiration,content,generation,analytics,brand,scheduler
+http://localhost:3014/mcp?toolsets=inspiration,content,generation,analytics,brand,scheduler
 ```
 
 `core` is still added automatically. The bare URL keeps the `default` profile
@@ -326,33 +332,32 @@ and its 26-tool cap, which does not advertise these actions; use
 Call the actions in this order. Saving, importing, reading, editing, attaching,
 and quoting never dispatch generation, publish, or add brand Knowledge.
 
-1. `import_source_post` — public X, Instagram, or TikTok URL plus explicit
+1. `import_source_post`: public X, Instagram, or TikTok URL plus explicit
    `brandId`. Approval is required. Unsupported, private, or missing inputs fail
    closed. The result is the imported source identity and whether it was reused.
-2. `create_remix_concept` — `brandId` and `sourcePostId`. Creates or reuses the
+2. `create_remix_concept`: `brandId` and `sourcePostId`. Creates or reuses the
    canonical saved concept and returns its current revision.
-3. `update_remix_concept` — `runId`, `expectedRevision`, and at least one edit.
+3. `update_remix_concept`: `runId`, `expectedRevision`, and at least one edit.
    A stale revision fails instead of overwriting.
-4. `attach_remix_analysis_source` — optional, for video or avatar output.
+4. `attach_remix_analysis_source`: optional, for video or avatar output.
    Pass a same-brand Library video id, or `null` to clear it. The Library video
    is the analyzed media. The imported post URL, author, and selector stay
-   provenance. Attachment does not spend credits.
-5. `quote_remix_generation` — persists an exact quote for `expectedRevision`
+   provenance.
+5. `quote_remix_generation`: persists an exact quote for `expectedRevision`
    and does not start work. Read it back with `get_remix_run` before approval.
    Image and copy accept only `operation: "generate"` and reject scene or repair
    fields. Image requires a registered image `model`; `crun/` models do not
    support remix quotes and are rejected. Copy rejects a caller `model` and uses
-   the canonical background model at one credit per variant. Video and avatar
-   reject `model` and quote `analysis`, `generate`, or `repair` on the scene
-   pipeline.
-   A quote expires 15 minutes after it is saved. Price, model, BYOK, source, or
-   recipe changes require a new quote.
-6. `start_remix_generation` — approval-required. Pass the persisted `quoteId`
+   the canonical background model. Video and avatar reject `model` and quote
+   `analysis`, `generate`, or `repair` on the scene pipeline. A quote expires 15
+   minutes after it is saved. Provider, model, BYOK, source, or recipe changes
+   require a new quote.
+6. `start_remix_generation`: approval-required. Pass the persisted `quoteId`
    and the same revision. A repeated accepted call returns the same canonical
-   run and does not buy the attempt again.
-7. `get_remix_run` — safe reconnect. Returns revision, lineage, quotes, receipts,
+   run and does not start the attempt again.
+7. `get_remix_run`: safe reconnect. Returns revision, lineage, quotes, receipts,
    and artifacts without starting another run.
-8. `control_remix_generation` — approval-required `cancel` or `resume` for an
+8. `control_remix_generation`: approval-required `cancel` or `resume` for an
    existing video or avatar scene pipeline. Image and copy have no control
    action.
 
@@ -366,16 +371,16 @@ calls, and real publishing are not claimed here.
 One read-only meta tool, always in `core`, lets an agent find a tool that
 isn't in its current selection. `find_tools` takes `{ name?, query?, toolset?, limit? }`:
 
-- **No arguments** — every toolset available on this server, with tool counts.
-- **`query` and/or `toolset`** — case-insensitive substring search over tool
+- **No arguments**: every toolset available on this server, with tool counts.
+- **`query` and/or `toolset`**: case-insensitive substring search over tool
   name, description, and toolset.
-- **`name`** — the full tool definition for one name, including the closest
+- **`name`**: the full tool definition for one name, including the closest
   name matches when the name isn't found.
 
 These search the full, role-filtered catalog regardless of the caller's
 current toolset selection. Once an agent has a tool's name and schema from
-`find_tools`, it can call that tool directly with `tools/call` — narrowing
-`tools/list` only narrows discovery, not what can be invoked — or reconnect
+`find_tools`, it can call that tool directly with `tools/call` (narrowing
+`tools/list` only narrows discovery, not what can be invoked) or reconnect
 with a broader `?toolsets=` selection so the tool appears in future
 `tools/list` responses.
 
@@ -384,7 +389,7 @@ with a broader `?toolsets=` selection so the tool appears in future
 The toolset selector applies to the standard connector. Claude uses the fixed `/mcp/claude` catalog.
 
 ```bash
-codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler'
+codex mcp add genfeed --url 'http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler' --bearer-token-env-var GENFEED_API_KEY
 ```
 
 ## Skills
@@ -392,33 +397,6 @@ codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?toolsets=content,generat
 MCP gives an agent Genfeed's tools; [Agent Skills](/skills) give it the content
 knowledge to use them well. Install the catalog with
 `bunx skills add genfeedai/skills`.
-
-## HTTP Details
-
-The endpoint accepts `POST`, `GET`, and `DELETE`. Authenticated requests include a token managed by the OAuth client or a manual key:
-
-```http
-Authorization: Bearer <access-token>
-```
-
-Missing, invalid, or expired tokens return 401 errors. An OAuth client should
-use its refresh token on a 401 before restarting browser authorization.
-
-## Local Self-Hosted Surface
-
-Self-hosted Genfeed uses `http://localhost:3014/mcp` when the MCP service is running. Cloud uses:
-
-```text
-https://mcp.genfeed.ai/mcp
-```
-
-## Troubleshooting
-
-- **Discovery fails:** use exactly `https://mcp.genfeed.ai/mcp` and a Streamable HTTP client.
-- **401 errors:** an OAuth client should present its refresh token first and
-  restart browser authorization only if that fails; in manual mode, check the
-  key and its scopes.
-- **Wrong endpoint:** check `/v1/config` on the MCP host.
 
 ## Uploading local media
 
@@ -464,18 +442,33 @@ Text and media resource links remain available to clients without MCP Apps.
 Empty results and tool errors remain visible, and pending approvals are never
 presented as completed content. Cards do not publish or mutate content.
 
-For self-hosting, configure `GENFEEDAI_CDN_URL` and, if media is served directly by
-it, `GENFEEDAI_MICROSERVICES_FILES_URL` on the MCP server. Only these media origins
-are allowed by the widget CSP (the CDN defaults to `https://cdn.genfeed.ai`).
-Other HTTP(S) media URLs remain available through an explicit open-link action.
-The static HTML resource is public; all account data still comes from authenticated
-tool calls. It contains no bearer tokens or account cookies.
-
+Configure `GENFEEDAI_CDN_URL` and, if media is served directly by it,
+`GENFEEDAI_MICROSERVICES_FILES_URL` on the MCP server; see
+[Configuration](/self-host/configuration#public-urls). Only these media origins
+are allowed by the widget CSP. Other HTTP(S) media URLs remain available through
+an explicit open-link action. The static HTML resource is public; all account
+data still comes from authenticated tool calls. It contains no bearer tokens or
+account cookies.
 
 ## Claude, Claude Code and Cowork
 
-Connect to `https://mcp.genfeed.ai/mcp/claude` with browser OAuth. This connector supports brands, drafts, existing assets, scheduling and analytics. Create images, video and audio in [Genfeed Studio](https://app.genfeed.ai/studio/playground), then return to Claude to manage your content. Opening Studio does not start generation or spend credits.
+Connect to `http://localhost:3014/mcp/claude` with browser OAuth (see
+[Claude Code](#claude-code) above). This connector supports brands, drafts,
+existing assets, scheduling and analytics. Create images, video and audio in
+Genfeed Studio in your instance's web app, then return to Claude to manage your
+content. Opening Studio does not start generation.
 
-This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory. Reconnect existing Claude installations using this URL. Existing connections to `/mcp` retain their original capabilities.
+This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory.
+Existing connections to `/mcp` retain their original capabilities.
 
 The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
+
+## Troubleshooting
+
+- **Discovery fails:** use exactly your MCP URL (`http://localhost:3014/mcp` on a default install) and a Streamable HTTP client.
+- **401 errors:** an OAuth client should present its refresh token first and
+  restart browser authorization only if that fails; with an API key, check the
+  key and its scopes.
+- **Wrong endpoint:** check `/v1/config` on the MCP host.
+- **Cannot connect at all:** confirm port `3014` is published; see
+  [Troubleshooting](/self-host/troubleshooting).

@@ -156,6 +156,7 @@ export class BrandedTextRunnerService {
       kind: 'completed',
       hasNewDispatch: outcome.hasNewDispatch,
       isReplayed: !outcome.hasNewDispatch,
+      postId: outcome.postId,
       receiptId: outcome.receipt.id,
       receiptState: completedReceiptState(outcome.receipt.state),
       text,

@@ -7,13 +7,15 @@ import {
 
 function buildService(memberships: Array<{ sourceId: string }> = []) {
   const findMany = vi.fn().mockResolvedValue(memberships);
+  const sourceFindMany = vi.fn().mockResolvedValue([]);
   const service = new KnowledgeSelectionService(
     {
       knowledgeSpaceMembership: { findMany },
+      knowledgeSource: { findMany: sourceFindMany },
     } as never,
     brandAccessFixture(),
   );
-  return { findMany, service };
+  return { findMany, sourceFindMany, service };
 }
 
 describe('KnowledgeSelectionService', () => {
@@ -111,5 +113,86 @@ describe('KnowledgeSelectionService', () => {
       knowledgePurposes: [KnowledgeSourcePurpose.RESEARCH],
     });
     expect(findMany).not.toHaveBeenCalled();
+  });
+  it('expands purposes only into live visible sources in the authorized brand and organization', async () => {
+    const { service, sourceFindMany } = buildService();
+    sourceFindMany.mockResolvedValue([{ id: 'source-1' }]);
+    await expect(
+      service.resolveBrandedSourceIds(
+        'org-1',
+        'brand-1',
+        { purposes: [KnowledgeSourcePurpose.RESEARCH] },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).resolves.toEqual(['source-1']);
+    expect(sourceFindMany).toHaveBeenCalledWith({
+      select: { id: true },
+      take: 257,
+      orderBy: { id: 'asc' },
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        isVisible: true,
+        purpose: { in: [KnowledgeSourcePurpose.RESEARCH] },
+        OR: [
+          { scope: KnowledgeMemoryScope.ORG, brandId: null },
+          { scope: KnowledgeMemoryScope.BRAND, brandId: 'brand-1' },
+        ],
+      },
+    });
+  });
+  it('intersects selected spaces and sources with purposes instead of widening the selection', async () => {
+    const { service, sourceFindMany } = buildService([
+      { sourceId: 'space-source' },
+    ]);
+    await service.resolveBrandedSourceIds(
+      'org-1',
+      'brand-1',
+      {
+        sourceIds: ['picked'],
+        spaceIds: ['space-1'],
+        purposes: [KnowledgeSourcePurpose.BRAND_TRUTH],
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(sourceFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: ['picked', 'space-source'] },
+          purpose: { in: [KnowledgeSourcePurpose.BRAND_TRUTH] },
+        }),
+      }),
+    );
+  });
+  it('preserves an empty selected space rather than expanding to every source of that purpose', async () => {
+    const { service, sourceFindMany } = buildService();
+    await service.resolveBrandedSourceIds(
+      'org-1',
+      'brand-1',
+      {
+        spaceIds: ['empty-space'],
+        purposes: [KnowledgeSourcePurpose.RESEARCH],
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(sourceFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: { in: [] } }),
+      }),
+    );
+  });
+  it('refuses purpose selections that exceed the receipt source bound', async () => {
+    const { service, sourceFindMany } = buildService();
+    sourceFindMany.mockResolvedValue(
+      Array.from({ length: 257 }, (_, i) => ({ id: `source-${i}` })),
+    );
+    await expect(
+      service.resolveBrandedSourceIds(
+        'org-1',
+        'brand-1',
+        { purposes: [KnowledgeSourcePurpose.RESEARCH] },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
   });
 });

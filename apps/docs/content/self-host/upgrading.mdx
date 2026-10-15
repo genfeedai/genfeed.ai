@@ -1,0 +1,101 @@
+---
+title: Upgrading Genfeed
+description: 'Back up and upgrade a self-hosted Genfeed instance: what to save first, how to move to a new release, how migrations run, and how to roll back.'
+---
+
+# Upgrading Genfeed
+
+You run the updates for your own instance. Each release is a new application
+image; on startup the container applies database migrations and reconciles
+reference data before it serves traffic.
+
+## Before you upgrade
+
+Back up two things.
+
+**1. PostgreSQL.** Use your own `POSTGRES_USER` and `POSTGRES_DB` if you changed
+them from the defaults:
+
+```bash
+docker compose --env-file .env -f compose.yml exec -T postgres \
+  pg_dump -U genfeed genfeed > genfeed-backup.sql
+```
+
+**2. The `/data` volume.** It holds generated files, the embedded Redis, and the
+generated secrets (`/data/.encryption-key` and, if you enabled the login wall,
+`/data/.better-auth-secret`). Stored credentials cannot be decrypted without the
+encryption key. Find the volume name with `docker volume ls` (it starts with
+your Compose project name, by default the directory name), then:
+
+```bash
+docker run --rm -v VOLUME_NAME:/data -v "$PWD":/backup alpine \
+  tar czf /backup/genfeed-data.tgz -C /data .
+```
+
+Also keep a copy of your `.env`.
+
+Then read the [upgrade notes](#upgrade-notes) for the releases between your
+version and the new one.
+
+## Move to a newer release
+
+Release bundles pin the application image for their release through
+`GENFEED_IMAGE_TAG` in `.env`.
+
+1. Download the newer release bundle and read its `.env.example`. Note the
+   `GENFEED_IMAGE_TAG` value it sets.
+2. In your existing `.env`, set `GENFEED_IMAGE_TAG` to that value. Keep your other
+   settings.
+3. From the directory you started the stack in, pull the image and recreate the
+   container:
+
+   ```bash
+   docker compose --env-file .env -f compose.yml pull
+   docker compose --env-file .env -f compose.yml up -d
+   ```
+
+Starting the new bundle from a different directory would create a different
+Compose project, with new empty volumes. Update in place as above, or keep the
+old project name with `-p`.
+
+If you run from a source checkout's `docker/docker-compose.selfhosted.yml`, the
+template uses the `latest` image tag, so the same `pull` and `up -d` fetch the
+newest image.
+
+Check the result:
+
+```bash
+docker compose --env-file .env -f compose.yml ps
+docker compose --env-file .env -f compose.yml logs genfeed
+curl http://localhost:3010/v1/health
+```
+
+## Roll back
+
+Migrations are applied on startup and are not reversed automatically. To roll
+back, stop the stack, restore the PostgreSQL dump and `/data` backup you took
+before upgrading, set `GENFEED_IMAGE_TAG` back to the previous release, and start
+it again.
+
+## Stop the stack
+
+```bash
+docker compose --env-file .env -f compose.yml down
+```
+
+Add `-v` only when you intentionally want to delete the database and Genfeed data
+volumes.
+
+## Upgrade notes
+
+- **`20260925120000_agent_unit_economics`** adds a nullable `userId` column to
+  `llm_vendor_costs`, creates the `billing_revenue_events` table, and builds new
+  indexes on `credit_transactions`, `llm_vendor_costs`, and `media_vendor_costs`.
+  The indexes are not built concurrently, so writes to those tables wait while
+  each index builds. This is brief on most installs; on a large database, update
+  during a quiet period.
+
+## Next
+
+- [Troubleshooting](/self-host/troubleshooting)
+- [Configuration reference](/self-host/configuration)

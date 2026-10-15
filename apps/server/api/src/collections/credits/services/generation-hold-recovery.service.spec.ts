@@ -1,4 +1,5 @@
 import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
+import { avatarEngineSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
 import {
   ActivitySource,
   CreditHoldRecoveryAction,
@@ -64,6 +65,7 @@ function fixture() {
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const bootstrapCache = { invalidateForOrganization: vi.fn() };
+  const queue = { queueDeduction: vi.fn().mockResolvedValue(undefined) };
   const service = new GenerationHoldRecoveryService(
     prisma as never,
     reservations as never,
@@ -73,8 +75,10 @@ function fixture() {
     http as never,
     logger as never,
     bootstrapCache as never,
+    queue as never,
   );
   return {
+    queue,
     service,
     hold,
     ingredient,
@@ -91,6 +95,116 @@ function fixture() {
 
 describe('media hold provider and operator recovery', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  describe('per-second holds at the ceiling (#6932)', () => {
+    function avatarFixture() {
+      const f = fixture();
+      Object.assign(f.hold, {
+        amount: 129,
+        metadata: {
+          ...f.hold.metadata,
+          avatarDurationQuote: {
+            estimatedSeconds: 10,
+            snapshot: avatarEngineSnapshot(
+              'heygen/avatar-iv',
+              'photo_avatar',
+              10,
+            ),
+          },
+        },
+      });
+      return f;
+    }
+
+    it('re-prices the charge at the clip length HeyGen reports', async () => {
+      const f = avatarFixture();
+      f.http.get.mockReturnValue(
+        of({ data: { data: { duration: 5, status: 'completed' } } }),
+      );
+
+      await f.service.recoverAtCeiling('org', 'hold');
+
+      expect(f.reservations.settleInTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actualAmount: 65,
+          metadata: {
+            durationSettlement: expect.objectContaining({
+              actualSeconds: 5,
+              heldCredits: 129,
+            }),
+            recoveredReservationId: 'hold',
+          },
+          settlementIdempotencyKey: 'media-generation-late-settle:hold',
+        }),
+        f.prisma,
+        true,
+      );
+      expect(f.queue.queueDeduction).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the stored output duration', async () => {
+      const f = avatarFixture();
+      f.ingredient.metadata = {
+        ...f.ingredient.metadata,
+        duration: 5,
+      } as typeof f.ingredient.metadata;
+
+      await f.service.recoverAtCeiling('org', 'hold');
+
+      expect(f.reservations.settleInTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ actualAmount: 65 }),
+        f.prisma,
+        true,
+      );
+    });
+
+    it('settles the hold and tops up a capped overrun after the commit', async () => {
+      const f = avatarFixture();
+      f.http.get.mockReturnValue(
+        of({ data: { data: { duration: 60, status: 'completed' } } }),
+      );
+
+      await f.service.recoverAtCeiling('org', 'hold');
+
+      expect(f.reservations.settleInTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ actualAmount: 129 }),
+        f.prisma,
+        true,
+      );
+      expect(f.queue.queueDeduction).toHaveBeenCalledTimes(1);
+      expect(f.queue.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 129,
+          idempotencyKey: 'media-generation-duration-topup:hold',
+          organizationId: 'org',
+          userId: 'payer',
+        }),
+      );
+      expect(f.activities.afterCommit.mock.invocationCallOrder[0]).toBeLessThan(
+        f.queue.queueDeduction.mock.invocationCallOrder[0],
+      );
+      expect(f.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('per-render charge cap'),
+        expect.objectContaining({ forgoneCredits: 512 }),
+      );
+    });
+
+    it('charges a hold with no frozen quote at its amount', async () => {
+      const f = fixture();
+      f.http.get.mockReturnValue(
+        of({ data: { data: { duration: 60, status: 'completed' } } }),
+      );
+
+      await f.service.recoverAtCeiling('org', 'hold');
+
+      expect(f.reservations.settleInTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ actualAmount: 12 }),
+        f.prisma,
+        true,
+      );
+      expect(f.queue.queueDeduction).not.toHaveBeenCalled();
+    });
+  });
 
   it('polls only a stored org-owned identity, outside the financial transaction, and charges using the late key', async () => {
     const f = fixture();

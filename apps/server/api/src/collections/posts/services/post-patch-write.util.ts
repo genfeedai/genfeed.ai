@@ -30,6 +30,8 @@ export const POST_SCALAR_FIELDS = [
   'analyticsCollectionState',
   'analyticsNextCollectAt',
   'brandId',
+  'brandedReceiptId',
+  'brandedReceiptState',
   'campaignId',
   'category',
   'contentRunId',

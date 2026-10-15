@@ -11,6 +11,7 @@ import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
+  ACCOUNT_GENERATION_QUEUE,
   AGENT_TURN_QUEUE,
   BRAND_VISION_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
@@ -57,6 +58,14 @@ import { ConfigService } from '@workers/config/config.service';
       },
     }),
     BullModule.registerQueue(
+      {
+        name: ACCOUNT_GENERATION_QUEUE,
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 100,
+        },
+      },
       // ---------- Existing queues (crons + processors) ----------
       {
         defaultJobOptions: {

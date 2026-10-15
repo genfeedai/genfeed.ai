@@ -23,7 +23,9 @@ describe('route mapping', () => {
   it('maps the catch-all segments to a path and a canonical URL', () => {
     expect(toRoutePath(undefined)).toBe('/');
     expect(toRoutePath([])).toBe('/');
-    expect(toRoutePath(['core', 'installation'])).toBe('/core/installation');
+    expect(toRoutePath(['self-host', 'installation'])).toBe(
+      '/self-host/installation',
+    );
 
     expect(toCanonicalUrl(undefined)).toBe(`${DOCS_ORIGIN}/`);
     expect(toCanonicalUrl(['faq'])).toBe(`${DOCS_ORIGIN}/faq`);
@@ -33,8 +35,8 @@ describe('route mapping', () => {
     expect(toContentFile(['faq'], CONTENT_DIR)).toBe(
       path.join(CONTENT_DIR, 'faq.mdx'),
     );
-    expect(toContentFile(['core'], CONTENT_DIR)).toBe(
-      path.join(CONTENT_DIR, 'core/index.mdx'),
+    expect(toContentFile(['guides'], CONTENT_DIR)).toBe(
+      path.join(CONTENT_DIR, 'guides/index.mdx'),
     );
     expect(toContentFile([], CONTENT_DIR)).toBe(
       path.join(CONTENT_DIR, 'index.mdx'),
@@ -80,7 +82,7 @@ describe('description derivation', () => {
   });
 
   it('strips inline markdown and truncates on a word boundary', () => {
-    const source = `Read the **[installation guide](/core/installation)** first. ${'detail '.repeat(40)}`;
+    const source = `Read the **[installation guide](/self-host/installation)** first. ${'detail '.repeat(40)}`;
 
     const derived = deriveDescription(source) ?? '';
 
@@ -140,8 +142,8 @@ describe('listContentRoutes', () => {
 
     expect(routes).toHaveLength(mdxCount);
     expect(paths).toContain('/');
-    expect(paths).toContain('/core');
-    expect(paths).toContain('/core/installation');
+    expect(paths).toContain('/guides');
+    expect(paths).toContain('/self-host/installation');
     expect(paths).toContain('/guides/publishing/social-media/instagram');
   });
 });

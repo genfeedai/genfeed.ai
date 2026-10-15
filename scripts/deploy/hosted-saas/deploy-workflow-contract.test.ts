@@ -39,6 +39,41 @@ describe('hosted SaaS Vercel deployment contract', () => {
     expect(core).not.toContain('MARKETPLACE_DEPLOY_TOKEN');
   });
 
+  test('stabilizes metadata clients before rolling authenticated Files', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+    const clients = core.indexOf('- name: Roll metadata clients before Files');
+    const clientsWait = core.indexOf(
+      '- name: Wait for metadata clients stable',
+    );
+    const files = core.indexOf('- name: Roll Files after metadata clients');
+    const servicesWait = core.indexOf('- name: Wait for services stable');
+    const redisAuth = core.indexOf('- name: Require Redis TLS and AUTH');
+
+    expect(clients).toBeGreaterThan(-1);
+    expect(clientsWait).toBeGreaterThan(clients);
+    expect(files).toBeGreaterThan(clientsWait);
+    expect(servicesWait).toBeGreaterThan(files);
+    expect(redisAuth).toBeGreaterThan(servicesWait);
+    expect(core.slice(clients, clientsWait)).toContain(
+      `-exclude='module.service["files"]'`,
+    );
+    expect(core.slice(clients, clientsWait)).toContain(
+      '-exclude=aws_elasticache_replication_group.redis',
+    );
+    expect(core.slice(clientsWait, files)).toContain(
+      `map(select(. != "files")) | join(",")`,
+    );
+    expect(core.slice(clientsWait, files)).toContain('--services "$SERVICES"');
+    expect(core.slice(clientsWait, files)).toContain('set -euo pipefail');
+    expect(core.slice(files, servicesWait)).not.toContain(
+      `-exclude='module.service["files"]'`,
+    );
+    expect(core.slice(files, servicesWait)).toContain(
+      '-exclude=aws_elasticache_replication_group.redis',
+    );
+    expect(core).toContain("steps.wait-metadata-clients.outcome == 'failure'");
+  });
+
   test('routes the production app auth proxy through the public API', async () => {
     const vercel = await workflow('_deploy-hosted-saas-vercel.yml');
     const core = await workflow('_deploy-hosted-saas-core.yml');

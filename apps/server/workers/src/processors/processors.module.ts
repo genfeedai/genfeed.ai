@@ -1,5 +1,7 @@
+import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { VisualProjectsCoreModule } from '@api/collections/visual-projects/visual-projects-core.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { AccountGenerationProcessor } from '@workers/processors/api/queues/account-generation/account-generation.processor';
 import { LlmCostSettlementProcessor } from '@workers/processors/api/queues/llm-cost-settlement/llm-cost-settlement.processor';
 /**
  * Processors Module (Workers)
@@ -91,6 +93,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 
 @Module({
   imports: [
+    PostGenerationModule,
     VisualProjectsCoreModule,
     LlmDispatcherModule,
     // Infrastructure
@@ -158,6 +161,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => WhisperModule),
   ],
   providers: [
+    AccountGenerationProcessor,
     // --- queues/ processors ---
     TurboRewriteProcessor,
     CreditDeductionProcessor,

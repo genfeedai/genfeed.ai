@@ -8,6 +8,8 @@ import { LearningScopeStateService } from '@api/collections/content-learning/ser
 import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import { OutlierInputsService } from '@api/collections/outliers/services/outlier-inputs.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   type WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
@@ -220,6 +222,8 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         WorkflowExecutionQueueService,
         OrganizationModuleAccessService,
         OrganizationPaidAccessService,
+        PlatformSettingsService,
+        BrandVisionModelCatalogService,
         ...[
           WORKFLOW_EXECUTION_QUEUE,
           PLATFORM_SYSTEM_WORKFLOW_QUEUE,

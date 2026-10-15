@@ -1,5 +1,4 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
@@ -22,53 +21,57 @@ import {
   Terminal,
 } from 'lucide-react';
 
-const DOCS_URL = 'https://docs.genfeed.ai';
+const QUICKSTART_DOCS_URL =
+  'https://docs.genfeed.ai/guides/self-host-quickstart';
+
+const NPX_COMMAND = 'npx @genfeedai/create my-genfeed';
+
+const BUNDLE_COMMANDS = `curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256
+tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
+cp .env.example .env && docker compose --env-file .env -f compose.yml up -d`;
+
+const REQUIREMENTS = [
+  'Docker Compose v2 (Docker Engine with the Compose plugin, or Docker Desktop)',
+  'Node.js 24 (>=24 <25), only for the npx command. The release bundle does not need Node.',
+  'About 8 GB of free disk (10 GB recommended)',
+  'Free ports 3000 (web), 3010 (API), and 3014 (MCP)',
+] as const;
+
+const PROVIDER_KEYS = [
+  'OpenAI',
+  'Anthropic',
+  'Replicate',
+  'fal',
+  'ElevenLabs',
+] as const;
 
 const WHY_SELF_HOST = [
   {
     description:
-      'Deploy the full content OS on your own servers with Docker. Your models, your storage, your network. No vendor lock-in.',
+      'Run Genfeed on your own servers with Docker Compose: one container plus PostgreSQL. Your storage, your network, no vendor lock-in.',
     icon: Server,
     title: 'Own Your Infrastructure',
   },
   {
     description:
-      'Everything runs inside your environment. Nothing leaves your infrastructure unless you decide it does.',
+      'Your content, brands, and database live on your infrastructure. Generation requests go to the model providers whose keys you add.',
     icon: ShieldCheck,
     title: 'Own Your Data',
   },
   {
     description:
-      'Bring your own keys or run open-source models locally. Route generation however you want, with no per-credit meter.',
+      'Self-hosting has no Genfeed credits. Add your own provider keys and pay those providers directly, with no Genfeed credit meter.',
     icon: Cpu,
-    title: 'Run Your Own Models',
-  },
-] as const;
-
-const QUICKSTART = [
-  {
-    description: 'Clone the AGPL-licensed monorepo from GitHub.',
-    step: 'Clone',
-  },
-  {
-    description:
-      'Copy the example env, add your keys, and pick your models and storage.',
-    step: 'Configure',
-  },
-  {
-    description: 'Bring it up with Docker Compose: API, workers, and app.',
-    step: 'Deploy',
-  },
-  {
-    description: 'Connect your channels and start publishing.',
-    step: 'Connect',
+    title: 'Bring Your Own Keys',
   },
 ] as const;
 
 const FAQ_ITEMS = [
   {
     answer:
-      'Yes. The core is open source under AGPL-3.0. Clone it, run it on your own infrastructure, and use it for free. You cover your own hosting and model costs.',
+      'Yes. The core is open source under AGPL-3.0. Run it on your own infrastructure at no platform cost. You cover your own hosting and pay your model providers directly.',
     question: 'Is self-hosting really free?',
   },
   {
@@ -78,7 +81,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Self-host gives you full control and zero platform fees, but you run the infrastructure, updates, and models yourself. Managed cloud handles all of that, adds managed credits and support, and starts free. Most teams self-host to evaluate, then move to cloud to skip the ops.',
+      'Self-host gives you full control and zero platform fees, but you run the infrastructure and updates yourself, and you bring your own model provider keys. Managed cloud handles all of that, adds managed credits and support, and starts free. Most teams self-host to evaluate, then move to cloud to skip the ops.',
     question: 'Self-host or managed cloud?',
   },
   {
@@ -109,7 +112,7 @@ export default function SelfHostedContent() {
             <span className="italic font-light">your own infra</span>.
           </>
         }
-        description="The full Genfeed content OS is open source. Clone it, run it with Docker, and own your stack end to end, or skip the ops and start free on managed cloud."
+        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, and add your own model provider keys. Or skip the ops and start free on managed cloud."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -141,7 +144,7 @@ export default function SelfHostedContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="Why self-host"
-            description="Full control over your infrastructure, data, and models, with no platform fees and no lock-in."
+            description="Full control over your infrastructure and data, with no platform fees and no lock-in."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
@@ -159,36 +162,92 @@ export default function SelfHostedContent() {
           </NeuralGrid>
         </WebSection>
 
-        <WebSection bg="bordered" maxWidth="xl" className="gsap-section">
+        <WebSection bg="bordered" maxWidth="lg" className="gsap-section">
           <SectionHeader
-            title="Up and running in four steps"
-            description="A standard Docker deployment. Full instructions live in the docs."
+            title="Install"
+            description="Two ways to run the same Community release: one command, or the release bundle with no repository clone."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
-          <NeuralGrid columns={4}>
-            {QUICKSTART.map((item, index) => (
-              <NeuralGridItem
-                key={item.step}
-                tierLabel={`0${index + 1} / ${item.step}`}
-                padding="lg"
-                className={cn(index === 0 && 'bg-fill/[0.02]')}
-              >
-                <p className="text-sm leading-relaxed text-surface/60">
-                  {item.description}
-                </p>
-              </NeuralGridItem>
-            ))}
-          </NeuralGrid>
+          <div className="space-y-8">
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-surface">
+                One command
+              </h3>
+              <p className="text-sm leading-relaxed text-surface/60">
+                Downloads the release bundle, verifies its checksum, and starts
+                it.
+              </p>
+              <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
+                {NPX_COMMAND}
+              </pre>
+            </div>
 
-          <div className="mt-8 flex justify-center">
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-surface">
+                Release bundle
+              </h3>
+              <p className="text-sm leading-relaxed text-surface/60">
+                A checksummed tarball of the latest stable release that runs as
+                one container alongside PostgreSQL. No git clone, no build. On
+                macOS, use{' '}
+                <code>shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256</code>{' '}
+                for the checksum step.
+              </p>
+              <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
+                {BUNDLE_COMMANDS}
+              </pre>
+              <p className="text-sm leading-relaxed text-surface/60">
+                Then open http://localhost:3000.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-surface">
+                Requirements
+              </h3>
+              <ul className="space-y-2 text-sm text-surface/60">
+                {REQUIREMENTS.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-surface">
+                Model provider keys
+              </h3>
+              <p className="text-sm leading-relaxed text-surface/60">
+                Self-hosting does not include Genfeed credits. To generate
+                content, add your own keys ({PROVIDER_KEYS.join(', ')}) to{' '}
+                <code>.env</code> and pay those providers directly. The keys are
+                optional and blank by default. The Community image does not
+                start GPU or local-model services.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Button
               asChild
               size={ButtonSize.PUBLIC}
               variant={ButtonVariant.SECONDARY}
             >
-              <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
-                Read the self-hosting docs
+              <a
+                href={QUICKSTART_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Read the self-host quickstart
+              </a>
+            </Button>
+            <Button
+              asChild
+              size={ButtonSize.PUBLIC}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <a href={repoHref} target="_blank" rel="noopener noreferrer">
+                View the GitHub repo
               </a>
             </Button>
           </div>
@@ -211,8 +270,8 @@ export default function SelfHostedContent() {
               <ul className="space-y-3">
                 {[
                   'Run it on your own infrastructure',
-                  'Full control of data and models',
-                  'No platform fees, no credit meter',
+                  'Full control of your data and deployment',
+                  'No Genfeed credits: bring your own provider keys',
                   'You handle hosting, updates, and support',
                   'Community support on GitHub',
                 ].map((item) => (

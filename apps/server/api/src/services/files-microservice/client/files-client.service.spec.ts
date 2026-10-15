@@ -17,11 +17,19 @@ const { FilesClientService } = await import('./files-client.service');
 
 const BASE = 'https://files.test';
 
-function createHarness(filesUrl: string | null = BASE, isIssuerEnabled = true) {
+function createHarness(
+  filesUrl: string | null = BASE,
+  isIssuerEnabled = true,
+  apiKey?: string,
+) {
   const configService = {
     isAuthorizedMediaDeliveryEnabled: isIssuerEnabled,
     get: vi.fn((key: string) =>
-      key === 'GENFEEDAI_MICROSERVICES_FILES_URL' ? filesUrl : undefined,
+      key === 'GENFEEDAI_MICROSERVICES_FILES_URL'
+        ? filesUrl
+        : key === 'GENFEEDAI_API_KEY'
+          ? apiKey
+          : undefined,
     ),
   } as unknown as ConfigService;
   const loggerService = {
@@ -78,9 +86,11 @@ describe('FilesClientService', () => {
       'video',
     );
 
-    expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/metadata`, {
-      url: 'https://cdn.test/clip.mp4',
-    });
+    expect(post).toHaveBeenCalledWith(
+      `${BASE}/v1/files/metadata`,
+      { url: 'https://cdn.test/clip.mp4' },
+      { headers: { 'x-api-key': '' } },
+    );
     expect(probe).toEqual(
       expect.objectContaining({
         audioCodec: 'aac',
@@ -1061,5 +1071,23 @@ describe('FilesClientService', () => {
         ),
       ).rejects.toThrow();
     });
+  });
+});
+
+describe('metadata service authentication', () => {
+  it('authenticates both extraction and media probes to the configured service', async () => {
+    const { service, post } = createHarness(BASE, true, 'metadata-key');
+    post.mockReturnValue(
+      of({ data: { format: { duration: '2' }, streams: [] } }),
+    );
+    await service.extractMetadataFromUrl('https://cdn.test/audio.mp3');
+    await service.probeMediaFromUrl('https://cdn.test/audio.mp3', 'audio');
+    expect(post).toHaveBeenCalledTimes(2);
+    for (const call of post.mock.calls)
+      expect(call).toEqual([
+        `${BASE}/v1/files/metadata`,
+        { url: 'https://cdn.test/audio.mp3' },
+        { headers: { 'x-api-key': 'metadata-key' } },
+      ]);
   });
 });

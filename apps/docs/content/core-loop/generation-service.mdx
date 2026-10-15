@@ -4,7 +4,7 @@ description: 'Trace the OSS generation surface across stable entrypoints, Turbo 
 
 # Generation Service
 
-This page documents the OSS v1 generation surface tracked by `#161`.
+This page documents the OSS v1 generation surface.
 
 ## Live Module Inventory
 
@@ -60,7 +60,7 @@ These are the stable tool names callers should depend on for v1. Lower-level wor
 | ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Tool metadata      | `packages/actions/src/registry/source/index.ts`, `packages/actions/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
 | Agent dispatch     | `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
-| Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, credits, persistence, and completion polling    |
+| Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, persistence, and completion polling      |
 | Skill execution    | `apps/server/api/src/services/skill-executor/*`                                            | Runs content skills such as `image-generation` through immutable canonical workflows     |
 | Provider access    | `apps/server/api/src/services/byok/*`                                                      | Resolves organization BYOK keys before hosted fallback                                   |
 | Provider adapters  | `apps/server/api/src/services/integrations/*`                                                | Call Replicate, fal.ai, Leonardo, ElevenLabs, OpenRouter, and related provider surfaces   |
@@ -120,4 +120,4 @@ This keeps the v1 proof end-to-end at the application boundary without making CI
 
 This page documents the current registry and generation surface. It does **not** expand v1 to include every deferred model-registry or training-pipeline item by default.
 
-For the OSS provider registry contract, see [Provider Registry](/core/provider-registry).
+For the OSS provider registry contract, see [Provider Registry](/self-host/provider-registry).

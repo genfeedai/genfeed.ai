@@ -165,9 +165,15 @@ export class FilesClientService {
   }> {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.filesServiceUrl}/v1/files/metadata`, {
-          url,
-        }),
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/metadata`,
+          { url },
+          {
+            headers: {
+              'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+            },
+          },
+        ),
       );
 
       const metadata = response.data;
@@ -209,6 +215,11 @@ export class FilesClientService {
       this.httpService.post<IFFprobeResult>(
         `${this.filesServiceUrl}/v1/files/metadata`,
         { url },
+        {
+          headers: {
+            'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+          },
+        },
       ),
     );
     return this.toMediaProbe(response.data, kind);
