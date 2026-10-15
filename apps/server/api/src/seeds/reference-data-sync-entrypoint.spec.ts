@@ -43,6 +43,7 @@ describe('self-hosted reference sync bootstrap', () => {
         const result = spawnSync('bash', ['-c', entrypoint], {
           cwd: root,
           env: {
+            BETTER_AUTH_ENABLED: 'false',
             GENFEEDAI_API_URL: 'http://localhost:4567',
             NODE_ENV: 'test',
             PATH: `${bin}:${process.env.PATH}`,
