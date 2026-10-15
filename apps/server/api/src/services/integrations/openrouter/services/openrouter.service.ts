@@ -1,3 +1,4 @@
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import {
   OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
   type OpenRouterChatCompletionEvidence,
@@ -9,7 +10,6 @@ import {
   type OpenRouterStreamTokenHandler,
   type OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

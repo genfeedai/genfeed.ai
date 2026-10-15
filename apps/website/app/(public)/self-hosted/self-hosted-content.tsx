@@ -223,8 +223,8 @@ export default function SelfHostedContent() {
                 content, add your own keys ({PROVIDER_KEYS.join(', ')}) to{' '}
                 <code>.env</code> and pay those providers directly. An
                 OpenRouter key is required for text generation; the other keys
-                are optional. The Community image does not
-                start GPU or local-model services.
+                are optional. The Community image does not start GPU or
+                local-model services.
               </p>
             </div>
           </div>
