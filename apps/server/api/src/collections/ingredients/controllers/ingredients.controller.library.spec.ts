@@ -10,6 +10,7 @@ import type { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingre
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
+import { encodeKeysetCursor } from '@api/helpers/utils/keyset-cursor/keyset-cursor.util';
 import {
   IngredientCategory,
   IngredientOrigin,
@@ -51,6 +52,12 @@ describe('IngredientsController — Library axes', () => {
 
   const ingredientsService = {
     findAll: vi.fn().mockResolvedValue({ docs: [] }),
+    findAllByKeyset: vi.fn().mockResolvedValue({
+      docs: [],
+      hasMore: false,
+      limit: 30,
+      nextCursor: null,
+    }),
     findByIds: vi.fn().mockResolvedValue([]),
     getLibrarySummary: vi.fn().mockResolvedValue({
       byCategory: {},
@@ -130,6 +137,66 @@ describe('IngredientsController — Library axes', () => {
           IngredientsController.prototype.listAdminGenerationReviews,
         ),
       ).toEqual(['superadmin']);
+    });
+  });
+
+  describe('findAll — keyset paging', () => {
+    it('pages by cursor without the offset query when asked and the order allows it', async () => {
+      const cursor = encodeKeysetCursor({
+        direction: -1,
+        field: 'createdAt',
+        id: 'ing_9',
+        value: '2026-10-15T10:00:00.000Z',
+      });
+
+      await controller.findAll(
+        mockRequest,
+        {
+          cursor,
+          limit: 30,
+          paging: 'cursor',
+          sort: 'createdAt: -1',
+        } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
+      const [aggregate, options] =
+        ingredientsService.findAllByKeyset.mock.calls[0];
+      expect(andBranches(aggregate)).toContainEqual({ organizationId });
+      expect(andBranches(aggregate)).toContainEqual({ brandId });
+      expect(options).toEqual({
+        cursor: {
+          direction: -1,
+          field: 'createdAt',
+          id: 'ing_9',
+          value: '2026-10-15T10:00:00.000Z',
+        },
+        limit: 30,
+        sort: { direction: -1, field: 'createdAt' },
+      });
+    });
+
+    it('falls back to page numbers for orders a cursor cannot express', async () => {
+      await controller.findAll(
+        mockRequest,
+        { paging: 'cursor', sort: 'label: 1' } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      expect(ingredientsService.findAllByKeyset).not.toHaveBeenCalled();
+      expect(ingredientsService.findAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps page-number pagination when cursor paging is not requested', async () => {
+      await controller.findAll(
+        mockRequest,
+        { sort: 'createdAt: -1' } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      expect(ingredientsService.findAllByKeyset).not.toHaveBeenCalled();
+      expect(ingredientsService.findAll).toHaveBeenCalledTimes(1);
     });
   });
 

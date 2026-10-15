@@ -1,5 +1,13 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
+import {
+  buildKeysetOrderBy,
+  buildKeysetWhere,
+  type KeysetCursorPosition,
+  type KeysetPage,
+  type KeysetSort,
+  toKeysetPage,
+} from '@api/helpers/utils/keyset-cursor/keyset-cursor.util';
 import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -450,6 +458,56 @@ export abstract class BaseService<
       return result;
     } catch (error: unknown) {
       this.logger?.error('Failed to find documents', { error, options });
+      throw error;
+    }
+  }
+
+  /**
+   * One keyset page in `(sort.field, id)` order after `cursor`. Fetches
+   * `limit + 1` rows to learn whether more exist, so no `count(*)` runs and a
+   * deep page costs the same as the first. Same `where`/projection handling
+   * as {@link findAll}; `input.orderBy` is replaced by the keyset order.
+   */
+  async findAllByKeyset(
+    input: unknown,
+    options: { cursor?: KeysetCursorPosition; limit: number; sort: KeysetSort },
+  ): Promise<KeysetPage<T>> {
+    try {
+      const findAllInput = this.queryNormalizationAdapter.resolveFindAllInput(
+        input,
+        {},
+      );
+      const rawWhere = findAllInput.where ?? {};
+      const baseWhere = this.withSoftDeleteFilter(
+        this.normalizeWhere(rawWhere),
+        rawWhere,
+      );
+      this.auditUnknownFilterFields(baseWhere);
+      const cursorWhere = buildKeysetWhere(options.cursor);
+      const where =
+        Object.keys(cursorWhere).length > 0
+          ? { AND: [baseWhere, cursorWhere] }
+          : baseWhere;
+      const { include, select } = findAllInput;
+      this.queryNormalizationAdapter.assertProjectionFields(include, 'include');
+      this.queryNormalizationAdapter.assertProjectionFields(select, 'select');
+      const projection = select ? { select } : include ? { include } : {};
+
+      const rows = this.normalizeDocuments(
+        await this.internalDelegate.findMany({
+          where,
+          orderBy: buildKeysetOrderBy(options.sort),
+          take: options.limit + 1,
+          ...projection,
+        }),
+      );
+
+      return toKeysetPage(rows, options.limit, options.sort);
+    } catch (error: unknown) {
+      this.logger?.error('Failed to find keyset page', {
+        error,
+        limit: options.limit,
+      });
       throw error;
     }
   }

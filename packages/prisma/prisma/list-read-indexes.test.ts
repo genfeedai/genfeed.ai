@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 const indexes = [
   {
     columns:
-      '("organizationId", "brandId", "isDeleted", "createdAt" DESC, "id", "status", "category")',
+      '("organizationId", "brandId", "isDeleted", "createdAt" DESC, "id" DESC, "status", "category")',
     migration: '20261015150000_ingredients_org_brand_library_index',
     name: 'ingredients_org_brand_library_idx',
     schema:
-      '@@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id, status, category], map: "ingredients_org_brand_library_idx")',
+      '@@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc), status, category], map: "ingredients_org_brand_library_idx")',
     table: 'ingredients',
   },
   {
