@@ -22,6 +22,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { EmptyState } from '@ui/card/EmptyState';
 import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
 import AppTable from '@ui/display/table/Table';
@@ -49,7 +50,7 @@ import { useBrandMoveDestinations } from './use-brand-move-destinations';
 const ITEMS_PER_PAGE = 20;
 
 function BrandsListContent() {
-  const { organizationId } = useBrand();
+  const { organizationId, refreshBrands } = useBrand();
   const { openBrandOverlay } = useBrandOverlay();
   const { openConfirm } = useConfirmModal();
   const { orgSlug } = useOrgUrl();
@@ -104,6 +105,7 @@ function BrandsListContent() {
     data: brands,
     isLoading,
     error: brandsError,
+    isFetching: isRefreshing,
     refetch,
   } = useQuery({
     queryKey: ['brands', organizationId, currentPage],
@@ -157,9 +159,11 @@ function BrandsListContent() {
     characters: BlockedCharacter[];
   } | null>(null);
 
+  // Table and brand switcher together, so a change made here (or a move
+  // into this organization from elsewhere) shows everywhere at once.
   const refresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+    await Promise.all([refetch(), refreshBrands()]);
+  }, [refetch, refreshBrands]);
 
   const handleMoved = useCallback(async () => {
     setSelectedIds([]);
@@ -320,6 +324,10 @@ function BrandsListContent() {
       icon={Building2}
       right={
         <div className="flex items-center gap-2">
+          <ButtonRefresh
+            isRefreshing={isRefreshing}
+            onClick={() => void refresh()}
+          />
           {canMoveBrands && selectedBrands.length > 0 ? (
             <Button
               variant={ButtonVariant.SECONDARY}
