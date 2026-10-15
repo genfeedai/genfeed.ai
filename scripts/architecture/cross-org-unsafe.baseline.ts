@@ -191,29 +191,40 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/brands/controllers/brand-access.helpers.ts',
       line: 123,
     },
-    // #6120: brand relocation spans the source and destination tenants;
-    // assertCanRelocate authorizes.
-    {
-      file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 272,
-    },
-    // #6120: brand relocation preview across tenants; assertCanRelocate
-    // authorizes.
+    // #7016: unchanged relocation preview, after extracting the async status controller; assertCanRelocate authorizes both tenants.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
       line: 319,
     },
-    // #6120: superadmin brand list filtered by another organization or by
-    // brand only.
+    // #7016: unchanged superadmin brand list filtered across organizations; retained after extracting async status reads.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
       line: 395,
     },
-    // #6120: list relation reads for rows already authorized, each pinned to
-    // the brand's own organization.
+    // #7016: unchanged relation hydration for already authorized brands, pinned to each row organization.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
       line: 421,
+    },
+    // #7016: relocation admission retains the original source-tenant receipt; discovery is bound to initiator/request id and assertCanRelocate authorizes both organizations before creation or response.
+    {
+      file: 'apps/server/api/src/collections/brands/services/brand-relocation-jobs.service.ts',
+      line: 57,
+    },
+    // #7016: polling an initiator-owned immutable receipt spans its old source and destination; live elevated membership in both is required before returning its result.
+    {
+      file: 'apps/server/api/src/collections/brands/services/brand-relocation-jobs.service.ts',
+      line: 148,
+    },
+    // #7016: internal platform recovery scans only processing receipt ids and redispatches durable commands; the worker reauthorizes each tenant pair before mutation.
+    {
+      file: 'apps/server/api/src/collections/brands/services/brand-relocation-jobs.service.ts',
+      line: 190,
+    },
+    // #7016: worker execution replaces the old synchronous relocation boundary; the original accepted actor and live memberships authorize both tenants inside the serializable transaction.
+    {
+      file: 'apps/server/api/src/collections/brands/services/brand-relocation-jobs.service.ts',
+      line: 224,
     },
     // #6120: brand slugs are globally unique across organizations, including
     // soft-deleted rows.

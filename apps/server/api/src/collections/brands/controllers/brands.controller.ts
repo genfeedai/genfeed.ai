@@ -44,7 +44,6 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { BrandRelocationStatus } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -296,48 +295,6 @@ export class BrandsController extends BaseCRUDController<
     );
     response?.status(HttpStatus.ACCEPTED);
     return serializeSingle(request, BrandRelocationSerializer, operation);
-  }
-
-  @Get(':id/relocations/:operationId')
-  async getRelocation(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Param('operationId') operationId: string,
-  ): Promise<JsonApiSingleResponse> {
-    const operation = await this.relocationJobs.get(
-      id,
-      operationId,
-      toRelocationActor(user, request),
-    );
-    const result = serializeSingle(
-      request,
-      BrandRelocationSerializer,
-      operation,
-    );
-    if (operation.status !== BrandRelocationStatus.DONE) return result;
-    const brand = await findBrandToRelocate(this.brandsService, id);
-    if (!brand || brand.organizationId !== operation.destinationOrganizationId)
-      return result;
-    // Status is authoritative even if response decoration or refresh is unavailable.
-    try {
-      return {
-        ...result,
-        meta: {
-          brand: serializeSingle(
-            request,
-            BrandSerializer,
-            await this.decorateForResponse(brand as BrandDocument, user),
-          ),
-        },
-      };
-    } catch (error) {
-      this.loggerService.warn(
-        'Committed brand move response refresh unavailable',
-        { operationId, error },
-      );
-      return result;
-    }
   }
 
   /**

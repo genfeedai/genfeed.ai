@@ -1,4 +1,5 @@
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
+import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import {
   PLATFORM_SCHEDULE_CATALOG,
   PLATFORM_SCHEDULED_TASKS,
@@ -249,7 +250,10 @@ describe('PlatformSchedulesProcessor', () => {
       mediaPerception as never,
       modelDeprecation as never,
       replicateModels as never,
-      notificationRecovery as never,
+      new PlatformRecoverySchedulesService(
+        notificationRecovery as never,
+        brandRelocations as never,
+      ),
       patterns as never,
       posts as never,
       queueMetrics as never,
@@ -273,7 +277,6 @@ describe('PlatformSchedulesProcessor', () => {
       workflowSchedules as never,
       xReplyWatch as never,
       externalVoiceCatalog as never,
-      brandRelocations as never,
     );
   });
 

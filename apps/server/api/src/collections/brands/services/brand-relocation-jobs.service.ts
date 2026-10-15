@@ -55,8 +55,9 @@ export class BrandRelocationJobsService {
     if (!destinationOrganizationId)
       throw new BadRequestException('A destination organization is required');
     return crossOrgUnsafe(async () => {
+      // tenant-scope-ignore: receipt discovery is pinned to its request id and initiator; both immutable tenant ids are authorized before returning it.
       const existing = await this.prisma.brandRelocation.findFirst({
-        where: { id, isDeleted: false },
+        where: { id, userId: actor.userId, isDeleted: false },
       });
       if (existing) {
         await this.assertAccess(existing, actor);
@@ -71,7 +72,7 @@ export class BrandRelocationJobsService {
         await this.dispatch(existing);
         return existing;
       }
-      const brand = await this.relocation.authorizeRelocation(
+      const brand = await this.authorizeRelocation(
         brandId,
         destinationOrganizationId,
         actor,
@@ -99,8 +100,9 @@ export class BrandRelocationJobsService {
         });
       } catch (error) {
         if ((error as { code?: string }).code !== 'P2002') throw error;
+        // tenant-scope-ignore: an idempotent receipt retains its source after the brand moves; its initiator and both tenants are checked below.
         const replay = await this.prisma.brandRelocation.findFirst({
-          where: { id, isDeleted: false },
+          where: { id, userId: actor.userId, isDeleted: false },
         });
         if (replay) {
           await this.assertAccess(replay, actor);
@@ -114,6 +116,7 @@ export class BrandRelocationJobsService {
           await this.dispatch(replay);
           return replay;
         }
+        // tenant-scope-ignore: discover the single processing receipt for this authorized brand, then require the same initiator and tenant pair.
         const active = await this.prisma.brandRelocation.findFirst({
           where: {
             brandId,
@@ -143,8 +146,9 @@ export class BrandRelocationJobsService {
     actor: BrandRelocationActingUser,
   ): Promise<BrandRelocation> {
     return crossOrgUnsafe(async () => {
+      // tenant-scope-ignore: operation id, brand id and initiator pin discovery; the source and destination are authorized before returning its status.
       let operation = await this.prisma.brandRelocation.findFirst({
-        where: { id, brandId, isDeleted: false },
+        where: { id, brandId, userId: actor.userId, isDeleted: false },
       });
       if (!operation) throw new NotFoundException('Brand move', id);
       await this.assertAccess(operation, actor);
@@ -184,6 +188,7 @@ export class BrandRelocationJobsService {
   /** Re-offer durable commands whose broker acknowledgement was lost. */
   async recover(): Promise<void> {
     return crossOrgUnsafe(async () => {
+      // tenant-scope-ignore: platform recovery lists only processing command receipts; workers reauthorize each tenant pair before moving data.
       const pending = await this.prisma.brandRelocation.findMany({
         where: {
           status: BrandRelocationStatus.PROCESSING,
@@ -217,6 +222,7 @@ export class BrandRelocationJobsService {
 
   async process(id: string, isFinalAttempt: boolean): Promise<void> {
     return crossOrgUnsafe(async () => {
+      // tenant-scope-ignore: workers discover only their queued receipt id; its stored actor is reauthorized before any brand mutation.
       const operation = await this.prisma.brandRelocation.findFirst({
         where: { id, isDeleted: false },
       });
@@ -227,6 +233,12 @@ export class BrandRelocationJobsService {
         const brand = await this.prisma.brand.findFirst({
           where: {
             id: operation.brandId,
+            organizationId: {
+              in: [
+                operation.organizationId,
+                operation.destinationOrganizationId,
+              ],
+            },
             isDeleted: false,
           },
         });
@@ -302,6 +314,30 @@ export class BrandRelocationJobsService {
         this.logger.error('Brand move rolled back', error, { operationId: id });
       }
     });
+  }
+
+  private async authorizeRelocation(
+    brandId: string,
+    destinationOrganizationId: string,
+    actor: BrandRelocationActingUser,
+  ) {
+    // tenant-scope-ignore: discovering a brand's source is necessary for a cross-org move; both tenants are authorized below before enqueue.
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, isDeleted: false },
+    });
+    if (!brand) throw new NotFoundException('Brand', brandId);
+    const destination = await this.prisma.organization.findFirst({
+      where: { id: destinationOrganizationId, isDeleted: false },
+      select: { id: true },
+    });
+    if (!destination)
+      throw new NotFoundException('Organization', destinationOrganizationId);
+    await this.relocation.assertCanRelocate(
+      actor,
+      brand.organizationId,
+      destinationOrganizationId,
+    );
+    return brand;
   }
 
   private async assertAccess(

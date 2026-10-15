@@ -34,6 +34,9 @@ const operation = {
 
 function setup() {
   const prisma = {
+    organization: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'destination' }),
+    },
     brand: {
       findFirst: vi.fn().mockResolvedValue({
         id: 'brand-1',
@@ -54,9 +57,6 @@ function setup() {
   };
   const relocation = {
     assertCanRelocate: vi.fn(),
-    authorizeRelocation: vi
-      .fn()
-      .mockResolvedValue({ organizationId: 'source' }),
     relocateToOrganization: vi.fn(),
   };
   const recorder = { record: vi.fn() };
@@ -81,10 +81,10 @@ describe('durable brand relocation jobs', () => {
       actor,
     );
     expect(result.status).toBe(BrandRelocationStatus.PROCESSING);
-    expect(relocation.authorizeRelocation).toHaveBeenCalledWith(
-      'brand-1',
-      'destination',
+    expect(relocation.assertCanRelocate).toHaveBeenCalledWith(
       actor,
+      'source',
+      'destination',
     );
     expect(relocation.relocateToOrganization).not.toHaveBeenCalled();
     expect(queue.add).toHaveBeenCalledWith(

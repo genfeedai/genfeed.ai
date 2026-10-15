@@ -1,3 +1,7 @@
+import type { IBrandRelocationSummary } from '@genfeedai/contracts/interfaces';
+
+export type { IBrandRelocationSummary } from '@genfeedai/contracts/interfaces';
+
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 
 /**
@@ -66,27 +70,8 @@ export type IBrandRelocationPatchBody = Record<string, unknown> & {
 };
 
 /**
- * Top-level JSON:API `meta` object returned by the relocation PATCH.
- * The generic `BaseService.patch` maps the JSON:API document to an
- * entity and drops this — relocation callers must read it directly
- * from the raw response.
- */
-export interface IBrandRelocationSummary {
-  workflowsMoved: number;
-  membersSevered: number;
-  /** Enabled schedules paused until someone saves them again. */
-  schedulesHeld: number;
-  /** Held schedules whose queued job could not be confirmed removed. */
-  schedulingPending: number;
-  /** Character grants revoked because their character changed organization. */
-  personaGrantsRevoked: number;
-  /** Shared characters reset to their owning brand only. */
-  personasSharingReset: number;
-}
-
-/**
- * Combined result of the relocation PATCH: the updated brand entity plus
- * the relocation summary from the response's top-level `meta`.
+ * Result after the durable move reports done. Brand hydration is optional;
+ * a refresh error cannot change the committed outcome or summary.
  */
 export interface IBrandRelocationResult {
   brand?: Brand;
