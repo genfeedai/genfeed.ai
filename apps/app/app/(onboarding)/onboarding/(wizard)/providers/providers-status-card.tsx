@@ -1,10 +1,13 @@
 import type { ProvidersStatusCardProps } from '@props/onboarding/providers-status-card.props';
 import Card from '@ui/card/Card';
 import { Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function ProvidersStatusCard({
   accessStatusLabel,
 }: ProvidersStatusCardProps) {
+  const translate = useTranslations('pages.onboarding.providers');
+
   return (
     <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
       <div className="mb-5">
@@ -27,11 +30,7 @@ export default function ProvidersStatusCard({
           from Organization → API Keys if you want provider control or BYOK
           billing.
         </p>
-        <p className="mt-3">
-          Use real keys only. Organization → API Keys checks each key with the
-          provider before saving, so placeholder values are rejected; keys in
-          your .env file are read when the container starts.
-        </p>
+        <p className="mt-3">{translate('keyValidationNotice')}</p>
         <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
           {accessStatusLabel}
         </p>

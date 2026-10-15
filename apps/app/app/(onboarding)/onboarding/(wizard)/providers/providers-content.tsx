@@ -15,6 +15,7 @@ import type { InstallReadinessResponse } from '@services/onboarding/onboarding.s
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { UsersService } from '@services/organization/users.service';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useMemo, useState } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import {
@@ -127,6 +128,7 @@ function formatAccessStatus(readiness: InstallReadinessResponse): string {
 }
 
 export default function ProvidersContent() {
+  const translate = useTranslations('pages.onboarding.providers');
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
@@ -207,8 +209,7 @@ export default function ProvidersContent() {
         key: 'fal.ai',
       },
       {
-        description:
-          'Required for text generation and the agent. Set OPENROUTER_API_KEY in your .env.',
+        description: translate('openRouterDescription'),
         enabled: readiness.providers.openrouter,
         key: 'OpenRouter',
       },
@@ -218,7 +219,7 @@ export default function ProvidersContent() {
         key: 'OpenAI',
       },
     ],
-    [readiness.providers],
+    [readiness.providers, translate],
   );
 
   const localToolRows = useMemo(() => {
