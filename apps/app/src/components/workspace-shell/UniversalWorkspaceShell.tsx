@@ -1155,10 +1155,7 @@ function UniversalWorkspaceShellContent({
             ) : null}
           </div>
 
-          {/* Attached to the rounded block: same top, bottom, and right inset.
-              Collapsed it goes to zero — border included, or a 1px line
-              survives at width 0. The shell reserves its width through
-              --workspace-inspector-width. */}
+          {/* Reserve layout space once; animate the fixed-width rail with a transform. */}
           {isFocusedOnboardingRoute ? null : (
             <aside
               // Nothing selected: the empty, zero-width column is not a

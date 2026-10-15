@@ -30,27 +30,17 @@ export function OverviewContent({
       {actionsLayout === 'compact' && cards.length > 0 ? (
         <nav
           aria-label={actionsTitle}
-          className="grid grid-cols-1 gap-2 @[32rem]:grid-cols-2 @[64rem]:grid-cols-4"
+          className="flex flex-wrap gap-2 border-b border-border pb-4"
         >
           {cards.map((card) => (
             <Link
               key={card.id}
               href={card.href || '#'}
-              className="group flex min-w-0 items-start gap-3 rounded-lg bg-card p-4 shadow-border transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <card.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1 space-y-1">
-                <span className="flex items-center justify-between gap-2 text-sm font-medium text-foreground">
-                  {card.label}
-                  <ArrowUpRight
-                    aria-hidden
-                    className="size-3.5 text-muted-foreground"
-                  />
-                </span>
-                <span className="block text-xs leading-5 text-muted-foreground">
-                  {card.description}
-                </span>
-              </span>
+              <card.icon className="size-4 shrink-0" />
+              {card.cta}
+              <ArrowUpRight aria-hidden className="size-3.5" />
             </Link>
           ))}
         </nav>
