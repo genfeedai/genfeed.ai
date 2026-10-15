@@ -275,7 +275,7 @@ export default function DropdownField({
               <button
                 type="button"
                 className={cn(
-                  'w-full px-3 py-2 text-left hover:bg-background transition-colors',
+                  'dropdown-case w-full px-3 py-2 text-left hover:bg-background transition-colors',
                   !value && 'bg-primary/20',
                 )}
                 onClick={() => handleSelect('')}

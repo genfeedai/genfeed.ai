@@ -89,7 +89,7 @@ export default function DropdownTrigger({
   const wrapperClass = isFullWidth ? 'w-full' : 'w-auto flex-shrink-0';
 
   const buttonClassName = cn(
-    'flex items-center capitalize whitespace-nowrap',
+    'dropdown-case flex items-center whitespace-nowrap',
     isFullWidth ? 'w-full' : 'w-auto',
     triggerDisplay === 'icon-only' && 'justify-center px-0 w-9 max-w-9',
     triggerDisplay !== 'icon-only' && icon && !isFullWidth
@@ -159,7 +159,7 @@ export default function DropdownTrigger({
         position="top"
         isDisabled={isDisabled}
       >
-        <div className={cn('capitalize', wrapperClass)}>{triggerButton}</div>
+        <div className={cn('dropdown-case', wrapperClass)}>{triggerButton}</div>
       </SimpleTooltip>
     );
   }
