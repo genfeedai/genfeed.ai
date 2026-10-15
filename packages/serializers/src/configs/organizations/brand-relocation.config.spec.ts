@@ -20,7 +20,10 @@ describe('BrandRelocationSerializer', () => {
       type: 'brand-relocation',
       attributes: { status: 'done', summary: { workflowsMoved: 1 } },
     });
-    expect(document.data.attributes).not.toHaveProperty('payload');
-    expect(document.data.attributes).not.toHaveProperty('userId');
+    const resource = document.data;
+    if (!resource || Array.isArray(resource))
+      throw new Error('Expected one relocation resource');
+    expect(resource.attributes).not.toHaveProperty('payload');
+    expect(resource.attributes).not.toHaveProperty('userId');
   });
 });
