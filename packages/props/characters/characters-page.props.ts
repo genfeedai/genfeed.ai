@@ -94,6 +94,20 @@ export interface CharactersTableProps {
   onManageReferences: (character: BrandCharacterListItem) => void;
 }
 
+export interface CharacterReferencesControls {
+  add: () => void;
+  isBusy: boolean;
+  isFull: boolean;
+  move: (index: number, direction: -1 | 1) => Promise<void>;
+  referenceIds: string[];
+  remove: (ingredientId: string) => Promise<void>;
+}
+
+export interface UseCharacterReferencesOptions {
+  character: BrandCharacterListItem;
+  onChanged: (references: CharacterReferenceItem[]) => void;
+}
+
 export interface CharacterReferencesDialogProps {
   character: BrandCharacterListItem;
   onChanged: (references: CharacterReferenceItem[]) => void;

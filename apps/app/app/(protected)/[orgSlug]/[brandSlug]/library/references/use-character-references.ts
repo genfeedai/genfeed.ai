@@ -1,30 +1,17 @@
 import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { MAX_CHARACTER_REFERENCES } from '@genfeedai/contracts/constants';
-import type {
-  BrandCharacterListItem,
-  CharacterReferenceItem,
-} from '@genfeedai/contracts/interfaces';
+import type { CharacterReferenceItem } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  CharacterReferencesControls,
+  UseCharacterReferencesOptions,
+} from '@props/characters/characters-page.props';
 import { PersonasService } from '@services/content/personas.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
-
-export interface CharacterReferencesControls {
-  add: () => void;
-  isBusy: boolean;
-  isFull: boolean;
-  move: (index: number, direction: -1 | 1) => Promise<void>;
-  remove: (ingredientId: string) => Promise<void>;
-  referenceIds: string[];
-}
-
-interface UseCharacterReferencesOptions {
-  character: BrandCharacterListItem;
-  onChanged: (references: CharacterReferenceItem[]) => void;
-}
 
 export function useCharacterReferences({
   character,
