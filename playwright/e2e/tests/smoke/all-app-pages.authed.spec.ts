@@ -262,6 +262,8 @@ test('analytics metric definition opens on keyboard focus with real authenticati
   });
   await expect(trigger).toBeEnabled();
   await trigger.focus();
+  await trigger.press('Shift+Tab');
+  await page.keyboard.press('Tab');
   await expect(trigger).toBeFocused();
   const tooltip = page.getByRole('tooltip');
   await expect(tooltip).toHaveText(

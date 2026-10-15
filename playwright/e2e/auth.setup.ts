@@ -37,6 +37,11 @@ interface ISessionCredentials {
   password: string;
 }
 
+interface ISessionCookie {
+  name: (typeof SESSION_COOKIE_NAMES)[number];
+  value: string;
+}
+
 function getApiBaseUrl(): string {
   return (
     process.env.E2E_API_ENDPOINT ||
@@ -65,14 +70,14 @@ function readSetCookieHeaders(response: Response): string[] {
   return single ? [single] : [];
 }
 
-function extractSessionToken(setCookies: string[]): string | null {
+function extractSessionCookie(setCookies: string[]): ISessionCookie | null {
   for (const cookie of setCookies) {
     for (const name of SESSION_COOKIE_NAMES) {
       const prefix = `${name}=`;
       if (cookie.startsWith(prefix)) {
         const value = cookie.slice(prefix.length).split(';')[0].trim();
         if (value) {
-          return value;
+          return { name, value };
         }
       }
     }
@@ -91,14 +96,17 @@ async function readErrorBody(response: Response): Promise<string> {
 /**
  * Sign the E2E user up against the local API; fall back to sign-in when the
  * user already exists (idempotent re-runs against a warm local database).
- * Returns the raw `better-auth.session_token` cookie value.
+ * Preserves the issued cookie name for HTTP and HTTPS token exchange.
  */
-async function mintSessionToken(apiBaseUrl: string): Promise<string> {
+async function mintSessionCookie(apiBaseUrl: string): Promise<ISessionCookie> {
   const credentials = getSessionCredentials();
+  const origin = new URL(
+    process.env.APP_BASE_URL || process.env.BASE_URL || apiBaseUrl,
+  ).origin;
 
   const signUpResponse = await fetch(`${apiBaseUrl}/auth/sign-up/email`, {
     body: JSON.stringify(credentials),
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', origin },
     method: 'POST',
   });
 
@@ -115,7 +123,7 @@ async function mintSessionToken(apiBaseUrl: string): Promise<string> {
         email: credentials.email,
         password: credentials.password,
       }),
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', origin },
       method: 'POST',
     });
     if (!sessionResponse.ok) {
@@ -125,7 +133,7 @@ async function mintSessionToken(apiBaseUrl: string): Promise<string> {
     }
   }
 
-  const sessionToken = extractSessionToken(
+  const sessionToken = extractSessionCookie(
     readSetCookieHeaders(sessionResponse),
   );
   if (!sessionToken) {
@@ -143,10 +151,10 @@ async function mintSessionToken(apiBaseUrl: string): Promise<string> {
  */
 async function completeOnboarding(
   apiBaseUrl: string,
-  sessionToken: string,
+  session: ISessionCookie,
 ): Promise<void> {
   const tokenResponse = await fetch(`${apiBaseUrl}/auth/token`, {
-    headers: { cookie: `better-auth.session_token=${sessionToken}` },
+    headers: { cookie: `${session.name}=${session.value}` },
   });
   if (!tokenResponse.ok) {
     throw new Error(
@@ -214,8 +222,9 @@ setup('prepare Better Auth storage state', async () => {
 
   if (!sessionToken) {
     const apiBaseUrl = getApiBaseUrl();
-    sessionToken = await mintSessionToken(apiBaseUrl);
-    await completeOnboarding(apiBaseUrl, sessionToken);
+    const session = await mintSessionCookie(apiBaseUrl);
+    await completeOnboarding(apiBaseUrl, session);
+    sessionToken = session.value;
   }
 
   mkdirSync(AUTH_DIR, { recursive: true });
