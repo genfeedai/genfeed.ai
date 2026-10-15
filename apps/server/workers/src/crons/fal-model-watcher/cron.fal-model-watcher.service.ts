@@ -126,6 +126,11 @@ export class CronFalModelWatcherService {
       }
       for (const [endpoint, registryModel] of registryModels) {
         if (routableEndpoints.has(endpoint)) continue;
+        if (await this.isListedButUnaddressable(endpoint)) {
+          // Fal exposes no schema or price for it; its reviewed rate stays.
+          this.logger.log(`${url} ${endpoint} is listed but not addressable`);
+          continue;
+        }
         summary.errors++;
         await this.falContractSyncService.recordFailure(
           'model_fetch_failed',
@@ -166,6 +171,14 @@ export class CronFalModelWatcherService {
         reason: error instanceof Error ? error.name : 'unknown',
       });
       return summary;
+    }
+  }
+
+  private async isListedButUnaddressable(endpoint: string): Promise<boolean> {
+    try {
+      return await this.falPlatformClient.isListedActive(endpoint);
+    } catch {
+      return false;
     }
   }
 

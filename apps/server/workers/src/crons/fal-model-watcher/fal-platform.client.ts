@@ -73,6 +73,22 @@ export class FalPlatformClient {
     return [...models.values()];
   }
 
+  /**
+   * Whether fal still lists this endpoint as active. Realtime endpoints (H3 Max
+   * Director) are listed by search but not addressable by exact id.
+   */
+  async isListedActive(endpoint: string): Promise<boolean> {
+    const url = new URL(MODELS_URL);
+    url.searchParams.set('q', endpoint);
+    url.searchParams.set('limit', String(MODELS_ENDPOINT_LIMIT));
+    const data = await this.request<IFalModelsResponse>(url);
+    return (data.models ?? []).some(
+      (model) =>
+        model.endpoint_id === endpoint &&
+        (!model.metadata?.status || model.metadata.status === 'active'),
+    );
+  }
+
   async fetchPricing(
     endpoints: readonly string[],
   ): Promise<Array<Record<string, unknown>>> {

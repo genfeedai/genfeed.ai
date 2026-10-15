@@ -21,6 +21,7 @@ describe('CronFalModelWatcherService', () => {
   let falPlatformClient: {
     fetchModels: ReturnType<typeof vi.fn>;
     fetchPricing: ReturnType<typeof vi.fn>;
+    isListedActive: ReturnType<typeof vi.fn>;
   };
   let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
@@ -74,6 +75,7 @@ describe('CronFalModelWatcherService', () => {
           useValue: {
             fetchModels: vi.fn().mockResolvedValue([]),
             fetchPricing: vi.fn().mockResolvedValue([]),
+            isListedActive: vi.fn().mockResolvedValue(false),
           },
         },
         {
@@ -207,6 +209,21 @@ describe('CronFalModelWatcherService', () => {
           ),
         }),
       );
+    });
+
+    it('keeps the reviewed rate of an endpoint fal lists but cannot address', async () => {
+      falPlatformClient.fetchModels.mockResolvedValueOnce([
+        falModel('fal-ai/flux/dev'),
+      ]);
+      falPlatformClient.isListedActive.mockResolvedValueOnce(true);
+
+      const result = await service.refreshRegistryModels();
+
+      expect(falPlatformClient.isListedActive).toHaveBeenCalledWith(
+        'minimax/h3-max/text-to-video',
+      );
+      expect(result.errors).toBe(0);
+      expect(falContractSyncService.recordFailure).not.toHaveBeenCalled();
     });
 
     it('treats an endpoint fal marks deprecated as not refreshed', async () => {

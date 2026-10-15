@@ -5,11 +5,13 @@ import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { Injectable } from '@nestjs/common';
+import { normalizeFalPrice } from '@workers/crons/fal-model-watcher/fal-pricing';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 import {
   type FalCandidateContract,
   prepareFalModelContract,
 } from '@workers/services/fal-model-contract.util';
+import { observeFalRateSheet } from '@workers/services/fal-rate-sheet-observation.util';
 import type {
   ModelPriceChangeAlert,
   ModelPricingUnavailableAlert,
@@ -17,6 +19,7 @@ import type {
 import {
   compareProviderRates,
   loadReviewedRateContract,
+  type RateComparison,
   reviewedSchemaRepair,
 } from '@workers/services/provider-rate-sync.util';
 
@@ -82,10 +85,29 @@ export class FalModelContractSyncService {
         version: candidate.version,
       },
     );
-    const comparison =
-      reviewed && observed
-        ? compareProviderRates(reviewed.pricing, observed)
-        : null;
+    const sheet = reviewed
+      ? observeFalRateSheet(
+          reviewed.contract.pricing,
+          reviewed.pricing,
+          rawPrices.map(normalizeFalPrice),
+        )
+      : ({ status: 'not-rate-sheet' } as const);
+    if (sheet.status === 'unverifiable')
+      // Fal's API cannot state these reviewed rates; they stay as reviewed,
+      // like a provider with no machine-readable prices.
+      return {
+        drifted: false,
+        quarantined: candidate.mappingStatus === 'quarantined',
+        version: candidate.version,
+      };
+    const comparison: RateComparison | null =
+      sheet.status === 'confirmed'
+        ? { status: 'unchanged' }
+        : sheet.status === 'changed' && reviewed
+          ? compareProviderRates(reviewed.pricing, sheet.pricing)
+          : reviewed && observed
+            ? compareProviderRates(reviewed.pricing, observed)
+            : null;
 
     if (reviewed && comparison?.status === 'unchanged') {
       // The same rates observed again: roll the verification forward. A Fal

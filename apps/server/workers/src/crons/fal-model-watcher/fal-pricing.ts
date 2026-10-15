@@ -82,11 +82,16 @@ export function decimalUsdToMicros(value: string): bigint {
   return whole * 1_000_000n + micros + (roundUp ? 1n : 0n);
 }
 
+/** Fal's pricing API names units in the plural (`seconds`, `megapixels`). */
+const SINGULAR_UNITS = new Set(['image', 'megapixel', 'request', 'second']);
+
 function canonicalUnit(unit: string): string {
-  return unit
+  const canonical = unit
     .trim()
     .toLowerCase()
     .replaceAll(/[-\s]+/g, '_');
+  const singular = canonical.endsWith('s') ? canonical.slice(0, -1) : canonical;
+  return SINGULAR_UNITS.has(singular) ? singular : canonical;
 }
 
 export function mapFalPricing(price: NormalizedFalPrice): FalPricingMapping {

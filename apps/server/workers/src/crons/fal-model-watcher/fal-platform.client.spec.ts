@@ -108,6 +108,31 @@ describe('FalPlatformClient', () => {
     expect(sleep).not.toHaveBeenCalled();
   });
 
+  it('finds an active endpoint by search when it is not addressable by id', async () => {
+    const { client, fetcher } = harness();
+    fetcher.mockImplementation(async () =>
+      response({
+        has_more: false,
+        models: [
+          {
+            endpoint_id: 'minimax/h3-max/director',
+            metadata: { status: 'active' },
+          },
+          { endpoint_id: 'minimax/h3-max/director/v2' },
+        ],
+        next_cursor: null,
+      }),
+    );
+
+    await expect(
+      client.isListedActive('minimax/h3-max/director'),
+    ).resolves.toBe(true);
+    await expect(client.isListedActive('minimax/h3-max')).resolves.toBe(false);
+    expect(
+      new URL(fetcher.mock.calls[0]?.[0] as string).searchParams.get('q'),
+    ).toBe('minimax/h3-max/director');
+  });
+
   it('isolates an unaddressable endpoint in a pricing batch', async () => {
     const { client, fetcher } = harness();
     fetcher.mockImplementation(async (input: string) => {
