@@ -188,8 +188,8 @@ export default function SelfHostedContent() {
                 Release bundle
               </h3>
               <p className="text-sm leading-relaxed text-surface/60">
-                A checksummed tarball (current release: v0.2.7) that runs as one
-                container alongside PostgreSQL. No git clone, no build. On
+                A checksummed tarball of the latest stable release that runs as
+                one container alongside PostgreSQL. No git clone, no build. On
                 macOS, use{' '}
                 <code>shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256</code>{' '}
                 for the checksum step.
