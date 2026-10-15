@@ -653,6 +653,8 @@ describe('paid model pricing lock', () => {
 describe('admin cost breakdown', () => {
   function focusCost(text: string) {
     const cost = screen.getByText(text);
+    // Keyboard focus follows a key press; tooltips ignore programmatic focus.
+    fireEvent.keyDown(document.body, { key: 'Tab' });
     fireEvent.focus(cost);
     return { cost, tooltip: screen.getByRole('tooltip') };
   }
@@ -782,6 +784,7 @@ describe('admin cost breakdown', () => {
     );
 
     for (const cost of screen.getAllByText('10')) {
+      fireEvent.keyDown(document.body, { key: 'Tab' });
       fireEvent.focus(cost);
       const tooltip = screen.getByRole('tooltip');
       expect(tooltip).toHaveTextContent('Provider breakdown unavailable');
@@ -798,6 +801,7 @@ describe('admin cost breakdown', () => {
       true,
     );
     const free = screen.getByText('Free');
+    fireEvent.keyDown(document.body, { key: 'Tab' });
     fireEvent.focus(free);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Free');
     expect(screen.getByRole('tooltip')).not.toHaveTextContent('$');
