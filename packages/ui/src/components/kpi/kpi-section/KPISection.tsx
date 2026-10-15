@@ -31,6 +31,7 @@ function SectionHeader({
 
 export default function KPISection({
   title,
+  size = 'lg',
   items,
   isLoading = false,
   error = null,
@@ -58,7 +59,7 @@ export default function KPISection({
           iconClassName={item.iconClassName}
           isLoading={isLoading}
           label={item.label}
-          size="lg"
+          size={size}
           trend={item.trend}
           trendLabel={item.trendLabel}
           value={item.value}

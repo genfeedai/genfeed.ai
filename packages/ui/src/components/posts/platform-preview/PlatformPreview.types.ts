@@ -56,6 +56,7 @@ export type PlatformPreviewTarget = {
 };
 
 export type PlatformPreviewProps = {
+  presentation?: 'full' | 'compact';
   post?: IPost;
   target?: PlatformPreviewTarget;
   targets?: PlatformPreviewTarget[];

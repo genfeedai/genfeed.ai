@@ -8,6 +8,7 @@ import CardIcon from '@ui/card/icon/CardIcon';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Container from '@ui/layout/container/Container';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 
 const EMPTY_ARRAY: never[] = [];
@@ -15,14 +16,48 @@ const EMPTY_ARRAY: never[] = [];
 export function OverviewContent({
   cards = EMPTY_ARRAY,
   actionsTitle = 'Quick Actions',
+  actionsLayout = 'cards',
   header,
   children,
 }: OverviewContentProps) {
   return (
-    <div className="flex flex-col gap-10">
+    <div
+      className={cn(
+        'flex flex-col',
+        actionsLayout === 'compact' ? '@container gap-6' : 'gap-10',
+      )}
+    >
+      {actionsLayout === 'compact' && cards.length > 0 ? (
+        <nav
+          aria-label={actionsTitle}
+          className="grid grid-cols-1 gap-2 @[32rem]:grid-cols-2 @[64rem]:grid-cols-4"
+        >
+          {cards.map((card) => (
+            <Link
+              key={card.id}
+              href={card.href || '#'}
+              className="group flex min-w-0 items-start gap-3 rounded-lg bg-card p-4 shadow-border transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <card.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 space-y-1">
+                <span className="flex items-center justify-between gap-2 text-sm font-medium text-foreground">
+                  {card.label}
+                  <ArrowUpRight
+                    aria-hidden
+                    className="size-3.5 text-muted-foreground"
+                  />
+                </span>
+                <span className="block text-xs leading-5 text-muted-foreground">
+                  {card.description}
+                </span>
+              </span>
+            </Link>
+          ))}
+        </nav>
+      ) : null}
       {header ? <div>{header}</div> : null}
 
-      {cards.length > 0 ? (
+      {actionsLayout === 'cards' && cards.length > 0 ? (
         <section>
           <div className="mb-5 space-y-1">
             <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">

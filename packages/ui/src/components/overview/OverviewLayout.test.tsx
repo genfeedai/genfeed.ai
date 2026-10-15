@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { Sparkles } from 'lucide-react';
 
 import { describe, expect, it } from 'vitest';
-import OverviewLayout from './OverviewLayout';
+import OverviewLayout, { OverviewContent } from './OverviewLayout';
 
 describe('OverviewLayout', () => {
   const cards = [
@@ -71,4 +71,37 @@ describe('OverviewLayout', () => {
     expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):grid-cols/);
     expect(container.innerHTML).not.toContain('min-h-[220px]');
   });
+});
+
+it('puts compact publishing destinations before operational content as real links', () => {
+  render(
+    <OverviewContent
+      actionsLayout="compact"
+      actionsTitle="Publishing shortcuts"
+      cards={[
+        {
+          id: 'posts',
+          label: 'Not posted',
+          description: 'Drafts and scheduled posts',
+          href: '/publishing/posts',
+          cta: 'Browse drafts',
+          icon: Sparkles,
+        },
+      ]}
+      header={<p>Operational content</p>}
+    />,
+  );
+  const navigation = screen.getByRole('navigation', {
+    name: 'Publishing shortcuts',
+  });
+  expect(navigation.firstElementChild).toHaveAttribute(
+    'href',
+    '/publishing/posts',
+  );
+  expect(
+    navigation.compareDocumentPosition(
+      screen.getByText('Operational content'),
+    ) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(screen.queryByText('Launch')).not.toBeInTheDocument();
 });

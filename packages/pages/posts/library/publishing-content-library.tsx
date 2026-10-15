@@ -71,10 +71,10 @@ import {
 import {
   CalendarDays,
   ClipboardCheck,
+  Eye,
   Files,
   Kanban,
   LayoutGrid,
-  PanelRightOpen,
   RotateCcw,
   Rows3,
 } from 'lucide-react';
@@ -516,7 +516,7 @@ export default function PublishingContentLibrary({
               isItemFailed(item) ? (
                 <RotateCcw aria-hidden="true" />
               ) : (
-                <PanelRightOpen aria-hidden="true" />
+                <Eye aria-hidden="true" />
               )
             }
             isDisabled={pendingAction !== null}
