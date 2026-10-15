@@ -15,7 +15,12 @@ import {
   resolveOAuthIssuerUrl,
 } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  ApiKeyCategory,
+  ApiKeyScope,
+  MemberRole,
+} from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_PRESETS,
   MCP_CLAUDE_SCOPE_CEILING,
@@ -40,6 +45,11 @@ import {
 } from './oauth-refresh-token.service';
 
 const MCP_OAUTH_CODE_TTL_MS = 60_000;
+
+const ORGANIZATION_ADMIN_ROLE_KEYS: ReadonlySet<string> = new Set([
+  MemberRole.OWNER,
+  MemberRole.ADMIN,
+]);
 
 type McpOAuthAuthCodeRecord = {
   clientId: string;
@@ -147,7 +157,13 @@ export class OAuthAuthorizeService {
     // a root model, so this relation-filtered read does not inherit the active
     // request tenant or require a cross-organization bypass.
     const organizations = await this.prisma.organization.findMany({
-      select: { id: true },
+      select: {
+        id: true,
+        members: {
+          select: { role: { select: { key: true } } },
+          where: { userId, isActive: true, isDeleted: false },
+        },
+      },
       where: {
         isDeleted: false,
         members: { some: { userId, isActive: true, isDeleted: false } },
@@ -156,17 +172,21 @@ export class OAuthAuthorizeService {
     const organizationId =
       dto.organizationId ??
       (organizations.length === 1 ? organizations[0].id : undefined);
-    if (
-      !organizationId ||
-      !organizations.some((organization) => organization.id === organizationId)
-    ) {
+    const organization = organizations.find(
+      (candidate) => candidate.id === organizationId,
+    );
+    if (!organizationId || !organization) {
       throw oauthError(
         'invalid_request',
         'Choose an organization where you have an active membership',
       );
     }
 
-    const scopes = this.clampScopes(dto.scope, resource);
+    const scopes = this.withMembershipAdminScope(
+      this.clampScopes(dto.scope, resource),
+      resource,
+      organization.members.map((member) => member.role.key),
+    );
     const code = toBase64Url(randomBytes(32));
     const expiresAt = new Date(Date.now() + MCP_OAUTH_CODE_TTL_MS);
     const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');
@@ -303,6 +323,34 @@ export class OAuthAuthorizeService {
       throw oauthError('invalid_target', 'Unsupported resource');
     }
     return resource;
+  }
+
+  /**
+   * A session key is the signed-in user acting through their own MCP client,
+   * so a full-preset grant carries the user's org owner/admin standing into
+   * the MCP role tier (via the explicit `admin` scope that tier reads). The
+   * scope only unlocks what the live membership already allows: `/auth/whoami`
+   * and the brand-access predicate still resolve the role from the current
+   * membership row, so a demoted member's key stops being privileged. A client
+   * that asked for a narrower scope set, and every Claude connector session,
+   * stays below it.
+   */
+  private withMembershipAdminScope(
+    granted: string[],
+    resource: string,
+    roleKeys: readonly string[],
+  ): string[] {
+    const isFullGrant = API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
+      granted.includes(scope),
+    );
+    const isStandardResource =
+      resolveMcpAccessModeForResource(resource) !== 'claude';
+    const isOrganizationAdmin = roleKeys.some((key) =>
+      ORGANIZATION_ADMIN_ROLE_KEYS.has(key),
+    );
+    return isFullGrant && isStandardResource && isOrganizationAdmin
+      ? [...granted, ApiKeyScope.ADMIN]
+      : granted;
   }
 
   private clampScopes(scope: string | undefined, resource: string): string[] {

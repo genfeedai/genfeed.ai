@@ -8,6 +8,7 @@ import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-conte
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { OAuthAuthorizeController } from '@api/oauth/controllers/oauth-authorize.controller';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { PRISMA_MODEL_METADATA } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -51,13 +52,21 @@ function makeOrganization(
   isActive = true,
   isMemberDeleted = false,
   userId = 'user-1',
+  roleKey = 'user',
 ) {
   return {
     id,
     isDeleted,
-    members: [{ isActive, isDeleted: isMemberDeleted, userId }],
+    members: [
+      { isActive, isDeleted: isMemberDeleted, role: { key: roleKey }, userId },
+    ],
   };
 }
+
+const membershipSelect = {
+  select: { role: { select: { key: true } } },
+  where: { userId: 'user-1', isActive: true, isDeleted: false },
+};
 
 function buildHarness() {
   const records = new Map<string, Record<string, unknown>>();
@@ -107,7 +116,7 @@ function buildHarness() {
           ),
         });
         expect(args).toEqual({
-          select: { id: true },
+          select: { id: true, members: membershipSelect },
           where: {
             isDeleted: false,
             members: {
@@ -250,7 +259,7 @@ describe('OAuthAuthorizeService', () => {
       decision({ organizationId: 'org-2' }),
     );
     expect(prisma.organization.findMany).toHaveBeenCalledWith({
-      select: { id: true },
+      select: { id: true, members: membershipSelect },
       where: {
         isDeleted: false,
         members: {
@@ -709,6 +718,92 @@ describe('OAuthAuthorizeService', () => {
         'code_challenge_method',
       ]);
     });
+  });
+});
+
+describe('Membership admin scope', () => {
+  async function mintScopes(
+    harness: ReturnType<typeof buildHarness>,
+    overrides: Partial<OAuthAuthorizeDecisionDto> = {},
+    exchangeResource = resource,
+  ) {
+    const authorization = await harness.service.decideAuthorization(
+      makeUser(),
+      decision(overrides),
+    );
+    await harness.service.exchangeToken({
+      client_id: clientId,
+      code: new URL(authorization.redirectUrl).searchParams.get(
+        'code',
+      ) as string,
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource: exchangeResource,
+    });
+    const [call] = vi.mocked(harness.apiKeysService.createWithKey).mock.calls;
+    return call[0].scopes as string[];
+  }
+
+  function ownerHarness(roleKey: string) {
+    const harness = buildHarness();
+    harness.organizations.splice(
+      0,
+      1,
+      makeOrganization('org-1', false, true, false, 'user-1', roleKey),
+    );
+    return harness;
+  }
+
+  it.each([
+    'owner',
+    'admin',
+  ])('adds the admin scope to a full MCP grant for an org %s', async (roleKey) => {
+    const scopes = await mintScopes(ownerHarness(roleKey), {
+      scope: undefined,
+    });
+    expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp, 'admin']);
+  });
+
+  it.each([
+    'creator',
+    'analytics',
+    'user',
+    'support',
+  ])('keeps a full MCP grant below admin for an org %s', async (roleKey) => {
+    const scopes = await mintScopes(ownerHarness(roleKey), {
+      scope: undefined,
+    });
+    expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp]);
+  });
+
+  it('keeps a narrower client-requested scope set below admin even for an owner', async () => {
+    const scopes = await mintScopes(ownerHarness('owner'), {
+      scope: 'videos:read images:read',
+    });
+    expect(scopes).toEqual(['videos:read', 'images:read']);
+  });
+
+  it('derives admin from the chosen organization, not another one the user owns', async () => {
+    const harness = ownerHarness('owner');
+    harness.organizations.push(
+      makeOrganization('org-2', false, true, false, 'user-1', 'user'),
+    );
+    const scopes = await mintScopes(harness, {
+      organizationId: 'org-2',
+      scope: undefined,
+    });
+    expect(scopes).not.toContain('admin');
+  });
+
+  it('never grants admin on the Claude connector resource', async () => {
+    const claudeResource = `${resource}/claude`;
+    const scopes = await mintScopes(
+      ownerHarness('owner'),
+      { resource: claudeResource, scope: undefined },
+      claudeResource,
+    );
+    expect(scopes).not.toContain('admin');
   });
 });
 
