@@ -38,3 +38,4 @@ ea4916ac46428b230fa124608f6d31335f249c05:apps/server/api/src/seeds/studio-elemen
 
 # Empty environment assignments in self-host docs; the match spans the next variable name.
 f7b4c633bd7f6031609130c1a0da2d5b28f2c1f7:apps/docs/content/self-host/provider-api-keys.mdx:generic-api-key:57
+cd5857f4cccdd7665ddfdd96ea28ef3954e3dfc4:apps/docs/content/self-host/provider-api-keys.mdx:generic-api-key:57
