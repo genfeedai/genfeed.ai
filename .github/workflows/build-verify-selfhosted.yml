@@ -155,20 +155,21 @@ jobs:
           done
           echo "Liveness OK — API + app processes answering."
 
-      - name: Readiness — stage 2 (DB + seed + auth gate, <=180s)
+      - name: Readiness — stage 2 (default auth boundary, <=180s)
         run: |
-          # Poll bootstrap until it returns the SEEDED admin. This drives
-          # LOCAL-mode auth injection -> Prisma -> SelfHostedSeedService rows,
-          # so it only greens once DB + migrations + seed + auth are ALL live.
+          # The shipped template enables login. Require the real auth handler
+          # and reject tokenless bootstrap; E2E then signs up and proves the
+          # authenticated DB/provisioning/workspace path against this image.
           deadline=$((SECONDS + 180))
-          until curl -fsS "${API_BASE_URL}/v1/auth/bootstrap" | grep -q 'admin@localhost'; do
+          until curl -fsS "${API_BASE_URL}/v1/auth/get-session" | jq -e '. == null' >/dev/null \
+             && [ "$(curl -sS -o /dev/null -w '%{http_code}' "${API_BASE_URL}/v1/auth/bootstrap")" = '401' ]; do
             if (( SECONDS >= deadline )); then
-              echo "::error::Bootstrap/seed gate timed out after 180s — DB + migrate + seed + auth not all ready"
+              echo "::error::Default auth boundary timed out after 180s — auth handler or anonymous bootstrap protection not ready"
               exit 1
             fi
             sleep 3
           done
-          echo "Bootstrap + seed OK — seeded admin@localhost reachable."
+          echo "Default auth boundary ready — authenticated integration is verified by release E2E."
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -176,7 +177,7 @@ jobs:
           install-command: "bun install"
           cache-playwright: "true"
 
-      - name: Run LOCAL-mode release E2E specs against the freshly built image
+      - name: Run default-auth release E2E specs against the freshly built image
         run: bun run test:e2e:release
         env:
           CI: true
@@ -218,5 +219,5 @@ jobs:
             echo "## ✅ Self-Hosted Build + Boot Verification Passed"
             echo ""
             echo "\`docker/Dockerfile.selfhosted\` built (no push); services, Next.js, Redis, tini, and CA bundle verified."
-            echo "The freshly built image booted with Postgres in LOCAL mode and passed the release E2E specs (root redirect, health, API bootstrap/seed, workspace shell)."
+            echo "The freshly built image booted with Postgres and passed real signup, authenticated bootstrap, login-boundary, health, and workspace-shell E2E."
           } >> "$GITHUB_STEP_SUMMARY"
