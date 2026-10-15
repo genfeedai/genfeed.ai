@@ -11,7 +11,7 @@ compact = re.sub(r"\s+", " ", command.strip().lower())
 # Local `.env*` is allowed — operators intentionally hand Claude production
 # credentials for deploy/debug. Still block key material and `secrets/`.
 secret_read = re.search(
-    r"\b(cat|less|more|head|tail|grep|rg|awk|sed)\b.*(secrets/|\.pem|id_rsa|private[_-]?key)",
+    r"\b(cat|less|more|head|tail|grep|rg|awk|sed|curl|wget|httpie)\b.*(secrets/|\.pem|id_rsa|private[_-]?key)",
     compact,
 )
 outbound_http = re.search(r"\b(curl|wget|httpie)\b", compact)
