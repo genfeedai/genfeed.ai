@@ -15,3 +15,4 @@ CREATE TABLE "brand_relocations" (
 CREATE INDEX "brand_relocations_organizationId_userId_createdAt_idx" ON "brand_relocations" ("organizationId", "userId", "createdAt");
 CREATE INDEX "brand_relocations_brandId_createdAt_idx" ON "brand_relocations" ("brandId", "createdAt");
 CREATE UNIQUE INDEX "brand_relocations_one_processing_brand" ON "brand_relocations" ("brandId") WHERE "status" = 'processing' AND "isDeleted" = false;
+CREATE INDEX "brand_relocations_status_isDeleted_createdAt_idx" ON "brand_relocations" ("status", "isDeleted", "createdAt");

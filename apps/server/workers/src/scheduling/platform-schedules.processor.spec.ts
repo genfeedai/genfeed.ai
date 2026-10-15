@@ -31,6 +31,7 @@ describe('PlatformSchedulesProcessor', () => {
   const modelDeprecation = { deprecateSupersededModels: handler() };
   const replicateModels = { discoverNewModels: handler() };
   const notificationRecovery = { recover: handler() };
+  const brandRelocations = { recover: handler() };
   const brandedDispatchRecovery = { recoverExpiredDispatches: handler() };
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
@@ -69,6 +70,10 @@ describe('PlatformSchedulesProcessor', () => {
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
+      [
+        PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY,
+        brandRelocations.recover,
+      ],
       [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE, crun.reconcile],
       [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC, crun.synchronizeContracts],
       [
@@ -268,6 +273,7 @@ describe('PlatformSchedulesProcessor', () => {
       workflowSchedules as never,
       xReplyWatch as never,
       externalVoiceCatalog as never,
+      brandRelocations as never,
     );
   });
 

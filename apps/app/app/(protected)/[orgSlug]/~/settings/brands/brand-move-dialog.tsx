@@ -187,49 +187,44 @@ export default function BrandMoveDialog({
       setPhase('review');
       return;
     }
-    const results: BrandMoveEntry[] = [];
-
-    for (const entry of entries) {
-      if (entry.status !== 'ready') {
-        results.push(entry);
-        continue;
-      }
-
-      updateEntry(entry.brand.id, { status: 'moving' });
-      let result: BrandMoveEntry;
-      try {
-        const { summary } = await service.relocateBrand(
-          entry.brand.id,
-          {
-            organizationId: destinationId,
-          },
-          {
-            signal: controller.signal,
-            onProcessing: (isReconnecting) =>
-              updateEntry(entry.brand.id, {
-                reason: translate(
-                  isReconnecting ? 'reconnecting' : 'processing',
-                ),
-              }),
-          },
-        );
-        result = {
-          ...entry,
-          membersSevered: summary.membersSevered,
-          status: 'moved',
-        };
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error('Failed to move brand', error);
-        result = {
-          ...entry,
-          reason: errorReason(error, translate('moveFailed')),
-          status: 'failed',
-        };
-      }
-      results.push(result);
-      updateEntry(entry.brand.id, result);
-    }
+    const results = await Promise.all(
+      entries.map(async (entry): Promise<BrandMoveEntry> => {
+        if (entry.status !== 'ready') return entry;
+        updateEntry(entry.brand.id, { status: 'moving' });
+        let result: BrandMoveEntry;
+        try {
+          const { summary } = await service.relocateBrand(
+            entry.brand.id,
+            { organizationId: destinationId },
+            {
+              signal: controller.signal,
+              onProcessing: (isReconnecting) =>
+                updateEntry(entry.brand.id, {
+                  reason: translate(
+                    isReconnecting ? 'reconnecting' : 'processing',
+                  ),
+                }),
+            },
+          );
+          result = {
+            ...entry,
+            membersSevered: summary.membersSevered,
+            status: 'moved',
+          };
+        } catch (error) {
+          if (controller.signal.aborted) return entry;
+          logger.error('Failed to move brand', error);
+          result = {
+            ...entry,
+            reason: errorReason(error, translate('moveFailed')),
+            status: 'failed',
+          };
+        }
+        if (!controller.signal.aborted) updateEntry(entry.brand.id, result);
+        return result;
+      }),
+    );
+    if (controller.signal.aborted) return;
 
     const movedCount = countByStatus(results, 'moved');
     if (movedCount > 0) {
@@ -272,7 +267,11 @@ export default function BrandMoveDialog({
         }
       }}
     >
-      <DialogContent aria-describedby={undefined} className="max-w-xl">
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-w-xl"
+        showCloseButton={false}
+      >
         <DialogHeader>
           <DialogTitle>
             {brands.length === 1

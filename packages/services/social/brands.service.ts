@@ -727,12 +727,7 @@ export class BrandsService extends BaseService<Brand> {
     try {
       const result = await pollBrandRelocation(
         async () => {
-          const response = await this.startBrandRelocation(
-            id,
-            body,
-            requestId,
-            options.signal,
-          );
+          const response = await this.startBrandRelocation(id, body, requestId);
           requestId = response.operation.id;
           remember();
           return response;

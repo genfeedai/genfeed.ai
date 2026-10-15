@@ -498,8 +498,7 @@ describe('BrandsController', () => {
     expect(status).toHaveBeenCalledWith(202);
     expect(result.data).toMatchObject({
       id: 'move-1',
-      type: 'brand-relocation',
-      attributes: { status: 'processing' },
+      status: 'processing',
     });
     expect(brandsService.relocateToOrganization).not.toHaveBeenCalled();
   });

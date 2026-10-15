@@ -1,3 +1,4 @@
+import { BrandRelocationJobsModule } from '@api/collections/brands/brand-relocation-jobs.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
@@ -55,6 +56,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
 @Module({
   imports: [
+    BrandRelocationJobsModule,
     AgentThreadingCoreModule,
     ByokModule,
     CrunModule,

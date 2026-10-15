@@ -2,6 +2,7 @@ import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dt
 import {
   type BrandRelocationActingUser,
   BrandRelocationService,
+  EMPTY_RELOCATION_SUMMARY,
 } from '@api/collections/brands/services/brand-relocation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -75,10 +76,6 @@ export class BrandRelocationJobsService {
         destinationOrganizationId,
         actor,
       );
-      if (brand.organizationId === destinationOrganizationId)
-        throw new ConflictException(
-          'This brand already belongs to the destination organization',
-        );
       let operation: BrandRelocation;
       try {
         operation = await this.prisma.brandRelocation.create({
@@ -88,7 +85,13 @@ export class BrandRelocationJobsService {
             organizationId: brand.organizationId,
             destinationOrganizationId,
             userId: actor.userId,
-            status: BrandRelocationStatus.PROCESSING,
+            status:
+              brand.organizationId === destinationOrganizationId
+                ? BrandRelocationStatus.DONE
+                : BrandRelocationStatus.PROCESSING,
+            ...(brand.organizationId === destinationOrganizationId
+              ? { summary: { ...EMPTY_RELOCATION_SUMMARY } }
+              : {}),
             payload: JSON.parse(
               JSON.stringify({ actor, updates }),
             ) as Prisma.InputJsonObject,
@@ -160,6 +163,40 @@ export class BrandRelocationJobsService {
         }
       }
       return operation;
+    });
+  }
+
+  /** Re-offer durable commands whose broker acknowledgement was lost. */
+  async recover(): Promise<void> {
+    return crossOrgUnsafe(async () => {
+      const pending = await this.prisma.brandRelocation.findMany({
+        where: {
+          status: BrandRelocationStatus.PROCESSING,
+          isDeleted: false,
+          createdAt: { lt: new Date(Date.now() - 10_000) },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 100,
+      });
+      for (const operation of pending) {
+        const job = await this.queue.getJob(operation.id);
+        if (!job) await this.dispatch(operation);
+        else if ((await job.getState()) === 'failed') {
+          await this.prisma.brandRelocation.updateMany({
+            where: {
+              id: operation.id,
+              organizationId: operation.organizationId,
+              isDeleted: false,
+              status: BrandRelocationStatus.PROCESSING,
+            },
+            data: {
+              status: BrandRelocationStatus.FAILED,
+              error:
+                'The background move stopped before committing. Please try again.',
+            },
+          });
+        }
+      }
     });
   }
 
@@ -248,18 +285,27 @@ export class BrandRelocationJobsService {
 
   private async dispatch(operation: BrandRelocation): Promise<void> {
     if (operation.status !== BrandRelocationStatus.PROCESSING) return;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      await this.queue.add(
-        'relocate',
-        { operationId: operation.id },
-        {
-          jobId: operation.id,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-          removeOnComplete: { age: 86400, count: 1000 },
-          removeOnFail: { age: 604800, count: 1000 },
-        },
-      );
+      await Promise.race([
+        this.queue.add(
+          'relocate',
+          { operationId: operation.id },
+          {
+            jobId: operation.id,
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 },
+            removeOnComplete: { age: 86400, count: 1000 },
+            removeOnFail: { age: 604800, count: 1000 },
+          },
+        ),
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error('Queue acknowledgement pending')),
+            1000,
+          );
+        }),
+      ]);
     } catch (error) {
       // A broker can accept add() and lose its reply. The durable receipt stays
       // processing; the next status read safely offers the same job id again.
@@ -267,6 +313,8 @@ export class BrandRelocationJobsService {
         operationId: operation.id,
         error,
       });
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
   }
 

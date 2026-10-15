@@ -122,6 +122,7 @@ export type UseModalBrandReturn = {
   imageModels: ReturnType<typeof useElements>['imageModels'];
   isGenerating: boolean;
   isLoadingBrand: boolean;
+  relocationProgress: string | null;
   isSubmitting: boolean;
   musicModels: ReturnType<typeof useElements>['musicModels'];
   navigateToBrandSettings: (() => void) | undefined;
@@ -238,6 +239,12 @@ export function useModalBrand(
   >(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previousPrompt, setPreviousPrompt] = useState<string | null>(null);
+  const [isRelocating, setIsRelocating] = useState(false);
+  const [relocationProgress, setRelocationProgress] = useState<string | null>(
+    null,
+  );
+  const relocationControllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => relocationControllerRef.current?.abort(), []);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const promptSubscriptionRef = useRef<(() => void) | null>(null);
 
@@ -776,6 +783,10 @@ export function useModalBrand(
         return;
       }
 
+      const controller = new AbortController();
+      relocationControllerRef.current = controller;
+      setIsRelocating(true);
+      setRelocationProgress('Moving this brand in the background…');
       try {
         const service = await getBrandsService();
         const formData = {
@@ -788,6 +799,15 @@ export function useModalBrand(
           {
             ...formData,
             organizationId: destOrganizationId,
+          },
+          {
+            signal: controller.signal,
+            onProcessing: (isReconnecting) =>
+              setRelocationProgress(
+                isReconnecting
+                  ? 'Checking progress. The move continues while the connection recovers.'
+                  : 'Moving this brand in the background…',
+              ),
           },
         );
 
@@ -808,6 +828,7 @@ export function useModalBrand(
           buildRelocationToastMessage(summary),
         );
       } catch (relocationError) {
+        if (controller.signal.aborted) return;
         logger.error('Failed to relocate brand', relocationError);
 
         const status = getStructuredErrorStatus(relocationError);
@@ -825,7 +846,16 @@ export function useModalBrand(
           return;
         }
 
-        setError('Failed to save brand');
+        setError(
+          relocationError instanceof Error
+            ? relocationError.message
+            : 'The move could not complete. Please try again.',
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsRelocating(false);
+          setRelocationProgress(null);
+        }
       }
     },
     [
@@ -987,7 +1017,8 @@ export function useModalBrand(
     imageModels,
     isGenerating,
     isLoadingBrand,
-    isSubmitting,
+    isSubmitting: isSubmitting || isRelocating,
+    relocationProgress,
     musicModels,
     navigateToBrandSettings,
     organizationDefaults,

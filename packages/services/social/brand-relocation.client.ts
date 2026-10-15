@@ -54,6 +54,7 @@ export async function pollBrandRelocation(
   options: BrandRelocationPollOptions = {},
 ): Promise<BrandRelocationPollResponse> {
   let isAccepted = false;
+  let hasUncertainSubmission = false;
   while (true) {
     options.signal?.throwIfAborted();
     let response: BrandRelocationPollResponse;
@@ -62,7 +63,9 @@ export async function pollBrandRelocation(
       isAccepted = true;
     } catch (error) {
       options.signal?.throwIfAborted();
-      if (!isAccepted && isDefiniteRejection(error)) throw error;
+      if (!isAccepted && !hasUncertainSubmission && isDefiniteRejection(error))
+        throw error;
+      if (!isAccepted) hasUncertainSubmission = true;
       options.onProcessing?.(true);
       await pause(options.signal);
       continue;

@@ -1,3 +1,8 @@
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -38,6 +43,7 @@ function setup() {
     },
     brandRelocation: {
       create: vi.fn().mockResolvedValue(operation),
+      findMany: vi.fn().mockResolvedValue([]),
       findFirst: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
@@ -132,6 +138,64 @@ describe('durable brand relocation jobs', () => {
         }),
         data: expect.objectContaining({ status: BrandRelocationStatus.FAILED }),
       }),
+    );
+  });
+
+  it('recovers an unqueued receipt without depending on an open browser', async () => {
+    const { service, prisma, queue } = setup();
+    prisma.brandRelocation.findMany.mockResolvedValue([operation]);
+    await service.recover();
+    expect(queue.add).toHaveBeenCalledWith(
+      'relocate',
+      { operationId: operation.id },
+      expect.objectContaining({ jobId: operation.id }),
+    );
+  });
+
+  it('returns processing promptly when queue acknowledgement is unavailable', async () => {
+    vi.useFakeTimers();
+    try {
+      const { service, queue } = setup();
+      queue.add.mockImplementation(() => new Promise(() => {}));
+      const result = service.enqueue(
+        'brand-1',
+        operation.id,
+        { organizationId: 'destination' },
+        actor,
+      );
+      await vi.advanceTimersByTimeAsync(1000);
+      await expect(result).resolves.toMatchObject({
+        status: BrandRelocationStatus.PROCESSING,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('records each activity inside its own tenant under a source request context', async () => {
+    const { service, prisma, relocation, recorder } = setup();
+    const contexts: Array<string | undefined> = [];
+    prisma.brandRelocation.findFirst.mockResolvedValue(operation);
+    relocation.relocateToOrganization.mockResolvedValue({
+      summary: { workflowsMoved: 1 },
+    });
+    recorder.record.mockImplementation(async () => {
+      contexts.push(getTenantContext()?.organizationId);
+    });
+    await runWithTenantContext({ organizationId: 'source' }, () =>
+      service.process(operation.id, true),
+    );
+    expect(contexts).toEqual(['destination', 'source']);
+    expect(recorder.record).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        organizationId: 'destination',
+        brandId: 'brand-1',
+      }),
+    );
+    expect(recorder.record).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ organizationId: 'source', brandId: null }),
     );
   });
 

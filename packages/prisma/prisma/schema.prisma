@@ -9619,5 +9619,6 @@ model BrandRelocation {
 
   @@index([organizationId, userId, createdAt])
   @@index([brandId, createdAt])
+  @@index([status, isDeleted, createdAt])
   @@map("brand_relocations")
 }

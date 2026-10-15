@@ -86,6 +86,7 @@ export default function BrandOverlay({
     isGenerating,
     isLoadingBrand,
     isSubmitting,
+    relocationProgress,
     musicModels,
     navigateToBrandSettings,
     organizationDefaults,
@@ -475,6 +476,11 @@ export default function BrandOverlay({
         {!isLoadingBrand || activeBrand ? (
           overlayView === 'edit' || !activeBrand ? (
             <div className="mx-auto w-full max-w-5xl">
+              {relocationProgress ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  {relocationProgress}
+                </p>
+              ) : null}
               <BrandEditorForm
                 activeBrand={activeBrand}
                 canMoveOrganization={canMoveOrganization}

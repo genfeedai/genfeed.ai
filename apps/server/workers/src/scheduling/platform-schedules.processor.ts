@@ -1,3 +1,4 @@
+import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -88,9 +89,12 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly workflowSchedules: PlatformWorkflowSchedulesService,
     private readonly xReplyWatch: CronXReplyWatchService,
     private readonly externalVoiceCatalog: CronExternalVoiceCatalogService,
+    private readonly brandRelocations: BrandRelocationJobsService,
   ) {
     super();
     this.handlers = {
+      [PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY]: () =>
+        this.brandRelocations.recover(),
       [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE]: () =>
         this.mediaSchedules.reconcileCrunTasks(),
       [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC]: () =>
