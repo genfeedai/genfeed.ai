@@ -8,7 +8,8 @@
 - Free host ports 3000 (web), 3010 (API) and 3014 (MCP); override them with
   `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT` and `SELFHOSTED_MCP_PORT` in `.env`
 - A runtime capable of running the published `linux/amd64` image (Docker Desktop
-  can use emulation on Apple Silicon)
+  can use emulation on Apple Silicon). Compose selects this image architecture;
+  ARM hosts must have AMD64 emulation enabled in their Docker runtime.
 - About 8 GB of free disk (10 GB recommended): the images take about 7 GB, and
   generated media needs more on top
 - RAM: no minimum is published. A clean Debian 13 install with 8 CPU and 15 GiB

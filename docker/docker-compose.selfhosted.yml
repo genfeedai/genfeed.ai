@@ -20,6 +20,7 @@ services:
     # Source checkouts default to :latest. Downloaded release bundles pin this
     # through GENFEED_IMAGE_TAG in their versioned .env file.
     image: ghcr.io/genfeedai/genfeed.ai:${GENFEED_IMAGE_TAG:-latest}
+    platform: linux/amd64
     depends_on:
       postgres:
         condition: service_healthy

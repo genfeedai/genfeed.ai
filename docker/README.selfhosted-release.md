@@ -3,6 +3,9 @@
 This bundle runs the public Genfeed.ai Community image
 `ghcr.io/genfeedai/genfeed.ai:__IMAGE_TAG__` with PostgreSQL and embedded Redis.
 
+Compose selects the published `linux/amd64` image. On Apple Silicon or another
+ARM host, enable AMD64 emulation in your Docker runtime before starting.
+
 ## Install
 
 ```bash
