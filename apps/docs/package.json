@@ -1,11 +1,11 @@
 {
   "dependencies": {
-    "next": "16.4.0",
+    "next": "16.4.1",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
-    "posthog-js": "1.438.9",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "posthog-js": "1.438.10",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "swagger-ui-react": "5.33.2"
   },
   "description": "Genfeed.ai documentation site built with Nextra",
