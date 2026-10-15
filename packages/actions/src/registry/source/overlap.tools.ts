@@ -15,7 +15,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Create a post draft from text, or prepare direct publishing for an existing content item or ingredient. The in-app agent returns a publish confirmation card first and publishes only after confirmed is set. On MCP this never publishes: confirmed is rejected, and publishing uses create_scheduled_release.',
+      'Create a post draft from supplied text for review. On MCP this never publishes: confirmed and existing-content publishing are rejected. Use create_scheduled_release for release drafts or approval-gated scheduling. Existing-content publishing is available only in the Genfeed app.',
     name: 'create_post',
     parameters: {
       properties: {
@@ -30,7 +30,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         confirmed: {
           description:
-            'Rejected on MCP. Do not set it. Publish with create_scheduled_release. The in-app agent sets it only after the publish confirmation card.',
+            'Genfeed app publishing only. Rejected on MCP; use create_scheduled_release for approval-gated scheduling.',
           type: 'boolean',
         },
         content: {
@@ -73,7 +73,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'array',
           items: PUBLISH_TARGET_SCHEMA,
           description:
-            'Per-account publish or schedule settings from the confirmation card.',
+            'Per-account publish or schedule settings for the Genfeed app. On MCP use create_scheduled_release.',
         },
         scheduledAt: {
           description:
@@ -81,7 +81,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         textContent: {
-          description: 'Text or caption for the confirmation card.',
+          description: 'Post text or caption supplied for review.',
           type: 'string',
         },
         visibility: {
