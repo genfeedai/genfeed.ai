@@ -292,6 +292,7 @@ export function useIngredientsLoading({
           data = await organizationsService.findOrganizationIngredients(
             organizationId,
             organizationQuery,
+            signal,
           );
         } else {
           const service = await getIngredientsService();
@@ -301,7 +302,7 @@ export function useIngredientsLoading({
           ) {
             data = await service.findAllPages(queryParams, signal);
           } else {
-            data = await service.findAll(queryParams);
+            data = await service.findAll(queryParams, signal);
           }
         }
 
@@ -423,7 +424,8 @@ export function useIngredientsLoading({
     [brandId, organizationId, scope, getFoldersService],
   );
 
-  // Load ingredients on mount and when dependencies change
+  // Load on mount and on every query/page change: `findAllIngredientsByCategory`
+  // depends on `query` and `currentPage`, so this is the only list fetch.
   useEffect(() => {
     const abortController = new AbortController();
 
@@ -497,24 +499,6 @@ export function useIngredientsLoading({
       abortController.abort();
     };
   }, [brandId, findAllFolders, loadFolders, scope]);
-
-  // Refetch when query changes
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    const shouldLoadData =
-      scope === PageScope.SUPERADMIN ||
-      scope === PageScope.ORGANIZATION ||
-      (scope === PageScope.BRAND && brandId);
-
-    if (shouldLoadData && query && Object.keys(query).length > 0) {
-      findAllIngredientsByCategory(false, abortController.signal);
-    }
-
-    return () => {
-      abortController.abort();
-    };
-  }, [brandId, findAllIngredientsByCategory, query, scope]);
 
   // Sync folder param from URL
   useEffect(() => {

@@ -227,6 +227,7 @@ describe('useIngredientsLoading', () => {
       expect.not.objectContaining({
         category: IngredientCategory.INGREDIENT,
       }),
+      expect.any(AbortSignal),
     );
   });
 
@@ -453,5 +454,40 @@ describe('useIngredientsLoading', () => {
     expect(mockNotificationError).toHaveBeenCalledWith(
       'Failed to refresh videos',
     );
+  });
+
+  it('sends exactly one list request on mount', async () => {
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(ingredientsFindAllMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends exactly one list request per filter change', async () => {
+    const { result, rerender } = renderHook(
+      (props: typeof baseProps) => useIngredientsLoading(props),
+      { initialProps: baseProps },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const callsAfterMount = ingredientsFindAllMock.mock.calls.length;
+
+    rerender({ ...baseProps, query: { ...baseProps.query, search: 'cat' } });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(ingredientsFindAllMock).toHaveBeenCalledTimes(callsAfterMount + 1);
+  });
+
+  it('passes an abort signal so superseded list requests are cancelled on the wire', async () => {
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const signal = ingredientsFindAllMock.mock.calls[0]?.[1];
+    expect(signal).toBeInstanceOf(AbortSignal);
   });
 });
