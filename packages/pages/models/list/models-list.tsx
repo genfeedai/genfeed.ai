@@ -11,8 +11,8 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import FormSearchbar from '@ui/primitives/searchbar';
 import { CircleCheck, CircleX, Cpu, Info, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
-import AdminModelsFilters from './components/AdminModelsFilters';
+import { useMemo, useState } from 'react';
+import AdminModelsToolbar from './components/AdminModelsToolbar';
 
 import ModelsCatalogOverview from './components/ModelsCatalogOverview';
 import { useModelsList } from './useModelsList';
@@ -25,6 +25,8 @@ export default function ModelsList({
   onPricingDetails,
   renderExpandedRow,
   renderToolbar,
+  beforeList,
+  onRefresh,
 }: ModelsListProps) {
   const translate = useTranslations('pages.models');
   const {
@@ -56,7 +58,19 @@ export default function ModelsList({
     category,
     scope,
     onRefreshRegister,
+    onRefresh,
   });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  async function handleRefresh() {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   // One way to see a model's details: on the admin pricing page a row click
   // expands its pricing inline and the pencil opens the editor; elsewhere a
@@ -148,31 +162,33 @@ export default function ModelsList({
     ],
   );
 
-  return (
+  const content = (
     <>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            {translate('catalogTitle')}
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {translate('catalogDescription')}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isAdminScope ? <AdminModelsFilters category={category} /> : null}
-          {renderToolbar?.(models)}
-          <div className="w-full sm:w-64">
-            <FormSearchbar
-              className="w-full"
-              onSearch={handleSearchChange}
-              placeholder={translate('searchModels')}
-              size={ComponentSize.SM}
-              value={searchTerm}
-            />
+      {beforeList}
+      {!isAdminScope ? (
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              {translate('catalogTitle')}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {translate('catalogDescription')}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {renderToolbar?.(models)}
+            <div className="w-full sm:w-64">
+              <FormSearchbar
+                className="w-full"
+                onSearch={handleSearchChange}
+                placeholder={translate('searchModels')}
+                size={ComponentSize.SM}
+                value={searchTerm}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       {!isAdminScope ? (
         <ModelsCatalogOverview
@@ -248,5 +264,19 @@ export default function ModelsList({
         </div>
       )}
     </>
+  );
+
+  if (!isAdminScope) return content;
+  return (
+    <AdminModelsToolbar
+      category={category}
+      iconActions={renderToolbar?.(models)}
+      isRefreshing={isRefreshing}
+      onRefresh={() => void handleRefresh()}
+      onSearch={handleSearchChange}
+      searchTerm={searchTerm}
+    >
+      {content}
+    </AdminModelsToolbar>
   );
 }

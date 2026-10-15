@@ -3942,6 +3942,12 @@
       "variablePricing": "Variable",
       "variablePricingDescription": "Uses reviewed rates. Final cost depends on the generation settings."
     },
+    "filters": "Filters",
+    "filterCategories": "Categories",
+    "filterProviders": "Providers",
+    "filterStatus": "Status",
+    "clearFilters": "Clear filters",
+    "activeFilterCount": "{count, plural, one {# active filter} other {# active filters}}",
     "allCategories": "All categories",
     "allProviders": "All providers",
     "allStatuses": "All statuses",

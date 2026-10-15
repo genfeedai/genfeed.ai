@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type {
   AdminModelPricingRow,
@@ -17,7 +17,11 @@ import { AdminModelPricingService } from '@services/admin/model-pricing.service'
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Download, RefreshCw } from 'lucide-react';
+import {
+  SHELL_ICON_BUTTON_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
+import { Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import {
@@ -394,12 +398,7 @@ export default function ModelPricingDetails({
 
 export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
   const t = useTranslations('pages.adminModelPricing');
-  const {
-    data: report,
-    isFetching,
-    error,
-    refetch,
-  } = useAdminModelPricingReport();
+  const { data: report, isFetching, error } = useAdminModelPricingReport();
   const rows = useMemo(
     () =>
       report?.rows.filter((row) =>
@@ -408,17 +407,14 @@ export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
     [report, models],
   );
   return (
-    <div className="flex gap-2">
+    <div className="flex items-center gap-1">
       <Button
+        ariaLabel={t('export')}
+        tooltip={t('export')}
+        size={ButtonSize.ICON}
+        className={SHELL_ICON_BUTTON_CLASS}
         variant={ButtonVariant.GHOST}
-        aria-label={t('refresh')}
-        onClick={() => void refetch()}
-        disabled={isFetching}
-      >
-        <RefreshCw />
-      </Button>
-      <Button
-        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
         disabled={!report || !!error || isFetching}
         onClick={() => {
           if (!report) return;
@@ -435,8 +431,7 @@ export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
           URL.revokeObjectURL(url);
         }}
       >
-        <Download />
-        {t('export')}
+        <Download className={SHELL_ICON_CLASS} />
       </Button>
     </div>
   );
