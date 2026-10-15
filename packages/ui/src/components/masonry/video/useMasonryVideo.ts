@@ -80,6 +80,11 @@ export function useMasonryVideo({
       : `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`;
   }, [ingredientUrl, referenceImageUrl, isProcessing]);
 
+  // A real poster (not the generic placeholder) lets the tile skip loading
+  // the video until it is played.
+  const hasPosterThumbnail =
+    Boolean(explicitThumbnail) || Boolean(referenceImageUrl);
+
   const thumbnailImageUrl = useMemo(() => {
     if (explicitThumbnail && explicitThumbnail !== '') {
       return explicitThumbnail;
@@ -267,6 +272,7 @@ export function useMasonryVideo({
     isFleetNsfwLocked,
     isInteractionBlocked,
     placeholderImageUrl,
+    hasPosterThumbnail,
     thumbnailImageUrl,
     ingredientUrl,
     metadata,

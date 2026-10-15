@@ -162,6 +162,28 @@ describe('MasonryVideo', () => {
     expect(firstCallProps.thumbnail).toBe('https://example.com/thumb.jpg');
   });
 
+  it('leaves the video unloaded behind its poster until it plays', () => {
+    render(<MasonryVideo video={mockVideo} />);
+
+    const props = mockVideoPlayer.mock.calls[0]?.[0] as {
+      config?: { preload?: string };
+    };
+    expect(props.config?.preload).toBe('none');
+  });
+
+  it('preloads metadata to show a first frame when no poster exists', () => {
+    render(
+      <MasonryVideo
+        video={{ ...mockVideo, thumbnailUrl: undefined } as unknown as IVideo}
+      />,
+    );
+
+    const props = mockVideoPlayer.mock.calls[0]?.[0] as {
+      config?: { preload?: string };
+    };
+    expect(props.config?.preload).toBe('metadata');
+  });
+
   it('should make the embedded video player ignore pointer events so the card remains draggable', () => {
     render(<MasonryVideo video={mockVideo} />);
 
