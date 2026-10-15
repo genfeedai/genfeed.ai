@@ -41,6 +41,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [page_org_brand_scope](page_org_brand_scope.md) — org always selected; brand empty (`~/`) or brand selected on every customer list
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
 - [Readable MCP results](feedback_mcp_readable_results.md) — readable messages; identifiers and full payloads stay structured
+- [mcp_oauth_admin_scope](project_mcp_oauth_admin_scope.md) — OAuth sessions of org owners/admins carry the explicit `admin` scope; without it API keys are capped to `user` (empty brands, no onboarding)
 - [curated_action_surface_boundaries](curated_action_surface_boundaries.md) — why each agent-only / MCP-only action stays that way
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
 - [spec-native-referral-credits](spec-native-referral-credits.md) — native first-touch referral attribution and recurring PAYG credit rewards
