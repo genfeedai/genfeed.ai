@@ -107,7 +107,9 @@ describe('PlansCard', () => {
 
     render(<PlansCard />);
 
-    const upgrade = screen.getByRole('button', { name: /Upgrade to Agencies/i });
+    const upgrade = screen.getByRole('button', {
+      name: /Upgrade to Agencies/i,
+    });
     expect(upgrade.className).toMatch(/\bbg-primary\b/);
     expect(upgrade.className).not.toMatch(/\bbg-tertiary\b/);
   });
@@ -153,7 +155,9 @@ describe('PlansCard', () => {
     });
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Switch to Agencies/i }),
+    );
 
     await waitFor(() => {
       expect(previewPlanChange).toHaveBeenCalledWith('price_scale');
@@ -183,7 +187,9 @@ describe('PlansCard', () => {
     } as never);
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Switch to Agencies/i }),
+    );
 
     expect(
       await screen.findByText(
@@ -203,7 +209,9 @@ describe('PlansCard', () => {
     });
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Switch to Agencies/i }),
+    );
 
     expect(
       await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
@@ -334,7 +342,9 @@ describe('PlansCard', () => {
       });
 
       render(<PlansCard />);
-      fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /Switch to Agencies/i }),
+      );
       await screen.findByRole('button', { name: /Confirm change/i });
     }
 
