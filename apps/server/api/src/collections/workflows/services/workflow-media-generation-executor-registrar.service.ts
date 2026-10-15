@@ -9,9 +9,14 @@ import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows
 import type { ValidatedWorkflowMediaDispatch } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
 import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
+import {
+  type WorkflowUpscaleFunding,
+  WorkflowUpscaleFundingService,
+} from '@api/collections/workflows/services/workflow-upscale-funding.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { isReplicateSubmissionRejected } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaLocalizationService } from '@api/services/media-localization/media-localization.service';
 import {
@@ -52,6 +57,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     @Optional() private readonly falVideo?: FalVideoGenerationProviderAdapter,
     @Optional()
     private readonly falOutputFinalization?: WorkflowFalOutputFinalizationService,
+    @Optional()
+    private readonly upscaleFunding?: WorkflowUpscaleFundingService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -433,33 +440,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     const upscaleExecutor = new UpscaleExecutor();
 
     if (this.replicateService) {
-      upscaleExecutor.setResolver(async (mediaUrl, params, context, node) =>
-        this.runReplicateMediaTransform({
-          buildInput: (isVideo, inputKey) => {
-            const input: Record<string, unknown> = { [inputKey]: mediaUrl };
-            if (!isVideo) {
-              input.upscale_factor = params.scale;
-            }
-            return input;
-          },
-          buildReturn: (ingredientId, outputCategory) => ({
-            id: ingredientId,
-            mediaUrl: this.helper.buildMediaIngredientUrl(
-              ingredientId,
-              outputCategory,
-            ),
-            model: params.model,
-            scale: params.scale,
-            status: IngredientStatus.PROCESSING,
-          }),
-          mediaUrl,
-          modelImage: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-          modelVideo: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-          node,
-          context,
-          nodeType: 'upscale',
-          transformation: TransformationCategory.UPSCALED,
-        }),
+      upscaleExecutor.setResolver((mediaUrl, params, context, node) =>
+        this.runFundedUpscale(mediaUrl, params, context, node),
       );
 
       this.loggerService.log(
@@ -471,6 +453,127 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       upscaleExecutor.nodeType,
       this.helper.wrapEngineExecutor(upscaleExecutor),
     );
+  }
+
+  /**
+   * Prices the upscale from the stored source before anything dispatches: an
+   * unstored, foreign or unmeasured source is refused here, the output is bound
+   * to its hold before Replicate sees the job, and the callback settles it.
+   */
+  private async runFundedUpscale(
+    mediaUrl: string,
+    params: { model: string; scale: string },
+    context: ExecutionContext,
+    node: ExecutableNode,
+  ) {
+    const replicateService = this.replicateService;
+    if (!replicateService || !this.upscaleFunding) {
+      throw new Error('Upscale funding is unavailable');
+    }
+    const asset = await this.helper.requireMediaAsset(
+      mediaUrl,
+      context.organizationId,
+      [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
+    );
+    const brandId = await this.helper.resolveBrandIdFromInputOrFail(
+      this.helper.readConfigString(node.config, 'brandId'),
+      mediaUrl,
+      'upscale',
+      context.organizationId,
+    );
+    const isVideo = asset.category === IngredientCategory.VIDEO;
+    const funding = await this.upscaleFunding.fund({
+      brandId,
+      category: asset.category,
+      organizationId: context.organizationId,
+      scale: params.scale,
+      sourceIngredientId: asset.id,
+      targetFps: node.config.fps,
+      targetResolution: node.config.resolution,
+      userId: context.userId,
+    });
+    try {
+      const pending = await this.helper.createAndLinkProcessingOutput({
+        continuation: {
+          actionId: 'upscale',
+          context,
+          node,
+          provider: 'replicate',
+        },
+        output: {
+          brandId,
+          category: asset.category,
+          extension: isVideo ? MetadataExtension.MP4 : MetadataExtension.JPG,
+          model: funding.model,
+          organizationId: context.organizationId,
+          parentIngredientId: asset.id,
+          transformations: [TransformationCategory.UPSCALED],
+          userId: context.userId,
+        },
+        resultUrl: (ingredientId) =>
+          this.helper.buildMediaIngredientUrl(ingredientId, asset.category),
+        runProvider: (ingredientId, continuationId) =>
+          this.dispatchFundedUpscale(
+            funding,
+            { context, continuationId, ingredientId },
+            () =>
+              replicateService.runModel(
+                funding.model,
+                {
+                  [isVideo ? 'video' : 'image']: mediaUrl,
+                  ...funding.providerInput,
+                },
+                undefined,
+                continuationId,
+              ),
+          ),
+      });
+      return {
+        id: pending.ingredientId,
+        mediaUrl: this.helper.buildMediaIngredientUrl(
+          pending.ingredientId,
+          asset.category,
+        ),
+        model: params.model,
+        scale: params.scale,
+        status: IngredientStatus.PROCESSING,
+      };
+    } finally {
+      await funding.releasePool();
+    }
+  }
+
+  /**
+   * Binds the output to its hold, then submits. Funds go back only when the
+   * provider never saw the job or definitively refused it; an ambiguous
+   * failure keeps the hold for the callback or reconciliation to resolve.
+   */
+  private async dispatchFundedUpscale<T>(
+    funding: WorkflowUpscaleFunding,
+    target: {
+      context: ExecutionContext;
+      continuationId: string;
+      ingredientId: string;
+    },
+    submit: () => Promise<T>,
+  ): Promise<T> {
+    let isSubmissionStarted = false;
+    try {
+      await funding.bind(target.ingredientId);
+      isSubmissionStarted = true;
+      return await submit();
+    } catch (error: unknown) {
+      if (!isSubmissionStarted) {
+        await this.helper.failProviderContinuationSubmission({
+          continuationId: target.continuationId,
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: target.context.organizationId,
+        });
+      }
+      if (!isSubmissionStarted || isReplicateSubmissionRejected(error))
+        await funding.reject(target.ingredientId);
+      throw error;
+    }
   }
 
   private async runReplicateMediaTransform<TOutput>(params: {
