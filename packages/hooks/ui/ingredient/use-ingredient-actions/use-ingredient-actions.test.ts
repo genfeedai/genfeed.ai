@@ -16,12 +16,35 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseElements = vi.hoisted(() => vi.fn());
+const { mockGetCharacterReferenceWarning, mockOpenConfirm } = vi.hoisted(
+  () => ({
+    mockGetCharacterReferenceWarning: vi.fn(),
+    mockOpenConfirm: vi.fn(),
+  }),
+);
 
 const { mockCopyToClipboard, mockOpenModal, mockSubscribe } = vi.hoisted(
   () => ({
     mockCopyToClipboard: vi.fn(),
     mockOpenModal: vi.fn(),
     mockSubscribe: vi.fn(() => vi.fn()),
+  }),
+);
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useConfirmModal: () => ({
+      closeConfirm: vi.fn(),
+      openConfirm: mockOpenConfirm,
+    }),
+  }),
+);
+
+vi.mock(
+  '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning',
+  () => ({
+    useCharacterReferenceDeleteWarning: () => mockGetCharacterReferenceWarning,
   }),
 );
 
@@ -202,6 +225,7 @@ describe('useIngredientActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseElements.mockReturnValue({ videoModels: [] });
+    mockGetCharacterReferenceWarning.mockResolvedValue(undefined);
 
     mockIngredientsService = {
       delete: vi.fn().mockResolvedValue(undefined),
@@ -914,6 +938,33 @@ describe('useIngredientActions', () => {
       );
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Ingredient deleted successfully',
+      );
+      expect(mockOpenConfirm).not.toHaveBeenCalled();
+    });
+
+    it('asks first when a character uses the asset as a reference', async () => {
+      const warning = 'Reference for @vincent';
+      mockGetCharacterReferenceWarning.mockResolvedValue(warning);
+      const { result } = renderHook(() => useIngredientActions());
+
+      await act(async () => {
+        await result.current.handlers.handleDelete(mockVideoIngredient);
+      });
+
+      expect(mockGetCharacterReferenceWarning).toHaveBeenCalledWith([
+        'ingredient-1',
+      ]);
+      expect(mockIngredientsService.delete).not.toHaveBeenCalled();
+      expect(mockOpenConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ children: warning, isError: true }),
+      );
+
+      await act(async () => {
+        await mockOpenConfirm.mock.calls[0][0].onConfirm();
+      });
+
+      expect(mockIngredientsService.delete).toHaveBeenCalledWith(
+        'ingredient-1',
       );
     });
   });

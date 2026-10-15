@@ -645,6 +645,11 @@
         "retry": "Retry loading characters",
         "checking": "Checking for a character…",
         "inspectionUnavailable": "Image detection is unavailable. You can still save this image if it contains your character."
+      },
+      "referenceUsage": {
+        "intro": "This asset is a reference image for:",
+        "item": "Reference for {name}",
+        "outro": "Deleting it removes it from these characters."
       }
     },
     "integrations": {
