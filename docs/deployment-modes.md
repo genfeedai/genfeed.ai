@@ -21,7 +21,9 @@ summary; the canonical, decision-of-record version is the ADR at
 
 - **SaaS** — `GENFEED_CLOUD=1` (+ Better Auth, AWS, Stripe).
 - **Community** — leave `GENFEED_CLOUD` unset. The release bundle's default
-  `.env.example` runs single-user with no auth and seeds one workspace. Turn on
+  `.env.example` runs single-user with no login and seeds one workspace; the API
+  accepts that tokenless local identity only from loopback and the Docker
+  network. Turn on
   a login wall with `BETTER_AUTH_ENABLED=true` and
   `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true` in the installation `.env` when a team
   needs local accounts. A repository source checkout uses `docker/.env` instead.

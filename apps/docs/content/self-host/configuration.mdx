@@ -71,6 +71,16 @@ Google sign-in only for the features that need them:
 | `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO_EMAIL` | The sender and reply-to addresses for that email |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google sign-in and the Google connectors, which share one Google Cloud OAuth web client |
 
+The login wall protects the REST API on port `3010` as well as the web UI.
+
+| `BETTER_AUTH_ENABLED` | Requests to the API |
+| --- | --- |
+| `true` | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role. |
+| `false` (default) | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
+
+`X-Forwarded-For` is not trusted unless `TRUST_PROXY` names your proxy, so a
+remote client cannot pass as a local one by sending a header.
+
 Turning the login wall off does not turn off MCP authentication; see
 [MCP server](/api-reference/mcp#authentication).
 

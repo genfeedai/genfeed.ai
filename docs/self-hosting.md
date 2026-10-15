@@ -112,6 +112,13 @@ BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 BETTER_AUTH_SECRET=
 ```
 
+With Better Auth enabled, the API on port 3010 requires a valid session token
+or API key on every request, from any address. There is no fallback to the
+seeded local user, and admin routes still need the admin role. With it disabled
+(the default), only requests from the machine itself or the Docker network act
+as the seeded local admin; any other address gets `401` unless it carries a
+valid API key.
+
 Email/password works with only the local Better Auth database. Add an email
 provider only for magic links, password reset, email verification, or member
 invites:
@@ -225,6 +232,13 @@ is the sole path to every published port. The web app cannot see the
 connecting peer, so a configured `TRUST_PROXY` also asserts that the web port
 is reachable only through the proxy. Genfeed Cloud trusts one hop (its load
 balancer) unless `TRUST_PROXY` says otherwise.
+
+The same rule protects the seeded local admin: with the login wall off, a
+request carrying `X-Forwarded-For` or `X-Real-IP` that `TRUST_PROXY` does not
+vouch for is never treated as local. Do not expose an instance without the
+login wall through a public reverse proxy; enable `BETTER_AUTH_ENABLED=true`
+first, and prefer publishing the host ports on `127.0.0.1` when only a proxy on
+the same host needs them.
 
 ## Optional Services
 
