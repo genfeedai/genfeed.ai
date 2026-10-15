@@ -6417,46 +6417,6 @@
       "workspace": "libs"
     },
     {
-      "code": 2540,
-      "count": 4,
-      "file": "apps/server/mcp/src/config/config.service.spec.ts",
-      "fingerprint": "c3e60fdf3fc20b48fdd0",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "mcp"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/mcp/src/services/client.service.spec.ts",
-      "fingerprint": "7eca033dc98a6440d89e",
-      "message": "Type '\"twitter\"' is not assignable to type '\"all\" | Platform | undefined'.",
-      "workspace": "mcp"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/mcp/test/app.e2e-spec.ts",
-      "fingerprint": "231207cf9642d9f62f91",
-      "message": "Cannot find module '@mcp/mcp.module' or its corresponding type declarations.",
-      "workspace": "mcp"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/mcp/test/app.e2e-spec.ts",
-      "fingerprint": "d539a890c7f3a5d03be1",
-      "message": "Cannot find module 'supertest' or its corresponding type declarations.",
-      "workspace": "mcp"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/mcp/test/setup-unit.ts",
-      "fingerprint": "ed99a7247d1052fc4006",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "mcp"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "packages/models/billing/subscription.model.test.ts",
