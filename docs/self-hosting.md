@@ -13,7 +13,9 @@
   generated media needs more on top
 - RAM: no minimum is published. A clean Debian 13 install with 8 CPU and 15 GiB
   RAM ran it fine, and idle PostgreSQL used about 59 MiB.
-- Debian 13 does not package Compose v2. Install `docker-compose-plugin` from
+- Debian 13 provides Compose v2 in its
+  [`docker-compose` package](https://packages.debian.org/trixie/docker-compose).
+  With Docker CE, install `docker-compose-plugin` from
   [Docker's official apt repository](https://docs.docker.com/engine/install/debian/).
 
 ## Quick Start

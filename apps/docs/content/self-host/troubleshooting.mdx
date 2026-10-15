@@ -15,9 +15,18 @@ docker compose --env-file .env -f compose.yml logs postgres
 
 ## Debian 13: Docker Compose v2
 
-Debian 13 does not package Docker Compose v2, so `docker compose` is not found
-or is the wrong version. Install the `docker-compose-plugin` package from Docker's
-apt repository. Set up the repository by following Docker's
+Debian 13 provides Compose v2 in its
+[`docker-compose` package](https://packages.debian.org/trixie/docker-compose).
+If `docker compose` is missing and you use Debian's Docker packages, install:
+
+```bash
+sudo apt-get update
+sudo apt-get install docker-compose
+docker compose version
+```
+
+With Docker CE, install `docker-compose-plugin` from Docker's apt repository
+instead. Set up that repository by following Docker's
 [Debian install guide](https://docs.docker.com/engine/install/debian/), then:
 
 ```bash
@@ -25,8 +34,8 @@ sudo apt-get install docker-compose-plugin
 docker compose version
 ```
 
-Genfeed needs Compose v2, which is the `docker compose` command (with a space),
-not the older `docker-compose` binary.
+Genfeed uses the `docker compose` command (with a space). Check the reported
+version rather than inferring it from the package or executable name.
 
 ## `P1001: Can't reach database server at postgres:5432`
 

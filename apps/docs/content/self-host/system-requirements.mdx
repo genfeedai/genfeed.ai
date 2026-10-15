@@ -39,8 +39,10 @@ smaller hardware, [tell us how it went](https://github.com/genfeedai/genfeed.ai/
 ## Operating system notes
 
 - **Linux:** install Docker Engine with the Compose v2 plugin.
-- **Debian 13:** Debian 13 does not package Docker Compose v2. Install the
-  `docker-compose-plugin` package from Docker's apt repository. See
+- **Debian 13:** install Debian's
+  [`docker-compose` package](https://packages.debian.org/trixie/docker-compose),
+  which provides Compose v2. With Docker CE, use `docker-compose-plugin` from
+  Docker's apt repository instead. See
   [Troubleshooting](/self-host/troubleshooting#debian-13-docker-compose-v2).
 - **Docker Desktop:** can be used instead of Docker Engine. On macOS, verify the
   release bundle with `shasum -a 256 -c` instead of `sha256sum -c`.

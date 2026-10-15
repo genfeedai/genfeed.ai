@@ -26,7 +26,9 @@ hosted product at [genfeed.ai](https://genfeed.ai) (**SaaS**). Same code, three
 - Free host ports 3000 (web), 3010 (API) and 3014 (MCP).
 - About 8 GB of free disk (10 GB recommended); the images take about 7 GB.
 - RAM: no minimum is published. Tested on 8 CPU / 15 GiB.
-- Debian 13 does not package Compose v2; install `docker-compose-plugin` from
+- Debian 13 provides Compose v2 in its
+  [`docker-compose` package](https://packages.debian.org/trixie/docker-compose).
+  With Docker CE, install `docker-compose-plugin` from
   [Docker's apt repository](https://docs.docker.com/engine/install/debian/).
 
 See [troubleshooting](docs/self-hosting.md#troubleshooting) if the app logs
