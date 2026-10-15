@@ -57,7 +57,9 @@ describe('keyset cursor', () => {
     expect(buildKeysetWhere({ ...NEWEST, id: 'ing_2', value })).toEqual({
       AND: [
         { createdAt: { lte: new Date(value) } },
-        { OR: [{ createdAt: { lt: new Date(value) } }, { id: { lt: 'ing_2' } }] },
+        {
+          OR: [{ createdAt: { lt: new Date(value) } }, { id: { lt: 'ing_2' } }],
+        },
       ],
     });
     expect(

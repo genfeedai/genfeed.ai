@@ -235,7 +235,9 @@ describe('BaseService', () => {
         {
           AND: [
             { createdAt: { lte: new Date(value) } },
-            { OR: [{ createdAt: { lt: new Date(value) } }, { id: { lt: 'b' } }] },
+            {
+              OR: [{ createdAt: { lt: new Date(value) } }, { id: { lt: 'b' } }],
+            },
           ],
         },
       ]);
