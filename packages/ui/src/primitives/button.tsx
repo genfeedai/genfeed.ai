@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { Slot } from '@radix-ui/react-slot';
-import BrandMark from '@ui/primitives/brand-mark';
+import { LoaderCircle } from 'lucide-react';
 import type {
   ButtonHTMLAttributes,
   MouseEvent,
@@ -49,9 +49,11 @@ function Spinner({
     <output
       aria-hidden={ariaHidden}
       aria-label={ariaHidden ? undefined : 'Loading'}
-      className="genfeed-loader-root inline-flex size-4 shrink-0 items-center justify-center"
+      className="inline-flex size-4 shrink-0 items-center justify-center"
     >
-      <BrandMark />
+      {/* A plain spinner: the animated brand mark is for page-level loading,
+          not for a pending action inside a control. */}
+      <LoaderCircle className="size-4 animate-spin" />
     </output>
   );
 }
