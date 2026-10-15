@@ -99,16 +99,6 @@ const config = createAppNextConfig({
       permanent: false,
       source: '/.well-known/llm-context',
     },
-    {
-      destination: '/done-for-you',
-      permanent: true,
-      source: '/retainer',
-    },
-    {
-      destination: '/done-for-you',
-      permanent: true,
-      source: '/dfy',
-    },
   ],
   sentryProject: 'genfeed-ai',
 });
