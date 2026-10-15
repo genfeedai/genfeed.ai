@@ -4,7 +4,6 @@ import type { SubscriptionChangePreview } from '@genfeedai/contracts/interfaces'
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatPlanIncludedCredits,
-  formatPlanLaunchPriceLabel,
   formatPlanPriceLabel,
   getPlanByTier,
   type PlanTier,
@@ -29,7 +28,7 @@ import { getSubscriptionFailureView } from './subscription-failure.util';
  * advertised here, and Enterprise is a conversation rather than a checkout
  * button — hence the contact line under the tiles.
  */
-const SELLABLE_TIERS: PlanTier[] = ['pro', 'scale'];
+const SELLABLE_TIERS: PlanTier[] = ['scale'];
 
 /** Features are already ordered strongest-first in the pricing package. */
 const FEATURES_SHOWN = 4;
@@ -298,7 +297,6 @@ export default function PlansCard() {
           const plan = getPlanByTier(tier);
           const isCurrentPlan = currentTier === tier;
           const isUnavailable = !plan.stripePriceId;
-          const launchPriceLabel = formatPlanLaunchPriceLabel(tier);
 
           return (
             <Card
@@ -323,23 +321,9 @@ export default function PlansCard() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <Text as="p" size="xl" weight="bold">
-                    {launchPriceLabel ?? formatPlanPriceLabel(tier)}
-                  </Text>
-                  {launchPriceLabel ? (
-                    <Text size="sm" color="muted" className="line-through">
-                      {translate('subscription.plans.listPrice', {
-                        price: formatPlanPriceLabel(tier),
-                      })}
-                    </Text>
-                  ) : null}
-                </div>
-                {launchPriceLabel && plan.launchNote ? (
-                  <Text size="xs" color="muted">
-                    {plan.launchNote}
-                  </Text>
-                ) : null}
+                <Text as="p" size="xl" weight="bold">
+                  {formatPlanPriceLabel(tier)}
+                </Text>
               </div>
 
               <ul className="flex flex-1 flex-col gap-1.5">

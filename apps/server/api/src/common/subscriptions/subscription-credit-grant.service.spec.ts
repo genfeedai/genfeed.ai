@@ -6,7 +6,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const PRO_MONTHLY_PRICE_ID = 'price_pro_monthly';
 const SCALE_MONTHLY_PRICE_ID = 'price_scale_monthly';
 
 describe('SubscriptionCreditGrantService', () => {
@@ -17,7 +16,6 @@ describe('SubscriptionCreditGrantService', () => {
   const stripeService = { getPrice: vi.fn() };
 
   const configuredPrices: Record<string, string> = {
-    STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: PRO_MONTHLY_PRICE_ID,
     STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: SCALE_MONTHLY_PRICE_ID,
   };
 
@@ -46,7 +44,7 @@ describe('SubscriptionCreditGrantService', () => {
       });
 
       await expect(
-        service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
+        service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID),
       ).resolves.toBe(7_500);
     });
 
@@ -55,10 +53,12 @@ describe('SubscriptionCreditGrantService', () => {
         metadata: { included_monthly_credits: '12000' },
       });
 
-      const credits = await service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
+      const credits = await service.resolveMonthlyCredits(
+        SCALE_MONTHLY_PRICE_ID,
+      );
 
       expect(credits).toBe(12_000);
-      expect(credits).not.toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+      expect(credits).not.toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
     });
 
     it('falls back to the tier table when the price carries no metadata', async () => {
@@ -81,11 +81,11 @@ describe('SubscriptionCreditGrantService', () => {
         });
 
         await expect(
-          service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
-        ).resolves.toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+          service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID),
+        ).resolves.toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
         expect(loggerService.warn).toHaveBeenCalledWith(
           expect.stringContaining('unusable credit metadata'),
-          expect.objectContaining({ stripePriceId: PRO_MONTHLY_PRICE_ID }),
+          expect.objectContaining({ stripePriceId: SCALE_MONTHLY_PRICE_ID }),
         );
       },
     );
@@ -94,8 +94,8 @@ describe('SubscriptionCreditGrantService', () => {
       stripeService.getPrice.mockRejectedValue(new Error('stripe down'));
 
       await expect(
-        service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
-      ).resolves.toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+        service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID),
+      ).resolves.toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
       expect(loggerService.error).toHaveBeenCalled();
     });
 
@@ -111,8 +111,8 @@ describe('SubscriptionCreditGrantService', () => {
     });
 
     it('caches a resolved price so a burst costs one Stripe round trip', async () => {
-      await service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
-      await service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
+      await service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID);
+      await service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID);
 
       expect(stripeService.getPrice).toHaveBeenCalledTimes(1);
     });
@@ -127,8 +127,8 @@ describe('SubscriptionCreditGrantService', () => {
           }),
       );
 
-      const first = service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
-      const second = service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
+      const first = service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID);
+      const second = service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID);
       releasePrice?.();
 
       await expect(Promise.all([first, second])).resolves.toEqual([
@@ -142,12 +142,12 @@ describe('SubscriptionCreditGrantService', () => {
 
       await expect(
         Promise.all([
-          service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
-          service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
+          service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID),
+          service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID),
         ]),
       ).resolves.toEqual([
-        TIER_INCLUDED_MONTHLY_CREDITS.pro,
-        TIER_INCLUDED_MONTHLY_CREDITS.pro,
+        TIER_INCLUDED_MONTHLY_CREDITS.scale,
+        TIER_INCLUDED_MONTHLY_CREDITS.scale,
       ]);
       expect(stripeService.getPrice).toHaveBeenCalledTimes(1);
     });
@@ -155,9 +155,9 @@ describe('SubscriptionCreditGrantService', () => {
     it('re-reads the price once the cache entry expires', async () => {
       vi.useFakeTimers();
 
-      await service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
+      await service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID);
       vi.advanceTimersByTime(5 * 60 * 1000 + 1);
-      await service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
+      await service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID);
 
       expect(stripeService.getPrice).toHaveBeenCalledTimes(2);
     });
@@ -174,7 +174,7 @@ describe('SubscriptionCreditGrantService', () => {
       await expect(
         service.resolvePlanCredits(
           SubscriptionPlan.MONTHLY,
-          PRO_MONTHLY_PRICE_ID,
+          SCALE_MONTHLY_PRICE_ID,
         ),
       ).resolves.toBe(5_900);
     });
@@ -183,14 +183,17 @@ describe('SubscriptionCreditGrantService', () => {
       await expect(
         service.resolvePlanCredits(
           SubscriptionPlan.YEARLY,
-          PRO_MONTHLY_PRICE_ID,
+          SCALE_MONTHLY_PRICE_ID,
         ),
       ).resolves.toBe(5_900 * 12);
     });
 
     it('resolves null for a plan that carries no recurring allowance', async () => {
       await expect(
-        service.resolvePlanCredits(SubscriptionPlan.PAYG, PRO_MONTHLY_PRICE_ID),
+        service.resolvePlanCredits(
+          SubscriptionPlan.PAYG,
+          SCALE_MONTHLY_PRICE_ID,
+        ),
       ).resolves.toBeNull();
     });
 
@@ -205,9 +208,6 @@ describe('SubscriptionCreditGrantService', () => {
 
   describe('resolveTierFromPriceId', () => {
     it('maps a configured price id to its tier', () => {
-      expect(service.resolveTierFromPriceId(PRO_MONTHLY_PRICE_ID)).toBe(
-        SubscriptionTier.PRO,
-      );
       expect(service.resolveTierFromPriceId(SCALE_MONTHLY_PRICE_ID)).toBe(
         SubscriptionTier.SCALE,
       );
@@ -221,7 +221,7 @@ describe('SubscriptionCreditGrantService', () => {
     it('resolves null when no price env is configured at all', () => {
       configService.get.mockReturnValue('');
 
-      expect(service.resolveTierFromPriceId(PRO_MONTHLY_PRICE_ID)).toBeNull();
+      expect(service.resolveTierFromPriceId(SCALE_MONTHLY_PRICE_ID)).toBeNull();
     });
   });
 

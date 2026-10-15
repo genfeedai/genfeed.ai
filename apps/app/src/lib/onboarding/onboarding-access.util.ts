@@ -22,8 +22,7 @@ export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
 
 const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   [SubscriptionTier.FREE]: 'Free',
-  [SubscriptionTier.PRO]: 'Pro',
-  [SubscriptionTier.SCALE]: 'Scale',
+  [SubscriptionTier.SCALE]: 'Agencies',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
 };
 
@@ -154,25 +153,20 @@ const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
 
 /**
  * Marketing CTAs hand off a subscription plan as a human-readable slug
- * (e.g. `/sign-up?plan=hosted` for the website "Creator" card). The checkout
+ * (e.g. `/sign-up?plan=scale` for the website Agencies card). The checkout
  * endpoint only accepts Stripe price ids — `CreateCheckoutSessionDto` enforces
  * `^price_...$` — so a raw slug would be rejected (400) before checkout is ever
- * created, and the launch coupon (auto-applied in StripeService for the Pro
- * price) would never fire. Resolve known subscription slugs to their configured
+ * created. Resolve known subscription slugs to their configured
  * price id at handoff time; anything else (already-price ids, the free `payg`
  * slug, unknown values) passes through unchanged.
  */
 export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
-  const { monthly, scale } = EnvironmentService.plans;
+  const { scale } = EnvironmentService.plans;
 
   return {
-    // Website "Creator" card === internal Hosted/Pro tier (NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY).
-    creator: monthly,
-    hosted: monthly,
-    pro: monthly,
-    // Cloud Teams tier, if it ever exposes a self-serve CTA.
+    // Website Agencies card === internal Scale tier.
+    agencies: scale,
     scale,
-    teams: scale,
   };
 }
 

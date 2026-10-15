@@ -131,8 +131,6 @@ export class SubscriptionCreditGrantService {
     // to that key's `string | undefined` rather than the union of every env
     // value type (which includes the `'true' | 'false'` boolean-ish literals).
     const configuredTiers = [
-      ['STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY', SubscriptionTier.PRO],
-      ['STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY', SubscriptionTier.PRO],
       ['STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY', SubscriptionTier.SCALE],
       [
         'STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',

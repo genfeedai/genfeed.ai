@@ -22,7 +22,7 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
 }
 
 /**
- * Cloud-only gate: custom model training (LoRA) requires Pro or above.
+ * Cloud-only gate: custom model training (LoRA) requires Agencies or above.
  * Self-hosted / community deployments always allow training.
  */
 @Injectable()
@@ -69,10 +69,10 @@ export class TrainingAccessGuard implements CanActivate {
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
         detail:
-          'Custom model training is available on paid plans. Upgrade to Pro to train brand models.',
+          'Custom model training is available on paid plans. Upgrade to Agencies to train brand models.',
         meta: {
           resource: 'training',
-          upgradeTier: SubscriptionTier.PRO,
+          upgradeTier: SubscriptionTier.SCALE,
         },
         title: 'Training requires a paid plan',
       });

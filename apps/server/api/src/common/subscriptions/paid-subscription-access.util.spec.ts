@@ -22,11 +22,7 @@ function subscription(
 
 describe('resolveOrganizationPaidGrant', () => {
   it('grants an operator-granted tier with no subscription row at all (#5293)', () => {
-    for (const tier of [
-      SubscriptionTier.PRO,
-      SubscriptionTier.SCALE,
-      SubscriptionTier.ENTERPRISE,
-    ]) {
+    for (const tier of [SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE]) {
       expect(resolveOrganizationPaidGrant([], tier, NOW)).toBe('active_paid');
     }
   });
@@ -55,7 +51,7 @@ describe('resolveOrganizationPaidGrant', () => {
     expect(
       resolveOrganizationPaidGrant(
         [subscription({ status: SubscriptionStatus.TRIALING })],
-        SubscriptionTier.PRO,
+        SubscriptionTier.SCALE,
         NOW,
       ),
     ).toBe(null);

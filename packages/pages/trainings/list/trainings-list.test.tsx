@@ -17,7 +17,7 @@ const brandState = {
   brandId: 'brand-1',
   isReady: true,
   organizationId: 'org-1',
-  settings: { subscriptionTier: SubscriptionTier.PRO },
+  settings: { subscriptionTier: SubscriptionTier.SCALE },
 };
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -115,7 +115,7 @@ describe('TrainingsList', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    brandState.settings = { subscriptionTier: SubscriptionTier.PRO };
+    brandState.settings = { subscriptionTier: SubscriptionTier.SCALE };
     mockFindAllPages.mockResolvedValue([buildTraining()]);
   });
 

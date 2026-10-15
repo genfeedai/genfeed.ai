@@ -6,11 +6,6 @@ import { QualityTier, SubscriptionTier } from '@genfeedai/contracts';
  */
 export const TIER_QUALITY_ACCESS: Record<SubscriptionTier, QualityTier[]> = {
   [SubscriptionTier.FREE]: [QualityTier.BASIC],
-  [SubscriptionTier.PRO]: [
-    QualityTier.BASIC,
-    QualityTier.STANDARD,
-    QualityTier.HIGH,
-  ],
   [SubscriptionTier.SCALE]: [
     QualityTier.BASIC,
     QualityTier.STANDARD,

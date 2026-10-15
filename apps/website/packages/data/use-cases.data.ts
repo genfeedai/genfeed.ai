@@ -40,8 +40,8 @@ export const useCases: UseCase[] = [
       'No control over messaging or personality',
     ],
     pricing: {
-      recommended: 'pro',
-      why: `Free to start with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}) makes avatar, voice, and publishing output ${PLAN_COPY.pro.creditRateAdvantage} cheaper.`,
+      recommended: 'payg',
+      why: `Start free with pay-per-output credits and pay only for what you generate.`,
     },
     results: [
       'Generate avatar content with pay-per-output credits',
@@ -104,8 +104,8 @@ export const useCases: UseCase[] = [
       "Expensive tools that don't talk to each other",
     ],
     pricing: {
-      recommended: 'pro',
-      why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
+      recommended: 'payg',
+      why: `Start free with pay-per-output credits and pay only for what you generate.`,
     },
     results: [
       'Create variations from the same brief',
@@ -378,8 +378,8 @@ export const useCases: UseCase[] = [
       'You need to see which posts get a response before planning the next batch',
     ],
     pricing: {
-      recommended: 'pro',
-      why: `Start for $0 with pay-per-output credits. ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) supports a regular publishing routine.`,
+      recommended: 'payg',
+      why: `Start free with pay-per-output credits and pay only for what you generate.`,
     },
     results: [
       'Explain your product through posts, threads and visuals',

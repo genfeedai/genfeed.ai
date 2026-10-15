@@ -1152,7 +1152,7 @@ export async function createProactiveProductionTurnFixture() {
           organizationId,
           defaultModel: model.id,
           enabledModelIds: [model.id],
-          subscriptionTier: 'pro',
+          subscriptionTier: 'scale',
         }),
       });
       await db.subscription.create({

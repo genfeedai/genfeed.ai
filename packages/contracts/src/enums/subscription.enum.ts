@@ -37,7 +37,6 @@ export function parseSubscriptionPlan(
  */
 export enum SubscriptionTier {
   FREE = 'free',
-  PRO = 'pro',
   SCALE = 'scale',
   ENTERPRISE = 'enterprise', // custom terms, contact sales
 }

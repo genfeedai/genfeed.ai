@@ -40,7 +40,7 @@ describe('AuthWhoamiController', () => {
       context: {
         ...owner,
         isSuperAdmin: true,
-        subscriptionTier: 'pro',
+        subscriptionTier: 'scale',
         stripeSubscriptionStatus: 'active',
         hydratedAt: 1,
       },

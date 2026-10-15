@@ -819,7 +819,7 @@ describe('SettingsApiKeysPage', () => {
       screen.getByText(/API access is included on paid plans/),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /Upgrade to Pro/i }),
+      screen.getByRole('link', { name: /Upgrade to Agencies/i }),
     ).toHaveAttribute(
       'href',
       expect.stringContaining('/settings/subscription'),

@@ -8,7 +8,7 @@ import Link from 'next/link';
  * Plan names and prices come from @genfeedai/pricing. Only the marketing
  * framing (audience label, price suffix, which column is featured) lives here.
  */
-const FEATURED_TIER: PlanTier = 'pro';
+const FEATURED_TIER: PlanTier = 'scale';
 
 const PILLAR_COLUMNS: {
   priceSuffix?: string;
@@ -16,8 +16,8 @@ const PILLAR_COLUMNS: {
   subtitle: string;
   tier: PlanTier;
 }[] = [
-  { priceSuffix: ' + PAYG', subtitle: 'Default', tier: 'pro' },
-  { pricePrefix: 'From ', subtitle: 'Agencies', tier: 'scale' },
+  { priceSuffix: ' + PAYG', subtitle: 'Default', tier: 'payg' },
+  { subtitle: 'Agencies', tier: 'scale' },
   { subtitle: 'Studios', tier: 'enterprise' },
 ];
 

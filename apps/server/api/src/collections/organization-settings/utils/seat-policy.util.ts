@@ -6,7 +6,7 @@ import { FREE_SEAT_LIMIT } from '@genfeedai/pricing';
  *
  * Seats are never a meter — credits are the only meter. FREE is a solo
  * workspace (1 seat, no member invites); the first teammate is the upgrade
- * moment. Every paid tier (Pro, Scale, Enterprise) includes unlimited seats
+ * moment. Every paid tier (Scale, Enterprise) includes unlimited seats
  * with no billing gate at all — account-sharing can't dodge a usage meter,
  * so there is nothing to protect by capping team size.
  *
@@ -38,14 +38,12 @@ export const UNLIMITED_SEATS_FAIR_USE_CEILING = 1000;
 
 /**
  * Subscription tiers whose plans include unlimited team seats.
- * - PRO → $49/mo
  * - SCALE → $499/mo
  * - ENTERPRISE → custom
  *
  * All paid tiers are unlimited-seat; only FREE stays solo.
  */
 const UNLIMITED_SEAT_TIERS: ReadonlySet<string> = new Set([
-  SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,
 ]);
@@ -66,7 +64,7 @@ export function isUnlimitedSeatTier(tier: string | null | undefined): boolean {
  * @param storedSeatsLimit - the org's stored free-seat count (fair-use free
  *   allotment before member adds become credit-metered).
  * @returns `null` ({@link SEATS_UNLIMITED}) when seats are unlimited
- *   (Pro/Scale/Enterprise); otherwise the finite number of free seats.
+ *   (Scale/Enterprise); otherwise the finite number of free seats.
  */
 export function resolveEffectiveSeatsLimit(
   tier: string | null | undefined,

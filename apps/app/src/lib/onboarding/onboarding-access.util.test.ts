@@ -20,11 +20,8 @@ import {
 } from '@/lib/onboarding/onboarding-access.util';
 
 const PLAN_SLUG_PRICE_IDS = {
-  creator: 'price_pro_monthly',
-  hosted: 'price_pro_monthly',
-  pro: 'price_pro_monthly',
+  agencies: 'price_scale_monthly',
   scale: 'price_scale_monthly',
-  teams: 'price_scale_monthly',
 } as const;
 
 describe('buildOnboardingAccessSettingsPatch', () => {
@@ -111,7 +108,7 @@ describe('isFreePlanHandoff / hasPaidPlanIntent (genfeedai/genfeed.ai#5311)', ()
   });
 
   it('counts a real paid plan as intent on both sides of the funnel', () => {
-    for (const plan of ['price_123', 'hosted', 'pro']) {
+    for (const plan of ['price_123', 'agencies', 'scale']) {
       expect(isFreePlanHandoff(plan)).toBe(false);
       expect(hasPaidPlanIntent(plan)).toBe(true);
     }
@@ -143,24 +140,20 @@ describe('buildGenfeedCloudSignupUrl', () => {
 });
 
 describe('resolveSelectedPlanParam', () => {
-  it('resolves the website Creator/Hosted slug to the configured Pro price id', () => {
-    // Website "Creator" card links to `/sign-up?plan=hosted`; the checkout DTO
-    // only accepts `price_...`, so the slug must resolve before handoff or the
-    // launch coupon never applies (checkout 400s first).
-    expect(resolveSelectedPlanParam('hosted', PLAN_SLUG_PRICE_IDS)).toBe(
-      'price_pro_monthly',
+  it('resolves the website Agencies slug to the configured Scale price id', () => {
+    // The Agencies card links to `/sign-up?plan=agencies`; the checkout DTO
+    // only accepts `price_...`, so the slug must resolve before handoff.
+    expect(resolveSelectedPlanParam('agencies', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_scale_monthly',
     );
-    expect(resolveSelectedPlanParam('creator', PLAN_SLUG_PRICE_IDS)).toBe(
-      'price_pro_monthly',
-    );
-    expect(resolveSelectedPlanParam('pro', PLAN_SLUG_PRICE_IDS)).toBe(
-      'price_pro_monthly',
+    expect(resolveSelectedPlanParam('scale', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_scale_monthly',
     );
   });
 
   it('resolves slugs case-insensitively and after trimming', () => {
-    expect(resolveSelectedPlanParam('  Hosted  ', PLAN_SLUG_PRICE_IDS)).toBe(
-      'price_pro_monthly',
+    expect(resolveSelectedPlanParam('  Agencies  ', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_scale_monthly',
     );
   });
 
@@ -185,7 +178,7 @@ describe('persistOnboardingHandoffParams', () => {
     const storedValues = new Map<string, string>();
 
     persistOnboardingHandoffParams(
-      '?plan=hosted',
+      '?plan=agencies',
       {
         setItem: (key, value) => {
           storedValues.set(key, value);
@@ -195,7 +188,7 @@ describe('persistOnboardingHandoffParams', () => {
     );
 
     expect(storedValues.get(ONBOARDING_STORAGE_KEYS.selectedPlan)).toBe(
-      'price_pro_monthly',
+      'price_scale_monthly',
     );
   });
 

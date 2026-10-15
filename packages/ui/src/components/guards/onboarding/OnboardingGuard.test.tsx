@@ -411,7 +411,7 @@ describe('OnboardingGuard', () => {
         isSuperAdmin: false,
         organizationId: 'org_1',
         subscriptionStatus: 'active',
-        subscriptionTier: 'pro',
+        subscriptionTier: 'scale',
         userId: 'user_1',
       },
       hasPaygCredits: false,

@@ -217,7 +217,7 @@ describe('MembersList seat limit', () => {
       screen.getByText(/Your current plan is a solo workspace/i),
     ).toBeVisible();
     expect(
-      screen.getByRole('link', { name: 'Upgrade to Pro' }),
+      screen.getByRole('link', { name: 'Upgrade to Agencies' }),
     ).toHaveAttribute('href', '/org-123/~/settings/subscription');
     expect(
       screen.queryByRole('button', { name: /Invite Member/i }),
@@ -236,7 +236,7 @@ describe('MembersList seat limit', () => {
   });
 
   it('loads the member table and enables invites for Pro', async () => {
-    renderMembers({ pageCount: 0, tier: 'pro' });
+    renderMembers({ pageCount: 0, tier: 'scale' });
 
     await screen.findByText('No members found');
     expect(inviteButton()).toBeEnabled();
@@ -272,7 +272,7 @@ describe('MembersList seat limit', () => {
         },
       ],
       pageCount: 2,
-      tier: 'pro',
+      tier: 'scale',
     });
 
     expect(await screen.findByText('Vincent')).toBeVisible();
@@ -284,7 +284,7 @@ describe('MembersList seat limit', () => {
   });
 
   it('never blocks invite for an unlimited tier regardless of member count', async () => {
-    renderMembers({ pageCount: 15, tier: 'pro' });
+    renderMembers({ pageCount: 15, tier: 'scale' });
 
     await screen.findByText('15 members');
     expect(inviteButton()).toBeEnabled();
@@ -321,7 +321,7 @@ describe('MembersList seat limit', () => {
         },
       ],
       pageCount: 0,
-      tier: 'pro',
+      tier: 'scale',
     });
 
     expect(
@@ -344,7 +344,7 @@ describe('MembersList seat limit', () => {
     renderMembers({
       pageCount: 0,
       role: MemberRole.USER,
-      tier: 'pro',
+      tier: 'scale',
     });
 
     await screen.findByText('No members found');
@@ -368,7 +368,7 @@ describe('MembersList seat limit', () => {
         },
       ],
       pageCount: 0,
-      tier: 'pro',
+      tier: 'scale',
     });
 
     fireEvent.click(

@@ -10,7 +10,6 @@ import {
   getPlanEntitlementForTier,
   getSeatLimitForTier,
   getUpgradeTierForLimit,
-  HIGHER_API_RATE_LIMIT,
   hasApiAccess,
   hasByokAccess,
   hasCleanExportAccess,
@@ -62,17 +61,13 @@ describe('API entitlements', () => {
     expect(hasApiAccess(null)).toBe(false);
   });
 
-  it('grants API access from Pro upward', () => {
-    expect(hasApiAccess(SubscriptionTier.PRO)).toBe(true);
+  it('grants API access from Scale upward', () => {
     expect(hasApiAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasApiAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 
   it('returns per-tier rate limits', () => {
     expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(0);
-    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(
-      HIGHER_API_RATE_LIMIT,
-    );
     expect(getApiRateLimitForTier(SubscriptionTier.SCALE)).toBe(
       SCALE_API_RATE_LIMIT,
     );
@@ -80,9 +75,9 @@ describe('API entitlements', () => {
   });
 
   it('projects only API fields through getApiEntitlementForTier', () => {
-    expect(getApiEntitlementForTier(SubscriptionTier.PRO)).toEqual({
+    expect(getApiEntitlementForTier(SubscriptionTier.SCALE)).toEqual({
       apiAccess: true,
-      apiRateLimit: HIGHER_API_RATE_LIMIT,
+      apiRateLimit: SCALE_API_RATE_LIMIT,
     });
   });
 });
@@ -95,18 +90,15 @@ describe('product limits', () => {
     }
   });
 
-  it('caps seats on free tiers and lifts the cap from Pro upward', () => {
+  it('caps seats on free tiers and lifts the cap from Scale upward', () => {
     expect(getSeatLimitForTier(SubscriptionTier.FREE)).toBe(FREE_SEAT_LIMIT);
-    expect(getSeatLimitForTier(SubscriptionTier.PRO)).toBe(
+    expect(getSeatLimitForTier(SubscriptionTier.SCALE)).toBe(
       PLAN_LIMIT_UNLIMITED,
     );
   });
 
   it('caps organizations below Scale', () => {
     expect(getOrganizationLimitForTier(SubscriptionTier.FREE)).toBe(
-      SINGLE_ORGANIZATION_LIMIT,
-    );
-    expect(getOrganizationLimitForTier(SubscriptionTier.PRO)).toBe(
       SINGLE_ORGANIZATION_LIMIT,
     );
     expect(getOrganizationLimitForTier(SubscriptionTier.SCALE)).toBe(
@@ -124,8 +116,7 @@ describe('hasTrainingAccess', () => {
     expect(hasTrainingAccess('unknown')).toBe(false);
   });
 
-  it('is granted from Pro upward', () => {
-    expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(true);
+  it('is granted from Scale upward', () => {
     expect(hasTrainingAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
@@ -139,8 +130,7 @@ describe('hasByokAccess', () => {
     expect(hasByokAccess(null)).toBe(false);
   });
 
-  it('is granted from Pro upward', () => {
-    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(true);
+  it('is granted from Scale upward', () => {
     expect(hasByokAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasByokAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
@@ -154,26 +144,24 @@ describe('hasCleanExportAccess', () => {
     expect(hasCleanExportAccess(undefined)).toBe(false);
   });
 
-  it('is granted from Pro upward', () => {
-    expect(hasCleanExportAccess(SubscriptionTier.PRO)).toBe(true);
+  it('is granted from Scale upward', () => {
     expect(hasCleanExportAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasCleanExportAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 });
 
 describe('getUpgradeTierForLimit', () => {
-  it('suggests Pro when seats are capped', () => {
+  it('suggests Scale when seats are capped', () => {
     expect(getUpgradeTierForLimit('seats', SubscriptionTier.FREE)).toBe(
-      SubscriptionTier.PRO,
+      SubscriptionTier.SCALE,
     );
-    expect(getUpgradeTierForLimit('seats', null)).toBe(SubscriptionTier.PRO);
+    expect(getUpgradeTierForLimit('seats', null)).toBe(SubscriptionTier.SCALE);
     expect(getUpgradeTierForLimit('seats', 'unknown')).toBe(
-      SubscriptionTier.PRO,
+      SubscriptionTier.SCALE,
     );
   });
 
-  it('suggests nothing for seats from Pro upward', () => {
-    expect(getUpgradeTierForLimit('seats', SubscriptionTier.PRO)).toBeNull();
+  it('suggests nothing for seats from Scale upward', () => {
     expect(getUpgradeTierForLimit('seats', SubscriptionTier.SCALE)).toBeNull();
     expect(
       getUpgradeTierForLimit('seats', SubscriptionTier.ENTERPRISE),
@@ -182,9 +170,6 @@ describe('getUpgradeTierForLimit', () => {
 
   it('suggests Scale when organizations are capped', () => {
     expect(getUpgradeTierForLimit('organizations', SubscriptionTier.FREE)).toBe(
-      SubscriptionTier.SCALE,
-    );
-    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.PRO)).toBe(
       SubscriptionTier.SCALE,
     );
     expect(

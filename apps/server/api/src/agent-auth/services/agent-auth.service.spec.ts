@@ -164,7 +164,7 @@ function buildService() {
     },
     organizationSetting: {
       findUnique: vi.fn().mockResolvedValue({
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
       }),
     },
     user: {

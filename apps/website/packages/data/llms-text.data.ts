@@ -18,7 +18,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 
 const BASE_URL = 'https://genfeed.ai';
-const PRICING_SUMMARY = `${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel} + PAYG output), ${PLAN_COPY.scale.name} (from ${PLAN_COPY.scale.priceLabel} + PAYG output), ${PLAN_COPY.enterprise.name} (custom). Free to join.`;
+const PRICING_SUMMARY = `${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom). Free to join.`;
 const PUBLIC_MODELS_API_URL = 'https://api.genfeed.ai/v1/public/models';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -148,7 +148,7 @@ export function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    `> ${metadata.description} Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
+    `> ${metadata.description} Start free, then ${PLAN_COPY.scale.name} from ${PLAN_COPY.scale.monthlyPrice}.`,
   );
   lines.push('');
 
@@ -214,7 +214,7 @@ export function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel} + PAYG output), ${PLAN_COPY.scale.name} (from ${PLAN_COPY.scale.priceLabel} + PAYG output), ${PLAN_COPY.enterprise.name} (custom)`,
+    `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom)`,
   );
   lines.push(
     `- [Brand OS for experts](${BASE_URL}/experts): Turn interviews, talks, and call notes into a scored positioning system and a reviewable content plan — nothing publishes without the expert's approval`,
@@ -309,7 +309,7 @@ export function buildLlmsFull(
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    `> ${metadata.description} Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
+    `> ${metadata.description} Start free, then ${PLAN_COPY.scale.name} from ${PLAN_COPY.scale.monthlyPrice}.`,
   );
   s.push('');
 
@@ -382,7 +382,7 @@ export function buildLlmsFull(
   s.push('## Pricing');
   s.push('');
   s.push(
-    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate, API access on paid plans, and unlimited team seats. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} include one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with ${PLAN_COPY.pro.includedCredits} included. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, API access on paid plans, and unlimited team seats. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} includes one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
   );
   s.push('');
 

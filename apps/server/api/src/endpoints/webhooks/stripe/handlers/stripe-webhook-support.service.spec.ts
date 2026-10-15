@@ -91,8 +91,6 @@ describe('StripeWebhookSupportService', () => {
 
   const priceConfig: Record<string, string> = {
     STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'price_enterprise',
-    STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'price_pro',
-    STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: 'price_pro_yearly',
     STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'price_scale',
   };
 
@@ -613,7 +611,7 @@ describe('StripeWebhookSupportService', () => {
     it('maps tier prices to the monthly plan', () => {
       configService.get.mockImplementation((key: string) => priceConfig[key]);
 
-      expect(service.resolveSubscriptionPlan('price_pro')).toBe(
+      expect(service.resolveSubscriptionPlan('price_scale')).toBe(
         SubscriptionPlan.MONTHLY,
       );
     });
@@ -662,13 +660,13 @@ describe('StripeWebhookSupportService', () => {
 
       await service.updateOrganizationTierAndModels(
         'org_1',
-        SubscriptionTier.PRO,
+        SubscriptionTier.SCALE,
         'test',
       );
 
       expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
         enabledModelIds: ['model_1'],
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
       });
       expect(
         requestContextCacheService.invalidateForOrganization,
@@ -689,13 +687,13 @@ describe('StripeWebhookSupportService', () => {
 
       await service.updateOrganizationTierAndModels(
         'org_1',
-        SubscriptionTier.PRO,
+        SubscriptionTier.SCALE,
         'test',
       );
 
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('org settings not found for tier update'),
-        { organizationId: 'org_1', tier: SubscriptionTier.PRO },
+        { organizationId: 'org_1', tier: SubscriptionTier.SCALE },
       );
       expect(organizationSettingsService.patch).not.toHaveBeenCalled();
     });
@@ -781,14 +779,14 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('upsertSubscriptionLead', () => {
-    it('creates a lead for a new Pro/Scale organization', async () => {
+    it('creates a lead for a new Scale organization', async () => {
       prisma.lead.findFirst.mockResolvedValue(null);
       prisma.lead.create.mockResolvedValue({ id: 'lead_1' });
 
       await service.upsertSubscriptionLead({
         organizationId: 'org_1',
         stripeSubscriptionId: 'sub_1',
-        tier: SubscriptionTier.PRO,
+        tier: SubscriptionTier.SCALE,
         userId: 'user_1',
       });
 
@@ -804,7 +802,7 @@ describe('StripeWebhookSupportService', () => {
           data: expect.objectContaining({
             source: 'subscription',
             stripeSubscriptionId: 'sub_1',
-            tier: SubscriptionTier.PRO,
+            tier: SubscriptionTier.SCALE,
           }),
           organizationId: 'org_1',
           userId: 'user_1',
@@ -842,7 +840,7 @@ describe('StripeWebhookSupportService', () => {
         service.upsertSubscriptionLead({
           organizationId: 'org_1',
           stripeSubscriptionId: 'sub_1',
-          tier: SubscriptionTier.PRO,
+          tier: SubscriptionTier.SCALE,
           userId: 'user_1',
         }),
       ).resolves.toBeUndefined();

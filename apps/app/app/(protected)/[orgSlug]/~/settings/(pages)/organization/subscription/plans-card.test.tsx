@@ -82,48 +82,42 @@ describe('PlansCard', () => {
     mockSubscription();
   });
 
-  it('sells only Pro and Agencies — never Free or Enterprise', () => {
+  it('sells only Agencies — never Free or Enterprise', () => {
     render(<PlansCard />);
 
-    expect(screen.getByText('Pro')).toBeInTheDocument();
     expect(screen.getByText('Agencies')).toBeInTheDocument();
     expect(screen.queryByText('Pay As You Go')).not.toBeInTheDocument();
     expect(screen.queryByText('Enterprise')).not.toBeInTheDocument();
   });
 
-  it('leads with launch pricing and strikes the list price where one applies', () => {
+  it('shows the Agencies list price plainly', () => {
     render(<PlansCard />);
 
-    expect(screen.getByText('$39/mo')).toBeInTheDocument();
-    expect(screen.getByText('was $49/mo')).toBeInTheDocument();
-    expect(screen.getByText(/EARLYGENFEED/)).toBeInTheDocument();
-    // Agencies carries no launch offer, so it shows its list price plainly.
     expect(screen.getByText('$499/mo')).toBeInTheDocument();
-    expect(screen.queryByText('was $499/mo')).not.toBeInTheDocument();
   });
 
   it('renders every upgrade call to action as the primary (white) button', () => {
-    useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'pro' } });
-
     render(<PlansCard />);
 
-    const upgrade = screen.getByRole('button', { name: /Upgrade to Agencies/i });
+    const upgrade = screen.getByRole('button', {
+      name: /Upgrade to Agencies/i,
+    });
     expect(upgrade.className).toMatch(/\bbg-primary\b/);
     expect(upgrade.className).not.toMatch(/\bbg-tertiary\b/);
   });
 
   it('badges the current plan and drops its call to action', () => {
-    useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'pro' } });
+    useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'scale' } });
 
     render(<PlansCard />);
 
     expect(screen.getByText('Current')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /Pro$/i }),
+      screen.queryByRole('button', { name: /Agencies$/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Upgrade to Agencies/i }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /Upgrade to Agencies/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('sends an org without a Stripe subscription through checkout', async () => {
@@ -132,11 +126,13 @@ describe('PlansCard', () => {
     });
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Pro/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Upgrade to Agencies/i }),
+    );
 
     await waitFor(() => {
       expect(createCheckoutSession).toHaveBeenCalledWith(
-        expect.objectContaining({ stripePriceId: 'price_pro' }),
+        expect.objectContaining({ stripePriceId: 'price_scale' }),
       );
     });
     expect(previewPlanChange).not.toHaveBeenCalled();
@@ -153,7 +149,9 @@ describe('PlansCard', () => {
     });
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Switch to Agencies/i }),
+    );
 
     await waitFor(() => {
       expect(previewPlanChange).toHaveBeenCalledWith('price_scale');
@@ -183,7 +181,9 @@ describe('PlansCard', () => {
     } as never);
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Switch to Agencies/i }),
+    );
 
     expect(
       await screen.findByText(
@@ -203,7 +203,9 @@ describe('PlansCard', () => {
     });
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Switch to Agencies/i }),
+    );
 
     expect(
       await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
@@ -334,7 +336,9 @@ describe('PlansCard', () => {
       });
 
       render(<PlansCard />);
-      fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /Switch to Agencies/i }),
+      );
       await screen.findByRole('button', { name: /Confirm change/i });
     }
 
@@ -427,22 +431,6 @@ describe('PlansCard', () => {
       // running it would change the plan they just declined.
       await new Promise((resolve) => setTimeout(resolve, 20));
       expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not resurrect an earlier plan once another is selected', async () => {
-      changeSubscriptionPlan.mockRejectedValue(transientFailure);
-      await previewScale();
-
-      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
-      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
-      const retry = retryActionOf(0);
-
-      fireEvent.click(screen.getByRole('button', { name: /Pro/i }));
-      retry.onAction?.();
-
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
-      expect(changeSubscriptionPlan).not.toHaveBeenCalledWith('price_pro');
     });
   });
 });

@@ -30,7 +30,6 @@ const OFFER_DESCRIPTIONS: Record<PlanTier, string> = {
   enterprise:
     'Enterprise plan with custom output terms, SSO, SLA, and dedicated support.',
   payg: `Pay-per-output credits at $${CREDIT_VALUE_DOLLARS.toFixed(2)} each, with no monthly fee. Buy credit packs for images, video, voice, and articles.`,
-  pro: `Monthly subscription with ${PLAN_COPY.pro.includedCredits} included at a better rate, unlimited brand kits, unlimited connected channels, and API access.`,
   scale: `For agencies: unlimited seats and client workspaces, a shared pool of ${PLAN_COPY.scale.includedCredits}, clean exports, brand model training, and API access.`,
 };
 
@@ -51,17 +50,13 @@ export function buildPricingJsonLd() {
       // priceSpecification, and inventing one would misstate the deal, so
       // quote-only tiers are left out of the offer list entirely.
       offers: websitePlans
-        .filter((plan) => plan.price != null && plan.tier !== 'pro')
+        .filter((plan) => plan.price != null)
         .map((plan) => ({
           '@type': 'Offer',
-          description: [OFFER_DESCRIPTIONS[plan.tier], plan.launchNote]
-            .filter(Boolean)
-            .join(' '),
+          description: OFFER_DESCRIPTIONS[plan.tier],
           name: plan.label,
           price: String(
-            plan.type === 'payg'
-              ? CREDIT_VALUE_DOLLARS
-              : (plan.launchPrice ?? plan.price),
+            plan.type === 'payg' ? CREDIT_VALUE_DOLLARS : plan.price,
           ),
           priceCurrency: 'USD',
           priceSpecification:

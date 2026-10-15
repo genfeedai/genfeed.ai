@@ -86,12 +86,12 @@ describe('ApiKeysService per-tier rate limiting', () => {
     it('cloud: resolves the tier limit from OrganizationSetting', async () => {
       const service = createHarness();
       service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
       });
 
       await expect(
         service.resolveEffectiveRateLimit(buildApiKey()),
-      ).resolves.toBe(300);
+      ).resolves.toBe(600);
       expect(service.__findUnique).toHaveBeenCalledWith({
         select: { subscriptionTier: true },
         where: { organizationId: 'org-1' },
@@ -178,12 +178,12 @@ describe('ApiKeysService per-tier rate limiting', () => {
       const client = buildRedisClient(10);
       const service = createHarness(client);
       service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
       });
 
       await expect(
         service.checkRateLimit(buildApiKey()),
-      ).resolves.toMatchObject({ allowed: true, limit: 300 });
+      ).resolves.toMatchObject({ allowed: true, limit: 600 });
       expect(client.eval).toHaveBeenCalledTimes(1);
       expect(client.eval).toHaveBeenCalledWith(
         expect.any(String),
@@ -191,23 +191,23 @@ describe('ApiKeysService per-tier rate limiting', () => {
         'rateLimit:key-1',
         expect.any(String),
         expect.any(String),
-        '300',
+        '600',
         expect.any(String),
         expect.any(String),
       );
     });
 
     it('denies a paid tier once its per-minute ceiling is reached and reports Retry-After', async () => {
-      const client = buildRedisClient(300);
+      const client = buildRedisClient(600);
       const service = createHarness(client);
       service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
       });
 
       const result = await service.checkRateLimit(buildApiKey());
 
       expect(result.allowed).toBe(false);
-      expect(result.limit).toBe(300);
+      expect(result.limit).toBe(600);
       expect(result.retryAfterSeconds).toBeGreaterThan(0);
       expect(client.eval).toHaveBeenCalledTimes(1);
     });
@@ -218,12 +218,12 @@ describe('ApiKeysService per-tier rate limiting', () => {
       };
       const service = createHarness(client);
       service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
       });
 
       await expect(
         service.checkRateLimit(buildApiKey()),
-      ).resolves.toMatchObject({ allowed: true, limit: 300 });
+      ).resolves.toMatchObject({ allowed: true, limit: 600 });
     });
   });
 });

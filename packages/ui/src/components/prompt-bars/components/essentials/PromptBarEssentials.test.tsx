@@ -176,7 +176,7 @@ describe('PromptBarEssentials', () => {
     setReferenceSource: vi.fn(),
     setReferences: vi.fn(),
     setTextValue: vi.fn(),
-    subscriptionTier: 'pro',
+    subscriptionTier: 'scale',
     textareaRef: { current: null },
     textareaRegister: {},
     toggleVoice: vi.fn(),

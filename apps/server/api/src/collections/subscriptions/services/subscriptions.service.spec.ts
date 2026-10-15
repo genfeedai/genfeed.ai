@@ -271,12 +271,12 @@ describe('SubscriptionsService', () => {
       );
 
       expect(organizationSettingDelegate.updateMany).toHaveBeenCalledWith({
-        data: { subscriptionTier: 'pro' },
+        data: { subscriptionTier: 'scale' },
         where: { organizationId: ORGANIZATION_ID },
       });
       expect(logger.log).toHaveBeenCalledWith(
         'Subscription tier persisted to DB',
-        { organizationId: ORGANIZATION_ID, subscriptionTier: 'pro' },
+        { organizationId: ORGANIZATION_ID, subscriptionTier: 'scale' },
       );
     });
 

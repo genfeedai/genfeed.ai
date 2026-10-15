@@ -11,8 +11,7 @@ import {
 
 describe('seat-policy.util', () => {
   describe('isUnlimitedSeatTier', () => {
-    it('is true for every paid tier: Pro, Scale, and Enterprise', () => {
-      expect(isUnlimitedSeatTier(SubscriptionTier.PRO)).toBe(true);
+    it('is true for every paid tier: Scale and Enterprise', () => {
       expect(isUnlimitedSeatTier(SubscriptionTier.SCALE)).toBe(true);
       expect(isUnlimitedSeatTier(SubscriptionTier.ENTERPRISE)).toBe(true);
     });
@@ -29,13 +28,6 @@ describe('seat-policy.util', () => {
   });
 
   describe('resolveEffectiveSeatsLimit', () => {
-    it('returns unlimited (null) for Pro regardless of stored limit', () => {
-      expect(resolveEffectiveSeatsLimit(SubscriptionTier.PRO, 1)).toBe(
-        SEATS_UNLIMITED,
-      );
-      expect(resolveEffectiveSeatsLimit(SubscriptionTier.PRO, 3)).toBeNull();
-    });
-
     it('returns unlimited (null) for Scale regardless of stored limit', () => {
       expect(resolveEffectiveSeatsLimit(SubscriptionTier.SCALE, 3)).toBe(
         SEATS_UNLIMITED,

@@ -320,7 +320,7 @@ describe('SummaryContent behavior', () => {
         // Status is a Prisma enum column (SCREAMING labels); tier is a String
         // column that keeps lowercase product vocabulary. See enum_source_of_truth.
         subscriptionStatus: SubscriptionStatus.ACTIVE,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         userId: 'user-123',
       },
     });
@@ -328,7 +328,7 @@ describe('SummaryContent behavior', () => {
     render(<SummaryContent />);
 
     expect(await screen.findByText('Your plan')).toBeInTheDocument();
-    expect(await screen.findByText('Pro')).toBeInTheDocument();
+    expect(await screen.findByText('Agencies')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
     // The saved access choice (cloud) is flagged as current.

@@ -1,5 +1,4 @@
 import type { PlanTier } from '@genfeedai/pricing';
-import { PLAN_COPY } from '@genfeedai/pricing';
 
 export interface Product {
   slug: string;
@@ -604,8 +603,8 @@ export const products: Product[] = [
     ],
     name: 'Studio',
     pricing: {
-      recommended: 'pro',
-      why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
+      recommended: 'payg',
+      why: `Start free with pay-per-output credits and pay only for what you generate.`,
     },
     relatedProducts: ['publishing', 'workflows', 'hire-agents'],
     slug: 'studio',

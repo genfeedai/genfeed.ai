@@ -14,14 +14,6 @@ describe('tier-models.helper', () => {
       ]);
     });
 
-    it('should give PRO tier BASIC, STANDARD, and HIGH', () => {
-      expect(TIER_QUALITY_ACCESS[SubscriptionTier.PRO]).toEqual([
-        QualityTier.BASIC,
-        QualityTier.STANDARD,
-        QualityTier.HIGH,
-      ]);
-    });
-
     it('should give SCALE tier all quality tiers', () => {
       expect(TIER_QUALITY_ACCESS[SubscriptionTier.SCALE]).toEqual([
         QualityTier.BASIC,
@@ -56,14 +48,6 @@ describe('tier-models.helper', () => {
       ]);
     });
 
-    it('should return correct tiers for PRO', () => {
-      const tiers = getQualityTiersForSubscription(SubscriptionTier.PRO);
-      expect(tiers).toContain(QualityTier.BASIC);
-      expect(tiers).toContain(QualityTier.STANDARD);
-      expect(tiers).toContain(QualityTier.HIGH);
-      expect(tiers).not.toContain(QualityTier.ULTRA);
-    });
-
     it('should return correct tiers for ENTERPRISE', () => {
       const tiers = getQualityTiersForSubscription(SubscriptionTier.ENTERPRISE);
       expect(tiers).toHaveLength(4);
@@ -79,7 +63,7 @@ describe('tier-models.helper', () => {
 
   describe('hasQualityAccess', () => {
     it('should return true when tier has access', () => {
-      expect(hasQualityAccess(SubscriptionTier.PRO, QualityTier.HIGH)).toBe(
+      expect(hasQualityAccess(SubscriptionTier.SCALE, QualityTier.HIGH)).toBe(
         true,
       );
     });
@@ -104,7 +88,7 @@ describe('tier-models.helper', () => {
       expect(
         hasQualityAccess(SubscriptionTier.ENTERPRISE, QualityTier.ULTRA),
       ).toBe(true);
-      expect(hasQualityAccess(SubscriptionTier.PRO, QualityTier.ULTRA)).toBe(
+      expect(hasQualityAccess(SubscriptionTier.FREE, QualityTier.ULTRA)).toBe(
         false,
       );
     });

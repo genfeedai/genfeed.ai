@@ -157,14 +157,14 @@ describe('StripeSubscriptionWebhookHandler', () => {
       );
       subscriptionsService.patch.mockResolvedValue(dbSubscription);
       supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.PRO,
+        SubscriptionTier.SCALE,
       );
 
       await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
 
       expect(
         supportService.updateOrganizationTierAndModels,
-      ).toHaveBeenCalledWith('org_1', SubscriptionTier.PRO, 'test');
+      ).toHaveBeenCalledWith('org_1', SubscriptionTier.SCALE, 'test');
     });
 
     it('propagates classified identity errors without nested logs or side effects', async () => {
@@ -300,7 +300,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
       subscriptionsService.patch.mockResolvedValue(dbSubscription);
       usersService.findOne.mockResolvedValue({ id: 'user_1' });
       supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.PRO,
+        SubscriptionTier.SCALE,
       );
 
       await handler.handleSubscriptionUpdated(stripeSubscription(), 'test');
@@ -314,7 +314,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
       });
       expect(
         supportService.updateOrganizationTierAndModels,
-      ).toHaveBeenCalledWith('org_1', SubscriptionTier.PRO, 'test');
+      ).toHaveBeenCalledWith('org_1', SubscriptionTier.SCALE, 'test');
       expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
         'user_1',
       );

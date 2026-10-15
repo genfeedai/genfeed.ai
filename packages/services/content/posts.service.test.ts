@@ -28,7 +28,6 @@ vi.mock('@genfeedai/pricing', () => ({
   getPlanByLabel: () => null,
   getPlanByTier: () => null,
   getPlanLabel: () => '',
-  getProPlan: () => null,
   getScalePlan: () => null,
   websitePlans: [],
 }));

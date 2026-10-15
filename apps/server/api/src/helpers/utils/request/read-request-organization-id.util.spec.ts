@@ -28,7 +28,7 @@ function makeRequestContext(organizationId: string): IRequestContext {
     isSuperAdmin: false,
     organizationId,
     stripeSubscriptionStatus: 'active',
-    subscriptionTier: 'pro',
+    subscriptionTier: 'scale',
     userId: 'user_1',
   };
 }

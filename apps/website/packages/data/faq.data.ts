@@ -28,7 +28,7 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
     question: 'Who is Genfeed for?',
   },
   {
-    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) when you publish weekly, or ${PLAN_COPY.scale.name} when you need seats, shared approvals, and multi-organization workflows.`,
+    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
     question: 'How do I get started?',
   },
 ];
@@ -62,15 +62,15 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     category: 'Pricing',
     questions: [
       {
-        answer: `Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate, API access on paid plans, and shared team seats.`,
+        answer: `Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, API access on paid plans, and shared team seats.`,
         question: 'How does pricing work?',
       },
       {
-        answer: `${PLAN_COPY.payg.name} is free with credit packs. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with ${PLAN_COPY.pro.includedCredits} included. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+        answer: `${PLAN_COPY.payg.name} is free with credit packs. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
         question: 'What are the pricing tiers?',
       },
       {
-        answer: `Yes. API access is included on every paid plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.pro.name} gets standard rate limits, ${PLAN_COPY.scale.name} higher limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
+        answer: `Yes. API access is included on every paid plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.scale.name} gets higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
         question: 'Is there an API?',
       },
       {
@@ -83,7 +83,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'What does output cost?',
       },
       {
-        answer: `Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} include one organization; ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} add multi-organization workflows, seats, shared approvals, and higher API limits.`,
+        answer: `Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} includes one organization; ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} add multi-organization workflows, seats, shared approvals, and higher API limits.`,
         question: 'How many brands and channels can I connect?',
       },
       {
@@ -121,8 +121,8 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     category: 'Features & Access',
     questions: [
       {
-        answer: `${PLAN_COPY.payg.name} includes one personal organization, unlimited brand kits, unlimited connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. ${PLAN_COPY.pro.name} adds ${PLAN_COPY.pro.includedCredits} monthly at a better rate and API access on paid plans.`,
-        question: `What's included in the free and ${PLAN_COPY.pro.name} plans?`,
+        answer: `${PLAN_COPY.payg.name} includes one personal organization, unlimited brand kits, unlimited connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. ${PLAN_COPY.scale.name} adds ${PLAN_COPY.scale.includedCredits} monthly at a better rate and API access.`,
+        question: `What's included in the ${PLAN_COPY.payg.name} plan?`,
       },
       {
         answer: `${PLAN_COPY.scale.name} adds unlimited seats, a shared pool of ${PLAN_COPY.scale.includedCredits}, collaboration workspaces, multi-organization accounts, unlimited brands, roles, shared approvals, managed billing, priority support, and advanced analytics.`,
@@ -133,7 +133,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: `What is included in ${PLAN_COPY.enterprise.name}?`,
       },
       {
-        answer: `Managed API access depends on ${PLAN_COPY.pro.name}, ${PLAN_COPY.scale.name}, or ${PLAN_COPY.enterprise.name} scope. Contact sales for production API terms.`,
+        answer: `Managed API access depends on ${PLAN_COPY.scale.name} or ${PLAN_COPY.enterprise.name} scope. Contact sales for production API terms.`,
         question: 'Do you have an API?',
       },
     ],
@@ -157,7 +157,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'Can I delete my account and data?',
       },
       {
-        answer: `Yes. ${PLAN_COPY.pro.name} includes email support. ${PLAN_COPY.scale.name} includes priority support. ${PLAN_COPY.enterprise.name} includes a dedicated Slack channel and account manager.`,
+        answer: `Yes. ${PLAN_COPY.scale.name} includes priority support. ${PLAN_COPY.enterprise.name} includes a dedicated Slack channel and account manager.`,
         question: 'Do you offer customer support?',
       },
     ],

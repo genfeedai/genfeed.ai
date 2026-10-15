@@ -165,7 +165,7 @@ export default function PricingContent() {
                     <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
                       {isPayg
                         ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
-                        : formatPrice(plan.launchPrice ?? plan.price)}
+                        : formatPrice(plan.price)}
                     </span>
                     <span className="text-sm font-medium text-surface/55">
                       {isPayg ? '/credit' : '/mo'}

@@ -85,7 +85,7 @@ function buildLogger() {
   } as unknown as LoggerService;
 }
 
-function buildOrgSettingsService(subscriptionTier: string | null = 'pro') {
+function buildOrgSettingsService(subscriptionTier: string | null = 'scale') {
   return {
     findOne: vi
       .fn()
@@ -143,7 +143,7 @@ describe('RequestContextMiddleware', () => {
       isSuperAdmin: false,
       organizationId: 'org_1',
       stripeSubscriptionStatus: 'active',
-      subscriptionTier: 'pro',
+      subscriptionTier: 'scale',
       userId: 'user_1',
     };
 
@@ -171,7 +171,7 @@ describe('RequestContextMiddleware', () => {
     middleware = new RequestContextMiddleware(
       redisService as unknown as RedisService,
       buildLogger(),
-      buildOrgSettingsService('pro') as never,
+      buildOrgSettingsService('scale') as never,
       buildSubscriptionsService('active') as never,
       {} as never,
     );
@@ -182,7 +182,7 @@ describe('RequestContextMiddleware', () => {
     const firstContext = (req as { context: unknown }).context;
     expect(firstContext).toMatchObject({
       organizationId: 'org_1',
-      subscriptionTier: 'pro',
+      subscriptionTier: 'scale',
     });
 
     await middleware.hydrate(req);
@@ -197,7 +197,7 @@ describe('RequestContextMiddleware', () => {
     middleware = new RequestContextMiddleware(
       redisService as unknown as RedisService,
       buildLogger(),
-      buildOrgSettingsService('pro') as never,
+      buildOrgSettingsService('scale') as never,
       buildSubscriptionsService('active') as never,
       {} as never,
     );
@@ -225,7 +225,7 @@ describe('RequestContextMiddleware', () => {
     expect(ctx.organizationId).toBe('org_1');
     expect(ctx.isSuperAdmin).toBe(false);
     // DB values win over stale legacy auth provider metadata
-    expect(ctx.subscriptionTier).toBe('pro');
+    expect(ctx.subscriptionTier).toBe('scale');
     expect(ctx.stripeSubscriptionStatus).toBe('active');
     expect(publisher.setex).toHaveBeenCalledOnce();
     expect(next).toHaveBeenCalledOnce();
@@ -530,7 +530,7 @@ describe('RequestContextMiddleware', () => {
           isSuperAdmin: true,
           organizationId: 'org_1',
           stripeSubscriptionStatus: 'active',
-          subscriptionTier: 'pro',
+          subscriptionTier: 'scale',
           userId: 'user_1',
         }),
       );

@@ -9,13 +9,13 @@ import { ceilDecimalPricingRatio } from './decimal-pricing';
  * - Credits are the user-facing unit of output: 1 credit = $0.01 PAYG.
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Subscriptions sell a better credit rate, not access: included monthly
- *   credits carry a ~20% bonus over the pay-as-you-go rate (Pro $49 → 5,900
- *   credits ≈ $59 of PAYG output; Scale $499 → 60,000 credits ≈ $600).
+ *   credits carry a ~20% bonus over the pay-as-you-go rate (Agencies $499 →
+ *   60,000 credits ≈ $600 of PAYG output).
  * - Seats are never a usage meter: FREE is solo (1 seat); every paid tier
- *   (Pro, Scale, Enterprise) has unlimited seats. Multi-organization workflows
+ *   (Agencies, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
  *   the only output meter (account-sharing can't dodge a usage meter).
- * - BYOK (bring your own provider keys) is a Pro+ subscription feature: BYOK
+ * - BYOK (bring your own provider keys) is an Agencies+ subscription feature: BYOK
  *   generations draw no credits and carry no per-usage fee.
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
@@ -48,7 +48,7 @@ interface PricingOutputsProps {
  * PLAN_LABELS. Nothing outside this file spells a plan name, so renaming a
  * plan is a one-line change here instead of a site-wide find-and-replace.
  */
-export type PlanTier = 'payg' | 'pro' | 'scale' | 'enterprise';
+export type PlanTier = 'payg' | 'scale' | 'enterprise';
 
 /**
  * Canonical display label per tier: the only place a plan name is written.
@@ -56,12 +56,11 @@ export type PlanTier = 'payg' | 'pro' | 'scale' | 'enterprise';
 export const PLAN_LABELS = {
   enterprise: 'Enterprise',
   payg: 'Pay As You Go',
-  pro: 'Pro',
   scale: 'Agencies',
 } as const satisfies Record<PlanTier, string>;
 
 export interface PricingPlanProps {
-  /** Display label (e.g., "Pro", "Scale", "Enterprise") */
+  /** Display label (e.g., "Agencies", "Enterprise") */
   label: string;
   /** Stripe price ID for checkout */
   stripePriceId?: string;
@@ -87,10 +86,6 @@ export interface PricingPlanProps {
   target?: string;
   /** Value proposition one-liner */
   valueProposition?: string;
-  /** Discounted monthly price shown alongside the standard price (launch pricing) */
-  launchPrice?: number;
-  /** Explanatory note shown under launch pricing (e.g. duration/terms) */
-  launchNote?: string;
 }
 
 /**
@@ -104,9 +99,6 @@ export interface WebsitePlanProps extends PricingPlanProps {
 const STRIPE_PRICE_IDS = {
   enterprise:
     process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY,
-  // Convenience aliases
-  monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY,
-  pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY,
   scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY,
 } as const;
 
@@ -114,7 +106,6 @@ const STRIPE_PRICE_IDS = {
 const PLAN_PRICES = {
   enterprise: null,
   payg: 0,
-  pro: 49,
   scale: 499,
 } as const satisfies Record<PlanTier, number | null>;
 
@@ -129,25 +120,16 @@ const PLAN_PRICES = {
  * Each tier includes a credit bonus over the $0.01 PAYG rate.
  */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
-  pro: 5_900,
   scale: 60_000,
 };
 
-export type SubscriptionPriceTier = 'pro' | 'scale';
+export type SubscriptionPriceTier = 'scale';
 
 /**
  * Stable Stripe price contracts keyed by Genfeed tier, never by Stripe product
- * display name. The live catalog historically called the Pro product
- * "Creator", so display-name validation would reject the correct price while
- * accepting a renamed wrong one.
+ * display name, so a renamed wrong price is never accepted.
  */
 export const SUBSCRIPTION_PRICE_CONTRACTS = {
-  pro: {
-    currency: 'usd',
-    includedMonthlyCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
-    interval: 'month',
-    unitAmount: PLAN_PRICES.pro * 100,
-  },
   scale: {
     currency: 'usd',
     includedMonthlyCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
@@ -370,18 +352,6 @@ export const AVATAR_CREDIT_COSTS = {
 } as const;
 
 /**
- * Feature bullet describing a subscription's monthly credit grant, derived from
- * TIER_INCLUDED_MONTHLY_CREDITS so the number in the copy can never drift from
- * the number actually granted.
- */
-function includedCreditsFeature(tier: 'pro' | 'scale'): string {
-  const credits = TIER_INCLUDED_MONTHLY_CREDITS[tier];
-  const paygValue = credits * CREDIT_VALUE_DOLLARS;
-
-  return `${formatPricingNumber(credits)} credits included monthly (≈ $${formatPricingNumber(paygValue)} of pay-as-you-go output)`;
-}
-
-/**
  * Website pricing plans - displayed on public pricing page
  * Free-to-join PAYG credits, subscriptions with included credits, B2B cloud
  */
@@ -405,37 +375,6 @@ export const websitePlans: WebsitePlanProps[] = [
     type: 'payg',
     valueProposition:
       'Try Genfeed on one brand. Pay only for what you generate.',
-  },
-
-  // Pro Tier - $49/month subscription with included credits
-  {
-    cta: 'Start Pro',
-    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=pro`,
-    description: 'Monthly subscription with included credits at a better rate',
-    features: [
-      includedCreditsFeature('pro'),
-      'Unlimited seats',
-      '1 organization',
-      'Unlimited brands and connected channels',
-      'API access (standard rate limits)',
-      'Bring your own provider keys (BYOK), no usage fee',
-      'Best model auto-routed for every job',
-      'Top up with credit packs anytime',
-      'Email support',
-    ],
-    includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
-    interval: 'month',
-    label: PLAN_LABELS.pro,
-    launchNote: `EARLYGENFEED · 12 months, then $${PLAN_PRICES.pro}/mo`,
-    launchPrice: 39,
-    outputs: null,
-    price: PLAN_PRICES.pro,
-    stripePriceId: STRIPE_PRICE_IDS.pro,
-    target: 'Creators and founders publishing every week',
-    tier: 'pro',
-    type: 'subscription',
-    valueProposition:
-      'For steady publishing: a monthly fee that buys more output per dollar while credits stay the output meter.',
   },
 
   // Scale Tier - higher-entry team studio
@@ -541,21 +480,6 @@ export function formatPlanPriceLabel(tier: PlanTier): string {
 }
 
 /**
- * Discounted launch price for a tier, e.g. "$39/mo", or `null` when the tier
- * carries no launch offer. Callers render `formatPlanPriceLabel` as the struck
- * list price next to it, plus the plan's `launchNote` for the terms.
- */
-export function formatPlanLaunchPriceLabel(tier: PlanTier): string | null {
-  const { launchPrice } = getPlanByTier(tier);
-
-  if (launchPrice == null) {
-    return null;
-  }
-
-  return `$${formatPricingNumber(launchPrice)}/mo`;
-}
-
-/**
  * Long-form price for prose, e.g. "$49/month", "free", "custom".
  */
 export function formatPlanMonthlyPrice(tier: PlanTier): string {
@@ -630,9 +554,9 @@ export interface PlanCopyProps {
   includedCreditsValue: string;
   /** Prose price, e.g. "$49/month", "free", "custom". */
   monthlyPrice: string;
-  /** Display name, e.g. "Pro". */
+  /** Display name, e.g. "Agencies". */
   name: string;
-  /** Name plus prose price, e.g. "Pro ($49/month)". */
+  /** Name plus prose price, e.g. "Agencies ($499/month)". */
   nameWithPrice: string;
   /** Compact price label, e.g. "$49/mo", "Free", "Custom". */
   priceLabel: string;
@@ -661,16 +585,8 @@ function buildPlanCopy(tier: PlanTier): PlanCopyProps {
 export const PLAN_COPY = {
   enterprise: buildPlanCopy('enterprise'),
   payg: buildPlanCopy('payg'),
-  pro: buildPlanCopy('pro'),
   scale: buildPlanCopy('scale'),
 } satisfies Record<PlanTier, PlanCopyProps>;
-
-/**
- * Get Pro tier plan
- */
-export function getProPlan(): WebsitePlanProps {
-  return getPlanByTier('pro');
-}
 
 /**
  * Get Scale tier plan

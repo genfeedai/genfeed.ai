@@ -324,11 +324,9 @@ export const EnvironmentService = {
   plans: {
     enterprise:
       process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY, // Enterprise custom
-    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Pro tier $49/mo
     // PAYG one-time credits
     payg: process.env.NEXT_PUBLIC_STRIPE_PRICE_PAYG,
-    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Scale/Cloud Teams $499/mo
-    yearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY,
+    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Agencies $499/mo
   },
 
   setDesktopOverrides(overrides: DesktopEnvironmentOverrides): void {

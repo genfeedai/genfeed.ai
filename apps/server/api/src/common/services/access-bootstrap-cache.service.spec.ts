@@ -40,7 +40,7 @@ describe('AccessBootstrapCacheService', () => {
       memberRole: MemberRole.OWNER,
       organizationId: 'org-1',
       subscriptionStatus: 'active',
-      subscriptionTier: 'pro',
+      subscriptionTier: 'scale',
       userId: 'user-1',
     },
     brands: [],

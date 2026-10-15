@@ -5,8 +5,7 @@
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
  *   Pay As You Go (free)                   → FREE               → no API, solo, 1 org
- *   Pro                                    → PRO                → API, BYOK, unlimited seats, 1 org
- *   Scale                                  → SCALE              → API, unlimited seats/orgs
+ *   Agencies                               → SCALE              → API, unlimited seats/orgs
  *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs
  *
  * Enforcement lives in the API:
@@ -75,12 +74,10 @@ export const PLAN_LIMIT_UNLIMITED = null;
 
 /** PAYG solo workspace seat cap. */
 export const FREE_SEAT_LIMIT = 1;
-/** Free/Creator single-organization workspace cap. */
+/** Free single-organization workspace cap. */
 export const SINGLE_ORGANIZATION_LIMIT = 1;
 
-/** Higher ceiling for the Pro tier. */
-export const HIGHER_API_RATE_LIMIT = 300;
-/** Highest fixed ceiling for the Scale tier. */
+/** Fixed API ceiling for the Agencies (Scale) tier. */
 export const SCALE_API_RATE_LIMIT = 600;
 
 /**
@@ -103,17 +100,6 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
     trainingAccess: false,
-  },
-  [SubscriptionTier.PRO]: {
-    apiAccess: true,
-    apiRateLimit: HIGHER_API_RATE_LIMIT,
-    brandLimit: PLAN_LIMIT_UNLIMITED,
-    byokAccess: true,
-    channelLimit: PLAN_LIMIT_UNLIMITED,
-    cleanExportAccess: true,
-    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
-    seatLimit: PLAN_LIMIT_UNLIMITED,
-    trainingAccess: true,
   },
   [SubscriptionTier.SCALE]: {
     apiAccess: true,
@@ -196,19 +182,19 @@ export function hasApiAccess(tier: string | null | undefined): boolean {
   return getApiEntitlementForTier(tier).apiAccess;
 }
 
-/** Whether a tier may bring its own provider keys (BYOK). Pro and above. */
+/** Whether a tier may bring its own provider keys (BYOK). Scale and above. */
 export function hasByokAccess(tier: string | null | undefined): boolean {
   return getPlanEntitlementForTier(tier).byokAccess;
 }
 
-/** Whether a tier may create custom model trainings (LoRA). Pro and above. */
+/** Whether a tier may create custom model trainings (LoRA). Scale and above. */
 export function hasTrainingAccess(tier: string | null | undefined): boolean {
   return getPlanEntitlementForTier(tier).trainingAccess;
 }
 
 /**
  * Whether a tier may download clean (unwatermarked) ingredient exports.
- * Pro and above on cloud SaaS; the free tier only gets platform-branded
+ * Scale and above on cloud SaaS; the free tier only gets platform-branded
  * exports. Callers must separately allow self-hosted
  * deployments, which are always unrestricted regardless of tier.
  */
@@ -268,13 +254,9 @@ export function getUpgradeTierForLimit(
 
   if (
     resource === 'seats' &&
-    ![
-      SubscriptionTier.PRO,
-      SubscriptionTier.SCALE,
-      SubscriptionTier.ENTERPRISE,
-    ].includes(currentTier as SubscriptionTier)
+    ![SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE].includes(currentTier)
   ) {
-    return SubscriptionTier.PRO;
+    return SubscriptionTier.SCALE;
   }
 
   if (

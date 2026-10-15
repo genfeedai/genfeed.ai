@@ -131,8 +131,9 @@ const DIFFERENTIATORS = [
       <>
         {PLAN_COPY.payg.name} is free to join: top up from $10 and pay only for
         what you generate. Subscriptions are month to month, and{' '}
-        {PLAN_COPY.pro.nameWithPrice} includes {PLAN_COPY.pro.includedCredits}{' '}
-        at a {PLAN_COPY.pro.creditRateAdvantage} better rate.
+        {PLAN_COPY.scale.nameWithPrice} includes{' '}
+        {PLAN_COPY.scale.includedCredits} at a{' '}
+        {PLAN_COPY.scale.creditRateAdvantage} better rate.
       </>
     ),
     title: 'No subscription required',
@@ -162,7 +163,7 @@ const HOW_IT_WORKS = [
     title: 'Who you work with',
   },
   {
-    description: `Email support on ${PLAN_COPY.pro.name}, priority support on ${PLAN_COPY.scale.name}, and a dedicated Slack channel with SLA terms on ${PLAN_COPY.enterprise.name}. Self-hosted users get community support on GitHub and Discord.`,
+    description: `Priority support on ${PLAN_COPY.scale.name}, and a dedicated Slack channel with SLA terms on ${PLAN_COPY.enterprise.name}. Self-hosted users get community support on GitHub and Discord.`,
     title: 'Support channels',
   },
 ] as const;
@@ -191,7 +192,7 @@ const KEY_FACTS = [
   },
   {
     label: 'Pricing',
-    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.pro.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.nameWithPrice}. Credits cost $0.01 each on ${PLAN_COPY.payg.name} and less on subscriptions.`,
+    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.nameWithPrice}. Credits cost $0.01 each on ${PLAN_COPY.payg.name} and less on subscriptions.`,
   },
   {
     label: 'Contract terms',
@@ -267,7 +268,7 @@ const FAQ_ITEMS = [
     question: 'Is Genfeed really open source?',
   },
   {
-    answer: `${PLAN_COPY.payg.name} is free to join and you pay per output, at one cent per credit. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${PLAN_COPY.enterprise.name} is custom.`,
+    answer: `${PLAN_COPY.payg.name} is free to join and you pay per output, at one cent per credit. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${PLAN_COPY.enterprise.name} is custom.`,
     question: 'How much does Genfeed cost?',
   },
   {

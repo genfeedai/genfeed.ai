@@ -6,14 +6,11 @@ import {
   getBrandLimitForTier,
   getChannelLimitForTier,
   getOrganizationLimitForTier,
-  getPlanEntitlementForTier,
   getSeatLimitForTier,
   getUpgradeTierForLimit,
-  HIGHER_API_RATE_LIMIT,
   hasApiAccess,
   hasCleanExportAccess,
   hasTrainingAccess,
-  PLAN_LIMIT_UNLIMITED,
   SCALE_API_RATE_LIMIT,
   SINGLE_ORGANIZATION_LIMIT,
   TIER_API_ENTITLEMENTS,
@@ -41,37 +38,27 @@ describe('tier API entitlements', () => {
     expect(hasApiAccess(SubscriptionTier.FREE)).toBe(false);
   });
 
-  it('denies training access to free tiers and grants Pro+', () => {
+  it('denies training access to free tiers and grants Scale+', () => {
     expect(hasTrainingAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 
-  it('denies clean-export access to free tiers and grants Pro+ (SaaS gate for #4498)', () => {
+  it('denies clean-export access to free tiers and grants Scale+ (SaaS gate for #4498)', () => {
     expect(hasCleanExportAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasCleanExportAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasCleanExportAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasCleanExportAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 
   it('grants API access with escalating limits to paid tiers', () => {
-    expect(TIER_API_ENTITLEMENTS[SubscriptionTier.PRO]).toEqual({
-      apiAccess: true,
-      apiRateLimit: HIGHER_API_RATE_LIMIT,
-    });
     expect(TIER_API_ENTITLEMENTS[SubscriptionTier.SCALE]).toEqual({
       apiAccess: true,
       apiRateLimit: SCALE_API_RATE_LIMIT,
     });
 
-    for (const tier of [SubscriptionTier.PRO, SubscriptionTier.SCALE]) {
+    for (const tier of [SubscriptionTier.SCALE]) {
       expect(hasApiAccess(tier)).toBe(true);
     }
-  });
-
-  it('escalates the rate limit across paid tiers', () => {
-    expect(HIGHER_API_RATE_LIMIT).toBeLessThan(SCALE_API_RATE_LIMIT);
   });
 
   it('gives Enterprise API access with no platform-enforced ceiling', () => {
@@ -102,15 +89,6 @@ describe('tier API entitlements', () => {
     }
   });
 
-  it('resolves Pro product limits: unlimited seats/brands/channels and one organization', () => {
-    expect(getPlanEntitlementForTier(SubscriptionTier.PRO)).toMatchObject({
-      brandLimit: PLAN_LIMIT_UNLIMITED,
-      channelLimit: PLAN_LIMIT_UNLIMITED,
-      organizationLimit: SINGLE_ORGANIZATION_LIMIT,
-      seatLimit: PLAN_LIMIT_UNLIMITED,
-    });
-  });
-
   it('resolves Scale+ product limits: unlimited seats, brands, channels, and organizations', () => {
     for (const tier of [SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE]) {
       expect(getBrandLimitForTier(tier)).toBeNull();
@@ -132,12 +110,9 @@ describe('tier API entitlements', () => {
   it('names the next tier only for finite product limits', () => {
     expect(getUpgradeTierForLimit('brands', SubscriptionTier.FREE)).toBe(null);
     expect(getUpgradeTierForLimit('seats', SubscriptionTier.FREE)).toBe(
-      SubscriptionTier.PRO,
-    );
-    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.FREE)).toBe(
       SubscriptionTier.SCALE,
     );
-    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.PRO)).toBe(
+    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.FREE)).toBe(
       SubscriptionTier.SCALE,
     );
     expect(
@@ -146,7 +121,6 @@ describe('tier API entitlements', () => {
     expect(getUpgradeTierForLimit('channels', SubscriptionTier.FREE)).toBe(
       null,
     );
-    expect(getUpgradeTierForLimit('channels', SubscriptionTier.PRO)).toBe(null);
     expect(getUpgradeTierForLimit('channels', SubscriptionTier.SCALE)).toBe(
       null,
     );
@@ -154,7 +128,6 @@ describe('tier API entitlements', () => {
 
   it('exposes per-tier rate limits via getApiRateLimitForTier', () => {
     expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(0);
-    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(300);
     expect(getApiRateLimitForTier(SubscriptionTier.SCALE)).toBe(600);
     expect(getApiRateLimitForTier(SubscriptionTier.ENTERPRISE)).toBeNull();
   });

@@ -117,18 +117,18 @@ export class StripeService {
       return;
     }
 
-    const proPriceId = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+    const scalePriceId = this.configService.get(
+      'STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY',
     );
-    if (!this.isStripePriceId(proPriceId)) {
+    if (!this.isStripePriceId(scalePriceId)) {
       this.loggerService.error(
         `${this.constructorName} production subscription price validation failed`,
-        { category: 'configuration', tier: 'pro' },
+        { category: 'configuration', tier: 'scale' },
       );
       throw new StripeBillingConfigurationError();
     }
 
-    await this.validateSubscriptionPriceForTier(proPriceId, 'pro');
+    await this.validateSubscriptionPriceForTier(scalePriceId, 'scale');
   }
 
   public async validateSubscriptionPriceForTier(
@@ -202,12 +202,6 @@ export class StripeService {
   private resolveConfiguredSubscriptionTier(
     stripePriceId: string,
   ): SubscriptionPriceTier | null {
-    if (
-      stripePriceId ===
-      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY')
-    ) {
-      return 'pro';
-    }
     if (
       stripePriceId ===
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY')
@@ -716,10 +710,6 @@ export class StripeService {
     type: string;
   } {
     const priceToTier: Record<string, string> = {
-      [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY') || '']:
-        'pro',
-      [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY') || '']:
-        'pro',
       [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY') || '']:
         'scale',
       [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY') ||
@@ -728,21 +718,17 @@ export class StripeService {
 
     const tier = priceToTier[stripePriceId] || 'custom';
 
-    const isYearly =
-      stripePriceId ===
-      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY');
-
     return {
       tier,
-      type: isYearly ? 'yearly' : 'monthly',
+      type: 'monthly',
     };
   }
 
   /**
    * Always open Checkout promo entry. Stripe rejects sessions that set both
    * `discounts` and `allow_promotion_codes`, so we never force-apply a code
-   * here — public defaults (EARLYGENFEED / EARLYGEN) and customer-restricted
-   * team codes (GENFEED100) are entered at Checkout.
+   * here — public defaults (EARLYGEN) and customer-restricted team codes
+   * (GENFEED100) are entered at Checkout.
    */
   private applyPromotionCode(
     sessionConfig: NonNullable<StripeCheckoutSessionCreateParams>,
@@ -764,11 +750,8 @@ export class StripeService {
 
     try {
       // Determine if this is a subscription or one-time payment.
-      // Tier pricing: Pro ($49/mo, "Creator" card + yearly), Scale ($499/mo,
-      // "Cloud Teams" card), Enterprise (custom).
+      // Tier pricing: Agencies/Scale ($499/mo), Enterprise (custom).
       const subscriptionPriceIds = [
-        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
-        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),
       ].filter(Boolean);

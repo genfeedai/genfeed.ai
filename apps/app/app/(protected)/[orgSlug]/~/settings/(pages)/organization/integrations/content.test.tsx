@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
   organizationId: 'org-1',
   removeByokProviderKey: vi.fn(),
   saveByokProviderKey: vi.fn(),
-  subscriptionTier: 'pro' as string | undefined,
+  subscriptionTier: 'scale' as string | undefined,
   validateByokProviderKey: vi.fn(),
 }));
 
@@ -212,7 +212,7 @@ describe('SettingsIntegrationsPage', () => {
       screen.getByText('Bring your own keys is included with Pro'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Upgrade to Pro' }),
+      screen.getByRole('link', { name: 'Upgrade to Agencies' }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
     expect(
       screen.queryByRole('button', { name: 'Add Key' }),

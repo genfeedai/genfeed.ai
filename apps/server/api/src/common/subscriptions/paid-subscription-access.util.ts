@@ -41,7 +41,6 @@ const PAID_PLANS = new Set<string>([
 
 const PAID_TIERS = new Set<string>([
   SubscriptionTier.ENTERPRISE,
-  SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
 ]);
 
@@ -93,12 +92,12 @@ export function resolvePaidSubscriptionGrant(
  * an active paid row wins over a cancellation still inside its paid period.
  *
  * An organization with no subscription rows at all — never billed through
- * Stripe, e.g. an operator-granted enterprise/pro tier set directly on
+ * Stripe, e.g. an operator-granted enterprise tier set directly on
  * organization settings — falls back to the tier alone: a paid tier with no
  * billing history is an unconditional grant, since there is no period end to
  * check it against. This fallback only applies when there is truly no row to
  * examine; a real row's own status still governs once one exists (a trialing
- * row does not become paid just because the tier happens to read PRO).
+ * row does not become paid just because the tier happens to read SCALE).
  */
 export function resolveOrganizationPaidGrant(
   subscriptions: readonly PaidSubscriptionSnapshot[],

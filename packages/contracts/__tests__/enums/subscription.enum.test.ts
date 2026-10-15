@@ -21,8 +21,8 @@ describe('subscription.enum', () => {
   });
 
   describe('SubscriptionPlan', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(SubscriptionPlan)).toHaveLength(4);
+    it('should have 3 members', () => {
+      expect(Object.values(SubscriptionPlan)).toHaveLength(3);
     });
 
     it('should have correct values', () => {
@@ -34,13 +34,12 @@ describe('subscription.enum', () => {
   });
 
   describe('SubscriptionTier', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(SubscriptionTier)).toHaveLength(4);
+    it('should have 3 members', () => {
+      expect(Object.values(SubscriptionTier)).toHaveLength(3);
     });
 
     it('should have correct values', () => {
       expect(SubscriptionTier.FREE).toBe('free');
-      expect(SubscriptionTier.PRO).toBe('pro');
       expect(SubscriptionTier.SCALE).toBe('scale');
       expect(SubscriptionTier.ENTERPRISE).toBe('enterprise');
     });

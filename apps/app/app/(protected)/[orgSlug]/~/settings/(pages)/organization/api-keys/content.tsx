@@ -110,7 +110,7 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
   return apiKey.key ?? apiKey.token;
 }
 
-const API_ACCESS_UPGRADE_TIER_LABEL = 'Pro';
+const API_ACCESS_UPGRADE_TIER_LABEL = 'Agencies';
 
 export default function SettingsApiKeysPage() {
   const { organizationId, isReady } = useBrand();

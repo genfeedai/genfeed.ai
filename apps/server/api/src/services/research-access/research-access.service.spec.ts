@@ -38,7 +38,7 @@ describe('ResearchAccessService', () => {
         status: SubscriptionStatus.ACTIVE,
       },
     ]);
-    findFirst.mockResolvedValue({ subscriptionTier: SubscriptionTier.PRO });
+    findFirst.mockResolvedValue({ subscriptionTier: SubscriptionTier.SCALE });
 
     await expect(
       service.decide('org-1', new Date('2026-09-24T00:00:00.000Z')),

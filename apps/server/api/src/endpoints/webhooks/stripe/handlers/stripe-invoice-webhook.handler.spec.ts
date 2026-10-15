@@ -203,7 +203,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         },
       });
       supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.PRO,
+        SubscriptionTier.SCALE,
       );
 
       await handler.handleInvoicePaid(
@@ -462,7 +462,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         },
       });
       supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.PRO,
+        SubscriptionTier.SCALE,
       );
 
       await handler.handleInvoicePaid(
@@ -478,7 +478,7 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(supportService.upsertSubscriptionLead).toHaveBeenCalledWith({
         organizationId: 'org_1',
         stripeSubscriptionId: 'sub_stripe_1',
-        tier: SubscriptionTier.PRO,
+        tier: SubscriptionTier.SCALE,
         userId: 'user_1',
       });
     });
@@ -524,7 +524,7 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(supportService.upsertSubscriptionLead).not.toHaveBeenCalled();
     });
 
-    it('grants the verified yearly allocation for a yearly Pro subscription', async () => {
+    it('grants the verified yearly allocation for a yearly Agencies subscription', async () => {
       billingService.resolve.mockResolvedValue({
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: {

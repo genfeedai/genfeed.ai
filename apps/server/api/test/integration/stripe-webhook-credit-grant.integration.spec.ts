@@ -124,8 +124,8 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 });
 
 const STRIPE_WEBHOOK_SECRET = 'whsec_test_stripe_webhook_credit_grant_e2e';
-const PRO_MONTHLY_PRICE_ID = 'price_e2epromonthly';
-const PRO_YEARLY_PRICE_ID = 'price_e2eproyearly';
+const SCALE_MONTHLY_PRICE_ID = 'price_e2escalemonthly';
+const SCALE_YEARLY_PRICE_ID = 'price_e2escaleyearly';
 const SUBSCRIPTION_CREDIT_REFERENCE_TYPE = 'stripe-invoice:subscription-grant';
 
 const createRedisPublisherDouble = () => {
@@ -193,15 +193,15 @@ const buildCreditGrantServiceStub = () =>
       ): Promise<number | null> => {
         if (
           plan === SubscriptionPlan.MONTHLY &&
-          stripePriceId === PRO_MONTHLY_PRICE_ID
+          stripePriceId === SCALE_MONTHLY_PRICE_ID
         ) {
-          return TIER_INCLUDED_MONTHLY_CREDITS.pro;
+          return TIER_INCLUDED_MONTHLY_CREDITS.scale;
         }
         if (
           plan === SubscriptionPlan.YEARLY &&
-          stripePriceId === PRO_YEARLY_PRICE_ID
+          stripePriceId === SCALE_YEARLY_PRICE_ID
         ) {
-          return TIER_INCLUDED_MONTHLY_CREDITS.pro * 12;
+          return TIER_INCLUDED_MONTHLY_CREDITS.scale * 12;
         }
         return null;
       },
@@ -260,8 +260,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     const moduleConfig = await E2ETestModule.forRoot({
       configOverrides: {
         STRIPE_SECRET_KEY: 'sk_test_stripe_webhook_credit_grant_e2e',
-        STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: PRO_MONTHLY_PRICE_ID,
-        STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: PRO_YEARLY_PRICE_ID,
+        STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: SCALE_MONTHLY_PRICE_ID,
         STRIPE_WEBHOOK_SIGNING_SECRET: STRIPE_WEBHOOK_SECRET,
       },
       controllers: [StripeWebhookController],
@@ -436,8 +435,8 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
       status: 'active',
       stripePriceId:
         params.plan === SubscriptionPlan.YEARLY
-          ? PRO_YEARLY_PRICE_ID
-          : PRO_MONTHLY_PRICE_ID,
+          ? SCALE_YEARLY_PRICE_ID
+          : SCALE_MONTHLY_PRICE_ID,
       stripeSubscriptionId: params.stripeSubscriptionId,
       userId,
     };
@@ -579,7 +578,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
               data: [
                 {
                   price: {
-                    id: PRO_MONTHLY_PRICE_ID,
+                    id: SCALE_MONTHLY_PRICE_ID,
                     recurring: { interval: 'month' },
                   },
                 },
@@ -655,7 +654,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     const balance = await prisma.creditBalance.findFirst({
       where: { organizationId, isDeleted: false },
     });
-    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
     expect(recordStripeEvent).toHaveBeenCalledTimes(2);
     expect(redisPublisherDouble.set).toHaveBeenCalledTimes(1);
   });
@@ -706,7 +705,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     const balance = await prisma.creditBalance.findFirst({
       where: { isDeleted: false, organizationId },
     });
-    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
   });
 
   it('does not double-grant credits for a MONTHLY subscription when Stripe redelivers the same invoice under a NEW event id (Postgres-level dedup)', async () => {
@@ -743,7 +742,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     const balance = await prisma.creditBalance.findFirst({
       where: { isDeleted: false, organizationId },
     });
-    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
   });
 
   it('does not double-reset credits for a YEARLY subscription when Stripe redelivers the same invoice under a NEW event id (#1398 fix: Postgres-level dedup)', async () => {
@@ -789,6 +788,6 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     const balance = await prisma.creditBalance.findFirst({
       where: { isDeleted: false, organizationId },
     });
-    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro * 12);
+    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale * 12);
   });
 });

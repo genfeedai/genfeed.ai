@@ -60,7 +60,7 @@ export type BillingRevenueEventInput = {
   source: BillingRevenueSource;
   stripeObjectId: string;
   userId?: string | null;
-  /** Human-readable plan/product name for the operator alert, e.g. `Pro`, `Scale`. */
+  /** Human-readable plan/product name for the operator alert, e.g. `Scale`. */
   planLabel?: string;
 };
 
@@ -579,7 +579,7 @@ export class StripeWebhookSupportService {
 
   /**
    * Resolve the SubscriptionPlan from a Stripe price ID.
-   * Supports tier-based pricing: Pro (monthly + yearly), Scale, Enterprise.
+   * Supports tier-based pricing: Scale, Enterprise.
    */
   resolveSubscriptionPlan(
     stripePriceId: string,
@@ -592,16 +592,8 @@ export class StripeWebhookSupportService {
       return SubscriptionPlan.ENTERPRISE;
     }
 
-    const proYearlyPriceId = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
-    );
-    if (proYearlyPriceId && stripePriceId === proYearlyPriceId) {
-      return SubscriptionPlan.YEARLY;
-    }
-
-    // Monthly subscription tier prices (Pro, Scale)
+    // Monthly subscription tier prices (Scale)
     const monthlyPriceIds = [
-      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
     ].filter(Boolean);
 
@@ -723,7 +715,7 @@ export class StripeWebhookSupportService {
   }
 
   /**
-   * Give a Pro/Scale subscription CRM visibility: one lead per organization,
+   * Give a Scale subscription CRM visibility: one lead per organization,
    * updated on every `invoice.paid` so the tier stays current. Best-effort —
    * a failure here must not fail subscription reconciliation.
    */

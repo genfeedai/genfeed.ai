@@ -128,7 +128,7 @@ export class StripeInvoiceWebhookHandler {
         currency: invoice.currency,
         occurredAt: invoicePaidAt(invoice),
         organizationId: updatedSubscription.organizationId,
-        // Product tier (Pro, Scale, …), not `updatedSubscription.plan` — that
+        // Product tier (Scale, …), not `updatedSubscription.plan` — that
         // field is the billing interval (MONTHLY/YEARLY/PAYG/ENTERPRISE) and
         // is not a product name.
         planLabel: revenueTier
@@ -161,7 +161,7 @@ export class StripeInvoiceWebhookHandler {
   }
 
   /**
-   * Give a Pro/Scale subscription CRM visibility. Best-effort: a lookup or
+   * Give a Scale subscription CRM visibility. Best-effort: a lookup or
    * write failure here is logged by the support service and must not fail
    * subscription reconciliation, which already completed above.
    */
@@ -179,7 +179,7 @@ export class StripeInvoiceWebhookHandler {
       subscription.stripePriceId,
     );
 
-    if (tier !== SubscriptionTier.PRO && tier !== SubscriptionTier.SCALE) {
+    if (tier !== SubscriptionTier.SCALE) {
       return;
     }
 

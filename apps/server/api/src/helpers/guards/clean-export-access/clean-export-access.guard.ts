@@ -25,7 +25,7 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
 
 /**
  * Cloud-only gate: an ingredient export requested without a watermark (a
- * "clean" original) requires Pro or above. Branded/watermarked exports stay
+ * "clean" original) requires Agencies or above. Branded/watermarked exports stay
  * available to every tier, so the gate only engages for `watermark: false`
  * bodies — free tiers must still be able to render their branded preview.
  *
@@ -106,10 +106,10 @@ export class CleanExportAccessGuard implements CanActivate {
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
         detail:
-          'Clean, unwatermarked exports are available on paid plans. Upgrade to Pro to download originals.',
+          'Clean, unwatermarked exports are available on paid plans. Upgrade to Agencies to download originals.',
         meta: {
           resource: 'clean-export',
-          upgradeTier: SubscriptionTier.PRO,
+          upgradeTier: SubscriptionTier.SCALE,
         },
         title: 'Clean export requires a paid plan',
       });

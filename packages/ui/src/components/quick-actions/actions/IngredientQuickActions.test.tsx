@@ -169,7 +169,7 @@ describe('IngredientQuickActions', () => {
     it('unlocks the original download for SaaS paid-tier organizations', () => {
       mocks.isSelfHostedDeployment.mockReturnValue(false);
       mocks.useBrand.mockReturnValue({
-        settings: { subscriptionTier: SubscriptionTier.PRO },
+        settings: { subscriptionTier: SubscriptionTier.SCALE },
       });
       render(
         <IngredientQuickActions

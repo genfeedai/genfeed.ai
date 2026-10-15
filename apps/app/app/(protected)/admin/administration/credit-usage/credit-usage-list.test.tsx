@@ -14,7 +14,7 @@ const maxedOutRow: IOrganizationCreditUsage = {
   organizationName: 'Maxed Org',
   planLimit: 1000,
   status: SubscriptionStatus.ACTIVE,
-  tier: 'pro',
+  tier: 'scale',
   usedCredits: 950,
   usedPercent: 95,
   remainingPercent: 5,

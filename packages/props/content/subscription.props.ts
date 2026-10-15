@@ -18,7 +18,7 @@ export interface PricingOutputsProps {
  * See: https://github.com/genfeedai/cloud/issues?q=is%3Aissue+pricing
  */
 export interface PricingPlanProps {
-  /** Display label (e.g., "Pro", "Scale", "Enterprise") */
+  /** Display label (e.g., "Agencies", "Enterprise") */
   label: string;
   /** Stripe price ID for checkout */
   stripePriceId?: string;

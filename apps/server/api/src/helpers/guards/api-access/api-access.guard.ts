@@ -23,7 +23,7 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
 
 /**
  * Gate that enforces the "Model B" API-access promise at API-key issuance:
- * only PAID tiers (Pro and above) may mint API keys. Free tiers
+ * only PAID tiers (Agencies and above) may mint API keys. Free tiers
  * (Pay As You Go, BYOK) are blocked with an upgrade message.
  *
  * The entitlement is resolved from the org's subscription tier
@@ -82,10 +82,10 @@ export class ApiAccessGuard implements CanActivate {
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
         detail:
-          'API access is available on paid plans. Upgrade to Pro to create and use API keys.',
+          'API access is available on paid plans. Upgrade to Agencies to create and use API keys.',
         meta: {
           resource: 'api',
-          upgradeTier: SubscriptionTier.PRO,
+          upgradeTier: SubscriptionTier.SCALE,
         },
         title: 'API access requires a paid plan',
       });

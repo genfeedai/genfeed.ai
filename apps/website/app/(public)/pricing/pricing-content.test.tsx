@@ -4,7 +4,6 @@ import {
   formatOutputs,
   formatPrice,
   getPlanByTier,
-  getProPlan,
   getScalePlan,
 } from '@genfeedai/pricing';
 import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
@@ -125,10 +124,9 @@ describe('PricingContent', () => {
   });
 
   it('uses explicit subscription qualifiers when included credits are absent', () => {
-    const proPlan = getProPlan();
     const scalePlan = getScalePlan();
 
-    expect(getPriceQualifier({ ...proPlan, includedCredits: null })).toBe(
+    expect(getPriceQualifier({ ...scalePlan, includedCredits: null })).toBe(
       'Monthly subscription',
     );
     expect(
@@ -140,7 +138,6 @@ describe('PricingContent', () => {
     // Seats, organizations, and API access are bullets. Repeating any of them
     // here is what made the Scale card read "Unlimited seats" twice.
     expect(getPriceQualifier(getScalePlan())).toBe('60,000 credits included');
-    expect(getPriceQualifier(getProPlan())).toBe('5,900 credits included');
     expect(getPriceQualifier(getPlanByTier('payg'))).toBe('No monthly fee');
   });
 

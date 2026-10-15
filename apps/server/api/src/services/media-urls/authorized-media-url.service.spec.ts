@@ -81,7 +81,7 @@ async function setup(tier = 'free') {
 
 describe('AuthorizedMediaUrlService', () => {
   it('projects paid assets only from canonical organization-bound stored keys', async () => {
-    const { service, prisma, urls } = await setup('pro');
+    const { service, prisma, urls } = await setup('scale');
     prisma.asset.findMany.mockResolvedValue([
       {
         id: 'asset-1',
@@ -106,7 +106,7 @@ describe('AuthorizedMediaUrlService', () => {
     expect(result[0].url).toContain('signed=1');
   });
   it('does not turn arbitrary asset provider URLs into grants', async () => {
-    const { service, prisma, urls } = await setup('pro');
+    const { service, prisma, urls } = await setup('scale');
     prisma.asset.findMany.mockResolvedValue([
       {
         id: 'asset-1',
@@ -140,7 +140,7 @@ describe('AuthorizedMediaUrlService', () => {
   });
 
   it('mints paid original grants from the exact stored key using existing TTL', async () => {
-    const { service, prisma, urls } = await setup('pro');
+    const { service, prisma, urls } = await setup('scale');
     const start = Date.now();
     const grant = await service.issueOriginal(scope, ingredientId);
     expect(urls.buildUrl).toHaveBeenCalledWith(source.s3Key);
@@ -160,7 +160,7 @@ describe('AuthorizedMediaUrlService', () => {
       { ...source, organizationId: testId('org', 2) },
       { ...source, userId: testId('user', 2) },
     ]) {
-      const { service, prisma, urls } = await setup('pro');
+      const { service, prisma, urls } = await setup('scale');
       prisma.ingredient.findMany.mockResolvedValue(record ? [record] : []);
       await expect(service.issueOriginal(scope, ingredientId)).rejects.toThrow(
         'unavailable',
@@ -212,7 +212,7 @@ describe('AuthorizedMediaUrlService', () => {
     ).toBe('UNSUPPORTED');
     config.isCdnSigningEnabled = false;
     prisma.organization.findFirst.mockResolvedValue({
-      settings: { subscriptionTier: 'pro' },
+      settings: { subscriptionTier: 'scale' },
     });
     await expect(service.issueOriginal(scope, ingredientId)).rejects.toThrow(
       'signing is unavailable',

@@ -298,7 +298,7 @@ describe('AuthBootstrapService', () => {
         isSuperAdmin: false,
         organizationId: 'org_1',
         subscriptionStatus: SubscriptionStatus.ACTIVE,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         userId: 'user_1',
       },
       brands: [{ id: 'brand_1', label: 'Alpha' }] as never,
@@ -335,7 +335,7 @@ describe('AuthBootstrapService', () => {
         isSuperAdmin: true,
         organizationId: 'org_1',
         subscriptionStatus: SubscriptionStatus.ACTIVE,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         userId: 'user_1',
       },
       brands: [],
@@ -373,7 +373,7 @@ describe('AuthBootstrapService', () => {
         isSuperAdmin: false,
         organizationId: 'org_1',
         subscriptionStatus: SubscriptionStatus.ACTIVE,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         userId: 'user_1',
       },
       brands: [{ id: 'brand_1', label: 'Alpha' }] as never,
@@ -556,7 +556,7 @@ describe('AuthBootstrapService', () => {
     });
     organizationSettingsService.findOne.mockResolvedValue({
       hasEverHadCredits: true,
-      subscriptionTier: SubscriptionTier.PRO,
+      subscriptionTier: SubscriptionTier.SCALE,
       toObject: () => ({
         enabledModelIds: ['model_1'],
         organization: organizationId,
@@ -615,7 +615,7 @@ describe('AuthBootstrapService', () => {
         memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.TRIALING,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         trialEndsAt: null,
         userId,
       },
@@ -676,7 +676,7 @@ describe('AuthBootstrapService', () => {
       enabledModelIds: ['model_1'],
       hasEverHadCredits: false,
       organization: organizationId,
-      subscriptionTier: SubscriptionTier.PRO,
+      subscriptionTier: SubscriptionTier.SCALE,
     });
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(10);
     brandsService.findForOrganization.mockResolvedValue([
@@ -802,7 +802,7 @@ describe('AuthBootstrapService', () => {
         memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         userId: 'test-object-id',
       },
       brands: [],
@@ -880,7 +880,7 @@ describe('AuthBootstrapService', () => {
         memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         userId,
       },
       brands: [],

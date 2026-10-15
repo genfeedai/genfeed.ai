@@ -20,7 +20,7 @@ const mockShellBootstrapPayload = {
     isSuperAdmin: false,
     organizationId: 'org_abc',
     subscriptionStatus: 'active',
-    subscriptionTier: 'pro',
+    subscriptionTier: 'scale',
     userId: 'user_123',
   },
   brands: [{ id: 'brand_1', label: 'Alpha' }],
@@ -83,7 +83,7 @@ describe('AuthBootstrapController', () => {
       context: {
         ...owner,
         isSuperAdmin: true,
-        subscriptionTier: 'pro',
+        subscriptionTier: 'scale',
         stripeSubscriptionStatus: 'active',
         hydratedAt: 1,
       },

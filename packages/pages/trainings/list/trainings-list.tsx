@@ -24,7 +24,7 @@ import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
 
-const TRAINING_UPGRADE_TIER_LABEL = 'Pro';
+const TRAINING_UPGRADE_TIER_LABEL = 'Agencies';
 
 /**
  * Trainings list body — table, filters, empty state, edit modal.

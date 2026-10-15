@@ -101,7 +101,7 @@ describe('ApiAccessGuard', () => {
             code: 'PLAN_LIMIT_EXCEEDED',
             meta: {
               resource: 'api',
-              upgradeTier: SubscriptionTier.PRO,
+              upgradeTier: SubscriptionTier.SCALE,
             },
           },
         });
@@ -120,15 +120,14 @@ describe('ApiAccessGuard', () => {
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
     });
 
-    it.each([
-      SubscriptionTier.PRO,
-      SubscriptionTier.SCALE,
-      SubscriptionTier.ENTERPRISE,
-    ])('allows paid tier %s', (tier) => {
-      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
-      const ctx = buildContext(buildUser());
-      expect(guard.canActivate(ctx)).toBe(true);
-    });
+    it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
+      'allows paid tier %s',
+      (tier) => {
+        vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
+        const ctx = buildContext(buildUser());
+        expect(guard.canActivate(ctx)).toBe(true);
+      },
+    );
 
     it('allows super admins regardless of tier', () => {
       vi.mocked(authUtil.getIsSuperAdmin).mockReturnValue(true);

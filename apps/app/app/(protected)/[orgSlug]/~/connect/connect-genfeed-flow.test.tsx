@@ -101,7 +101,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     brands: [{ slug: 'main' }],
     isReady: true,
     organizationId: 'org-1',
-    settings: { subscriptionTier: 'pro' },
+    settings: { subscriptionTier: 'scale' },
   }),
 }));
 

@@ -617,7 +617,7 @@ describe('SubscriptionsController', () => {
           organizationId: 'org_1',
           organizationName: 'Acme Inc',
           planLimit: 5_900,
-          tier: 'pro',
+          tier: 'scale',
           usedCredits: 2_950,
         }),
       );

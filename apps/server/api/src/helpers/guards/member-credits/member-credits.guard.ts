@@ -65,7 +65,7 @@ export class MemberCreditsGuard implements CanActivate {
       settings?.seatsLimit,
     );
 
-    // Unlimited-seat tiers (Pro/Scale/Enterprise) are never gated by seat
+    // Unlimited-seat tiers (Scale/Enterprise) are never gated by seat
     // count — credits are the only meter. Only the fair-use anti-abuse
     // ceiling can block them, and it is not a billing gate.
     if (effectiveSeatsLimit === null) {

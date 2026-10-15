@@ -150,7 +150,7 @@ export async function seedMcpRuntime(
     await prisma.organizationSetting.create({
       data: {
         organizationId: id,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         isNotificationsEmailEnabled: false,
       },
     });

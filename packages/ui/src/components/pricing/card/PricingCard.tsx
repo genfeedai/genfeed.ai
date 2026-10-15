@@ -20,7 +20,8 @@ export default function PricingCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isActive = subscription?.status === 'active';
-  const isMostPopular = plan.label === 'Professional' || plan.label === 'Pro';
+  const isMostPopular =
+    plan.label === 'Professional' || plan.label === 'Agencies';
 
   // Determine CTA text and href
   const ctaText = plan.cta || buttonLabel;

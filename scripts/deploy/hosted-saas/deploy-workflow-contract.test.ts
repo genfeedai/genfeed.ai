@@ -94,29 +94,19 @@ describe('hosted SaaS Vercel deployment contract', () => {
     const vercel = await workflow('_deploy-hosted-saas-vercel.yml');
 
     expect(vercel).toContain(
-      `STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: \${{ vars.STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY }}`,
-    );
-    expect(vercel).toContain(
       `STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: \${{ vars.STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY }}`,
-    );
-    expect(vercel).toContain(
-      `NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY=%s\\n`,
     );
     expect(vercel).toContain(
       `NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY=%s\\n`,
     );
     expect(vercel).toContain(
-      `NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY|NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY)=/`,
+      `NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY)=/`,
     );
-    expect(vercel).toContain('Production Pro checkout is not configured.');
-    expect(vercel).toContain('Production Scale checkout is not configured.');
+    expect(vercel).toContain('Production Agencies checkout is not configured.');
     expect(vercel).toContain(
       `printf '%s' "$STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY" | grep -Eq '^price_[A-Za-z0-9]+$'`,
     );
     expect(vercel).toContain("'^price_[A-Za-z0-9]+$'");
-    expect(vercel).not.toContain(
-      'echo "$STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY"',
-    );
     expect(vercel).not.toContain(
       'echo "$STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY"',
     );

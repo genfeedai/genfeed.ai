@@ -18,7 +18,7 @@ describe('PlanLimitExceededException', () => {
     expect(error.getStatus()).toBe(HttpStatus.FORBIDDEN);
     expect(error.name).toBe('PlanLimitExceededException');
     expect(response.detail).toBe(
-      'Your current plan includes 1 brand kit. Upgrade to Pro to add more.',
+      'Your current plan includes 1 brand kit. Upgrade to Agencies to add more.',
     );
     expect(response.meta).toEqual({
       currentCount: 1,

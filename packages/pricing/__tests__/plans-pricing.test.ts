@@ -13,7 +13,6 @@ import {
   DEFAULT_GENERATION_MARGIN_MULTIPLIER,
   formatOutputs,
   formatPlanIncludedCredits,
-  formatPlanLaunchPriceLabel,
   formatPlanMonthlyPrice,
   formatPlanPriceLabel,
   formatPrice,
@@ -21,7 +20,6 @@ import {
   getPlanByLabel,
   getPlanByTier,
   getPlanLabel,
-  getProPlan,
   getRuntimeMarginMultiplier,
   getScalePlan,
   INTERNAL_CREDIT_COSTS,
@@ -41,7 +39,7 @@ import { REVIEWED_RATE_SHEET_ENTRIES } from '../src/reviewed-rates';
 
 describe('plan lookups', () => {
   it('finds plans by label case-insensitively', () => {
-    expect(getPlanByLabel('pro')?.tier).toBe('pro');
+    expect(getPlanByLabel('agencies')?.tier).toBe('scale');
     expect(getPlanByLabel('PAY AS YOU GO')?.tier).toBe('payg');
     expect(getPlanByLabel('nonexistent')).toBeUndefined();
   });
@@ -57,7 +55,6 @@ describe('plan lookups', () => {
   });
 
   it('exposes tier-specific accessors', () => {
-    expect(getProPlan().tier).toBe('pro');
     expect(getScalePlan().tier).toBe('scale');
     expect(getEnterprisePlan().tier).toBe('enterprise');
   });
@@ -70,47 +67,38 @@ describe('plan lookups', () => {
   it('lists exactly one plan per tier', () => {
     const tiers = websitePlans.map((plan) => plan.tier);
 
-    expect(tiers).toEqual(['payg', 'pro', 'scale', 'enterprise']);
+    expect(tiers).toEqual(['payg', 'scale', 'enterprise']);
   });
 });
 
 describe('plan price formatting', () => {
   it('formats compact price labels per tier', () => {
     expect(formatPlanPriceLabel('payg')).toBe('Free');
-    expect(formatPlanPriceLabel('pro')).toBe('$49/mo');
     expect(formatPlanPriceLabel('scale')).toBe('$499/mo');
     expect(formatPlanPriceLabel('enterprise')).toBe('Custom');
   });
 
-  it('formats a launch price only for the tiers that carry one', () => {
-    expect(formatPlanLaunchPriceLabel('pro')).toBe('$39/mo');
-    expect(formatPlanLaunchPriceLabel('scale')).toBeNull();
-    expect(formatPlanLaunchPriceLabel('payg')).toBeNull();
-    expect(formatPlanLaunchPriceLabel('enterprise')).toBeNull();
-  });
-
   it('formats prose monthly prices per tier', () => {
     expect(formatPlanMonthlyPrice('payg')).toBe('free');
-    expect(formatPlanMonthlyPrice('pro')).toBe('$49/month');
+    expect(formatPlanMonthlyPrice('scale')).toBe('$499/month');
     expect(formatPlanMonthlyPrice('enterprise')).toBe('custom');
   });
 
   it('formats included credits per tier', () => {
-    expect(formatPlanIncludedCredits('pro')).toBe('5,900 credits');
     expect(formatPlanIncludedCredits('scale')).toBe('60,000 credits');
     expect(formatPlanIncludedCredits('payg')).toBe('');
     expect(formatPlanIncludedCredits('enterprise')).toBe('');
   });
 
   it('builds PLAN_COPY tokens from the same sources', () => {
-    expect(PLAN_COPY.pro).toEqual({
+    expect(PLAN_COPY.scale).toEqual({
       creditRateAdvantage: '~17%',
-      includedCredits: '5,900 credits',
-      includedCreditsValue: '$59',
-      monthlyPrice: '$49/month',
-      name: 'Pro',
-      nameWithPrice: 'Pro ($49/month)',
-      priceLabel: '$49/mo',
+      includedCredits: '60,000 credits',
+      includedCreditsValue: '$600',
+      monthlyPrice: '$499/month',
+      name: 'Agencies',
+      nameWithPrice: 'Agencies ($499/month)',
+      priceLabel: '$499/mo',
     });
     expect(PLAN_COPY.enterprise.nameWithPrice).toBe('Enterprise (custom)');
   });
@@ -125,7 +113,7 @@ describe('plan price formatting', () => {
   it('prices every paid tier to the same credit bonus over the PAYG rate', () => {
     // The bonus and the margin are one dial: margin = 1 - 0.3 * (1 + bonus).
     // Holding both paid tiers at the same bonus holds them at the same margin.
-    for (const tier of ['pro', 'scale'] as const) {
+    for (const tier of ['scale'] as const) {
       const { includedCredits, price } = getPlanByTier(tier);
 
       expect(includedCredits).toBeTypeOf('number');
@@ -276,12 +264,6 @@ describe('creditsToOutputEstimate', () => {
 
 describe('pricing constants', () => {
   it('publishes Stripe contracts by tier rather than product display name', () => {
-    expect(SUBSCRIPTION_PRICE_CONTRACTS.pro).toEqual({
-      currency: 'usd',
-      includedMonthlyCredits: 5_900,
-      interval: 'month',
-      unitAmount: 4_900,
-    });
     expect(SUBSCRIPTION_PRICE_CONTRACTS.scale).toEqual({
       currency: 'usd',
       includedMonthlyCredits: 60_000,
@@ -336,22 +318,12 @@ describe('pricing constants', () => {
       minCredits: 129,
     });
   });
-
-  it('embeds the included-credit grant into the subscription feature copy', () => {
-    const proFeature = getProPlan().features[0];
-
-    expect(proFeature).toContain('5,900 credits included monthly');
-    expect(getProPlan().includedCredits).toBe(
-      TIER_INCLUDED_MONTHLY_CREDITS.pro,
-    );
-  });
 });
 
 describe('website plan catalogue', () => {
-  it('publishes the four plans in presentation order', () => {
+  it('publishes the three plans in presentation order', () => {
     expect(websitePlans.map((plan) => plan.label)).toEqual([
       'Pay As You Go',
-      'Pro',
       'Agencies',
       'Enterprise',
     ]);
@@ -361,7 +333,7 @@ describe('website plan catalogue', () => {
       'subscription',
       'enterprise',
     ]);
-    expect(websitePlans.map((plan) => plan.price)).toEqual([0, 49, 499, null]);
+    expect(websitePlans.map((plan) => plan.price)).toEqual([0, 499, null]);
   });
 
   it('labels every plan from PLAN_LABELS', () => {
@@ -379,18 +351,12 @@ describe('website plan catalogue', () => {
     expect(payg.includedCredits).toBeUndefined();
   });
 
-  it('bills Pro monthly against an included credit grant', () => {
-    const pro = getProPlan();
-
-    expect(pro.interval).toBe('month');
-    expect(pro.includedCredits).toBe(5_900);
-    expect(pro.outputs).toBeNull();
-  });
-
   it('sells Agencies with client workspaces and the subscription features', () => {
     const scale = getScalePlan();
 
+    expect(scale.interval).toBe('month');
     expect(scale.includedCredits).toBe(60_000);
+    expect(scale.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
     expect(scale.features).toContain('Unlimited seats and client workspaces');
     expect(scale.features).toContain('Brand model training');
     expect(scale.features).toContain('API and BYOK');
@@ -399,28 +365,5 @@ describe('website plan catalogue', () => {
 
   it('leaves Enterprise outputs open for custom terms', () => {
     expect(getEnterprisePlan().outputs).toBeNull();
-  });
-});
-
-describe('launch pricing', () => {
-  it('discounts Pro for the first 12 months', () => {
-    const pro = getProPlan();
-
-    expect(pro.launchPrice).toBe(39);
-    expect(pro.launchNote).toBe('EARLYGENFEED · 12 months, then $49/mo');
-  });
-
-  it('promises no redemption cap in the launch note', () => {
-    const note = getProPlan().launchNote?.toLowerCase() ?? '';
-
-    expect(note).not.toMatch(/cap/);
-    expect(note).not.toMatch(/limited/);
-    expect(note).not.toMatch(/first \d+ (subscribers|customers|users)/);
-  });
-
-  it('offers launch pricing on Pro alone', () => {
-    const discounted = websitePlans.filter((plan) => plan.launchPrice != null);
-
-    expect(discounted.map((plan) => plan.tier)).toEqual(['pro']);
   });
 });

@@ -85,18 +85,14 @@ describe('MemberCreditsGuard', () => {
           currentCount: FREE_SEAT_LIMIT,
           limit: FREE_SEAT_LIMIT,
           resource: 'seats',
-          upgradeTier: SubscriptionTier.PRO,
+          upgradeTier: SubscriptionTier.SCALE,
         },
       },
       status: 403,
     });
   });
 
-  it.each([
-    SubscriptionTier.PRO,
-    SubscriptionTier.SCALE,
-    SubscriptionTier.ENTERPRISE,
-  ])(
+  it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
     'allows adding members past stored seatsLimit on unlimited-seat %s',
     async (subscriptionTier) => {
       organizationSettingsService.findOne.mockResolvedValue({

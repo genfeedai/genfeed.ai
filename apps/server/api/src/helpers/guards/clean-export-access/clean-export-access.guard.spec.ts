@@ -150,7 +150,7 @@ describe('CleanExportAccessGuard', () => {
             code: 'PLAN_LIMIT_EXCEEDED',
             meta: {
               resource: 'clean-export',
-              upgradeTier: SubscriptionTier.PRO,
+              upgradeTier: SubscriptionTier.SCALE,
             },
           },
         });
@@ -169,15 +169,14 @@ describe('CleanExportAccessGuard', () => {
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
     });
 
-    it.each([
-      SubscriptionTier.PRO,
-      SubscriptionTier.SCALE,
-      SubscriptionTier.ENTERPRISE,
-    ])('allows a clean export on paid tier %s', (tier) => {
-      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
-      const ctx = buildContext(buildUser());
-      expect(guard.canActivate(ctx)).toBe(true);
-    });
+    it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
+      'allows a clean export on paid tier %s',
+      (tier) => {
+        vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
+        const ctx = buildContext(buildUser());
+        expect(guard.canActivate(ctx)).toBe(true);
+      },
+    );
 
     it('allows super admins regardless of tier', () => {
       vi.mocked(authUtil.getIsSuperAdmin).mockReturnValue(true);

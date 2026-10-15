@@ -414,7 +414,7 @@ export class AgentAuthService {
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
         detail:
-          'API access is available on paid plans. Upgrade to Pro before authorizing an agent.',
+          'API access is available on paid plans. Upgrade to Agencies before authorizing an agent.',
         title: 'API access requires a paid plan',
       });
     }

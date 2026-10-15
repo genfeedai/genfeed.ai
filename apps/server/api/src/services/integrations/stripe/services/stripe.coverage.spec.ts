@@ -105,8 +105,6 @@ function buildConfigGet() {
       STRIPE_API_VERSION: '2026-09-30.endive',
       STRIPE_PRICE_PAYG: 'payg_id',
       STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
-      STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
-      STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: 'pro_yearly_id',
       STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
       STRIPE_SECRET_KEY: 'sk_test',
     };
@@ -152,42 +150,42 @@ describe('StripeService — coverage spec', () => {
   });
 
   describe('production subscription price validation', () => {
-    it('accepts the configured Pro price when its Stripe data matches the tier contract', async () => {
+    it('accepts the configured Agencies price when its Stripe data matches the tier contract', async () => {
       const retrieve = vi
         .spyOn(service.stripe.prices, 'retrieve')
         .mockResolvedValue({
           active: true,
           currency: 'usd',
-          id: 'pro_id',
-          metadata: { included_monthly_credits: '5900' },
+          id: 'scale_id',
+          metadata: { included_monthly_credits: '60000' },
           recurring: { interval: 'month', interval_count: 1 },
-          unit_amount: 4_900,
+          unit_amount: 49_900,
         } as unknown as Stripe.Response<Stripe.Price>);
 
       await expect(
-        service.validateSubscriptionPriceForTier('pro_id', 'pro'),
+        service.validateSubscriptionPriceForTier('scale_id', 'scale'),
       ).resolves.toBeUndefined();
-      expect(retrieve).toHaveBeenCalledWith('pro_id', {
+      expect(retrieve).toHaveBeenCalledWith('scale_id', {
         expand: ['product'],
       });
       expect(loggerMock.log).toHaveBeenCalledWith(
         expect.stringContaining('subscription price validated'),
-        { outcome: 'valid', tier: 'pro' },
+        { outcome: 'valid', tier: 'scale' },
       );
     });
 
-    it('accepts an otherwise valid Pro price without credit metadata so the published tier fallback applies', async () => {
+    it('accepts an otherwise valid Agencies price without credit metadata so the published tier fallback applies', async () => {
       vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
         active: true,
         currency: 'usd',
-        id: 'pro_id',
+        id: 'scale_id',
         metadata: {},
         recurring: { interval: 'month', interval_count: 1 },
-        unit_amount: 4_900,
+        unit_amount: 49_900,
       } as unknown as Stripe.Response<Stripe.Price>);
 
       await expect(
-        service.validateSubscriptionPriceForTier('pro_id', 'pro'),
+        service.validateSubscriptionPriceForTier('scale_id', 'scale'),
       ).resolves.toBeUndefined();
     });
 
@@ -195,41 +193,44 @@ describe('StripeService — coverage spec', () => {
       ['inactive', { active: false }],
       ['wrong currency', { currency: 'eur' }],
       ['wrong cadence', { recurring: { interval: 'year', interval_count: 1 } }],
-      ['wrong amount', { unit_amount: 3_900 }],
+      ['wrong amount', { unit_amount: 39_900 }],
       [
         'wrong credit grant',
         { metadata: { included_monthly_credits: '8000' } },
       ],
-    ])('fails closed for a Pro price with %s', async (_label, override) => {
-      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
-        active: true,
-        currency: 'usd',
-        id: 'pro_id',
-        metadata: { included_monthly_credits: '5900' },
-        recurring: { interval: 'month', interval_count: 1 },
-        unit_amount: 4_900,
-        ...override,
-      } as unknown as Stripe.Response<Stripe.Price>);
+    ])(
+      'fails closed for a Agencies price with %s',
+      async (_label, override) => {
+        vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
+          active: true,
+          currency: 'usd',
+          id: 'scale_id',
+          metadata: { included_monthly_credits: '60000' },
+          recurring: { interval: 'month', interval_count: 1 },
+          unit_amount: 49_900,
+          ...override,
+        } as unknown as Stripe.Response<Stripe.Price>);
 
-      const error = await service
-        .validateSubscriptionPriceForTier('pro_id', 'pro')
-        .catch((caught: unknown) => caught);
+        const error = await service
+          .validateSubscriptionPriceForTier('scale_id', 'scale')
+          .catch((caught: unknown) => caught);
 
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe(
-        'Production subscription price configuration is invalid',
-      );
-      expect(JSON.stringify(loggerMock.error.mock.calls)).not.toContain(
-        'pro_id',
-      );
-    });
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe(
+          'Production subscription price configuration is invalid',
+        );
+        expect(JSON.stringify(loggerMock.error.mock.calls)).not.toContain(
+          'scale_id',
+        );
+      },
+    );
 
-    it('fails production startup when the Pro price is missing without calling Stripe', async () => {
+    it('fails production startup when the Agencies price is missing without calling Stripe', async () => {
       const configGet = buildConfigGet();
       configGet.mockImplementation((key: string) => {
         if (key === 'NODE_ENV') return 'production';
         if (key === 'GENFEED_CLOUD') return '1';
-        if (key === 'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY') return '';
+        if (key === 'STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY') return '';
         return buildConfigGet()(key);
       });
       const production = await buildModule(configGet);
@@ -241,12 +242,12 @@ describe('StripeService — coverage spec', () => {
       expect(retrieve).not.toHaveBeenCalled();
     });
 
-    it('fails production startup when the Pro price identifier is malformed', async () => {
+    it('fails production startup when the Agencies price identifier is malformed', async () => {
       const configGet = buildConfigGet();
       configGet.mockImplementation((key: string) => {
         if (key === 'NODE_ENV') return 'production';
         if (key === 'GENFEED_CLOUD') return '1';
-        if (key === 'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY')
+        if (key === 'STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY')
           return 'not-a-price';
         return buildConfigGet()(key);
       });
@@ -804,23 +805,6 @@ describe('StripeService — coverage spec', () => {
   // -----------------------------------------------------------------------
 
   describe('createPaymentSession — subscription branch', () => {
-    it('uses subscription mode for pro_id price', async () => {
-      const createSpy = vi
-        .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue(makeMockSession());
-
-      await service.createPaymentSession('cus_1', 'pro_id', 'http://origin');
-
-      expect(createSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mode: 'subscription',
-          subscription_data: expect.objectContaining({
-            metadata: expect.objectContaining({ tier: 'pro', type: 'monthly' }),
-          }),
-        }),
-      );
-    });
-
     it('uses subscription mode for scale_id price', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
@@ -859,27 +843,6 @@ describe('StripeService — coverage spec', () => {
       );
     });
 
-    it('uses subscription mode for the yearly Pro price', async () => {
-      const createSpy = vi
-        .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue(makeMockSession());
-
-      await service.createPaymentSession(
-        'cus_1',
-        'pro_yearly_id',
-        'http://origin',
-      );
-
-      expect(createSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mode: 'subscription',
-          subscription_data: expect.objectContaining({
-            metadata: expect.objectContaining({ tier: 'pro', type: 'yearly' }),
-          }),
-        }),
-      );
-    });
-
     it('routes to success/cancel URLs correctly when origin equals GENFEEDAI_APP_URL', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
@@ -887,7 +850,7 @@ describe('StripeService — coverage spec', () => {
 
       await service.createPaymentSession(
         'cus_1',
-        'pro_id',
+        'scale_id',
         'http://localhost:3000',
       );
 
@@ -910,7 +873,7 @@ describe('StripeService — coverage spec', () => {
 
       await service.createPaymentSession(
         'cus_1',
-        'pro_id',
+        'scale_id',
         'https://custom.example.com',
       );
 
@@ -929,7 +892,7 @@ describe('StripeService — coverage spec', () => {
 
       await service.createPaymentSession(
         'cus_1',
-        'pro_id',
+        'scale_id',
         'http://origin',
         1,
         { cancel: 'https://custom/cancel', success: 'https://custom/success' },

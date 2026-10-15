@@ -243,7 +243,7 @@ describe('OrganizationPaidAccessService', () => {
   it('grants access from an operator-granted tier with no subscription row at all (#5293)', async () => {
     const prisma = createFakePrisma({
       ownSubscriptions: [],
-      ownSubscriptionTier: SubscriptionTier.PRO,
+      ownSubscriptionTier: SubscriptionTier.SCALE,
     });
     const { service } = createService(prisma);
 

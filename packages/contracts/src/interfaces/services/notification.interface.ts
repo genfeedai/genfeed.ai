@@ -211,7 +211,7 @@ export interface IRevenueNotificationPayload {
   organizationId: string;
   /** `BillingRevenueSource` value, e.g. `subscription_invoice`. */
   source: string;
-  /** Human-readable plan/product name when known, e.g. `Pro`, `Scale`. */
+  /** Human-readable plan/product name when known, e.g. `Scale`. */
   planLabel?: string;
   amountMinor: number;
   currency: string;

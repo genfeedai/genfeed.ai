@@ -38,7 +38,7 @@ describe('resolveResearchCollectionAccess', () => {
         isHostedSaas: true,
         now: NOW,
         subscriptionReadFailed: true,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         subscriptions: [subscription()],
       }).reason,
     ).toBe('research_subscription_unverified');
@@ -50,7 +50,7 @@ describe('resolveResearchCollectionAccess', () => {
         isHostedSaas: true,
         now: NOW,
         subscriptionReadFailed: false,
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.SCALE,
         subscriptions: [subscription()],
       }).reason,
     ).toBe('active_paid');
@@ -90,7 +90,7 @@ describe('resolveResearchCollectionAccess', () => {
           subscriptionReadFailed: false,
           subscriptionTier:
             row.status === SubscriptionStatus.TRIALING
-              ? SubscriptionTier.PRO
+              ? SubscriptionTier.SCALE
               : SubscriptionTier.FREE,
           subscriptions: [row],
         }).isAllowed,

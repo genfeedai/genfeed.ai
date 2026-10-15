@@ -77,7 +77,7 @@ describe('loadProtectedBootstrap', () => {
         isSuperAdmin: false,
         organizationId: 'org_123',
         subscriptionStatus: 'active',
-        subscriptionTier: 'pro',
+        subscriptionTier: 'scale',
         userId: 'user_123',
       },
       brands: [{ id: 'brand_123', label: 'Alpha' }],
