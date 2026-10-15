@@ -1,7 +1,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg17
-    container_name: genfeed-postgres
+    container_name: genfeed-dev-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: genfeed
@@ -19,7 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: genfeed-redis
+    container_name: genfeed-dev-redis
     restart: unless-stopped
     ports:
       - "6379:6379"

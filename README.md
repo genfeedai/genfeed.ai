@@ -206,7 +206,11 @@ More: [Architecture](docs/architecture.md) ·
 
 Audience order for this repository is self-hosters, then agent contributors,
 then human contributors. Development is supported on macOS and Linux (Windows
-via WSL2).
+via WSL2). Prerequisites: Node 24, Bun, Docker with Compose v2, a C/C++
+toolchain plus `python3` (`sudo apt-get install -y build-essential python3` on
+Debian/Ubuntu, `xcode-select --install` on macOS), and systemd on Linux for
+`dev:setup`. Details are in
+[CONTRIBUTING.md](CONTRIBUTING.md#prerequisites-by-platform).
 
 ```bash
 bun install && cp .env.example .env.local

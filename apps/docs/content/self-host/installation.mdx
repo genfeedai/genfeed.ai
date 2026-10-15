@@ -99,6 +99,15 @@ Use this path only if you are changing Genfeed itself. To run Genfeed, use optio
 - Latest stable Bun (see `.bun-version`)
 - Git
 - Docker Engine with Docker Compose v2, for local PostgreSQL 17 and Redis 7
+- A C/C++ toolchain and `python3`, because `bun install` compiles the `node-pty`
+  native module:
+  - Debian/Ubuntu: `sudo apt-get install -y build-essential python3`
+  - macOS: `xcode-select --install` (Xcode Command Line Tools)
+- systemd on Linux, because `bun run dev:setup` installs the Portless HTTPS
+  startup service
+
+See the [contributor prerequisites](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md#prerequisites-by-platform)
+for the full per-platform setup.
 
 This repository is Bun-only. npm, Yarn, and pnpm installs can produce an
 unsupported dependency tree.
