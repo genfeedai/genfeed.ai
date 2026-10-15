@@ -2,7 +2,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
-import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolResultSchema } from '@modelcontextprotocol/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const url = 'https://cdn.genfeed.ai/ingredients/images/img-1';
@@ -51,10 +51,12 @@ describe('native MCP image delivery', () => {
       data: Buffer.from(jpeg).toString('base64'),
       mimeType: 'image/jpeg',
     });
-    expect(parsed.structuredContent?.artifact).toMatchObject({
-      mimeType: 'image/jpeg',
-      renderMode: 'native_image',
-      sizeBytes: jpeg.byteLength,
+    expect(parsed.structuredContent).toMatchObject({
+      artifact: {
+        mimeType: 'image/jpeg',
+        renderMode: 'native_image',
+        sizeBytes: jpeg.byteLength,
+      },
     });
     expect(fetcher).toHaveBeenCalledWith(
       url,

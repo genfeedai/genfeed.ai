@@ -6,58 +6,47 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request, Response } from 'express';
 
-// Hoisted trackers so the (hoisted) vi.mock factories can record every Server /
-// transport constructed — this is how we assert per-request creation and
-// teardown in the stateless transport. handleRequest is shared so the error
-// path can be driven with mockRejectedValueOnce.
 const {
   serverInstances,
-  transportInstances,
+  handlerInstances,
   mockHandleRequest,
   toolRegistryConstructorCalls,
 } = vi.hoisted(() => ({
-  serverInstances: [] as Array<{
-    connect: ReturnType<typeof vi.fn>;
+  serverInstances: [] as Array<{ setRequestHandler: ReturnType<typeof vi.fn> }>,
+  handlerInstances: [] as Array<{
     close: ReturnType<typeof vi.fn>;
-    setRequestHandler: ReturnType<typeof vi.fn>;
-  }>,
-  toolRegistryConstructorCalls: [] as unknown[][],
-  transportInstances: [] as Array<{
-    handleRequest: ReturnType<typeof vi.fn>;
-    close: ReturnType<typeof vi.fn>;
+    factory: () => unknown;
     options: unknown;
   }>,
+  toolRegistryConstructorCalls: [] as unknown[][],
   mockHandleRequest: vi.fn(),
 }));
 
-vi.mock('@modelcontextprotocol/sdk/server', () => ({
+vi.mock('@modelcontextprotocol/server', () => ({
   Server: class MockServer {
-    connect = vi.fn().mockResolvedValue(undefined);
-    close = vi.fn().mockResolvedValue(undefined);
     setRequestHandler = vi.fn();
     constructor() {
       serverInstances.push(this);
     }
   },
-}));
-
-vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
-  StreamableHTTPServerTransport: class MockStreamableHTTPServerTransport {
-    handleRequest = mockHandleRequest;
-    close = vi.fn().mockResolvedValue(undefined);
-    options: unknown;
-    constructor(options: unknown) {
-      this.options = options;
-      transportInstances.push(this);
-    }
+  createMcpHandler: (factory: () => unknown, options: unknown) => {
+    const handler = {
+      close: vi.fn().mockResolvedValue(undefined),
+      factory,
+      options,
+    };
+    handlerInstances.push(handler);
+    return handler;
   },
 }));
 
-vi.mock('@modelcontextprotocol/sdk/types.js', () => ({
-  CallToolRequestSchema: 'CallToolRequestSchema',
-  ListResourcesRequestSchema: 'ListResourcesRequestSchema',
-  ListToolsRequestSchema: 'ListToolsRequestSchema',
-  ReadResourceRequestSchema: 'ReadResourceRequestSchema',
+vi.mock('@modelcontextprotocol/node', () => ({
+  toNodeHandler:
+    (handler: { factory: () => unknown }) =>
+    async (...args: unknown[]) => {
+      await handler.factory();
+      await mockHandleRequest(...args);
+    },
 }));
 
 const mockSetBearerToken = vi.fn();
@@ -130,7 +119,7 @@ describe('StreamableHttpService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     serverInstances.length = 0;
-    transportInstances.length = 0;
+    handlerInstances.length = 0;
     toolRegistryConstructorCalls.length = 0;
     mockHandleRequest.mockReset();
     mockHandleRequest.mockResolvedValue(undefined);
@@ -196,29 +185,28 @@ describe('StreamableHttpService', () => {
       await service.handlePost(req, res);
 
       expect(serverInstances).toHaveLength(1);
-      expect(transportInstances).toHaveLength(1);
-      // Stateless mode: no session id generator configured.
-      expect(transportInstances[0].options).toMatchObject({
-        sessionIdGenerator: undefined,
+      expect(handlerInstances).toHaveLength(1);
+      // The SDK owns both modern dispatch and stateless legacy compatibility.
+      expect(handlerInstances[0].options).toMatchObject({
+        legacy: 'stateless',
+        responseMode: 'auto',
       });
-      expect(serverInstances[0].connect).toHaveBeenCalledOnce();
       expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
     });
 
-    it('tears down the transport and server after every request (finally)', async () => {
+    it('closes the request handler after every request', async () => {
       await service.handlePost(makeReq({ headers: {} }), makeRes());
 
-      expect(transportInstances[0].close).toHaveBeenCalledOnce();
-      expect(serverInstances[0].close).toHaveBeenCalledOnce();
+      expect(handlerInstances[0].close).toHaveBeenCalledOnce();
     });
 
     it('creates an independent transport per request (no reuse)', async () => {
       await service.handlePost(makeReq({ headers: {} }), makeRes());
       await service.handlePost(makeReq({ headers: {} }), makeRes());
 
-      expect(transportInstances).toHaveLength(2);
+      expect(handlerInstances).toHaveLength(2);
       expect(serverInstances).toHaveLength(2);
-      expect(transportInstances[0]).not.toBe(transportInstances[1]);
+      expect(handlerInstances[0]).not.toBe(handlerInstances[1]);
     });
 
     it('forwards a parsed body to the transport when present', async () => {
@@ -277,7 +265,7 @@ describe('StreamableHttpService', () => {
     it('lists only public resources for an unauthenticated discovery request', async () => {
       await service.handlePost(makeReq({ headers: {} }), makeRes());
       const registration = serverInstances[0].setRequestHandler.mock.calls.find(
-        ([schema]) => schema === 'ListResourcesRequestSchema',
+        ([schema]) => schema === 'resources/list',
       );
       const handler = registration?.[1] as () => unknown;
 
@@ -296,8 +284,7 @@ describe('StreamableHttpService', () => {
       await service.handlePost(makeReq({ headers: {} }), res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(transportInstances[0].close).toHaveBeenCalledOnce();
-      expect(serverInstances[0].close).toHaveBeenCalledOnce();
+      expect(handlerInstances[0].close).toHaveBeenCalledOnce();
     });
   });
 
@@ -308,9 +295,9 @@ describe('StreamableHttpService', () => {
 
       await service.handleGet(req, res);
 
-      expect(transportInstances).toHaveLength(1);
+      expect(handlerInstances).toHaveLength(1);
       expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
-      expect(transportInstances[0].close).toHaveBeenCalledOnce();
+      expect(handlerInstances[0].close).toHaveBeenCalledOnce();
     });
 
     it('routes DELETE through the same stateless per-request handler', async () => {
@@ -319,9 +306,9 @@ describe('StreamableHttpService', () => {
 
       await service.handleDelete(req, res);
 
-      expect(transportInstances).toHaveLength(1);
+      expect(handlerInstances).toHaveLength(1);
       expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
-      expect(serverInstances[0].close).toHaveBeenCalledOnce();
+      expect(handlerInstances[0].close).toHaveBeenCalledOnce();
     });
   });
   it.each([

@@ -1,10 +1,18 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { OAuthClientService } from './oauth-client.service';
 
-function buildService() {
+vi.mock('@libs/security/destination-guard', () => ({ safeFetch: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(safeFetch).mockReset();
+});
+
+function buildService(upsert = vi.fn().mockResolvedValue(undefined)) {
   const clients = new Map<string, Record<string, unknown>>();
   const prisma = {
     oAuthClient: {
+      upsert,
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const client = {
           ...data,
@@ -137,4 +145,163 @@ describe('OAuthClientService', () => {
       response: expect.objectContaining({ error: 'invalid_request' }),
     });
   });
+});
+
+describe('OAuth CIMD clients', () => {
+  const clientId = 'https://client.example/oauth/metadata.json';
+  const metadata = {
+    client_id: clientId,
+    client_name: 'Document client',
+    redirect_uris: ['https://client.example/callback'],
+    token_endpoint_auth_method: 'none',
+  };
+  function documentResponse(
+    value: unknown = metadata,
+    headers: Record<string, string> = {},
+  ) {
+    return new Response(JSON.stringify(value), {
+      headers: { 'content-type': 'application/json', ...headers },
+    });
+  }
+
+  it('persists validated CIMD metadata for grant foreign keys and checks redirects without DCR', async () => {
+    vi.mocked(safeFetch).mockResolvedValue(documentResponse());
+    const upsert = vi.fn().mockResolvedValue(undefined);
+    const service = buildService(upsert);
+    await expect(
+      service.requireClient(clientId, metadata.redirect_uris[0]),
+    ).resolves.toMatchObject({
+      clientId,
+      clientName: 'Document client',
+      redirectUris: metadata.redirect_uris,
+      grantTypes: ['authorization_code'],
+      tokenEndpointAuthMethod: 'none',
+    });
+    expect(upsert).toHaveBeenCalledWith({
+      where: { clientId },
+      create: expect.objectContaining({
+        clientId,
+        redirectUris: metadata.redirect_uris,
+      }),
+      update: expect.objectContaining({ redirectUris: metadata.redirect_uris }),
+    });
+    expect(safeFetch).toHaveBeenCalledWith(
+      clientId,
+      expect.objectContaining({
+        redirect: 'error',
+        signal: expect.any(AbortSignal),
+      }),
+      { allowedSchemes: ['https:'], maxRedirects: 0 },
+    );
+    await expect(
+      service.requireClient(clientId, 'https://attacker.example/callback'),
+    ).rejects.toMatchObject({ response: { error: 'invalid_request' } });
+  });
+
+  it.each([
+    'http://client.example/metadata.json',
+    'https://client.example/',
+    'https://user:password@client.example/metadata.json',
+    'https://client.example/metadata.json#fragment',
+  ])(
+    'rejects invalid client document identifier %s before fetching',
+    async (id) => {
+      await expect(buildService().requireClient(id)).rejects.toMatchObject({
+        response: { error: 'invalid_client' },
+      });
+      expect(safeFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { ...metadata, client_id: 'https://other.example/client.json' },
+    { ...metadata, client_name: undefined },
+    { ...metadata, redirect_uris: [] },
+    { ...metadata, redirect_uris: ['javascript:alert(1)'] },
+    { ...metadata, token_endpoint_auth_method: 'client_secret_post' },
+  ])('rejects invalid document metadata %j', async (document) => {
+    vi.mocked(safeFetch).mockResolvedValue(documentResponse(document));
+    await expect(buildService().requireClient(clientId)).rejects.toMatchObject({
+      response: { error: 'invalid_client' },
+    });
+  });
+
+  it('fails closed when the outbound guard rejects a private address or DNS rebinding target', async () => {
+    vi.mocked(safeFetch).mockRejectedValue(new Error('blocked destination'));
+    await expect(
+      buildService().requireClient('https://127.0.0.1/metadata.json'),
+    ).rejects.toMatchObject({ response: { error: 'invalid_client' } });
+  });
+
+  it('rejects non-JSON and oversized documents', async () => {
+    const service = buildService();
+    vi.mocked(safeFetch).mockResolvedValue(
+      new Response('<html>oops</html>', {
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+    await expect(service.requireClient(clientId)).rejects.toMatchObject({
+      response: { error: 'invalid_client' },
+    });
+    vi.mocked(safeFetch).mockResolvedValue(
+      documentResponse({ ...metadata, extra: 'x'.repeat(65536) }),
+    );
+    await expect(service.requireClient(clientId)).rejects.toMatchObject({
+      response: { error: 'invalid_client' },
+    });
+  });
+
+  it('rejects redirects and never follows a document to another destination', async () => {
+    vi.mocked(safeFetch).mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: 'http://169.254.169.254/' },
+      }),
+    );
+    await expect(buildService().requireClient(clientId)).rejects.toMatchObject({
+      response: { error: 'invalid_client' },
+    });
+  });
+
+  it('honors no-store', async () => {
+    const service = buildService();
+    vi.mocked(safeFetch).mockImplementation(async () =>
+      documentResponse(metadata, { 'cache-control': 'no-store' }),
+    );
+    await service.requireClient(clientId);
+    await service.requireClient(clientId);
+    expect(safeFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+it('expires cached CIMD documents after at most five minutes', async () => {
+  vi.useFakeTimers();
+  try {
+    const clientId = 'https://client.example/metadata.json';
+    vi.mocked(safeFetch).mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            client_id: clientId,
+            client_name: 'Test',
+            redirect_uris: ['https://client.example/callback'],
+          }),
+          {
+            headers: {
+              'content-type': 'application/json',
+              'cache-control': 'max-age=999999',
+            },
+          },
+        ),
+    );
+    const service = buildService();
+    await service.requireClient(clientId);
+    await service.requireClient(clientId);
+    expect(safeFetch).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(300_001);
+    await service.requireClient(clientId);
+    expect(safeFetch).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
 });

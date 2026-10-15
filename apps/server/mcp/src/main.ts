@@ -49,6 +49,8 @@ const MCP_CORS_ALLOWED_HEADERS = [
   'Content-Type',
   'Last-Event-ID',
   'Mcp-Protocol-Version',
+  'Mcp-Method',
+  'Mcp-Name',
   'Mcp-Session-Id',
 ].join(', ');
 

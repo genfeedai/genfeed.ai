@@ -283,7 +283,7 @@ export function getMcpServerCard() {
     documentationUrl: `${getPublicDocsUrl()}/api-reference/mcp`,
     iconUrl: serverInfo.icons?.[0]?.src,
     name: MCP_SERVER_NAME,
-    protocolVersion: '2025-06-18',
+    protocolVersion: '2026-07-28',
     serverInfo,
     toolsets: getUserVisibleToolsetCards(),
     transport: {

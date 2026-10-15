@@ -1,5 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
+import type { Implementation } from '@modelcontextprotocol/server';
 import { MCP_BRAND_ICON_FILES } from './brand-icons';
 
 export const MCP_SERVER_NAME = 'genfeed-mcp-server';

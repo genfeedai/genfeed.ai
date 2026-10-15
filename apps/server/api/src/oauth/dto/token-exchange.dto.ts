@@ -26,7 +26,7 @@ export class OAuthTokenExchangeDto {
   grant_type!: string;
 
   @IsString()
-  @MaxLength(200)
+  @MaxLength(2048)
   client_id!: string;
 
   @ValidateIf(requiresAuthorizationCode)

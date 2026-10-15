@@ -269,7 +269,7 @@ describe('McpController', () => {
       const result = controller.getManifest();
       expect(result).toHaveProperty('transport_ready', true);
       expect(result).toHaveProperty('status', 'active');
-      expect(result).toHaveProperty('mcp_version', '1.18.1');
+      expect(result).toHaveProperty('mcp_version', '2026-07-28');
       expect(result).toHaveProperty('server_version', '1.0.0');
       expect(result).toHaveProperty('timestamp');
       expect(mockStreamableHttpService.isTransportReady).toHaveBeenCalled();

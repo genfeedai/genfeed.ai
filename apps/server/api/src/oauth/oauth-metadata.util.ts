@@ -133,6 +133,8 @@ export function buildOAuthAuthorizationServerMetadata(
       },
       skill: 'https://genfeed.ai/auth.md',
     },
+    authorization_response_iss_parameter_supported: true,
+    client_id_metadata_document_supported: true,
     authorization_endpoint: `${issuer}/v1/oauth/authorize`,
     code_challenge_methods_supported: ['S256'],
     grant_types_supported: ['authorization_code', 'refresh_token'],

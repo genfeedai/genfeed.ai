@@ -22,14 +22,12 @@ import type {
   McpAuthContext,
   McpRequest,
 } from '@mcp/shared/interfaces/mcp-request.interface';
-import { Server } from '@modelcontextprotocol/sdk/server';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+  CallToolResultSchema,
+  ListToolsResultSchema,
+} from '@modelcontextprotocol/core';
+import { toNodeHandler } from '@modelcontextprotocol/node';
+import { createMcpHandler, Server } from '@modelcontextprotocol/server';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import type { Request, Response } from 'express';
@@ -43,23 +41,7 @@ interface StatelessMcpRequest extends McpRequest {
   body: unknown;
 }
 
-/**
- * Stateless Streamable HTTP transport for the MCP server.
- *
- * The MCP SDK's `StreamableHTTPServerTransport` runs in one of two modes. With a
- * `sessionIdGenerator` it is *stateful*: it assigns `transport.sessionId` on the
- * initialize request and the caller is expected to retain the transport keyed by
- * that id. With `sessionIdGenerator: undefined` it is *stateless*: it never
- * assigns a session id and refuses to be reused across requests ("Stateless
- * transport cannot be reused across requests. Create a new transport per
- * request."). The previous implementation mixed the two — it configured
- * stateless mode but then read `transport.sessionId` and threw when it was
- * falsy, which it always is in stateless mode, so every request crashed.
- *
- * This implementation is fully stateless: a fresh `Server` + transport is built
- * per request, the request is handled, and both are torn down in a `finally`.
- * No session map, no cleanup timer. Mirrors the Vitae MCP reference transport.
- */
+/** Serves modern MCP requests and legacy stateless clients from one scoped factory. */
 @Injectable()
 export class StreamableHttpService {
   /**
@@ -113,22 +95,26 @@ export class StreamableHttpService {
     // Parsed by `toolsetsQueryMiddleware` before authentication runs, so this
     // is populated for unauthenticated public `tools/list` requests too.
     const toolsets = request.toolsets ?? [];
-    const server = this.buildServer(
-      authContext,
-      toolsets,
-      request.routeAccessMode,
+    const handler = createMcpHandler(
+      () => this.buildServer(authContext, toolsets, request.routeAccessMode),
+      {
+        legacy: 'stateless',
+        responseMode: 'auto',
+        maxRequestBodySize: 1024 * 1024,
+        onerror: (error) => this.logger.error('MCP handler failed', error),
+      },
     );
-    const transport = new StreamableHTTPServerTransport({
-      enableJsonResponse: true,
-      sessionIdGenerator: undefined,
+    const handleRequest = toNodeHandler(handler, {
+      maxRequestBodySize: 1024 * 1024,
+      onerror: (error) =>
+        this.logger.error('MCP request adapter failed', error),
     });
 
     try {
-      await server.connect(transport);
       // POST requests use a route-scoped JSON parser so the authentication
       // boundary can classify public discovery methods. GET/DELETE have no
       // body, and the SDK accepts `undefined` for those verbs.
-      await transport.handleRequest(req, res, request.body ?? undefined);
+      await handleRequest(req, res, request.body ?? undefined);
     } catch (error: unknown) {
       this.logger.error('Failed to handle MCP request', error);
       if (!res.headersSent) {
@@ -139,8 +125,7 @@ export class StreamableHttpService {
         });
       }
     } finally {
-      await transport.close().catch(() => undefined);
-      await server.close().catch(() => undefined);
+      await handler.close().catch(() => undefined);
     }
   }
 
@@ -178,31 +163,29 @@ export class StreamableHttpService {
           : MCP_SERVER_INSTRUCTIONS,
     });
 
-    server.setRequestHandler(ListToolsRequestSchema, () => ({
-      tools: toolRegistry.getTools(),
-    }));
-
-    server.setRequestHandler(
-      CallToolRequestSchema,
-      async (request: { params: unknown }) =>
-        toolRegistry.handleToolCall(
-          request.params as {
-            name: string;
-            arguments: Record<string, unknown>;
-          },
-        ),
+    server.setRequestHandler('tools/list', () =>
+      ListToolsResultSchema.parse({ tools: toolRegistry.getTools() }),
     );
 
-    server.setRequestHandler(ListResourcesRequestSchema, () => ({
+    server.setRequestHandler('tools/call', async (request) => {
+      const result = await toolRegistry.handleToolCall({
+        name: request.params.name,
+        arguments: request.params.arguments ?? {},
+      });
+      return server.projectCallToolResult(
+        CallToolResultSchema.parse(result),
+        undefined,
+      );
+    });
+
+    server.setRequestHandler('resources/list', () => ({
       resources: authContext
         ? toolRegistry.getResources()
         : toolRegistry.getPublicResources(),
     }));
 
-    server.setRequestHandler(
-      ReadResourceRequestSchema,
-      async (request: { params: unknown }) =>
-        toolRegistry.handleResourceRead(request.params as { uri: string }),
+    server.setRequestHandler('resources/read', async (request) =>
+      toolRegistry.handleResourceRead(request.params),
     );
 
     this.analyticsService.instrumentServer(server, authContext);
