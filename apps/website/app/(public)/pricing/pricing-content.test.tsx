@@ -50,47 +50,49 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-describe('PricingContent launch pricing', () => {
-  it('shows PAYG as a credit price alongside the subscription prices', () => {
+describe('PricingContent', () => {
+  it('shows PAYG, Agencies and Done for you side by side', () => {
     render(<PricingContent />);
     const payg = screen.getByText('$0.01');
     expect(payg.parentElement).toHaveTextContent('$0.01/credit');
-    expect(screen.getByText('No monthly fee')).toBeInTheDocument();
-    expect(screen.queryByText('Free', { exact: true })).not.toBeInTheDocument();
-    expect(screen.getByText('$39')).toBeInTheDocument();
     expect(screen.getByText('$499')).toBeInTheDocument();
+    expect(screen.getByText('$2,500')).toBeInTheDocument();
+    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
+    expect(screen.queryByText('EARLYGENFEED')).not.toBeInTheDocument();
   });
 
-  it('puts the monthly content service beside self-serve with a direct booking link', () => {
+  it('promises free credits after onboarding', () => {
     render(<PricingContent />);
-    const managed = within(
-      screen.getByRole('region', { name: 'Done for you · we run it' }),
-    );
-    expect(managed.getByText('$2,500')).toBeInTheDocument();
-    expect(managed.getByText('/month')).toBeInTheDocument();
     expect(
-      managed.getByText('Monthly retainer. Final scope agreed on a call.'),
+      screen.getAllByText(/100 free credits after onboarding/).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('prices Done for you as a from price with a direct booking link', () => {
+    render(<PricingContent />);
+    const managed = within(screen.getByLabelText('Done for you'));
+    expect(managed.getByText('From')).toBeInTheDocument();
+    expect(managed.getByText('$2,500')).toBeInTheDocument();
+    expect(
+      managed.getByText('+ usage at cost + performance fee per contract'),
+    ).toBeInTheDocument();
+    expect(
+      managed.getByText('Custom LoRA models quoted separately'),
     ).toBeInTheDocument();
     expect(managed.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
       'href',
       'https://calendly.com/vincent-genfeed/30min',
     );
-    expect(managed.getByText('Performance reporting')).toBeInTheDocument();
-    expect(
-      managed.getByRole('link', { name: 'Explore the service' }),
-    ).toHaveAttribute('href', '/done-for-you');
   });
 
-  it('shows a clear Pro price with introductory terms below it', () => {
+  it('lists the subscription features on the Agencies card', () => {
     render(<PricingContent />);
-    expect(screen.getByText('$39')).toBeInTheDocument();
-    expect(screen.queryByText('$49', { exact: true })).not.toBeInTheDocument();
-    const terms = screen.getByText('EARLYGENFEED').parentElement;
-    expect(terms).toHaveTextContent('First 12 months, then $49/mo');
-    expect(terms).toHaveTextContent('Use code EARLYGENFEED at checkout');
+    const agencies = within(screen.getByLabelText('Agencies'));
+    expect(agencies.getByText('Brand model training')).toBeInTheDocument();
+    expect(agencies.getByText('API and BYOK')).toBeInTheDocument();
   });
 
-  it('uses the tokenized dark card surface for the popular plan', () => {
+  it('uses the tokenized dark card surface for the featured plan', () => {
     render(<PricingContent />);
 
     expect(screen.getByText('Popular').closest('.gsap-card')).toHaveClass(
@@ -98,33 +100,9 @@ describe('PricingContent launch pricing', () => {
     );
   });
 
-  it('renders the enterprise card on the shared grid border surface', () => {
+  it('does not strike through the Agencies price', () => {
     render(<PricingContent />);
 
-    const enterpriseCard = screen
-      .getByRole('heading', { name: 'Custom terms for your organization.' })
-      .closest('.bg-background');
-
-    expect(enterpriseCard).toHaveClass('bg-background');
-    expect(enterpriseCard).not.toHaveClass('border', 'shadow-border');
-    expect(enterpriseCard?.parentElement).toHaveClass('bg-edge/5');
-    expect(enterpriseCard?.parentElement).not.toHaveClass('border');
-  });
-
-  it('renders an even number of pricing FAQ blocks', () => {
-    render(<PricingContent />);
-
-    expect(
-      screen.getByRole('heading', {
-        name: 'Can I start free and upgrade later?',
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it('does not strike through prices on plans without launch pricing', () => {
-    render(<PricingContent />);
-
-    // Cloud Teams has no launchPrice — its price renders un-struck.
     expect(screen.getByText('$499')).not.toHaveClass('line-through');
   });
 
@@ -135,7 +113,7 @@ describe('PricingContent launch pricing', () => {
 
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
-      expect(screen.getByText('5,900 credits included')).toBeInTheDocument();
+      expect(screen.getByText('60,000 credits included')).toBeInTheDocument();
     });
   });
 
@@ -164,23 +142,6 @@ describe('PricingContent launch pricing', () => {
     expect(getPriceQualifier(getScalePlan())).toBe('60,000 credits included');
     expect(getPriceQualifier(getProPlan())).toBe('5,900 credits included');
     expect(getPriceQualifier(getPlanByTier('payg'))).toBe('No monthly fee');
-  });
-
-  it('keeps the pricing cards comparable row by row', () => {
-    // The rendered bullets are a comparison axis, not a feature dump: every
-    // card answers the same five questions in the same order.
-    const rendered = (tier: Parameters<typeof getPlanByTier>[0]) =>
-      getPlanByTier(tier).features.slice(0, 5);
-
-    for (const tier of ['payg', 'pro', 'scale', 'enterprise'] as const) {
-      const [credits, seats, organizations, brands, api] = rendered(tier);
-
-      expect(credits).toMatch(/credit/i);
-      expect(seats).toMatch(/seat/i);
-      expect(organizations).toMatch(/organization/i);
-      expect(brands).toMatch(/brands and connected channels/i);
-      expect(api).toMatch(/API/);
-    }
   });
 
   it('prices the avatar clip from the reviewed HeyGen rates, not a flat per-second guess', () => {

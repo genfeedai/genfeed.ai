@@ -11,15 +11,14 @@ import { serviceOffering } from '@web-components/landing/service-offering.data';
 import { buildDoneForYouJsonLd } from '@web-components/landing/service-offering-jsonld';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
-// Seats are not a Scale-only entitlement, and reviews keep reading them that
-// way. @genfeedai/pricing is the contract: FREE is one seat, every paid
-// tier (Pro, Scale, Enterprise) has unlimited seats, and what Scale adds is
-// multi-organization workflows. page.spec.tsx pins this wording — and its
-// length: the previous 205-character version was truncated in search results
-// and flagged "Meta description too long" by the 2026-08-19 site audit.
+// @genfeedai/pricing is the contract: PAYG is one seat, every paid tier has
+// unlimited seats, and Agencies adds client workspaces. page.spec.tsx pins
+// this wording and its length: a 205-character description was truncated in
+// search results and flagged "Meta description too long" by the 2026-08-19
+// site audit.
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Pricing: PAYG, Pro, Scale and Done for you',
-  `${PLAN_COPY.payg.name} credits; ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} with unlimited team seats and API access. ${serviceOffering.name} ${serviceOffering.priceLabel.toLowerCase()}. Book a call.`,
+  'Pricing: PAYG, Agencies and Done for you',
+  `${PLAN_COPY.payg.name} credits; ${PLAN_COPY.scale.name} with unlimited seats, client workspaces and API access. ${serviceOffering.name} ${serviceOffering.priceLabel.toLowerCase()}. Book a call.`,
   '/pricing',
 );
 
@@ -32,7 +31,7 @@ const OFFER_DESCRIPTIONS: Record<PlanTier, string> = {
     'Enterprise plan with custom output terms, SSO, SLA, and dedicated support.',
   payg: `Pay-per-output credits at $${CREDIT_VALUE_DOLLARS.toFixed(2)} each, with no monthly fee. Buy credit packs for images, video, voice, and articles.`,
   pro: `Monthly subscription with ${PLAN_COPY.pro.includedCredits} included at a better rate, unlimited brand kits, unlimited connected channels, and API access.`,
-  scale: `For teams: unlimited seats, a shared pool of ${PLAN_COPY.scale.includedCredits}, multi-organization workflows, approvals, and managed billing.`,
+  scale: `For agencies: unlimited seats and client workspaces, a shared pool of ${PLAN_COPY.scale.includedCredits}, clean exports, brand model training, and API access.`,
 };
 
 export function buildPricingJsonLd() {
@@ -40,7 +39,7 @@ export function buildPricingJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     about: buildDoneForYouJsonLd(),
-    description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.pro.nameWithPrice} includes ${PLAN_COPY.pro.includedCredits} at a better rate, and all paid tiers include unlimited seats. ${PLAN_COPY.scale.nameWithPrice} adds a shared credit pool and multi-organization workflows.`,
+    description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats, client workspaces, and a shared credit pool for agencies. ${serviceOffering.name} is ${serviceOffering.priceLabel.toLowerCase()}.`,
     mainEntity: {
       '@type': 'Product',
       brand: { '@type': 'Organization', name: 'Genfeed' },
@@ -52,7 +51,7 @@ export function buildPricingJsonLd() {
       // priceSpecification, and inventing one would misstate the deal, so
       // quote-only tiers are left out of the offer list entirely.
       offers: websitePlans
-        .filter((plan) => plan.price != null)
+        .filter((plan) => plan.price != null && plan.tier !== 'pro')
         .map((plan) => ({
           '@type': 'Offer',
           description: [OFFER_DESCRIPTIONS[plan.tier], plan.launchNote]

@@ -82,11 +82,11 @@ describe('PlansCard', () => {
     mockSubscription();
   });
 
-  it('sells only Pro and Scale — never Free or Enterprise', () => {
+  it('sells only Pro and Agencies — never Free or Enterprise', () => {
     render(<PlansCard />);
 
     expect(screen.getByText('Pro')).toBeInTheDocument();
-    expect(screen.getByText('Scale')).toBeInTheDocument();
+    expect(screen.getByText('Agencies')).toBeInTheDocument();
     expect(screen.queryByText('Pay As You Go')).not.toBeInTheDocument();
     expect(screen.queryByText('Enterprise')).not.toBeInTheDocument();
   });
@@ -97,7 +97,7 @@ describe('PlansCard', () => {
     expect(screen.getByText('$39/mo')).toBeInTheDocument();
     expect(screen.getByText('was $49/mo')).toBeInTheDocument();
     expect(screen.getByText(/EARLYGENFEED/)).toBeInTheDocument();
-    // Scale carries no launch offer, so it shows its list price plainly.
+    // Agencies carries no launch offer, so it shows its list price plainly.
     expect(screen.getByText('$499/mo')).toBeInTheDocument();
     expect(screen.queryByText('was $499/mo')).not.toBeInTheDocument();
   });
@@ -107,7 +107,7 @@ describe('PlansCard', () => {
 
     render(<PlansCard />);
 
-    const upgrade = screen.getByRole('button', { name: /Upgrade to Scale/i });
+    const upgrade = screen.getByRole('button', { name: /Upgrade to Agencies/i });
     expect(upgrade.className).toMatch(/\bbg-primary\b/);
     expect(upgrade.className).not.toMatch(/\bbg-tertiary\b/);
   });
@@ -122,7 +122,7 @@ describe('PlansCard', () => {
       screen.queryByRole('button', { name: /Pro$/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Upgrade to Scale/i }),
+      screen.getByRole('button', { name: /Upgrade to Agencies/i }),
     ).toBeInTheDocument();
   });
 
@@ -153,7 +153,7 @@ describe('PlansCard', () => {
     });
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
 
     await waitFor(() => {
       expect(previewPlanChange).toHaveBeenCalledWith('price_scale');
@@ -183,7 +183,7 @@ describe('PlansCard', () => {
     } as never);
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
 
     expect(
       await screen.findByText(
@@ -203,7 +203,7 @@ describe('PlansCard', () => {
     });
 
     render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
 
     expect(
       await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
@@ -219,7 +219,7 @@ describe('PlansCard', () => {
     async function selectScale() {
       mockSubscription('sub_stripe_1');
       render(<PlansCard />);
-      fireEvent.click(await screen.findByRole('button', { name: /Scale/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /Agencies/i }));
     }
 
     it('shows one notification naming the cause instead of a generic message', async () => {
@@ -334,7 +334,7 @@ describe('PlansCard', () => {
       });
 
       render(<PlansCard />);
-      fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Switch to Agencies/i }));
       await screen.findByRole('button', { name: /Confirm change/i });
     }
 
