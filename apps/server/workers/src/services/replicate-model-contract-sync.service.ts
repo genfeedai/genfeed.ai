@@ -46,6 +46,34 @@ export interface ReplicateContractSyncResult {
   version: string;
 }
 
+/**
+ * Replicate exposes no version, and so no OpenAPI document, for some official
+ * models (MiniMax H3). Their billing tiers are then read against the schema
+ * the reviewed contract shipped with, instead of failing every refresh.
+ */
+function withReviewedSchemaFallback(
+  providerModel: IReplicateModel,
+  reviewedOpenapi: unknown,
+): IReplicateModel {
+  const observed = providerModel.latest_version?.openapi_schema;
+  if (
+    (isRecord(observed) && Object.keys(observed).length > 0) ||
+    !isRecord(reviewedOpenapi) ||
+    Object.keys(reviewedOpenapi).length === 0
+  )
+    return providerModel;
+  return {
+    ...providerModel,
+    latest_version: {
+      cog_version: providerModel.latest_version?.cog_version ?? '',
+      created_at: providerModel.latest_version?.created_at ?? '',
+      id: providerModel.latest_version?.id ?? '',
+      ...providerModel.latest_version,
+      openapi_schema: reviewedOpenapi,
+    },
+  };
+}
+
 @Injectable()
 export class ReplicateModelContractSyncService {
   constructor(private readonly modelsService: ModelsService) {}
@@ -69,19 +97,19 @@ export class ReplicateModelContractSyncService {
       model.endpoint || `${providerModel.owner}/${providerModel.name}`;
     const modelKey = model.key ?? endpoint;
     const prisma = this.modelsService.prisma;
-    const candidate = prepareReplicateModelContract(
-      endpoint,
-      providerModel,
-      category,
-      pricing,
-      now,
-    );
     const reviewed = await loadReviewedRateContract(prisma, {
       endpoint: model.endpoint,
       isFree: model.isFree,
       provider: ModelProvider.REPLICATE,
       reviewedProviderContractVersion: model.reviewedProviderContractVersion,
     });
+    const candidate = prepareReplicateModelContract(
+      endpoint,
+      withReviewedSchemaFallback(providerModel, reviewed?.contract.openapi),
+      category,
+      pricing,
+      now,
+    );
     const observedPricing = this.observedPricing(candidate, now);
     const comparison =
       reviewed && observedPricing

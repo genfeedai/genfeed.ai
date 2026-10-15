@@ -126,6 +126,76 @@ describe('checked-in Replicate variant selectors', () => {
       ).toMatchObject({ selectors: { model_variant: variant }, status: 'ok' });
   });
 
+  it('drops billing tiers no dispatched request can reach', () => {
+    const tier = (
+      criteria: Array<Record<string, unknown>>,
+      price: string,
+    ): Record<string, unknown> => ({
+      criteria: criteria.map((criterion) => ({ type: 'equals', ...criterion })),
+      prices: [{ metric: 'image_output_count', price, type: 'per-unit' }],
+    });
+    const resolution = (value: string | null) => ({
+      subtype: value === null ? 'null' : 'string',
+      title: 'target resolution',
+      value,
+    });
+    const variant = (value: string | null) => ({
+      subtype: value === null ? 'null' : 'string',
+      title: 'model variant',
+      value,
+    });
+    // Replicate billingConfig, 2026-10-15.
+    const nanoBananaPro = mapReplicateBillingTiers(
+      [
+        tier([resolution('1K')], '$0.15'),
+        tier([resolution('4K')], '$0.30'),
+        tier([resolution('fallback')], '$0.035'),
+      ],
+      { resolution: { enum: ['1K', '2K', '4K'], type: 'string' } },
+      'google/nano-banana-pro',
+    );
+    expect(nanoBananaPro).toMatchObject({
+      rates: [
+        { unitPriceUsd: 0.15, when: { resolution: '1K' } },
+        { unitPriceUsd: 0.3, when: { resolution: '4K' } },
+      ],
+      status: 'ok',
+    });
+    const seedream = mapReplicateBillingTiers(
+      [
+        tier([variant(null), resolution('1K')], '$0.045'),
+        tier([variant(null), resolution('2K')], '$0.09'),
+        tier([variant('layer-small'), resolution(null)], '$0.0225'),
+        tier([variant('layer-large'), resolution(null)], '$0.045'),
+      ],
+      {
+        layer_decomposition: { default: false, type: 'boolean' },
+        size: {
+          default: '2K',
+          enum: ['1K', '1.5K', '2K', 'auto'],
+          type: 'string',
+        },
+      },
+      'bytedance/seedream-5-pro',
+    );
+    expect(seedream).toMatchObject({
+      rates: [
+        { unitPriceUsd: 0.045, when: { resolution: '1K' } },
+        { unitPriceUsd: 0.09, when: { resolution: '2K' } },
+      ],
+      selectorKeys: ['resolution'],
+      status: 'ok',
+    });
+    // The same tiers on a model without the exclusion still fail closed.
+    expect(
+      mapReplicateBillingTiers(
+        [tier([resolution('fallback')], '$0.035')],
+        { resolution: { enum: ['1K', '2K', '4K'], type: 'string' } },
+        'google/nano-banana-2',
+      ),
+    ).toMatchObject({ status: 'failed' });
+  });
+
   it('quarantines Seedance 1.5 when billing resolution is absent from the schema', () => {
     const fixture = REPLICATE_VARIANT_FIXTURES['bytedance/seedance-1.5-pro'];
     if (!fixture) throw new Error('missing Seedance 1.5 evidence');

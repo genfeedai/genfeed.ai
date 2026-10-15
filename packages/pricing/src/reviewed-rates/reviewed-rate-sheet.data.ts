@@ -585,7 +585,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     variantRules: [
       {
-        criterionTitle: 'resolution',
+        criterionTitle: 'target resolution',
         selectorKey: 'resolution',
         derive: {
           kind: 'field',

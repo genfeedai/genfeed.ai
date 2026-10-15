@@ -341,6 +341,29 @@ describe('ReplicateModelContractSyncService', () => {
     expect(update.data).not.toHaveProperty('isDefault');
   });
 
+  it('reads billing tiers against the reviewed schema when Replicate publishes no version', async () => {
+    const { model, modelProviderContract, service } = harness({
+      ...reviewedContract,
+      openapi: validOpenapi(variantProperties),
+    });
+    const now = new Date('2026-12-05T00:00:00.000Z');
+
+    const result = await service.synchronizeModel(
+      registryModel(reviewedVersion),
+      { ...providerModel(), latest_version: null },
+      ModelCategory.VIDEO,
+      { ...pricing(), billing },
+      now,
+    );
+
+    expect(result).toMatchObject({ drifted: false });
+    expect(result.refreshFailure).toBeUndefined();
+    expect(modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(model.update.mock.calls[0]?.[0].data).toMatchObject({
+      providerSyncStatus: 'fresh',
+    });
+  });
+
   it('repairs an empty output schema on the reviewed contract when the same rates are observed', async () => {
     const { modelProviderContract, service } = harness({
       ...reviewedContract,
