@@ -35,7 +35,7 @@ export interface ServiceLandingPageProps {
   slug: string;
 }
 
-// Marks the hero CTA; the topbar hides its own on phones while this is on screen.
+// Marks the hero CTA; the topbar hides its own while this is on screen.
 const HERO_CTA_SELECTOR = '[data-landing-hero-cta]';
 
 const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
@@ -140,6 +140,7 @@ export default function ServiceLandingPage({
       <MarketingEntrance cards={false}>
         <PageLayout
           heroMedia={<MarketingArtwork page={`/${slug}`} />}
+          isHeroVisualStacked={config.isAgentFirst}
           badge={config.badge}
           badgeIcon={Sparkles}
           title={

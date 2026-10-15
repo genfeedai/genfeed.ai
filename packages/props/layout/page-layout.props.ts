@@ -11,6 +11,7 @@ export interface PageLayoutProps {
   heroProof?: ReactNode;
   heroMedia?: ReactNode;
   heroVisual?: ReactNode;
+  isHeroVisualStacked?: boolean;
   showFooter?: boolean;
   title: ReactNode;
   variant?: 'poster' | 'proof';
