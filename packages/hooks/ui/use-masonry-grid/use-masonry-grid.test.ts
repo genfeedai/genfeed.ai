@@ -273,6 +273,16 @@ describe('useMasonryGrid', () => {
       document.body.innerHTML = '';
     });
 
+    function tileOffset(tile: HTMLElement): { x: number; y: number } {
+      const match = /translate3d\((-?[\d.]+)px, (-?[\d.]+)px/.exec(
+        tile.style.transform,
+      );
+      return {
+        x: match ? Number(match[1]) : Number.NaN,
+        y: match ? Number(match[2]) : Number.NaN,
+      };
+    }
+
     function mountObservedContainer(
       itemHeights: number[],
       options: IMasonryGridOptions,
@@ -315,19 +325,13 @@ describe('useMasonryGrid', () => {
         },
       );
       const tiles = Array.from(container.children) as HTMLElement[];
-      expect(tiles.map((tile) => tile.style.top)).toEqual([
-        '0px',
-        '0px',
-        '0px',
-        '0px',
-        '108px',
-        '158px',
+      expect(tiles.map((tile) => tileOffset(tile).y)).toEqual([
+        0, 0, 0, 0, 108, 158,
       ]);
-      expect(tiles[4].style.left).toBe('252px');
-      expect(tiles[5].style.left).toBe('756px');
+      expect(tileOffset(tiles[4]).x).toBe(252);
+      expect(tileOffset(tiles[5]).x).toBe(756);
       expect(
-        Number.parseFloat(tiles[3].style.left) +
-          Number.parseFloat(tiles[3].style.width),
+        tileOffset(tiles[3]).x + Number.parseFloat(tiles[3].style.width),
       ).toBe(1000);
       expect(result.current.containerHeight).toBe(400);
     });
@@ -348,8 +352,8 @@ describe('useMasonryGrid', () => {
       const tiles = Array.from(container.children) as HTMLElement[];
       expect(window.innerWidth).toBe(viewportWidth);
       expect(tiles[0].style.width).toBe('306px');
-      expect(tiles[1].style.left).toBe('314px');
-      expect(tiles[2].style.top).toBe('108px');
+      expect(tileOffset(tiles[1]).x).toBe(314);
+      expect(tileOffset(tiles[2]).y).toBe(108);
     });
 
     it('measures every tile at its target width, with no easing left running', () => {
@@ -358,10 +362,11 @@ describe('useMasonryGrid', () => {
         gap: 8,
         minColumnWidth: 240,
       });
-      // A repack that eases the slide leaves transitions running on the tiles.
-      reportResize();
+      // A slide from an earlier repack can still be running on the tiles.
       const tiles = Array.from(container.children) as HTMLElement[];
-      expect(tiles[0].style.transition).toContain('0.3s');
+      for (const tile of tiles) {
+        tile.style.transition = 'transform 0.3s ease';
+      }
       const seenAtMeasure: string[] = [];
       for (const tile of tiles) {
         Object.defineProperty(tile, 'offsetHeight', {
@@ -385,17 +390,25 @@ describe('useMasonryGrid', () => {
       }
     });
 
-    it('does not ease the width of a tile, only its slide', () => {
-      const { container } = mountObservedContainer([100, 200], {
-        columns: { desktop: 5, mobile: 1, tablet: 3 },
+    it('eases a moved tile by transform only, never its width or offsets', () => {
+      const { container } = mountObservedContainer([100, 200, 100], {
+        columns: { desktop: 2, mobile: 1, tablet: 2 },
         gap: 8,
         minColumnWidth: 240,
       });
+      const [first, , moved] = Array.from(container.children) as HTMLElement[];
+      Object.defineProperty(first, 'offsetHeight', {
+        configurable: true,
+        value: 300,
+      });
       reportResize();
 
-      const tile = container.children[0] as HTMLElement;
-      expect(tile.style.transition).toContain('left');
-      expect(tile.style.transition).not.toContain('width');
+      expect(tileOffset(moved)).toEqual({ x: 504, y: 208 });
+      expect(moved.style.transition).toBe(
+        'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      );
+      expect(moved.style.left).toBe('0px');
+      expect(moved.style.top).toBe('0px');
     });
 
     it('re-packs on the next frame while the container itself resizes', () => {
@@ -420,7 +433,7 @@ describe('useMasonryGrid', () => {
 
       const tiles = Array.from(container.children) as HTMLElement[];
       expect(tiles[0].style.width).toBe('306px');
-      expect(tiles[1].style.left).toBe('314px');
+      expect(tileOffset(tiles[1]).x).toBe(314);
       // Live tracking never eases, so tiles cannot lag behind the panel.
       expect(tiles[0].style.transition).toBe('none');
     });
@@ -436,7 +449,7 @@ describe('useMasonryGrid', () => {
       expect(observer?.observe).toHaveBeenCalledWith(container);
       for (const tile of tiles)
         expect(observer?.observe).toHaveBeenCalledWith(tile);
-      expect(tiles[2].style.top).toBe('108px');
+      expect(tileOffset(tiles[2]).y).toBe(108);
 
       Object.defineProperty(tiles[0], 'offsetHeight', {
         configurable: true,
@@ -444,8 +457,7 @@ describe('useMasonryGrid', () => {
       });
       reportResize();
 
-      expect(tiles[2].style.top).toBe('208px');
-      expect(tiles[2].style.left).toBe('504px');
+      expect(tileOffset(tiles[2])).toEqual({ x: 504, y: 208 });
       expect(result.current.containerHeight).toBe(400);
     });
 
@@ -464,9 +476,8 @@ describe('useMasonryGrid', () => {
         vi.runAllTimers();
       });
       expect(container.firstElementChild).toBe(lastTile);
-      expect(lastTile.style.left).toBe('0px');
-      expect(lastTile.style.top).toBe('0px');
-      expect((container.children[2] as HTMLElement).style.top).toBe('58px');
+      expect(tileOffset(lastTile)).toEqual({ x: 0, y: 0 });
+      expect(tileOffset(container.children[2] as HTMLElement).y).toBe(58);
     });
 
     it('clears the reserved height when the result set becomes empty', () => {
@@ -531,12 +542,11 @@ describe('useMasonryGrid', () => {
         container.querySelectorAll('.masonry-item'),
       ) as HTMLElement[];
       expect(positioned[0].style.position).toBe('absolute');
-      expect(positioned[0].style.left).toBe('0px');
-      expect(positioned[0].style.top).toBe('0px');
+      expect(tileOffset(positioned[0])).toEqual({ x: 0, y: 0 });
       // Second item goes to the second column on the first row
-      expect(positioned[1].style.left).toBe('505px');
+      expect(tileOffset(positioned[1]).x).toBe(505);
       // Third item lands in the shortest column (first, height 100+10)
-      expect(positioned[2].style.top).toBe('110px');
+      expect(tileOffset(positioned[2]).y).toBe(110);
     });
 
     it('recalculates on demand and on window resize', () => {
@@ -569,6 +579,57 @@ describe('useMasonryGrid', () => {
         vi.runAllTimers();
       });
       expect(result.current.containerHeight).toBeGreaterThan(0);
+    });
+
+    function countStyleWrites(container: HTMLElement, run: () => void) {
+      const observer = new MutationObserver(() => undefined);
+      observer.observe(container, {
+        attributeFilter: ['style'],
+        attributes: true,
+        subtree: true,
+      });
+      run();
+      const records = observer.takeRecords();
+      observer.disconnect();
+      return {
+        tiles: new Set(records.map((record) => record.target)).size,
+        writes: records.length,
+      };
+    }
+
+    it('writes no tile styles when a repack finds every slot unchanged', () => {
+      const { container } = mountObservedContainer(
+        Array.from({ length: 12 }, () => 100),
+        {
+          columns: { desktop: 5, mobile: 1, tablet: 3 },
+          gap: 8,
+          minColumnWidth: 240,
+        },
+      );
+
+      const cost = countStyleWrites(container, reportResize);
+
+      expect(cost).toEqual({ tiles: 0, writes: 0 });
+    });
+
+    it('touches no other tile when the last tile grows', () => {
+      const { container } = mountObservedContainer(
+        Array.from({ length: 12 }, () => 100),
+        {
+          columns: { desktop: 5, mobile: 1, tablet: 3 },
+          gap: 8,
+          minColumnWidth: 240,
+        },
+      );
+      const last = container.lastElementChild as HTMLElement;
+      Object.defineProperty(last, 'offsetHeight', {
+        configurable: true,
+        value: 300,
+      });
+
+      const cost = countStyleWrites(container, reportResize);
+
+      expect(cost).toEqual({ tiles: 0, writes: 0 });
     });
 
     it('skips layout while the container has zero width', () => {

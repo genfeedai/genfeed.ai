@@ -185,13 +185,20 @@ export function useAppProtectedLayout(
   const { push, refresh } = useRouter();
   const openTaskComposer = useOpenTaskComposer();
   const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useOptionalAuth();
-  const prevIsSignedInRef = useRef(false);
+  // Refresh server components only on a real sign-in: a loaded signed-out
+  // session that becomes signed in. The server already rendered this route with
+  // the session cookie, so auth resolving on a cold load must not refetch it.
+  const prevIsSignedInRef = useRef<boolean | null>(null);
   useEffect(() => {
-    if (isSignedIn && !prevIsSignedInRef.current) {
+    if (!isAuthLoaded) {
+      return;
+    }
+    const signedIn = isSignedIn ?? false;
+    if (signedIn && prevIsSignedInRef.current === false) {
       refresh();
     }
-    prevIsSignedInRef.current = isSignedIn ?? false;
-  }, [isSignedIn, refresh]);
+    prevIsSignedInRef.current = signedIn;
+  }, [isAuthLoaded, isSignedIn, refresh]);
 
   const taskContextSearchParams = useMemo(
     () =>

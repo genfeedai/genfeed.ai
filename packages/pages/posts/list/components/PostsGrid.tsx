@@ -18,7 +18,7 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';

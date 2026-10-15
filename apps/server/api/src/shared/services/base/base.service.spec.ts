@@ -189,6 +189,62 @@ describe('BaseService', () => {
     });
   });
 
+  describe('findAllByKeyset', () => {
+    const sort = { direction: -1, field: 'createdAt' } as const;
+
+    it('fetches one probe row past the limit and never counts', async () => {
+      delegate.findMany.mockResolvedValue([
+        { createdAt: new Date('2026-10-15T10:02:00.000Z'), id: 'c' },
+        { createdAt: new Date('2026-10-15T10:01:00.000Z'), id: 'b' },
+        { createdAt: new Date('2026-10-15T10:00:00.000Z'), id: 'a' },
+      ]);
+
+      const page = await service.findAllByKeyset(
+        { where: { organizationId: 'org_1' } },
+        { limit: 2, sort },
+      );
+
+      expect(delegate.count).not.toHaveBeenCalled();
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 3,
+          where: expect.objectContaining({ organizationId: 'org_1' }),
+        }),
+      );
+      expect(page.docs.map((doc) => (doc as { id: string }).id)).toEqual([
+        'c',
+        'b',
+      ]);
+      expect(page.hasMore).toBe(true);
+      expect(page.nextCursor).toEqual(expect.any(String));
+    });
+
+    it('ANDs the cursor boundary onto the tenant filter', async () => {
+      delegate.findMany.mockResolvedValue([]);
+      const value = '2026-10-15T10:01:00.000Z';
+
+      const page = await service.findAllByKeyset(
+        { where: { organizationId: 'org_1' } },
+        { cursor: { ...sort, id: 'b', value }, limit: 2, sort },
+      );
+
+      const [args] = delegate.findMany.mock.calls[0];
+      expect(args.where.AND).toEqual([
+        expect.objectContaining({ organizationId: 'org_1' }),
+        {
+          AND: [
+            { createdAt: { lte: new Date(value) } },
+            {
+              OR: [{ createdAt: { lt: new Date(value) } }, { id: { lt: 'b' } }],
+            },
+          ],
+        },
+      ]);
+      expect(page).toMatchObject({ hasMore: false, nextCursor: null });
+    });
+  });
+
   describe('findAll', () => {
     it('returns paginated results', async () => {
       delegate.findMany.mockResolvedValue([{ id: '1' }]);

@@ -217,13 +217,21 @@ describe('GlobalModals interactions', () => {
 
     const refreshListener = vi.fn();
     window.addEventListener('refresh-ingredients', refreshListener);
+    const onConfirm = getCallback<() => void>('ModalPostBatch', 'onConfirm');
+    captured.record = {};
     act(() => {
-      getCallback<() => void>('ModalPostBatch', 'onConfirm')();
+      onConfirm();
     });
     window.removeEventListener('refresh-ingredients', refreshListener);
 
     expect(refreshListener).toHaveBeenCalledTimes(1);
-    expect(captured.record.ModalPostBatch?.isOpen).toBe(false);
+    expect(captured.record.ModalPostBatch).toBeUndefined();
+  });
+
+  it('does not mount the post batch modal until it is opened', () => {
+    renderProvider();
+
+    expect(captured.record.ModalPostBatch).toBeUndefined();
   });
 
   it('opens the post batch modal for multiple ingredients, filtering falsy entries', () => {
@@ -252,13 +260,14 @@ describe('GlobalModals interactions', () => {
       api.postModal.openPostBatchModal(makeIngredient('ing_1'));
     });
 
+    captured.record = {};
     act(() => {
       api.postModal.handlePostClose();
     });
 
     expect(postCloseMock).toHaveBeenCalledTimes(1);
     expect(postRefreshMock).toHaveBeenCalledTimes(1);
-    expect(captured.record.ModalPostBatch?.isOpen).toBe(false);
+    expect(captured.record.ModalPostBatch).toBeUndefined();
   });
 
   it('queues confirms and advances the queue as each one resolves', async () => {

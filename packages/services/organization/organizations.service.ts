@@ -143,12 +143,14 @@ export class OrganizationsService extends BaseService<Organization> {
   public async findOrganizationIngredients(
     id: string,
     query?: IQueryParams,
+    signal?: AbortSignal,
   ): Promise<Ingredient[]> {
     // Mixed-category ingredient list still lives on the org relationship route;
     // typed collections (/videos, /images, …) cover single-category surfaces.
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/ingredients`, {
         params: query,
+        signal,
       })
       .then((res) => {
         const document = res.data;

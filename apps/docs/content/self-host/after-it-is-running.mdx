@@ -10,27 +10,24 @@ empty workspace to a first post you have reviewed and approved.
 
 ## 1. Open your workspace
 
-Open `http://localhost:3000`. With the default configuration there is no login
-wall: the first boot seeded one local user, one organization (slug `default`),
-and one brand, and the web UI opens straight into them.
+Open `http://localhost:3000`. Sign-up is on by default
+(`BETTER_AUTH_ENABLED=true` in `.env.example`), so create your account with
+the [first-user steps](/self-host/installation#create-the-first-user). An
+email/password account needs no email provider; magic links, password resets,
+and invites do. See [Configuration](/self-host/configuration#login-wall).
 
-If you turned on the login wall (`BETTER_AUTH_ENABLED=true`), there is no open sign-up form for email
-and password: the login page offers Google and Magic Link, which need Google
-OAuth credentials or `RESEND_API_KEY`. Without either, create the account with a
-request to `POST /v1/auth/sign-up/email` and sign in at `/login/password`. The
-exact steps, and what the new account does and does not see, are in
-[Create the first user](/self-host/installation#create-the-first-user).
+If you set `BETTER_AUTH_ENABLED=false` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED=false`,
+there is no login wall: the first boot seeded one local user, one organization
+(slug `default`), and one brand, and the web UI opens straight into them.
 
 ## 2. Add model keys
 
-Text generation needs an OpenRouter key, and self-hosting has no Genfeed
-credits. Uncomment `OPENROUTER_API_KEY` in `.env`, paste your key, and recreate
-the stack, following [Provider API keys](/self-host/provider-api-keys). Without
-it, your first generation fails with `Missing provider key: OPENROUTER_API_KEY`.
-Image, video, and voice generation need their own keys (Replicate or fal, and
-ElevenLabs).
-
-Check that it works by requesting a short text draft in the web UI. If it fails, see [Troubleshooting](/self-host/troubleshooting#missing-provider-key).
+Generation needs at least one provider key, and self-hosting has no Genfeed
+credits. Text generation and the agent need `OPENROUTER_API_KEY`; without it the
+install-readiness check reports text generation as not ready and the first agent
+turn fails. Add real keys to `.env` and recreate the stack, following
+[Provider API keys](/self-host/provider-api-keys). Settings checks each key with
+the provider before saving it, so placeholder values are rejected.
 
 ## 3. Connect an AI agent over MCP
 

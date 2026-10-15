@@ -25,9 +25,10 @@ an OpenRouter key**. Without one, the first chat, agent run, or draft fails with
 | fal | `FAL_API_KEY` | For media, where a path selects fal | Hosted media models |
 | ElevenLabs | `ELEVENLABS_API_KEY` | For voice | Voice and audio |
 
-In the self-hosted `.env.example`, `OPENROUTER_API_KEY` is commented out so that
-an empty value is never passed to the container. Uncomment it and paste your key.
-The other keys start blank.
+All provider keys are blank in the self-hosted `.env.example`. Set
+`OPENROUTER_API_KEY` to a real key, then recreate the stack. Empty or placeholder
+values count as not configured; Settings validates each key with the provider
+before saving it.
 
 ### Can another provider replace OpenRouter?
 
@@ -101,6 +102,10 @@ balance, or account approval before a key can run a given model.
    ```bash
    docker compose --env-file .env -f compose.yml up -d
    ```
+
+Use real keys only. If `OPENROUTER_API_KEY` is empty or still a template value,
+the install-readiness check reports text generation as not ready and the first
+agent turn fails with `OPENROUTER_API_KEY is not configured`.
 
 Keys in `.env` are server-side only. Never commit `.env` and never put a key in a
 `NEXT_PUBLIC_*` variable.

@@ -6,8 +6,9 @@ description: 'Reference for the .env file that configures a self-hosted Genfeed 
 # Configuration Reference
 
 A self-hosted instance is configured through one `.env` file next to its Compose
-file. Every setting is optional: the defaults boot a single local workspace
-without a login wall.
+file. Add a real `OPENROUTER_API_KEY` to generate text; every
+other setting is optional. The defaults boot a single local workspace with
+sign-up enabled.
 
 - **Release bundle or `npx`:** copy the bundled `.env.example` to `.env`, in the
   same directory as `compose.yml`.
@@ -40,8 +41,9 @@ API, and MCP server always listen on `3000`, `3010`, and `3014`.
 See [Provider API keys](/self-host/provider-api-keys) for how to get each one and
 which features need which key. `OPENROUTER_API_KEY` is the one to set first:
 text generation fails with `Missing provider key: OPENROUTER_API_KEY` without
-it. It is commented out in `.env.example`; uncomment it and paste your key. The
-rest are blank by default.
+it. All provider keys are blank in `.env.example`; set a real key and recreate the
+stack. Empty or placeholder values count as not configured; Settings validates
+each key with the provider before saving it.
 
 | Variable | Provider |
 | --- | --- |
@@ -55,12 +57,13 @@ rest are blank by default.
 
 ## Login wall
 
-By default, Genfeed opens straight into the seeded local workspace. To require
-local sign-in, enable Better Auth:
+By default, local sign-up and sign-in are on, so the first visitor creates an
+account. To run a single-user workspace with no login wall instead, set
+`BETTER_AUTH_ENABLED=false` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED=false`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `BETTER_AUTH_ENABLED` | `false` | Turns the login wall on. Read when the container starts. |
+| `BETTER_AUTH_ENABLED` | `true` | Turns sign-up and sign-in on. Set `false` for no login wall. Read when the container starts. |
 | `NEXT_PUBLIC_BETTER_AUTH_ENABLED` | Follows `BETTER_AUTH_ENABLED` | Browser-side switch. Set it to match `BETTER_AUTH_ENABLED`. |
 | `BETTER_AUTH_URL` | The public API URL (`http://localhost:3010` by default) | Where Better Auth runs |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in |

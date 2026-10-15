@@ -65,7 +65,8 @@ checksum step.
 The bundle contains `compose.yml`, `.env.example`, and a manifest. The manifest
 and Compose file pin the exact application image for that release. On first
 boot the container applies database migrations and seeds one local user, one
-organization, and one brand. The default configuration has no login wall.
+organization, and one brand. The default configuration has sign-up and
+sign-in turned on, so you create your own account on first visit.
 
 ### Open it
 
@@ -93,16 +94,16 @@ How you get in depends on one setting, `BETTER_AUTH_ENABLED`. These steps were
 read from the code and have not been run end to end on a clean install, so tell
 us if something differs.
 
-**Default (`BETTER_AUTH_ENABLED=false`): there is nothing to sign up for.**
+**Optional no-login mode (`BETTER_AUTH_ENABLED=false`):**
 Open `http://localhost:3000`. The first boot seeded one local user
 (`admin@localhost`, which has no password), one organization with the slug
 `default`, and one brand. Every request that reaches the web UI or API runs as
 that user, so anyone who can reach your ports has full access. Keep the ports on
 your own machine or behind your network's access controls.
 
-**With the login wall (`BETTER_AUTH_ENABLED=true`):**
+**Default, with the login wall (`BETTER_AUTH_ENABLED=true`):**
 
-1. Set the switch in `.env`, then recreate the stack. The container entrypoint
+1. Keep the switch enabled in `.env`, then recreate the stack if you changed it. The container entrypoint
    reads it at start, and makes the browser-side `NEXT_PUBLIC_BETTER_AUTH_ENABLED`
    follow it, so a plain restart is not enough. Setting both to `true` is fine:
 
@@ -148,7 +149,7 @@ What to expect:
 ### Add your own keys
 
 Self-hosted Genfeed has no Genfeed credits. **Add an OpenRouter key before your
-first generation:** uncomment `OPENROUTER_API_KEY` in `.env`, paste the key, and
+first generation:** set `OPENROUTER_API_KEY` in `.env` to a real key, and
 recreate the stack. Without it, text generation fails with
 `Missing provider key: OPENROUTER_API_KEY`. Other keys are optional. See
 [Provider API keys](/self-host/provider-api-keys).

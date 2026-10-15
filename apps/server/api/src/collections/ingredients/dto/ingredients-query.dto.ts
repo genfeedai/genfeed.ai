@@ -24,8 +24,10 @@ import {
   ArrayMaxSize,
   IsArray,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 
 export class IngredientsQueryDto extends BaseQueryDto {
@@ -133,6 +135,26 @@ export class IngredientsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiProperty({
+    description:
+      'Page by keyset cursor instead of page number. Applies when `sort` is a single `createdAt` or `updatedAt` key; other orders fall back to page-number pagination. Responses carry `links.cursor` instead of `links.pagination` and skip the total count.',
+    enum: ['cursor'],
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['cursor'])
+  paging?: 'cursor';
+
+  @ApiProperty({
+    description:
+      'Opaque `links.cursor.nextCursor` from the previous keyset page. Requires `paging=cursor`.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  cursor?: string;
 
   @ApiProperty({
     description: 'Filter by video format',

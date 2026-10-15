@@ -52,23 +52,32 @@ export default function ProtectedLayoutClient({
   }, [user?.id, user?.primaryEmailAddress?.emailAddress]);
 
   // An unknown flag state is recoverable; it must not become a route 404.
-  if (!isReady) {
-    return isUnavailable ? (
-      <main className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-10 sm:px-6">
-        <ErrorFallback
-          title={translate('title')}
-          description={translate('description')}
-          resetErrorBoundary={notifyPlatformFlagsChanged}
-          data-testid="platform-flags-unavailable"
-        />
-      </main>
-    ) : (
-      <LazyLoadingFallback variant="full" />
-    );
-  }
+  const flagGatedShell = isReady ? (
+    <FeatureFlagProvider defaults={platformFlags}>
+      <RoutedOrganizationBoundary>
+        {/* Outside the shell's error boundaries, which would swallow notFound(). */}
+        <PlatformModuleRouteGate>
+          <AppProtectedLayout initialBootstrap={initialBootstrap}>
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </AppProtectedLayout>
+        </PlatformModuleRouteGate>
+      </RoutedOrganizationBoundary>
+    </FeatureFlagProvider>
+  ) : isUnavailable ? (
+    <main className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-10 sm:px-6">
+      <ErrorFallback
+        title={translate('title')}
+        description={translate('description')}
+        resetErrorBoundary={notifyPlatformFlagsChanged}
+        data-testid="platform-flags-unavailable"
+      />
+    </main>
+  ) : (
+    <LazyLoadingFallback variant="full" />
+  );
 
   return (
-    <FeatureFlagProvider defaults={platformFlags}>
+    <>
       {/*
         Pins the Better Auth session store active for the whole protected shell.
         Mounted here — above AppProtectedLayout's internal Suspense boundaries —
@@ -78,16 +87,11 @@ export default function ProtectedLayoutClient({
       */}
       <SessionKeepAlive />
       <ApiAuthBridge />
-      <RoutedOrganizationProvider>
-        <RoutedOrganizationBoundary>
-          {/* Outside the shell's error boundaries, which would swallow notFound(). */}
-          <PlatformModuleRouteGate>
-            <AppProtectedLayout initialBootstrap={initialBootstrap}>
-              <ErrorBoundary>{children}</ErrorBoundary>
-            </AppProtectedLayout>
-          </PlatformModuleRouteGate>
-        </RoutedOrganizationBoundary>
-      </RoutedOrganizationProvider>
-    </FeatureFlagProvider>
+      {/*
+        Session, token and organization reconciliation do not read platform
+        flags, so they start alongside the flags request instead of after it.
+      */}
+      <RoutedOrganizationProvider>{flagGatedShell}</RoutedOrganizationProvider>
+    </>
   );
 }

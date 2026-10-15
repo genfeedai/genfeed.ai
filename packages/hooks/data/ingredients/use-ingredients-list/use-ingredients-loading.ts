@@ -15,6 +15,7 @@ import type {
   IFilters,
   IFolder,
   IIngredient,
+  IPaginatedResponse,
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -39,6 +40,30 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
 const INGREDIENTS_CACHE_TTL_MS = 15 * 60 * 1000;
+
+/** Where the next Library page starts: a keyset cursor, or a page number for orders the API cannot keyset-page. */
+type IngredientsNextPage = { cursor: string } | { page: number } | null;
+
+function resolveNextPage(
+  result: IPaginatedResponse<Ingredient>,
+): IngredientsNextPage {
+  if (result.nextCursor) {
+    return { cursor: result.nextCursor };
+  }
+  if (result.nextCursor === undefined && result.hasNext) {
+    return { page: result.page + 1 };
+  }
+  return null;
+}
+
+function appendUniqueIngredients(
+  current: IIngredient[],
+  next: IIngredient[],
+): IIngredient[] {
+  const seen = new Set(current.map((ingredient) => ingredient.id));
+  const additions = next.filter((ingredient) => !seen.has(ingredient.id));
+  return additions.length > 0 ? [...current, ...additions] : current;
+}
 
 function isIgnoredLibraryFailure(
   error: unknown,
@@ -162,6 +187,12 @@ export function useIngredientsLoading({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadSequenceRef = useRef(0);
+  const nextPageRef = useRef<IngredientsNextPage>(null);
+  const lastListQueryRef = useRef<IQueryParams | null>(null);
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
+  const [hasMoreIngredients, setHasMoreIngredients] = useState(false);
+  const [isLoadingMoreIngredients, setIsLoadingMoreIngredients] =
+    useState(false);
   const [ingredients, setIngredients] = useState<IIngredient[]>([]);
   const [folders, setFolders] = useState<IFolder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(
@@ -215,6 +246,10 @@ export function useIngredientsLoading({
   const findAllIngredientsByCategory = useCallback(
     async (isRefreshing: boolean = false, signal?: AbortSignal) => {
       const sequence = ++loadSequenceRef.current;
+      // A reload replaces the list, so any older page still in flight is moot.
+      loadMoreControllerRef.current?.abort();
+      loadMoreControllerRef.current = null;
+      setIsLoadingMoreIngredients(false);
       setIsLoading(!isRefreshing);
       setIsRefreshing(isRefreshing);
       setLoadError(null);
@@ -278,6 +313,8 @@ export function useIngredientsLoading({
         queryParams = sanitizeQueryParams(queryParams);
 
         let data: Ingredient[] = [];
+        let nextPage: IngredientsNextPage = null;
+        let listQuery: IQueryParams | null = null;
 
         if (scope === PageScope.ORGANIZATION && organizationId) {
           const organizationsService = await getOrganizationsService();
@@ -292,6 +329,7 @@ export function useIngredientsLoading({
           data = await organizationsService.findOrganizationIngredients(
             organizationId,
             organizationQuery,
+            signal,
           );
         } else {
           const service = await getIngredientsService();
@@ -301,7 +339,16 @@ export function useIngredientsLoading({
           ) {
             data = await service.findAllPages(queryParams, signal);
           } else {
-            data = await service.findAll(queryParams);
+            // Keyset pages: no per-page count, and older assets stay as cheap
+            // to reach as the newest. Orders the API cannot keyset-page come
+            // back with page-number links instead.
+            listQuery = { ...queryParams, paging: 'cursor' };
+            const result = await service.findAllPage(listQuery, signal);
+            data = result.items;
+            nextPage = resolveNextPage(result);
+            PagesService.setCurrentPage(result.page);
+            PagesService.setTotalPages(result.totalPages);
+            PagesService.setTotalDocs(result.total);
           }
         }
 
@@ -309,8 +356,11 @@ export function useIngredientsLoading({
           return;
         }
 
-        logger.info(`${url} success`, data);
+        logger.info(`${url} success`, { count: data.length });
 
+        nextPageRef.current = nextPage;
+        lastListQueryRef.current = listQuery;
+        setHasMoreIngredients(nextPage !== null);
         setIngredients(data);
         if (scope === PageScope.BRAND && query.shelf === LibraryShelf.FAILED) {
           PagesService.setCurrentPage(1);
@@ -387,6 +437,53 @@ export function useIngredientsLoading({
     ],
   );
 
+  const loadMoreIngredients = useCallback(async () => {
+    const nextPage = nextPageRef.current;
+    const listQuery = lastListQueryRef.current;
+    if (!nextPage || !listQuery || loadMoreControllerRef.current) {
+      return;
+    }
+
+    const sequence = loadSequenceRef.current;
+    const controller = new AbortController();
+    loadMoreControllerRef.current = controller;
+    setIsLoadingMoreIngredients(true);
+    const url = `GET /${type}`;
+
+    try {
+      const service = await getIngredientsService();
+      const pageQuery: IQueryParams =
+        'cursor' in nextPage
+          ? { ...listQuery, cursor: nextPage.cursor }
+          : { ...listQuery, page: nextPage.page };
+      const result = await service.findAllPage(pageQuery, controller.signal);
+
+      if (controller.signal.aborted || sequence !== loadSequenceRef.current) {
+        return;
+      }
+
+      nextPageRef.current = resolveNextPage(result);
+      setHasMoreIngredients(nextPageRef.current !== null);
+      setIngredients((current) =>
+        appendUniqueIngredients(current, result.items),
+      );
+    } catch (error) {
+      if (
+        isIgnoredLibraryFailure(error, controller.signal) ||
+        sequence !== loadSequenceRef.current
+      ) {
+        return;
+      }
+      reportLibraryOperationFailure(url, error);
+      notificationsService.error(`Failed to load more ${type}`);
+    } finally {
+      if (loadMoreControllerRef.current === controller) {
+        loadMoreControllerRef.current = null;
+        setIsLoadingMoreIngredients(false);
+      }
+    }
+  }, [getIngredientsService, notificationsService, type]);
+
   const findAllFolders = useCallback(
     async (signal?: AbortSignal) => {
       const url = 'GET /folders';
@@ -423,7 +520,8 @@ export function useIngredientsLoading({
     [brandId, organizationId, scope, getFoldersService],
   );
 
-  // Load ingredients on mount and when dependencies change
+  // Load on mount and on every query/page change: `findAllIngredientsByCategory`
+  // depends on `query` and `currentPage`, so this is the only list fetch.
   useEffect(() => {
     const abortController = new AbortController();
 
@@ -498,24 +596,6 @@ export function useIngredientsLoading({
     };
   }, [brandId, findAllFolders, loadFolders, scope]);
 
-  // Refetch when query changes
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    const shouldLoadData =
-      scope === PageScope.SUPERADMIN ||
-      scope === PageScope.ORGANIZATION ||
-      (scope === PageScope.BRAND && brandId);
-
-    if (shouldLoadData && query && Object.keys(query).length > 0) {
-      findAllIngredientsByCategory(false, abortController.signal);
-    }
-
-    return () => {
-      abortController.abort();
-    };
-  }, [brandId, findAllIngredientsByCategory, query, scope]);
-
   // Sync folder param from URL
   useEffect(() => {
     const folderParam = parsedSearchParams.get('folder') || undefined;
@@ -532,15 +612,25 @@ export function useIngredientsLoading({
     };
   }, []);
 
+  useEffect(
+    () => () => {
+      loadMoreControllerRef.current?.abort();
+    },
+    [],
+  );
+
   return {
     cachedAt,
     findAllFolders,
     findAllIngredientsByCategory,
     folders,
     getBulkIngredientsService,
+    hasMoreIngredients,
     ingredients,
     isLoading,
     isLoadingFolders,
+    isLoadingMoreIngredients,
+    loadMoreIngredients,
     isUsingCache,
     loadError,
     notificationsService,

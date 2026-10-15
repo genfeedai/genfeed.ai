@@ -9,7 +9,7 @@ import {
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';

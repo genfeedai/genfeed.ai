@@ -20,6 +20,9 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
+const PLACEHOLDER_KEY_PATTERN =
+  /^(?:<.*>|.*(?:replace|your[_-]|changeme|change_me|placeholder|example|xxxx).*|.*\.{3}|sk-or-v1-?)$/i;
+
 /**
  * OnboardingReadinessService
  *
@@ -36,8 +39,20 @@ export class OnboardingReadinessService {
     private readonly usersService: UsersService,
   ) {}
 
+  /**
+   * A key counts as configured only when it is non-empty and is not template
+   * placeholder text. Keys are not verified against the provider here (that
+   * needs a network call); the point is that a copied-but-unedited `.env`
+   * must not report a provider as ready.
+   */
   private isConfigured(value: unknown): boolean {
-    return typeof value === 'string' && value.trim().length > 0;
+    if (typeof value !== 'string') {
+      return false;
+    }
+
+    const key = value.trim();
+
+    return key.length > 0 && !PLACEHOLDER_KEY_PATTERN.test(key);
   }
 
   getProviderReadiness() {
@@ -58,9 +73,10 @@ export class OnboardingReadinessService {
       fal,
       imageGenerationReady: fal || replicate,
       openai,
+      openrouter,
       replicate,
-      // Default text paths (drafts, agent chat, prompt enhancement) route
-      // through OpenRouter; an OpenAI key alone only serves `openai/*` models.
+      // Default text and agent models are served through OpenRouter, so an
+      // OpenAI key alone cannot complete a first generation.
       textGenerationReady: openrouter,
     };
   }

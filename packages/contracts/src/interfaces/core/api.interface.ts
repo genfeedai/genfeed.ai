@@ -16,6 +16,8 @@ export interface IPaginatedResponse<T = unknown> {
   totalPages: number;
   hasNext: boolean;
   hasPrevious: boolean;
+  /** Opaque cursor for the next keyset page; set only on cursor-paged lists. */
+  nextCursor?: string | null;
 }
 
 export interface IApiError {

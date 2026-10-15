@@ -106,8 +106,10 @@ Unconfigured providers fail closed.
 
 ## Before you expose it
 
-- Turn on the [login wall](/self-host/configuration#login-wall). The default
-  install has none, so anyone who can reach the web port can use the workspace.
+- Keep the [login wall](/self-host/configuration#login-wall) on
+  (`BETTER_AUTH_ENABLED=true`, the default). Sign-up is open, so create your own
+  account before exposing the web port; with the wall off, anyone who can reach
+  it can use the workspace.
 - Change the bundled PostgreSQL password (`POSTGRES_PASSWORD`).
 - Keep provider keys in `.env` only, never in `NEXT_PUBLIC_*` variables.
 - Set `TRUST_PROXY` as described above.

@@ -155,35 +155,30 @@ describe('OnboardingReadinessService local tool readiness', () => {
 });
 
 describe('OnboardingReadinessService provider readiness', () => {
-  type ProviderReadiness = {
-    anyConfigured: boolean;
-    configured: string[];
-    textGenerationReady: boolean;
-  };
+  const PROVIDER_ENV_KEYS = [
+    'FAL_API_KEY',
+    'OPENAI_API_KEY',
+    'OPENROUTER_API_KEY',
+    'REPLICATE_KEY',
+  ] as const;
 
-  const readProviders = async (): Promise<ProviderReadiness> => {
+  const getProviderReadiness = async () => {
     vi.resetModules();
     const { OnboardingReadinessService } = await import(
       './onboarding-readiness.service'
     );
-    const service = new OnboardingReadinessService(
+
+    return new OnboardingReadinessService(
       {} as unknown as BrandsService,
       {} as unknown as OrganizationSettingsService,
       {} as unknown as OrganizationsService,
       {} as unknown as UsersService,
-    ) as unknown as { getProviderReadiness: () => ProviderReadiness };
-
-    return service.getProviderReadiness();
+    ).getProviderReadiness();
   };
 
   beforeEach(() => {
-    for (const name of [
-      'REPLICATE_KEY',
-      'FAL_API_KEY',
-      'OPENAI_API_KEY',
-      'OPENROUTER_API_KEY',
-    ]) {
-      vi.stubEnv(name, '');
+    for (const key of PROVIDER_ENV_KEYS) {
+      vi.stubEnv(key, '');
     }
   });
 
@@ -191,30 +186,57 @@ describe('OnboardingReadinessService provider readiness', () => {
     vi.unstubAllEnvs();
   });
 
-  it('is not text-ready with no keys', async () => {
-    expect(await readProviders()).toMatchObject({
-      anyConfigured: false,
-      configured: [],
-      textGenerationReady: false,
-    });
+  it('reports text generation not ready when no provider key is set', async () => {
+    const readiness = await getProviderReadiness();
+
+    expect(readiness.textGenerationReady).toBe(false);
+    expect(readiness.openrouter).toBe(false);
+    expect(readiness.anyConfigured).toBe(false);
+    expect(readiness.configured).toEqual([]);
   });
 
-  it('is not text-ready with only an OpenAI key, because default text paths use OpenRouter', async () => {
-    vi.stubEnv('OPENAI_API_KEY', 'sk-test');
+  it('reports text generation ready with a real OpenRouter key', async () => {
+    vi.stubEnv('OPENROUTER_API_KEY', 'sk-or-v1-abcdef0123456789');
 
-    expect(await readProviders()).toMatchObject({
-      anyConfigured: true,
-      configured: ['openai'],
-      textGenerationReady: false,
-    });
+    const readiness = await getProviderReadiness();
+
+    expect(readiness.textGenerationReady).toBe(true);
+    expect(readiness.openrouter).toBe(true);
+    expect(readiness.configured).toEqual(['openrouter']);
   });
 
-  it('is text-ready once OPENROUTER_API_KEY is set', async () => {
-    vi.stubEnv('OPENROUTER_API_KEY', 'sk-or-test');
+  it('does not treat an OpenAI key alone as text generation ready', async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'sk-proj-abcdef0123456789');
 
-    expect(await readProviders()).toMatchObject({
-      configured: ['openrouter'],
-      textGenerationReady: true,
-    });
+    const readiness = await getProviderReadiness();
+
+    expect(readiness.openai).toBe(true);
+    expect(readiness.textGenerationReady).toBe(false);
+  });
+
+  it.each([
+    'replace_with_your_key',
+    'your_openrouter_key_here',
+    'sk-or-...',
+    'sk-or-v1-',
+    '<openrouter-api-key>',
+    'changeme',
+    '   ',
+  ])('rejects placeholder OpenRouter key %j', async (placeholder) => {
+    vi.stubEnv('OPENROUTER_API_KEY', placeholder);
+
+    const readiness = await getProviderReadiness();
+
+    expect(readiness.openrouter).toBe(false);
+    expect(readiness.textGenerationReady).toBe(false);
+  });
+
+  it('keeps image readiness independent of the text provider', async () => {
+    vi.stubEnv('REPLICATE_KEY', 'r8_abcdef0123456789');
+
+    const readiness = await getProviderReadiness();
+
+    expect(readiness.imageGenerationReady).toBe(true);
+    expect(readiness.textGenerationReady).toBe(false);
   });
 });

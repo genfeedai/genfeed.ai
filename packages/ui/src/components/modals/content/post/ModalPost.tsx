@@ -24,7 +24,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { splitTextIntoThread } from '@helpers/formatting/thread-split/thread-split.helper';
 import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';

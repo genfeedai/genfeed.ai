@@ -3360,6 +3360,10 @@
       "remainingCredits": "{count} journey credits still available",
       "review": "Review",
       "title": "Activation Journey"
+    },
+    "providers": {
+      "keyValidationNotice": "Use real keys only. Organization → API Keys checks each key with the provider before saving, so placeholder values are rejected; keys in your .env file are read when the container starts.",
+      "openRouterDescription": "Required for text generation and the agent. Set OPENROUTER_API_KEY in your .env."
     }
   },
   "credentialPostingTimes": {

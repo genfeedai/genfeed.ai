@@ -95,7 +95,7 @@ This is separate from `@genfeedai/cli`, which needs Node.js 22.12 or newer.
 `code: "missing_provider_key"`, and agent flows show "AI provider not connected".
 
 **Cause:** text generation routes through OpenRouter, and the key is not set.
-`OPENROUTER_API_KEY` is commented out in `.env.example`. An OpenAI or Anthropic
+`OPENROUTER_API_KEY` starts blank in `.env.example`. An OpenAI or Anthropic
 key does not replace it, because those keys only serve `openai/*` and
 `anthropic/*` models and branded drafts are OpenRouter-only.
 
@@ -103,7 +103,7 @@ key does not replace it, because those keys only serve `openai/*` and
 
 1. Create a key at [openrouter.ai/keys](https://openrouter.ai/keys) and add
    credits.
-2. In `.env`, uncomment `OPENROUTER_API_KEY` and paste the key. Or save it per
+2. In `.env`, set `OPENROUTER_API_KEY` to the real key. Or save it per
    organization under **Organization settings → Integrations**.
 3. Recreate the stack, because `restart` does not re-read `.env`:
 
@@ -126,14 +126,21 @@ above. Otherwise, add the key for the provider behind the model you chose
 small request. Self-hosting has no Genfeed credits. Then check the provider's
 dashboard for balance and model access, and read the container logs.
 
+If a turn fails with `OPENROUTER_API_KEY is not configured`, set a real
+`OPENROUTER_API_KEY` in `.env` and recreate the stack. Text generation and the
+agent use OpenRouter, and the install-readiness check reports text generation as
+not ready until the key is set. Keys must be real: Settings validates each key
+with the provider before saving it (a placeholder shows "Invalid ... API key"),
+and a placeholder in `.env` counts as not configured.
+
 The Community image does not start GPU or local-model services, so a model that
 needs your own ComfyUI or GPU host will not run unless you point
 `DARKROOM_COMFYUI_URL` at one.
 
 ## I cannot sign up or sign in
 
-- **No sign-up form, and no login page at all.** With the default
-  `BETTER_AUTH_ENABLED=false` there is no login wall: you are already the seeded
+- **No sign-up form, and no login page at all.** If you set
+  `BETTER_AUTH_ENABLED=false`, there is no login wall: you are already the seeded
   local user. Nothing to fix.
 - **The login page has no email and password form.** It offers Google and Magic
   Link. Magic Link needs `RESEND_API_KEY`; Google needs OAuth credentials.

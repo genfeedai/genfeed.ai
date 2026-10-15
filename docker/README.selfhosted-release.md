@@ -17,12 +17,15 @@ docker compose --env-file .env -f compose.yml up -d
 The web UI is available at `http://localhost:3000`, the API at
 `http://localhost:3010`, and MCP at `http://localhost:3014`.
 
-Uncomment and fill `OPENROUTER_API_KEY` in `.env` to enable text generation;
-without it the first generation fails with "Missing provider key". After editing
-`.env`, run `up -d` again (a plain restart does not re-read it).
+Before generating, edit `.env` and set `OPENROUTER_API_KEY` to a real key from
+<https://openrouter.ai/keys>; text generation and the agent need it, and the
+readiness check reports text generation as not ready without it. Use real keys
+only: Settings validates each provider key with the provider, so placeholders are
+rejected. Restart with the same `up -d` command after editing `.env`.
 
-Edit `.env` before starting if the default ports conflict or you want to enable
-the optional local login wall and integrations. See the complete self-hosting
+Sign-up is on by default: open the web UI and create your account. Edit `.env`
+before starting if the default ports conflict, or to turn the login wall off
+(`BETTER_AUTH_ENABLED=false` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED=false`). See the complete self-hosting
 guide at <https://github.com/genfeedai/genfeed.ai/blob/__RELEASE_TAG__/docs/self-hosting.md>.
 
 ## Stop

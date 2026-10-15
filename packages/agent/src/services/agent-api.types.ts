@@ -30,6 +30,7 @@ export interface AgentInstallReadiness {
     fal: boolean;
     imageGenerationReady: boolean;
     openai: boolean;
+    openrouter: boolean;
     replicate: boolean;
     textGenerationReady: boolean;
   };

@@ -45,10 +45,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // of original/enhanced/compiled prompts plus result images. Library
     // findAll, delete, and merge stay organization-scoped. The call moved
     // down when the library list filter gained the trash flag (#6391), then
-    // five lines for metadata label ordering. The ledger query/guard are unchanged.
+    // five lines for metadata label ordering, then sixteen for keyset Library
+    // paging and its import. The ledger query/guard are unchanged.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 324,
+      line: 340,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps

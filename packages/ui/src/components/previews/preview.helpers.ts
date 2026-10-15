@@ -3,7 +3,7 @@ import type {
   IChannelTarget,
   IReleaseAttachment,
 } from '@genfeedai/contracts/interfaces';
-import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
 import type {
   TargetPreviewCredential,
   TargetPreviewProps,
