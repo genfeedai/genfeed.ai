@@ -12,6 +12,8 @@ export interface CharacterMentionCatalogEntry {
   hasReferenceImage: boolean;
   id: string;
   label: string;
+  /** Ordered reference images; sent to generation in this order. */
+  referenceIngredientIds?: readonly string[];
 }
 
 export interface CharacterMentionDocumentNode {
@@ -122,11 +124,18 @@ export function applyCharacterMentionsToSubmit(
       text = text.split(`@${token.handle}`).join(displayName);
     }
     const catalogItem = catalogById.get(token.id);
-    if (!catalogItem?.hasReferenceImage || !catalogItem.avatarIngredientId) {
+    // Every reference in priority order; the model's reference limit caps
+    // the merged list downstream. Older catalogs only carry the primary.
+    const referenceIds = catalogItem?.referenceIngredientIds?.length
+      ? catalogItem.referenceIngredientIds
+      : catalogItem?.avatarIngredientId
+        ? [catalogItem.avatarIngredientId]
+        : [];
+    if (!catalogItem?.hasReferenceImage || referenceIds.length === 0) {
       notices.push(characterMentionMissingReferenceNotice(token));
       continue;
     }
-    resolvedIds.push(catalogItem.avatarIngredientId);
+    resolvedIds.push(...referenceIds);
   }
 
   return {

@@ -30,6 +30,8 @@ export class Persona {
   label!: string;
   owningBrandId?: string | null;
   owningBrandName?: string | null;
+  /** Ordered reference images; index 0 is the primary (`avatarIngredientId`). */
+  referenceIngredientIds?: string[];
 
   constructor(partial: Partial<Persona>) {
     Object.assign(this, partial);
@@ -54,6 +56,9 @@ function toCharacterListItems(rows: Persona[]): BrandCharacterListItem[] {
     label: row.label,
     owningBrandId: row.owningBrandId,
     owningBrandName: row.owningBrandName,
+    referenceIngredientIds:
+      row.referenceIngredientIds ??
+      (row.avatarIngredientId ? [row.avatarIngredientId] : []),
   }));
 }
 
