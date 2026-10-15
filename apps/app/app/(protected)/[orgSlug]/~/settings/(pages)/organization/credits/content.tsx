@@ -17,6 +17,7 @@ import { Text } from '@ui/typography/text';
 import { Gift, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AddCreditsCard from '../billing/add-credits-card';
 import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
@@ -27,7 +28,9 @@ import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
  * - Managed Genfeed Cloud checkout only for community self-host without PAYG.
  */
 export default function SettingsCreditsPage() {
-  const { creditsBreakdown, isLoading } = useSubscription();
+  const { creditsBreakdown, error, isLoading, refreshCreditsBreakdown } =
+    useSubscription();
+  const [isRetryingBalance, setIsRetryingBalance] = useState(false);
   const { orgHref } = useOrgUrl();
   const translate = useTranslations('common.settings.creditsBalance');
   const isBillingEnabled = hasOrganizationBillingHint();
@@ -53,6 +56,15 @@ export default function SettingsCreditsPage() {
   const cycleTotal = creditsBreakdown?.cycleTotal ?? 0;
   const hasCycleTotal = cycleTotal > 0;
 
+  async function handleBalanceRetry() {
+    setIsRetryingBalance(true);
+    try {
+      await refreshCreditsBreakdown();
+    } finally {
+      setIsRetryingBalance(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4 pb-10">
       <h1 className="sr-only">Credits</h1>
@@ -64,6 +76,21 @@ export default function SettingsCreditsPage() {
           data-testid="credits-balance-loading"
         >
           <SkeletonCard showImage={false} />
+        </Card>
+      ) : error ? (
+        <Card label="Balance" bodyClassName="gap-3 p-4">
+          <Alert variant="destructive">
+            <TriangleAlert aria-hidden="true" className="size-4" />
+            <AlertDescription>{translate('loadError')}</AlertDescription>
+          </Alert>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            isLoading={isRetryingBalance}
+            onClick={() => void handleBalanceRetry()}
+            withWrapper={false}
+          >
+            {translate('retryBalance')}
+          </Button>
         </Card>
       ) : creditsBreakdown ? (
         <Card label="Balance" bodyClassName="gap-4 p-5">

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsCreditsPage from './content';
 
@@ -106,6 +106,51 @@ describe('SettingsCreditsPage', () => {
     );
     expect(screen.getByTestId('managed-credits-card')).toBeInTheDocument();
     expect(screen.queryByTestId('hosted-credits-card')).not.toBeInTheDocument();
+  });
+
+  it('explains balance failures without showing stale totals or private errors', () => {
+    useSubscriptionMock.mockReturnValue({
+      creditsBreakdown: { total: 5461.8 },
+      error: 'private provider response',
+      isLoading: false,
+      refreshCreditsBreakdown: vi.fn(),
+    });
+
+    renderCreditsPage();
+
+    expect(
+      screen.getByText('Your credit balance could not be loaded.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/5,461\.8/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('private provider response'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('managed-credits-card')).toBeInTheDocument();
+  });
+
+  it('disables balance retry until the read settles', async () => {
+    let finishRetry: (() => void) | undefined;
+    const refreshCreditsBreakdown = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishRetry = resolve;
+        }),
+    );
+    useSubscriptionMock.mockReturnValue({
+      creditsBreakdown: null,
+      error: 'Temporarily unavailable',
+      isLoading: false,
+      refreshCreditsBreakdown,
+    });
+
+    renderCreditsPage();
+    const retry = screen.getByRole('button', { name: 'Retry balance' });
+    fireEvent.click(retry);
+    fireEvent.click(retry);
+    expect(refreshCreditsBreakdown).toHaveBeenCalledTimes(1);
+    expect(retry).toBeDisabled();
+    finishRetry?.();
+    await waitFor(() => expect(retry).toBeEnabled());
   });
 
   it('renders hosted credit top-ups for hosted installs', () => {
