@@ -77,7 +77,7 @@ describe('self-hosted release env template (docker/.env.example)', () => {
     const secretLine = lines.indexOf('BETTER_AUTH_SECRET=');
 
     expect(secretLine).toBeGreaterThan(0);
-    expect(lines[secretLine - 1]).toMatch(/^# OPTIONAL: .*may stay empty/);
+    expect(lines[secretLine - 1]).toMatch(/^# OPTIONAL: .*May stay empty/);
     expect(lines[secretLine - 1]).toMatch(/\/data\/\.better-auth-secret/);
   });
 
