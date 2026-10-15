@@ -67,18 +67,18 @@ export default function SettingsCreditsPage() {
 
   return (
     <div className="flex flex-col gap-4 pb-10">
-      <h1 className="sr-only">Credits</h1>
+      <h1 className="sr-only">{translate('title')}</h1>
 
       {isLoading ? (
         <Card
-          label="Balance"
+          label={translate('balance')}
           bodyClassName="gap-3 p-4"
           data-testid="credits-balance-loading"
         >
           <SkeletonCard showImage={false} />
         </Card>
       ) : error ? (
-        <Card label="Balance" bodyClassName="gap-3 p-4">
+        <Card label={translate('balance')} bodyClassName="gap-3 p-4">
           <Alert variant="destructive">
             <TriangleAlert aria-hidden="true" className="size-4" />
             <AlertDescription>{translate('loadError')}</AlertDescription>
@@ -93,12 +93,12 @@ export default function SettingsCreditsPage() {
           </Button>
         </Card>
       ) : creditsBreakdown ? (
-        <Card label="Balance" bodyClassName="gap-4 p-5">
+        <Card label={translate('balance')} bodyClassName="gap-4 p-5">
           {isLowCredits && (
             <Alert variant="warning">
               <TriangleAlert aria-hidden="true" className="size-4" />
               <AlertDescription>
-                Low credits warning: your organization is below 1,000 credits.
+                {translate('lowCreditsWarning')}
               </AlertDescription>
             </Alert>
           )}

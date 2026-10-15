@@ -395,15 +395,18 @@
   },
   "settings": {
     "creditsBalance": {
+      "balance": "Balance",
       "creditsLeft": "Credits left",
       "cycleNote": "Based on this cycle's total: subscription credits plus packs bought this cycle.",
       "loadError": "Your credit balance could not be loaded.",
+      "lowCreditsWarning": "Low credits warning: your organization is below 1,000 credits.",
       "ofTotal": "of {total}",
       "progressLabel": "Credits left this cycle",
       "referralDescription": "Share your referral link and earn on referred customers' credit purchases.",
       "referralTitle": "Earn 10% in credits",
       "resets": "Resets",
       "retryBalance": "Retry balance",
+      "title": "Credits",
       "viewReferrals": "View referrals"
     },
     "members": {
