@@ -41,9 +41,6 @@
     ]
   },
   "permissions": {
-    "deny": [
-      "Read(**/*.pem)",
-      "Read(**/secrets/**)"
-    ]
+    "deny": ["Read(**/*.pem)", "Read(**/secrets/**)"]
   }
 }
