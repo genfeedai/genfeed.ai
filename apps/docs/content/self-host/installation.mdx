@@ -97,9 +97,10 @@ us if something differs.
 **Optional no-login mode (`BETTER_AUTH_ENABLED=false`):**
 Open `http://localhost:3000`. The first boot seeded one local user
 (`admin@localhost`, which has no password), one organization with the slug
-`default`, and one brand. Every request that reaches the web UI or API runs as
-that user, so anyone who can reach your ports has full access. Keep the ports on
-your own machine or behind your network's access controls.
+`default`, and one brand. The web UI opens as that user, so anyone who can reach
+it has full access. The API accepts tokenless local identity only from loopback
+or Docker-network peers, and its host port binds to `127.0.0.1`. Keep no-login
+installations on your own machine or behind your network's access controls.
 
 **Default, with the login wall (`BETTER_AUTH_ENABLED=true`):**
 
@@ -137,11 +138,11 @@ What to expect:
 - The new account gets its **own** organization and brand. It does not take over
   the seeded `default` workspace, and `admin@localhost` has no password, so you
   cannot sign in as it.
-- The login wall gates the **web UI**. The API on port `3010` still treats a
-  request with no bearer token as the local user, and the MCP server on `3014`
-  always needs a bearer credential. Do not publish port `3010` to the internet;
-  put the stack behind a [reverse proxy](/self-host/reverse-proxy) that you
-  control.
+- With the login wall enabled, protected API requests on port `3010` need a
+  valid session token or API key, even from loopback. The API host port binds to
+  `127.0.0.1`; keep the login wall on before exposing it through a
+  [reverse proxy](/self-host/reverse-proxy). MCP on `3014` always needs its own
+  bearer credential.
 - If sign-in fails behind a custom domain, set `BETTER_AUTH_URL` and
   `BETTER_AUTH_TRUSTED_ORIGINS` to your public API and app URLs. See
   [Configuration](/self-host/configuration#login-wall).

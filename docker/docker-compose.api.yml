@@ -14,7 +14,7 @@ services:
     container_name: genfeed-ai-api
     restart: unless-stopped
     ports:
-      - '${API_PORT:-3010}:${API_PORT:-3010}'
+      - '127.0.0.1:${API_PORT:-3010}:${API_PORT:-3010}'
     env_file:
       - ../.env.production
     environment:

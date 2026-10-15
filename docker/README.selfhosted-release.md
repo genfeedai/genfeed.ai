@@ -17,6 +17,10 @@ docker compose --env-file .env -f compose.yml up -d
 The web UI is available at `http://localhost:3000`, the API at
 `http://localhost:3010`, and MCP at `http://localhost:3014`.
 
+The API host port binds to `127.0.0.1` only. Use Docker Engine 28 or newer for
+loopback isolation, and keep the login wall enabled before exposing the API
+through a reverse proxy. Internal Docker-network access is unchanged.
+
 Before generating, edit `.env` and set `OPENROUTER_API_KEY` to a real key from
 <https://openrouter.ai/keys>; text generation and the agent need it, and the
 readiness check reports text generation as not ready without it. Use real keys

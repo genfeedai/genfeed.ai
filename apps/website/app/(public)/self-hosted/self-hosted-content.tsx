@@ -21,8 +21,7 @@ import {
   Terminal,
 } from 'lucide-react';
 
-const QUICKSTART_DOCS_URL =
-  'https://docs.genfeed.ai/guides/self-host-quickstart';
+const QUICKSTART_DOCS_URL = 'https://docs.genfeed.ai/self-host/installation';
 
 const NPX_COMMAND = 'npx @genfeedai/create my-genfeed';
 

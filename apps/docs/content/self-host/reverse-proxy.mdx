@@ -24,6 +24,17 @@ path-routed address if your proxy supports that:
 Only expose the ports you need. PostgreSQL and Redis are not published, and they
 should stay that way.
 
+Put every public address behind the reverse proxy rather than publishing the
+container ports to the internet. Compose binds the API host port to
+`127.0.0.1` by default; a proxy on the Docker host can still reach it. Keep that
+binding, especially when the login wall is off. Internal containers continue to
+reach the API over their Docker network.
+
+Use Docker Engine 28 or newer for this loopback isolation. On older versions,
+other machines on the same network segment may still reach a loopback-published
+port; upgrade before relying on it. See
+[Docker's port-publishing documentation](https://docs.docker.com/engine/network/port-publishing/).
+
 ## Tell Genfeed its public URLs
 
 Set these in `.env`, then recreate the stack
@@ -88,6 +99,23 @@ whoever connects, so use it only when the proxy is the sole path to every
 published port. The web app cannot see the connecting peer, so setting
 `TRUST_PROXY` also asserts that the web port is reachable only through the proxy.
 
+## API access without the login wall
+
+With `BETTER_AUTH_ENABLED=false` the API treats requests from the machine
+itself or the Docker network as the seeded local admin, and refuses requests
+from any other address with `401` unless they carry a valid API key. A request
+that a reverse proxy forwards for a remote client (it carries `X-Forwarded-For`
+or `X-Real-IP`) is never treated as local, unless `TRUST_PROXY` names that proxy
+and the client address it reports is itself local.
+
+A proxy on the same host that sends no client headers looks like a local
+caller. Docker can also present a published-port connection as its bridge
+gateway without adding client headers. The API's loopback host binding closes
+that public ingress path; the peer-address check alone cannot identify it.
+Do not put an unauthenticated instance behind a public proxy. Keep the login
+wall on. With `BETTER_AUTH_ENABLED=true`, every request needs a token regardless
+of its source address.
+
 ## OAuth callbacks
 
 Google sign-in and the Google connectors share one Google Cloud OAuth web client.
@@ -109,7 +137,8 @@ Unconfigured providers fail closed.
 - Keep the [login wall](/self-host/configuration#login-wall) on
   (`BETTER_AUTH_ENABLED=true`, the default). Sign-up is open, so create your own
   account before exposing the web port; with the wall off, anyone who can reach
-  it can use the workspace.
+  it can use the workspace. With the wall on, the API also requires a valid token
+  regardless of the caller's address.
 - Change the bundled PostgreSQL password (`POSTGRES_PASSWORD`).
 - Keep provider keys in `.env` only, never in `NEXT_PUBLIC_*` variables.
 - Set `TRUST_PROXY` as described above.

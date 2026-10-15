@@ -11,8 +11,8 @@ export interface LandingTopbarProps {
   ctaLabel: string;
   /**
    * CSS selector of an in-page CTA. While it is on screen the topbar CTA is
-   * hidden below `sm`, where the hero button already owns the tap; it appears
-   * once the page scrolls past it. Desktop always shows the topbar CTA.
+   * hidden at every breakpoint, because the hero button already owns the tap;
+   * it appears once the page scrolls past it.
    */
   hideActionWhileVisible?: string;
   logoHref?: string;
@@ -44,8 +44,11 @@ export default function LandingTopbar({
   );
 
   useEffect(() => {
-    if (!hideActionWhileVisible || typeof IntersectionObserver === 'undefined')
+    if (!hideActionWhileVisible) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsInPageCtaVisible(false);
       return;
+    }
     const target = document.querySelector(hideActionWhileVisible);
     if (!target) {
       setIsInPageCtaVisible(false);
@@ -65,7 +68,7 @@ export default function LandingTopbar({
 
         <div
           className={`flex items-center gap-2 transition-opacity sm:gap-3 ${
-            isInPageCtaVisible ? 'max-sm:invisible max-sm:opacity-0' : ''
+            isInPageCtaVisible ? 'invisible opacity-0' : ''
           }`}
         >
           {secondaryCtaHref && secondaryCtaLabel ? (

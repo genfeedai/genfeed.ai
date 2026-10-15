@@ -48,11 +48,14 @@ import {
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import Redis from 'ioredis';
+import { HELP_ARTICLES } from './data/help-articles';
 import {
   ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT,
   RETIRED_ARTICLE_SLUGS,
 } from './data/launch-articles';
 import { SEO_ARTICLES } from './data/seo-articles';
+
+const SEEDED_ARTICLES = [...SEO_ARTICLES, ...HELP_ARTICLES] as const;
 
 const logger = new Logger('ArticlesSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;
@@ -625,7 +628,7 @@ async function reportSeededRows(
       organizationId: owner.organizationId,
       slug: {
         in: [
-          ...SEO_ARTICLES.map((article) => article.slug),
+          ...SEEDED_ARTICLES.map((article) => article.slug),
           ...RETIRED_ARTICLE_SLUGS,
         ],
       },
@@ -681,7 +684,7 @@ export async function runArticlesSeed(): Promise<void> {
 
   if (args.validateRuntime) {
     logger.log(
-      `Articles seed runtime ready (${SEO_ARTICLES.length} SEO articles bundled)`,
+      `Articles seed runtime ready (${SEO_ARTICLES.length} SEO articles and ${HELP_ARTICLES.length} help articles bundled)`,
     );
     return;
   }
@@ -749,7 +752,7 @@ export async function runArticlesSeed(): Promise<void> {
     });
 
     logger.log(
-      `${args.dryRun ? 'DRY RUN' : 'LIVE'} publishing ${SEO_ARTICLES.length} article(s) into ${owner.organizationLabel} / ${owner.brandLabel} (${owner.organizationId}/${owner.brandId})${args.env ? ` for ${args.env}` : ''}`,
+      `${args.dryRun ? 'DRY RUN' : 'LIVE'} publishing ${SEEDED_ARTICLES.length} article(s) into ${owner.organizationLabel} / ${owner.brandLabel} (${owner.organizationId}/${owner.brandId})${args.env ? ` for ${args.env}` : ''}`,
     );
 
     let created = 0;
@@ -758,7 +761,7 @@ export async function runArticlesSeed(): Promise<void> {
       ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT,
     );
 
-    for (const article of SEO_ARTICLES) {
+    for (const article of SEEDED_ARTICLES) {
       // Platform slugs win: a published article from another organization that
       // holds this slug would shadow the canonical page and block the unique
       // index (#5904), so archive it before publishing ours.

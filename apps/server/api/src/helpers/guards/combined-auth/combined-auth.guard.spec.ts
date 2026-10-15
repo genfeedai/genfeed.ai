@@ -639,28 +639,6 @@ describe('CombinedAuthGuard', () => {
     );
   });
 
-  it('injects the local identity without super-admin outside ADMIN_ALLOWED_IPS', async () => {
-    vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
-    guard = await instantiateGuard('local');
-    const mockRequest: {
-      user?: Record<string, unknown>;
-      headers: object;
-      ip: string;
-    } = {
-      headers: {},
-      ip: '198.51.100.9',
-    };
-    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
-      mockRequest,
-    );
-
-    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
-
-    expect(mockRequest.user).toEqual(
-      expect.objectContaining({ id: 'user_1', isSuperAdmin: false }),
-    );
-  });
-
   it('withholds super-admin from a loopback service call that declares its client unknown', async () => {
     // MCP and notifications reach the API over loopback inside the self-host
     // container; LOCAL mode ignores their bearer token.
@@ -688,12 +666,111 @@ describe('CombinedAuthGuard', () => {
     );
   });
 
+  it('injects the local identity without super-admin for a Docker network peer outside ADMIN_ALLOWED_IPS', async () => {
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
+    guard = await instantiateGuard('local');
+    const mockRequest: {
+      user?: Record<string, unknown>;
+      headers: object;
+      ip: string;
+    } = {
+      headers: {},
+      ip: '172.18.0.5',
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(mockRequest.user).toEqual(
+      expect.objectContaining({ id: 'user_1', isSuperAdmin: false }),
+    );
+  });
+
+  it.each([
+    ['a public address', { headers: {}, ip: '198.51.100.9' }],
+    ['a private LAN address', { headers: {}, ip: '192.168.1.20' }],
+    ['no address at all', { headers: {} }],
+    [
+      'a spoofed X-Forwarded-For when no proxy is trusted',
+      {
+        headers: { 'x-forwarded-for': '127.0.0.1' },
+        ip: '198.51.100.9',
+      },
+    ],
+    [
+      'a loopback reverse proxy that reports a remote client',
+      {
+        headers: { 'x-forwarded-for': '198.51.100.9' },
+        ip: '127.0.0.1',
+      },
+    ],
+  ])(
+    'rejects a tokenless request from %s in local mode',
+    async (_label, mockRequest) => {
+      guard = await instantiateGuard('local');
+      betterAuthGuard.canActivate.mockRejectedValue(
+        new UnauthorizedException('No token provided'),
+      );
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(mockRequest).not.toHaveProperty('user');
+      expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    },
+  );
+
+  it('accepts a valid API key from a remote peer in local mode', async () => {
+    guard = await instantiateGuard('local');
+    const mockRequest: {
+      user?: Record<string, unknown>;
+      headers: object;
+      ip: string;
+    } = {
+      headers: { authorization: 'Bearer gf_live_remote' },
+      ip: '198.51.100.9',
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    apiKeyAuthGuard.canActivate.mockResolvedValue(true);
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(apiKeyAuthGuard.canActivate).toHaveBeenCalledOnce();
+    expect(mockRequest.user).toBeUndefined();
+  });
+
+  it('rejects a non-API-key bearer token from a remote peer in local mode', async () => {
+    guard = await instantiateGuard('local');
+    const mockRequest = {
+      headers: { authorization: 'Bearer some.jwt.token' },
+      ip: '198.51.100.9',
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockRejectedValue(
+      new UnauthorizedException('Unauthorized'),
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
   it('rejects cloud-required routes in local mode', async () => {
     guard = await instantiateGuard('local');
     reflector.getAllAndOverride.mockImplementation(
       (key: string) => key === 'requiresCloudAuth',
     );
-    const mockRequest = { headers: {} };
+    const mockRequest = { headers: {}, ip: '127.0.0.1' };
     (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
       mockRequest,
     );
@@ -703,92 +780,129 @@ describe('CombinedAuthGuard', () => {
     );
   });
 
-  it('injects local identity for hybrid requests without a token', async () => {
-    guard = await instantiateGuard('hybrid');
-    const mockRequest: { user?: Record<string, unknown>; headers: object } = {
-      headers: {},
-    };
-    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
-      mockRequest,
+  describe('with Better Auth enabled on self-host', () => {
+    it.each([
+      ['loopback', '127.0.0.1'],
+      ['a Docker network peer', '172.18.0.5'],
+      ['a public address', '198.51.100.9'],
+    ])(
+      'requires a token from %s and never injects the local identity',
+      async (_label, ip) => {
+        guard = await instantiateGuard('hybrid');
+        const mockRequest: {
+          user?: Record<string, unknown>;
+          headers: object;
+          ip: string;
+        } = { headers: {}, ip };
+        (
+          mockExecutionContext.switchToHttp().getRequest as vi.Mock
+        ).mockReturnValue(mockRequest);
+        betterAuthGuard.canActivate.mockRejectedValue(
+          new UnauthorizedException('No token provided'),
+        );
+
+        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+          UnauthorizedException,
+        );
+
+        expect(betterAuthGuard.canActivate).toHaveBeenCalledOnce();
+        expect(mockRequest.user).toBeUndefined();
+        expect(prisma.user.findFirst).not.toHaveBeenCalled();
+      },
     );
 
-    const result = await guard.canActivate(mockExecutionContext);
-
-    expect(result).toBe(true);
-    expect(mockRequest.user).toEqual(
-      expect.objectContaining({
-        brandId: 'brand_1',
-        id: 'user_1',
-        organizationId: 'org_1',
-        userId: 'user_1',
-      }),
-    );
-    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    ['surplus fields', 'Bearer gf_1234567890abcdef extra'],
-    ['single field', 'Bearer'],
-    ['blank bearer', 'Bearer   '],
-  ])(
-    'rejects a %s Authorization header in hybrid mode instead of downgrading to local identity',
-    async (_label, authorization) => {
-      // A presented header that attempts the Bearer scheme but fails strict
-      // parsing must never be treated the same as an absent one: absent
-      // means "no credential attempted" (anonymous, local super-admin),
-      // while a malformed Bearer attempt must fail closed with 401.
+    it('accepts a valid Better Auth bearer token', async () => {
       guard = await instantiateGuard('hybrid');
-      const mockRequest: { user?: Record<string, unknown>; headers: object } = {
-        headers: { authorization },
+      const mockRequest: {
+        user?: Record<string, unknown>;
+        headers: object;
+        ip: string;
+      } = {
+        headers: { authorization: 'Bearer valid.jwt.token' },
+        ip: '198.51.100.9',
       };
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+      betterAuthGuard.canActivate.mockImplementation(() => {
+        mockRequest.user = { id: 'user_auth', userId: 'user_auth' };
+        return true;
+      });
+
+      await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+      expect(mockRequest.user).toEqual(
+        expect.objectContaining({ id: 'user_auth' }),
+      );
+      expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects a cloud-required route without a token', async () => {
+      guard = await instantiateGuard('hybrid');
+      reflector.getAllAndOverride.mockImplementation(
+        (key: string) => key === 'requiresCloudAuth',
+      );
+      const mockRequest = { headers: {}, ip: '127.0.0.1' };
       (
         mockExecutionContext.switchToHttp().getRequest as vi.Mock
       ).mockReturnValue(mockRequest);
 
       await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
-        UnauthorizedException,
+        'This endpoint requires a cloud connection',
       );
-      expect(mockRequest.user).toBeUndefined();
-      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
-      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
-    },
-  );
+    });
 
-  it.each([
-    ['a foreign scheme (nginx Basic-auth proxy)', 'Basic dXNlcjpwYXNz'],
-    ['an unrecognized scheme', 'Token abc'],
-    ['an empty header (no scheme presented at all)', ''],
-  ])(
-    // A header presenting no Bearer credential at all — some other scheme,
-    // or nothing recognizable — carries no attempted Bearer token, so
-    // HYBRID mode treats it exactly like an absent header: local identity,
-    // not a 401. This is the fix for a real deployment shape (an nginx
-    // reverse-proxy adding its own `Authorization: Basic ...` in front of a
-    // self-hosted instance), which must not be rejected as if it were a
-    // malformed Bearer credential.
-    'injects local identity for a %s Authorization header in hybrid mode (same as absent)',
-    async (_label, authorization) => {
-      guard = await instantiateGuard('hybrid');
-      const mockRequest: { user?: Record<string, unknown>; headers: object } = {
-        headers: { authorization },
-      };
-      (
-        mockExecutionContext.switchToHttp().getRequest as vi.Mock
-      ).mockReturnValue(mockRequest);
+    it.each([
+      ['surplus fields', 'Bearer gf_1234567890abcdef extra'],
+      ['single field', 'Bearer'],
+      ['blank bearer', 'Bearer   '],
+    ])(
+      'rejects a %s Authorization header without consulting a token guard',
+      async (_label, authorization) => {
+        guard = await instantiateGuard('hybrid');
+        const mockRequest: {
+          user?: Record<string, unknown>;
+          headers: object;
+        } = { headers: { authorization } };
+        (
+          mockExecutionContext.switchToHttp().getRequest as vi.Mock
+        ).mockReturnValue(mockRequest);
 
-      const result = await guard.canActivate(mockExecutionContext);
+        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+          UnauthorizedException,
+        );
+        expect(mockRequest.user).toBeUndefined();
+        expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+        expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+      },
+    );
 
-      expect(result).toBe(true);
-      expect(mockRequest.user).toEqual(
-        expect.objectContaining({
-          brandId: 'brand_1',
-          id: 'user_1',
-          organizationId: 'org_1',
-          userId: 'user_1',
-        }),
-      );
-      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
-      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
-    },
-  );
+    it.each([
+      ['a foreign scheme (nginx Basic-auth proxy)', 'Basic dXNlcjpwYXNz'],
+      ['an unrecognized scheme', 'Token abc'],
+      ['an empty header', ''],
+    ])(
+      'treats %s as no credential and refuses it instead of falling back to the local identity',
+      async (_label, authorization) => {
+        guard = await instantiateGuard('hybrid');
+        const mockRequest: {
+          user?: Record<string, unknown>;
+          headers: object;
+          ip: string;
+        } = { headers: { authorization }, ip: '127.0.0.1' };
+        (
+          mockExecutionContext.switchToHttp().getRequest as vi.Mock
+        ).mockReturnValue(mockRequest);
+        betterAuthGuard.canActivate.mockRejectedValue(
+          new UnauthorizedException('No token provided'),
+        );
+
+        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+          UnauthorizedException,
+        );
+        expect(mockRequest.user).toBeUndefined();
+        expect(prisma.user.findFirst).not.toHaveBeenCalled();
+      },
+    );
+  });
 });

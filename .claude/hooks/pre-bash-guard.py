@@ -3,7 +3,8 @@
 
 Deterministically enforces working agreements that used to live only as prose:
   1. Trunk is PR-only — no pushes to master/main.
-  2. Bun only — npm/npx/yarn/pnpm are blocked.
+  2. Bun only — npm/npx/yarn/pnpm are blocked (see
+     is_clean_install_qa for the clean-install QA exception).
   3. No `vercel` without an existing .vercel/project.json link.
   4. .env* files never get staged or committed (public repo) — except the
      committed placeholder templates (.env.example and friends).
@@ -38,6 +39,13 @@ def is_env_secret_path(path: str) -> bool:
     if not basename.startswith(".env"):
         return False
     return not basename.endswith(ENV_TEMPLATE_SUFFIX)
+
+
+def is_clean_install_qa() -> bool:
+    """Clean-machine install QA (#6965) legitimately runs `npx @genfeedai/create`
+    and fetches the release bundle: require GENFEED_QA_CLEAN_INSTALL=1.
+    Changing the session cwd must not disable its guards."""
+    return os.environ.get("GENFEED_QA_CLEAN_INSTALL") == "1"
 
 
 def block(message: str) -> None:
@@ -106,7 +114,7 @@ def main() -> None:
     package_manager = re.search(
         COMMAND_POSITION + r"(npm|npx|yarn|pnpm)\b", sanitized
     )
-    if package_manager:
+    if package_manager and not is_clean_install_qa():
         block(
             f"`{package_manager.group(1)}` is forbidden in this workspace — "
             "use `bun` / `bunx` instead (bun-not-npm rule)."

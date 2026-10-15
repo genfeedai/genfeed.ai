@@ -48,3 +48,26 @@ describe('root env template (.env.example)', () => {
     expect(template.has('OPENAI_API_KEY')).toBe(true);
   });
 });
+
+describe('API host publishing', () => {
+  it.each([
+    [
+      'docker/docker-compose.selfhosted.yml',
+      /127\.0\.0\.1:\$\{SELFHOSTED_API_PORT:-3010\}:3010/,
+    ],
+    [
+      'docker/docker-compose.yml',
+      /127\.0\.0\.1:\$\{API_PORT:-3010\}:\$\{API_PORT:-3010\}/,
+    ],
+    [
+      'docker/docker-compose.api.yml',
+      /127\.0\.0\.1:\$\{API_PORT:-3010\}:\$\{API_PORT:-3010\}/,
+    ],
+  ])(
+    '%s keeps the tokenless API off public host interfaces',
+    (file, binding) => {
+      const compose = readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      expect(compose).toMatch(binding);
+    },
+  );
+});

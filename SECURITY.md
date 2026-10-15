@@ -61,7 +61,9 @@ Out of scope:
   (report those to the provider);
 - issues that require a compromised host, physical access, or a self-hoster
   running with the documented insecure defaults (`BETTER_AUTH_ENABLED=false`
-  outside a trusted network);
+  outside a trusted network). With `BETTER_AUTH_ENABLED=true` the API accepts no
+  tokenless request; with it off, the seeded local admin is limited to loopback
+  and the Docker network;
 - rate-limiting, best-practice, or scanner-only findings without demonstrated
   impact.
 

@@ -1,6 +1,8 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { isAdminIpAllowed } from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
+import { isLocalIdentityPeer } from '@api/helpers/utils/local-identity/local-identity-peer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { SubscriptionStatus } from '@genfeedai/contracts';
 import type {
@@ -38,13 +40,13 @@ export class LocalIdentityInterceptor implements NestInterceptor {
     executionContext: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<unknown>> {
-    if (!isSelfHostedDeployment()) {
+    if (!isSelfHostedDeployment() || isBetterAuthEnabled()) {
       return next.handle();
     }
 
     const request = executionContext.switchToHttp().getRequest<Request>();
 
-    if (request.user) {
+    if (request.user || !isLocalIdentityPeer(request)) {
       return next.handle();
     }
 

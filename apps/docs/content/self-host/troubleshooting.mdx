@@ -218,6 +218,20 @@ public URL variables described in
 [Reverse proxy and HTTPS](/self-host/reverse-proxy), recreate the stack, and
 confirm in your browser's network tools that requests go to your API address.
 
+## The API returns 401 from another machine
+
+With the login wall off, the API only accepts tokenless requests from the
+machine itself and the Docker network. Calls from another computer, or through a
+reverse proxy that forwards the client address, get `401`. Either create an API
+key and send it as `Authorization: Bearer gf_...`, or turn on the
+[login wall](/self-host/configuration#login-wall) and sign in. If your proxy
+sets `X-Forwarded-For`, name it in `TRUST_PROXY` as described in
+[Reverse proxy and HTTPS](/self-host/reverse-proxy#client-ip-addresses).
+
+With the login wall on (`BETTER_AUTH_ENABLED=true`), every API request needs a
+valid token, including requests from the same machine. Public routes such as
+the health check stay open.
+
 ## MCP returns 401
 
 Turning off the login wall does not turn off MCP authentication. Register the

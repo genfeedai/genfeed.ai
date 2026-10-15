@@ -14,6 +14,7 @@ export default function PageLayout({
   heroProof,
   heroMedia,
   heroVisual,
+  isHeroVisualStacked,
   showFooter = true,
   title,
   variant = 'poster',
@@ -60,6 +61,7 @@ export default function PageLayout({
       heroActions={heroActions}
       heroDetails={heroDetails}
       heroVisual={visual}
+      isHeroVisualStacked={isHeroVisualStacked}
       title={title}
     >
       {pageBody}

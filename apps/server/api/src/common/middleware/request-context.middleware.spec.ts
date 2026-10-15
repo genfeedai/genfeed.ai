@@ -369,14 +369,14 @@ describe('RequestContextMiddleware', () => {
   });
 
   it.each([
-    { authorization: undefined, enabled: true },
-    { authorization: 'Basic reverse-proxy', enabled: true },
-    { authorization: 'Bearer ignored-local-token', enabled: false },
+    { authorization: undefined, ip: '127.0.0.1' },
+    { authorization: 'Basic reverse-proxy', ip: '::1' },
+    { authorization: 'Bearer ignored-local-token', ip: '172.18.0.5' },
   ])(
-    'preserves self-hosted fallback with $authorization and auth enabled $enabled',
-    async ({ authorization, enabled }) => {
+    'preserves the self-hosted fallback with login off for $ip and $authorization',
+    async ({ authorization, ip }) => {
       configState.isSelfHosted = true;
-      configState.betterAuthEnabled = enabled;
+      configState.betterAuthEnabled = false;
       const publisher = buildPublisher();
       redisService.getPublisher.mockReturnValue(publisher);
       const prisma = buildPrismaService();
@@ -389,8 +389,8 @@ describe('RequestContextMiddleware', () => {
         prisma as never,
       );
 
-      vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
-      const req = { headers: { authorization }, ip: '127.0.0.1' } as never;
+      vi.stubEnv('ADMIN_ALLOWED_IPS', ip);
+      const req = { headers: { authorization }, ip } as never;
       const next: NextFunction = vi.fn();
 
       await middleware.use(req, {} as Response, next);
@@ -416,6 +416,50 @@ describe('RequestContextMiddleware', () => {
         expect.any(Number),
         expect.stringContaining('"brandId":"brand_default"'),
       );
+      expect(next).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each([
+    { enabled: false, headers: {}, ip: '198.51.100.9', label: 'remote peer' },
+    {
+      enabled: false,
+      headers: { 'x-forwarded-for': '198.51.100.9' },
+      ip: '127.0.0.1',
+      label: 'loopback proxy naming a remote client',
+    },
+    { enabled: true, headers: {}, ip: '127.0.0.1', label: 'loopback, auth on' },
+    {
+      enabled: true,
+      headers: { authorization: 'Basic reverse-proxy' },
+      ip: '172.18.0.5',
+      label: 'docker peer, auth on',
+    },
+  ])(
+    'never hydrates the self-hosted default context for a $label',
+    async ({ enabled, headers, ip }) => {
+      configState.isSelfHosted = true;
+      configState.betterAuthEnabled = enabled;
+      const publisher = buildPublisher();
+      redisService.getPublisher.mockReturnValue(publisher);
+      const prisma = buildPrismaService();
+
+      middleware = new RequestContextMiddleware(
+        redisService as unknown as RedisService,
+        buildLogger(),
+        buildOrgSettingsService('free') as never,
+        buildSubscriptionsService('active') as never,
+        prisma as never,
+      );
+
+      const req = { headers, ip } as never;
+      const next: NextFunction = vi.fn();
+
+      await middleware.use(req, {} as Response, next);
+
+      expect((req as { context?: unknown }).context).toBeUndefined();
+      expect(publisher.get).not.toHaveBeenCalled();
+      expect(prisma.user.findFirst).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledOnce();
     },
   );
@@ -504,6 +548,7 @@ describe('RequestContextMiddleware', () => {
     it('drops super-admin from the self-hosted default context for a blocked IP', async () => {
       vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
       configState.isSelfHosted = true;
+      configState.betterAuthEnabled = false;
       const publisher = buildPublisher();
       redisService.getPublisher.mockReturnValue(publisher);
       middleware = new RequestContextMiddleware(
@@ -513,7 +558,7 @@ describe('RequestContextMiddleware', () => {
         buildSubscriptionsService('active') as never,
         buildPrismaService() as never,
       );
-      const req = { headers: {}, ip: '198.51.100.9' };
+      const req = { headers: {}, ip: '172.18.0.5' };
 
       await middleware.hydrate(req as never);
 

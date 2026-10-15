@@ -24,7 +24,9 @@ summary; the canonical, decision-of-record version is the ADR at
   `.env.example` enables local Better Auth sign-up
   (`BETTER_AUTH_ENABLED=true`, `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true`) so the
   first user can create an account. Set both to `false` in the installation
-  `.env` for a single-user workspace with no login wall. A repository source checkout uses `docker/.env` instead.
+  `.env` for a single-user workspace with no login wall; the API then accepts
+  tokenless local identity only from loopback and the Docker network.
+  A repository source checkout uses `docker/.env` instead.
   Community is still one org and does not require a Better Auth cloud account.
 - **Desktop** — the Electron shell sets `NEXT_PUBLIC_DESKTOP_SHELL=1`. The
   current release workflow packages macOS only; this repository does not claim

@@ -31,7 +31,7 @@ services:
       # starts the app on 3000, the API on 3010, and MCP on 3014 regardless of
       # these vars (see docker/selfhosted-entrypoint.sh).
       - "${SELFHOSTED_APP_PORT:-3000}:3000"  # Web UI
-      - "${SELFHOSTED_API_PORT:-3010}:3010"  # API
+      - "127.0.0.1:${SELFHOSTED_API_PORT:-3010}:3010"  # API (host-local)
       - "${SELFHOSTED_MCP_PORT:-3014}:3014"  # MCP
     volumes:
       - genfeed_data:/data
