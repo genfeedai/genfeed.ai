@@ -36,6 +36,7 @@ const PERSONA_WITH_REFERENCES_SELECT = {
   brandId: true,
   id: true,
   references: PERSONA_REFERENCES_SELECT,
+  userId: true,
 } as const;
 
 type PersonaWithReferencesRow = Prisma.PersonaGetPayload<{
@@ -407,6 +408,11 @@ export class PersonaReferencesService {
         organizationId: params.organizationId,
         userId: params.actor.userId,
       });
+    } else if (
+      persona.userId !== params.actor.userId &&
+      params.actor.isSuperAdmin !== true
+    ) {
+      throw new NotFoundException('Persona', params.personaId);
     }
     return params.brandId;
   }

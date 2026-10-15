@@ -7,6 +7,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_data, _serializer) => ({ data: _data })),
 }));
 
+import { PersonaReferencesController } from '@api/collections/personas/controllers/persona-references.controller';
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
 import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
@@ -14,9 +15,11 @@ import { PersonasService } from '@api/collections/personas/services/personas.ser
 import { brandAvailabilityWhere } from '@api/collections/personas/utils/persona-availability.util';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { PersonaAvailabilityMode, PersonaStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -95,6 +98,44 @@ describe('PersonasController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('decorates persona reads using the active organization override', async () => {
+    const selectedOrganizationId = testId('org', 2);
+    const persona = { id: personaId } as PersonaDocument;
+    await runWithTenantContext({ organizationId: selectedOrganizationId }, () =>
+      controller.decorateForResponse(persona, mockUser),
+    );
+    expect(mockServiceMethods.withAvailabilitySummary).toHaveBeenCalledWith(
+      [persona],
+      selectedOrganizationId,
+    );
+    expect(mockServiceMethods.withReferenceIngredientIds).toHaveBeenCalledWith(
+      [persona],
+      selectedOrganizationId,
+    );
+  });
+
+  it('reads references in the verified selected organization and brand', async () => {
+    const list = vi.fn().mockResolvedValue([]);
+    const referencesController = new PersonaReferencesController({
+      list,
+    } as never);
+    const selectedOrganizationId = testId('org', 2);
+    const selectedBrandId = testId('brand', 2);
+    await runWithTenantReadScope(
+      {
+        brandId: selectedBrandId,
+        isOrganizationOverride: true,
+        organizationId: selectedOrganizationId,
+      },
+      () => referencesController.list(mockUser, personaId),
+    );
+    expect(list).toHaveBeenCalledWith({
+      brandId: selectedBrandId,
+      organizationId: selectedOrganizationId,
+      personaId,
+    });
   });
 
   describe('patch (member assignment)', () => {

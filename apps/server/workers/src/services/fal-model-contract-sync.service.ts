@@ -19,6 +19,7 @@ import type {
 import {
   compareProviderRates,
   loadReviewedRateContract,
+  markRateReview,
   type RateComparison,
   reviewedSchemaRepair,
 } from '@workers/services/provider-rate-sync.util';
@@ -145,17 +146,7 @@ export class FalModelContractSyncService {
     if (reviewed && comparison?.status === 'changed') {
       // The provider changed a price. The reviewed rate keeps charging and the
       // model stays active; an operator approves the pending contract.
-      await prisma.model.update({
-        data: {
-          pendingProviderContractVersion: candidate.version,
-          providerPricingSyncedAt: now,
-          providerSchemaSyncedAt: now,
-          providerSyncFailedAt: null,
-          providerSyncFailureCode: null,
-          providerSyncStatus: 'review_required',
-        },
-        where: { id: model.id },
-      });
+      await markRateReview(prisma, model.id, candidate.version, now);
       return {
         drifted: true,
         priceChange: {

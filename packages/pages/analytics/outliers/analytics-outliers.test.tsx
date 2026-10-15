@@ -2,7 +2,7 @@ import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
 import AnalyticsOutliers from '@pages/analytics/outliers/analytics-outliers';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -13,6 +13,12 @@ const mocks = vi.hoisted(() => ({
   organizationId: 'org-1',
   brandId: 'brand-1' as string | undefined,
   pageScope: 'brand' as 'brand' | 'org',
+  scope: {
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  },
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -23,12 +29,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   isCollectionFetchReady: () => true,
   toBrandListParams: ({ brandId }: { brandId?: string }) =>
     brandId ? { brandId } : {},
-  useCollectionScope: () => ({
-    brandId: mocks.brandId,
-    isReady: true,
-    organizationId: mocks.organizationId,
-    pageScope: mocks.pageScope,
-  }),
+  useCollectionScope: () => mocks.scope,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -48,8 +49,10 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({ children, href, ...props }: ComponentProps<'a'>) => (
+    <a {...props} href={href}>
+      {children}
+    </a>
   ),
 }));
 
@@ -63,40 +66,6 @@ vi.mock('@ui/primitives/sheet', () => ({
   ),
   SheetHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SheetTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
-}));
-
-vi.mock('@ui/display/table/Table', () => ({
-  default: <T,>({
-    columns,
-    emptyLabel,
-    getRowKey,
-    isLoading,
-    items,
-  }: {
-    columns: Array<{ header: string; render?: (item: T) => ReactNode }>;
-    emptyLabel?: string;
-    getRowKey: (item: T) => string;
-    isLoading?: boolean;
-    items: T[];
-  }) => {
-    if (isLoading) return <div data-testid="outliers-loading" />;
-    if (!items.length) return <div>{emptyLabel}</div>;
-    return (
-      <table>
-        <tbody>
-          {items.map((item) => (
-            <tr key={getRowKey(item)}>
-              {columns.map((column) => (
-                <td key={column.header}>
-                  {column.render ? column.render(item) : null}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-  },
 }));
 
 describe('AnalyticsOutliers', () => {

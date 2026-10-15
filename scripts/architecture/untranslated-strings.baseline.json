@@ -537,7 +537,7 @@
     "packages/ui/src/components/ingredients/tabs/children/IngredientTabsChildren.tsx": 3,
     "packages/ui/src/components/ingredients/tabs/info/IngredientTabsInfo.tsx": 5,
     "packages/ui/src/components/ingredients/tabs/metadata/IngredientTabsMetadata.tsx": 14,
-    "packages/ui/src/components/ingredients/tabs/posts/IngredientTabsPosts.tsx": 7,
+    "packages/ui/src/components/ingredients/tabs/posts/IngredientTabsPosts.tsx": 6,
     "packages/ui/src/components/ingredients/tabs/prompts/IngredientTabsPrompts.tsx": 7,
     "packages/ui/src/components/ingredients/tabs/sharing/IngredientTabsSharing.tsx": 4,
     "packages/ui/src/components/ingredients/tabs/tags/IngredientTabsTags.tsx": 13,

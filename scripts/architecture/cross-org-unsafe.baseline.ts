@@ -57,7 +57,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 213,
+      line: 217,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which

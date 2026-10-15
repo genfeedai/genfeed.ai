@@ -67,7 +67,10 @@ export async function findCharacterReferenceImageIds(
   }
   const rows = await client.ingredient.findMany({
     select: { id: true },
-    where: characterReferenceImageWhere(params),
+    where: scopedWhere(
+      params.organizationId,
+      characterReferenceImageWhere(params),
+    ),
   });
   const found = new Set(rows.map((row) => row.id));
   return params.ingredientIds.filter((id) => found.has(id));

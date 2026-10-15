@@ -8,6 +8,8 @@ import type { PersonaReferenceScope } from '@api/collections/personas/services/p
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type {
@@ -54,14 +56,16 @@ export class PersonaReferencesController {
   }
 
   @Get(':id/references')
+  @TenantReadPolicy('selected')
   async list(
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<{ data: CharacterReferenceItem[] }> {
+    const scope = resolveTenantReadScope(user);
     return {
       data: await this.referencesService.list({
-        brandId: user.brandId,
-        organizationId: user.organizationId,
+        brandId: scope.brandId,
+        organizationId: scope.organizationId,
         personaId: EntityIdUtil.validate(id, 'personaId'),
       }),
     };

@@ -15,6 +15,7 @@ import {
   hasSharedAvailability,
   isPersonaAvailableToBrand,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { stripAvailabilityFields } from '@api/collections/personas/utils/persona-availability-fields.util';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -39,6 +40,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { PersonaSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -53,28 +55,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const AVAILABILITY_FIELDS = [
-  'availabilityMode',
-  'availableBrandIds',
-  'availabilityAudits',
-  'isShared',
-  'availableBrandCount',
-  'owningBrandId',
-  'owningBrandName',
-] as const;
-
-/**
- * Availability is changed only through `PATCH /personas/:id/availability`
- * (admin-gated and audited), never through the generic create/update routes.
- */
-function stripAvailabilityFields<T extends object>(dto: T): T {
-  const copy = { ...dto } as Record<string, unknown>;
-  for (const field of AVAILABILITY_FIELDS) {
-    delete copy[field];
-  }
-  return copy as T;
-}
 
 @AutoSwagger()
 @Controller('personas')
@@ -281,13 +261,15 @@ export class PersonasController extends BaseCRUDController<
     data: PersonaDocument,
     user: User,
   ): Promise<PersonaDocument> {
+    const organizationId =
+      getTenantContext()?.organizationId ?? user.organizationId;
     const [summarized] = await this.personasService.withAvailabilitySummary(
       [data],
-      user.organizationId,
+      organizationId,
     );
     const [decorated] = await this.personasService.withReferenceIngredientIds(
       [summarized ?? data],
-      user.organizationId,
+      organizationId,
     );
     return decorated ?? summarized ?? data;
   }
@@ -512,16 +494,6 @@ export class PersonasController extends BaseCRUDController<
       memberIds: _memberIds,
       ...rest
     } = updateDto;
-    const hasRemainingFields = Object.keys(rest).length > 0;
-
-    // If the request only carried memberIds, the assignment above is the
-    // whole update — skip the base PATCH flow (it would otherwise be a
-    // no-op patch, still worth returning the fresh entity for).
-    return super.patch(
-      request,
-      user,
-      id,
-      (hasRemainingFields ? rest : {}) as UpdatePersonaDto,
-    );
+    return super.patch(request, user, id, rest);
   }
 }

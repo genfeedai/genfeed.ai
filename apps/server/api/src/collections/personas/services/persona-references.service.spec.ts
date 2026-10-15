@@ -28,6 +28,7 @@ function setup(
     avatarIngredientId?: string | null;
     deleted?: string[];
     references?: StoredRow[];
+    userId?: string;
     validImages?: string[];
   } = {},
 ) {
@@ -47,6 +48,7 @@ function setup(
     handle: 'anna' as string | null,
     id: PERSONA,
     label: 'Anna',
+    userId: initial.userId ?? 'user-1',
     references: [...state.references]
       .sort((a, b) => a.position - b.position)
       .map((row) => ({
@@ -151,6 +153,36 @@ function rows(...ids: string[]): StoredRow[] {
 }
 
 describe('PersonaReferencesService', () => {
+  it.each(['add', 'remove', 'reorder'] as const)(
+    'refuses %s of another creator’s unshared character references',
+    async (operation) => {
+      const { prisma, service } = setup({
+        references: rows('img-1'),
+        userId: 'other-user',
+        validImages: ['img-1'],
+      });
+      await expect(
+        service[operation]({
+          ...scope,
+          ingredientId: 'img-1',
+          ingredientIds: ['img-1'],
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('allows a verified superadmin to edit an unshared character', async () => {
+    const { service } = setup({ userId: 'other-user', validImages: ['img-1'] });
+    await expect(
+      service.add({
+        ...scope,
+        actor: { ...scope.actor, isSuperAdmin: true },
+        ingredientIds: ['img-1'],
+      }),
+    ).resolves.toEqual([{ ingredientId: 'img-1', position: 0 }]);
+  });
+
   describe('orderedReferenceIdsFromRow', () => {
     it('orders by position and skips trashed assets', () => {
       expect(

@@ -15,17 +15,21 @@ import {
   isPersonaSharedAcrossBrands,
   resolvePersonaBrandIds,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { rethrowHandleConflict } from '@api/collections/personas/utils/persona-handle-conflict.util';
 import {
   assertOwningBrandLive,
   withPersonaHandleLocks,
 } from '@api/collections/personas/utils/persona-handle-lock.util';
 import {
   findCharacterReferenceImageIds,
-  loadOrderedReferenceIds,
   orderedReferenceIdsFromRow,
   PERSONA_REFERENCES_SELECT,
   personaReferencesAnyWhere,
 } from '@api/collections/personas/utils/persona-references.util';
+import {
+  withPersonaAvailabilitySummary,
+  withPersonaReferenceIngredientIds,
+} from '@api/collections/personas/utils/persona-response.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
@@ -64,39 +68,6 @@ export type PersonaClient = Pick<
   | 'personaGrant'
   | 'personaGrantAudit'
 >;
-
-function isPersonaHandleUniqueViolation(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const record = error as {
-    code?: unknown;
-    meta?: { target?: unknown; constraint?: unknown };
-  };
-  if (record.code !== 'P2002') {
-    return false;
-  }
-  const target = record.meta?.target;
-  const constraint = record.meta?.constraint;
-  const haystack = [
-    ...(Array.isArray(target) ? target.map(String) : [String(target ?? '')]),
-    String(constraint ?? ''),
-  ]
-    .join(' ')
-    .toLowerCase();
-  return haystack.includes('handle') || haystack.includes('org_brand_handle');
-}
-
-function rethrowHandleConflict(error: unknown, handle?: string | null): never {
-  if (isPersonaHandleUniqueViolation(error)) {
-    throw new ValidationException(
-      'A character with this handle already exists in this brand',
-      'handle',
-      handle,
-    );
-  }
-  throw error;
-}
 
 @Injectable()
 export class PersonasService extends BaseService<
@@ -977,57 +948,18 @@ export class PersonasService extends BaseService<
     return updated;
   }
 
-  /**
-   * Adds `referenceIngredientIds`: every live reference image of each
-   * character, primary first, in one query for the page.
-   */
-  async withReferenceIngredientIds(
+  withReferenceIngredientIds(
     docs: PersonaDocument[],
     organizationId: string,
   ): Promise<PersonaDocument[]> {
-    const byPersona = await loadOrderedReferenceIds(
-      this.prisma,
-      organizationId,
-      docs.map((doc) => doc.id),
-    );
-    return docs.map((doc) => ({
-      ...doc,
-      referenceIngredientIds:
-        byPersona.get(doc.id) ??
-        orderedReferenceIdsFromRow({
-          avatarIngredientId: doc.avatarIngredientId ?? null,
-        }),
-    }));
+    return withPersonaReferenceIngredientIds(this.prisma, docs, organizationId);
   }
 
-  /**
-   * Adds the read-model summary: `isShared`, and `availableBrandCount` (every
-   * organization brand for `all brands`).
-   */
-  async withAvailabilitySummary(
+  withAvailabilitySummary(
     docs: PersonaDocument[],
     organizationId: string,
   ): Promise<PersonaDocument[]> {
-    let organizationBrandCount: number | null = null;
-    for (const doc of docs) {
-      if (doc.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS) {
-        organizationBrandCount ??= await this.prisma.brand.count({
-          where: scopedWhere(organizationId),
-        });
-      }
-    }
-    return docs.map((doc) => ({
-      ...doc,
-      availableBrandCount:
-        doc.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
-          ? (organizationBrandCount ?? 0)
-          : resolvePersonaBrandIds(doc, []).length,
-      isShared: isPersonaSharedAcrossBrands(doc),
-      owningBrandId: doc.brandId ?? null,
-      owningBrandName:
-        (doc.brand as { label?: string | null } | null | undefined)?.label ??
-        null,
-    }));
+    return withPersonaAvailabilitySummary(this.prisma, docs, organizationId);
   }
 
   async assignMembers(
