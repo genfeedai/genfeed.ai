@@ -46,10 +46,17 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@providers/protected-bootstrap/client-protected-bootstrap', () => ({
-  clearClientProtectedBootstrapCache: () => clearBootstrapMock(),
-  loadClientProtectedBootstrap: (...args: unknown[]) => bootstrapMock(...args),
-}));
+vi.mock(
+  '@providers/protected-bootstrap/client-protected-bootstrap',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@providers/protected-bootstrap/client-protected-bootstrap')
+    >()),
+    clearClientProtectedBootstrapCache: () => clearBootstrapMock(),
+    loadClientProtectedBootstrap: (...args: unknown[]) =>
+      bootstrapMock(...args),
+  }),
+);
 
 let contextValue: UserContextValue;
 

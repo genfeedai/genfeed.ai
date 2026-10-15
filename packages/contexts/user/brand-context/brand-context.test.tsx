@@ -84,7 +84,10 @@ const clearClientProtectedBootstrapCacheMock = vi.hoisted(() => vi.fn());
 
 vi.mock(
   '../../providers/protected-bootstrap/client-protected-bootstrap',
-  () => ({
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('../../providers/protected-bootstrap/client-protected-bootstrap')
+    >()),
     clearClientProtectedBootstrapCache: clearClientProtectedBootstrapCacheMock,
     loadClientProtectedBootstrap: loadClientProtectedBootstrapMock,
   }),
