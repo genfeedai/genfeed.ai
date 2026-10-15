@@ -1,6 +1,6 @@
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import PostDetailCardBody, {
   type PostDetailCardBodyProps,
 } from '@pages/posts/detail/components/PostDetailCardBody';

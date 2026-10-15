@@ -14,7 +14,7 @@ import type {
   IReleaseMediaReference,
 } from '@genfeedai/contracts/interfaces';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 
 function resolveIngredientMediaKind(
   category: IngredientCategory | undefined,

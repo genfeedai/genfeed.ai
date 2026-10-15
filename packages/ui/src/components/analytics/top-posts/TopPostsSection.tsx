@@ -3,7 +3,7 @@
 import { CardVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
-import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
