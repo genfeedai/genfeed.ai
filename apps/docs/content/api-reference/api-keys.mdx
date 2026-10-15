@@ -1,6 +1,6 @@
 ---
 title: API Key Management
-description: 'Create, scope, rotate, and use gf_ API keys for server-to-server Genfeed REST and MCP access, including scopes, rate limits, and credit metering.'
+description: 'Create, scope, rotate, and use gf_ API keys on your own Genfeed instance for server-to-server REST and MCP access, including scopes and rate limits.'
 ---
 
 # API Keys
@@ -33,9 +33,10 @@ everything else is validated as a Better Auth JWT.
 5. Create the key and copy it immediately. The plaintext value is displayed
    once and cannot be retrieved again.
 
-MCP clients can use the [guided Connect Genfeed flow](https://app.genfeed.ai/connect)
-instead, which creates an MCP-scoped key and runs an authenticated connection
-check. See [MCP Server](/api-reference/mcp).
+MCP clients can use the guided **Connect** flow in your instance's web app
+(`/connect`, for example `http://localhost:3000/connect`) instead, which
+creates an MCP-scoped key and runs an authenticated connection check. See
+[MCP Server](/api-reference/mcp).
 
 Store the key where your integration runs:
 
@@ -50,7 +51,7 @@ Treat API keys like passwords. Do not commit them or paste them into shared logs
 Key management endpoints authenticate with a Better Auth session token:
 
 ```bash
-curl -X POST https://api.genfeed.ai/v1/api-keys \
+curl -X POST http://localhost:3010/v1/api-keys \
   -H "Authorization: Bearer $GENFEED_JWT" \
   -H "Content-Type: application/json" \
   -d '{
@@ -92,7 +93,7 @@ Every other endpoint serializes as `api-key` and omits the `key` attribute.
 | `description` | no | Up to 500 characters. |
 | `scopes` | no | Subset of the self-service scopes below. Defaults to video, image, and analytics scopes. |
 | `expiresAt` | no | ISO 8601 date. Omit for a non-expiring key. |
-| `rateLimit` | no | Per-key requests per minute. Honored on self-hosted deployments; superseded by the plan ceiling in managed cloud. |
+| `rateLimit` | no | Per-key requests per minute. Leave unset for no ceiling. |
 | `allowedIps` | no | Exact client IPs allowed to use the key. Empty means no IP restriction. |
 
 Each user may hold **10 active keys**. Creating an eleventh returns
@@ -128,7 +129,7 @@ Authorization: ApiKey gf_live_xxx
 ```
 
 ```bash
-curl https://api.genfeed.ai/v1/posts \
+curl http://localhost:3010/v1/posts \
   -H "Authorization: Bearer $GENFEED_API_KEY"
 ```
 
@@ -137,7 +138,7 @@ Authorization is the key's explicit scopes — never the issuer's org-admin
 role. Present the key only in the `Authorization` header; a key in the URL
 path or query string is rejected.
 
-The same key authenticates the hosted MCP server at `https://mcp.genfeed.ai/mcp`.
+The same key authenticates your instance's MCP server at `http://localhost:3014/mcp`.
 MCP OAuth tokens issued through a browser consent flow are bound to the MCP
 resource and are rejected on the REST API.
 
@@ -146,7 +147,7 @@ resource and are rejected on the REST API.
 | Surface | Credential | Presentation | Effective authorization |
 | --- | --- | --- | --- |
 | Public REST | User `gf_` key | `Authorization: Bearer` or `ApiKey` | Explicit key scopes. Tenancy is the issuing user and org. Org-admin membership is not inherited. |
-| Hosted MCP `/mcp` | Same `gf_` key or MCP OAuth session | Bearer header only | MCP `user` unless the key has an explicit `admin` scope and the issuer is org admin or owner. |
+| MCP `/mcp` | Same `gf_` key or MCP OAuth session | Bearer header only | MCP `user` unless the key has an explicit `admin` scope and the issuer is org admin or owner. |
 | `/auth/whoami` | Session or `gf_` key | Bearer | API keys never advertise owner/admin without `admin` scope. Scopes never default to `*`. |
 | Telegram `/connect` | User `gf_` key | Private-chat command, then cached `apiKeyId` | `findByKey` at connect. Each later command re-reads the row; a revoked or expired key drops the chat identity. |
 | Agent Auth.md registration | User `gf_` key minted after claim | Bearer after exchange | Same REST/MCP rules. Revoke goes through `findByKey` then `revoke`. |
@@ -187,14 +188,9 @@ server-side.
 
 ## Rate Limits
 
-Each API-key request is counted in a 60-second sliding window per key.
-
-- **Managed cloud** — the effective ceiling is the organization's plan
-  entitlement, which overrides any per-key `rateLimit`. A downgraded
-  organization is throttled to its current plan immediately. Free tiers have no
-  API access, so their ceiling is zero.
-- **Self-hosted, community, and desktop** — there are no plans, so the per-key
-  `rateLimit` is honored. Leaving it unset means no ceiling.
+Each API-key request is counted in a 60-second sliding window per key. A
+self-hosted instance has no plans, so the per-key `rateLimit` is honored.
+Leaving it unset means no ceiling.
 
 Exceeding the ceiling returns `401 Rate limit exceeded`, the same status class as
 other API-key authentication failures. Back off and retry after the window
@@ -204,21 +200,6 @@ Key-management endpoints are limited separately and return `429 Too Many
 Requests` with `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`,
 and `Retry-After` headers: 5 requests per minute for create and rotate, 10 for
 MCP verification, and 30 for validation.
-
-Plan entitlements are a commercial surface. Use the
-[current pricing page](https://genfeed.ai/pricing) as the source of truth for
-which plans include API access and at what ceiling.
-
-## Credits
-
-API-key requests are metered exactly like work started in the app. Generation
-draws from the organization's single credit pool — there is no separate API
-quota and no separate API balance. A key scoped with `credits:read` can query
-the current balance before running an expensive batch.
-
-Community and desktop deployments do not sell or meter managed credits locally.
-They consume Cloud credits only through an explicit Cloud API key and
-Cloud-credit authorization. See [Billing and Credits](/cloud/billing).
 
 ## Errors
 
@@ -230,13 +211,13 @@ Cloud-credit authorization. See [Billing and Credits](/cloud/billing).
 | `401` | Client IP outside the key's allowlist. |
 | `401` | Per-key rate-limit ceiling exceeded. |
 | `401` | MCP OAuth token used outside the MCP resource. |
-| `403` | `PLAN_LIMIT_EXCEEDED` — the organization's plan does not include API access (managed cloud only). |
 | `400` | `API Key Limit Reached` — the user already holds 10 active keys. |
 
-## Self-Hosted Behavior
+## Without a login wall
 
-API access is never plan-gated off managed cloud. Self-hosted, community, and
-desktop deployments can always create and use keys, honor the per-key rate
-limit, and skip the paid-tier check entirely. In fully local mode — self-hosted
-without Better Auth — requests without a token resolve to the default local
-identity, so a key is only required when you want explicit, scoped credentials.
+If your instance runs without the Better Auth login wall (see
+[Configuration](/self-host/configuration#login-wall)), requests without a token
+resolve to the default local identity, so a key is only required when you want
+explicit, scoped credentials. Once you expose the instance beyond localhost,
+enable the login wall and use scoped keys; see
+[Reverse Proxy and HTTPS](/self-host/reverse-proxy).

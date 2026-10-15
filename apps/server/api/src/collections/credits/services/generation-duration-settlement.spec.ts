@@ -70,6 +70,26 @@ describe('per-second duration settlement', () => {
     });
   });
 
+  it('caps the whole charge at twice the hold and reports the excess', () => {
+    const settled = resolveDurationSettlement(129, heldQuote(10), 60);
+
+    // 60 s costs 770 credits; the render may charge at most 2 x 129.
+    expect(settled).toEqual({
+      actualCredits: 770,
+      actualSeconds: 60,
+      forgoneCredits: 512,
+      settleCredits: 129,
+      topUpCredits: 129,
+    });
+  });
+
+  it('tops up in full right at the cap', () => {
+    const quote = heldQuote(10);
+    expect(resolveDurationSettlement(129, quote, 20)).not.toHaveProperty(
+      'forgoneCredits',
+    );
+  });
+
   it('prices fractional seconds the way HeyGen reports them', () => {
     expect(
       resolveDurationSettlement(129, heldQuote(10), 7.4).actualCredits,

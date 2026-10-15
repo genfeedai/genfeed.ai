@@ -107,6 +107,7 @@ export class PatternStoreService extends BaseService<
       tags?: string[];
       minRelevanceWeight?: number;
       minEngagementRate?: number;
+      limit?: number;
     },
   ): Promise<ContentPatternDocument[]> {
     const filtersAnd: Prisma.ContentPatternWhereInput[] = [];
@@ -149,6 +150,7 @@ export class PatternStoreService extends BaseService<
     }
 
     const documents = await this.delegate.findMany({
+      ...(filters?.limit ? { take: filters.limit } : {}),
       where: scopedWhere(organizationId, {
         ...(filters?.sourceCreator
           ? { sourceCreatorId: filters.sourceCreator }

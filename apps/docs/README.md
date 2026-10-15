@@ -33,7 +33,7 @@ bun run start  # :3001
 1. Prefer code-verified statements over aspirational copy.
 2. When roadmap status is relevant, include delivery-state notes.
 3. Do not reference non-existent tracker files (e.g., missing local TODO files).
-4. Keep pricing, app counts, and product claims synced with `cloud` and workspace docs.
+4. These docs are for people running their own instance. Do not add Cloud, credits, billing, or hosted-URL content; Genfeed Cloud gets one line on the intro page only.
 5. Keep user-facing integration setup in `content/integrations`; root `docs/`
    remains for contributor architecture, migrations, and operational runbooks.
 6. Treat `.agents/memory` specs and decisions as implementation records, not
@@ -55,8 +55,5 @@ integration, provider, or credential-platform value.
 ## Canonical Cross-Links
 
 - Workspace hub: `../.agents/README.md`
-- Cloud monorepo: `../cloud`
-- Core OSS: `../core`
-- CLI: `../cli`
 
 Update this README whenever docs scope or governance changes.

@@ -1,20 +1,26 @@
 # Genfeed.ai Docs
 
-> Technical documentation for Genfeed.ai, the open source AI OS for content creation.
+> Self-hosting documentation for Genfeed, the open source AI OS for content creation.
 
-## Core
+## Self-host
 
-- [Getting Started](https://docs.genfeed.ai/getting-started): Install and run Genfeed.
-- [Installation](https://docs.genfeed.ai/core/installation): Community and self-host setup.
-- [Configuration](https://docs.genfeed.ai/core/configuration): Environment, providers, and runtime settings.
-- [Self-hosted vs Cloud](https://docs.genfeed.ai/core/self-hosted-vs-cloud): Deployment mode boundaries.
+- [Installation Options](https://docs.genfeed.ai/self-host/installation): npx one-command install, release bundle with Docker Compose, and from source.
+- [System Requirements](https://docs.genfeed.ai/self-host/system-requirements): Supported floor, recommended sizing, and measured facts.
+- [Configuration](https://docs.genfeed.ai/self-host/configuration): Environment variable reference.
+- [Provider API Keys](https://docs.genfeed.ai/self-host/provider-api-keys): Bring your own OpenAI, Anthropic, Replicate, fal, and ElevenLabs keys.
+- [Reverse Proxy and HTTPS](https://docs.genfeed.ai/self-host/reverse-proxy): Put your instance on your own domain.
+- [Upgrading](https://docs.genfeed.ai/self-host/upgrading): Back up, upgrade, and roll back.
+- [Troubleshooting](https://docs.genfeed.ai/self-host/troubleshooting): Docker Compose v2, database networking, ports, and MCP.
+- [Architecture](https://docs.genfeed.ai/self-host/architecture): Which services run and where data lives.
+- [After It Is Running](https://docs.genfeed.ai/self-host/after-it-is-running): First steps: keys, MCP, CLI, Agent Skills, first brief to publish.
 
-## API And Operations
+## API, MCP, CLI
 
-- [API Reference](https://docs.genfeed.ai/api-reference): Genfeed API reference.
-- [Provider Registry](https://docs.genfeed.ai/core/provider-registry): AI provider setup.
-- [Execution Boundaries](https://docs.genfeed.ai/core/execution-boundaries): Local, hosted, and managed execution.
-- [Production Readiness](https://docs.genfeed.ai/deployment/production-readiness): Deployment checks and release operations.
+- [API Reference](https://docs.genfeed.ai/api-reference): REST API of your instance.
+- [MCP Server](https://docs.genfeed.ai/api-reference/mcp): Connect agents to the MCP server on port 3014.
+- [CLI](https://docs.genfeed.ai/api-reference/cli): Terminal client pointed at your own API.
+- [Agent Skills](https://docs.genfeed.ai/skills): Content skills for agents.
+- [Provider Registry](https://docs.genfeed.ai/self-host/provider-registry): AI provider registry contract.
 
 ## Content Loop
 
@@ -23,5 +29,5 @@
 
 ## Optional
 
-- [Guides](https://docs.genfeed.ai/guides): Prompting, self-hosting, and workflow guides.
-- [Features](https://docs.genfeed.ai/features): Product capability overview.
+- [Guides](https://docs.genfeed.ai/guides): Brands, Studio, publishing, and other product guides.
+- [Capabilities](https://docs.genfeed.ai/features): What a self-hosted instance includes.

@@ -1,12 +1,26 @@
 import { downloadPublicMedia } from '@files/services/audio-overlay/media-download';
 
+const deployment = vi.hoisted(() => ({ selfHosted: true }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  isSelfHostedDeployment: () => deployment.selfHosted,
+}));
+
 const guardedFetch = vi.hoisted(() => vi.fn());
 vi.mock('@libs/security/destination-guard', () => ({
   safeFetch: guardedFetch,
 }));
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  deployment.selfHosted = true;
+});
+
 describe('downloadPublicMedia', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    deployment.selfHosted = true;
+  });
   it('downloads through the existing public destination guard', async () => {
     guardedFetch.mockResolvedValue(new Response('audio'));
     await expect(
@@ -83,5 +97,16 @@ describe('configured private storage downloads', () => {
       expect.any(Object),
       { allowedOrigins: ['http://files:3012'], allowPrivateNetwork: true },
     );
+  });
+  it('never allows the Cloud files service as a private download source', async () => {
+    deployment.selfHosted = false;
+    await expect(
+      downloadPublicMedia(
+        'http://files:3012/v1/files/download/audios/other-tenant.wav',
+        10,
+        config as never,
+      ),
+    ).rejects.toThrow('files service');
+    expect(guardedFetch).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,91 @@
+---
+title: Architecture
+description: 'See which services run in a self-hosted Genfeed instance, where data lives, how model providers are resolved, and what stays on your own infrastructure.'
+---
+
+# Architecture
+
+A self-hosted Genfeed instance is single-tenant: one organization per
+deployment, running entirely on infrastructure you control. The published stack
+is two containers. Boundary spec version: v1.3.1.
+
+## What runs
+
+| Container | What it runs |
+| --- | --- |
+| `genfeed` | The web app, REST API, workers, files service, notifications service, and MCP server, plus an embedded Redis |
+| `postgres` | PostgreSQL (the `pgvector/pgvector` image) |
+
+On start, the `genfeed` container:
+
+1. starts Redis with persistence under `/data/redis`;
+2. applies Prisma database migrations (retrying while PostgreSQL initializes);
+3. reconciles reference data;
+4. starts the API, workers, files, notifications, and MCP services; and
+5. starts the web app.
+
+| Service | Port in the container | Published to the host |
+| --- | --- | --- |
+| Web app | `3000` | Yes (`SELFHOSTED_APP_PORT`) |
+| REST API | `3010` | Yes (`SELFHOSTED_API_PORT`) |
+| MCP server | `3014` | Yes (`SELFHOSTED_MCP_PORT`) |
+| Notifications | `3011` | No |
+| Files | `3012` | No |
+| Workers | `3013` | No |
+| PostgreSQL | `5432` | No |
+| Redis | `6379` | No |
+
+PostgreSQL and Redis are never published on a host port by this stack.
+
+## Where data lives
+
+- **PostgreSQL** stores workflows, brands, prompts, provider settings, content
+  records, and generated-asset metadata.
+- **Redis** backs queues and cache, and is persisted under `/data`.
+- **Generated files** are stored under `/data/files` inside the container.
+- **Generated secrets** (the credential encryption key and, if you enable the
+  login wall, the Better Auth secret) live in `/data`.
+
+Back up PostgreSQL and the `/data` volume together. See
+[Upgrading](/self-host/upgrading).
+
+## Who you are signed in as
+
+| Configuration | Behavior |
+| --- | --- |
+| Default (`BETTER_AUTH_ENABLED=false`) | The first boot seeds one local user, organization, and brand. The web UI opens without a login wall, and requests without a token resolve to that local identity. |
+| Login wall on | Users sign in against your own instance. Local database records stay authoritative. |
+
+MCP is authenticated either way. See [MCP server](/api-reference/mcp).
+
+## How model providers are chosen
+
+Generation resolves credentials in this order:
+
+1. The organization's own provider key, set in the app under **Integrations**.
+2. The deployment-wide key in your `.env`.
+
+Provider calls are made by your own API from your own network, using your keys.
+Prompts and media sent to a provider leave your deployment and are handled under
+that provider's terms. Application records stay on your infrastructure. See
+[Provider API keys](/self-host/provider-api-keys).
+
+## What is not included
+
+- GPU, image, video, and voice service workspaces, and local-model runtimes.
+  The Community image does not start them. You can connect your own ComfyUI,
+  LoRA, or provider infrastructure through configuration (for example
+  `DARKROOM_COMFYUI_URL`).
+- Multi-tenant organizations. One deployment is one organization.
+- Genfeed credits. You pay model providers directly.
+
+## Licensing
+
+The repository is licensed AGPL-3.0-or-later, except where a package carries its
+own license notice. Self-hosting for your own use is covered by the license.
+
+## Related
+
+- [System requirements](/self-host/system-requirements)
+- [Provider registry](/self-host/provider-registry)
+- [Configuration reference](/self-host/configuration)

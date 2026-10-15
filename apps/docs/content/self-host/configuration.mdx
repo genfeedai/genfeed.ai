@@ -1,0 +1,148 @@
+---
+title: Configuration Reference
+description: 'Reference for the .env file that configures a self-hosted Genfeed instance: ports, model keys, login wall, email, OAuth, public URLs, and secrets.'
+---
+
+# Configuration Reference
+
+A self-hosted instance is configured through one `.env` file next to its Compose
+file. Every setting is optional: the defaults boot a single local workspace
+without a login wall.
+
+- **Release bundle or `npx`:** copy the bundled `.env.example` to `.env`, in the
+  same directory as `compose.yml`.
+- **Source checkout:** `docker/.env.example` is copied to `docker/.env`, next to
+  `docker-compose.selfhosted.yml`.
+
+Edit `.env`, then recreate the stack so the container picks the change up:
+
+```bash
+docker compose --env-file .env -f compose.yml up -d
+```
+
+Contributors working on Genfeed from source use a different template; see
+[source configuration](#source-development) below.
+
+## Image and ports
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `GENFEED_IMAGE_TAG` | `latest` in the source template; the exact release in a bundle | Application image tag. Release bundles pin it for you. |
+| `SELFHOSTED_APP_PORT` | `3000` | Host port for the web UI |
+| `SELFHOSTED_API_PORT` | `3010` | Host port for the REST API |
+| `SELFHOSTED_MCP_PORT` | `3014` | Host port for the MCP server |
+
+Only the host side of each mapping changes. Inside the container the web app,
+API, and MCP server always listen on `3000`, `3010`, and `3014`.
+
+## Model provider keys
+
+All blank by default. See [Provider API keys](/self-host/provider-api-keys) for
+how to get each one.
+
+| Variable | Provider |
+| --- | --- |
+| `OPENAI_API_KEY` | OpenAI |
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `REPLICATE_KEY` | Replicate |
+| `FAL_API_KEY` | fal |
+| `ELEVENLABS_API_KEY` | ElevenLabs |
+| `DARKROOM_COMFYUI_URL` | Optional endpoint of a ComfyUI instance you run yourself, used by supported API flows. The Community image does not start ComfyUI. |
+
+## Login wall
+
+By default, Genfeed opens straight into the seeded local workspace. To require
+local sign-in, enable Better Auth:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `BETTER_AUTH_ENABLED` | `false` | Turns the login wall on. Read when the container starts. |
+| `NEXT_PUBLIC_BETTER_AUTH_ENABLED` | Follows `BETTER_AUTH_ENABLED` | Browser-side switch. Set it to match `BETTER_AUTH_ENABLED`. |
+| `BETTER_AUTH_URL` | The public API URL (`http://localhost:3010` by default) | Where Better Auth runs |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in |
+| `BETTER_AUTH_SECRET` | Generated | Leave empty to let the container generate one and keep it at `/data/.better-auth-secret` |
+
+Email and password sign-in works with only the local database. Add email or
+Google sign-in only for the features that need them:
+
+| Variable | Needed for |
+| --- | --- |
+| `RESEND_API_KEY` | Magic links, password resets, email verification, and invites |
+| `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO_EMAIL` | The sender and reply-to addresses for that email |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google sign-in and the Google connectors, which share one Google Cloud OAuth web client |
+
+Turning the login wall off does not turn off MCP authentication; see
+[MCP server](/api-reference/mcp#authentication).
+
+## Public URLs
+
+The container assumes everything is reached on `localhost`. If users reach your
+instance on another hostname, override these in `.env`. See
+[Reverse proxy and HTTPS](/self-host/reverse-proxy).
+
+| Variable | Default |
+| --- | --- |
+| `GENFEEDAI_PUBLIC_URL` | `http://localhost:3000` |
+| `GENFEEDAI_APP_URL` | `http://localhost:3000` |
+| `GENFEEDAI_API_PUBLIC_URL` | Same as `GENFEEDAI_API_URL` (`http://localhost:3010`) |
+| `GENFEEDAI_MCP_PUBLIC_URL` | `http://localhost:3014/mcp` |
+| `GENFEEDAI_CDN_URL` | `http://localhost:3012` (the files service origin, which must be reachable from the browser) |
+| `TRUST_PROXY` | Unset (`X-Forwarded-For` is ignored) |
+
+## Database and storage
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `genfeed`, `genfeed_local`, `genfeed` | Credentials of the bundled PostgreSQL. Change the password before you expose the instance beyond your machine. |
+| `DATABASE_URL` | Built from the values above | Use your own connection string to point at an external PostgreSQL |
+| `GENFEED_STORAGE_PATH` | `/data/files` | Where generated files are stored inside the container |
+| `TOKEN_ENCRYPTION_KEY` | Generated | Encrypts stored credentials. If you leave it empty, the container creates one and keeps it in `/data/.encryption-key`. Back it up with your data: stored credentials cannot be decrypted without it. |
+
+Persistent data lives in two Docker volumes: PostgreSQL data, and `/data` for
+generated files, the embedded Redis, and the generated secrets.
+
+## Optional integrations
+
+| Variable | Purpose |
+| --- | --- |
+| `LOGO_DEV_PUBLISHABLE_KEY` | Company-logo fallback (see below) |
+| `RESTREAM_CLIENT_ID`, `RESTREAM_CLIENT_SECRET`, `RESTREAM_REDIRECT_URI` | Restream OAuth for livestream chat ingest. Connecting fails closed when unset. |
+
+Publishing channels, messaging apps, and other integrations have their own
+credentials; see [Integrations](/integrations).
+
+### Logo.dev fallback
+
+Set `LOGO_DEV_PUBLISHABLE_KEY` to a Logo.dev publishable key (`pk_...`) to add a
+company-logo fallback when the website crawler cannot discover a logo.
+Logo.dev secret (`sk_`) keys are never accepted. The fallback sends only the
+normalized public hostname to Logo.dev. Scraped and imported brand logos keep
+precedence, and a missing key or failed lookup leaves the existing placeholder.
+
+Before enabling it, review
+[Logo.dev's attribution requirements](https://www.logo.dev/docs/platform/attribution):
+commercial use on its free plan requires visible attribution. You are
+responsible for the plan and attribution that apply to your deployment.
+
+## Secret handling
+
+- Never commit `.env`, provider keys, auth secrets, webhook secrets, or customer data.
+- Keep backend credentials out of `NEXT_PUBLIC_*` variables, which reach the browser.
+- Rotate a credential immediately if it appears in a commit, log, screenshot,
+  issue, or pull request.
+
+## Source development
+
+Contributors use the repository root
+[`.env.example`](https://github.com/genfeedai/genfeed.ai/blob/master/.env.example)
+as the source-development template: copy it to `.env.local`, edit it, and run
+`bun run env:sync local --prune-legacy` to generate app and service environment
+files. Root `.env.local` is the source of truth; do not edit the generated files
+by hand or commit them. Do not copy keys between this template and the Community
+`.env`.
+
+## See also
+
+- [Provider API keys](/self-host/provider-api-keys)
+- [Reverse proxy and HTTPS](/self-host/reverse-proxy)
+- [Security policy](https://github.com/genfeedai/genfeed.ai/security/policy)

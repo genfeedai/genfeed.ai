@@ -4,14 +4,14 @@ description: 'Follow the V1 agent-runtime ownership target that separates turn o
 
 # Agent Orchestration
 
-This page documents the V1 simplification target tracked by `#187`.
+This page documents how agent orchestration is organized in the V1 codebase.
 
 ## Current Pain Points
 
 The repo has a real agent runtime, but the ownership model is hard to read because several modules still look like competing orchestrators:
 
 - [`apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts)
-  - owns the chat entrypoint, tool loop, model selection, stream start, and credit checks
+  - owns the chat entrypoint, tool loop, model selection, and stream start
   - imports a broad graph of collections, integrations, workflow modules, and agent helpers through `forwardRef`
 - [`apps/server/api/src/services/agent-threading/agent-threading.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-threading/agent-threading.module.ts)
   - owns the event log, projected thread snapshot, runtime session binding, input requests, and per-thread execution lane
@@ -118,35 +118,13 @@ The assembled context is cached under the org-scoped `BRAND_CONTEXT` tag. Brand
 updates, agent-config writes, brand-interview writes, and brand deletion
 invalidate that tag.
 
-## Chat Billing
+## Model Cost
 
-Each LLM round inside a turn is reserved, run, and settled
-(`runReservedAgentLlmRound`). The hold is the round's maximum estimate from
-`AgentChatModelRegistryService`. Settlement bills the exact provider cost as
-fractional credits: the provider-reported charge when present, otherwise the
-answering model's token list price times the reported usage. BYOK rounds and
-waived turns (for example, the brand interview) settle at zero. A round that outgrows its
-hold settles the hold and deducts the remainder as a separate overflow entry.
-Settlement metadata records model, token counts, provider cost, and cost
-source, never prompt or completion text.
-
-`AgentModelAccessService` applies the free-tier lock. When organization billing
-is live and the organization has no paid subscription (decided by
-`resolveOrganizationPaidGrant`), every turn runs on `LLM_DEFAULTS.agentChat`
-unless an organization BYOK key pays for the requested route. `GET /agent/credits`
-returns the balance, `modelAccess`, and per-model `modelCosts` estimates.
-
-Every surface formats credit amounts through
-`packages/contracts/src/constants/credit-display.constant.ts`
-(`formatCreditBalance`, `formatCreditBalanceExact`, `formatCreditCost`,
-`formatCreditCostEstimate`); the ledger keeps full precision.
-
-Platform admins read margins on **Admin → Administration → Unit Economics**
-(`/admin/administration/unit-economics`, `GET /v1/admin/unit-economics`), which
-joins credit usage, LLM and media vendor costs, and the `billing_revenue_events`
-ledger. Stripe checkout and invoice webhooks write that ledger idempotently per
-Stripe object, so revenue exists only from the deploy that introduced it
-onward.
+Each LLM round inside a turn is run through `runReservedAgentLlmRound`. The
+round's maximum estimate comes from `AgentChatModelRegistryService`. On a
+self-hosted instance the provider key you configured pays for the call and
+Genfeed does not bill you. Settlement metadata records model, token counts,
+provider cost, and cost source, never prompt or completion text.
 
 ## External CLI Runtimes
 
@@ -156,13 +134,13 @@ CLI + Genfeed MCP + Desktop: Electron main spawns the CLI with only Genfeed MCP
 tools allowed, the CLI reads brand context through `get_brand_context`, and
 Desktop saves the finished turn with
 `POST /v1/agent/threads/:threadId/external-turns`. The API records those turns
-without reserving credits and keeps the CLI session id in
+without reserving a model hold and keeps the CLI session id in
 `AgentThread.config.externalRuntime` so the next turn resumes it. See the
 [desktop README](https://github.com/genfeedai/genfeed.ai/blob/master/apps/desktop/README.md#agent-on-your-claude-code-or-codex-subscription).
 
 ## V1 Boundary
 
-`#187` does not require deleting every old module before V1. It requires the repo to stop treating every module with "orchestrator" or "executor" in the name as a peer runtime.
+V1 does not require deleting every old module. It requires the repo to stop treating every module with "orchestrator" or "executor" in the name as a peer runtime.
 
 The V1 setup target is complete when new work has one obvious path:
 

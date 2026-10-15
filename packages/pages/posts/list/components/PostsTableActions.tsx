@@ -6,6 +6,7 @@ import {
   PageScope,
   PostStatus,
 } from '@genfeedai/contracts';
+import { ACCOUNT_GENERATION_POST_SOURCE } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { TableAction } from '@props/ui/display/table.props';
 import {
@@ -87,7 +88,10 @@ export function buildPostsTableActions({
       isVisible: (post: IPost) => post.status === PostStatus.FAILED,
       onClick: onRetry,
       size: ButtonSize.SM,
-      tooltip: 'Retry publishing',
+      tooltip: (post: IPost) =>
+        post.source === ACCOUNT_GENERATION_POST_SOURCE
+          ? 'Retry generation'
+          : 'Retry publishing',
       variant: ButtonVariant.SECONDARY,
     },
     {

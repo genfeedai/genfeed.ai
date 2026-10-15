@@ -1,6 +1,5 @@
 import {
   extractPostGenerationLabel,
-  parsePostGenerationContent,
   parsePostGenerationSlots,
 } from '@api/collections/posts/services/post-generation-text.util';
 
@@ -10,15 +9,6 @@ describe('post generation text parsing', () => {
       'Reply one',
       'Reply two',
     ]);
-  });
-
-  it('falls back to valid lines when delimiter segments are invalid', () => {
-    const firstReply = 'a'.repeat(300);
-    const secondReply = 'b'.repeat(300);
-
-    expect(
-      parsePostGenerationContent(`${firstReply}\n${secondReply}\n---`, 2),
-    ).toEqual([firstReply, secondReply]);
   });
 
   it('extracts a whitespace-normalized label without markup', () => {

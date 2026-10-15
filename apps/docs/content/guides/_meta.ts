@@ -1,21 +1,18 @@
 export default {
   '---': {
-    title: 'Content Creation',
+    title: 'Working in Genfeed',
     type: 'separator',
   },
   '----': {
     title: 'Publishing',
     type: 'separator',
   },
-  '-----': {
-    title: 'Self-Hosting',
-    type: 'separator',
-  },
   index: 'Overview',
+  brands: 'Brands',
+  studio: 'Studio',
   'visual-code': 'Motion: Visual Code',
+  'voice-recognition': 'Voice Recognition',
   'keyboard-shortcuts': 'Keyboard Shortcuts',
   'package-ownership': 'Package Ownership',
   publishing: 'Publishing',
-  'self-host-quickstart': 'Self-Host in 5 Minutes',
-  'voice-recognition': 'Voice Recognition',
 };

@@ -13,7 +13,7 @@ The model selector uses your organization's available text models and default. M
 
 1. Choose a name, prompt or source, model, dimensions, frame rate and duration.
 2. Optionally select owned Library images, videos or audio. Use `staticFile('assets/<asset ID>')` from Remotion in your component. External URLs and local file paths are not supported.
-3. Choose MP4, PNG, JPEG or a set of still frames. Review the quote and approve its credit ceiling.
+3. Choose MP4, PNG, JPEG or a set of still frames. Review the cost estimate and approve its ceiling.
 4. Watch status, preview frames and diagnostics. Completed outputs appear in Library; video outputs can open in Editor as media.
 
 Limits are 256–1920 even dimensions, at most 1920×1080 pixels, 24 or 30 fps, 900 frames and 30 seconds, 12 source assets and 8 outputs. One MP4 per request is supported. Prompts are bounded to 8 KiB, source to 256 KiB and props JSON to 16 KiB. Use frame-driven Remotion animation rather than wall-clock or CSS timing. Only the preinstalled React and Remotion packages are available.
@@ -36,27 +36,27 @@ A stale `expectedRevision` returns a conflict instead of overwriting newer work.
 
 ## Costs and cancellation
 
-The quote separates authoring/repairs, visual inspection and sandbox rendering. Each possible render job includes a conservative 120-second bound. You approve a maximum, then pay only confirmed consumed work. Cancellation and failure release unused held credits; already consumed work remains chargeable. BYOK waives the provider component only. A configured zero-cost renderer does not make native model calls free.
+The quote separates authoring/repairs, visual inspection and sandbox rendering. Each possible render job includes a conservative 120-second bound. You approve a maximum, then only confirmed consumed work counts against it. Cancellation and failure release the unused part of the approved ceiling; already consumed work remains consumed. On a self-hosted instance Genfeed does not bill you: model calls are charged by the providers whose keys you configured, and rendering runs on your own infrastructure (see [Visual Code Renderer](/self-host/visual-code-renderer)).
 
-A route, entitlement, BYOK or pricing change stops the next paid stage and requires a fresh quote. Unexpected provider overrun cannot debit more than the approved ceiling. A provider call interrupted before its result is durably recorded is marked indeterminate and never automatically sent again. Unknown liability belongs to the operator; an explicit new retry is a new invocation.
+A route, access, provider-key or pricing change stops the next paid stage and requires a fresh quote. Unexpected provider overrun cannot debit more than the approved ceiling. A provider call interrupted before its result is durably recorded is marked indeterminate and never automatically sent again. Unknown liability belongs to the operator; an explicit new retry is a new invocation.
 
 ## API, agents and workflows
 
 Authenticated API endpoints under `/visual-projects` expose catalog, quote, project creation/listing, history, revisions, exports, cancellation, retries and source download. Mutations require `requestId`; revisions, exports and retries also require `expectedRevision`. Replaying the same identity and payload returns the same revision; changed payloads conflict.
 
-Workflow actions are `visual-code.catalog`, `.quote`, `.generate`, `.status`, `.revise`, `.export`, `.cancel` and `.retry`. Agent and MCP aliases are `get_visual_code_catalog`, `quote_visual_code_generation`, `generate_visual_code`, `get_visual_code_project`, `revise_visual_code_project`, `export_visual_code_project`, `cancel_visual_code_project` and `retry_visual_code_project`. MCP serves them from the `visual-code` toolset (`?toolsets=visual-code` or `?profile=full`), not the bare URL. They use the same authorization, schemas, quotes and revision ledger. Paid mutations require approval; generic tool execution adds no second media fee.
+Workflow actions are `visual-code.catalog`, `.quote`, `.generate`, `.status`, `.revise`, `.export`, `.cancel` and `.retry`. Agent and MCP aliases are `get_visual_code_catalog`, `quote_visual_code_generation`, `generate_visual_code`, `get_visual_code_project`, `revise_visual_code_project`, `export_visual_code_project`, `cancel_visual_code_project` and `retry_visual_code_project`. MCP serves them from the `visual-code` toolset (`?toolsets=visual-code` or `?profile=full`), not the bare URL. They use the same authorization, schemas, quotes and revision ledger. Paid mutations require approval.
 
 ### Retrying a request that did not receive a response
 
 Keep the original inputs and request ID when retrying an uncertain submission.
-This resumes admission of the same revision and uses the same credit reservation.
+This resumes admission of the same revision and uses the same cost reservation.
 A revision permits at most 16 admission attempts. After `visual_admission_attempt_limit`,
 cancel that revision and let its pending bookkeeping finish before creating a new
 request. Cancellation remains available after this limit.
 
-If cancellation overlaps a credit reservation, your approved hold may briefly be
+If cancellation overlaps a cost reservation, your approved hold may briefly be
 established before it is released or settled. Cancellation cannot start another
 model call or render. A pending provider call must return, or its workflow ownership
 must expire, before the remaining hold can be reconciled safely.
 
-Credit holds expire after two hours, including time spent queued. Motion checks the existing hold before each paid stage and stops with `visual_reservation_unavailable` when it is no longer usable. Request a new explicit quoted retry after recovery; Motion never renews or duplicates the old hold. If the wallet releases an expired hold while an admitted call is pending, confirmed costs become operator liability, preserving actual usage without a second user debit.
+Holds expire after two hours, including time spent queued. Motion checks the existing hold before each paid stage and stops with `visual_reservation_unavailable` when it is no longer usable. Request a new explicit quoted retry after recovery; Motion never renews or duplicates the old hold. If the wallet releases an expired hold while an admitted call is pending, confirmed costs become operator liability, preserving actual usage without a second debit.

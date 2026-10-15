@@ -1020,6 +1020,33 @@ describe('CreditReservationService', () => {
       expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
     });
 
+    it('carves a text dispatch hold under its own workload type', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool({ amount: 6, workloadId: 'run_1' }));
+      prisma.creditReservation.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) =>
+          pool({ ...data, id: 'hold_text_1', metadata: data.metadata }),
+      );
+
+      await service.bindOutput({
+        ...bindInput,
+        amount: 2,
+        workloadId: 'run_1:0',
+        workloadType: 'text-generation',
+      });
+
+      expect(prisma.creditReservation.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          amount: 2,
+          idempotencyKey: 'text-generation:run_1:0',
+          workloadId: 'run_1:0',
+          workloadType: 'text-generation',
+        }),
+      });
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    });
+
     it('retires float dust within tolerance onto the output hold', async () => {
       const dust = 1e-12;
       const poolAmount = 3 + dust;

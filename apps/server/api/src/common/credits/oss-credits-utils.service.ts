@@ -154,7 +154,7 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
       idempotencyKey: input.reservationId,
       organizationId: input.organizationId,
       workloadId: input.workloadId,
-      workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+      workloadType: input.workloadType ?? MEDIA_GENERATION_WORKLOAD_TYPE,
     });
   }
 

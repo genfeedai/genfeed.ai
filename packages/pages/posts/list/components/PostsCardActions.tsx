@@ -1,6 +1,7 @@
 'use client';
 
 import { PageScope, PostStatus } from '@genfeedai/contracts';
+import { ACCOUNT_GENERATION_POST_SOURCE } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { PostCardAction } from '@pages/posts/list/components/PostsGrid';
 import { postCardIcons } from '@pages/posts/list/components/posts-grid.helpers';
@@ -78,7 +79,10 @@ export function buildPostsCardActions({
             icon: postCardIcons.retry,
             isVisible: (post: IPost) => post.status === PostStatus.FAILED,
             key: 'retry',
-            label: 'Retry publishing',
+            label: (post: IPost) =>
+              post.source === ACCOUNT_GENERATION_POST_SOURCE
+                ? 'Retry generation'
+                : 'Retry publishing',
             onClick: onRetry,
           },
           {

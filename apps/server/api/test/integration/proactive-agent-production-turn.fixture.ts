@@ -418,6 +418,7 @@ export async function createProactiveProductionTurnFixture() {
       { IngredientsModule },
       { ReplicateModule },
       { ByokModule },
+      { OrganizationModuleAccessModule },
       { WebhooksMediaModule },
       { ConfigModule },
       { ConfigService },
@@ -467,6 +468,9 @@ export async function createProactiveProductionTurnFixture() {
       import('@api/collections/ingredients/ingredients.module'),
       import('@api/services/integrations/replicate/replicate.module'),
       import('@api/services/byok/byok.module'),
+      import(
+        '@api/common/organization-modules/organization-module-access.module'
+      ),
       import('@api/endpoints/webhooks/webhooks-media.module'),
       import('@libs/config/config.module'),
       import('@libs/config/config.service'),
@@ -551,6 +555,7 @@ export async function createProactiveProductionTurnFixture() {
         IngredientsModule,
         ReplicateModule,
         ByokModule,
+        OrganizationModuleAccessModule,
         WebhooksMediaModule,
       ],
       providers: [

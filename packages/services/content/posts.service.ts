@@ -329,6 +329,22 @@ export class PostsService extends BaseService<
   }
 
   /**
+   * Retry one failed account-generation placeholder (a thread is retried
+   * whole) under a new request key; credits are held again, nothing is
+   * retried automatically.
+   */
+  public async retryAccountGeneration(
+    id: string,
+    requestKey: string,
+  ): Promise<Post> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/generation-retries`,
+      { requestKey },
+    );
+    return this.mapOne(response.data);
+  }
+
+  /**
    * Generate hook variations for a given topic and platform
    */
   public async generateHooks(data: {

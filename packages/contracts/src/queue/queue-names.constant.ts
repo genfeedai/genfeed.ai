@@ -66,6 +66,7 @@ export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
 export const HEYGEN_POLL_QUEUE = 'heygen-poll';
 export const REPLICATE_POLL_QUEUE = 'replicate-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
+export const ACCOUNT_GENERATION_QUEUE = 'account-generation';
 
 // ---------- Media validation ----------
 /** Per-asset media perception (#4879): frames, OCR, transcript and scene
@@ -83,6 +84,7 @@ export const BRAND_VISION_QUEUE = 'brand-vision';
 export const TURBO_REWRITE_QUEUE = 'turbo-rewrite';
 
 export const ALL_QUEUE_NAMES = [
+  ACCOUNT_GENERATION_QUEUE,
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,

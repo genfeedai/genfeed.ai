@@ -14,7 +14,7 @@ export const DOCS_TITLE_SUFFIX = ` | ${DOCS_SITE_NAME}`;
 export const DOCS_TITLE_TEMPLATE = `%s${DOCS_TITLE_SUFFIX}`;
 export const DOCS_DEFAULT_TITLE = 'Genfeed.ai Documentation';
 export const DOCS_DESCRIPTION =
-  'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.';
+  'Documentation for self-hosting Genfeed: installation, configuration, provider keys, content workflows, publishing, and the API, MCP, and CLI.';
 export const DOCS_SOCIAL_CARD_URL =
   'https://cdn.genfeed.ai/assets/cards/default.jpg';
 

@@ -1,34 +1,45 @@
 ---
 title: Genfeed Documentation
-description: 'Explore the open-source Genfeed content operating system across Community, Cloud, desktop, mobile, extensions, workflows, providers, and APIs.'
+description: 'Genfeed is an open-source AI OS for content creation that you run yourself. Install it, add your own model keys, and connect agents over MCP and the CLI.'
 ---
 
-# Genfeed.ai
+# Genfeed Documentation
 
-**Open-source AI OS for content creation.**
+**Genfeed is an open-source AI OS for content creation, and you run it yourself.**
 
-Genfeed combines a visual workflow system, provider-backed generation, content
-management, and programmatic interfaces in one monorepo.
+It combines a visual workflow system, provider-backed generation, brand and
+content management, and programmatic interfaces (REST API, MCP server, CLI, and
+webhooks) in one self-hosted instance. You bring your own model provider keys,
+your data stays on your infrastructure, and an agent can drive it end to end.
 
-## Ways to use Genfeed
+Don't want to host it? Use Genfeed Cloud at [genfeed.ai](https://genfeed.ai).
 
-| Surface        | Distribution status                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Community**  | Single-tenant self-hosted web/API/MCP stack distributed through Docker.                                             |
-| **Cloud**      | Hosted SaaS operated by Genfeed; availability, plans, and managed services are outside the repository distribution. |
-| **Desktop**    | macOS-first Electron source and release workflow. Tagged installers appear in GitHub Releases when published.       |
-| **Mobile**     | Expo/React Native source; its EAS config is disabled/not actively developed, and no app-store listing is linked.    |
-| **Extensions** | Chrome and VS Code extension source. Build/package workflows exist, but no public store listing is claimed here.    |
+## Start here
 
-The entire repository uses the
-[AGPL-3.0-or-later license](https://github.com/genfeedai/genfeed.ai/blob/master/LICENSE),
-except where a package carries its own license notice.
+1. **[Check the system requirements](/self-host/system-requirements).** About 8 GB
+   of free disk, Docker Compose v2, and ports 3000, 3010, and 3014.
+2. **[Install it](/self-host/installation).** Run `npx @genfeedai/create my-genfeed`,
+   or use the checksummed release bundle with Docker Compose. No clone needed.
+3. **[Add your provider keys](/self-host/provider-api-keys).** OpenAI, Anthropic,
+   Replicate, fal, and ElevenLabs. Self-hosting has no Genfeed credits.
+4. **[Follow the first steps](/self-host/after-it-is-running).** Connect MCP at
+   `localhost:3014`, point the CLI at your API, and ship a first post.
 
-## Quick links
+## What is in these docs
 
-- [Choose a deployment](/deployment)
-- [Self-host quick start](/guides/self-host-quickstart)
-- [Execution boundaries](/core/execution-boundaries)
-- [REST API and MCP](/api-reference)
-- [Current capabilities](/features)
-- [Source and issue tracker](https://github.com/genfeedai/genfeed.ai)
+| Section | What it covers |
+| --- | --- |
+| [Self-host](/self-host/installation) | Installing, configuring, securing, upgrading, and troubleshooting your instance |
+| [Guides](/guides) | Brands, Studio, publishing, and other day-to-day workflows |
+| [Capabilities](/features) and [models](/models) | What the stack contains and which providers it can call |
+| [Agent Skills](/skills) | Portable skills that teach your agent content work |
+| [Integrations](/integrations) | Providers, publishing channels, and messaging apps |
+| [Core loop](/core-loop) | How trend ingestion, generation, agents, and analytics fit together |
+| [API reference](/api-reference) | REST API, API keys, MCP server, CLI, and webhooks |
+
+## License
+
+The repository is licensed
+[AGPL-3.0-or-later](https://github.com/genfeedai/genfeed.ai/blob/master/LICENSE),
+except where a package carries its own license notice. Source and issue tracker:
+[github.com/genfeedai/genfeed.ai](https://github.com/genfeedai/genfeed.ai).

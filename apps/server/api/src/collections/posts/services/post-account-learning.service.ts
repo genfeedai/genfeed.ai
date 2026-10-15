@@ -67,7 +67,7 @@ export class PostAccountLearningService {
         requestKey,
       },
       candidates: createdPosts.map((post, candidateIndex) => ({
-        candidateIndex,
+        candidateIndex: post.order ?? candidateIndex,
         generationId: String(post.id),
       })),
     };

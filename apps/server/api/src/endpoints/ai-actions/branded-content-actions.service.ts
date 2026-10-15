@@ -156,6 +156,7 @@ export class BrandedContentActionsService {
         maxCharacters: input.maxCharacters,
         platform: input.platform,
         posts: splitReplyVariants(outcome.text),
+        postId: outcome.postId,
         receiptId: outcome.receiptId,
         receiptState: outcome.receiptState,
       },

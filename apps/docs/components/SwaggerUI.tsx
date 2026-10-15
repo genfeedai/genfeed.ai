@@ -47,7 +47,10 @@ export default function SwaggerUI() {
 
   return (
     <div className="swagger-wrapper" ref={rootRef}>
-      <SwaggerUIReact url="https://api.genfeed.ai/v1/openapi.json" />
+      <SwaggerUIReact
+        supportedSubmitMethods={[]}
+        url="https://api.genfeed.ai/v1/openapi.json"
+      />
       <style>{`
         .swagger-wrapper {
           padding: 1rem;

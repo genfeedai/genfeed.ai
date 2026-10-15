@@ -327,6 +327,26 @@ describe('ContentGeneratorService', () => {
       }
     });
 
+    it('restores bounded historical social context without a provider generation call', async () => {
+      topPerformerPromptContextService.assembleContext.mockResolvedValue(
+        'Historical winners',
+      );
+      const result = await service.getSocialGenerationContext('org-1', {
+        brandId: 'brand-1',
+        platform: 'linkedin' as never,
+        topic: 'Launch',
+      });
+      expect(
+        result.some((text) => text.includes('Historical content pattern')),
+      ).toBe(true);
+      expect(result).toContain('Historical winners');
+      expect(patternStoreService.findByOrganization).toHaveBeenCalledWith(
+        'org-1',
+        { platform: 'linkedin', limit: 3 },
+      );
+      expect(llmDispatcherService.completeStructured).not.toHaveBeenCalled();
+    });
+
     type GraphNode = {
       data?: {
         config?: { actionId?: string; parameters?: Record<string, unknown> };

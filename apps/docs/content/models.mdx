@@ -1,12 +1,12 @@
 ---
-description: "Understand Genfeed's provider registry, supported adapter families, deployment-specific model availability, credentials, pricing, and discovery."
+description: "Understand Genfeed's provider registry, supported adapter families, which models appear from your keys, credentials, cost responsibility, and discovery."
 ---
 
 # Models and Providers
 
 Genfeed uses a provider registry. Model names, versions, capabilities, pricing,
-and availability can change independently of these docs, so the deployed model
-selector and API responses are the source of truth.
+and availability can change independently of these docs, so your instance's
+model selector and API responses are the source of truth.
 
 ## Provider adapters
 
@@ -20,8 +20,9 @@ The repository contains adapters for provider families including:
   Higgsfield.
 
 An adapter's presence does not guarantee that every model is enabled. Provider
-accounts, API keys, regional access, upstream approval, deployment mode, and the
-active registry determine what appears.
+accounts, API keys, regional access, upstream approval, and the active registry
+determine what appears. See [Provider API Keys](/self-host/provider-api-keys) for
+how to add keys.
 
 ## Content families
 
@@ -30,28 +31,25 @@ workflows. Check the selected model's current input/output contract before
 building a workflow. Do not assume a fixed resolution, duration, format, or
 feature across models in the same family.
 
-## Billing boundary
+## Who pays
 
-- Local/BYOK execution is not metered by Genfeed; the configured provider can
-  still charge or impose quotas.
-- Managed Cloud execution uses the current credit and entitlement rules returned
-  by the hosted product.
-- This page intentionally does not publish fixed per-model credit costs or plan
-  availability.
+- Genfeed does not meter self-hosted execution and has no credits.
+- You pay the model provider directly, and its quotas and rate limits apply.
+- This page intentionally does not publish per-model prices; check the provider.
 
 ## Programmatic use
 
-Models are available through REST, workflow, CLI, or managed interfaces only
-when the corresponding route and registry entry exist in the deployed release.
-Asynchronous status, webhooks, or batch behavior is path-specific.
+Models are available through REST, workflow, or CLI interfaces only when the
+corresponding route and registry entry exist in your release. Asynchronous
+status, webhooks, or batch behavior is path-specific.
 
 ## Verify a model path
 
-1. Confirm the model appears in the deployed selector or registry response.
+1. Confirm the model appears in your instance's selector or registry response.
 2. Confirm the required provider credential and account access.
 3. Review input/output constraints and provider data terms.
 4. Run a small, non-sensitive request.
 5. Record the provider/model identifier used by the successful run.
 
-For Community, see [Provider Registry](/core/provider-registry). For execution
-and billing boundaries, see [Execution Boundaries](/core/execution-boundaries).
+See [Provider Registry](/self-host/provider-registry) for the registry contract
+and [Architecture](/self-host/architecture) for how provider keys are resolved.

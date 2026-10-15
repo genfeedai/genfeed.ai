@@ -100,6 +100,7 @@ export interface ThreadRepliesRequestV1 {
 
 /** Posts a receipt-backed generation proposed; the receipt's draft artifact holds the exact text. */
 export interface BrandedPostsResultV1 {
+  postId: string;
   maxCharacters: number;
   platform: string;
   posts: string[];
@@ -140,6 +141,7 @@ export interface BrandedTextRunSpecV1 {
 export type BrandedTextRunOutcomeV1 =
   | {
       kind: 'completed';
+      postId: string;
       hasNewDispatch: boolean;
       isReplayed: boolean;
       receiptId: string;

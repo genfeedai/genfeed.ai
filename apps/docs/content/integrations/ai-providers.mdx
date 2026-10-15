@@ -9,11 +9,10 @@ Integrations**. Saving a credential validates it against the provider before it
 is encrypted for the organization. The catalog also includes prepared direct
 media identities; their credential checks do not establish generation readiness.
 
-On Genfeed Cloud, bring-your-own-key is included with Pro, Scale, and
-Enterprise: generations that run on an organization key draw no credits and
-carry no usage fee. Without a paid plan, stored keys are ignored and generation
-falls back to Genfeed-hosted providers billed in credits. Self-hosted
-deployments never gate BYOK.
+Self-hosted deployments never gate bring-your-own-key. There are no Genfeed
+credits: generations run on your organization key (or the fallback key in your
+`.env`) and the provider bills you directly. See
+[Provider API Keys](/self-host/provider-api-keys) for how to get and add each key.
 
 ## Provider catalog
 
@@ -135,8 +134,8 @@ the server environment used by the API and workers.
    generated asset reaches a terminal state.
 5. Review provider usage and Genfeed logs without copying credential values.
 
-For registry behavior and managed-provider boundaries, see
-[Provider Registry](/core/provider-registry) and [Models and Providers](/models).
+For registry behavior, see
+[Provider Registry](/self-host/provider-registry) and [Models and Providers](/models).
 
 
 ## Crun image and video generation
@@ -144,13 +143,13 @@ For registry behavior and managed-provider boundaries, see
 Crun supports reviewed Nano Banana Pro and Seedream 4.5 image models, Kling 2.5 Turbo Pro videos and Veo 3.1 Fast text-to-video. Deployment
 admission is disabled by default. Operators must review the imported contract,
 activate the model and configure hosted acquisition pricing before enabling
-hosted requests. Crun is unavailable through the managed inference proxy.
+hosted requests. Crun is called directly with your own key.
 
 Studio requests an exact quote for the prepared prompt and selected controls.
 The quote lasts 60 seconds and covers all requested outputs. Changing inputs or
 account requires another quote. Explicit prompt enhancement runs before quoting;
-quoting does not enhance the prompt automatically. Eligible organization keys
-report zero customer credits and retain BYOK usage accounting.
+quoting does not enhance the prompt automatically. Organization keys
+retain BYOK usage accounting.
 
 Generation persists task identity before provider creation and copies results
 into owned storage. Accepted tasks continue to reconcile after admission is

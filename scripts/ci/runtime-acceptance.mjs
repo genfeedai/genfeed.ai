@@ -516,7 +516,7 @@ export const AGENT_PRODUCTION_FILES = [
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: '65a6e3a2c560a4245436a7a48bbec9c85f12619f197c8840d8e9266f58ba6d05',
+    sha256: '7c32393cccacfafc994e4a6682ea20d8b97f9475b410502f100ba377bcaa897c',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn-cleanup.util.ts',

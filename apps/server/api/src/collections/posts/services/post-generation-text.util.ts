@@ -20,29 +20,6 @@ export function isValidPostLength(
 }
 
 /**
- * Parse model output into bounded post text while honoring the selected
- * account's character-counting contract.
- */
-export function parsePostGenerationContent(
-  content: string,
-  maxCount: number,
-  context?: Pick<AccountPublishingContext, 'constraints'>,
-): string[] {
-  const { cleanPost, isValid } = createPostGenerationParser(context);
-  const candidates = extractPostGenerationCandidates(
-    content,
-    cleanPost,
-    isValid,
-  );
-
-  return candidates
-    .filter((post): post is string => typeof post === 'string')
-    .map(cleanPost)
-    .filter((post) => post.length > 0 && isValid(post))
-    .slice(0, maxCount);
-}
-
-/**
  * Parse model output without collapsing invalid positions. Thread generation
  * uses this so a rejected middle reply cannot shift later replies to the wrong
  * child post.

@@ -9,7 +9,7 @@ import type {
   KnowledgeRetrievalFilters,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Turns a user's explicit source/space selection into retrieval filters.
@@ -23,6 +23,42 @@ export class KnowledgeSelectionService {
     private readonly prisma: PrismaService,
     private readonly brandAccess: BrandAccessService,
   ) {}
+
+  async resolveBrandedSourceIds(
+    organizationId: string,
+    brandId: string,
+    selection: KnowledgeSelection | undefined,
+    actor: BrandAccessActor,
+  ): Promise<string[] | undefined> {
+    const filters = await this.resolve(
+      organizationId,
+      brandId,
+      selection,
+      actor,
+    );
+    if (!selection?.purposes?.length) return selection?.sourceIds;
+    const sources = await this.prisma.knowledgeSource.findMany({
+      select: { id: true },
+      take: 257,
+      orderBy: { id: 'asc' },
+      where: scopedWhere(organizationId, {
+        isVisible: true,
+        purpose: { in: selection.purposes },
+        ...(filters?.knowledgeSourceIds
+          ? { id: { in: filters.knowledgeSourceIds } }
+          : {}),
+        OR: [
+          { scope: KnowledgeMemoryScope.ORG, brandId: null },
+          { scope: KnowledgeMemoryScope.BRAND, brandId },
+        ],
+      }),
+    });
+    if (sources.length > 256)
+      throw new BadRequestException(
+        'Choose a smaller knowledge source or space selection.',
+      );
+    return sources.map((source) => source.id);
+  }
 
   async resolve(
     organizationId: string,

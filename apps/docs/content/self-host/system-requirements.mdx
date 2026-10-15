@@ -1,0 +1,52 @@
+---
+title: System Requirements
+description: 'Check the disk, container runtime, Node.js, port, and platform requirements for running a self-hosted Genfeed instance, with measured figures.'
+---
+
+# System Requirements
+
+Genfeed runs as one application container plus a PostgreSQL container. The
+figures below are ones we have measured; where we have not measured something,
+the table says so rather than guessing.
+
+## Requirements
+
+| Item | Supported floor | Recommended |
+| --- | --- | --- |
+| Container runtime | Docker Engine 24+ with the Compose v2 plugin, or Docker Desktop | Same |
+| Free disk | About 8 GB | 10 GB, plus room for generated media and backups |
+| CPU | Not yet published | TBD |
+| RAM | Not yet published | TBD |
+| CPU architecture | `linux/amd64` image (Docker Desktop can emulate it on Apple Silicon) | Same |
+| Host ports | `3000` (web), `3010` (API), `3014` (MCP) free | Same |
+| Node.js | Not needed for the release bundle. `>=24 <25` for `npx @genfeedai/create` | Node.js 24 |
+| Genfeed Cloud account | Not required | Not required |
+
+Disk covers the application image, PostgreSQL, and the media you generate, so
+it grows with use. Host ports are overridable with `SELFHOSTED_APP_PORT`,
+`SELFHOSTED_API_PORT`, and `SELFHOSTED_MCP_PORT`; see
+[Configuration](/self-host/configuration).
+
+## What we have measured
+
+- A clean Debian 13 machine with 8 CPUs and 15 GiB of RAM ran the stack.
+- Idle PostgreSQL used about 59 MiB.
+
+These are measurements from one machine, not a minimum. We have not yet run
+smaller hosts, so no RAM or CPU minimum is promised. If you run Genfeed on
+smaller hardware, [tell us how it went](https://github.com/genfeedai/genfeed.ai/issues/new/choose).
+
+## Operating system notes
+
+- **Linux:** install Docker Engine with the Compose v2 plugin.
+- **Debian 13:** Debian 13 does not package Docker Compose v2. Install the
+  `docker-compose-plugin` package from Docker's apt repository. See
+  [Troubleshooting](/self-host/troubleshooting#debian-13-docker-compose-v2).
+- **Docker Desktop:** can be used instead of Docker Engine. On macOS, verify the
+  release bundle with `shasum -a 256 -c` instead of `sha256sum -c`.
+
+## Model providers
+
+Genfeed itself does not need a GPU. The Community image does not start GPU or
+local-model services, so generation uses the provider keys you add. See
+[Provider API keys](/self-host/provider-api-keys).

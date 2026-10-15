@@ -118,6 +118,8 @@ export interface IBindCreditReservationOutputInput {
   reservationId: string;
   /** The output's ingredient; the bound hold is found by it. */
   workloadId: string;
+  /** Workload type of the bound hold; media generation when omitted. */
+  workloadType?: string;
   amount: number;
   expiresAt: Date;
   metadata?: Record<string, unknown>;

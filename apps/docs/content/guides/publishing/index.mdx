@@ -7,12 +7,11 @@ description: 'Understand Genfeed publishing availability, connector requirements
 Genfeed contains publishing integrations for multiple platforms. A connector's
 presence in source does not guarantee that every account can publish every
 content type: provider approval, credentials, scopes, media constraints, and
-deployment mode all matter.
+your configuration all matter.
 
 ## Availability boundary
 
-- Community supports manual export and locally configured integration paths.
-- Cloud can provide managed publishing connectors, scheduling, and analytics.
+- A self-hosted instance supports manual export and the integration paths you configure with your own platform credentials.
 - Hacker News and Product Hunt launch-kit support generates reviewed copy; it
   does not auto-post or automate engagement.
 - Platform APIs and policies can change independently of Genfeed releases.
@@ -38,12 +37,3 @@ the active path visibly provides them.
 
 Provider documentation is the source of truth for current API permissions,
 rate limits, media specifications, and policy requirements.
-
-## Strategy and growth
-
-Platform growth strategy, algorithm behaviour, and launch playbooks are
-published as articles on the main site — these guides cover the connectors
-themselves.
-
-- [How to launch an open-source product on Show HN and Product Hunt](https://genfeed.ai/articles/how-to-launch-an-open-source-product-on-show-hn-and-product-hunt)
-- [Browse all articles →](https://genfeed.ai/articles)

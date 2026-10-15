@@ -27,16 +27,6 @@ The `packages/` workspace is the canonical source for the shared `@genfeedai/*` 
 
 Each package name maps to exactly one directory under `packages/`. There is no second home for any package name.
 
-## Cloud boundary
-
-Organization billing lives in the API at `apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`
-and ships in every image. Whether it is live is decided at runtime by
-`hasOrganizationBilling()` — see
-[Billing: one build, a runtime gate](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md#billing-one-build-a-runtime-gate).
-Cloud-only product surfaces (managed credits, multi-tenant organization
-management) are gated by deployment mode and configuration, not by a separate
-licensed package tree.
-
 ## Release ordering
 
 Because everything ships from one repo, releases are coordinated as a single workspace:

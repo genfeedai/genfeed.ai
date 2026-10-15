@@ -1,0 +1,103 @@
+---
+title: Provider API Keys
+description: 'Bring your own model keys for self-hosted Genfeed: OpenAI, Anthropic, Replicate, fal, and ElevenLabs. Where to get each key and how to add it.'
+---
+
+# Provider API Keys
+
+Genfeed does not generate content by itself. It calls model providers with keys
+that you supply. Self-hosting has **no Genfeed credits**: you create accounts
+with the providers you want, add their keys to your instance, and pay those
+providers directly under their own terms.
+
+The application starts and works without any key. Add a key when you want a
+generation path to run.
+
+## Supported keys
+
+All of these are optional and blank in `.env.example`.
+
+| Provider | Environment variable | Used for |
+| --- | --- | --- |
+| OpenAI | `OPENAI_API_KEY` | Language models |
+| Anthropic | `ANTHROPIC_API_KEY` | Language models |
+| Replicate | `REPLICATE_KEY` | Hosted image, video, and other media models |
+| fal | `FAL_API_KEY` | Hosted media models, where a media path selects fal |
+| ElevenLabs | `ELEVENLABS_API_KEY` | Voice and audio |
+
+Other providers in the model registry (such as OpenRouter or xAI for language
+models) are listed in [Models and providers](/models) and are configured through
+[Integrations](/integrations/ai-providers).
+
+## How to get each key
+
+Create an API key in each provider's own dashboard. Provider sites change, so
+follow their current instructions.
+
+- **OpenAI:** create a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+- **Anthropic:** create a key in the [Anthropic Console](https://console.anthropic.com/).
+- **Replicate:** create an API token at [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens).
+- **fal:** create a key in the [fal dashboard](https://fal.ai/dashboard/keys).
+- **ElevenLabs:** create a key in your [ElevenLabs settings](https://elevenlabs.io/app/settings/api-keys).
+
+Each provider bills you separately and may require a payment method, a funded
+balance, or account approval before a key can run a given model.
+
+## Add keys to your instance
+
+### Deployment-wide, in `.env`
+
+1. Open the `.env` next to your `compose.yml`.
+2. Paste each key after its variable:
+
+   ```env
+   OPENAI_API_KEY=sk-...
+   ANTHROPIC_API_KEY=
+   REPLICATE_KEY=
+   FAL_API_KEY=
+   ELEVENLABS_API_KEY=
+   ```
+
+3. Recreate the stack so the container reads the new values:
+
+   ```bash
+   docker compose --env-file .env -f compose.yml up -d
+   ```
+
+Keys in `.env` are server-side only. Never commit `.env` and never put a key in a
+`NEXT_PUBLIC_*` variable.
+
+### Per organization, in the app
+
+Provider keys can also be entered in the app under **Organization settings →
+Integrations**. When a generation path supports it, an organization's own key
+takes precedence over the deployment-wide key in `.env`. See
+[AI providers](/integrations/ai-providers) for every provider the app accepts.
+
+## Check that a key works
+
+Run a small, non-sensitive generation with a model from that provider. If it
+fails, check the provider dashboard for account, billing, or model-access
+issues, and read the container logs:
+
+```bash
+docker compose --env-file .env -f compose.yml logs genfeed
+```
+
+## Privacy and cost
+
+- Prompts and media sent to a provider are processed under that provider's
+  terms. Application records stay on your infrastructure.
+- Genfeed does not meter bring-your-own-key usage. Provider quotas and charges
+  apply directly to your provider account.
+
+## Running models locally
+
+The Community image does not start GPU or local-model services, so it does not
+run open-source models on its own. If you run your own ComfyUI instance, point
+supported API flows at it with `DARKROOM_COMFYUI_URL=http://your-comfyui-host:8188`.
+
+## Next
+
+- [Configuration reference](/self-host/configuration)
+- [After it is running](/self-host/after-it-is-running)
