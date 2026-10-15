@@ -1,6 +1,7 @@
 import { AGENT_CLIENT_CHANNEL_SLUGS } from '@data/agent-client-channels.data';
 import { getAllAgentClientSlugs } from '@data/agent-clients.data';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
+import { helpArticleSlugs } from '@data/help-articles.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
 import { getAllProductSlugs } from '@data/products.data';
@@ -445,6 +446,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
+  const helpArticleRoutes: MetadataRoute.Sitemap = helpArticleSlugs.map(
+    (slug) => ({
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.8,
+      url: `https://genfeed.ai/articles/${slug}`,
+    }),
+  );
+
   const allRoutes = [
     ...staticRoutes,
     ...agentClientRoutes,
@@ -455,6 +465,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...useCaseRoutes,
     ...articleRoutes,
     ...launchArticleRoutes,
+    ...helpArticleRoutes,
   ];
 
   const seen = new Set<string>();

@@ -47,4 +47,5 @@ export enum ArticleCategory {
   LISTICLE = 'listicle',
   LINKEDIN_ARTICLE = 'linkedin-article',
   X_ARTICLE = 'x-article',
+  HELP = 'help',
 }
