@@ -29,6 +29,7 @@ export function useMasonryGrid<T extends MasonryItem>(
   // follow it every frame with no easing; easing a tile that is already
   // being re-packed is what made them lag behind and overlap.
   const isLiveResizeRef = useRef(false);
+  const appliedPositionsRef = useRef(new WeakMap<HTMLElement, IItemPosition>());
   const gap = useMemo(() => options.gap ?? 16, [options.gap]);
   const layoutSignature = useMemo(() => {
     if (itemsCount === 0) {
@@ -132,14 +133,17 @@ export function useMasonryGrid<T extends MasonryItem>(
     const isLive = isLiveResizeRef.current;
     isLiveResizeRef.current = false;
 
-    // Measure at the target width, not at wherever a running width transition
-    // has got to: a tile's height follows its width (aspect-ratio media), so a
+    // Measure at the target width, not at wherever a running transition has
+    // got to: a tile's height follows its width (aspect-ratio media), so a
     // height read mid-transition packs the next tile into the wrong slot.
-    // Write every width first, then read every height, so the browser lays
-    // out once instead of once per tile.
+    // Write every changed width first, then read every height, so the browser
+    // lays out once instead of once per tile.
+    const targetWidth = `${itemWidth}px`;
     for (const item of masonryItems) {
-      item.style.transition = 'none';
-      item.style.width = `${itemWidth}px`;
+      if (item.style.width !== targetWidth) {
+        item.style.transition = 'none';
+        item.style.width = targetWidth;
+      }
     }
 
     const itemHeights = masonryItems.map(
@@ -167,21 +171,33 @@ export function useMasonryGrid<T extends MasonryItem>(
 
     container.classList.remove('loading');
 
+    // A repack runs whenever any tile changes height (media loading while the
+    // user scrolls). Only tiles whose slot changed are touched, and they move
+    // by transform: easing left/top forced a layout on every animation frame.
+    const appliedPositions = appliedPositionsRef.current;
     masonryItems.forEach((item, index) => {
       const position = positions[index];
-      const shouldAnimate =
-        !isLive && isLayoutReady && item.style.position === 'absolute';
+      const applied = appliedPositions.get(item);
+      if (
+        applied &&
+        applied.x === position.x &&
+        applied.y === position.y &&
+        item.style.position === 'absolute'
+      ) {
+        return;
+      }
+
+      const shouldAnimate = !isLive && isLayoutReady && applied !== undefined;
 
       item.style.position = 'absolute';
-      item.style.left = `${position.x}px`;
-      item.style.top = `${position.y}px`;
-      item.style.width = `${position.width}px`;
+      item.style.left = '0px';
+      item.style.top = '0px';
+      item.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
       // Width is already at its target (set above), so only the slide is eased.
       item.style.transition = shouldAnimate
-        ? 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         : 'none';
-      item.style.transformOrigin = 'top left';
-      item.style.willChange = shouldAnimate ? 'left, top' : 'auto';
+      appliedPositions.set(item, position);
     });
 
     const maxHeight = Math.max(...columnHeights) - gap;
