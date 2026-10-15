@@ -99,6 +99,21 @@ export class BrandRelocationJobsService {
         });
       } catch (error) {
         if ((error as { code?: string }).code !== 'P2002') throw error;
+        const replay = await this.prisma.brandRelocation.findFirst({
+          where: { id, isDeleted: false },
+        });
+        if (replay) {
+          await this.assertAccess(replay, actor);
+          if (
+            replay.brandId !== brandId ||
+            replay.destinationOrganizationId !== destinationOrganizationId
+          )
+            throw new ConflictException(
+              'This move identifier already belongs to another request',
+            );
+          await this.dispatch(replay);
+          return replay;
+        }
         const active = await this.prisma.brandRelocation.findFirst({
           where: {
             brandId,
@@ -212,11 +227,30 @@ export class BrandRelocationJobsService {
         const brand = await this.prisma.brand.findFirst({
           where: {
             id: operation.brandId,
-            organizationId: operation.organizationId,
             isDeleted: false,
           },
         });
-        if (!brand)
+        if (brand?.organizationId === operation.destinationOrganizationId) {
+          await this.relocation.assertCanRelocate(
+            payload.actor,
+            operation.organizationId,
+            operation.destinationOrganizationId,
+          );
+          await this.prisma.brandRelocation.updateMany({
+            where: {
+              id,
+              organizationId: operation.organizationId,
+              isDeleted: false,
+              status: BrandRelocationStatus.PROCESSING,
+            },
+            data: {
+              status: BrandRelocationStatus.DONE,
+              summary: { ...EMPTY_RELOCATION_SUMMARY },
+            },
+          });
+          return;
+        }
+        if (!brand || brand.organizationId !== operation.organizationId)
           throw new ConflictException(
             'The brand no longer belongs to the source organization',
           );

@@ -94,6 +94,43 @@ describe('durable brand relocation jobs', () => {
     );
   });
 
+  it('reuses a completed receipt when a concurrent enqueue wins the idempotency race', async () => {
+    const { service, prisma, queue } = setup();
+    const completed = { ...operation, status: BrandRelocationStatus.DONE };
+    prisma.brandRelocation.findFirst
+      .mockImplementation(async ({ where }: { where: { id?: string } }) =>
+        where.id === operation.id ? completed : null,
+      )
+      .mockResolvedValueOnce(null);
+    prisma.brandRelocation.create.mockRejectedValue({ code: 'P2002' });
+    await expect(
+      service.enqueue(
+        'brand-1',
+        operation.id,
+        { organizationId: 'destination' },
+        actor,
+      ),
+    ).resolves.toMatchObject({ status: BrandRelocationStatus.DONE });
+    expect(queue.add).not.toHaveBeenCalled();
+  });
+
+  it('completes a queued duplicate when the brand already reached its destination', async () => {
+    const { service, prisma, relocation } = setup();
+    prisma.brandRelocation.findFirst.mockResolvedValue(operation);
+    prisma.brand.findFirst.mockResolvedValue({
+      id: 'brand-1',
+      userId: 'owner',
+      organizationId: 'destination',
+    });
+    await service.process(operation.id, true);
+    expect(prisma.brandRelocation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: BrandRelocationStatus.DONE }),
+      }),
+    );
+    expect(relocation.relocateToOrganization).not.toHaveBeenCalled();
+  });
+
   it('keeps an ambiguously dispatched move processing so polling can recover it', async () => {
     const { service, queue } = setup();
     queue.add.mockRejectedValue(new Error('connection closed after enqueue'));
