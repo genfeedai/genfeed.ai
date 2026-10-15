@@ -580,7 +580,10 @@ export default function AppTable<T>({
                       {selectable && (
                         <td
                           className={cn(
-                            'relative align-middle',
+                            // z-10 lifts the checkbox above a row-link anchor,
+                            // which comes later in the DOM and would otherwise
+                            // paint over it and turn "select" into "navigate".
+                            'relative z-10 align-middle',
                             isCompact ? 'w-8 p-2' : 'p-4 w-12',
                           )}
                         >
@@ -625,7 +628,7 @@ export default function AppTable<T>({
                       {actions.length > 0 && (
                         <td
                           className={cn(
-                            'py-2 relative align-middle',
+                            'py-2 relative z-10 align-middle',
                             isCompact ? 'px-2' : 'px-4',
                           )}
                         >

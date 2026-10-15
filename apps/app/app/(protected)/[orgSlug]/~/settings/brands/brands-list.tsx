@@ -35,6 +35,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -61,9 +62,10 @@ function BrandsListContent() {
   );
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 
-  // Edit / row open go to the brand settings page — the real home for brand
-  // identity, voice, interview, publishing, and agent defaults. Overlay stays
-  // create-only so the list can spin up a brand without a full navigation.
+  // The brand name and the "Open settings" action go to the brand settings
+  // page — the real home for identity, voice, publishing and agent defaults.
+  // A click anywhere else on the row opens the brand overview overlay; the
+  // checkbox only selects.
   const openBrandSettings = useCallback(
     (brand: Brand) => {
       if (!orgSlug || !brand.slug) {
@@ -201,26 +203,40 @@ function BrandsListContent() {
       {
         header: 'Brand',
         key: 'label',
-        render: (brand: Brand) => (
-          <div className="flex items-center gap-2.5">
-            {brand.logoUrl ? (
-              <Image
-                alt={brand.label}
-                className="size-6 rounded-md object-cover outline-media"
-                src={brand.logoUrl}
-                sizes="24px"
-                unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-                width={24}
-                height={24}
-              />
-            ) : (
-              <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
-                {brand.label.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className="font-medium">{brand.label}</span>
-          </div>
-        ),
+        render: (brand: Brand) => {
+          const link = getBrandLink(brand);
+          return (
+            <div className="flex items-center gap-2.5">
+              {brand.logoUrl ? (
+                <Image
+                  alt={brand.label}
+                  className="size-6 rounded-md object-cover outline-media"
+                  src={brand.logoUrl}
+                  sizes="24px"
+                  unoptimized={!canOptimizeImageSource(brand.logoUrl)}
+                  width={24}
+                  height={24}
+                />
+              ) : (
+                <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
+                  {brand.label.charAt(0).toUpperCase()}
+                </div>
+              )}
+              {link ? (
+                <Link
+                  aria-label={link.label}
+                  className="font-medium text-foreground hover:underline focus-visible:underline focus-visible:outline-none"
+                  href={link.href}
+                  prefetch={false}
+                >
+                  {brand.label}
+                </Link>
+              ) : (
+                <span className="font-medium">{brand.label}</span>
+              )}
+            </div>
+          );
+        },
       },
       {
         header: 'Slug',
@@ -254,7 +270,7 @@ function BrandsListContent() {
         ),
       },
     ],
-    [],
+    [getBrandLink],
   );
 
   const actions = useMemo(
@@ -336,7 +352,9 @@ function BrandsListContent() {
         getRowKey={(brand) => brand.id}
         isLoading={isLoading}
         items={brands || []}
-        getRowLink={getBrandLink}
+        onRowClick={(brand) =>
+          openBrandOverlay(brand, () => void refresh(), 'overview')
+        }
         onSelectionChange={setSelectedIds}
         selectable={canMoveBrands}
         selectedIds={selectedIds}

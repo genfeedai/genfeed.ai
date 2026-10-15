@@ -370,6 +370,29 @@ describe('Table', () => {
     expect(screen.queryByRole('link', { name: /second item/i })).toBeNull();
   });
 
+  it('keeps the selection checkbox above a row link', async () => {
+    render(
+      <Table
+        selectable
+        getItemId={(item) => item.id}
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+        getRowLink={(item) => ({
+          href: `/items/${item.id}`,
+          label: `Open ${item.name}`,
+        })}
+      />,
+    );
+
+    // The row anchor comes later in the DOM; without a stacking lift it
+    // paints over the checkbox and a click navigates instead of selecting.
+    const checkbox = await screen.findByRole('checkbox', {
+      name: 'Select row 1',
+    });
+    expect(checkbox.closest('td')).toHaveClass('relative', 'z-10');
+  });
+
   it('distinguishes failure from empty and keeps retry inside the shared frame', async () => {
     const onRetry = vi.fn();
     const props = {
