@@ -541,6 +541,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       schedules as never,
       {} as never,
       {} as never,
+      { recover: vi.fn() } as never,
     );
 
     await prisma.organization.create({

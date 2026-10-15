@@ -219,6 +219,9 @@ describe('BrandMoveDialog', () => {
     });
     await waitFor(() => expect(onMoved).toHaveBeenCalledOnce());
     expect(screen.getByTestId('brand-move-b1')).toHaveTextContent('Moved');
+    expect(screen.getByTestId('brand-move-b1')).not.toHaveTextContent(
+      'Checking progress',
+    );
   });
 
   it('returns to review with a retryable message when the service is unavailable', async () => {

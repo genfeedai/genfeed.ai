@@ -505,8 +505,7 @@ export function useModalBrand(
         const updatedBrand = await service.patch(overlayBrandId, {
           [field]: value,
         });
-        if (updatedBrand)
-          mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
+        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
         onConfirm?.(true);
       } catch (updateError) {
         logger.error('Failed to update brand field', updateError);
@@ -786,6 +785,7 @@ export function useModalBrand(
       const controller = new AbortController();
       relocationControllerRef.current = controller;
       setIsRelocating(true);
+      let isCommitted = false;
       setRelocationProgress('Moving this brand in the background…');
       try {
         const service = await getBrandsService();
@@ -811,7 +811,9 @@ export function useModalBrand(
           },
         );
 
-        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
+        isCommitted = true;
+        if (updatedBrand)
+          mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
         try {
           await refreshBrand();
           await refreshBrands();
@@ -829,6 +831,13 @@ export function useModalBrand(
         );
       } catch (relocationError) {
         if (controller.signal.aborted) return;
+        if (isCommitted) {
+          logger.warn(
+            'Brand moved; its view could not finish refreshing',
+            relocationError,
+          );
+          return;
+        }
         logger.error('Failed to relocate brand', relocationError);
 
         const status = getStructuredErrorStatus(relocationError);

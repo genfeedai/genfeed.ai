@@ -209,6 +209,7 @@ export default function BrandMoveDialog({
           result = {
             ...entry,
             membersSevered: summary.membersSevered,
+            reason: undefined,
             status: 'moved',
           };
         } catch (error) {
@@ -237,13 +238,13 @@ export default function BrandMoveDialog({
       }
     }
 
+    setPhase('done');
     const message = summarizeBatch(results, translate);
     if (countByStatus(results, 'failed') > 0) {
       notificationsService.error(message);
     } else {
       notificationsService.success(message);
     }
-    setPhase('done');
   }, [
     destinationId,
     entries,
