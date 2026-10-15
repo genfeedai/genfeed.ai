@@ -7,16 +7,14 @@ export const serviceOffering = {
   cta: 'Book a call',
   startingMonthlyPrice: STARTING_MONTHLY_PRICE,
   priceLabel: `From ${formatPrice(STARTING_MONTHLY_PRICE)}/month`,
-  priceNote: 'Plus model usage at cost and a fee on winners',
+  priceNote: '+ usage at cost + performance fee',
   description:
     'Our team plans, produces, and publishes your content and tests it against your best ads. You approve what goes out.',
   includes: [
     'Everything in Agencies',
-    'Strategy, production, and publishing by our team',
-    'Model usage billed at cost',
-    'Creative testing against your best ads',
-    'Performance fee on winning creatives, capped',
-    'Monthly results per creative',
+    'Our team runs production and publishing',
+    'Usage billed at cost',
+    'Fee only on winning creatives',
   ],
   process: [
     {

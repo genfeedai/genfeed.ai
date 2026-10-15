@@ -42,39 +42,23 @@ const FEATURED_TIER: PlanTier = 'scale';
 
 const FAQ_ITEMS = [
   {
-    answer: `Sign up free and finish onboarding for ${ONBOARDING_STARTER_CREDITS} free credits. Credits buy every output. ${PLAN_COPY.scale.name} adds client workspaces and the subscription features. ${serviceOffering.name} is run by our team.`,
-    question: 'How does pricing work?',
+    answer: `You get ${ONBOARDING_STARTER_CREDITS} free credits when you finish onboarding.`,
+    question: 'Is there a free trial?',
   },
   {
     answer:
-      'One credit is one cent. An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. You see the cost of every job before you run it.',
-    question: 'What does output cost?',
+      'One credit is $0.01. You see the price of every job before it runs.',
+    question: 'How do credits work?',
   },
   {
-    answer:
-      'No. Genfeed routes every job to the best model for the format, brief, and budget, so you never pick a model or manage keys.',
-    question: 'Do I need to choose AI models?',
+    answer: 'No. Genfeed picks the best model for every job.',
+    question: 'Do I choose the AI model?',
   },
   {
-    answer: `${PLAN_COPY.scale.nameWithPrice} includes ${PLAN_COPY.scale.includedCredits}, unlimited seats and client workspaces, clean exports, any agent model, brand model training, Automation, Messages, Discovery, the API, and BYOK.`,
-    question: `What does ${PLAN_COPY.scale.name} add?`,
-  },
-  {
-    answer: `Yes, on ${PLAN_COPY.scale.name}. API calls draw from the same credits as the studio, or from your own provider keys with no usage fee.`,
+    answer: `Yes, on ${PLAN_COPY.scale.name}.`,
     question: 'Is there an API?',
   },
-  {
-    answer: `${serviceOffering.priceLabel}. Our team runs strategy, production, and publishing. Model usage is billed at cost, and a capped fee applies only to creatives that beat your best ads.`,
-    question: `What does ${serviceOffering.name} include?`,
-  },
 ];
-
-const PRICING_RULES = [
-  `${ONBOARDING_STARTER_CREDITS} free credits after onboarding`,
-  'Credits buy every format',
-  'Unlimited seats on Agencies',
-  'Model usage at cost on Done for you',
-] as const;
 
 interface OutputCostRow {
   credits: number;
@@ -143,20 +127,12 @@ export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   return 'Custom credit terms';
 }
 
-function getPlanSummary(plan: (typeof websitePlans)[number]): string {
-  return plan.valueProposition || plan.description;
-}
-
 export default function PricingContent() {
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
     <MarketingEntrance hero={false} sections={false}>
-      <PageLayout
-        compact
-        title="Pricing"
-        description="Credits for output, Agencies for client work, or we run it for you."
-      >
+      <PageLayout compact title="Pricing">
         <WebSection maxWidth="full" py="sm" className="pt-0 md:pt-0">
           <NeuralGrid columns={3} className="gsap-grid md:grid-cols-3">
             {getOrderedPlans().map((plan, index) => {
@@ -202,10 +178,6 @@ export default function PricingContent() {
                       ? ` · ${ONBOARDING_STARTER_CREDITS} free credits after onboarding`
                       : null}
                   </div>
-
-                  <p className="mb-6 text-sm leading-6 text-surface/65">
-                    {getPlanSummary(plan)}
-                  </p>
 
                   <ul className="mb-auto space-y-3">
                     {plan.features.map((feature) => (
@@ -259,10 +231,6 @@ export default function PricingContent() {
                 {serviceOffering.priceNote}
               </div>
 
-              <p className="mb-6 text-sm leading-6 text-surface/65">
-                {serviceOffering.description}
-              </p>
-
               <ul className="mb-auto space-y-3">
                 {serviceOffering.includes.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
@@ -287,22 +255,8 @@ export default function PricingContent() {
         <ProofTestimonials context="pricing" />
 
         <WebSection maxWidth="lg" py="md">
-          <div className="grid gap-px bg-edge/5 md:grid-cols-4">
-            {PRICING_RULES.map((rule) => (
-              <div key={rule} className="bg-background px-5 py-4">
-                <div className="flex items-center gap-2 text-sm text-surface/65">
-                  <CircleCheck className="size-4 text-surface/55" />
-                  {rule}
-                </div>
-              </div>
-            ))}
-          </div>
-        </WebSection>
-
-        <WebSection maxWidth="lg" py="md">
           <SectionHeader
             title="What output costs."
-            description="Every job shows its price before you run it. The router picks the best model for each format, and the price below is what you pay, whatever model runs."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
 
@@ -325,8 +279,7 @@ export default function PricingContent() {
           </div>
 
           <p className="mt-8 mb-2 text-sm font-medium text-surface/70">
-            Top up any amount from $10. Pay-as-you-go, no subscription. 1 credit
-            = $0.01.
+            Top up from $10.
           </p>
           <div className="grid gap-px bg-edge/5 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
@@ -347,19 +300,14 @@ export default function PricingContent() {
 
         <WebSection bg="bordered" maxWidth="md">
           <SectionHeader
-            title="Common Questions"
-            description="Pricing is intentionally simple: free to join, credits for output, subscriptions for better rates and scale."
+            title="Questions"
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <FaqGrid items={FAQ_ITEMS} />
         </WebSection>
 
-        <CtaSection
-          bg="subtle"
-          title="Pay as you go. Create on your terms."
-          description="Connect the agent you already use, or start in the studio. Both draw from the same credits."
-        >
+        <CtaSection bg="subtle" title="Start free.">
           <AgentFirstActions
             signUpHref={paygSignUpHref}
             trackingName="pricing_cta_click"
