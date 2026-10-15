@@ -194,16 +194,21 @@ const LEGACY_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Models the provider no longer serves (its model page and API return 404).
- * A stored key resolves to the successor at dispatch, and a retired row is
- * never offered or priced itself.
+ * Models the provider no longer serves: Replicate returns 404, or, for text
+ * keys that complete through OpenRouter, OpenRouter lists no endpoint (checked
+ * 2026-10-15). A stored key resolves to the successor at dispatch, and a
+ * retired row is never offered or priced itself.
  */
 const RETIRED_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
   [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO]:
     MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
   [MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT]:
     AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-  [MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST]: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+  [MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]:
+    AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+  [MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO]:
+    MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+  [MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST]: MODEL_KEYS.OPENROUTER_XAI_GROK_4_3,
 };
 
 /**
@@ -427,6 +432,12 @@ const PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING = {
   promptPerMillion: 0.75,
 } as const;
 
+/** Grok 4.3 list price on OpenRouter, read 2026-10-15. */
+const PRODUCT_TEXT_GROK_4_3_PRICING = {
+  completionPerMillion: 2.5,
+  promptPerMillion: 1.25,
+} as const;
+
 /**
  * Product-text fallbacks that `MODEL_OUTPUT_CAPABILITIES` also lists.
  *
@@ -457,6 +468,27 @@ function buildProductTextCatalogEntries(): ModelCatalogSeedEntry[] {
       pricingType: PricingType.FLAT,
       provider: ModelProvider.OPENROUTER,
       qualityTier: QualityTier.HIGH,
+      speedTier: SpeedTier.FAST,
+    },
+    {
+      category: ModelCategory.TEXT,
+      cost: calculateAgentRoundCredits(PRODUCT_TEXT_GROK_4_3_PRICING),
+      costTier: CostTier.MEDIUM,
+      description:
+        'Grok 4.3 — the cheap xAI model behind X opportunity drafts. Not offered in the agent chat picker.',
+      inputCostPerMillionTokens: PRODUCT_TEXT_GROK_4_3_PRICING.promptPerMillion,
+      isActive: true,
+      isDefault: false,
+      isHighlighted: false,
+      isPublic: false,
+      key: MODEL_KEYS.OPENROUTER_XAI_GROK_4_3,
+      label: 'Grok 4.3',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens:
+        PRODUCT_TEXT_GROK_4_3_PRICING.completionPerMillion,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.OPENROUTER,
+      qualityTier: QualityTier.STANDARD,
       speedTier: SpeedTier.FAST,
     },
   ];

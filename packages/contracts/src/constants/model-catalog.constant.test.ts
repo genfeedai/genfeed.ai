@@ -645,9 +645,24 @@ describe('model version lifecycle', () => {
     for (const key of [
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
       MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
+      MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
+      MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
       MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
     ])
       expect(byKey.get(key)?.lifecycle, key).toBe(ModelLifecycle.RETIRED);
+  });
+
+  it('moves X drafts and the retired Grok 4.1 Fast row onto priced Grok 4.3', () => {
+    expect(
+      byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST)?.succeededBy,
+    ).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3);
+    expect(byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3)).toMatchObject({
+      inputCostPerMillionTokens: 1.25,
+      isPublic: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens: 2.5,
+      provider: ModelProvider.OPENROUTER,
+    });
   });
 
   it('points every Legacy or Retired row at a non-retired model of its category', () => {
