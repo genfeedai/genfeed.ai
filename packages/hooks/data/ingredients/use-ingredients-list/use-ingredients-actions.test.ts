@@ -748,7 +748,7 @@ describe('useIngredientsActions', () => {
     expect(mockFindAll).toHaveBeenCalledWith(true);
   });
 
-  it('routes openIngredientModal by modal id', () => {
+  it('routes openIngredientModal by modal id', async () => {
     const { result } = renderHook(() => useIngredientsActions(baseProps));
     const ingredient = createIngredient();
 
@@ -765,8 +765,8 @@ describe('useIngredientsActions', () => {
     });
     expect(mockOpenPostBatchModal).toHaveBeenCalledWith(ingredient);
 
-    act(() => {
-      result.current.openIngredientModal(ModalEnum.CONFIRM, ingredient);
+    await act(async () => {
+      await result.current.openIngredientModal(ModalEnum.CONFIRM, ingredient);
     });
     expect(mockOpenConfirm).toHaveBeenCalled();
 
