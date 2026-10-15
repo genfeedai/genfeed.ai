@@ -312,20 +312,28 @@ export default function Searchbar({
     setIsExpanded(false);
   };
 
+  const isCollapsed = isCollapsible && !isOpen;
+
+  // One structure in both states: the root eases its width while the input
+  // fades, so opening reads as the field growing out of the icon rather than
+  // a swap. The open icon sits where the trigger's glyph was (16px centre).
   return (
     <div
       className={cn(
         'relative min-w-0',
+        isCollapsible &&
+          'transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
         isCollapsible ? (isOpen ? 'w-64' : 'w-8') : null,
         className,
       )}
+      data-state={isCollapsible ? (isOpen ? 'open' : 'closed') : undefined}
       data-testid={isCollapsible ? 'collapsible-search' : undefined}
       ref={rootRef}
     >
-      {isCollapsible && !isOpen ? (
+      {isCollapsed ? (
         <Button
           ariaLabel={ariaLabel}
-          className="size-8"
+          className="absolute inset-y-0 left-0 z-20 size-8"
           data-testid="collapsible-search-trigger"
           icon={<Search className={iconSize} />}
           onClick={() => setIsExpanded(true)}
@@ -333,52 +341,56 @@ export default function Searchbar({
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         />
-      ) : (
-        <>
-          {showIcon && (
-            <Search
-              className={cn(
-                'absolute left-3 top-1/2 z-10 -translate-y-1/2 transform pointer-events-none text-foreground/60',
-                iconSize,
-              )}
-            />
-          )}
+      ) : null}
 
-          <input
-            aria-label={ariaLabel}
-            name={name}
-            ref={resolvedRef}
-            type="text"
-            value={displayedValue}
-            onBlur={collapseIfEmpty}
-            onChange={handleChange}
-            placeholder={placeholder}
-            className={cn(
-              sizeClass,
-              'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-foreground/40',
-              'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
-              showIcon && 'pl-10',
-              showClearButton && displayedValue && 'pr-8',
-              inputClassName,
-            )}
-            disabled={isDisabled}
-            onClick={onClick}
-            onKeyDown={handleKeyDown}
-          />
-
-          {showClearButton && displayedValue && (
-            <Button
-              ariaLabel="Clear search"
-              withWrapper={false}
-              isDisabled={isDisabled}
-              onClick={handleClear}
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.MICRO}
-              className="absolute right-1 top-1/2 -translate-y-1/2 transform p-1"
-              icon={<X className={iconSize} />}
-            />
+      {showIcon && !isCollapsed && (
+        <Search
+          className={cn(
+            'absolute top-1/2 z-10 -translate-y-1/2 transform pointer-events-none text-foreground/60',
+            isCollapsible ? 'left-2' : 'left-3',
+            iconSize,
           )}
-        </>
+        />
+      )}
+
+      <input
+        aria-hidden={isCollapsed || undefined}
+        aria-label={ariaLabel}
+        name={name}
+        ref={resolvedRef}
+        tabIndex={isCollapsed ? -1 : undefined}
+        type="text"
+        value={displayedValue}
+        onBlur={collapseIfEmpty}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className={cn(
+          sizeClass,
+          'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-foreground/40',
+          'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
+          showIcon && (isCollapsible ? 'pl-8' : 'pl-10'),
+          showClearButton && displayedValue && 'pr-8',
+          isCollapsible &&
+            'transition-opacity duration-200 ease-out motion-reduce:transition-none',
+          isCollapsed && 'pointer-events-none opacity-0',
+          inputClassName,
+        )}
+        disabled={isDisabled}
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+      />
+
+      {showClearButton && displayedValue && (
+        <Button
+          ariaLabel="Clear search"
+          withWrapper={false}
+          isDisabled={isDisabled}
+          onClick={handleClear}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.MICRO}
+          className="absolute right-1 top-1/2 -translate-y-1/2 transform p-1"
+          icon={<X className={iconSize} />}
+        />
       )}
     </div>
   );
