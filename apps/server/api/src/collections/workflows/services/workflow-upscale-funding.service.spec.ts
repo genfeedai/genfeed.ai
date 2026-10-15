@@ -1,9 +1,11 @@
 import type { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import type { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { WorkflowUpscaleFundingService } from '@api/collections/workflows/services/workflow-upscale-funding.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,6 +23,7 @@ describe('WorkflowUpscaleFundingService', () => {
   const quoteSnapshotByKey = vi.fn();
   const findFirst = vi.fn();
   const error = vi.fn();
+  const getPresignedDownloadUrlForObjectKey = vi.fn();
   const service = new WorkflowUpscaleFundingService(
     {
       bindOutput,
@@ -31,13 +34,21 @@ describe('WorkflowUpscaleFundingService', () => {
     { quoteSnapshotByKey } as unknown as ModelCreditQuoteService,
     { ingredient: { findFirst } } as unknown as PrismaService,
     { error, warn: vi.fn() } as unknown as LoggerService,
+    { getPresignedDownloadUrlForObjectKey } as unknown as FilesClientService,
+    { isAuthorizedMediaDeliveryEnabled: false } as unknown as ConfigService,
   );
   const input = {
     brandId: 'brand-1',
     category: IngredientCategory.IMAGE,
     organizationId: 'org-1',
     scale: '6x',
-    sourceIngredientId: 'source-1',
+    source: {
+      category: IngredientCategory.IMAGE,
+      id: 'source-1',
+      objectKey: 'source-key',
+      storageKey: 'source-key',
+      storageType: 'images',
+    },
     targetFps: undefined,
     targetResolution: undefined,
     userId: 'user-1',
@@ -46,6 +57,9 @@ describe('WorkflowUpscaleFundingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     holdForService.mockResolvedValue(POOL);
+    getPresignedDownloadUrlForObjectKey.mockResolvedValue(
+      'https://storage.test/issued-source',
+    );
     quoteSnapshotByKey.mockResolvedValue({ credits: 7 });
     findFirst.mockResolvedValue({
       metadata: { duration: 12.5, height: 768, width: 1024 },
@@ -212,6 +226,24 @@ describe('WorkflowUpscaleFundingService', () => {
     quoteSnapshotByKey.mockRejectedValue(new Error('PRICING_UNAVAILABLE'));
 
     await expect(service.fund(input)).rejects.toThrow('PRICING_UNAVAILABLE');
+    expect(holdForService).not.toHaveBeenCalled();
+  });
+
+  it('issues the source URL from the stored object before holding credits', async () => {
+    const funding = await service.fund(input);
+
+    expect(getPresignedDownloadUrlForObjectKey).toHaveBeenCalledWith(
+      'source-key',
+    );
+    expect(funding.sourceUrl).toBe('https://storage.test/issued-source');
+  });
+
+  it('holds nothing when no URL can be issued for the source', async () => {
+    getPresignedDownloadUrlForObjectKey.mockRejectedValue(
+      new Error('storage down'),
+    );
+
+    await expect(service.fund(input)).rejects.toThrow('storage down');
     expect(holdForService).not.toHaveBeenCalled();
   });
 

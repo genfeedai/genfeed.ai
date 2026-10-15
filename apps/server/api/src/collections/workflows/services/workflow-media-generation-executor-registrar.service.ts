@@ -475,19 +475,15 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       context.organizationId,
       [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
     );
-    const brandId = await this.helper.resolveBrandIdFromInputOrFail(
-      this.helper.readConfigString(node.config, 'brandId'),
-      mediaUrl,
-      'upscale',
-      context.organizationId,
-    );
+    const brandId =
+      this.helper.readConfigString(node.config, 'brandId') ?? asset.brandId;
     const isVideo = asset.category === IngredientCategory.VIDEO;
     const funding = await this.upscaleFunding.fund({
       brandId,
       category: asset.category,
       organizationId: context.organizationId,
       scale: params.scale,
-      sourceIngredientId: asset.id,
+      source: asset,
       targetFps: node.config.fps,
       targetResolution: node.config.resolution,
       userId: context.userId,
@@ -520,7 +516,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
               replicateService.runModel(
                 funding.model,
                 {
-                  [isVideo ? 'video' : 'image']: mediaUrl,
+                  [isVideo ? 'video' : 'image']: funding.sourceUrl,
                   ...funding.providerInput,
                 },
                 undefined,

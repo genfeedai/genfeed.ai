@@ -65,6 +65,7 @@ function setup(
     model: isVideo
       ? MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
       : MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+    sourceUrl: 'https://storage.test/issued-source',
     providerInput: isVideo
       ? { target_fps: 30, target_resolution: '1080p' }
       : { upscale_factor: '2x' },
@@ -101,6 +102,7 @@ function setup(
     brandId: 'brand-1',
     category,
     id: 'source-1',
+    objectKey: 'source-key',
     storageKey: `${String(value)}-key`,
     storageType: isVideo ? 'videos' : 'images',
   }));
@@ -112,7 +114,6 @@ function setup(
     readConfigString: (config: Record<string, unknown>, key: string) =>
       config[key],
     requireMediaAsset,
-    resolveBrandIdFromInputOrFail: vi.fn(async () => 'brand-1'),
     wrapEngineExecutor:
       (executor: INodeExecutor): NodeExecutor =>
       async (node, inputs, ctx) =>
@@ -154,6 +155,7 @@ function setup(
   return {
     createAndLinkProcessingOutput,
     execute,
+    handler,
     failProviderContinuationSubmission,
     fund,
     funding,
@@ -179,14 +181,14 @@ describe('workflow upscale node funding', () => {
       category: IngredientCategory.IMAGE,
       organizationId: 'org-1',
       scale: '2x',
-      sourceIngredientId: 'source-1',
+      source: expect.objectContaining({ id: 'source-1' }),
       targetFps: undefined,
       targetResolution: undefined,
       userId: 'user-1',
     });
     expect(state.runModel).toHaveBeenCalledWith(
       MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-      { image: 'https://api.test/images/source-1', upscale_factor: '2x' },
+      { image: 'https://storage.test/issued-source', upscale_factor: '2x' },
       undefined,
       'continuation-1',
     );
@@ -215,8 +217,33 @@ describe('workflow upscale node funding', () => {
       {
         target_fps: 30,
         target_resolution: '1080p',
-        video: 'https://api.test/images/source-1',
+        video: 'https://storage.test/issued-source',
       },
+      undefined,
+      'continuation-1',
+    );
+  });
+
+  it('sends Replicate the URL issued for the stored source, never the caller string', async () => {
+    const state = setup();
+
+    await state.handler(
+      {
+        config: { model: 'topaz', scale: '2x' },
+        id: 'upscale-1',
+        inputs: [],
+        label: 'Upscale',
+        type: 'upscale',
+      },
+      new Map<string, unknown>([
+        ['media', 'https://attacker.test/images/source-1'],
+      ]),
+      context,
+    );
+
+    expect(state.runModel).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      expect.objectContaining({ image: 'https://storage.test/issued-source' }),
       undefined,
       'continuation-1',
     );

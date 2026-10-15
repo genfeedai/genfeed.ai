@@ -1,5 +1,7 @@
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -8,13 +10,16 @@ import {
   isTopazVideoUpscaleResolution,
   topazImageUpscaleFactor,
 } from '@genfeedai/pricing';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /** What a workflow upscale node dispatches with and how its output is funded. */
 export interface WorkflowUpscaleFunding {
   /** The Topaz model this source is upscaled with. */
   model: string;
+  /** A URL issued for the stored source, never the caller's own string. */
+  sourceUrl: string;
   /** Provider input the quote was priced on, so the run matches the charge. */
   providerInput: Record<string, unknown>;
   /** Binds the output to its hold before the provider sees the job. */
@@ -25,12 +30,21 @@ export interface WorkflowUpscaleFunding {
   releasePool(): Promise<void>;
 }
 
+/** The stored source ingredient a workflow upscale node resolved to. */
+export interface WorkflowUpscaleSourceAsset {
+  category: IngredientCategory;
+  id: string;
+  objectKey?: string;
+  storageKey: string;
+  storageType: string;
+}
+
 export interface WorkflowUpscaleFundingInput {
   brandId: string;
   category: IngredientCategory;
   organizationId: string;
   scale: unknown;
-  sourceIngredientId: string;
+  source: WorkflowUpscaleSourceAsset;
   targetFps: unknown;
   targetResolution: unknown;
   userId: string;
@@ -50,6 +64,10 @@ export class WorkflowUpscaleFundingService {
     private readonly modelQuotes: ModelCreditQuoteService,
     private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
+    @Optional() private readonly filesClientService?: FilesClientService,
+    @Optional() private readonly configService?: ConfigService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
 
   async fund(
@@ -71,6 +89,11 @@ export class WorkflowUpscaleFundingService {
     });
     if (!Number.isFinite(snapshot.credits) || !(snapshot.credits > 0))
       throw new BadRequestException(`Pricing is unavailable for ${model}.`);
+    // Issued for the stored object that was priced, before any credits are held.
+    const sourceUrl = await this.processingMediaUrl(
+      input.organizationId,
+      input.source,
+    );
 
     const credits = snapshot.credits;
     const request = await this.generationBilling.holdForService({
@@ -85,6 +108,7 @@ export class WorkflowUpscaleFundingService {
     });
     return {
       model,
+      sourceUrl,
       providerInput: priced.providerInput,
       bind: (ingredientId) =>
         this.generationBilling.bindOutput(request, { credits, ingredientId }),
@@ -145,7 +169,7 @@ export class WorkflowUpscaleFundingService {
         metadata: { select: { duration: true, height: true, width: true } },
       },
       where: {
-        id: input.sourceIngredientId,
+        id: input.source.id,
         isDeleted: false,
         organizationId: input.organizationId,
       },
@@ -160,7 +184,7 @@ export class WorkflowUpscaleFundingService {
         {
           category: input.category,
           organizationId: input.organizationId,
-          sourceIngredientId: input.sourceIngredientId,
+          sourceIngredientId: input.source.id,
         },
       );
       throw new BadRequestException(
@@ -170,6 +194,33 @@ export class WorkflowUpscaleFundingService {
       );
     }
     return { duration, height, width };
+  }
+
+  private async processingMediaUrl(
+    organizationId: string,
+    asset: WorkflowUpscaleSourceAsset,
+  ): Promise<string> {
+    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+      if (!this.authorizedMediaUrls)
+        throw new Error('Authorized media issuer is unavailable');
+      const urls = await this.authorizedMediaUrls.issueServerPublish(
+        organizationId,
+        [asset.id],
+      );
+      const url = urls.get(asset.id);
+      if (!url) throw new Error('The source asset has no authorized media URL');
+      return url;
+    }
+    if (!this.filesClientService)
+      throw new Error('File storage service is unavailable');
+    return asset.objectKey
+      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          asset.objectKey,
+        )
+      : this.filesClientService.getPresignedDownloadUrl(
+          asset.storageKey,
+          asset.storageType,
+        );
   }
 
   private async releaseOutput(
