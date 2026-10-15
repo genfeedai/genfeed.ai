@@ -686,6 +686,69 @@ describe.skipIf(!connectionString)(
       });
     });
 
+    it('commits the durable done receipt atomically with ownership, and never overwrites it as failed', async () => {
+      const s = await seed(prisma);
+      const id = randomUUID();
+      await prisma.brandRelocation.create({
+        data: {
+          id,
+          brandId: s.brand,
+          organizationId: s.source,
+          destinationOrganizationId: s.destination,
+          userId: s.actor.userId,
+          payload: {},
+        },
+      });
+      await service.relocateToOrganization(
+        s.brand,
+        { organizationId: s.destination },
+        s.actor,
+        undefined,
+        id,
+      );
+      expect(
+        await prisma.brandRelocation.findUnique({ where: { id } }),
+      ).toMatchObject({
+        status: 'done',
+        organizationId: s.source,
+        summary: expect.objectContaining({ workflowsMoved: 1 }),
+      });
+      const failed = await prisma.brandRelocation.updateMany({
+        where: { id, status: 'processing' },
+        data: { status: 'failed' },
+      });
+      expect(failed.count).toBe(0);
+      expect((await orgOf(s)).brand).toBe(s.destination);
+    });
+
+    it('rolls back receipt completion and ownership together when a guard refuses the move', async () => {
+      const s = await seed(prisma, { executionStatus: 'RUNNING' });
+      const id = randomUUID();
+      await prisma.brandRelocation.create({
+        data: {
+          id,
+          brandId: s.brand,
+          organizationId: s.source,
+          destinationOrganizationId: s.destination,
+          userId: s.actor.userId,
+          payload: {},
+        },
+      });
+      await expect(
+        service.relocateToOrganization(
+          s.brand,
+          { organizationId: s.destination },
+          s.actor,
+          undefined,
+          id,
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(
+        await prisma.brandRelocation.findUnique({ where: { id } }),
+      ).toMatchObject({ status: 'processing', summary: null });
+      expect((await orgOf(s)).brand).toBe(s.source);
+    });
+
     it('denies an API key without an explicit admin scope before anything moves', async () => {
       const s = await seed(prisma);
 

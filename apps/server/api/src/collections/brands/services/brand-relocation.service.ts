@@ -56,7 +56,11 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
+import {
+  BrandRelocationStatus,
+  hasExplicitApiKeyAdminScope,
+  MemberRole,
+} from '@genfeedai/contracts';
 import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -145,7 +149,7 @@ export interface BrandRelocationPreview {
   schedulesToHold: BrandRelocationHeldSchedule[];
 }
 
-const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
+export const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
   membersSevered: 0,
   personaGrantsRevoked: 0,
   personasSharingReset: 0,
@@ -207,6 +211,20 @@ export class BrandRelocationService {
    * Authorization: platform superadmin, OR an owner/admin of BOTH the source and
    * destination organizations (guarantees the caller keeps access to the brand).
    */
+  async authorizeRelocation(
+    brandId: string,
+    destOrgId: string,
+    actor: BrandRelocationActingUser,
+  ): Promise<BrandDocument> {
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, isDeleted: false },
+    });
+    if (!brand) throw new NotFoundException('Brand', brandId);
+    await this.assertDestinationOrganizationExists(destOrgId);
+    await this.assertCanRelocate(actor, brand.organizationId, destOrgId);
+    return brand as unknown as BrandDocument;
+  }
+
   async relocateToOrganization(
     brandId: string,
     updateBrandDto: Partial<UpdateBrandDto> & {
@@ -214,6 +232,7 @@ export class BrandRelocationService {
     },
     actingUser: BrandRelocationActingUser,
     patchSameOrganization?: BrandSameOrganizationPatch,
+    relocationId?: string,
   ): Promise<BrandRelocationResult> {
     const destOrgId = updateBrandDto.organizationId;
     if (!destOrgId) {
@@ -277,6 +296,7 @@ export class BrandRelocationService {
               brandId,
               destOrgId,
               passthrough,
+              relocationId,
               slug: updateBrandDto.slug,
               sourceOrgId,
             }),
@@ -322,6 +342,33 @@ export class BrandRelocationService {
       moveResult.touchedWorkflowIds,
     );
     await this.invalidateRelocationCaches(brandId, sourceOrgId, destOrgId);
+
+    if (relocationId) {
+      try {
+        await this.prisma.brandRelocation.update({
+          where: {
+            id: relocationId,
+            organizationId: sourceOrgId,
+            isDeleted: false,
+          },
+          data: {
+            summary: {
+              membersSevered: moveResult.membersSevered,
+              personaGrantsRevoked: moveResult.personaGrantsRevoked,
+              personasSharingReset: moveResult.personasSharingReset,
+              schedulesHeld: moveResult.heldSchedules.length,
+              schedulingPending,
+              workflowsMoved: moveResult.workflowsMoved,
+            },
+          },
+        });
+      } catch (error) {
+        this.logger.warn(
+          'Could not refresh committed brand move scheduling summary',
+          { relocationId, error },
+        );
+      }
+    }
 
     const moved = (await this.prisma.brand.findFirst({
       where: { id: brandId },
@@ -380,6 +427,7 @@ export class BrandRelocationService {
       brandId: string;
       destOrgId: string;
       passthrough: Record<string, unknown>;
+      relocationId?: string;
       slug: string | undefined;
       sourceOrgId: string;
     },
@@ -389,6 +437,21 @@ export class BrandRelocationService {
     // observation: brand, credential and post). Whichever the cascade updates
     // first, the others have not followed yet, so the checks wait for commit,
     // when every parent and child agree.
+    if (move.relocationId) {
+      const claimed = await tx.brandRelocation.updateMany({
+        where: {
+          id: move.relocationId,
+          brandId,
+          organizationId: sourceOrgId,
+          destinationOrganizationId: destOrgId,
+          isDeleted: false,
+          status: BrandRelocationStatus.PROCESSING,
+        },
+        data: { updatedAt: new Date() },
+      });
+      if (claimed.count !== 1)
+        throw new ConflictException('This brand move has already finished');
+    }
     await tx.$executeRaw`SET CONSTRAINTS ALL DEFERRED`;
     await this.prepareLearningRelocation(
       tx,
@@ -419,6 +482,26 @@ export class BrandRelocationService {
       move.passthrough,
     );
     await assertNoBrandOrgOrphans(tx, brandId, destOrgId);
+    if (move.relocationId) {
+      await tx.brandRelocation.update({
+        where: {
+          id: move.relocationId,
+          organizationId: sourceOrgId,
+          isDeleted: false,
+        },
+        data: {
+          status: BrandRelocationStatus.DONE,
+          summary: {
+            membersSevered: result.membersSevered,
+            personaGrantsRevoked,
+            personasSharingReset: sharedPersonas.length,
+            schedulesHeld: held.length,
+            schedulingPending: touchedWorkflowIds.length,
+            workflowsMoved: result.workflowsMoved,
+          },
+        },
+      });
+    }
     return {
       ...result,
       heldSchedules: held,
@@ -658,7 +741,7 @@ export class BrandRelocationService {
     }
   }
 
-  private async assertCanRelocate(
+  async assertCanRelocate(
     actingUser: BrandRelocationActingUser,
     sourceOrgId: string,
     destOrgId: string,

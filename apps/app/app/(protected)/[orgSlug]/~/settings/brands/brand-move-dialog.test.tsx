@@ -163,17 +163,62 @@ describe('BrandMoveDialog', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument(),
     );
-    expect(service.relocateBrand).toHaveBeenNthCalledWith(1, 'b1', {
-      organizationId: 'org-2',
-    });
-    expect(service.relocateBrand).toHaveBeenNthCalledWith(2, 'b2', {
-      organizationId: 'org-2',
-    });
+    expect(service.relocateBrand).toHaveBeenNthCalledWith(
+      1,
+      'b1',
+      { organizationId: 'org-2' },
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+        onProcessing: expect.any(Function),
+      }),
+    );
+    expect(service.relocateBrand).toHaveBeenNthCalledWith(
+      2,
+      'b2',
+      { organizationId: 'org-2' },
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+        onProcessing: expect.any(Function),
+      }),
+    );
     expect(screen.getByTestId('brand-move-b1')).toHaveTextContent('Moved');
     expect(screen.getByTestId('brand-move-b2')).toHaveTextContent(
       'A record in the destination conflicts.',
     );
     expect(onMoved).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows processing and keeps the move open through a connection interruption', async () => {
+    service.getRelocationPreview.mockResolvedValue(preview);
+    let finish: ((result: unknown) => void) | undefined;
+    service.relocateBrand
+      .mockImplementationOnce((_id, _body, options) => {
+        options.onProcessing(true);
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      })
+      .mockResolvedValue({ summary: { membersSevered: 0 } });
+    const onMoved = renderDialog();
+    await pickDestination();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Move 2 brands' }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('brand-move-b1')).toHaveTextContent(
+        'Processing',
+      ),
+    );
+    expect(screen.getByTestId('brand-move-b1')).toHaveTextContent(
+      'Checking progress',
+    );
+    expect(screen.queryByText('Failed')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeEnabled();
+    await act(async () => {
+      finish?.({ summary: { membersSevered: 0 } });
+    });
+    await waitFor(() => expect(onMoved).toHaveBeenCalledOnce());
+    expect(screen.getByTestId('brand-move-b1')).toHaveTextContent('Moved');
   });
 
   it('returns to review with a retryable message when the service is unavailable', async () => {

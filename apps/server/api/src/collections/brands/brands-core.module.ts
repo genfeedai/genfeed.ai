@@ -31,6 +31,7 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   exports: [
+    BrandRelocationService,
     BrandAssetAutofillService,
     BrandKitAssetsService,
     BrandScraperModule,

@@ -522,12 +522,14 @@
         "checking": "Checking",
         "failed": "Failed",
         "moved": "Moved",
-        "moving": "Moving",
+        "moving": "Processing",
         "ready": "Ready"
       },
       "titleMany": "Move {count} brands to another organization",
       "titleOne": "Move 1 brand to another organization",
-      "workflowsMove": "{count, plural, one {# dedicated workflow moves with it.} other {# dedicated workflows move with it.}}"
+      "workflowsMove": "{count, plural, one {# dedicated workflow moves with it.} other {# dedicated workflows move with it.}}",
+      "processing": "The move is processing in the background. You can close this dialog.",
+      "reconnecting": "Checking progress. The move continues while the connection recovers."
     },
     "characters": {
       "availability": {

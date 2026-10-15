@@ -6,6 +6,7 @@ import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
+import { BrandRelocationJobsModule } from '@api/collections/brands/brand-relocation-jobs.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
@@ -63,6 +64,7 @@ import { Module } from '@nestjs/common';
     MasterPromptGeneratorService,
   ],
   imports: [
+    BrandRelocationJobsModule,
     BrandAccessModule,
     PlatformSettingsModule,
     BrandsCoreModule,

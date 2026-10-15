@@ -89,6 +89,6 @@ export interface IBrandRelocationSummary {
  * the relocation summary from the response's top-level `meta`.
  */
 export interface IBrandRelocationResult {
-  brand: Brand;
+  brand?: Brand;
   summary: IBrandRelocationSummary;
 }

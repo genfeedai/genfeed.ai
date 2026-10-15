@@ -173,6 +173,49 @@ describe('BrandRelocationService', () => {
     vi.clearAllMocks();
   });
 
+  it('locks its receipt before moving and commits done with the ownership transaction', async () => {
+    primeRelocatableBrand();
+    getDelegate('brandRelocation').updateMany.mockResolvedValue({ count: 1 });
+    await service.relocateToOrganization(
+      BRAND_ID,
+      { organizationId: DEST_ORG },
+      { userId: USER_ID, isSuperAdmin: true },
+      undefined,
+      'move-1',
+    );
+    expect(getDelegate('brandRelocation').updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'move-1', status: 'processing' }),
+      }),
+    );
+    expect(getDelegate('brandRelocation').update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'done',
+          summary: expect.objectContaining({ membersSevered: 0 }),
+        }),
+      }),
+    );
+    expect(
+      getDelegate('brandRelocation').updateMany.mock.invocationCallOrder[0],
+    ).toBeLessThan(getDelegate('brand').updateMany.mock.invocationCallOrder[0]);
+  });
+
+  it('does not move ownership after its receipt has been finalized', async () => {
+    primeRelocatableBrand();
+    getDelegate('brandRelocation').updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { userId: USER_ID, isSuperAdmin: true },
+        undefined,
+        'move-1',
+      ),
+    ).rejects.toThrow('already finished');
+    expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+  });
+
   function primeBrand(currentOrg = SOURCE_ORG): void {
     getDelegate('brand').findFirst.mockResolvedValue({
       id: BRAND_ID,

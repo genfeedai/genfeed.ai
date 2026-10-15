@@ -498,7 +498,8 @@ export function useModalBrand(
         const updatedBrand = await service.patch(overlayBrandId, {
           [field]: value,
         });
-        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
+        if (updatedBrand)
+          mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
         onConfirm?.(true);
       } catch (updateError) {
         logger.error('Failed to update brand field', updateError);
@@ -791,8 +792,15 @@ export function useModalBrand(
         );
 
         mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
-        await refreshBrand();
-        await refreshBrands();
+        try {
+          await refreshBrand();
+          await refreshBrands();
+        } catch (refreshError) {
+          logger.warn(
+            'Brand moved; refreshing its view will be retried',
+            refreshError,
+          );
+        }
         onConfirm?.(true);
         setOverlayView('overview');
 

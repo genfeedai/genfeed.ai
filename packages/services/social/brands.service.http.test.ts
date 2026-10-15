@@ -574,22 +574,58 @@ describe('BrandsService HTTP methods', () => {
     expect(result).toEqual(preview);
   });
 
-  it('relocateBrand PATCHes and returns brand plus meta summary', async () => {
+  it('starts a move with an idempotency key, polls done, and maps the refreshed brand', async () => {
+    const operation = {
+      brandId,
+      organizationId: 'org_1',
+      destinationOrganizationId: 'org_2',
+      status: 'processing',
+    };
     http.patch.mockResolvedValue(
       axiosResponse({
-        ...resourceDocument({ label: 'Acme' }, { id: brandId }),
-        meta: { membersSevered: 1, workflowsMoved: 2 },
+        data: {
+          id: 'operation-1',
+          type: 'brand-relocation',
+          attributes: operation,
+        },
       }),
     );
-
-    const result = await service.relocateBrand(brandId, {
-      organizationId: 'org_2',
-    });
-
-    expect(http.patch).toHaveBeenCalledWith(`/${brandId}`, {
-      organizationId: 'org_2',
-    });
-    expect(result.brand).toBeInstanceOf(Brand);
-    expect(result.summary).toEqual({ membersSevered: 1, workflowsMoved: 2 });
+    http.get.mockResolvedValue(
+      axiosResponse({
+        data: {
+          id: 'operation-1',
+          type: 'brand-relocation',
+          attributes: {
+            ...operation,
+            status: 'done',
+            summary: { membersSevered: 1, workflowsMoved: 2 },
+          },
+        },
+        meta: { brand: resourceDocument({ label: 'Acme' }, { id: brandId }) },
+      }),
+    );
+    vi.useFakeTimers();
+    try {
+      const promise = service.relocateBrand(brandId, {
+        organizationId: 'org_2',
+      });
+      await vi.advanceTimersByTimeAsync(1000);
+      const result = await promise;
+      expect(http.patch).toHaveBeenCalledWith(
+        `/${brandId}`,
+        { organizationId: 'org_2' },
+        expect.objectContaining({
+          headers: { 'Idempotency-Key': expect.any(String) },
+        }),
+      );
+      expect(http.get).toHaveBeenCalledWith(
+        `/${brandId}/relocations/operation-1`,
+        { signal: undefined },
+      );
+      expect(result.brand).toBeInstanceOf(Brand);
+      expect(result.summary).toEqual({ membersSevered: 1, workflowsMoved: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
