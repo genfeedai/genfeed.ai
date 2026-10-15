@@ -66,7 +66,7 @@ function providerModel(
 
 function validOpenapi(
   properties: Record<string, unknown> = { prompt: { type: 'string' } },
-): Record<string, unknown> {
+): Record<string, unknown> & { openapi: string } {
   return {
     components: {
       schemas: {
