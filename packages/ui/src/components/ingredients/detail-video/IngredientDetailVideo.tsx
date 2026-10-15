@@ -106,7 +106,6 @@ export default function IngredientDetailVideo({
     }
   }, [currentVideo.id, getVideosService]);
 
-  // Use the shared metadata hook
   const { updateMetadata: updateMetadataHook } = useIngredientMetadata(
     currentVideo,
     (updated) => {
@@ -115,7 +114,6 @@ export default function IngredientDetailVideo({
     handleRefreshMetadata,
   );
 
-  // Use the shared sharing hook
   const { updateSharing: updateSharingHook } = useIngredientSharing(
     currentVideo,
     (updated) => {
@@ -257,7 +255,6 @@ export default function IngredientDetailVideo({
 
   return (
     <>
-      {/* Video Display - First Column */}
       <VideoDetailFirstColumn
         currentVideo={currentVideo}
         videoRef={videoRef}

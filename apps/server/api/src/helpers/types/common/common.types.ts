@@ -1,4 +1,3 @@
-// Base pagination query interface
 export interface BasePaginationQuery {
   page?: number;
   limit?: number;
@@ -53,7 +52,6 @@ export interface QueryFilters {
   updatedBefore?: Date;
 }
 
-// Bulk operation result
 export interface BulkOperationResult {
   success: boolean;
   totalProcessed: number;
@@ -62,7 +60,6 @@ export interface BulkOperationResult {
   errors?: string[];
 }
 
-// File upload result
 export interface FileUploadResult {
   filename: string;
   originalName: string;
@@ -88,7 +85,6 @@ export interface UpdateResult {
   acknowledged: boolean;
 }
 
-// Error details
 export interface ErrorDetails {
   code: string;
   message: string;
@@ -97,7 +93,6 @@ export interface ErrorDetails {
   timestamp: string;
 }
 
-// Webhook payload
 export interface WebhookPayload<T = unknown> {
   id: string;
   type: string;

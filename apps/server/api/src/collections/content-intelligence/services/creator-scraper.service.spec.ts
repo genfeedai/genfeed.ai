@@ -48,8 +48,6 @@ function makeCreator(platform: ContentIntelligencePlatform) {
   };
 }
 
-// ─── calculateAggregateMetrics ─────────────────────────────────────────────
-
 describe('CreatorScraperService.calculateAggregateMetrics', () => {
   let service: CreatorScraperService;
 

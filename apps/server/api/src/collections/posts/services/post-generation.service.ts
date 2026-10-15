@@ -66,10 +66,6 @@ export class PostGenerationService {
     private readonly templatesService: TemplatesService,
   ) {}
 
-  // ==========================================================================
-  // TEXT HELPERS
-  // ==========================================================================
-
   /**
    * Extract a label from tweet text (first ~50 characters, truncated at word boundary)
    */
@@ -97,10 +93,6 @@ export class PostGenerationService {
       identity,
     );
   }
-
-  // ==========================================================================
-  // THREAD EXPANSION
-  // ==========================================================================
 
   /** Expand a post into a Twitter/X thread, updating child posts as generation completes. */
   async expandThreadAsync(
@@ -180,7 +172,6 @@ export class PostGenerationService {
     const currentDescription = post.description || '';
     const platform = post.platform || 'social media';
 
-    // Map platform to system prompt key
     const platformSystemPromptMap: Record<string, string> = {
       instagram: SystemPromptKey.INSTAGRAM,
       linkedin: SystemPromptKey.LINKEDIN,
@@ -193,7 +184,6 @@ export class PostGenerationService {
       platformSystemPromptMap[platform.toLowerCase()] ||
       SystemPromptKey.DEFAULT;
 
-    // Get rendered prompt from template
     const prompt = await this.templatesService.getRenderedPrompt(
       PromptTemplateKey.POST_ENHANCEMENT,
       {
@@ -225,10 +215,6 @@ export class PostGenerationService {
       byokApiKeyOverride,
     );
   }
-
-  // ==========================================================================
-  // HOOK VARIATIONS
-  // ==========================================================================
 
   /** Generate hook variations for a topic/platform. Throws on AI failure; caller maps the error onto the HTTP boundary. */
   async generateHookVariations(

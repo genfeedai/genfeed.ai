@@ -20,7 +20,6 @@ class SentryService {
     Sentry.init({
       attachStacktrace: true,
       beforeSend(event) {
-        // Filter out sensitive data
         if (event.request?.headers) {
           delete event.request.headers.Authorization;
           delete event.request.headers.Cookie;

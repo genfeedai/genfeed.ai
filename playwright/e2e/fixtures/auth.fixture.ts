@@ -43,10 +43,6 @@ import { test as base } from './coverage.fixture';
  * @module auth.fixture
  */
 
-// ----------------------------------------------------------------------------
-// Type Definitions
-// ----------------------------------------------------------------------------
-
 interface AuthFixtures {
   authenticatedPage: Page;
   adminPage: Page;
@@ -65,10 +61,6 @@ interface MockUserOptions {
   organizationName?: string;
 }
 
-// ----------------------------------------------------------------------------
-// Mock Session Data
-// ----------------------------------------------------------------------------
-
 const MOCK_SESSION = {
   expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   organizationId: 'mock-org-id-e2e-test',
@@ -86,10 +78,6 @@ const MOCK_ADMIN_SESSION = {
 const APP_AUTH_BOOTSTRAP_PATH = '/workspace';
 const ADMIN_AUTH_BOOTSTRAP_PATH = '/admin/overview/dashboard';
 const AUTOMATION_AUTH_BOOTSTRAP_PATH = '/test-org/brand-1/automation/workflows';
-
-// ----------------------------------------------------------------------------
-// Setup Helpers
-// ----------------------------------------------------------------------------
 
 /**
  * Set cookies that signal the E2E bypass to both middleware and tests.

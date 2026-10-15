@@ -16,7 +16,6 @@ export function StudioHandoffCard({
 
   return (
     <div className="my-2 overflow-hidden border border-border bg-background">
-      {/* Thumbnail */}
       {thumbnailUrl && (
         <div className="bg-muted">
           <Image
@@ -44,14 +43,12 @@ export function StudioHandoffCard({
           </p>
         )}
 
-        {/* Editor type badge */}
         <div className="mb-3">
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-2xs font-medium text-primary  ">
             {editorType}
           </span>
         </div>
 
-        {/* Open in Studio button */}
         <a
           href={studioUrl}
           className="flex w-full items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"

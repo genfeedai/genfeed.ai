@@ -21,10 +21,6 @@ const e2eRoots = [
   path.join(repoRoot, 'playwright/e2e/pages'),
 ];
 
-// ---------------------------------------------------------------------------
-// Route discovery (mirrors all-app-pages.spec.ts logic)
-// ---------------------------------------------------------------------------
-
 /** @param {string} dir @returns {string[]} */
 function listPageFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

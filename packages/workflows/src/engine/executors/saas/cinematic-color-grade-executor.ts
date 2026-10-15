@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export type CameraProfile =
   | 'arri_logc4'
   | 'red_ippc2'
@@ -42,11 +38,6 @@ export type CinematicColorGradeProcessor = (params: {
   customLUT?: string;
 }) => Promise<CinematicColorGradeResult>;
 
-// ---------------------------------------------------------------------------
-// Camera profile base curves (applied before user adjustments)
-// These simulate log-to-rec709 transforms for each camera system.
-// ---------------------------------------------------------------------------
-
 export const CAMERA_PROFILE_CURVES: Record<CameraProfile, string> = {
   arri_logc4:
     'curves=r=0/0 0.25/0.20 0.5/0.55 0.75/0.85 1/1:g=0/0 0.25/0.18 0.5/0.52 0.75/0.83 1/1:b=0/0 0.25/0.15 0.5/0.48 0.75/0.80 1/1',
@@ -62,10 +53,6 @@ export const CAMERA_PROFILE_CURVES: Record<CameraProfile, string> = {
     'curves=r=0/0 0.3/0.22 0.5/0.50 0.7/0.78 1/1:g=0/0 0.3/0.20 0.5/0.48 0.7/0.76 1/1:b=0/0 0.3/0.18 0.5/0.46 0.7/0.74 1/1',
 };
 
-// ---------------------------------------------------------------------------
-// Filter chain builder
-// ---------------------------------------------------------------------------
-
 /**
  * Builds a cinematic FFmpeg filter chain from color grade config.
  *
@@ -80,7 +67,6 @@ export function buildCinematicColorGradeFilterChain(
 ): string {
   const filters: string[] = [];
 
-  // 1. Camera profile curves
   filters.push(CAMERA_PROFILE_CURVES[config.cameraProfile]);
 
   // 2. Color balance from shadows / midtones / highlights + temperature

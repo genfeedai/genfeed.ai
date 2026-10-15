@@ -125,8 +125,6 @@ describe('AdsGatewayController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── validatePlatform ─────────────────────────────────────────────────────
-
   describe('platform validation', () => {
     it('should throw BadRequestException for unknown platform', async () => {
       await expect(
@@ -159,8 +157,6 @@ describe('AdsGatewayController', () => {
       ).resolves.toBeDefined();
     });
   });
-
-  // ─── resolveAccessToken ───────────────────────────────────────────────────
 
   describe('credential resolution', () => {
     it.each([
@@ -254,8 +250,6 @@ describe('AdsGatewayController', () => {
     });
   });
 
-  // ─── getAdAccounts ────────────────────────────────────────────────────────
-
   describe('getAdAccounts', () => {
     it('should call adapter.getAdAccounts and return results', async () => {
       const mockAccounts = [{ id: 'act_1', name: 'Test Account' }];
@@ -278,8 +272,6 @@ describe('AdsGatewayController', () => {
     });
   });
 
-  // ─── listCampaigns ────────────────────────────────────────────────────────
-
   describe('listCampaigns', () => {
     it('should call adapter.listCampaigns with correct context', async () => {
       const mockCampaigns = [{ id: 'camp_1', name: 'Summer Sale' }];
@@ -301,8 +293,6 @@ describe('AdsGatewayController', () => {
       );
     });
   });
-
-  // ─── getCampaignInsights ─────────────────────────────────────────────────
 
   describe('getCampaignInsights', () => {
     it('normalizes last_7d to one inclusive seven-day timeRange before the adapter', async () => {

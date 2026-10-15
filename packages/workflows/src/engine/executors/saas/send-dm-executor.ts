@@ -6,10 +6,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type DmPlatform = 'twitter' | 'instagram';
 
 export interface SendDmConfig {
@@ -60,10 +56,6 @@ export type DmSender = (params: {
   workflowRunId: string;
   mediaUrl?: string;
 }) => Promise<{ messageId: string }>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Send DM Executor

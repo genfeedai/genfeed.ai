@@ -133,7 +133,6 @@ export const generateCASTPrompt = (input: CASTInput): CASTOutput => {
     return generateUgcCastPrompt(input, ugcPreset);
   }
 
-  // Validate preset exists
   const preset = getPresetById(input.presetId);
   if (!preset) {
     throw new Error(`Preset not found: ${input.presetId}`);

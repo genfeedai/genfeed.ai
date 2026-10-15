@@ -55,10 +55,8 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    // Initialize services config first
     this.initializeServices();
 
-    // Initialize Redis
     await this.initializeRedis();
 
     // Then verify required services. Peer microservices are checked but never

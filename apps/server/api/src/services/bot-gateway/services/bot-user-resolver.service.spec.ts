@@ -47,8 +47,6 @@ describe('BotUserResolverService', () => {
     expect(service).toBeDefined();
   });
 
-  // ──────────────────────────── resolveUser ────────────────────────────
-
   describe('resolveUser', () => {
     it('returns null when no credential found', async () => {
       credentialsService.findOne.mockResolvedValue(null);
@@ -90,8 +88,6 @@ describe('BotUserResolverService', () => {
       expect(loggerService.error).toHaveBeenCalled();
     });
   });
-
-  // ───────────────────────── resolveUserWithBrand ──────────────────────
 
   describe('resolveUserWithBrand', () => {
     it('returns null when base resolveUser returns null', async () => {
@@ -157,8 +153,6 @@ describe('BotUserResolverService', () => {
       expect(result?.credentialId).toBe(cred.id.toString());
     });
   });
-
-  // ─────────────────────────── getUserBrands ───────────────────────────
 
   describe('getUserBrands', () => {
     it('returns mapped brand list', async () => {

@@ -1,3 +1,4 @@
+import { helpArticleSlugs } from '@data/help-articles.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
 import type { Article } from '@models/content/article.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,6 +31,18 @@ describe('website sitemap', () => {
     }
     expect(urls.has('https://genfeed.ai/contact')).toBe(true);
     expect(urls.has('https://genfeed.ai/tools/ai-model-selector')).toBe(true);
+  });
+
+  it('keeps every Cloud help article discoverable when the article API is unavailable', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+    const urls = new Set(routes.map((route) => route.url));
+
+    expect(helpArticleSlugs.length).toBeGreaterThan(0);
+    for (const slug of helpArticleSlugs) {
+      expect(urls.has(`https://genfeed.ai/articles/${slug}`)).toBe(true);
+    }
   });
 
   it('lists every agent client and client-channel page', async () => {

@@ -86,7 +86,6 @@ export default function FiltersButton({
     }
   }, [isOpen]);
 
-  // Notify parent of filter changes
   const notifyFilterChange = useCallback(
     (newFilters: typeof filters) => {
       const query: IFilters = {};

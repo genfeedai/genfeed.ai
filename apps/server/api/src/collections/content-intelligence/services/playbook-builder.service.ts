@@ -137,7 +137,6 @@ export class PlaybookBuilderService extends BaseService<
       },
     );
 
-    // Calculate top hooks
     const hookPatterns = patterns.filter(
       (p) => p.patternType === ContentPatternType.HOOK,
     );
@@ -150,13 +149,10 @@ export class PlaybookBuilderService extends BaseService<
         formula: p.extractedFormula,
       }));
 
-    // Calculate content mix
     const contentMix = this.calculateContentMix(patterns);
 
-    // Calculate benchmarks
     const benchmarks = this.calculateBenchmarks(patterns);
 
-    // Calculate hashtag strategy
     const hashtagStrategy = this.extractHashtagStrategy(patterns);
 
     const insights = {

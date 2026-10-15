@@ -97,7 +97,6 @@ export class ArticleAnalyticsService extends BaseService<
     const currentShares =
       metrics.totalShares ?? todayAnalytics?.totalShares ?? 0;
 
-    // Calculate engagement rate
     const engagementRate =
       currentViews > 0
         ? ((currentLikes + currentComments + currentShares) / currentViews) *

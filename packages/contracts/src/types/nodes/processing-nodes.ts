@@ -1,7 +1,3 @@
-// =============================================================================
-// PROCESSING NODE DATA
-// =============================================================================
-
 import type {
   GridPosition,
   LumaAspectRatio,
@@ -201,10 +197,6 @@ export interface VideoQaNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
-// =============================================================================
-// REFRAME NODE DATA
-// =============================================================================
-
 export type ReframeInputType = 'image' | 'video' | null;
 
 export interface ReframeNodeData extends BaseNodeData {
@@ -226,10 +218,6 @@ export interface ReframeNodeData extends BaseNodeData {
   // Job state
   jobId: string | null;
 }
-
-// =============================================================================
-// UPSCALE NODE DATA
-// =============================================================================
 
 export type UpscaleInputType = 'image' | 'video' | null;
 
@@ -338,10 +326,6 @@ export interface SubtitleNodeData extends BaseNodeData {
   // Job state
   jobId: string | null;
 }
-
-// =============================================================================
-// OUTPUT NODE DATA
-// =============================================================================
 
 export interface OutputGalleryNodeData extends BaseNodeData {
   images: string[];

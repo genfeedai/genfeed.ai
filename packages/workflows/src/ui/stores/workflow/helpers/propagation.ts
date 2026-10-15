@@ -114,7 +114,6 @@ export function mapOutputToInput(
 ): Record<string, unknown> | null {
   const outputType = getOutputType(sourceType);
 
-  // Handle download node
   if (targetType === 'download') {
     if (outputType === 'video') {
       return { inputImage: null, inputType: 'video', inputVideo: output };
@@ -243,11 +242,9 @@ export function computeDownstreamUpdates(
     { nodeId: sourceNodeId, output: initialOutput },
   ];
 
-  // --- BFS traversal ---
   while (queue.length > 0) {
     const current = queue.shift()!;
 
-    // --- Cycle prevention ---
     if (visited.has(current.nodeId)) continue;
     visited.add(current.nodeId);
 
@@ -260,7 +257,6 @@ export function computeDownstreamUpdates(
       const targetNode = nodeMap.get(edge.target);
       if (!targetNode) continue;
 
-      // --- Gallery aggregation (outputGallery special case) ---
       if (targetNode.type === 'outputGallery') {
         const sourceData = currentNode.data as Record<string, unknown>;
         const existing = updates.get(edge.target) ?? {};
@@ -281,7 +277,6 @@ export function computeDownstreamUpdates(
         continue;
       }
 
-      // --- Type-aware routing ---
       const inputUpdate = mapOutputToInput(
         current.output,
         currentNode.type,
@@ -291,7 +286,6 @@ export function computeDownstreamUpdates(
         const existing = updates.get(edge.target) ?? {};
         updates.set(edge.target, { ...existing, ...inputUpdate });
 
-        // --- Passthrough: re-enqueue if target already has output ---
         const targetOutput = getNodeOutput(targetNode);
         if (targetOutput && !visited.has(edge.target)) {
           queue.push({ nodeId: edge.target, output: targetOutput });

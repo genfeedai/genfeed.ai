@@ -2,10 +2,6 @@ import { act, renderHook } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ────────────────────────────────────────────────────────────
-// Mock every service boundary before importing the hook
-// ────────────────────────────────────────────────────────────
-
 vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('@genfeedai/contracts/constants')>();

@@ -21,8 +21,8 @@ describe('article.enum', () => {
   });
 
   describe('ArticleCategory', () => {
-    it('should have 14 members', () => {
-      expect(Object.values(ArticleCategory)).toHaveLength(14);
+    it('should have 15 members', () => {
+      expect(Object.values(ArticleCategory)).toHaveLength(15);
     });
 
     it('should have correct values', () => {
@@ -40,6 +40,7 @@ describe('article.enum', () => {
       expect(ArticleCategory.LISTICLE).toBe('listicle');
       expect(ArticleCategory.LINKEDIN_ARTICLE).toBe('linkedin-article');
       expect(ArticleCategory.X_ARTICLE).toBe('x-article');
+      expect(ArticleCategory.HELP).toBe('help');
     });
   });
 

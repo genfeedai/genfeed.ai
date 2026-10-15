@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export function handleMetaAdsTool(
   client: ClientService,
@@ -17,9 +18,10 @@ export function handleMetaAdsTool(
         a.datePreset as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Campaign Comparison:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Campaign Comparison:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -31,9 +33,10 @@ export function handleMetaAdsTool(
         a.datePreset as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Ad Insights:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Ad Insights:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -45,9 +48,10 @@ export function handleMetaAdsTool(
         a.datePreset as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Ad Set Insights:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Ad Set Insights:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -61,9 +65,10 @@ export function handleMetaAdsTool(
         a.until as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Campaign Insights:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Campaign Insights:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -76,9 +81,10 @@ export function handleMetaAdsTool(
         a.limit as number | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Top Performers by ${a.metric}:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Top Performers by ${a.metric}:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -87,11 +93,12 @@ export function handleMetaAdsTool(
     list_meta_ad_accounts: async () => {
       const result = await client.listMetaAdAccounts();
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} ad accounts:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} ad accounts:\n\n${formatToolData(result)}`
                 : 'No Meta ad accounts found. Make sure your Facebook account has ads_management permission.',
             type: 'text' as const,
           },
@@ -104,11 +111,12 @@ export function handleMetaAdsTool(
         a.limit as number | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} creatives:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} creatives:\n\n${formatToolData(result)}`
                 : 'No ad creatives found.',
             type: 'text' as const,
           },
@@ -122,11 +130,12 @@ export function handleMetaAdsTool(
         a.limit as number | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} campaigns:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} campaigns:\n\n${formatToolData(result)}`
                 : 'No campaigns found.',
             type: 'text' as const,
           },

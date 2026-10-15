@@ -118,7 +118,6 @@ export function IngredientPickerCard({
 
   return (
     <div className="mt-2 border border-border bg-background">
-      {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         <Image className="size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
@@ -131,7 +130,6 @@ export function IngredientPickerCard({
         </div>
       </div>
 
-      {/* Grid */}
       <div className="p-2">
         {ingredients.length === 0 ? (
           <p className="py-4 text-center text-xs text-muted-foreground">
@@ -151,7 +149,6 @@ export function IngredientPickerCard({
         )}
       </div>
 
-      {/* Confirm button */}
       {selectedId && (
         <div className="border-t border-border p-2">
           <Button

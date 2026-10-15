@@ -20,10 +20,6 @@ const DEFAULT_TOPAZ_IMAGE_UPSCALE_TIER =
     (tier: TopazImageUpscaleTier) => 1 <= tier.maxMP,
   ) ?? PRICING['topaz-image-upscale'][0];
 
-// =============================================================================
-// HELPERS
-// =============================================================================
-
 function isNodeType(type: string, list: readonly string[]): boolean {
   return list.includes(type);
 }
@@ -35,10 +31,6 @@ function getDataField<T>(
 ): T {
   return (data[key] as T) ?? fallback;
 }
-
-// =============================================================================
-// COST CALCULATOR
-// =============================================================================
 
 export function calculateWorkflowCost(nodes: WorkflowNode[]): CostBreakdown {
   const estimates: NodeCostEstimate[] = [];

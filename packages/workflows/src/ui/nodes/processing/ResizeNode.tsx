@@ -86,7 +86,6 @@ function ResizeNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
-        {/* Media Type Selection */}
         <div className="space-y-1.5">
           <Label className="text-xs" id={`resize-media-type-${id}`}>
             Media Type

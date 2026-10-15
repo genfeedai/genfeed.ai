@@ -12,6 +12,11 @@ const platformState = vi.hoisted(() => ({
 const routeGate = vi.hoisted(() => vi.fn());
 const notifyChanged = vi.hoisted(() => vi.fn());
 const receiveFlags = vi.hoisted(() => vi.fn());
+const bootSpies = vi.hoisted(() => ({
+  apiAuthBridge: vi.fn(),
+  organizationProvider: vi.fn(),
+  sessionKeepAlive: vi.fn(),
+}));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -33,8 +38,18 @@ vi.mock('@/lib/analytics', () => ({ identifyAnalyticsUser: vi.fn() }));
 vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
   captureWorkspaceShellSession: vi.fn(),
 }));
-vi.mock('@genfeedai/auth-client', () => ({ SessionKeepAlive: () => null }));
-vi.mock('./api-auth-bridge', () => ({ default: () => null }));
+vi.mock('@genfeedai/auth-client', () => ({
+  SessionKeepAlive: () => {
+    bootSpies.sessionKeepAlive();
+    return null;
+  },
+}));
+vi.mock('./api-auth-bridge', () => ({
+  default: () => {
+    bootSpies.apiAuthBridge();
+    return null;
+  },
+}));
 vi.mock('@hooks/feature-flags/provider', () => ({
   FeatureFlagProvider: ({
     children,
@@ -50,8 +65,10 @@ vi.mock('@hooks/feature-flags/provider', () => ({
 vi.mock(
   '@genfeedai/contexts/user/organization-context/organization-context',
   () => ({
-    RoutedOrganizationProvider: ({ children }: { children: ReactNode }) =>
-      children,
+    RoutedOrganizationProvider: ({ children }: { children: ReactNode }) => {
+      bootSpies.organizationProvider();
+      return children;
+    },
   }),
 );
 vi.mock('./routed-organization-boundary', () => ({
@@ -107,6 +124,19 @@ describe('protected shell platform flags recovery', () => {
     expect(screen.queryByText('Workspace')).not.toBeInTheDocument();
     expect(routeGate).not.toHaveBeenCalled();
     expect(receiveFlags).not.toHaveBeenCalled();
+  });
+
+  it('starts session, auth bridge and organization boot while flags load', () => {
+    render(
+      <ProtectedLayoutClient>
+        <p>Workspace</p>
+      </ProtectedLayoutClient>,
+    );
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(bootSpies.sessionKeepAlive).toHaveBeenCalled();
+    expect(bootSpies.apiAuthBridge).toHaveBeenCalled();
+    expect(bootSpies.organizationProvider).toHaveBeenCalled();
   });
 
   it('offers retry after an outage and mounts the shell after recovery', () => {

@@ -74,7 +74,6 @@ function getReactFlowNodeType(category: string): string {
   return NODE_TYPE_MAP[category] || 'process-node';
 }
 
-// Convert workflow nodes to React Flow nodes
 function toReactFlowNodes(
   nodes: WorkflowVisualNode[],
   nodeRegistry: Record<string, NodeDefinition>,
@@ -96,7 +95,6 @@ function toReactFlowNodes(
   });
 }
 
-// Convert workflow edges to React Flow edges
 function toReactFlowEdges(edges: WorkflowEdge[]): Edge[] {
   return edges.map((edge) => ({
     animated: true,
@@ -136,13 +134,11 @@ export function useWorkflowBuilder({
     processing: [],
   });
 
-  // Initialize React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState<
     Node<WorkflowNodeData>
   >([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  // Fetch node registry on mount
   useEffect(() => {
     const controller = new AbortController();
 
@@ -152,7 +148,6 @@ export function useWorkflowBuilder({
         setError(null);
 
         const token = await resolveAuthToken(getToken);
-        // Fetch node registry from API
         const response = await fetch(`${apiBaseUrl}/workflows/nodes/registry`, {
           headers: {
             ...getRequestOrganizationHeaders(),

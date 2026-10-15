@@ -37,7 +37,7 @@ describe('handleAccountManagementTool', () => {
 
     expect(client.getJobStatus).toHaveBeenCalledWith('job-1');
     expect(textOf(result.content[0])).toContain('Job Status');
-    expect(textOf(result.content[0])).toContain('COMPLETED');
+    expect(textOf(result.content[0])).toContain('Completed');
   });
 
   it('rejects an unknown account management tool name', () => {

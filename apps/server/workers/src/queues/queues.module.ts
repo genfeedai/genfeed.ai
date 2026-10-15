@@ -66,7 +66,6 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 100,
         },
       },
-      // ---------- Existing queues (crons + processors) ----------
       {
         defaultJobOptions: {
           removeOnComplete: 500,
@@ -83,7 +82,6 @@ import { ConfigService } from '@workers/config/config.service';
         },
         name: DEFAULT_QUEUE,
       },
-      // ---------- Newly registered queues (moved from API) ----------
       {
         defaultJobOptions: {
           attempts: 3,

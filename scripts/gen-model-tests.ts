@@ -29,12 +29,10 @@ for (const modelFile of modelFiles) {
   const _relDir = path.relative(modelsDir, path.dirname(modelFile));
   const baseName = path.basename(modelFile, '.model.ts');
 
-  // Extract class name
   const classMatch = content.match(/export\s+class\s+(\w+)/);
   if (!classMatch) continue;
   const className = classMatch[1];
 
-  // Extract base class import
   const baseImportMatch = content.match(
     /import\s*\{[^}]*\b(\w+)\s+as\s+Base\w+[^}]*\}\s*from\s*'([^']+)'/,
   );
@@ -64,10 +62,8 @@ for (const modelFile of modelFiles) {
     ),
   ];
 
-  // Find getters
   const getters = [...content.matchAll(/(?:public\s+)?get\s+(\w+)\s*\(\)/g)];
 
-  // Find additional exported classes
   const allClasses = [...content.matchAll(/export\s+class\s+(\w+)/g)].map(
     (m) => m[1],
   );
@@ -95,7 +91,6 @@ for (const modelFile of modelFiles) {
   // Mock @genfeedai/helpers if used
   if (mockPaths.has('@genfeedai/helpers')) {
     tc += `vi.mock('@genfeedai/helpers', () => ({\n`;
-    // Check what's imported
     const helperImports = content.match(
       /import\s*\{([^}]+)\}\s*from\s*'@genfeedai\/helpers'/,
     );

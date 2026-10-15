@@ -115,9 +115,6 @@ describe('ReplicateImageBuilder', () => {
     prompt: string,
   ) => builder.buildPrompt(model, params, prompt) as TestPromptInput;
 
-  // =========================================================================
-  // supportsModel
-  // =========================================================================
   describe('supportsModel', () => {
     it('should return true for any model (generic fallback)', () => {
       expect(builder.supportsModel(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4)).toBe(
@@ -127,9 +124,6 @@ describe('ReplicateImageBuilder', () => {
     });
   });
 
-  // =========================================================================
-  // getSupportedModels
-  // =========================================================================
   describe('getSupportedModels', () => {
     it('should return dedicated models list', () => {
       const models = builder.getSupportedModels();
@@ -143,9 +137,6 @@ describe('ReplicateImageBuilder', () => {
     });
   });
 
-  // =========================================================================
-  // buildPrompt - Dedicated models (existing switch-case routing)
-  // =========================================================================
   describe('buildPrompt - dedicated models', () => {
     it('should build Nano Banana 2 Lite without unsupported resolution fields', () => {
       const references = Array.from(

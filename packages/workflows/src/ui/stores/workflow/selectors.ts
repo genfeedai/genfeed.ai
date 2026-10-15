@@ -13,10 +13,6 @@ import type { WorkflowStore } from './types';
  *   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
  */
 
-// =============================================================================
-// STATE SELECTORS
-// =============================================================================
-
 /** Select all nodes */
 export const selectNodes = (state: WorkflowStore) => state.nodes;
 
@@ -51,10 +47,6 @@ export const selectEdgeStyle = (state: WorkflowStore) => state.edgeStyle;
 /** Select navigation target ID */
 export const selectNavigationTargetId = (state: WorkflowStore) =>
   state.navigationTargetId;
-
-// =============================================================================
-// ACTION SELECTORS
-// =============================================================================
 
 /** Select updateNodeData action */
 export const selectUpdateNodeData = (state: WorkflowStore) =>
@@ -109,10 +101,6 @@ export const selectRemoveEdge = (state: WorkflowStore) => state.removeEdge;
 export const selectAddNodesAndEdges = (state: WorkflowStore) =>
   state.addNodesAndEdges;
 
-// =============================================================================
-// HELPER SELECTORS
-// =============================================================================
-
 /** Select getNodeById helper */
 export const selectGetNodeById = (state: WorkflowStore) => state.getNodeById;
 
@@ -127,10 +115,6 @@ export const selectIsValidConnection = (state: WorkflowStore) =>
 /** Select findCompatibleHandle helper */
 export const selectFindCompatibleHandle = (state: WorkflowStore) =>
   state.findCompatibleHandle;
-
-// =============================================================================
-// PARAMETERIZED SELECTORS (Factory Functions)
-// =============================================================================
 
 /**
  * Create a selector for a specific node by ID

@@ -35,9 +35,10 @@ export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 export GENFEED_STORAGE_PATH=${GENFEED_STORAGE_PATH:-/data/files}
 export TEMP_DIR=${TEMP_DIR:-/data/tmp/videos}
 
-# Community defaults to LOCAL mode: a seeded single-org workspace with no login
-# wall. Setting BETTER_AUTH_ENABLED=true turns on the local Better Auth handler.
-export BETTER_AUTH_ENABLED=${BETTER_AUTH_ENABLED:-false}
+# Community runs the local Better Auth handler by default so a fresh install can
+# sign up its first user. Set BETTER_AUTH_ENABLED=false for the seeded
+# single-user workspace with no login wall.
+export BETTER_AUTH_ENABLED=${BETTER_AUTH_ENABLED:-true}
 export NEXT_PUBLIC_BETTER_AUTH_ENABLED=${NEXT_PUBLIC_BETTER_AUTH_ENABLED:-$BETTER_AUTH_ENABLED}
 if [ "$BETTER_AUTH_ENABLED" = "false" ]; then
   export NEXT_PUBLIC_BETTER_AUTH_ENABLED=false

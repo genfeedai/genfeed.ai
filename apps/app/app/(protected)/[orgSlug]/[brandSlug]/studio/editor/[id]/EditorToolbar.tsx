@@ -107,9 +107,7 @@ function EditorToolbar({
         </div>
       </div>
 
-      {/* Center section - Playback controls */}
       <div className="flex items-center gap-2">
-        {/* Go to start */}
         <Button
           withWrapper={false}
           variant={ButtonVariant.GHOST}
@@ -119,7 +117,6 @@ function EditorToolbar({
           icon={<SkipBack className="size-4" />}
         />
 
-        {/* Step back */}
         <Button
           withWrapper={false}
           variant={ButtonVariant.GHOST}
@@ -129,7 +126,6 @@ function EditorToolbar({
           icon={<StepBack className="size-4" />}
         />
 
-        {/* Play/Pause */}
         <Button
           withWrapper={false}
           variant={ButtonVariant.DEFAULT}
@@ -146,7 +142,6 @@ function EditorToolbar({
           }
         />
 
-        {/* Step forward */}
         <Button
           withWrapper={false}
           variant={ButtonVariant.GHOST}
@@ -156,7 +151,6 @@ function EditorToolbar({
           icon={<StepForward className="size-4" />}
         />
 
-        {/* Go to end */}
         <Button
           withWrapper={false}
           variant={ButtonVariant.GHOST}
@@ -166,14 +160,12 @@ function EditorToolbar({
           icon={<SkipForward className="size-4" />}
         />
 
-        {/* Time display */}
         <div className="ml-4 font-mono text-sm text-muted-foreground tabular-nums">
           {formatPlaybackFrameTime(currentFrame, fps)} /{' '}
           {formatPlaybackFrameTime(totalFrames, fps)}
         </div>
       </div>
 
-      {/* Right section - Tools & Actions */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 border-r border-border pr-3">
           <Button
@@ -198,7 +190,6 @@ function EditorToolbar({
           />
         </div>
 
-        {/* Add Track buttons */}
         <div className="flex items-center gap-1 border-r border-border pr-3">
           <Button
             withWrapper={false}
@@ -224,7 +215,6 @@ function EditorToolbar({
           </Button>
         </div>
 
-        {/* Format selector */}
         <Select
           value={format}
           disabled={isReadOnly}
@@ -242,7 +232,6 @@ function EditorToolbar({
           </SelectContent>
         </Select>
 
-        {/* Zoom slider */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Zoom</span>
           <Slider
@@ -255,7 +244,6 @@ function EditorToolbar({
           />
         </div>
 
-        {/* Save button */}
         <Button
           withWrapper={false}
           variant={ButtonVariant.SECONDARY}
@@ -266,7 +254,6 @@ function EditorToolbar({
           Save
         </Button>
 
-        {/* Render button */}
         <Button
           withWrapper={false}
           variant={ButtonVariant.DEFAULT}

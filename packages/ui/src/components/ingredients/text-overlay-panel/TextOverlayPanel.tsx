@@ -73,7 +73,6 @@ export default function TextOverlayPanel({
 
   return (
     <>
-      {/* Backdrop */}
       <Button
         aria-label="Close text overlay panel"
         className={
@@ -85,7 +84,6 @@ export default function TextOverlayPanel({
         withWrapper={false}
       />
 
-      {/* Slide-over panel */}
       <div className="fixed right-0 top-0 size-full max-w-md bg-card shadow-xl z-50 transform transition-transform duration-300">
         <div className="flex flex-col h-full">
           {/* Panel header - title and close button */}
@@ -100,7 +98,6 @@ export default function TextOverlayPanel({
             />
           </div>
 
-          {/* Content */}
           <div className="flex-1 p-6 overflow-y-auto">
             <div className="space-y-4">
               <FormControl
@@ -147,7 +144,6 @@ export default function TextOverlayPanel({
                 </Select>
               </FormControl>
 
-              {/* Preview section */}
               <div className="mt-6">
                 <p className="text-sm font-medium mb-2">Preview</p>
                 <div className="relative bg-background aspect-video flex items-center justify-center">

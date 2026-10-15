@@ -468,7 +468,6 @@ export class OrganizationSettingsService extends BaseService<
     const filteredModelIds: string[] = [];
 
     grouped.forEach((group) => {
-      // Find the highest major version
       const maxMajor = Math.max(...group.map((item) => item.major));
 
       // Keep all models from the highest major version (including all minor versions)

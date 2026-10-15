@@ -181,7 +181,6 @@ describe('VideosEditsController', () => {
     expect(controller).toBeDefined();
   });
 
-  // --- trimVideo ---
   it('should trim video and return serialized ingredient', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const result = await controller.trimVideo(mockRequest, mockUser, videoId, {
@@ -241,7 +240,6 @@ describe('VideosEditsController', () => {
     ).rejects.toThrow(HttpException);
   });
 
-  // --- addTextOverlay ---
   it('should add text overlay and return serialized ingredient', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     mockServices.metadataService.findOne.mockResolvedValue({

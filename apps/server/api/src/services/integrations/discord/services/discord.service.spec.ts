@@ -94,7 +94,6 @@ describe('DiscordService', () => {
     });
 
     it('should throw HttpException when config is missing', async () => {
-      // Create service with missing config
       const missingConfigModule = await Test.createTestingModule({
         providers: [
           DiscordService,

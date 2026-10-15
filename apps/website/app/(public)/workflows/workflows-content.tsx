@@ -162,7 +162,6 @@ export default function WorkflowsContent() {
         title="Workflows"
         description="Deterministic workflow control for agentic execution."
       >
-        {/* Highlight Card */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-8">
             <div className="flex flex-row flex-col md:flex-row items-center gap-8">
@@ -195,12 +194,10 @@ export default function WorkflowsContent() {
           </div>
         </section>
 
-        {/* Node Categories */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
             Node Library
           </Heading>
-          {/* Row 1: 3 cards */}
           <div className="gsap-grid grid grid-cols-1 md:grid-cols-3 gap-1.5 mb-1.5">
             {NODE_CATEGORIES.slice(0, 3).map((category) => (
               <div
@@ -219,7 +216,6 @@ export default function WorkflowsContent() {
               </div>
             ))}
           </div>
-          {/* Row 2: 2 cards centered */}
           <div className="gsap-grid grid grid-cols-1 md:grid-cols-2 gap-1.5 max-w-2xl mx-auto">
             {NODE_CATEGORIES.slice(3).map((category) => (
               <div
@@ -240,7 +236,6 @@ export default function WorkflowsContent() {
           </div>
         </section>
 
-        {/* Features Grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
             Why Workflows
@@ -270,7 +265,6 @@ export default function WorkflowsContent() {
           </div>
         </section>
 
-        {/* How It Works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
             How It Works
@@ -302,7 +296,6 @@ export default function WorkflowsContent() {
           </div>
         </section>
 
-        {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-6 sm:p-12 text-center">
             <div className="flex justify-center mb-4">

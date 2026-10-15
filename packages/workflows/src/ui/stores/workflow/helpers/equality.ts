@@ -26,13 +26,10 @@ export function temporalStateEquals(
   // Reference equality (same object)
   if (a === b) return true;
 
-  // Check nodes
   if (!arraysShallowEqual(a.nodes, b.nodes, nodeEquals)) return false;
 
-  // Check edges
   if (!arraysShallowEqual(a.edges, b.edges, edgeEquals)) return false;
 
-  // Check groups
   if (!arraysShallowEqual(a.groups, b.groups, groupEquals)) return false;
 
   return true;
@@ -53,7 +50,6 @@ function arraysShallowEqual<T>(
   // Length check (fast exit)
   if (a.length !== b.length) return false;
 
-  // Check each item
   for (let i = 0; i < a.length; i++) {
     if (!itemEquals(a[i], b[i])) return false;
   }

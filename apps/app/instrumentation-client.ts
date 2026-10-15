@@ -21,13 +21,6 @@ Sentry.init({
     /serwist\/sw\.js/i,
   ],
 
-  integrations: [
-    Sentry.replayIntegration({
-      maskAllInputs: true,
-      maskAllText: true,
-    }),
-  ],
-
   replaysOnErrorSampleRate: 1.0,
 
   // The studio is a heavy, long-lived editor surface — session replay on
@@ -37,6 +30,39 @@ Sentry.init({
   // Sentry is used for error reporting only; performance spans are disabled.
   tracesSampleRate: 0,
 });
+
+const REPLAY_IDLE_TIMEOUT_MS = 5000;
+const REPLAY_IDLE_FALLBACK_MS = 2000;
+
+/**
+ * Error replay buffers every DOM mutation through rrweb. Loading it with the
+ * initial bundle puts its download and parse in front of first paint and its
+ * mutation recording on top of hydration, so attach it once the page is idle.
+ */
+function attachErrorReplayWhenIdle(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const attach = () => {
+    void import('@sentry/nextjs').then(
+      ({ addIntegration, replayIntegration }) => {
+        addIntegration(
+          replayIntegration({ maskAllInputs: true, maskAllText: true }),
+        );
+      },
+    );
+  };
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(attach, { timeout: REPLAY_IDLE_TIMEOUT_MS });
+    return;
+  }
+
+  window.setTimeout(attach, REPLAY_IDLE_FALLBACK_MS);
+}
+
+attachErrorReplayWhenIdle();
 
 // Product analytics (Genfeed Cloud only). No-ops — and never loads posthog-js —
 // in self-hosted or desktop builds. See src/lib/analytics/posthog-client.ts.

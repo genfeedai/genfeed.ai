@@ -8,7 +8,8 @@
 - Free host ports 3000 (web), 3010 (API) and 3014 (MCP); override them with
   `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT` and `SELFHOSTED_MCP_PORT` in `.env`
 - A runtime capable of running the published `linux/amd64` image (Docker Desktop
-  can use emulation on Apple Silicon)
+  can use emulation on Apple Silicon). Compose selects this image architecture;
+  ARM hosts must have AMD64 emulation enabled in their Docker runtime.
 - About 8 GB of free disk (10 GB recommended): the images take about 7 GB, and
   generated media needs more on top
 - RAM: no minimum is published. A clean Debian 13 install with 8 CPU and 15 GiB
@@ -55,6 +56,40 @@ This starts:
 On first boot the container runs Prisma migrations and seeds one local
 workspace: one user, one organization, and one brand.
 
+## First sign-up and first generation
+
+A fresh install needs two things before it can run a generation: an account and
+a model key.
+
+1. **Add a model key.** Text generation and the agent use OpenRouter, so set a
+   real key in `.env`:
+
+   ```env
+   OPENROUTER_API_KEY=sk-or-...
+   ```
+
+   Create one at [openrouter.ai/keys](https://openrouter.ai/keys). Restart so the
+   container reads it (`docker compose --env-file .env -f compose.yml up -d`).
+   If the key is empty or still a template value, the install-readiness check
+   (`GET /v1/onboarding/install-readiness`) reports
+   `providers.textGenerationReady: false` and the first agent turn fails with
+   `OPENROUTER_API_KEY is not configured`. An `OPENAI_API_KEY` alone does not
+   make text generation ready. Image and video generation use `REPLICATE_KEY`
+   or `FAL_API_KEY` instead.
+2. **Sign up.** Open `http://localhost:3000` and create the first account.
+   Sign-up is enabled out of the box (`BETTER_AUTH_ENABLED=true` and
+   `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true` in `.env.example`). Email/password
+   needs no email provider. See [Community Auth Modes](#community-auth-modes)
+   to run without a login wall instead.
+3. **Finish onboarding**, then create your first task or generation.
+
+Provider keys are validated live. **Settings → API Keys** (the page the onboarding
+"Add my own API keys" action opens) calls the provider with the key before saving it, so placeholder text
+such as `your_key_here` is rejected with an "Invalid ... API key" error. Only
+real keys can be saved there. Keys set in `.env` are read at container start and
+are the way to configure the server-wide defaults; a placeholder in `.env` is
+treated as not configured.
+
 ## Source Checkout
 
 Contributors can inspect and edit the repository's Compose configuration:
@@ -87,20 +122,8 @@ docs.
 
 ## Community Auth Modes
 
-Community is single-tenant by default. The default installation `.env` runs without a
-login wall:
-
-```env
-BETTER_AUTH_ENABLED=false
-NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
-```
-
-BETTER_AUTH_ENABLED is read at container start and reaches the browser at runtime, while NEXT_PUBLIC_BETTER_AUTH_ENABLED is fixed when the image is built.
-
-That path needs no Better Auth account, no email provider, no Google OAuth
-client, and no cloud service. The seeded workspace opens locally.
-
-To require local sign-in for a team, enable Better Auth in `.env`:
+Community is single-tenant. The default installation `.env` turns local
+sign-up and sign-in on, so a fresh install can create its first user:
 
 ```env
 BETTER_AUTH_ENABLED=true
@@ -111,7 +134,25 @@ BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 BETTER_AUTH_SECRET=
 ```
 
-Email/password works with only the local Better Auth database. Add an email
+With Better Auth enabled, the API on port 3010 requires a valid session token
+or API key on every request, from any address. There is no fallback to the
+seeded local user, and admin routes still need the admin role.
+
+Email/password works with only the local Better Auth database: no email
+provider, no Google OAuth client, and no cloud service. To run a single-user
+workspace with no login wall instead, set both flags to `false` in `.env`; the
+seeded local workspace then opens without signing in. In that mode, only
+loopback and Docker-network requests act as the seeded local admin; other
+addresses need a valid API key.
+
+```env
+BETTER_AUTH_ENABLED=false
+NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
+```
+
+`BETTER_AUTH_ENABLED` is read at container start and reaches the browser at
+runtime, while `NEXT_PUBLIC_BETTER_AUTH_ENABLED` is fixed when the image is
+built. Add an email
 provider only for magic links, password reset, email verification, or member
 invites:
 
@@ -224,6 +265,13 @@ is the sole path to every published port. The web app cannot see the
 connecting peer, so a configured `TRUST_PROXY` also asserts that the web port
 is reachable only through the proxy. Genfeed Cloud trusts one hop (its load
 balancer) unless `TRUST_PROXY` says otherwise.
+
+The same rule protects the seeded local admin: with the login wall off, a
+request carrying `X-Forwarded-For` or `X-Real-IP` that `TRUST_PROXY` does not
+vouch for is never treated as local. Do not expose an instance without the
+login wall through a public reverse proxy; enable `BETTER_AUTH_ENABLED=true`
+first, and prefer publishing the host ports on `127.0.0.1` when only a proxy on
+the same host needs them.
 
 ## Optional Services
 

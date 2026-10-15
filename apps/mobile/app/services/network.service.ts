@@ -13,7 +13,6 @@ class NetworkService extends EventEmitter {
       return;
     }
 
-    // Get initial state
     const state = await NetInfo.fetch();
     this.updateState(state);
 

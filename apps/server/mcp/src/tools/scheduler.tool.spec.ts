@@ -88,7 +88,10 @@ describe('handleSchedulerTool', () => {
       release,
       'release-request-1',
     );
-    expect(result.content[0].text).toContain('release-1');
+    expect(result).toMatchObject({
+      structuredContent: { data: { id: 'release-1' } },
+    });
+    expect(result.content[0].text).not.toContain('release-1');
   });
 
   it('rejects a create payload without targets', async () => {
@@ -250,8 +253,11 @@ describe('handleSchedulerTool', () => {
     expect(client.createScheduledRelease).not.toHaveBeenCalled();
     expect(client.updateScheduledRelease).not.toHaveBeenCalled();
     expect(client.controlScheduledRelease).not.toHaveBeenCalled();
-    expect(result.content[0].text).toContain('credential-1');
-    expect(result.content[0].text).toContain('publish_capable');
+    expect(result).toMatchObject({
+      structuredContent: { data: [{ credentialId: 'credential-1' }] },
+    });
+    expect(result.content[0].text).not.toContain('credential-1');
+    expect(result.content[0].text).toContain('Publish capable');
   });
 
   it.each([
@@ -306,9 +312,13 @@ describe('handleSchedulerTool', () => {
         brandId: 'brand-1',
       });
 
-      expect(result.content[0].text).toBe(
-        `Found 1 publishing channels with readiness:\n\n${JSON.stringify([readiness], null, 2)}`,
-      );
+      expect(result).toMatchObject({
+        structuredContent: { data: [readiness] },
+      });
+      expect(result.content[0].text).toContain('Provider Key:');
+      expect(result.content[0].text).not.toContain('credential-1');
+      for (const diagnostic of readiness.diagnostics)
+        expect(result.content[0].text).toContain(diagnostic.message);
       expect(client.listBrandPublishingReadiness).toHaveBeenCalledTimes(1);
       expect(client.listBrandPublishingReadiness).toHaveBeenCalledWith(
         'brand-1',

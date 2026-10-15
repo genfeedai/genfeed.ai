@@ -80,3 +80,7 @@ jobs:
             --env-file "${RUNNER_TEMP}/genfeed-install/.env" \
             -f "${RUNNER_TEMP}/genfeed-install/compose.yml" \
             config --images | grep -Fx ghcr.io/genfeedai/genfeed.ai:9.8.7
+          docker compose \
+            --env-file "${RUNNER_TEMP}/genfeed-install/.env" \
+            -f "${RUNNER_TEMP}/genfeed-install/compose.yml" \
+            config --format json | jq -e '.services.genfeed.platform == "linux/amd64"'

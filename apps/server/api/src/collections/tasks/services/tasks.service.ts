@@ -592,10 +592,6 @@ export class TasksService extends BaseService<
     return this.normalizeTaskDocument(released);
   }
 
-  // ===========================================================================
-  // Review / output actions — thin delegators to TaskActionsService.
-  // ===========================================================================
-
   async approve(
     id: string,
     organizationId: string,
@@ -710,10 +706,6 @@ export class TasksService extends BaseService<
       expected,
     );
   }
-
-  // ===========================================================================
-  // Planning / follow-up orchestration — thin delegators to TaskPlanningService.
-  // ===========================================================================
 
   async openPlanningThread(
     id: string,

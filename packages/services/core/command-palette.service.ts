@@ -160,7 +160,6 @@ class CommandPaletteServiceClass {
       score += 100;
     }
 
-    // Starts with query
     if (label.startsWith(query)) {
       score += 50;
     }

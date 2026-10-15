@@ -1,7 +1,3 @@
-// =============================================================================
-// ACTION TYPES
-// =============================================================================
-
 export type ActionCategory = 'crud' | 'ai' | 'data' | 'validation';
 
 export type CrudAction = 'add' | 'duplicate' | 'delete' | 'reorder';
@@ -33,10 +29,6 @@ export type ActionUIPattern =
   | 'context-menu'
   | 'inline-buttons'
   | 'dropdown-menu';
-
-// =============================================================================
-// INPUT GROUP PROPS
-// =============================================================================
 
 export type InputGroupVariant = 'section' | 'inline' | 'card' | 'minimal';
 
@@ -75,10 +67,6 @@ export interface InputGroupProps<TChildren = unknown, TIcon = unknown> {
   className?: string;
 }
 
-// =============================================================================
-// INPUT GROUP HEADER PROPS
-// =============================================================================
-
 export interface InputGroupHeaderProps<TIcon = unknown> {
   title: string;
   description?: string;
@@ -92,10 +80,6 @@ export interface InputGroupHeaderProps<TIcon = unknown> {
   onCancel?: () => void;
   className?: string;
 }
-
-// =============================================================================
-// INPUT GROUP FIELD PROPS
-// =============================================================================
 
 export type FieldWidth = 'full' | 'half' | 'third' | 'quarter' | 'auto';
 
@@ -122,10 +106,6 @@ export interface InputGroupFieldProps<TChildren = unknown, TIcon = unknown> {
 
   className?: string;
 }
-
-// =============================================================================
-// INPUT GROUP ROW PROPS
-// =============================================================================
 
 export interface InputGroupRowProps<
   T = Record<string, unknown>,
@@ -154,10 +134,6 @@ export interface InputGroupRowProps<
 
   className?: string;
 }
-
-// =============================================================================
-// DYNAMIC LIST PROPS
-// =============================================================================
 
 export interface RowHelpers<T> {
   update: (data: Partial<T>) => void;
@@ -194,10 +170,6 @@ export interface DynamicListProps<
   className?: string;
 }
 
-// =============================================================================
-// ACTION TOOLBAR PROPS
-// =============================================================================
-
 export type ToolbarSize = 'sm' | 'md' | 'lg';
 export type ToolbarOrientation = 'horizontal' | 'vertical';
 export type ToolbarVisibility = boolean | 'hover';
@@ -209,10 +181,6 @@ export interface ActionToolbarProps<TIcon = unknown> {
   visible?: ToolbarVisibility;
   className?: string;
 }
-
-// =============================================================================
-// ACTION MENU PROPS
-// =============================================================================
 
 export type MenuAlign = 'start' | 'center' | 'end';
 export type MenuSide = 'top' | 'right' | 'bottom' | 'left';
@@ -226,10 +194,6 @@ export interface ActionMenuProps<TIcon = unknown, TTriggerIcon = unknown> {
   className?: string;
 }
 
-// =============================================================================
-// COMPOSITE INPUT TYPES
-// =============================================================================
-
 export interface DimensionsValue {
   width: number;
   height: number;
@@ -241,10 +205,6 @@ export interface KeyValuePair {
   key: string;
   value: string;
 }
-
-// =============================================================================
-// COMPOSITE INPUT PROPS
-// =============================================================================
 
 export interface DimensionsGroupProps {
   value: DimensionsValue;

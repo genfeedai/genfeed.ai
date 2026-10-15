@@ -106,15 +106,12 @@ describe('NodePalette', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<NodePalette {...defaultProps} />);
 
-    // Check palette container has correct classes
     const palette = container.firstChild;
     expect(palette).toBeInTheDocument();
 
-    // Check node items have correct styling
     const nodeItems = container.querySelectorAll('[draggable="true"]');
     expect(nodeItems.length).toBeGreaterThan(0);
 
-    // Check collapsed state styling
     const { container: collapsedContainer } = render(
       <NodePalette {...defaultProps} isCollapsed={true} />,
     );

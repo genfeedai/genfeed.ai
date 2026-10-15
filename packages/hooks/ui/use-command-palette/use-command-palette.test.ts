@@ -2,7 +2,6 @@ import { useCommandPalette } from '@hooks/ui/use-command-palette/use-command-pal
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the context
 const mockContext = {
   close: vi.fn(),
   executeCommand: vi.fn(),

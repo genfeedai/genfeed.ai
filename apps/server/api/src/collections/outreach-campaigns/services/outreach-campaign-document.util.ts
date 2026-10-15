@@ -1,8 +1,5 @@
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 
-// ---------------------------------------------------------------------------
-// Helper: defensively parse the `config` JSON column
-// ---------------------------------------------------------------------------
 export function parseConfig(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
   if (typeof raw === 'string') {
@@ -18,10 +15,6 @@ export function parseConfig(raw: unknown): Record<string, unknown> {
   return {};
 }
 
-// ---------------------------------------------------------------------------
-// Helper: normalize a raw Prisma record → OutreachCampaignDocument
-// The Prisma model owns all relation ids. Domain-only settings live in config.
-// ---------------------------------------------------------------------------
 export function normalizeDoc(
   row: Record<string, unknown>,
 ): OutreachCampaignDocument {

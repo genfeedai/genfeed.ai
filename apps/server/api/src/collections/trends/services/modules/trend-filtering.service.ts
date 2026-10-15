@@ -291,7 +291,6 @@ export class TrendFilteringService {
     };
 
     if (organizationId) {
-      // Fetch both org-scoped and global trends then merge
       const [orgTrends, globalTrends] = await Promise.all([
         this.prisma.trend.findMany({
           orderBy: { createdAt: 'desc' },

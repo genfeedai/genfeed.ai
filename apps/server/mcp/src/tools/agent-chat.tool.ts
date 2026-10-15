@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 import { executionFailureResult } from '@mcp/tools/execution-failure-result';
 
 type AgentChatToolResult = Promise<{
@@ -13,12 +14,14 @@ function requiredStringArg(args: Record<string, unknown>, key: string): string {
   return value;
 }
 
-function jsonText(label: string, payload: unknown) {
+function textDataResult(label: string, payload: unknown) {
+  const failure = executionFailureResult(payload);
   return {
-    ...executionFailureResult(payload),
+    ...failure,
+    structuredContent: { data: payload, ...failure.structuredContent },
     content: [
       {
-        text: `${label}:\n\n${JSON.stringify(payload, null, 2)}`,
+        text: `${label}:\n\n${formatToolData(payload)}`,
         type: 'text' as const,
       },
     ],
@@ -36,14 +39,14 @@ export function handleAgentChatTool(
   > = {
     create_chat: async () => {
       const chat = await client.createChat();
-      return jsonText('Chat created', chat);
+      return textDataResult('Chat created', chat);
     },
     send_chat_message: async (a) => {
       const result = await client.sendChatMessage(
         requiredStringArg(a, 'threadId'),
         requiredStringArg(a, 'message'),
       );
-      return jsonText('Response', result);
+      return textDataResult('Response', result);
     },
   };
 

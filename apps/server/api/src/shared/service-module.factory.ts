@@ -19,14 +19,12 @@ export function createServiceModule(
   ServiceClass: Type<unknown>,
   options: ServiceModuleOptions = {},
 ): DynamicModule {
-  // Validate ServiceClass is not undefined
   if (ServiceClass == null) {
     throw new Error(
       `createServiceModule called with undefined or null ServiceClass. This usually means the service import is missing or incorrect.`,
     );
   }
 
-  // Validate ConfigModule and LoggerModule are defined
   if (ConfigModule == null) {
     throw new Error(
       `createServiceModule: ConfigModule is undefined. Check if @libs/config/config.module is properly exported.`,

@@ -72,7 +72,6 @@ describe('commands.registry', () => {
       },
     });
 
-    // Mock alert
     vi.spyOn(window, 'alert').mockImplementation(() => {});
   });
 

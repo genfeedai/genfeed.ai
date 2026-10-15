@@ -207,10 +207,6 @@ export class OutreachCampaignsService {
     });
   }
 
-  // -------------------------------------------------------------------------
-  // CRUD
-  // -------------------------------------------------------------------------
-
   private async assertBrandAccess(
     brandId: string | undefined,
     organizationId: string,

@@ -27,12 +27,8 @@ vi.mock('@prisma/adapter-pg', () => ({
   PrismaPg: vi.fn().mockImplementation(() => ({})),
 }));
 
-// Set test environment
 process.env.NODE_ENV = 'test';
 
-// =============================================================================
-// CRITICAL: Block all real HTTP requests to prevent accidental API costs
-// =============================================================================
 vi.mock('axios', () => ({
   create: vi.fn(() => ({
     delete: vi

@@ -48,10 +48,6 @@ import {
 } from '../helpers/common-schemas';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 
-// ============================================================================
-// Primitives
-// ============================================================================
-
 /** Entity identifier accepted by scheduler contracts. */
 const idSchema = nonEmptyStringSchema({ max: 255 });
 
@@ -64,10 +60,6 @@ const idempotencyKeySchema = z.string().min(1).max(255);
  * and validates these per platform. `unknown`, never `any`.
  */
 export const channelTargetSettingsSchema = z.record(z.string(), z.unknown());
-
-// ============================================================================
-// Zod Schemas — Request Validation
-// ============================================================================
 
 /** Media asset referenced by a release's base content. */
 export const releaseMediaReferenceSchema = z.object({
@@ -238,10 +230,6 @@ export const updateChannelTargetSchema = z.object({
   visibility: z.nativeEnum(PostVisibility).optional(),
 });
 
-// ============================================================================
-// Inferred Types
-// ============================================================================
-
 export type ReleaseMediaReferenceInput = z.infer<
   typeof releaseMediaReferenceSchema
 >;
@@ -259,10 +247,6 @@ export type UpdateRecurrenceSeriesInput = z.infer<
 export type UpdateChannelTargetInput = z.infer<
   typeof updateChannelTargetSchema
 >;
-
-// ============================================================================
-// State transition helpers (audit-friendly, single source of truth)
-// ============================================================================
 
 /**
  * Whether a release status is terminal (no further automatic transitions).

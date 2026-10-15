@@ -39,7 +39,6 @@ function BaseNode({
         selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
       )}
     >
-      {/* Input Handles */}
       {inputKeys.map((key, index) => (
         <Handle
           key={`input-${key}`}

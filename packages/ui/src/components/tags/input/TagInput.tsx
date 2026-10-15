@@ -34,7 +34,6 @@ export default function TagInput({
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      {/* Tag Display */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
@@ -48,7 +47,6 @@ export default function TagInput({
         </div>
       )}
 
-      {/* Input Field */}
       <div className="relative">
         <Input
           type="text"

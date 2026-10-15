@@ -247,10 +247,6 @@ export function isQualityTierSupportedForCategory(
   return QUALITY_TIER_SUPPORTED_CATEGORIES.has(category);
 }
 
-// ============================================================================
-// DB-backed quality resolution
-// ============================================================================
-
 function isModelFormatCompatibleFromDoc(
   model: IModel,
   format: IngredientFormat | string,

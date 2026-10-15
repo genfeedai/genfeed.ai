@@ -34,7 +34,6 @@ export function extractInboundCandidatesFromXActivityPayload(
   const forUserId = asString(root.for_user_id) ?? asString(root.forUserId);
   const candidates: XActivityInboundCandidate[] = [];
 
-  // AAA: tweet_create_events[]
   const tweetEvents = root.tweet_create_events;
   if (Array.isArray(tweetEvents)) {
     for (const event of tweetEvents) {

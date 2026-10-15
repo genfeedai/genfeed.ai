@@ -88,7 +88,6 @@ function ConnectionDropMenuComponent() {
     return result;
   }, [connectionDropMenu]);
 
-  // Filter by search
   const filteredNodes = useMemo(() => {
     if (!search.trim()) return compatibleNodes;
     const query = search.toLowerCase();
@@ -141,7 +140,6 @@ function ConnectionDropMenuComponent() {
         y: connectionDropMenu.screenPosition.y,
       });
 
-      // Create the node
       const action = getActionDefinition(nodeType);
       const newNodeId = addNode(action ? 'genfeedAction' : nodeType, position);
       if (!newNodeId) return;
@@ -234,13 +232,11 @@ function ConnectionDropMenuComponent() {
         aria-label="Add Node"
         onKeyDown={handleKeyDown}
       >
-        {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
           <Plus className="size-3.5 text-muted-foreground" />
           <span className="text-xs font-medium">Add Connected Node</span>
         </div>
 
-        {/* Search */}
         <div className="px-3 py-2">
           <FormSearchbar
             ariaLabel="Search compatible nodes"
@@ -253,7 +249,6 @@ function ConnectionDropMenuComponent() {
           />
         </div>
 
-        {/* Node list */}
         <div ref={listRef} className="flex-1 overflow-y-auto px-1.5 pb-1.5">
           {filteredNodes.length === 0 ? (
             <div className="text-center text-muted-foreground text-xs py-4">

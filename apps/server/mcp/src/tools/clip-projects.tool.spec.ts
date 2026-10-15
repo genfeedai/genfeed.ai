@@ -78,7 +78,10 @@ describe('handleClipProjectsTool', () => {
           youtubeUrl: 'https://youtu.be/abc',
         }),
       );
-      expect(result.content[0].text).toContain('proj-1');
+      expect(result).toMatchObject({
+        structuredContent: { data: { projectId: 'proj-1' } },
+      });
+      expect(result.content[0].text).not.toContain('proj-1');
     });
 
     it('requires youtubeUrl', async () => {

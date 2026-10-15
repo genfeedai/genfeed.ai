@@ -106,8 +106,6 @@ export function insertContentIntoComposer(
     : { error: EDIT_NOT_ACCEPTED, success: false };
 }
 
-// === Reading and replacing the user's own draft (text actions) ===
-
 const EDITABLE_SELECTOR =
   '[contenteditable="true"], [contenteditable="plaintext-only"]';
 

@@ -72,7 +72,6 @@ test.describe('Expert Path Onboarding', () => {
     await expert.assertOnPath(APP_ROUTES.ONBOARDING.POSITIONING);
     await expert.assertStepBadge(2, 4);
 
-    // --- Positioning ---------------------------------------------------------
     await expert.answerPositioningQuestions(POSITIONING_ANSWERS);
 
     await expect(expert.scorecard).toBeVisible({ timeout: 30000 });
@@ -84,7 +83,6 @@ test.describe('Expert Path Onboarding', () => {
     await expect(expert.continueButton).toBeEnabled();
     await expert.continueButton.click();
 
-    // --- Corpus --------------------------------------------------------------
     await expert.assertOnPath(APP_ROUTES.ONBOARDING.CORPUS);
     await expert.assertStepBadge(3, 4);
 
@@ -108,7 +106,6 @@ test.describe('Expert Path Onboarding', () => {
     await expect(expert.continueButton).toBeEnabled({ timeout: 30000 });
     await expert.continueButton.click();
 
-    // --- First system --------------------------------------------------------
     await expert.assertOnPath(APP_ROUTES.ONBOARDING.FIRST_SYSTEM);
     await expert.assertStepBadge(4, 4);
 

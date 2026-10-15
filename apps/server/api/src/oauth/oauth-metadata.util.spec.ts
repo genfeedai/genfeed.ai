@@ -21,6 +21,10 @@ describe('OAuth metadata', () => {
     const metadata = buildOAuthAuthorizationServerMetadata(serviceConfig);
 
     expect(metadata.issuer).toBe('https://api.genfeed.ai');
+    expect(metadata).toMatchObject({
+      authorization_response_iss_parameter_supported: true,
+      client_id_metadata_document_supported: true,
+    });
     expect(metadata.authorization_endpoint).toBe(
       'https://api.genfeed.ai/v1/oauth/authorize',
     );

@@ -74,8 +74,6 @@ export interface PipelineConfigV2 {
   runReferences?: readonly GenerationBriefReference[];
 }
 
-// ── Step result ──────────────────────────────────────────────────────
-
 export interface StepResult {
   url: string;
   contentType: string; // e.g. 'image/png', 'video/mp4', 'audio/mpeg'

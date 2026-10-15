@@ -12,10 +12,6 @@ import type { ComponentType } from 'react';
 import type { ApplyEditOperations } from '../stores/workflow/slices/types';
 import type { WorkflowPersistenceService } from '../stores/workflow/types';
 
-// =============================================================================
-// File Upload
-// =============================================================================
-
 export interface FileUploadService {
   uploadFile: (
     path: string,
@@ -23,20 +19,12 @@ export interface FileUploadService {
   ) => Promise<{ url: string; filename: string }>;
 }
 
-// =============================================================================
-// Model Schema
-// =============================================================================
-
 export interface ModelSchemaService {
   fetchModelSchema: (
     modelId: string,
     signal?: AbortSignal,
   ) => Promise<ProviderModel | null>;
 }
-
-// =============================================================================
-// Prompt Library
-// =============================================================================
 
 export interface PromptLibraryService {
   getAll: (query?: IQueryPrompts, signal?: AbortSignal) => Promise<IPrompt[]>;
@@ -52,10 +40,6 @@ export interface PromptLibraryService {
   use: (id: string, signal?: AbortSignal) => Promise<IPrompt>;
 }
 
-// =============================================================================
-// Injected Components
-// =============================================================================
-
 export interface ModelBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,10 +53,6 @@ export interface PromptPickerProps {
   label?: string;
 }
 
-// =============================================================================
-// Workflows API
-// =============================================================================
-
 export interface WorkflowsApiService {
   setThumbnail: (
     workflowId: string,
@@ -81,10 +61,6 @@ export interface WorkflowsApiService {
     signal?: AbortSignal,
   ) => Promise<void>;
 }
-
-// =============================================================================
-// Workflow References
-// =============================================================================
 
 export interface ReferencableWorkflow {
   id: string;
@@ -109,10 +85,6 @@ export interface WorkflowRefApi {
   fetchWorkflowInterface: (workflowId: string) => Promise<WorkflowInterface>;
 }
 
-// =============================================================================
-// Logger
-// =============================================================================
-
 /**
  * Minimal logger the execution store reports failures through (SSE connection
  * drops, message-parse failures, failed executions, save-before-run errors).
@@ -122,10 +94,6 @@ export interface WorkflowRefApi {
 export interface WorkflowUILogger {
   error: (message: string, meta?: Record<string, unknown>) => void;
 }
-
-// =============================================================================
-// Execution HTTP
-// =============================================================================
 
 /**
  * HTTP client the execution store issues its POST requests through
@@ -149,10 +117,6 @@ export interface WorkflowUIHttpClient {
  * stays provider-agnostic standalone.
  */
 export type ExecutionHeaderProvider = () => Record<string, string>;
-
-// =============================================================================
-// Settings Sync
-// =============================================================================
 
 export interface DefaultModelSettings {
   imageModel: string;
@@ -194,10 +158,6 @@ export interface SettingsSyncService {
   pull: (signal?: AbortSignal) => Promise<Partial<SyncableSettings>>;
   push: (settings: SyncableSettings) => Promise<void>;
 }
-
-// =============================================================================
-// Config
-// =============================================================================
 
 export interface WorkflowUIConfig {
   /** For ImageInputNode, VideoInputNode — file upload */

@@ -2,7 +2,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
-import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolResultSchema } from '@modelcontextprotocol/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const url = 'https://cdn.genfeed.ai/ingredients/images/img-1';
@@ -23,6 +23,36 @@ function mockFetch(response: Response) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('native MCP image delivery', () => {
+  it('keeps media IDs and harness receipts out of display text and resource names', async () => {
+    const data = {
+      id: 'video-private',
+      category: 'VIDEO',
+      status: 'PROCESSING',
+      generationHarness: {
+        organizationId: 'org-private',
+        traceId: 'trace-private',
+      },
+    };
+    const pending = await toNativeMcpMediaResult(data, []);
+    expect(pending.content).toEqual([
+      { type: 'text', text: 'Video\nStatus: Processing' },
+    ]);
+    expect(pending.structuredContent.data).toBe(data);
+    const ready = await toNativeMcpMediaResult(
+      {
+        ...data,
+        status: 'COMPLETED',
+        url: 'https://cdn.genfeed.ai/example.mp4',
+      },
+      [],
+    );
+    expect(ready.content).toContainEqual(
+      expect.objectContaining({ type: 'resource_link', name: 'Video' }),
+    );
+    expect(JSON.stringify(ready.content)).not.toMatch(
+      /video-private|org-private|trace-private/,
+    );
+  });
   it('returns extensionless JPEG bytes with correct MIME through get_job_status and card wrapping', async () => {
     const fetcher = mockFetch(
       new Response(jpeg, {
@@ -51,10 +81,12 @@ describe('native MCP image delivery', () => {
       data: Buffer.from(jpeg).toString('base64'),
       mimeType: 'image/jpeg',
     });
-    expect(parsed.structuredContent?.artifact).toMatchObject({
-      mimeType: 'image/jpeg',
-      renderMode: 'native_image',
-      sizeBytes: jpeg.byteLength,
+    expect(parsed.structuredContent).toMatchObject({
+      artifact: {
+        mimeType: 'image/jpeg',
+        renderMode: 'native_image',
+        sizeBytes: jpeg.byteLength,
+      },
     });
     expect(fetcher).toHaveBeenCalledWith(
       url,

@@ -46,8 +46,6 @@ describe('KlingWebhookService', () => {
     expect(service).toBeDefined();
   });
 
-  // --- extractMediaUrls ---
-
   describe('extractMediaUrls', () => {
     it('should extract video URLs from nested object', () => {
       const result = service.extractMediaUrls({
@@ -105,8 +103,6 @@ describe('KlingWebhookService', () => {
       expect(service.extractMediaUrls(undefined).videoUrls).toHaveLength(0);
     });
   });
-
-  // --- handleCallback ---
 
   describe('handleCallback', () => {
     it.each([

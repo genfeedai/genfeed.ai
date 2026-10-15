@@ -1,9 +1,5 @@
 import type { ApplyEditOperations } from './slices/types';
 
-// =============================================================================
-// Module-level applyEditOperations configuration
-// =============================================================================
-
 /**
  * Injected `applyEditOperations` implementation for the snapshot slice (used by
  * the chat/agent edit pipeline to mutate the graph). Registered at module scope

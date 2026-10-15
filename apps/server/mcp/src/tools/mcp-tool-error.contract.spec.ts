@@ -2,6 +2,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import {
   approvalPendingToolResult,
@@ -17,6 +18,24 @@ function appUrl(path: string): string {
 }
 
 describe('MCP tool error contract', () => {
+  it('turns schema validation errors into readable field guidance', () => {
+    const parsed = z
+      .object({ edits: z.object({ brief: z.string().min(1) }) })
+      .safeParse({ edits: {} });
+    if (parsed.success) throw new Error('Expected invalid input');
+    const result = toMcpToolErrorResult(parsed.error);
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: {
+        code: 'validation_failed',
+        errors: [{ field: 'edits.brief' }],
+      },
+    });
+    expect(result?.content[0].text).not.toContain('"path"');
+    expect(result?.content[0].text).not.toContain('"code"');
+    expect(result?.content[0].text).toContain('string');
+    expect(result?.content[0].text).toContain('edits.brief:');
+  });
   it('returns unauthorized with the connect link', () => {
     const error = classifyMcpToolFailure({
       message:
@@ -129,7 +148,7 @@ describe('MCP tool error contract', () => {
       message: 'Validation failed',
     });
     expect(result?.content[0]).toEqual({
-      text: JSON.stringify(result?.structuredContent, null, 2),
+      text: 'Validation failed\nprompt: prompt must be a string\ntone: tone must be a valid tone',
       type: 'text',
     });
     expect(result?.structuredContent).not.toHaveProperty('nextStepUrl');
@@ -202,7 +221,8 @@ describe('MCP tool error contract', () => {
       nextStepUrl: appUrl(APP_ROUTES.PUBLISHING.REVIEW),
     });
     expect(result.structuredContent.message).toContain('requires approval');
-    expect(result.structuredContent.message).toContain('apr-1');
+    expect(result.structuredContent.approvalId).toBe('apr-1');
+    expect(result.content[0].text).not.toContain('apr-1');
     expect(result.structuredContent).not.toHaveProperty('retryAfterSeconds');
     expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
   });

@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { z } from 'zod';
 import type { RegisterOAuthClientDto } from '../dto/register-client.dto';
 
 export type OAuthClientRecord = {
@@ -12,6 +14,39 @@ export type OAuthClientRecord = {
   responseTypes: string[];
   tokenEndpointAuthMethod: string;
 };
+
+const CLIENT_METADATA_MAX_BYTES = 64 * 1024;
+const clientMetadataSchema = z.object({
+  client_id: z.string().max(2048),
+  client_name: z.string().min(1).max(200),
+  redirect_uris: z.array(z.string().max(2048)).min(1).max(20),
+  grant_types: z
+    .array(z.enum(['authorization_code', 'refresh_token']))
+    .default(['authorization_code']),
+  response_types: z.array(z.literal('code')).default(['code']),
+  token_endpoint_auth_method: z.literal('none').default('none'),
+});
+
+async function readClientMetadata(response: Response): Promise<unknown> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Empty client metadata');
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > CLIENT_METADATA_MAX_BYTES)
+        throw new Error('Client metadata too large');
+      chunks.push(value);
+    }
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } finally {
+    await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+}
 
 function oauthError(error: string, description: string): BadRequestException {
   return new BadRequestException({
@@ -102,6 +137,11 @@ function validateRedirectUri(value: string): string {
 
 @Injectable()
 export class OAuthClientService {
+  private readonly documentClients = new Map<
+    string,
+    { client: OAuthClientRecord; expiresAt: number }
+  >();
+
   constructor(private readonly prisma: PrismaService) {}
 
   async register(dto: RegisterOAuthClientDto) {
@@ -136,9 +176,9 @@ export class OAuthClientService {
     clientId: string,
     redirectUri?: string,
   ): Promise<OAuthClientRecord> {
-    const client = await this.prisma.oAuthClient.findUnique({
-      where: { clientId },
-    });
+    const client = clientId.startsWith('oauth_')
+      ? await this.prisma.oAuthClient.findUnique({ where: { clientId } })
+      : await this.resolveDocumentClient(clientId);
     if (!client) {
       throw oauthError('invalid_client', 'Unknown OAuth client');
     }
@@ -155,6 +195,103 @@ export class OAuthClientService {
       }
     }
 
+    if (!clientId.startsWith('oauth_')) {
+      // Grant and refresh rows reference oauth_clients.clientId. Persist only
+      // validated document metadata; subsequent requests still resolve CIMD
+      // rather than trusting this snapshot as a registered client.
+      const metadata = {
+        clientName: client.clientName,
+        grantTypes: client.grantTypes,
+        redirectUris: client.redirectUris,
+        responseTypes: client.responseTypes,
+        tokenEndpointAuthMethod: client.tokenEndpointAuthMethod,
+      };
+      await this.prisma.oAuthClient.upsert({
+        where: { clientId },
+        create: { clientId, ...metadata },
+        update: metadata,
+      });
+    }
     return client;
+  }
+
+  private async resolveDocumentClient(
+    clientId: string,
+  ): Promise<OAuthClientRecord> {
+    try {
+      const url = new URL(clientId);
+      if (
+        url.protocol !== 'https:' ||
+        url.pathname === '/' ||
+        url.username ||
+        url.password ||
+        url.hash ||
+        clientId.length > 2048
+      ) {
+        throw new Error('Invalid client metadata URL');
+      }
+      const cached = this.documentClients.get(clientId);
+      if (cached && cached.expiresAt > Date.now()) return cached.client;
+      this.documentClients.delete(clientId);
+      const response = await safeFetch(
+        clientId,
+        {
+          headers: { Accept: 'application/json' },
+          redirect: 'error',
+          signal: AbortSignal.timeout(5_000),
+        },
+        { allowedSchemes: ['https:'], maxRedirects: 0 },
+      );
+      if (
+        !response.ok ||
+        response.headers
+          .get('content-type')
+          ?.split(';')[0]
+          .trim()
+          .toLowerCase() !== 'application/json' ||
+        Number(response.headers.get('content-length') ?? 0) >
+          CLIENT_METADATA_MAX_BYTES
+      ) {
+        await response.body?.cancel();
+        throw new Error('Invalid client metadata response');
+      }
+      const metadata = clientMetadataSchema.parse(
+        await readClientMetadata(response),
+      );
+      if (metadata.client_id !== clientId)
+        throw new Error('Client metadata identity mismatch');
+      const client: OAuthClientRecord = {
+        clientId,
+        clientName: metadata.client_name,
+        createdAt: new Date(),
+        grantTypes: metadata.grant_types,
+        redirectUris: metadata.redirect_uris.map(validateRedirectUri),
+        responseTypes: metadata.response_types,
+        tokenEndpointAuthMethod: metadata.token_endpoint_auth_method,
+      };
+      const cacheControl = response.headers.get('cache-control') ?? '';
+      const maxAge = /(?:^|,)\s*max-age=(\d+)/i.exec(cacheControl)?.[1];
+      const ttl = /(?:^|,)\s*(?:no-store|no-cache)(?:\s|,|$)/i.test(
+        cacheControl,
+      )
+        ? 0
+        : Math.min(Number(maxAge ?? 60), 300) * 1000;
+      if (ttl > 0) {
+        if (this.documentClients.size >= 256) {
+          const oldest = this.documentClients.keys().next().value;
+          if (oldest !== undefined) this.documentClients.delete(oldest);
+        }
+        this.documentClients.set(clientId, {
+          client,
+          expiresAt: Date.now() + ttl,
+        });
+      }
+      return client;
+    } catch {
+      throw oauthError(
+        'invalid_client',
+        'Unable to validate client metadata document',
+      );
+    }
   }
 }

@@ -1,6 +1,3 @@
-// =============================================================================
-// SHARED TREND-INSPIRATION HELPERS
-// =============================================================================
 //
 // Extracted from the trend inspiration trio (trendVideoInspiration,
 // trendHashtagInspiration) which previously duplicated these helpers verbatim.

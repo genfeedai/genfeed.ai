@@ -127,7 +127,6 @@ export class ReplicatePromptBuilder extends BasePromptBuilder {
       return this.imageBuilder.buildPrompt(model, params, promptText);
     }
 
-    // Handle trained models or unknown models
     const replicateOwner = this.configService.get('REPLICATE_OWNER');
     if (replicateOwner && model.includes(replicateOwner)) {
       return this.buildTrainedModelPrompt(model, params, promptText);

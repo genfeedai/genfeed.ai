@@ -55,7 +55,6 @@ export default function LazyLoadingFallback({
       aria-label="Loading content"
       role="status"
     >
-      {/* Shimmer effect */}
       <div className="absolute inset-0 animate-shimmer" />
 
       {isSpinnerEnabled && (

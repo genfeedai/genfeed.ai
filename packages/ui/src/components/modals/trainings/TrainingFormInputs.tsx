@@ -43,7 +43,6 @@ export default function TrainingFormInputs({
 }: TrainingFormInputsProps) {
   return (
     <div className="space-y-4 mt-4">
-      {/* First Row: Label + Description */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormControl label="Label" error={errors.label?.message} isRequired>
           <Input
@@ -71,7 +70,6 @@ export default function TrainingFormInputs({
         </FormControl>
       </div>
 
-      {/* Second Row: Trigger Word */}
       <FormControl
         label="Trigger Word"
         error={errors.trigger?.message}
@@ -99,7 +97,6 @@ export default function TrainingFormInputs({
         </div>
       </FormControl>
 
-      {/* Third Row: Category + Steps */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormControl
           label="Category"
@@ -149,7 +146,6 @@ export default function TrainingFormInputs({
         </FormControl>
       </div>
 
-      {/* Dropzone */}
       <div className="space-y-2">
         <h4 className="text-sm font-semibold">
           Training Images ({filesCount} / {maxFiles})

@@ -89,7 +89,7 @@ describe('handleRemixTool', () => {
         args,
       );
       expect(client[method]).toHaveBeenCalledExactlyOnceWith(args);
-      expect(JSON.parse(result.content[0].text)).toEqual({
+      expect(result.structuredContent.data).toEqual({
         id: 'run-1',
         revision: 2,
         execution: { variants: [{ assetIds: ['asset-1'] }] },

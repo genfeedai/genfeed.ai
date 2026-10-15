@@ -102,7 +102,6 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
 
   return (
     <div className="space-y-3">
-      {/* Mode Toggle */}
       <div className="flex gap-1 p-1 bg-background">
         <Button
           onClick={() => handleModeChange('url')}

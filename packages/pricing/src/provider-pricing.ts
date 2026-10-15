@@ -9,7 +9,6 @@ export const PRICING = {
   'imagen-4-fast': 0.039,
   // LLM (per token, derived from $9.50/million)
   llama: 0.0000095,
-  // Luma Reframe
   'luma-reframe-image': {
     'photon-1': 0.03,
     'photon-flash-1': 0.01,

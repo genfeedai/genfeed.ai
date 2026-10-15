@@ -4,7 +4,6 @@ import WorkflowCanvas from '@ui/workflow-builder/WorkflowCanvas';
 import type { Edge, Node } from '@xyflow/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock ResizeObserver
 class MockResizeObserver {
   observe = vi.fn();
   unobserve = vi.fn();

@@ -1,14 +1,6 @@
 import type { CubicBezier, EasingPreset } from '@genfeedai/contracts/types';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type EasingFunction = (t: number) => number;
-
-// =============================================================================
-// CUBIC BEZIER PRESETS (original - typed to EasingPreset union)
-// =============================================================================
 
 /**
  * Easing presets based on easy-peasy-ease patterns
@@ -37,10 +29,6 @@ export const EASING_PRESETS: Record<EasingPreset, CubicBezier> = {
   // Linear - no easing
   linear: [0, 0, 1, 1],
 };
-
-// =============================================================================
-// EXTENDED BEZIER MAPS (from easing-presets.ts)
-// =============================================================================
 
 export const DEFAULT_CUSTOM_BEZIER: CubicBezier = [0.42, 0, 0.58, 1];
 
@@ -96,10 +84,6 @@ export function getEasingBezier(name?: string | null): CubicBezier {
   const source = handles ?? DEFAULT_CUSTOM_BEZIER;
   return [...source] as CubicBezier;
 }
-
-// =============================================================================
-// PARAMETRIC EASING FUNCTIONS (from easing-functions.ts)
-// =============================================================================
 
 export function createAsymmetricEase(
   easeIn: EasingFunction,
@@ -241,10 +225,6 @@ export function getAllEasingNames(): string[] {
   return Object.keys(easing);
 }
 
-// =============================================================================
-// BEZIER EVALUATION (original)
-// =============================================================================
-
 /**
  * Evaluate a cubic bezier curve at parameter t
  */
@@ -299,10 +279,6 @@ export function applySpeedCurve(
 
   return timestamps;
 }
-
-// =============================================================================
-// DISPLAY NAMES
-// =============================================================================
 
 const EASING_DISPLAY_NAMES: Record<string, string> = {
   easeIn: 'Ease In',

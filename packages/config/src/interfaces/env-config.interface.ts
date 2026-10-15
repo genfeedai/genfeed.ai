@@ -8,7 +8,6 @@ export interface IEnvConfig {
   VISUAL_CODE_RENDERER_TOKEN?: string;
   VISUAL_CODE_RENDER_CREDITS_PER_SECOND?: number;
 
-  // === Base ===
   NODE_ENV: 'development' | 'staging' | 'production' | 'test';
   PORT: number;
   TZ?: string;
@@ -19,7 +18,6 @@ export interface IEnvConfig {
   GENFEED_CLOUD?: string;
   TRUST_PROXY?: string;
 
-  // === Genfeed Internal URLs ===
   GENFEEDAI_API_PUBLIC_URL?: string;
   GENFEEDAI_API_URL?: string;
   GENFEEDAI_CDN_URL?: string;
@@ -33,12 +31,10 @@ export interface IEnvConfig {
   GENFEEDAI_PUBLIC_URL?: string;
   GENFEEDAI_WEBHOOKS_URL?: string;
 
-  // === Microservices ===
   GENFEEDAI_MICROSERVICES_FILES_URL?: string;
   GENFEEDAI_MICROSERVICES_MCP_URL?: string;
   GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL?: string;
 
-  // === Internal Auth ===
   GENFEEDAI_API_KEY?: string;
   GENFEED_API_KEY?: string;
   GENFEED_MANAGED_INFERENCE_URL?: string;
@@ -48,7 +44,6 @@ export interface IEnvConfig {
   // === PostgreSQL / Prisma ===
   DATABASE_URL?: string;
 
-  // === Redis ===
   // Which implementation backs the RedisService token (#2382). 'redis'
   // (default) connects to a real broker; 'in-process' serves pub/sub from
   // memory and is only valid for single-process deployments (desktop).
@@ -67,13 +62,11 @@ export interface IEnvConfig {
   REDIS_SOCKET_URL?: string;
   REDIS_SOCKET_DB?: number;
 
-  // === AWS / S3 ===
   AWS_ACCESS_KEY_ID?: string;
   AWS_SECRET_ACCESS_KEY?: string;
   AWS_REGION?: string;
   AWS_S3_BUCKET?: string;
 
-  // === Better Auth ===
   BETTER_AUTH_ENABLED?: 'true' | 'false';
   BETTER_AUTH_API_KEY?: string;
   BETTER_AUTH_SECRET?: string;
@@ -82,21 +75,17 @@ export interface IEnvConfig {
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
 
-  // === Shared Google OAuth ===
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
 
-  // === Sentry ===
   SENTRY_DSN?: string;
   SENTRY_ENVIRONMENT?: string;
 
-  // === Product analytics ===
   NEXT_PUBLIC_POSTHOG_HOST?: string;
   NEXT_PUBLIC_POSTHOG_KEY?: string;
   POSTHOG_HOST?: string;
   POSTHOG_PROJECT_API_KEY?: string;
 
-  // === Stripe ===
   STRIPE_SECRET_KEY?: string;
   STRIPE_PUBLISHABLE_KEY?: string;
   STRIPE_WEBHOOK_SIGNING_SECRET?: string;
@@ -104,103 +93,78 @@ export interface IEnvConfig {
   STRIPE_PRICE_PAYG?: string;
   STRIPE_PRICE_SKILLS_PRO?: string;
 
-  // === General AI ===
   AGENT_STREAM_COALESCE_MAX_BYTES?: number;
   AGENT_STREAM_COALESCE_WINDOW_MS?: number;
 
-  // === fal.ai ===
   FAL_API_KEY?: string;
 
-  // === Mureka (direct integration, not fal/Replicate) ===
   MUREKA_API_KEY?: string;
   MUREKA_API_BASE_URL?: string;
 
-  // === Replicate ===
   REPLICATE_KEY?: string;
   REPLICATE_WEBHOOK_SIGNING_SECRET?: string;
   REPLICATE_OWNER?: string;
 
-  // === KlingAI ===
   KLINGAI_KEY?: string;
   KLINGAI_SECRET?: string;
   KLINGAI_WEBHOOK_SECRET?: string;
 
-  // === ElevenLabs ===
   ELEVENLABS_API_KEY?: string;
 
-  // === Leonardo ===
   LEONARDO_KEY?: string;
   LEONARDO_WEBHOOK_ALLOWED_IPS?: string;
   LEONARDO_WEBHOOK_SECRET?: string;
 
-  // === HeyGen ===
   HEYGEN_KEY?: string;
   HEYGEN_WEBHOOK_SECRET?: string;
 
-  // === Argil ===
   ARGIL_KEY?: string;
   ARGIL_WEBHOOK_SECRET?: string;
 
-  // === OpusPro ===
   OPUSPRO_WEBHOOK_SECRET?: string;
 
-  // === Hedra ===
   HEDRA_KEY?: string;
   HEDRA_URL?: string;
 
-  // === Higgsfield ===
   HIGGSFIELD_API_KEY?: string;
   HIGGSFIELD_API_SECRET?: string;
   /** Overrides the documented host `https://api.higgsfield.ai`. */
   HIGGSFIELD_API_BASE_URL?: string;
 
-  // === Fleet (self-hosted GPU) ===
   FLEET_COMFYUI_URL?: string;
   FLEET_CLOUDFRONT_DISTRIBUTION_ID?: string;
 
-  // === GPU Fleet (self-hosted instances) ===
   GPU_IMAGES_URL?: string;
   GPU_VOICES_URL?: string;
   GPU_VIDEOS_URL?: string;
   GPU_LLM_URL?: string;
   GPU_LLM_INSTANCE_ID?: string;
 
-  // === Anthropic (Direct SDK) ===
   ANTHROPIC_API_KEY?: string;
 
-  // === OpenAI (Direct SDK — for agent LLM, separate from assistants key) ===
   OPENAI_API_KEY?: string;
   OPENAI_CODEX_REDIRECT_URI?: string;
 
-  // === OpenRouter ===
   OPENROUTER_API_KEY?: string;
 
-  // === Typed decisions (TypeSafe AI / Jev) ===
   // Rollout modes and thresholds are Admin platform settings (#5407).
   TYPESAFE_API_KEY?: string;
   // Eval-organization API key the content-eval media ladder (#4926) uses to
   // generate through the product API. Never a customer key.
   CONTENT_EVAL_GENFEED_API_KEY?: string;
 
-  // === News API ===
   NEWS_API_KEY?: string;
   NEWS_API_URL?: string;
 
-  // === Pricing ===
-
-  // === Solana ===
   SOLANA_KEY?: string;
   SOLANA_URL?: string;
 
-  // === YouTube ===
   YOUTUBE_REDIRECT_URI?: string;
   YOUTUBE_API_KEY?: string;
 
-  // === TikTok ===
   TIKTOK_CLIENT_KEY?: string;
   TIKTOK_CLIENT_SECRET?: string;
 
-  // === Instagram ===
   INSTAGRAM_GRAPH_URL?: string;
   INSTAGRAM_API_VERSION?: string;
   INSTAGRAM_APP_ID?: string;
@@ -209,14 +173,12 @@ export interface IEnvConfig {
   INSTAGRAM_CLIENT_ID?: string;
   INSTAGRAM_CLIENT_SECRET?: string;
 
-  // === Facebook ===
   FACEBOOK_APP_ID?: string;
   FACEBOOK_APP_SECRET?: string;
   FACEBOOK_REDIRECT_URI?: string;
   FACEBOOK_GRAPH_URL?: string;
   FACEBOOK_API_VERSION?: string;
 
-  // === Twitter ===
   TWITTER_BEARER_TOKEN?: string;
   TWITTER_CONSUMER_KEY?: string;
   TWITTER_CONSUMER_SECRET?: string;
@@ -224,86 +186,69 @@ export interface IEnvConfig {
   TWITTER_CLIENT_SECRET?: string;
   TWITTER_REDIRECT_URI?: string;
 
-  // === X Ads ===
   X_ADS_API_KEY?: string;
   X_ADS_API_SECRET?: string;
   X_ADS_REDIRECT_URI?: string;
   X_ADS_REPOSITORY_COMMERCIAL_USE_APPROVED?: 'true' | 'false';
   X_ADS_REPOSITORY_ENTITLEMENT_CONFIRMED?: 'true' | 'false';
 
-  // === Pinterest ===
   PINTEREST_CLIENT_ID?: string;
   PINTEREST_CLIENT_SECRET?: string;
   PINTEREST_REDIRECT_URI?: string;
 
-  // === Reddit ===
   REDDIT_CLIENT_ID?: string;
   REDDIT_CLIENT_SECRET?: string;
   REDDIT_REDIRECT_URI?: string;
   REDDIT_USER_AGENT?: string;
 
-  // === LinkedIn ===
   LINKEDIN_CLIENT_ID?: string;
   LINKEDIN_CLIENT_SECRET?: string;
   LINKEDIN_REDIRECT_URI?: string;
 
-  // === Medium ===
   MEDIUM_CLIENT_ID?: string;
   MEDIUM_CLIENT_SECRET?: string;
   MEDIUM_REDIRECT_URI?: string;
 
-  // === Fanvue ===
   FANVUE_CLIENT_ID?: string;
   FANVUE_CLIENT_SECRET?: string;
   FANVUE_REDIRECT_URI?: string;
   FANVUE_WEBHOOK_SECRET?: string;
 
-  // === Slack ===
   SLACK_CLIENT_ID?: string;
   SLACK_CLIENT_SECRET?: string;
   SLACK_REDIRECT_URI?: string;
   SLACK_SIGNING_SECRET?: string;
 
-  // === WordPress.com ===
   WORDPRESS_CLIENT_ID?: string;
   WORDPRESS_CLIENT_SECRET?: string;
   WORDPRESS_REDIRECT_URI?: string;
 
-  // === Snapchat ===
   SNAPCHAT_CLIENT_ID?: string;
   SNAPCHAT_CLIENT_SECRET?: string;
   SNAPCHAT_REDIRECT_URI?: string;
 
-  // === WhatsApp Business (Twilio) ===
   WHATSAPP_TWILIO_ACCOUNT_SID?: string;
   WHATSAPP_TWILIO_AUTH_TOKEN?: string;
   WHATSAPP_TWILIO_PHONE_NUMBER?: string;
 
-  // === Shopify ===
   SHOPIFY_CLIENT_ID?: string;
   SHOPIFY_CLIENT_SECRET?: string;
   SHOPIFY_REDIRECT_URI?: string;
 
-  // === Google Ads ===
   GOOGLE_ADS_REDIRECT_URI?: string;
   GOOGLE_ADS_DEVELOPER_TOKEN?: string;
   GOOGLE_SEARCH_CONSOLE_REDIRECT_URI?: string;
 
-  // === Beehiiv ===
   BEEHIIV_API_URL?: string;
 
-  // === dev.to / Forem ===
   DEVTO_API_URL?: string;
 
-  // === Unipile ===
   UNIPILE_API_BASE_URL?: string;
   UNIPILE_API_KEY?: string;
   UNIPILE_WEBHOOK_SECRET?: string;
 
-  // === Giphy ===
   GIPHY_API_KEY?: string;
 
-  // === FFmpeg (Files service) ===
   FFMPEG_THREADS?: number;
   FFMPEG_VIDEO_CODEC?: string;
   FFMPEG_AUDIO_CODEC?: string;
@@ -316,23 +261,18 @@ export interface IEnvConfig {
   TEMP_DIR?: string;
   WEBSOCKET_URL?: string;
 
-  // === Webhooks ===
   VERCEL_WEBHOOK_SECRET?: string;
 
-  // === Chrome Extension ===
   CHROME_EXTENSION_ID?: string;
 
-  // === Opus Pro ===
   OPUS_PRO_KEY?: string;
 
-  // === Misc ===
   APP_URL?: string;
 
   APIFY_API_TOKEN?: string;
   DISCORD_PUBLIC_KEY?: string;
   THREADS_REDIRECT_URI?: string;
 
-  // === Discord / Notifications Service ===
   DISCORD_BOT_TOKEN?: string;
   DISCORD_CLIENT_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
@@ -352,7 +292,6 @@ export interface IEnvConfig {
   GENFEED_TERMINAL_CWD?: string;
   NEXT_PUBLIC_GENFEED_TERMINAL_CWD?: string;
 
-  // === Validation ===
   VALIDATION_MAX_FILE_SIZE?: string;
   VALIDATION_VIDEO_FORMATS?: string;
   VALIDATION_IMAGE_FORMATS?: string;
@@ -375,7 +314,6 @@ export interface IEnvConfig {
   THREADS_CLIENT_SECRET?: string;
   THREADS_GRAPH_URL?: string;
 
-  // AI
   XAI_MODEL?: string;
 
   // Allow additional env vars

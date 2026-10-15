@@ -58,7 +58,6 @@ export class BrandWebsiteParserService {
     const canonical =
       $('link[rel="canonical"]').attr('href')?.trim() || undefined;
 
-    // Extract social links from <a> hrefs
     const allLinks: string[] = [];
     $('a[href]').each((_i, el) => {
       const href = $(el).attr('href');
@@ -73,17 +72,14 @@ export class BrandWebsiteParserService {
     const { fonts, fontDetails, evidence, diagnostics } =
       this.extractFontsFromDom($, sourceUrl, stylesheets);
 
-    // Extract headings
     const headings = this.extractHeadingsFromDom($);
 
     // Extract body text for about/value prop extraction
     const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
 
-    // Extract value propositions
     const valuePropositions = this.extractValuePropositions(bodyText);
     const aboutText = this.extractAboutText(bodyText);
 
-    // Extract logo
     const logoUrl = this.extractLogoFromDom($, sourceUrl);
     const icons = this.extractIconsFromDom($, sourceUrl);
     const images = this.extractImagesFromDom($, sourceUrl);

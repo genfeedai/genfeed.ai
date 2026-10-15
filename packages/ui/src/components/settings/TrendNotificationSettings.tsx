@@ -75,7 +75,6 @@ export default function TrendNotificationSettings({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start gap-3">
         <div className="p-2 bg-primary/10">
           <Bell className="size-5 text-primary" />
@@ -88,14 +87,12 @@ export default function TrendNotificationSettings({
         </div>
       </div>
 
-      {/* Notification Channels */}
       <div className="space-y-4 p-4 border border-white/[0.08] bg-card">
         <h4 className="text-sm font-medium text-foreground">
           Notification Channels
         </h4>
 
         <div className="space-y-4">
-          {/* In-App Notifications */}
           <Switch
             label="In-App Notifications"
             description="Receive trend alerts within the app"
@@ -106,7 +103,6 @@ export default function TrendNotificationSettings({
             }
           />
 
-          {/* Telegram Notifications */}
           <div className="space-y-2">
             <Switch
               label="Telegram Notifications"
@@ -143,7 +139,6 @@ export default function TrendNotificationSettings({
             )}
           </div>
 
-          {/* Email Notifications */}
           <div className="space-y-2">
             <Switch
               label="Email Notifications"
@@ -178,11 +173,9 @@ export default function TrendNotificationSettings({
         </div>
       </div>
 
-      {/* Notification Preferences */}
       <div className="space-y-4 p-4 border border-white/[0.08] bg-card">
         <h4 className="text-sm font-medium text-foreground">Preferences</h4>
 
-        {/* Frequency */}
         <div className="space-y-2">
           <SelectField
             name="trendNotificationsFrequency"
@@ -207,7 +200,6 @@ export default function TrendNotificationSettings({
           </SelectField>
         </div>
 
-        {/* Minimum Viral Score */}
         <div className="space-y-2">
           <FormRange
             name="trendNotificationsMinViralScore"

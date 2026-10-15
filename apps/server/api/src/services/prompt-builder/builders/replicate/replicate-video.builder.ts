@@ -53,7 +53,6 @@ import { Injectable } from '@nestjs/common';
 export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   getSupportedModels(): string[] {
     return [
-      // OpenAI Sora
       MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
       MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
       // Google Veo
@@ -66,7 +65,6 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
       // PrunaAI
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
-      // Kwaivgi Kling
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
@@ -74,7 +72,6 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
-      // ByteDance Seedance
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST,
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
@@ -87,7 +84,6 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       // Kling V2.6 / O1
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_O1,
-      // Minimax Hailuo
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
       MODEL_KEYS.REPLICATE_MINIMAX_H3,
@@ -96,7 +92,6 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO,
       // WAN Video 2.7
       MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_7_T2V,
-      // Google Veo 3.1 Lite
       MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
     ];
   }

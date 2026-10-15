@@ -20,7 +20,6 @@ export default function SetupCard() {
       className="mx-3 mb-3 bg-foreground/[0.03] shadow-border"
       bodyClassName="gap-0 p-3"
     >
-      {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-2xs font-semibold text-foreground/60">
           Complete setup
@@ -30,7 +29,6 @@ export default function SetupCard() {
         </span>
       </div>
 
-      {/* Progress bar */}
       <div className="mb-3 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"

@@ -12,19 +12,11 @@ import {
   type SeoScoreResolver,
 } from './seo-score-executor';
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
 const DEFAULT_TARGET_SCORE = 80;
 const DEFAULT_MAX_ITERATIONS = 3;
 const MAX_ALLOWED_ITERATIONS = 10;
 /** Per-iteration credit estimate: one score (2) + one rewrite (3). */
 const CREDITS_PER_ITERATION = 5;
-
-// =============================================================================
-// TYPES
-// =============================================================================
 
 export interface SeoRefineIteration {
   /** 0 = initial score, 1..n = score after each rewrite. */
@@ -51,10 +43,6 @@ export interface IterativeSeoRefineOutput {
   targetKeyword: string | null;
   title: string | null;
 }
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Iterative SEO Refine Executor

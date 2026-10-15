@@ -86,7 +86,6 @@ export default function SiteFooter({
     <footer className={cn(VARIANT_CLASSES[variant], 'relative z-20 pt-14')}>
       <div className="container mx-auto px-6">
         <div className="mb-14 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2.2fr)]">
-          {/* Brand Column */}
           <div>
             {/*
               The mark is square. Declaring 120x20 described a wordmark that is
@@ -105,7 +104,6 @@ export default function SiteFooter({
               {brandTagline}
             </p>
 
-            {/* Social icons */}
             <div className="flex gap-1">
               {socialLinks.map((social) => (
                 <Link
@@ -154,7 +152,6 @@ export default function SiteFooter({
               </div>
             ))}
 
-            {/* Newsletter Column */}
             {showNewsletter && (
               <div>
                 <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold text-foreground">

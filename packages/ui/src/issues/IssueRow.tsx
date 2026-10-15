@@ -44,12 +44,10 @@ export function IssueRow({
 
   const content = (
     <>
-      {/* Column 1: Status glyph */}
       <span className="shrink-0">
         <StatusIcon status={status} />
       </span>
 
-      {/* Column 2: Identifier + Title */}
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span className="shrink-0 font-mono text-xs text-muted-foreground">
           {identifier}
@@ -57,7 +55,6 @@ export function IssueRow({
         <span className="min-w-0 flex-1 truncate">{title}</span>
       </span>
 
-      {/* Column 3: Trailing metadata */}
       {(trailing || trailingMeta) && (
         <span className="ml-auto flex shrink-0 items-center gap-3">
           {trailing}

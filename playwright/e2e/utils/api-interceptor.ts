@@ -52,10 +52,6 @@ import {
  * @module api-interceptor
  */
 
-// ----------------------------------------------------------------------------
-// Type Definitions
-// ----------------------------------------------------------------------------
-
 interface MockUser {
   id: string;
   email: string;
@@ -152,10 +148,6 @@ interface JsonApiCollectionDocument<T> {
     pageSize: number;
   };
 }
-
-// ----------------------------------------------------------------------------
-// Mock Data Generators
-// ----------------------------------------------------------------------------
 
 export function generateMockUser(overrides: Partial<MockUser> = {}): MockUser {
   return {

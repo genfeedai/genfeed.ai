@@ -53,8 +53,8 @@ Back up PostgreSQL and the `/data` volume together. See
 
 | Configuration | Behavior |
 | --- | --- |
-| Default (`BETTER_AUTH_ENABLED=false`) | The first boot seeds one local user, organization, and brand. The web UI opens without a login wall, and requests without a token resolve to that local identity. |
-| Login wall on | Users sign in against your own instance. Local database records stay authoritative. |
+| Default (`BETTER_AUTH_ENABLED=true`) | Users sign up and sign in against your own instance. Local database records stay authoritative. |
+| No login wall (`BETTER_AUTH_ENABLED=false`) | The first boot seeds one local user, organization, and brand. The web UI opens without a login wall, and requests without a token resolve to that local identity. |
 
 MCP is authenticated either way. See [MCP server](/api-reference/mcp).
 

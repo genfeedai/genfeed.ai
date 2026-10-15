@@ -20,10 +20,6 @@ import { createWorkflowApiService } from '@/features/workflows/services/workflow
 import { selectCloudWorkflowEditKey } from '@/features/workflows/stores/cloud-workflow-snapshot';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 interface UseCloudWorkflowOptions {
   /** Existing workflow ID to load from cloud */
   workflowId?: string;
@@ -61,10 +57,6 @@ interface UseCloudWorkflowReturn {
   /** Persist input values as defaults for scheduled executions */
   saveInputDefaults: (inputValues: Record<string, unknown>) => Promise<void>;
 }
-
-// =============================================================================
-// HOOK
-// =============================================================================
 
 /**
  * Hook that initializes and manages the cloud workflow store.
@@ -150,9 +142,6 @@ export function useCloudWorkflow({
   const durableEditKey = useWorkflowStore(selectCloudWorkflowEditKey);
   const isSaving = useWorkflowStore(selectIsSaving);
 
-  // -------------------------------------------------------------------------
-  // Load workflow on mount
-  // -------------------------------------------------------------------------
   useEffect(() => {
     mountedRef.current = true;
     abortRef.current = new AbortController();
@@ -238,9 +227,6 @@ export function useCloudWorkflow({
     };
   }, [brands.length, getService, isBrandsLoading]);
 
-  // -------------------------------------------------------------------------
-  // Auto-save subscription
-  // -------------------------------------------------------------------------
   useEffect(() => {
     if (!autoSave || !isDirty || !mountedRef.current) {
       return;
@@ -277,9 +263,6 @@ export function useCloudWorkflow({
     };
   }, [autoSave, brandId, durableEditKey, getService, isDirty]);
 
-  // -------------------------------------------------------------------------
-  // Action callbacks
-  // -------------------------------------------------------------------------
   const save = useCallback(async () => {
     try {
       const service = serviceRef.current ?? (await getService());

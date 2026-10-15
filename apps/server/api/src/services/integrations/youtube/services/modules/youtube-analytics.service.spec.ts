@@ -54,8 +54,6 @@ describe('YoutubeAnalyticsService', () => {
     expect(service).toBeDefined();
   });
 
-  // --- getChannelDetails ---
-
   it('should return channel details on success', async () => {
     mockChannelsList.mockResolvedValueOnce({
       data: {
@@ -235,8 +233,6 @@ describe('YoutubeAnalyticsService', () => {
     );
   });
 
-  // --- getMediaAnalytics ---
-
   it('should return stats for a single video', async () => {
     mockVideosList.mockResolvedValueOnce({
       data: {
@@ -286,8 +282,6 @@ describe('YoutubeAnalyticsService', () => {
       ),
     ).rejects.toThrow('Statistics not found');
   });
-
-  // --- getMediaAnalyticsBatch ---
 
   it('should return empty map for empty videoIds array', async () => {
     const result = await service.getMediaAnalyticsBatch(

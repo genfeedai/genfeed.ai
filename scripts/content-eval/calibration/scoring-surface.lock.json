@@ -1,6 +1,6 @@
 {
   "text": {
-    "digest": "sha256:d910415245de88c2222320bc73cca5ecf4e339c379b62e72a0d20be46361e8dc",
+    "digest": "sha256:41ab9f7d62ddde30168fe4a7653d880c3884cd8019f40c612caf48e329f04d3d",
     "files": [
       {
         "digest": "sha256:e3c711a4a276d6975eb473cf40c4644730d84b0eae7ae8665da980c66fd63c64",
@@ -19,11 +19,11 @@
         "path": "apps/server/api/src/constants/default-text-model.constant.ts"
       },
       {
-        "digest": "sha256:35b46c7e125115a3f6073f97e7b8fe8f481688e303186abada4d26f9ec012dff",
+        "digest": "sha256:21d492fa49e024dccb420f799c7bbd79056831e8a8ac89e0fb48b344f73dbd24",
         "path": "apps/server/api/src/services/content-quality/content-quality-scorer.prompts.ts"
       },
       {
-        "digest": "sha256:b383c30225ae15b9de6d35fa339976fe579a9887e9495656747a0b192783ed0b",
+        "digest": "sha256:4e058eee648eaddc1ce265ba561050194cbad9fc2665edc1691a698c137dd829",
         "path": "apps/server/api/src/services/content-quality/content-quality-scorer.service.ts"
       },
       {

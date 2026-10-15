@@ -106,7 +106,6 @@ export class TemplateMetadataService {
       averageQuality?: number;
     },
   ): Promise<void> {
-    // Find template by key first
     // tenant-scope-ignore: platformOrTenantScope limits the key lookup to platform plus the active tenant templates; isDeleted is false
     const template = await this.prisma.template.findFirst({
       where: {

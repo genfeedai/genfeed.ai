@@ -13,7 +13,6 @@ export default function TemplateSidebar({
 }: Props) {
   return (
     <div className="flex flex-col gap-6">
-      {/* Metadata Card */}
       <DetailCard title="Metadata">
         <div className="flex flex-col gap-2 text-sm">
           {metadata?.version && (
@@ -68,7 +67,6 @@ export default function TemplateSidebar({
         </div>
       </DetailCard>
 
-      {/* Performance Card */}
       <DetailCard title="Performance">
         <div className="flex flex-col gap-2 text-sm">
           {performance?.usageCount !== undefined && (
@@ -102,7 +100,6 @@ export default function TemplateSidebar({
         </div>
       </DetailCard>
 
-      {/* Timestamps */}
       <DetailCard title="Timestamps">
         <div className="flex flex-col gap-2 text-sm">
           {createdAt && (

@@ -3,10 +3,6 @@ import type {
   WorkflowUIHttpClient,
 } from '../../provider/types';
 
-// =============================================================================
-// Module-level execution HTTP configuration
-// =============================================================================
-
 /**
  * Injected HTTP client + provider-header supplier for the execution store.
  *

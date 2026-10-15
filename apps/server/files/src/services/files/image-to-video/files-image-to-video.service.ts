@@ -52,7 +52,6 @@ export class FilesImageToVideoService extends FilesService {
     const outputDir = this.getPath('output', ingredientId);
     let finalVideoPath = path.join(outputDir, `merged.mp4`);
 
-    // Process each clip with its corresponding audio
     const processedClips = await Promise.all(
       clipFiles.map((clip, index) =>
         this.processClipWithAudio(

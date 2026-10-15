@@ -117,15 +117,6 @@ export class MembersController {
     return serializeCollection(request, MemberSerializer, data);
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Invitation endpoints
-  //
-  // These MUST stay declared above `@Get(':memberId')`. Nest matches routes in
-  // declaration order, so a wildcard param segment declared first swallows every
-  // static sibling path (`/members/invitations` would resolve to findOne with
-  // memberId='invitations').
-  // ────────────────────────────────────────────────────────────────────────────
-
   /**
    * GET /members/invitations
    * List invitations for the current organization, optionally filtered by status.
@@ -222,10 +213,6 @@ export class MembersController {
 
     return serializeSingle(request, MemberInvitationSerializer, newInvitation);
   }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Wildcard param routes — keep last so static sibling paths win.
-  // ────────────────────────────────────────────────────────────────────────────
 
   @TenantReadPolicy('selected')
   @Get(':memberId')

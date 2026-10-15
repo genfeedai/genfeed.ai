@@ -313,10 +313,6 @@ describe('ContentPlannerService', () => {
     );
   });
 
-  // ─── instantiation ────────────────────────────────────────────────────────
-
-  // ─── generatePlan – happy path ────────────────────────────────────────────
-
   it('should throw BadRequestException when brand is not found', async () => {
     stubGeneratePlan({ brand: null });
 
@@ -523,8 +519,6 @@ describe('ContentPlannerService', () => {
     );
   });
 
-  // ─── unusable model output ─────────────────────────────────────────────────
-
   it('surfaces the typed error instead of emitting canned template items', async () => {
     stubGeneratePlan();
     const error = new LlmStructuredOutputError('content_plan_generation', [
@@ -553,8 +547,6 @@ describe('ContentPlannerService', () => {
     expect(contentPlanItemsService.createMany).not.toHaveBeenCalled();
   });
 
-  // ─── brand without agentConfig ─────────────────────────────────────────────
-
   it('should handle brand with no agentConfig gracefully', async () => {
     stubGeneratePlan({ brand: brandWithoutAgentConfig });
 
@@ -577,8 +569,6 @@ describe('ContentPlannerService', () => {
       mockOrgId,
     );
   });
-
-  // ─── parsed item defaults ─────────────────────────────────────────────────
 
   it('should use dto.platforms for items the model left without platforms', async () => {
     stubGeneratePlan({

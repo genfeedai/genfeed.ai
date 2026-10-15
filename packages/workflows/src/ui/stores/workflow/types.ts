@@ -17,10 +17,6 @@ import type {
 } from '@xyflow/react';
 import type { ChatSlice, SnapshotSlice } from './slices/types';
 
-// =============================================================================
-// IMAGE HISTORY
-// =============================================================================
-
 export interface ImageHistoryItem {
   id: string;
   image: string;
@@ -28,10 +24,6 @@ export interface ImageHistoryItem {
   model?: string;
   timestamp: number;
 }
-
-// =============================================================================
-// API DATA TYPE (inlined from @/lib/api)
-// =============================================================================
 
 export interface WorkflowData {
   id: string;
@@ -94,10 +86,6 @@ export interface WorkflowPersistenceService {
   duplicate: (id: string, signal?: AbortSignal) => Promise<WorkflowData>;
 }
 
-// =============================================================================
-// STATE TYPES
-// =============================================================================
-
 export interface WorkflowState {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
@@ -113,10 +101,6 @@ export interface WorkflowState {
   navigationTargetId: string | null;
   globalImageHistory: ImageHistoryItem[];
 }
-
-// =============================================================================
-// ACTION TYPES
-// =============================================================================
 
 export interface NodeActions {
   /** Adds either an OSS primitive or a registered product node type. */
@@ -223,10 +207,6 @@ export interface ImageHistoryActions {
   addToGlobalHistory: (item: Omit<ImageHistoryItem, 'id'>) => void;
   clearGlobalHistory: () => void;
 }
-
-// =============================================================================
-// COMBINED STORE TYPE
-// =============================================================================
 
 export interface WorkflowStore
   extends WorkflowState,

@@ -536,9 +536,11 @@ Use this during Phase 3 (Days 8-10) to draft the warmup Reel or carousel brief d
 - Include the generated caption (under 125 characters) and hashtag set (5 max)
 - Add alt text to the draft for each visual element
 
-### `publish_post`
+### Publishing through Genfeed
 
-Only invoke `publish_post` after the user confirms:
+Resolve the chosen brand with `get_brands` and its connected channel with `list_brand_publishing_readiness`. Check `get_scheduler_capabilities` and `validate_scheduler_target` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
+
+Only request scheduling or publishing after the user confirms:
 
 - Content is original and has not been posted on any other platform
 - Caption is under 125 characters with no CTAs or link references

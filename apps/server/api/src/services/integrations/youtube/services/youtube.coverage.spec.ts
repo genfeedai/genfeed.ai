@@ -35,10 +35,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function makeMockOAuth2Client(
   overrides: Partial<{
     generateAuthUrl: ReturnType<typeof vi.fn>;
@@ -53,10 +49,6 @@ function makeMockOAuth2Client(
       vi.fn().mockResolvedValue({ tokens: { access_token: 'tok' } }),
   };
 }
-
-// ---------------------------------------------------------------------------
-// Suite
-// ---------------------------------------------------------------------------
 
 describe('YoutubeService — extended coverage', () => {
   let service: YoutubeService;
@@ -125,10 +117,6 @@ describe('YoutubeService — extended coverage', () => {
     service = module.get(YoutubeService);
   });
 
-  // -------------------------------------------------------------------------
-  // getVideoStatus
-  // -------------------------------------------------------------------------
-
   describe('getVideoStatus', () => {
     it('delegates to metadataService.getVideoStatus with correct args', async () => {
       const expected = { status: 'uploaded' };
@@ -153,10 +141,6 @@ describe('YoutubeService — extended coverage', () => {
       ).rejects.toThrow('status fetch failed');
     });
   });
-
-  // -------------------------------------------------------------------------
-  // getChannelDetails
-  // -------------------------------------------------------------------------
 
   describe('getChannelDetails', () => {
     it('delegates to analyticsService.getChannelDetails without optional arg', async () => {
@@ -195,10 +179,6 @@ describe('YoutubeService — extended coverage', () => {
       );
     });
   });
-
-  // -------------------------------------------------------------------------
-  // getMediaAnalyticsBatch
-  // -------------------------------------------------------------------------
 
   describe('getMediaAnalyticsBatch', () => {
     it('delegates to analyticsService.getMediaAnalyticsBatch with videoIds array', async () => {
@@ -246,10 +226,6 @@ describe('YoutubeService — extended coverage', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // getTrends — YouTube Data API request options
-  // -------------------------------------------------------------------------
-
   describe('getTrends — request options', () => {
     it('passes an explicit region code to videos.list', async () => {
       const list = vi
@@ -288,10 +264,6 @@ describe('YoutubeService — extended coverage', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // postComment
-  // -------------------------------------------------------------------------
-
   describe('postComment', () => {
     it('delegates to commentsService.postComment with correct args', async () => {
       const expected = 'comment-id-42';
@@ -323,10 +295,6 @@ describe('YoutubeService — extended coverage', () => {
       ).rejects.toThrow('comment failed');
     });
   });
-
-  // -------------------------------------------------------------------------
-  // parseDuration — pure function, all ISO 8601 PT branches
-  // -------------------------------------------------------------------------
 
   describe('parseDuration', () => {
     it('returns 0 for a non-matching string', () => {
@@ -369,10 +337,6 @@ describe('YoutubeService — extended coverage', () => {
       expect(service.parseDuration('PT0H0M0S')).toBe(0);
     });
   });
-
-  // -------------------------------------------------------------------------
-  // generateAuthUrl
-  // -------------------------------------------------------------------------
 
   describe('generateAuthUrl', () => {
     it('creates an OAuth2 client and calls generateAuthUrl with mapped options', () => {
@@ -436,10 +400,6 @@ describe('YoutubeService — extended coverage', () => {
       );
     });
   });
-
-  // -------------------------------------------------------------------------
-  // exchangeCodeForTokens
-  // -------------------------------------------------------------------------
 
   describe('exchangeCodeForTokens', () => {
     it('creates an OAuth2 client and exchanges the code for tokens', async () => {

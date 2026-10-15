@@ -57,8 +57,6 @@ describe('YoutubeMetadataService', () => {
     expect(service).toBeDefined();
   });
 
-  // --- getVideoMetadata ---
-
   it('should return video metadata for a valid video', async () => {
     mockVideosList.mockResolvedValueOnce({
       data: {
@@ -160,8 +158,6 @@ describe('YoutubeMetadataService', () => {
     const result = await service.getVideoMetadata('vid-long');
     expect(result?.duration).toBe(7200);
   });
-
-  // --- getVideoStatus ---
 
   it('should return video status with privacy and upload status', async () => {
     mockVideosList.mockResolvedValueOnce({

@@ -141,7 +141,6 @@ function AudioInputNodeComponent(props: NodeProps) {
 
   return (
     <BaseNode {...props} headerActions={headerActions}>
-      {/* Hidden file input */}
       <Input
         ref={fileInputRef}
         type="file"
@@ -176,7 +175,6 @@ function AudioInputNodeComponent(props: NodeProps) {
         </div>
       )}
 
-      {/* Audio Preview or Empty State */}
       {nodeData.audio ? (
         <div className="space-y-2">
           <div className="relative">

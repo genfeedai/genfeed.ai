@@ -20,10 +20,6 @@ import {
   positiveIntSchema,
 } from '../helpers/common-schemas';
 
-// ============================================================================
-// Type Definitions (manual until OpenAPI generation is run)
-// ============================================================================
-
 /**
  * Request payload for creating a new ingredient
  */
@@ -88,10 +84,6 @@ export interface UpdateIngredientRequest {
   s3Key?: string;
 }
 
-// ============================================================================
-// Zod Schemas for Runtime Validation
-// ============================================================================
-
 /**
  * Zod schema matching CreateIngredientDto
  */
@@ -128,10 +120,6 @@ export const createIngredientSchema = z.object({
  * Zod schema matching UpdateIngredientDto
  */
 export const updateIngredientSchema = createIngredientSchema;
-
-// ============================================================================
-// Inferred Types from Zod Schemas
-// ============================================================================
 
 export type CreateIngredientFormData = z.infer<typeof createIngredientSchema>;
 export type UpdateIngredientFormData = z.infer<typeof updateIngredientSchema>;

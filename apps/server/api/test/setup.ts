@@ -4,11 +4,9 @@
  */
 import { afterAll, beforeAll } from 'vitest';
 
-// Set test environment
 process.env.NODE_ENV = 'test';
 
 import { join } from 'node:path';
-// Load test environment variables
 import { config as loadEnv } from 'dotenv';
 
 loadEnv({ path: join(process.cwd(), '.env.test') });

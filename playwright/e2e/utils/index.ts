@@ -73,7 +73,6 @@ export {
   takeScreenshot,
   toggleSwitch,
   uploadFile,
-  // Wait helpers
   waitForApiRequest,
   // Modal/Dialog helpers
   waitForModal,

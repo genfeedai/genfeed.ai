@@ -53,7 +53,6 @@ describe('StylesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock axios instance
     mockAxiosInstance = {
       delete: vi.fn(),
       get: vi.fn(),

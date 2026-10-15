@@ -33,7 +33,6 @@ export class ApifyYouTubeService {
     try {
       const videos = await this.getYouTubeVideos(options?.limit || 20);
 
-      // Convert videos to trend format
       return videos.map((video) => ({
         growthRate: Math.min(100, video.velocity / 100),
         mentions: video.viewCount,

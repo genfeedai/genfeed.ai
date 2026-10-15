@@ -2,6 +2,7 @@ import type { McpMediaToolResult } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 type AccountManagementToolResult = {
   content: McpMediaToolResult['content'];
@@ -29,7 +30,7 @@ export function handleAccountManagementTool(
       const statusText =
         artifact.content[0]?.type === 'text'
           ? artifact.content[0].text
-          : JSON.stringify(status, null, 2);
+          : formatToolData(status);
       return {
         content: [
           {

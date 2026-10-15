@@ -9,7 +9,7 @@ describe('isPublicMcpRequest', () => {
     },
   );
 
-  it.each(['initialize', 'notifications/initialized'])(
+  it.each(['initialize', 'server/discover', 'notifications/initialized'])(
     'requires a bearer token for %s so clients start OAuth on connect (#4950)',
     (method) => {
       expect(isPublicMcpRequest({ jsonrpc: '2.0', method })).toBe(false);

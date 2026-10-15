@@ -5,10 +5,6 @@ import type {
   VideoModel,
 } from '@genfeedai/contracts/types';
 
-// =============================================================================
-// IMAGE MODELS
-// =============================================================================
-
 export interface ImageModelConfig {
   value: ImageModel;
   label: string;
@@ -40,10 +36,6 @@ export const IMAGE_MODEL_ID_MAP: Record<ImageModel, string> =
   >;
 
 export const DEFAULT_IMAGE_MODEL: ImageModel = 'nano-banana-pro';
-
-// =============================================================================
-// VIDEO MODELS
-// =============================================================================
 
 export interface VideoModelConfig {
   value: VideoModel;
@@ -97,10 +89,6 @@ export const VIDEO_MODEL_ID_MAP: Record<VideoModel, string> =
 
 export const DEFAULT_VIDEO_MODEL: VideoModel = 'seedance-2.5';
 
-// =============================================================================
-// LIP SYNC MODELS
-// =============================================================================
-
 export interface LipSyncModelConfig {
   value: LipSyncModel;
   label: string;
@@ -131,10 +119,6 @@ export const LIPSYNC_SYNC_MODES = [
 
 export const DEFAULT_LIPSYNC_MODEL: LipSyncModel = 'heygen/avatar';
 
-// =============================================================================
-// LLM (TEXT) MODELS
-// =============================================================================
-
 export interface TextModelConfig {
   value: TextModel;
   label: string;
@@ -163,10 +147,6 @@ export const LLM_MODEL_ID_MAP: Record<TextModel, string> = Object.fromEntries(
 ) as Record<TextModel, string>;
 
 export const DEFAULT_LLM_MODEL: TextModel = 'meta-llama-3.1-405b-instruct';
-
-// =============================================================================
-// UTILITY FUNCTIONS
-// =============================================================================
 
 export function getImageModelLabel(model: ImageModel): string {
   return IMAGE_MODELS.find((m) => m.value === model)?.label ?? model;

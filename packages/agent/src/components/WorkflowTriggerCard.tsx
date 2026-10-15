@@ -105,7 +105,6 @@ export function WorkflowTriggerCard({
 
   return (
     <div className="mt-2 overflow-hidden border border-border bg-background">
-      {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Zap className="size-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
@@ -114,7 +113,6 @@ export function WorkflowTriggerCard({
       </div>
 
       <div className="space-y-3 p-3">
-        {/* Workflow list */}
         <div className="space-y-1.5">
           {workflows.map((wf) => (
             <Button

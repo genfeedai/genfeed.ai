@@ -6,10 +6,6 @@ import {
 } from '../base-executor';
 import { pickSeoString, resolveSeoUpstream } from './seo-score-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export interface SeoRewriteOutput {
   /** Rewritten content body. */
   text: string;
@@ -31,10 +27,6 @@ export type SeoRewriteResolver = (params: {
   targetKeyword?: string | null;
   model?: string | null;
 }) => Promise<{ text: string; model?: string | null }>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * SEO Rewrite Executor

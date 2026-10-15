@@ -167,7 +167,6 @@ export default function TagsManager({
       };
     }
 
-    // If it's a string ID, try to find it in available tags
     const foundTag = availableTags.find((t) => t.id === (tag as string));
     if (foundTag) {
       return {
@@ -196,7 +195,6 @@ export default function TagsManager({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Current Tags */}
       <TagsList
         tagDisplayItems={tagDisplayItems}
         isReadOnly={isReadOnly}
@@ -204,7 +202,6 @@ export default function TagsManager({
         onRemoveTag={handleRemoveTag}
       />
 
-      {/* Add Tag Button */}
       {!isReadOnly && (
         <div className="relative">
           <Button
@@ -216,7 +213,6 @@ export default function TagsManager({
             isDisabled={isSaving}
           />
 
-          {/* Tag Picker Dropdown */}
           {showTagPicker && (
             <TagPickerDropdown
               availableTags={availableTags}

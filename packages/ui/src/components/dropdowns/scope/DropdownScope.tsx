@@ -60,7 +60,6 @@ export default function DropdownScope({
   // Determine if this is an article or ingredient
   const isArticle = 'slug' in item && 'readingTime' in item;
 
-  // Use appropriate service
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
   );
@@ -69,7 +68,6 @@ export default function DropdownScope({
     ArticlesService.getInstance(token),
   );
 
-  // Get current scope value
   const currentScope = item.scope || AssetScope.USER;
 
   const handleChange = async (newScope: AssetScope) => {
@@ -77,13 +75,11 @@ export default function DropdownScope({
       let updatedItem: IIngredient | IArticle | undefined;
 
       if (isArticle) {
-        // Use articles service
         const service = await getArticlesService();
         updatedItem = (await service.patch(item.id, {
           scope: newScope,
         })) as IArticle | undefined;
       } else {
-        // Use ingredients service
         const service = await getIngredientsService();
         updatedItem = (await service.patch(item.id, {
           scope: newScope,

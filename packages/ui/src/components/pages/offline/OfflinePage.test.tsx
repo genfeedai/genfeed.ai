@@ -2,7 +2,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { OfflinePage } from '@ui/pages/offline/OfflinePage';
 import { describe, expect, it, vi } from 'vitest';
 
-// Mock the constants
 vi.mock('@ui-constants/pwa/pwa-apps.constant', () => ({
   PWA_APPS: {
     dashboard: {

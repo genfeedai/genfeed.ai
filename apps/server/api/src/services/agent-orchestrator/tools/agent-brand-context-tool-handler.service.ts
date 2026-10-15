@@ -78,7 +78,7 @@ export class AgentBrandContextToolHandler {
 
     return {
       creditsUsed: 0,
-      data: this.summarize(snapshot, params.includeSystemPrompt !== false),
+      data: this.summarize(snapshot, params.includeSystemPrompt === true),
       success: true,
     };
   }

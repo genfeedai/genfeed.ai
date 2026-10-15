@@ -60,13 +60,11 @@ export class ApiKeyAuthGuard implements CanActivate {
       );
     }
 
-    // Check IP restriction
     const clientIp = request.ip || request.connection.remoteAddress;
     if (!this.apiKeysService.isIpAllowed(apiKey, clientIp)) {
       throw new UnauthorizedException('IP address not allowed');
     }
 
-    // Check rate limit
     const rateLimit = await this.apiKeysService.checkRateLimit(apiKey);
     if (!rateLimit.allowed) {
       const response = context.switchToHttp().getResponse();
@@ -74,7 +72,6 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new RateLimitError(rateLimit.retryAfterSeconds);
     }
 
-    // Check required scopes
     const requiredScopes = this.reflector.get<string[]>(
       API_KEY_SCOPES_KEY,
       context.getHandler(),
@@ -120,7 +117,6 @@ export class ApiKeyAuthGuard implements CanActivate {
       userId: apiKey.userId,
     };
 
-    // Update usage stats
     await this.apiKeysService.updateLastUsed(apiKeyId, clientIp);
 
     return true;

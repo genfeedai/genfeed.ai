@@ -29,7 +29,6 @@ export default function ModalVideo({
     return null;
   }
 
-  // Get aspect ratio class based on format
   const getAspectClass = () => {
     switch (format) {
       case IngredientFormat.LANDSCAPE:
@@ -41,7 +40,6 @@ export default function ModalVideo({
     }
   };
 
-  // Get format label
   const getFormatLabel = () => {
     switch (format) {
       case IngredientFormat.LANDSCAPE:

@@ -23,7 +23,6 @@ vi.mock('ioredis', () => ({
   })),
 }));
 
-// Mock readline
 vi.mock('readline', () => ({
   createInterface: vi.fn(() => ({
     close: vi.fn(),
@@ -209,7 +208,6 @@ describe('MicroservicesService', () => {
       (service as unknown as { redisClient: unknown }).redisClient =
         mockRedisClient;
 
-      // Initialize services
       (
         service as unknown as {
           initializeServices: () => void;

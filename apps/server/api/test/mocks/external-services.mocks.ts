@@ -6,10 +6,6 @@
 
 import { vi } from 'vitest';
 
-// ============================================================================
-// Replicate Service Mocks (Video/Image Generation)
-// ============================================================================
-
 export const createMockReplicateService = () => ({
   cancelPrediction: vi.fn().mockResolvedValue(undefined),
   enhanceVideo: vi.fn().mockResolvedValue('mock-enhance-prediction-id'),
@@ -35,10 +31,6 @@ export const createMockReplicateService = () => ({
     text: 'Mocked transcription text',
   }),
 });
-
-// ============================================================================
-// ElevenLabs Service Mocks (Text-to-Speech)
-// ============================================================================
 
 export const createMockElevenLabsService = () => ({
   cloneVoice: vi.fn().mockResolvedValue({
@@ -66,10 +58,6 @@ export const createMockElevenLabsService = () => ({
   textToSpeech: vi.fn().mockResolvedValue(Buffer.from('mock-audio-data')),
 });
 
-// ============================================================================
-// HeyGen Service Mocks (Avatar Video Generation)
-// ============================================================================
-
 export const createMockHeyGenService = () => ({
   createVideo: vi.fn().mockResolvedValue({
     status: 'processing',
@@ -90,10 +78,6 @@ export const createMockHeyGenService = () => ({
     ]),
 });
 
-// ============================================================================
-// Hedra Service Mocks (AI Avatar)
-// ============================================================================
-
 export const createMockHedraService = () => ({
   createCharacter: vi.fn().mockResolvedValue({
     character_id: 'mock-hedra-character-id',
@@ -108,10 +92,6 @@ export const createMockHedraService = () => ({
     video_url: 'https://mock-hedra.com/video.mp4',
   }),
 });
-
-// ============================================================================
-// Opus Pro Service Mocks (Template Video Generation)
-// ============================================================================
 
 export const createMockOpusProService = () => ({
   generateVideo: vi.fn().mockResolvedValue('mock-opuspro-video-id'),
@@ -141,10 +121,6 @@ export const createMockOpusProService = () => ({
   }),
 });
 
-// ============================================================================
-// KlingAI Service Mocks (Video Generation)
-// ============================================================================
-
 export const createMockKlingAIService = () => ({
   generateImage: vi.fn().mockResolvedValue({
     status: 'processing',
@@ -159,10 +135,6 @@ export const createMockKlingAIService = () => ({
     video_url: 'https://mock-kling.com/video.mp4',
   }),
 });
-
-// ============================================================================
-// LeonardoAI Service Mocks (Image Generation)
-// ============================================================================
 
 export const createMockLeonardoAIService = () => ({
   generateImage: vi.fn().mockResolvedValue({
@@ -181,24 +153,11 @@ export const createMockLeonardoAIService = () => ({
   ]),
 });
 
-// ============================================================================
-// Fal Service Mocks (Image Generation)
-// `ImageGenerationService.dispatchFal` calls `generateImage(model, input)`
-// and reads `.url` off the resolved value — the shape below mirrors that,
-// unlike a generic Fal client mock.
-// ============================================================================
-
 export const createMockFalService = () => ({
   generateImage: vi
     .fn()
     .mockResolvedValue({ url: 'https://mock-fal.test/output.png' }),
 });
-
-// ============================================================================
-// ComfyUI Service Mocks (genfeedai-hosted Image Generation)
-// `ImageGenerationService.dispatchGenfeedAi` calls `generateImage(...)` and
-// destructures `{ imageBuffer }` off the resolved value.
-// ============================================================================
 
 export const createMockComfyUIService = () => ({
   generateImage: vi
@@ -206,20 +165,9 @@ export const createMockComfyUIService = () => ({
     .mockResolvedValue({ imageBuffer: Buffer.from('mock-comfyui-image') }),
 });
 
-// ============================================================================
-// KlingAI Image Service Mocks (Image Generation)
-// `ImageGenerationService.dispatchKlingAI` calls `queueGenerateImage(...)`,
-// which the video-oriented `createMockKlingAIService` above does not expose —
-// keep this factory separate rather than changing that one's shape.
-// ============================================================================
-
 export const createMockKlingAIImageService = () => ({
   queueGenerateImage: vi.fn().mockResolvedValue('mock-kling-image-task-id'),
 });
-
-// ============================================================================
-// Stripe Service Mocks (Payment Processing)
-// ============================================================================
 
 export const createMockStripeService = () => ({
   cancelSubscription: vi.fn().mockResolvedValue({
@@ -332,10 +280,6 @@ export const createMockStripeService = () => ({
     },
   },
 });
-
-// ============================================================================
-// Social Media OAuth Service Mocks
-// ============================================================================
 
 export const createMockYoutubeService = () => ({
   exchangeToken: vi.fn().mockResolvedValue({
@@ -541,10 +485,6 @@ export const createMockMediumService = () => ({
   }),
 });
 
-// ============================================================================
-// AWS S3 Service Mocks
-// ============================================================================
-
 export const createMockS3Service = () => ({
   copyObject: vi
     .fn()
@@ -571,10 +511,6 @@ export const createMockS3Service = () => ({
   }),
 });
 
-// ============================================================================
-// Giphy Service Mocks
-// ============================================================================
-
 export const createMockGiphyService = () => ({
   search: vi.fn().mockResolvedValue([
     {
@@ -592,10 +528,6 @@ export const createMockGiphyService = () => ({
   ]),
 });
 
-// ============================================================================
-// News Service Mocks
-// ============================================================================
-
 export const createMockNewsService = () => ({
   getTrendingTopics: vi.fn().mockResolvedValue(['topic1', 'topic2', 'topic3']),
   searchNews: vi.fn().mockResolvedValue([
@@ -607,10 +539,6 @@ export const createMockNewsService = () => ({
     },
   ]),
 });
-
-// ============================================================================
-// Apify Service Mocks (Web Scraping)
-// ============================================================================
 
 export const createMockApifyService = () => ({
   getActorRuns: vi.fn().mockResolvedValue([]),
@@ -625,10 +553,6 @@ export const createMockApifyService = () => ({
   }),
 });
 
-// ============================================================================
-// xAI Service Mocks
-// ============================================================================
-
 export const createMockXAIService = () => ({
   chat: vi.fn().mockResolvedValue({
     choices: [{ message: { content: 'Mocked xAI response' } }],
@@ -638,10 +562,6 @@ export const createMockXAIService = () => ({
   }),
 });
 
-// ============================================================================
-// Solana Service Mocks (Blockchain)
-// ============================================================================
-
 export const createMockSolanaService = () => ({
   getBalance: vi.fn().mockResolvedValue({ balance: 1.5 }),
   sendTransaction: vi.fn().mockResolvedValue({
@@ -649,10 +569,6 @@ export const createMockSolanaService = () => ({
   }),
   verifyTransaction: vi.fn().mockResolvedValue({ confirmed: true }),
 });
-
-// ============================================================================
-// Cache Service Mocks
-// ============================================================================
 
 export const createMockCacheService = () => ({
   clear: vi.fn().mockResolvedValue(undefined),
@@ -663,10 +579,6 @@ export const createMockCacheService = () => ({
   invalidateByTags: vi.fn().mockResolvedValue(undefined),
   set: vi.fn().mockResolvedValue(true),
 });
-
-// ============================================================================
-// Redis Service Mocks
-// ============================================================================
 
 export const createMockRedisService = () => ({
   decr: vi.fn().mockResolvedValue(0),
@@ -687,10 +599,6 @@ export const createMockRedisService = () => ({
   set: vi.fn().mockResolvedValue('OK'),
   ttl: vi.fn().mockResolvedValue(-1),
 });
-
-// ============================================================================
-// File Queue Service Mocks
-// ============================================================================
 
 export const createMockFilesClientService = () => ({
   audioOverlay: vi.fn().mockResolvedValue({
@@ -756,10 +664,6 @@ export const createMockFileQueueService = () => ({
   }),
 });
 
-// ============================================================================
-// BullMQ Queue Mocks
-// ============================================================================
-
 export const createMockQueue = () => ({
   add: vi.fn().mockResolvedValue({ id: 'mock-job-id', name: 'mock-job' }),
   addBulk: vi
@@ -786,10 +690,6 @@ export const createMockQueue = () => ({
   resume: vi.fn().mockResolvedValue(undefined),
 });
 
-// ============================================================================
-// Logger Service Mock
-// ============================================================================
-
 export const createMockLoggerService = () => ({
   debug: vi.fn(),
   error: vi.fn(),
@@ -797,10 +697,6 @@ export const createMockLoggerService = () => ({
   verbose: vi.fn(),
   warn: vi.fn(),
 });
-
-// ============================================================================
-// Config Service Mock
-// ============================================================================
 
 export const createMockConfigService = (
   config: Record<string, unknown> = {},
@@ -849,10 +745,6 @@ export const createMockConfigService = (
   };
 };
 
-// ============================================================================
-// HTTP Service Mock
-// ============================================================================
-
 export const createMockHttpService = () => {
   const mockResponse = {
     config: {},
@@ -893,10 +785,6 @@ export const createMockHttpService = () => {
   };
 };
 
-// ============================================================================
-// Publisher Service Mocks
-// ============================================================================
-
 export const createMockPublisherService = () => ({
   getAccountInfo: vi.fn().mockResolvedValue({
     id: 'mock-account-id',
@@ -926,10 +814,6 @@ export const createMockPublisherFactoryService = () => ({
     ]),
 });
 
-// ============================================================================
-// Notifications Service Mocks
-// ============================================================================
-
 export const createMockNotificationsService = () => ({
   sendEmail: vi
     .fn()
@@ -937,10 +821,6 @@ export const createMockNotificationsService = () => ({
   sendPushNotification: vi.fn().mockResolvedValue({ success: true }),
   sendWebhook: vi.fn().mockResolvedValue({ success: true }),
 });
-
-// ============================================================================
-// Credit Transactions Service Mocks
-// ============================================================================
 
 export const createMockCreditTransactionsService = () => ({
   createTransactionEntry: vi.fn().mockResolvedValue({
@@ -959,10 +839,6 @@ export const createMockCreditTransactionsService = () => ({
   getTransactionsByType: vi.fn().mockResolvedValue([]),
   markCreditsAsExpired: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
 });
-
-// ============================================================================
-// Crypto Service Mocks
-// ============================================================================
 
 export const createMockCryptoService = () => ({
   decrypt: vi.fn((value: string) => `decrypted:${value}`),

@@ -106,7 +106,6 @@ export function useGenerationListener(options: UseGenerationListenerOptions) {
       // Clean up any existing subscriptions
       cleanupAllGenerations();
 
-      // Initialize tracking
       totalExpectedRef.current = pendingIds.length;
       completedCountRef.current = 0;
 

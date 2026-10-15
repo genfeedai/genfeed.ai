@@ -91,7 +91,6 @@ function EditorPropertiesPanel({
         Clip Properties
       </h3>
 
-      {/* Track info */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">{trackTypeLabel}</span>
@@ -110,7 +109,6 @@ function EditorPropertiesPanel({
         </div>
       </div>
 
-      {/* Timing */}
       <div className="space-y-2 border-t border-border pt-3">
         <h4 className="text-xs font-semibold text-muted-foreground uppercase">
           Timing
@@ -176,7 +174,6 @@ function EditorPropertiesPanel({
         </div>
       </div>
 
-      {/* Volume (for video and audio tracks) */}
       {(selectedTrack.type === EditorTrackType.VIDEO ||
         selectedTrack.type === EditorTrackType.AUDIO) && (
         <div className="space-y-2 border-t border-border pt-3">

@@ -79,8 +79,6 @@ export function isResolvableSourceKey(
   }
 }
 
-// ─── Persistence sanitization ────────────────────────────────────────────────
-
 /**
  * Accept the flat `AgentUIBlock[]` array `render_dashboard` emits OR a full
  * OpenUI document (or our persisted `{ version, blocks }` wrapper) and route it

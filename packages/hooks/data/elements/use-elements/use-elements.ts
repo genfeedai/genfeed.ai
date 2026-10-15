@@ -83,7 +83,6 @@ export function useElements({
     ...promptBarData,
   };
 
-  // Filter field extractors
   const filterByKey = useCallback((item: { key?: string }) => [item.key], []);
   const filterByKeyAndLabel = useCallback(
     (item: { key?: string; label?: string }) =>

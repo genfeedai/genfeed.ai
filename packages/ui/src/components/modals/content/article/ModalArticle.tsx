@@ -96,7 +96,6 @@ export default function ModalArticle({
       const service = await getArticlesService();
       const formData = form.getValues();
 
-      // Validate based on mode
       if (useAI) {
         if (!formData.prompt?.trim()) {
           return form.setError('prompt', {

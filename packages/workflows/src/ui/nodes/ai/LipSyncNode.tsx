@@ -78,7 +78,6 @@ function LipSyncNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
-        {/* Model Selection */}
         <div>
           <label
             htmlFor={`lipsync-model-${id}`}

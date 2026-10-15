@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 /**
  * Source-agnostic content the SEO scorer operates on. Kept local to the engine
  * package so the executor stays decoupled from the backend SEO service types
@@ -58,10 +54,6 @@ export type SeoScoreResolver = (params: {
   useLlm?: boolean;
 }) => Promise<SeoScoreResolverResult>;
 
-// =============================================================================
-// SHARED UPSTREAM RESOLUTION
-// =============================================================================
-
 /**
  * Returns the upstream node's output as a plain object. A `condition` node
  * forwards its inbound payload under `.data` (its own output is a
@@ -106,10 +98,6 @@ export function pickSeoString(
   }
   return null;
 }
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * SEO Score Executor

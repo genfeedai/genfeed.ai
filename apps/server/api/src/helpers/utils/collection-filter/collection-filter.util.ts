@@ -290,7 +290,6 @@ export const CollectionFilterUtil = {
       return String(brand);
     }
 
-    // Handle default behavior based on defaultTo parameter
     switch (defaultTo) {
       case 'user':
         return user?.brandId ? user.brandId : { not: null };
@@ -571,7 +570,6 @@ export const CollectionFilterUtil = {
       return {};
     }
 
-    // Handle array input
     if (Array.isArray(status)) {
       const statusArray = status.map((s) => String(s).trim()).filter(Boolean);
       return statusArray.length === 1
@@ -675,7 +673,6 @@ export const CollectionFilterUtil = {
       return value !== 'false' && value !== '0' && value !== '';
     }
 
-    // Handle boolean values
     return Boolean(value);
   },
 
@@ -745,7 +742,6 @@ export const CollectionFilterUtil = {
     query: { page?: number; limit?: number; pagination?: boolean | string },
     customLabels?: Record<string, string>,
   ): Record<string, unknown> {
-    // Ensure pagination is a boolean value
     let paginationValue = query.pagination ?? true;
     if (typeof paginationValue === 'string') {
       paginationValue = paginationValue !== 'false';

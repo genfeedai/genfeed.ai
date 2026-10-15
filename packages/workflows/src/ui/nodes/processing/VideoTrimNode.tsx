@@ -92,7 +92,6 @@ function VideoTrimNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
-        {/* Duration Info */}
         <div className="text-xs text-muted-foreground">
           {nodeData.duration
             ? `Source: ${formatMinutesSeconds(nodeData.duration)}`

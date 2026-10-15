@@ -262,12 +262,6 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     return { jobId };
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Wildcard param routes — keep last. Nest matches in declaration order, so a
-  // `:id` route declared earlier swallows every static sibling path
-  // (`GET /reply-bot-configs/queue-status` would resolve to findOne).
-  // ────────────────────────────────────────────────────────────────────────────
-
   @TenantReadPolicy('selected')
   @Get(':id')
   async findOne(

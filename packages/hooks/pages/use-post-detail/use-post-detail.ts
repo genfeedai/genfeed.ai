@@ -126,7 +126,6 @@ export interface UsePostDetailReturn {
   setScheduleDraft: (value: string) => void;
   setDragOverDividerIndex: (index: number | null) => void;
 
-  // Refs for auto-save
   autoSaveRefs: {
     currentDescriptions: React.RefObject<Map<string, string>>;
     lastSavedDescriptions: React.RefObject<Map<string, string>>;

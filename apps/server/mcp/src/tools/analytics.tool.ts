@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export const ANALYTICS_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_video_analytics',
@@ -21,9 +22,10 @@ export async function handleAnalyticsTool(
       const timeRange = (args.timeRange as string) || '7d';
       const analytics = await client.getVideoAnalytics(videoId, timeRange);
       return {
+        structuredContent: { data: analytics },
         content: [
           {
-            text: `Video Analytics (${timeRange}):\n\n${JSON.stringify(analytics, null, 2)}`,
+            text: `Video Analytics (${timeRange}):\n\n${formatToolData(analytics)}`,
             type: 'text' as const,
           },
         ],
@@ -43,9 +45,10 @@ export async function handleAnalyticsTool(
           (args.timeRange as string) || '7d',
         );
         return {
+          structuredContent: { data: analytics },
           content: [
             {
-              text: `Analytics for ${contentType} ${contentId}:\n\n${JSON.stringify(analytics, null, 2)}`,
+              text: `Analytics for ${contentType}:\n\n${formatToolData(analytics)}`,
               type: 'text' as const,
             },
           ],
@@ -61,15 +64,15 @@ export async function handleAnalyticsTool(
 
       if (!result.success) {
         throw new Error(
-          result.error ||
-            `Failed to get analytics for ${contentType} ${contentId}`,
+          result.error || `Failed to get analytics for ${contentType}`,
         );
       }
 
       return {
+        structuredContent: { data: result.data },
         content: [
           {
-            text: `Analytics for ${contentType} ${contentId} (lifetime totals):\n\n${JSON.stringify(result.data, null, 2)}`,
+            text: `Analytics for ${contentType} (lifetime totals):\n\n${formatToolData(result.data)}`,
             type: 'text' as const,
           },
         ],
@@ -78,9 +81,10 @@ export async function handleAnalyticsTool(
     case 'get_linkedin_connection_status': {
       const connectionStatus = await client.getLinkedInConnectionStatus();
       return {
+        structuredContent: { data: connectionStatus },
         content: [
           {
-            text: JSON.stringify(connectionStatus, null, 2),
+            text: formatToolData(connectionStatus),
             type: 'text' as const,
           },
         ],
@@ -95,9 +99,10 @@ export async function handleAnalyticsTool(
         (args.timeRange as string) || '7d',
       );
       return {
+        structuredContent: { data: linkedInAnalytics },
         content: [
           {
-            text: JSON.stringify(linkedInAnalytics, null, 2),
+            text: formatToolData(linkedInAnalytics),
             type: 'text' as const,
           },
         ],

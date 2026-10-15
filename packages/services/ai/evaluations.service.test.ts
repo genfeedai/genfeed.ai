@@ -29,7 +29,6 @@ vi.mock('@genfeedai/serializers', () => ({
   EvaluationSerializer: {},
 }));
 
-// Mock the base service
 vi.mock('@services/core/base.service', () => {
   const mockInstance: MockHttpClient = {
     delete: vi.fn(),

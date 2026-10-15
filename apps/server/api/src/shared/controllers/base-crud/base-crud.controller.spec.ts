@@ -44,7 +44,6 @@ class TestController extends BaseCRUDController<
   }
 }
 
-// Mock serializer
 class MockSerializer {
   opts: Record<string, unknown> = {};
   serialize(data: unknown) {

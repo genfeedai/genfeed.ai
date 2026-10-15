@@ -68,7 +68,6 @@ export default function TermsPage() {
         title={<>Terms of Service</>}
         description="Legal terms for using Genfeed. All purchases final. No refunds."
       >
-        {/* Main Terms */}
         <section className="py-16 md:py-32 gsap-hero">
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">

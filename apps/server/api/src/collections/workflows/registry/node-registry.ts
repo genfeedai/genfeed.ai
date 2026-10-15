@@ -9,10 +9,6 @@ import { IO_NODE_DEFINITIONS } from '@api/collections/workflows/registry/node-re
  * Each product node resolves to a registered Genfeed action at persistence time.
  */
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type NodeInputType =
   | 'image'
   | 'video'
@@ -55,19 +51,11 @@ export interface NodeDefinition {
 
 export { SOURCE_CORPUS_CONFIG_LIMITS } from '@api/collections/workflows/registry/node-registry.generation-definitions';
 
-// =============================================================================
-// NODE REGISTRY
-// =============================================================================
-
 export const NODE_REGISTRY: Record<string, NodeDefinition> = {
   ...GENERATION_NODE_DEFINITIONS,
   ...FLOW_NODE_DEFINITIONS,
   ...IO_NODE_DEFINITIONS,
 };
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
 
 /**
  * Get all nodes grouped by category

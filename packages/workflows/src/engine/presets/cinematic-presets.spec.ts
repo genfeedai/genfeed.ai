@@ -33,13 +33,11 @@ describe('CinematicPresets', () => {
       const presets = getAllPresets();
 
       presets.forEach((preset) => {
-        // Check top-level properties
         expect(preset.id).toBeTruthy();
         expect(preset.name).toBeTruthy();
         expect(preset.description).toBeTruthy();
         expect(preset.cameraPrompt).toBeTruthy();
 
-        // Check colorGrade
         expect(preset.colorGrade).toBeDefined();
         expect(preset.colorGrade.cameraProfile).toBeTruthy();
         expect(typeof preset.colorGrade.contrast).toBe('number');
@@ -49,14 +47,12 @@ describe('CinematicPresets', () => {
         expect(typeof preset.colorGrade.midtones).toBe('number');
         expect(typeof preset.colorGrade.highlights).toBe('number');
 
-        // Check filmGrain
         expect(preset.filmGrain).toBeDefined();
         expect(preset.filmGrain.stock).toBeTruthy();
         expect(typeof preset.filmGrain.intensity).toBe('number');
         expect(preset.filmGrain.size).toBeTruthy();
         expect(typeof preset.filmGrain.colorGrain).toBe('boolean');
 
-        // Check lensEffects
         expect(preset.lensEffects).toBeDefined();
         expect(preset.lensEffects.vignette).toBeDefined();
         expect(preset.lensEffects.chromaticAberration).toBeDefined();

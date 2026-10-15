@@ -56,7 +56,6 @@ export function bootstrap(options: BootstrapOptions): void {
   const isStaging = env === 'staging';
   const isTest = env === 'test';
 
-  // Build list of env files to load
   // CWD is apps/server/, so:
   // - ../../.env is the monorepo root
   // - [app]/.env is the service-specific env

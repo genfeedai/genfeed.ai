@@ -45,7 +45,6 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   // Social copy renders as a post; an article result switches to the article
   // card in buildCardView via its articleId.
   generate_content: 'post',
-  get_account: 'usage',
   get_articles: 'article',
   get_job_status: 'media',
   get_posts: 'post',
@@ -335,23 +334,6 @@ export function buildCardView(
         total: variations.length,
       };
     }
-  }
-  if (kind === 'usage') {
-    // `get_account` can omit the usage section; there is nothing to chart then.
-    if (!Object.keys(record(data.usage)).length) return undefined;
-    const metrics = record(data.usage);
-    const cards = Object.entries(metrics).flatMap(([label, value]) =>
-      typeof value === 'number' && Number.isFinite(value)
-        ? [
-            {
-              ...card({}, kind),
-              description: String(value),
-              title: label.replace(/([A-Z])/g, ' $1'),
-            },
-          ]
-        : [],
-    );
-    return { cards, layout: 'cards', title: 'Usage', total: cards.length };
   }
   const collection = Array.isArray(payload)
     ? payload

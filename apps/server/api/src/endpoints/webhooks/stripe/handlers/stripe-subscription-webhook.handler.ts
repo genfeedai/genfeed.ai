@@ -56,7 +56,6 @@ export class StripeSubscriptionWebhookHandler {
         subscriptionData,
       );
 
-      // Sync subscription state to DB
       await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,
@@ -64,7 +63,6 @@ export class StripeSubscriptionWebhookHandler {
         subscription.status,
       );
 
-      // Update organization tier and enabled models
       const tier = this.supportService.resolveTierFromPriceId(stripePriceId);
       if (tier) {
         if (organizationId) {

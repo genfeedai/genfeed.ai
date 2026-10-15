@@ -7,10 +7,6 @@ import type { Terminal as XtermTerminal } from '@xterm/xterm';
 import type { RefObject } from 'react';
 import type { Socket } from 'socket.io-client';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 export const TERMINAL_COLS = 120;
 export const TERMINAL_ROWS = 32;
 export const TERMINAL_CWD_STORAGE_KEY = 'genfeed:terminal:cwd';
@@ -31,10 +27,6 @@ export const TERMINAL_CONTROL_CLASS =
 export const TERMINAL_ICON_CONTROL_CLASS =
   'inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/30 text-foreground/50 transition-colors hover:border-foreground/22 hover:bg-foreground/[0.04] hover:text-foreground/84';
 
-// ---------------------------------------------------------------------------
-// Payload types (matching backend TerminalSessionDto + wire events)
-// ---------------------------------------------------------------------------
-
 export interface TerminalCreatePayload {
   cols?: number;
   cwd?: string;
@@ -53,11 +45,6 @@ export interface TerminalExitPayload {
   sessionId: string;
   signal?: number;
 }
-
-// ---------------------------------------------------------------------------
-// Transport — socket.io terminal gateway (self-hosted web) or the Genfeed
-// Desktop bridge (node-pty in Electron main, any API mode)
-// ---------------------------------------------------------------------------
 
 export interface AgentTerminalTransport {
   attach: (sessionId: string) => void;
@@ -94,10 +81,6 @@ export function createSocketTerminalTransport(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Public controller shape — keep containerRef compatible with AgentPanel.tsx
-// ---------------------------------------------------------------------------
-
 export interface AgentCliTerminalController {
   activeKind: TerminalSessionKind;
   activeSessionId: string | null;
@@ -117,10 +100,6 @@ export interface AgentCliTerminalController {
   killSession: (sessionId: string) => void;
   toggleSearch: () => void;
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 export function resolveTerminalEndpoint(): string {
   return EnvironmentService.wsEndpoint.replace(/\/$/, '');
@@ -169,10 +148,6 @@ export function persistTerminalCwd(cwd: string): void {
 export function resolveThreadKey(activeThreadId: string | null): string {
   return activeThreadId ?? 'global';
 }
-
-// ---------------------------------------------------------------------------
-// Socket event wiring
-// ---------------------------------------------------------------------------
 
 export function attachTerminalSocketHandlers({
   fitAndSyncSize,

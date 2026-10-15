@@ -19,10 +19,6 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import { isTerminalExecutionStatus } from '@/features/workflows/utils/execution-status';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 interface UseNodeExecutionReturn {
   /** Execute a partial workflow for specific node(s) and poll for results */
   executeNode: (nodeId: string) => Promise<void>;
@@ -30,16 +26,8 @@ interface UseNodeExecutionReturn {
   getService: () => Promise<WorkflowApiService>;
 }
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 150; // 5 minutes max
-
-// =============================================================================
-// HOOK
-// =============================================================================
 
 /**
  * Hook that provides node-level execution capabilities.
@@ -77,7 +65,6 @@ export function useNodeExecution(): UseNodeExecutionReturn {
       abortRef.current = new AbortController();
       const signal = abortRef.current.signal;
 
-      // Set node to processing
       updateNodeData(nodeId, { status: WorkflowNodeStatus.PROCESSING });
 
       try {

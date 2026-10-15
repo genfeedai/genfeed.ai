@@ -82,7 +82,6 @@ export default function FeaturesPage(): React.ReactElement {
         title={<>What Genfeed Does For You</>}
         description="Every feature saves you time and eliminates busywork. Here is exactly what you get."
       >
-        {/* Features Grid */}
         <section className="gsap-hero py-16 md:py-32">
           <div className="container mx-auto px-6">
             <div className="gsap-grid grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2 lg:grid-cols-4">
@@ -168,7 +167,6 @@ export default function FeaturesPage(): React.ReactElement {
           </div>
         </section>
 
-        {/* CTA Section */}
         <section className="py-20 md:py-40">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">

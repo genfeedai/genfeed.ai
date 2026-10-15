@@ -25,7 +25,6 @@ export default function ArticleEditForm({
   const translate = useTranslations('pages.articles.edit');
   return (
     <>
-      {/* Title */}
       <Card bodyClassName="space-y-4">
         <FormControl label="Title">
           <Input
@@ -86,7 +85,6 @@ export default function ArticleEditForm({
         </FormControl>
       </Card>
 
-      {/* Body Editor */}
       <Card>
         <LazyRichTextEditor
           value={form.content}

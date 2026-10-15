@@ -134,8 +134,6 @@ describe('ClientService (MCP) domain clients', () => {
     );
   });
 
-  // ==================== GENERIC ATTRIBUTE POST ====================
-
   describe('postAttributes', () => {
     it('posts the payload and unwraps created attributes', async () => {
       (mockAxiosInstance.post as Mock).mockResolvedValue({
@@ -166,8 +164,6 @@ describe('ClientService (MCP) domain clients', () => {
       expect(result).toEqual({ id: 'res-1' });
     });
   });
-
-  // ==================== AGENT TOOLS & APPROVALS ====================
 
   describe('executeAgentTool', () => {
     it('proxies the tool execution with an encoded tool name', async () => {
@@ -284,8 +280,6 @@ describe('ClientService (MCP) domain clients', () => {
     });
   });
 
-  // ==================== ANALYTICS ====================
-
   describe('getVideoAnalytics', () => {
     it('reads per-content aggregate metrics for a video id', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
@@ -400,8 +394,6 @@ describe('ClientService (MCP) domain clients', () => {
       });
     });
   });
-
-  // ==================== CLIP PROJECTS ====================
 
   describe('clip projects', () => {
     it('analyzes a clip project from a YouTube URL', async () => {
@@ -563,8 +555,6 @@ describe('ClientService (MCP) domain clients', () => {
       );
     });
   });
-
-  // ==================== WORKSPACE ====================
 
   describe('workspace reads', () => {
     it('lists personas with JSON:API filters and paging defaults', async () => {
@@ -744,8 +734,6 @@ describe('ClientService (MCP) domain clients', () => {
     });
   });
 
-  // ==================== SYSTEM WORKFLOW CATALOG ====================
-
   describe('system workflow catalog', () => {
     const catalogPayload = {
       data: {
@@ -831,8 +819,6 @@ describe('ClientService (MCP) domain clients', () => {
       expect(result).toMatchObject({ id: 'workflow-2', name: 'Daily posts' });
     });
   });
-
-  // ==================== SOCIAL INBOX ACTIONS ====================
 
   describe('social inbox actions', () => {
     it('lists messages inside a conversation', async () => {
@@ -939,8 +925,6 @@ describe('ClientService (MCP) domain clients', () => {
       expect(result).toMatchObject({ id: 'conv-1', status: 'resolved' });
     });
   });
-
-  // ==================== META ADS ====================
 
   describe('Meta Ads', () => {
     it('lists ad accounts', async () => {
@@ -1144,8 +1128,6 @@ describe('ClientService (MCP) domain clients', () => {
     });
   });
 
-  // ==================== GOOGLE ADS ====================
-
   describe('Google Ads', () => {
     it('lists accessible customers', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
@@ -1347,8 +1329,6 @@ describe('ClientService (MCP) domain clients', () => {
     });
   });
 
-  // ==================== ADS GATEWAY ====================
-
   describe('ads gateway insights', () => {
     it('gets ad set insights through the platform-generic gateway', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
@@ -1409,8 +1389,6 @@ describe('ClientService (MCP) domain clients', () => {
       );
     });
   });
-
-  // ==================== LINKEDIN ====================
 
   describe('LinkedIn', () => {
     it('reports a connected LinkedIn credential', async () => {

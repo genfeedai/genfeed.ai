@@ -28,10 +28,8 @@ export function useVideoTrim({
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Calculate trim duration
   const trimDuration = endTime - startTime;
 
-  // Validate trim range
   const isValid = trimDuration >= minDuration && trimDuration <= maxDuration;
 
   /**
@@ -94,7 +92,6 @@ export function useVideoTrim({
         // Draw frame to canvas
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Convert to data URL
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
 
         newThumbnails.push({ dataUrl, time });
@@ -116,12 +113,10 @@ export function useVideoTrim({
     (values: [number, number]) => {
       const [newStart, newEnd] = values;
 
-      // Ensure minimum duration
       if (newEnd - newStart < minDuration) {
         return;
       }
 
-      // Ensure maximum duration
       if (newEnd - newStart > maxDuration) {
         return;
       }

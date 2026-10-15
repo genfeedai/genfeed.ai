@@ -18,8 +18,6 @@ import {
   type WorkspaceTaskLinkedOutputSummary,
 } from './workspace-task-inspector-helpers';
 
-// ─── Private hooks ────────────────────────────────────────────────────────────
-
 export function useWorkspaceTaskLinkedExecutionSummary(
   task: Task | null,
 ): WorkspaceTaskLinkedExecutionSummary & { isLoading: boolean } {

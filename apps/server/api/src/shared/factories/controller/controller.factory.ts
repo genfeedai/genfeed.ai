@@ -70,7 +70,6 @@ export function createCRUDController<
 >(config: ControllerFactoryConfig<T, CreateDto, UpdateDto, QueryDto>) {
   const BaseClass = BaseCRUDController;
 
-  // Create the controller class dynamically
   class FactoryController extends BaseClass<T, CreateDto, UpdateDto, QueryDto> {
     public readonly service: BaseService<T, CreateDto, UpdateDto>;
     public readonly logger: LoggerService;

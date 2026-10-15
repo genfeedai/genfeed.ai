@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the logger
 vi.mock('~utils/logger.util', () => ({
   logger: {
     error: vi.fn(),
@@ -703,7 +702,6 @@ describe('UI Helpers', () => {
 
 describe('Data URL to File conversion', () => {
   it('should convert a data URL to a File object', () => {
-    // Create a simple 1x1 pixel PNG data URL
     const dataUrl =
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 

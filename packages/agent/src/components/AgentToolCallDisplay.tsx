@@ -31,7 +31,6 @@ export function AgentToolCallDisplay({
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left"
       >
-        {/* Status icon */}
         <span className="shrink-0">
           {isCompleted && (
             <svg
@@ -70,10 +69,8 @@ export function AgentToolCallDisplay({
           )}
         </span>
 
-        {/* Tool name */}
         <span className="font-medium text-foreground">{label}</span>
 
-        {/* Status text */}
         <span
           className={
             isCompleted
@@ -86,21 +83,18 @@ export function AgentToolCallDisplay({
           {isCompleted ? 'Completed' : isFailed ? 'Failed' : 'Running'}
         </span>
 
-        {/* Credits */}
         {toolCall.creditsUsed != null && toolCall.creditsUsed > 0 && (
           <span className="text-muted-foreground">
             {formatCreditCost(toolCall.creditsUsed, { unit: 'cr' })}
           </span>
         )}
 
-        {/* Duration */}
         {toolCall.durationMs != null && (
           <span className="text-muted-foreground">
             {formatDuration(toolCall.durationMs)}
           </span>
         )}
 
-        {/* Expand chevron */}
         <svg
           aria-hidden="true"
           focusable="false"

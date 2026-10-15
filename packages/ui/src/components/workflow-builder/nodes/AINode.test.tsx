@@ -62,11 +62,9 @@ describe('AINode', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<AINode {...defaultProps} />);
 
-    // Check node has correct color scheme
     expect(container.querySelector('.bg-amber-50')).toBeInTheDocument();
     expect(container.querySelector('.border-amber-400')).toBeInTheDocument();
 
-    // Check selected state styling
     const { container: selectedContainer } = render(
       <AINode {...defaultProps} selected={true} />,
     );

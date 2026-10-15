@@ -13,7 +13,7 @@ export const MCP_DISCOVERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Find tools this server offers, including ones outside the current ?toolsets= selection. No arguments: list toolsets with descriptions and tool counts. query and/or toolset: search tools by name, description, or toolset. name: describe one tool with its full input schema, toolset, mutation policy, credit cost, and required role.',
+      'Find tools callable on this connection, filtered by its endpoint permissions and caller role. Tools excluded from this endpoint are never returned. Can discover callable tools outside the current ?toolsets= selection. No arguments: list available toolsets and counts. query and/or toolset: search by name, description or toolset. name: describe one callable tool with its input schema, mutation policy, credit cost and required role.',
     name: 'find_tools',
     parameters: {
       properties: {

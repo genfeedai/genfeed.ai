@@ -47,7 +47,6 @@ export default function FiltersPanel({
 }: FiltersPanelProps) {
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Line 1: Search */}
       {visibleFilters.search && (
         <div className="w-full">
           <FormSearchbar
@@ -59,7 +58,6 @@ export default function FiltersPanel({
         </div>
       )}
 
-      {/* Line 2: All dropdowns */}
       <div className="flex flex-wrap items-center gap-2 w-full">
         {visibleFilters.status && (
           <DropdownMultiSelect
@@ -157,7 +155,6 @@ export default function FiltersPanel({
           />
         )}
 
-        {/* Clear Filters Button */}
         {hasActiveFilters && (
           <Button
             label={

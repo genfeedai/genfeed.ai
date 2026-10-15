@@ -6,10 +6,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type ReplyPlatform =
   | 'twitter'
   | 'instagram'
@@ -67,10 +63,6 @@ export type ReplyPublisher = (params: {
   workflowRunId: string;
   mediaUrl?: string;
 }) => Promise<{ replyId: string; replyUrl: string }>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Post Reply Executor

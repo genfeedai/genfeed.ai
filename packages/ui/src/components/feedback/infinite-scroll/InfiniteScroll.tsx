@@ -4,6 +4,23 @@ import type { InfiniteScrollProps } from '@genfeedai/props/ui/content/infinite-s
 import Loading from '@ui/loading/default/Loading';
 import { useEffect, useRef } from 'react';
 
+/**
+ * Nearest ancestor that scrolls vertically. Observing against it (not the
+ * viewport) is what makes `rootMargin` prefetch ahead inside a nested scroll
+ * container: the viewport margin is clipped away by the container.
+ */
+function findScrollRoot(element: HTMLElement): HTMLElement | null {
+  let current = element.parentElement;
+  while (current && current !== document.body) {
+    const { overflowY } = window.getComputedStyle(current);
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
 export default function InfiniteScroll({
   onLoadMore,
   hasMore,
@@ -20,22 +37,22 @@ export default function InfiniteScroll({
   useEffect(() => {
     const target = observerTarget.current;
 
-    if (!target || !hasMore || !enabled) {
+    if (!target || !hasMore || !enabled || isLoading) {
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isLoading) {
-          onLoadMore();
+        if (entries[0]?.isIntersecting) {
+          void onLoadMore();
         }
       },
-      { rootMargin, threshold },
+      { root: findScrollRoot(target), rootMargin, threshold },
     );
 
     observer.observe(target);
 
-    return () => observer.unobserve(target);
+    return () => observer.disconnect();
   }, [hasMore, isLoading, onLoadMore, threshold, rootMargin, enabled]);
 
   return (
@@ -43,7 +60,11 @@ export default function InfiniteScroll({
       {children}
 
       {hasMore && (
-        <div ref={observerTarget} className="w-full py-4 flex justify-center">
+        <div
+          ref={observerTarget}
+          className="flex w-full justify-center py-4"
+          data-testid="infinite-scroll-sentinel"
+        >
           {isLoading && (loadingIndicator || <Loading />)}
         </div>
       )}

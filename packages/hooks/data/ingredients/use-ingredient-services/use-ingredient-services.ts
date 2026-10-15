@@ -27,7 +27,6 @@ export function useIngredientServices() {
     MusicsService.getInstance(token),
   );
 
-  // Get service based on ingredient type
   const getServiceByCategory = async (category: IngredientCategory) => {
     switch (category) {
       case IngredientCategory.IMAGE:

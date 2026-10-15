@@ -20,7 +20,6 @@ export async function buildVideoListAggregate(
   // Handle multiple status values (comma-separated)
   const status = QueryDefaultsUtil.parseStatusFilter(query.status);
 
-  //  KEEP COMMENTS FOR NOW
   const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
   // Use CollectionFilterUtil for common filtering patterns
@@ -29,7 +28,6 @@ export async function buildVideoListAggregate(
     ? tenant.brandId
     : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'user');
 
-  // Use IngredientFilterUtil to build ingredient-specific filters
   const folderConditions = IngredientFilterUtil.buildFolderFilter(
     query.folderId?.toString(),
   );
@@ -47,7 +45,6 @@ export async function buildVideoListAggregate(
     'prompt.prompt',
   ]);
 
-  // Handle format filter based on metadata dimensions
   // Format is now filtered after metadata lookup
 
   const characterFilter = await resolveCharacterFilter(characterFilterService, {
@@ -73,9 +70,6 @@ export async function buildVideoListAggregate(
           isDeleted,
           ...(scope !== undefined ? { scope } : {}),
           status,
-          // ...(isEntityId(query.references)
-          //   ? { references: query.references }
-          //   : {}),
         },
         folderConditions,
         parentConditions,

@@ -102,7 +102,6 @@ function VideoStitchNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="space-y-3">
-        {/* Input Videos Info */}
         <div className="p-2 bg-background rounded border border-border">
           <div className="text-xs text-muted-foreground">
             Input Videos: {inputVideos.length}
@@ -121,7 +120,6 @@ function VideoStitchNodeComponent(props: NodeProps) {
           )}
         </div>
 
-        {/* Transition Type */}
         <div>
           <label
             className="text-xs text-muted-foreground"

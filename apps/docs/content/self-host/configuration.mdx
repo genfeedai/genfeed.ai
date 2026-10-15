@@ -6,8 +6,9 @@ description: 'Reference for the .env file that configures a self-hosted Genfeed 
 # Configuration Reference
 
 A self-hosted instance is configured through one `.env` file next to its Compose
-file. Every setting is optional: the defaults boot a single local workspace
-without a login wall.
+file. Add a real `OPENROUTER_API_KEY` to generate text; every
+other setting is optional. The defaults boot a single local workspace with
+sign-up enabled.
 
 - **Release bundle or `npx`:** copy the bundled `.env.example` to `.env`, in the
   same directory as `compose.yml`.
@@ -38,10 +39,12 @@ API, and MCP server always listen on `3000`, `3010`, and `3014`.
 ## Model provider keys
 
 All blank by default. See [Provider API keys](/self-host/provider-api-keys) for
-how to get each one.
+how to get each one. Use real keys: an empty or placeholder value counts as not
+configured, and Settings rejects keys the provider does not accept.
 
 | Variable | Provider |
 | --- | --- |
+| `OPENROUTER_API_KEY` | OpenRouter. Required for text generation and the agent. |
 | `OPENAI_API_KEY` | OpenAI |
 | `ANTHROPIC_API_KEY` | Anthropic |
 | `REPLICATE_KEY` | Replicate |
@@ -51,12 +54,13 @@ how to get each one.
 
 ## Login wall
 
-By default, Genfeed opens straight into the seeded local workspace. To require
-local sign-in, enable Better Auth:
+By default, local sign-up and sign-in are on, so the first visitor creates an
+account. To run a single-user workspace with no login wall instead, set
+`BETTER_AUTH_ENABLED=false` and `NEXT_PUBLIC_BETTER_AUTH_ENABLED=false`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `BETTER_AUTH_ENABLED` | `false` | Turns the login wall on. Read when the container starts. |
+| `BETTER_AUTH_ENABLED` | `true` | Turns sign-up and sign-in on. Set `false` for no login wall. Read when the container starts. |
 | `NEXT_PUBLIC_BETTER_AUTH_ENABLED` | Follows `BETTER_AUTH_ENABLED` | Browser-side switch. Set it to match `BETTER_AUTH_ENABLED`. |
 | `BETTER_AUTH_URL` | The public API URL (`http://localhost:3010` by default) | Where Better Auth runs |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | The public app URL (`http://localhost:3000` by default) | Origins allowed to sign in |
@@ -70,6 +74,16 @@ Google sign-in only for the features that need them:
 | `RESEND_API_KEY` | Magic links, password resets, email verification, and invites |
 | `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO_EMAIL` | The sender and reply-to addresses for that email |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google sign-in and the Google connectors, which share one Google Cloud OAuth web client |
+
+The login wall protects the REST API on port `3010` as well as the web UI.
+
+| `BETTER_AUTH_ENABLED` | Requests to the API |
+| --- | --- |
+| `true` | Every request needs a valid session token or API key, whatever address it comes from. There is no fallback to the seeded `admin@localhost` user. Admin routes also need the platform admin role. |
+| `false` (default) | Requests from the machine itself or the Docker network (the web app calling the API) act as the seeded local admin. A request from any other address is refused with `401` unless it carries a valid API key. |
+
+`X-Forwarded-For` is not trusted unless `TRUST_PROXY` names your proxy, so a
+remote client cannot pass as a local one by sending a header.
 
 Turning the login wall off does not turn off MCP authentication; see
 [MCP server](/api-reference/mcp#authentication).

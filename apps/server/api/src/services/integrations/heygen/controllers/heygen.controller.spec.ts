@@ -90,7 +90,6 @@ describe('HeyGenController', () => {
     expect(controller).toBeDefined();
   });
 
-  // --- getVoices ---
   it('should return empty voices list when service returns empty array', async () => {
     const result = await controller.getVoices(mockUser);
     expect(result.data.type).toBe('voices');

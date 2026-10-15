@@ -59,10 +59,6 @@ const aspectRatioLiteralSchema = z
   .string()
   .regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/);
 
-// ---------------------------------------------------------------------------
-// PrunaAI P-Video
-// ---------------------------------------------------------------------------
-
 export const PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID =
   'prunaai-p-video-capability';
 export const PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION = 1;
@@ -148,10 +144,6 @@ export const PRUNAAI_P_VIDEO_CAPABILITY_PROFILE =
     textRendering: 'prompt_only',
     version: PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION,
   });
-
-// ---------------------------------------------------------------------------
-// MiniMax H3
-// ---------------------------------------------------------------------------
 
 export const MINIMAX_H3_CAPABILITY_PROFILE_ID = 'minimax-h3-capability';
 export const MINIMAX_H3_CAPABILITY_PROFILE_VERSION = 2;

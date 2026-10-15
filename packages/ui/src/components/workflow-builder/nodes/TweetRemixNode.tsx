@@ -72,7 +72,6 @@ function TweetRemixNodeComponent({
 
   return (
     <div className="space-y-3">
-      {/* Tone Selector */}
       <div>
         <label htmlFor={toneId} className="text-xs text-muted-foreground">
           Tone
@@ -94,7 +93,6 @@ function TweetRemixNodeComponent({
         </Select>
       </div>
 
-      {/* Max Length Slider */}
       <div>
         <label htmlFor={maxLengthId} className="text-xs text-muted-foreground">
           Max Length: {data.maxLength}
@@ -110,7 +108,6 @@ function TweetRemixNodeComponent({
         />
       </div>
 
-      {/* Input Tweet Preview */}
       {data.inputTweet && (
         <div className="p-2 bg-background border border-white/[0.08]">
           <div className="text-xs text-muted-foreground mb-1">Original</div>
@@ -120,7 +117,6 @@ function TweetRemixNodeComponent({
         </div>
       )}
 
-      {/* Variations */}
       {data.variations.length > 0 && (
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground">

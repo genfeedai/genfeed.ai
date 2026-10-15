@@ -48,7 +48,6 @@ export default function ArticleSidebar({
         />
       )}
 
-      {/* Article stats */}
       {article && (
         <Card bodyClassName="space-y-3">
           <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">

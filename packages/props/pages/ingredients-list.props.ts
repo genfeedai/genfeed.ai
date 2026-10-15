@@ -140,6 +140,10 @@ export interface UseIngredientsListReturn {
   loadError: string | null;
   isLoadingFolders: boolean;
   isMerging: boolean;
+  /** Older assets remain beyond the loaded pages. */
+  hasMoreIngredients: boolean;
+  isLoadingMoreIngredients: boolean;
+  loadMoreIngredients: () => Promise<void>;
   ingredients: IIngredient[];
   setIngredients: Dispatch<SetStateAction<IIngredient[]>>;
   filteredIngredients: IIngredient[];

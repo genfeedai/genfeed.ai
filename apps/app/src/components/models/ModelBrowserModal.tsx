@@ -17,10 +17,6 @@ import { ModelCard } from './ModelCard';
 import { USE_CASE_CONFIG } from './model-browser-badges.constants';
 import { useModelBrowserModal } from './useModelBrowserModal';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 interface ModelBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,10 +24,6 @@ interface ModelBrowserModalProps {
   capabilities?: ModelCapability[];
   title?: string;
 }
-
-// =============================================================================
-// MAIN MODAL
-// =============================================================================
 
 function ModelBrowserModalComponent({
   isOpen,
@@ -60,7 +52,6 @@ function ModelBrowserModalComponent({
 
   return createPortal(
     <>
-      {/* Backdrop */}
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
@@ -71,9 +62,7 @@ function ModelBrowserModalComponent({
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-xl bg-card shadow-xl md:inset-10">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <Sparkles className="size-5 text-primary" />
@@ -88,10 +77,8 @@ function ModelBrowserModalComponent({
           />
         </div>
 
-        {/* Filters */}
         <div className="space-y-0 border-b border-border">
           <div className="flex items-center gap-4 px-6 py-4">
-            {/* Search */}
             <FormSearchbar
               className="max-w-md flex-1"
               onChange={(e) => setSearchQuery(e.target.value)}

@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export function handleGoogleAdsTool(
   client: ClientService,
@@ -20,9 +21,10 @@ export function handleGoogleAdsTool(
         a.loginCustomerId as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Ad Group Insights:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Ad Group Insights:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -38,9 +40,10 @@ export function handleGoogleAdsTool(
         a.loginCustomerId as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Campaign Metrics:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Campaign Metrics:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -55,9 +58,10 @@ export function handleGoogleAdsTool(
         a.loginCustomerId as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Keyword Performance:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Keyword Performance:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -73,9 +77,10 @@ export function handleGoogleAdsTool(
         a.loginCustomerId as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
-            text: `Search Terms Report:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Search Terms Report:\n\n${formatToolData(result)}`,
             type: 'text' as const,
           },
         ],
@@ -89,11 +94,12 @@ export function handleGoogleAdsTool(
         a.loginCustomerId as string | undefined,
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} campaigns:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} campaigns:\n\n${formatToolData(result)}`
                 : 'No campaigns found.',
             type: 'text' as const,
           },
@@ -103,11 +109,12 @@ export function handleGoogleAdsTool(
     list_google_ads_customers: async () => {
       const result = await client.listGoogleAdsCustomers();
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} Google Ads accounts:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} Google Ads accounts:\n\n${formatToolData(result)}`
                 : 'No Google Ads accounts found.',
             type: 'text' as const,
           },

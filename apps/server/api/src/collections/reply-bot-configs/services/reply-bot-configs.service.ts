@@ -54,9 +54,6 @@ type ReplyBotOwnershipInput = {
 
 type ReplyBotCreateInput = CreateReplyBotConfigDto & ReplyBotOwnershipInput;
 
-// ---------------------------------------------------------------------------
-// Helper: defensively parse the `config` JSON column
-// ---------------------------------------------------------------------------
 function parseConfigJson(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
   if (typeof raw === 'string') {
@@ -367,7 +364,6 @@ export class ReplyBotConfigsService extends BaseService<
       return true;
     }
 
-    // Check limits
     if (rateLimits.currentHourCount >= rateLimits.maxRepliesPerHour) {
       return false;
     }

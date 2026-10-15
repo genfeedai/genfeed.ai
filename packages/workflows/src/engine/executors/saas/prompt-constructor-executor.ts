@@ -14,10 +14,6 @@ import {
   serializeStructuredPrompt,
 } from './prompt-json';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export interface PromptConstructorConfig {
   /** The template string with {{variable}} placeholders */
   template: string;
@@ -59,10 +55,6 @@ const TEMPLATE_RESERVED_CONFIG_KEYS = new Set([
   HOOKS_INPUT_HANDLE,
   AVOID_INPUT_HANDLE,
 ]);
-
-// =============================================================================
-// HELPERS
-// =============================================================================
 
 const PLACEHOLDER_REGEX = /\{\{(\w+)\}\}/g;
 

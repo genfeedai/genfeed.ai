@@ -40,6 +40,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [spec-workflow-only-action-execution](spec-workflow-only-action-execution.md) — full Website/API/Agent/MCP/worker refactor and YouTube-to-long-form acceptance contract
 - [page_org_brand_scope](page_org_brand_scope.md) — org always selected; brand empty (`~/`) or brand selected on every customer list
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
+- [Readable MCP results](feedback_mcp_readable_results.md) — readable messages; identifiers and full payloads stay structured
 - [curated_action_surface_boundaries](curated_action_surface_boundaries.md) — why each agent-only / MCP-only action stays that way
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
 - [spec-native-referral-credits](spec-native-referral-credits.md) — native first-touch referral attribution and recurring PAYG credit rewards
@@ -154,6 +155,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [workspace-inspector-tabs](spec-workspace-inspector-tabs.md) · [decisions](decisions-workspace-inspector-tabs.md) — user-configurable right-rail asset panes
 - [app-theming](spec-app-theming.md) · [decisions](decisions-app-theming.md) — System, Light, and Dark in product apps; marketing website stays Dark
 - [judge-calibration decisions](decisions-judge-calibration.md) — #4924 judge κ/ρ suite, scoring-surface lock + CI gate, harness-criteria injection OFF pending measured κ
+- [self-host local identity gate](decisions-self-host-local-identity-gate.md) — seeded local admin only for loopback/Docker peers with login off; login on means no tokenless API request (#6965)
 
 ## Project state
 

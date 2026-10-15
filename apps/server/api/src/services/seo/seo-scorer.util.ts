@@ -178,8 +178,6 @@ export function parseSeoHtml(html?: string | null): ParsedSeoHtml {
   };
 }
 
-// ─── Scoring band helpers ────────────────────────────────────────────────
-
 /** Award `full` inside the ideal band, decaying toward 0 further out. */
 function bandScore(
   value: number,
@@ -203,8 +201,6 @@ function ratio(numerator: number, denominator: number): number {
 function includesCaseInsensitive(haystack: string, needle: string): boolean {
   return haystack.toLowerCase().includes(needle.toLowerCase());
 }
-
-// ─── Deterministic + heuristic check engine ──────────────────────────────
 
 /**
  * Build the full set of scored checks for a piece of content. Deterministic

@@ -22,8 +22,6 @@ export type FixtureVisibility = (typeof FIXTURE_VISIBILITIES)[number];
 export const PAIRWISE_CHOICES = ['a', 'b', 'tie'] as const;
 export type PairwiseChoice = (typeof PAIRWISE_CHOICES)[number];
 
-// ─── Fixtures ───────────────────────────────────────────────────────────────
-
 /** A 0–1 band. Human 0–100 reviewer scores are divided by 100 on export. */
 export const scoreBandSchema = z
   .object({ max: z.number().min(0).max(1), min: z.number().min(0).max(1) })
@@ -88,8 +86,6 @@ export const fixtureRowSchema = z.object({
   source: fixtureSourceSchema,
 });
 export type FixtureRow = z.infer<typeof fixtureRowSchema>;
-
-// ─── Row results ────────────────────────────────────────────────────────────
 
 export const contestantProvenanceSchema = z.object({
   family: z.string().min(1),

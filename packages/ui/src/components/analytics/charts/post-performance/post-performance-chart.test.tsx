@@ -26,7 +26,6 @@ vi.mock('@ui/charts', () => ({
   ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
 }));
 
-// Mock recharts
 vi.mock('recharts', () => ({
   Area: ({ dataKey, stroke }: { dataKey: string; stroke: string }) => (
     <div data-testid={`area-${dataKey}`} data-stroke={stroke} />

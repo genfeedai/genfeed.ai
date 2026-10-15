@@ -167,7 +167,6 @@ function extractPostContext(): { content: string; author: string } {
   };
 }
 
-// Convert data URL to File object
 /** Tells the background this text came from Genfeed, so publishing it may be saved. */
 function markWrittenByGenfeed(content: string): void {
   try {
@@ -202,17 +201,14 @@ async function injectMediaIntoTwitter(
 ): Promise<boolean> {
   const hostname = window.location.hostname;
 
-  // Handle LinkedIn
   if (hostname.includes('linkedin.com')) {
     return injectMediaIntoLinkedIn(dataUrl, replyText);
   }
 
-  // Handle Facebook
   if (hostname.includes('facebook.com')) {
     return injectMediaIntoFacebook(dataUrl, replyText);
   }
 
-  // Handle Reddit
   if (hostname.includes('reddit.com')) {
     return injectMediaIntoReddit(dataUrl, replyText);
   }
@@ -256,15 +252,12 @@ async function injectMediaIntoTwitter(
       return false;
     }
 
-    // Create a File from the data URL
     const file = dataUrlToFile(dataUrl, 'genfeed-image.png');
 
-    // Create a DataTransfer to set files
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     fileInput.files = dataTransfer.files;
 
-    // Dispatch change event
     fileInput.dispatchEvent(new Event('change', { bubbles: true }));
 
     return true;
@@ -307,7 +300,6 @@ async function injectMediaIntoLinkedIn(
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    // Find the file input
     const fileInput = document.querySelector(
       'input[type="file"][accept*="image"], ' +
         '.comments-comment-box input[type="file"]',
@@ -319,15 +311,12 @@ async function injectMediaIntoLinkedIn(
       return !!commentBox;
     }
 
-    // Create a File from the data URL
     const file = dataUrlToFile(dataUrl, 'genfeed-image.png');
 
-    // Create a DataTransfer to set files
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     fileInput.files = dataTransfer.files;
 
-    // Dispatch change event
     fileInput.dispatchEvent(new Event('change', { bubbles: true }));
 
     return true;
@@ -368,7 +357,6 @@ async function injectMediaIntoFacebook(
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    // Find the file input
     const fileInput = document.querySelector(
       'input[type="file"][accept*="image"], ' +
         'input[type="file"][multiple][accept]',
@@ -379,15 +367,12 @@ async function injectMediaIntoFacebook(
       return !!commentBox;
     }
 
-    // Create a File from the data URL
     const file = dataUrlToFile(dataUrl, 'genfeed-image.png');
 
-    // Create a DataTransfer to set files
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     fileInput.files = dataTransfer.files;
 
-    // Dispatch change event
     fileInput.dispatchEvent(new Event('change', { bubbles: true }));
 
     return true;
@@ -406,7 +391,6 @@ async function injectMediaIntoReddit(
     // Reddit uses different editors depending on new/old design
     // New Reddit uses a contenteditable or a Markdown textarea
     const commentBox = document.querySelector(
-      // New Reddit (Shreddit)
       'shreddit-composer [contenteditable="true"], ' +
         'div[data-testid="comment-submission-form-richtext"] [contenteditable="true"], ' +
         // Fancy pants editor
@@ -442,7 +426,6 @@ async function injectMediaIntoReddit(
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    // Find the file input
     const fileInput = document.querySelector(
       'input[type="file"][accept*="image"], ' +
         'input[type="file"][accept*="video"]',
@@ -453,15 +436,12 @@ async function injectMediaIntoReddit(
       return !!commentBox;
     }
 
-    // Create a File from the data URL
     const file = dataUrlToFile(dataUrl, 'genfeed-image.png');
 
-    // Create a DataTransfer to set files
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     fileInput.files = dataTransfer.files;
 
-    // Dispatch change event
     fileInput.dispatchEvent(new Event('change', { bubbles: true }));
 
     return true;
@@ -478,7 +458,6 @@ async function injectVideoIntoTwitter(
 ): Promise<boolean> {
   const hostname = window.location.hostname;
 
-  // Handle LinkedIn
   if (hostname.includes('linkedin.com')) {
     // LinkedIn comments don't support video, only text
     const commentBox = document.querySelector(
@@ -496,7 +475,6 @@ async function injectVideoIntoTwitter(
     return false;
   }
 
-  // Handle Facebook
   if (hostname.includes('facebook.com')) {
     // Facebook comments may not support video
     const commentBox = document.querySelector(
@@ -512,7 +490,6 @@ async function injectVideoIntoTwitter(
     return false;
   }
 
-  // Handle Reddit - video upload in comments varies
   if (hostname.includes('reddit.com')) {
     const commentBox = document.querySelector(
       'shreddit-composer [contenteditable="true"], ' +
@@ -572,15 +549,12 @@ async function injectVideoIntoTwitter(
       return false;
     }
 
-    // Create a File from the data URL
     const file = dataUrlToFile(dataUrl, 'genfeed-video.mp4');
 
-    // Create a DataTransfer to set files
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     fileInput.files = dataTransfer.files;
 
-    // Dispatch change event
     fileInput.dispatchEvent(new Event('change', { bubbles: true }));
 
     return true;
@@ -858,7 +832,6 @@ export function injectGlobalStyles() {
   document.head.appendChild(style);
 }
 
-// Create an AI reply button
 export function createAIReplyButton(
   postId: string,
   platform: string,
@@ -899,7 +872,6 @@ export function createAIReplyButton(
       if (response?.success && response?.reply) {
         // Say so when a local provider, not Genfeed cloud, wrote the reply.
         if (response.routing?.notice) showGenfeedToast(response.routing.notice);
-        // Find the reply textarea
         const replyBox = document.querySelector(replyTextareaSelector) as
           | HTMLTextAreaElement
           | HTMLElement;
@@ -907,7 +879,6 @@ export function createAIReplyButton(
         if (replyBox) {
           replyBox.focus();
 
-          // Handle different types of input elements
           if (replyBox instanceof HTMLTextAreaElement) {
             replyBox.value = response.reply;
             replyBox.dispatchEvent(new Event('input', { bubbles: true }));

@@ -14,15 +14,7 @@ import {
 } from './edgeStyleMirror';
 import { getWorkflowLogger } from './executionLogger';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type { EdgeStyle, ProviderType };
-
-// =============================================================================
-// Module-level settings-sync configuration
-// =============================================================================
 
 let _settingsSync: SettingsSyncService | null = null;
 
@@ -57,7 +49,6 @@ interface SettingsStore {
   // Provider API Keys
   providers: ProviderSettings;
 
-  // Default Models
   defaults: DefaultModelSettings;
 
   // UI Preferences
@@ -101,10 +92,6 @@ interface SettingsStore {
   syncToServer: () => Promise<void>;
 }
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
 const MAX_RECENT_MODELS = 8;
 
 const DEFAULT_SETTINGS = {
@@ -127,10 +114,6 @@ const DEFAULT_SETTINGS = {
   recentModels: [] as RecentModel[],
   showMinimap: true,
 };
-
-// =============================================================================
-// PERSISTENCE
-// =============================================================================
 
 function loadProviderSettings(
   value: unknown,
@@ -264,10 +247,6 @@ function saveToStorage(state: {
     // Storage error (quota exceeded, etc.)
   }
 }
-
-// =============================================================================
-// STORE
-// =============================================================================
 
 const initialState = { ...DEFAULT_SETTINGS, ...loadFromStorage() };
 setEdgeStylePreference(initialState.edgeStyle);
@@ -483,10 +462,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     },
   };
 });
-
-// =============================================================================
-// PROVIDER DISPLAY INFO
-// =============================================================================
 
 export const PROVIDER_INFO: Record<
   ProviderType,

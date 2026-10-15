@@ -190,7 +190,6 @@ describe('ClipRunCard', () => {
     expect(screen.getByText('Instagram')).toBeDefined();
     expect(screen.getByText('60s')).toBeDefined();
     expect(screen.getByText('9:16')).toBeDefined();
-    // Merge enabled
     const mergeText = screen.getByText('Merge Enabled');
     const mergeRow = mergeText.parentElement;
     expect(mergeRow?.textContent).toContain('✓');

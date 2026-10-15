@@ -66,7 +66,6 @@ export function useOnboarding(): UseOnboardingReturn {
     openModal(ModalEnum.ONBOARDING);
   }, []);
 
-  // Check status on mount
   useEffect(() => {
     checkOnboardingStatus();
   }, [checkOnboardingStatus]);

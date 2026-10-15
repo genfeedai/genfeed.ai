@@ -98,15 +98,12 @@ describe('VariablesPanel', () => {
   it('should apply correct styles and classes', () => {
     const { container, unmount } = render(<VariablesPanel {...defaultProps} />);
 
-    // Check panel container has correct classes
     const panel = container.firstChild;
     expect(panel).toHaveClass('flex', 'flex-col');
 
-    // Check variable items have correct styling
     expect(screen.getByText('Prompt').closest('.border')).toBeInTheDocument();
     expect(screen.getByText('Image').closest('.border')).toBeInTheDocument();
 
-    // Check collapsed state styling
     unmount();
 
     const { container: collapsedContainer } = render(

@@ -70,11 +70,9 @@ describe('ExecutionHistoryPanel', () => {
   it('should apply correct styles and classes', () => {
     const { container } = render(<ExecutionHistoryPanel {...defaultProps} />);
 
-    // Check panel has correct container classes
     const panel = container.firstChild;
     expect(panel).toBeInTheDocument();
 
-    // Check collapsed state styling
     const { container: collapsedContainer } = render(
       <ExecutionHistoryPanel {...defaultProps} isCollapsed={true} />,
     );

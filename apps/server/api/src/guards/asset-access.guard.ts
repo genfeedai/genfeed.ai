@@ -60,7 +60,6 @@ export class AssetAccessGuard implements CanActivate {
       throw new UnauthorizedException('Authentication required');
     }
 
-    // Check permissions based on scope
     switch (assetScope) {
       case AssetScope.ORGANIZATION: {
         if (isAssetOwner(asset.userId, user)) {

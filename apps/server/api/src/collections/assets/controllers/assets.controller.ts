@@ -112,7 +112,6 @@ export class AssetsController {
       }
     }
 
-    // Create secure aggregation pipeline
     const aggregate = {
       where: matchConditions as Record<string, unknown>,
       orderBy: handleQuerySort(query.sort),
@@ -135,7 +134,6 @@ export class AssetsController {
       'assetId',
     );
 
-    // Find asset with ownership verification
     const asset = await this.assetsService.findOne({
       id: validatedId,
       userId: user.userId ?? user.id,
@@ -176,7 +174,6 @@ export class AssetsController {
     )
       throw new BadRequestException('font_asset_dedicated_route_required');
 
-    // Validate and sanitize update data
     const sanitizedUpdate: MutableAssetUpdate = {};
 
     if (updateAssetDto.category) {

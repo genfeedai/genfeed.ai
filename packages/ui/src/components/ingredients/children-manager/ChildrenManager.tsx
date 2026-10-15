@@ -60,7 +60,6 @@ export default function ChildrenManager({
         type: parentIngredientCategory,
       });
 
-      // Filter out current ingredient and already selected children
       const childIds = children.map((c) => c.id);
       const available = ingredients.filter(
         (ingredient: IIngredient) =>
@@ -105,17 +104,14 @@ export default function ChildrenManager({
       // Update the selected ingredient to set this ingredient as its parent
       await service.patch(childId, { parent: parentIngredientId });
 
-      // Update local state
       const updatedChildren = [...children, childIngredient];
       setChildren(updatedChildren);
 
-      // Update available ingredients
       setAvailableIngredients((prev) =>
         prev.filter((ingredient: IIngredient) => ingredient.id !== childId),
       );
       setIsDropdownOpen(false);
 
-      // Notify parent component
       const childIds = updatedChildren.map((c) => c.id);
       onChildrenChange?.(childIds);
 

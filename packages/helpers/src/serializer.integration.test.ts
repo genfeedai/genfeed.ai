@@ -95,7 +95,6 @@ describe('Serializer/Deserializer Integration Tests', () => {
       expect(serialized.data).toHaveProperty('id', testUser.id);
       expect(serialized.data).toHaveProperty('attributes');
 
-      // Check serialized attributes
       expect(serialized.data.attributes).toHaveProperty(
         'email',
         testUser.email,
@@ -511,10 +510,8 @@ describe('Serializer/Deserializer Integration Tests', () => {
 
       const start = Date.now();
 
-      // Serialize all users
       const serializedUsers = users.map((user) => serializer.serialize(user));
 
-      // Deserialize all users
       const deserializedUsers = serializedUsers.map((serialized) =>
         deserializer.deserialize(serialized),
       );

@@ -54,7 +54,6 @@ export function CostModal() {
           </DialogTitle>
         </DialogHeader>
 
-        {/* Content */}
         <div>
           {breakdown.items.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
@@ -62,7 +61,6 @@ export function CostModal() {
             </div>
           ) : (
             <>
-              {/* Table */}
               <div className="max-h-[40vh] overflow-y-auto">
                 <Table className="w-full text-sm">
                   <TableHeader>
@@ -99,7 +97,6 @@ export function CostModal() {
                 </Table>
               </div>
 
-              {/* Summary */}
               <div className="mt-4 pt-3 border-t border-border space-y-1.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Estimated Total</span>

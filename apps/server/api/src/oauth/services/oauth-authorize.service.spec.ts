@@ -211,6 +211,20 @@ describe('OAuthAuthorizeService', () => {
     vi.useRealTimers();
   });
 
+  it.each([true, false])(
+    'returns the exact OAuth issuer on an authorization decision (approved=%s)',
+    async (approved) => {
+      const { service } = buildHarness();
+      const result = await service.decideAuthorization(
+        makeUser(),
+        decision({ approved }),
+      );
+      expect(new URL(result.redirectUrl).searchParams.get('iss')).toBe(
+        'https://api.genfeed.ai',
+      );
+    },
+  );
+
   it('requires an explicit choice for multiple live memberships before creating a grant', async () => {
     const { organizations, prisma, service } = buildHarness();
     organizations.push(makeOrganization('org-2'));

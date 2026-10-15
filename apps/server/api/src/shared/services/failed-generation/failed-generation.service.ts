@@ -69,7 +69,6 @@ export class FailedGenerationService {
 
     // Update existing activity if metadata provided
     if (activityMetadata) {
-      // Parse value to extract ingredientId
       let ingredientId: string | undefined;
       try {
         const parsedValue = JSON.parse(activityMetadata.value);
@@ -98,7 +97,6 @@ export class FailedGenerationService {
         );
 
         if (existingActivity) {
-          // Update existing activity
           const existingValue = existingActivity.value;
           let parsedValue: Record<string, unknown> = {};
 
@@ -111,7 +109,6 @@ export class FailedGenerationService {
             parsedValue = {};
           }
 
-          // Update activity with failure data
           await this.activityRecorder.update(existingActivity, {
             key: activityMetadata.key,
             value: JSON.stringify({

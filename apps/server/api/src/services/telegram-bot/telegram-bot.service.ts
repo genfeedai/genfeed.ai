@@ -94,7 +94,6 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    // Parse allowed user IDs
     const allowedIds = this.configService.get(
       TELEGRAM_BOT_ENV.ALLOWED_USER_IDS,
     );

@@ -366,7 +366,6 @@ describe('LLMNode', () => {
         />,
       );
 
-      // The refresh button has title="Regenerate"
       const refreshButton = screen.getByTitle('Regenerate');
       expect(refreshButton).toBeDefined();
       fireEvent.click(refreshButton);

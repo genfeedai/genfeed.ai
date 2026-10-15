@@ -101,7 +101,6 @@ export default function PostDetailPostList({
 
         return (
           <div key={currentPost.id}>
-            {/* Divider before each child (for drag-drop) */}
             {isEditable && !isParent && (
               <div
                 className={`h-px my-2 transition-all duration-200 ${

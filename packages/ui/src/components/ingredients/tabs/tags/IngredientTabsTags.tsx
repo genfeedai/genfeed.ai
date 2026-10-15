@@ -55,7 +55,6 @@ export default function IngredientTabsTags({
     enabled: !!isSignedIn,
   });
 
-  // Filter out already assigned tags
   const availableTags = useMemo(() => {
     const currentTagIds = tags.map((t) => t.id);
     return allTags.filter((t) => !currentTagIds.includes(t.id));

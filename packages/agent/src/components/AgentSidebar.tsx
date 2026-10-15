@@ -22,7 +22,6 @@ export function AgentSidebar({
 
   return (
     <>
-      {/* Toggle button */}
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
@@ -51,7 +50,6 @@ export function AgentSidebar({
         </svg>
       </Button>
 
-      {/* Sidebar panel */}
       {isOpen && (
         <aside className="fixed bottom-24 right-6 z-50 flex h-[600px] w-[380px] flex-col overflow-hidden border border-border bg-background shadow-2xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">

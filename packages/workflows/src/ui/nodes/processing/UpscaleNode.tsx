@@ -32,7 +32,6 @@ import { useWorkflowStore } from '../../stores/workflow';
 import { ComparisonSlider } from '../../ui/comparison-slider';
 import { BaseNode } from '../BaseNode';
 
-// Image upscale models
 const IMAGE_MODELS: { value: UpscaleModel; label: string }[] = [
   { label: 'Standard V2', value: 'topaz-standard-v2' },
   { label: 'Low Resolution V2', value: 'topaz-low-res-v2' },

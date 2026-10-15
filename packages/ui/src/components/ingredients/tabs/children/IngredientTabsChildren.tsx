@@ -28,7 +28,6 @@ export default function IngredientTabsChildren({
 
       try {
         const service = await getIngredientsService();
-        // Fetch ingredients that have this ingredient as parent
         const data = await service.findChildren(ingredient.id);
 
         setChildren(data);

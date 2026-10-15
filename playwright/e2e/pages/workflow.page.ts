@@ -89,7 +89,6 @@ export class WorkflowPage {
   readonly loadingSpinner: Locator;
   readonly skeleton: Locator;
 
-  // Desktop gate
   readonly desktopGate: Locator;
 
   constructor(page: Page) {
@@ -141,7 +140,6 @@ export class WorkflowPage {
         ' .react-flow__empty',
     );
 
-    // Node library
     this.nodeLibrary = page.locator(
       '[data-testid="node-library"],' +
         ' [data-testid="node-sidebar"],' +
@@ -192,7 +190,6 @@ export class WorkflowPage {
         ' [data-testid="canvas-node"][aria-selected="true"]',
     );
 
-    // Config panel
     this.configPanel = page.locator(
       '[data-testid="config-panel"],' +
         ' [data-testid="node-config"],' +
@@ -266,8 +263,6 @@ export class WorkflowPage {
     // Desktop gate — DesktopGate.tsx renders no testid, only this heading.
     this.desktopGate = page.getByRole('heading', { name: 'Desktop Required' });
   }
-
-  // ---- Navigation ----
 
   async gotoEditor(): Promise<void> {
     await this.page.goto(`${this.basePath}/new`);

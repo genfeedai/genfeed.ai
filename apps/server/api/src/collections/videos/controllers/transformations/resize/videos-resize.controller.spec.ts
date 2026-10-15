@@ -181,7 +181,6 @@ describe('VideosResizeController', () => {
     expect(controller).toBeDefined();
   });
 
-  // --- resizeVideo ---
   it('should resize video and return serialized result', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };

@@ -199,7 +199,6 @@ export function useModalGenerateIllustration({
     timeoutMs: 60000,
   });
 
-  // Calculate format and dimensions based on platform
   const format = useMemo(() => getFormatForPlatform(platform), [platform]);
   const dimensions = useMemo(() => VIDEO_FORMAT_DIMENSIONS[format], [format]);
 
@@ -375,7 +374,6 @@ export function useModalGenerateIllustration({
     return labels[format];
   }, [format]);
 
-  // Get default model and calculate cost
   const defaultModel = useMemo(() => {
     return models.find((m) => m.key === defaultModelKey);
   }, [models, defaultModelKey]);

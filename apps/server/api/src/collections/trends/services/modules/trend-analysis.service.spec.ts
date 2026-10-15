@@ -91,8 +91,6 @@ describe('TrendAnalysisService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── markExpiredTrendsAsHistorical ────────────────────────────────────────
-
   describe('markExpiredTrendsAsHistorical', () => {
     it('should call prisma.trend.updateMany with correct filter and return count', async () => {
       prisma.trend.updateMany.mockResolvedValue({ count: 5 });
@@ -142,8 +140,6 @@ describe('TrendAnalysisService', () => {
     });
   });
 
-  // ─── markCurrentTrendsAsHistorical ────────────────────────────────────────
-
   describe('markCurrentTrendsAsHistorical', () => {
     it('should scope query to organizationId and brandId when both provided', async () => {
       prisma.trend.updateMany.mockResolvedValue({ count: 2 });
@@ -186,8 +182,6 @@ describe('TrendAnalysisService', () => {
       );
     });
   });
-
-  // ─── getHistoricalTrends ─────────────────────────────────────────────────
 
   describe('getHistoricalTrends', () => {
     it('should query with isCurrent=false and isDeleted=false', async () => {
@@ -319,8 +313,6 @@ describe('TrendAnalysisService', () => {
       expect(hatchWasOpen).toBe(false);
     });
   });
-
-  // ─── analyzeTrendPatterns ─────────────────────────────────────────────────
 
   describe('analyzeTrendPatterns', () => {
     it('should return zeroed result when no historical trends found', async () => {

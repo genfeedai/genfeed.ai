@@ -2,9 +2,6 @@ import { ValidationException } from '@api/exceptions/validation.exception';
 import type { ModelFieldMeta } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 
-// ---------------------------------------------------------------------------
-// vi.hoisted — runs BEFORE the vi.mock factory, so the mock can reference it.
-// ---------------------------------------------------------------------------
 const { getModelMetaMock } = vi.hoisted(() => {
   const BASE_META: ModelFieldMeta = {
     allFields: ['id', 'isDeleted', 'organizationId'],
@@ -30,19 +27,6 @@ const BASE_META: ModelFieldMeta = {
   relationIdFields: {},
 };
 
-// ---------------------------------------------------------------------------
-// Module mock — must run before any imports that pull in BaseService.
-// Spreads the canonical, schema-derived enum set (real ArticleStatus,
-// AssetScope, IngredientCategory, IngredientStatus, OrganizationCategory,
-// ApiKeyCategory, SubscriptionStatus, PromptCategory, etc. — no more
-// hand-rolled partial copies), then overrides two keys AFTER the spread so
-// object-literal key order lets the overrides win:
-//   - getModelMeta: backed by the vi.hoisted vi.fn so individual tests can
-//     call mockReturnValue() to inject specific field sets for that test.
-//   - TaskStatus: intentionally undefined (the real schema DOES define a
-//     TaskStatus enum) — lets the diverged-enum test below verify that
-//     getPrismaEnumValues returns null → candidate passes through as-is.
-// ---------------------------------------------------------------------------
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -57,9 +41,6 @@ vi.mock('@genfeedai/prisma', async () => {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 
-// ---------------------------------------------------------------------------
-// Helper — replace model meta for the duration of a single test.
-// ---------------------------------------------------------------------------
 type FieldSpec =
   | string
   | { name: string; kind?: string; type?: string; isRequired?: boolean };
@@ -205,6 +186,62 @@ describe('BaseService', () => {
         'Failed to create document',
         expect.objectContaining({ error: dbError }),
       );
+    });
+  });
+
+  describe('findAllByKeyset', () => {
+    const sort = { direction: -1, field: 'createdAt' } as const;
+
+    it('fetches one probe row past the limit and never counts', async () => {
+      delegate.findMany.mockResolvedValue([
+        { createdAt: new Date('2026-10-15T10:02:00.000Z'), id: 'c' },
+        { createdAt: new Date('2026-10-15T10:01:00.000Z'), id: 'b' },
+        { createdAt: new Date('2026-10-15T10:00:00.000Z'), id: 'a' },
+      ]);
+
+      const page = await service.findAllByKeyset(
+        { where: { organizationId: 'org_1' } },
+        { limit: 2, sort },
+      );
+
+      expect(delegate.count).not.toHaveBeenCalled();
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 3,
+          where: expect.objectContaining({ organizationId: 'org_1' }),
+        }),
+      );
+      expect(page.docs.map((doc) => (doc as { id: string }).id)).toEqual([
+        'c',
+        'b',
+      ]);
+      expect(page.hasMore).toBe(true);
+      expect(page.nextCursor).toEqual(expect.any(String));
+    });
+
+    it('ANDs the cursor boundary onto the tenant filter', async () => {
+      delegate.findMany.mockResolvedValue([]);
+      const value = '2026-10-15T10:01:00.000Z';
+
+      const page = await service.findAllByKeyset(
+        { where: { organizationId: 'org_1' } },
+        { cursor: { ...sort, id: 'b', value }, limit: 2, sort },
+      );
+
+      const [args] = delegate.findMany.mock.calls[0];
+      expect(args.where.AND).toEqual([
+        expect.objectContaining({ organizationId: 'org_1' }),
+        {
+          AND: [
+            { createdAt: { lte: new Date(value) } },
+            {
+              OR: [{ createdAt: { lt: new Date(value) } }, { id: { lt: 'b' } }],
+            },
+          ],
+        },
+      ]);
+      expect(page).toMatchObject({ hasMore: false, nextCursor: null });
     });
   });
 

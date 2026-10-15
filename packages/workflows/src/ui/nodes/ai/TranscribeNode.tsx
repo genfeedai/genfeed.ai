@@ -96,12 +96,10 @@ function TranscribeNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
-        {/* Model Info */}
         <div className="text-xs text-muted-foreground">
           Using: Whisper Large V3
         </div>
 
-        {/* Language Selection */}
         <div>
           <label
             htmlFor={`transcribe-language-${id}`}

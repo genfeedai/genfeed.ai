@@ -507,7 +507,7 @@ describe('ClientService (MCP)', () => {
       const mockResponse = { data: { data: [] } };
       (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
 
-      await service.listPosts({ limit: 10, platform: 'twitter' });
+      await service.listPosts({ limit: 10, platform: Platform.TWITTER });
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/posts', {
         params: expect.objectContaining({ 'filter[platform]': 'twitter' }),

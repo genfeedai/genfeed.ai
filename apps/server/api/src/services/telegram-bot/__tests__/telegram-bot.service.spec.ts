@@ -3,7 +3,6 @@ import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.serv
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Bot } from 'grammy';
 
-// Mock grammy
 vi.mock('grammy', () => ({
   Bot: vi.fn().mockImplementation(function Bot() {
     return {

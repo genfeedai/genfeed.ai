@@ -43,7 +43,6 @@ export default function GallerySidebar({ onLinkClick }: GallerySidebarProps) {
 
   return (
     <aside className="w-64 h-screen bg-background flex flex-col">
-      {/* Logo Section */}
       <div className="p-6 border-b border-white/[0.08]">
         <Link href="/" className="flex items-center gap-3">
           {logoUrl && (
@@ -60,7 +59,6 @@ export default function GallerySidebar({ onLinkClick }: GallerySidebarProps) {
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => (
           <Link

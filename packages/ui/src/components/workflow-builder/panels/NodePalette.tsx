@@ -135,7 +135,6 @@ export default function NodePalette({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="font-semibold text-sm">Nodes</span>
         <Button
@@ -148,7 +147,6 @@ export default function NodePalette({
         />
       </div>
 
-      {/* Node Categories */}
       <div className="flex-1 overflow-y-auto">
         {CATEGORY_ORDER.map((category) => {
           const nodes =

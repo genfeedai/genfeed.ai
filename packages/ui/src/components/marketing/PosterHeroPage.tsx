@@ -9,6 +9,7 @@ export interface PosterHeroPageProps {
   heroActions?: ReactNode;
   heroDetails?: ReactNode;
   heroVisual?: ReactNode;
+  isHeroVisualStacked?: boolean;
   title: ReactNode;
 }
 
@@ -19,6 +20,7 @@ export default function PosterHeroPage({
   heroActions,
   heroDetails,
   heroVisual,
+  isHeroVisualStacked = false,
   title,
 }: PosterHeroPageProps): React.ReactElement {
   return (
@@ -43,7 +45,7 @@ export default function PosterHeroPage({
               compact
                 ? 'grid items-start gap-10 pt-16 pb-2 lg:gap-14'
                 : 'grid items-start gap-10 pt-16 pb-4 lg:gap-14 lg:pt-20',
-              heroVisual
+              heroVisual && !isHeroVisualStacked
                 ? 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]'
                 : 'lg:grid-cols-1',
             ].join(' ')}
@@ -73,7 +75,13 @@ export default function PosterHeroPage({
             </div>
 
             {heroVisual ? (
-              <div className="w-full lg:justify-self-end">{heroVisual}</div>
+              <div
+                className={
+                  isHeroVisualStacked ? 'w-full' : 'w-full lg:justify-self-end'
+                }
+              >
+                {heroVisual}
+              </div>
             ) : null}
           </div>
         </div>

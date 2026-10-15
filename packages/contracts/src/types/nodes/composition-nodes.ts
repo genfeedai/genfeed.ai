@@ -1,7 +1,3 @@
-// =============================================================================
-// COMPOSITION NODE DATA (workflow-as-node)
-// =============================================================================
-
 import type { BaseNodeData } from './base';
 import type { HandleType } from './handles';
 

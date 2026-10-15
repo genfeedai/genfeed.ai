@@ -1,6 +1,10 @@
 import type { McpImageContentPart } from '@genfeedai/contracts/interfaces';
 import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import type { LoggerService } from '@libs/logger/logger.service';
+import {
+  formatToolData,
+  readableLabel,
+} from '@mcp/shared/utils/tool-result-text.util';
 
 // Bound both the response stream and its base64 expansion (4 MiB).
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
@@ -14,6 +18,32 @@ const COMPLETED_STATUSES = new Set([
 ]);
 
 class ImagePreviewError extends Error {}
+
+function readableMediaResult(
+  payload: Record<string, unknown>,
+  image?: McpImageContentPart,
+) {
+  const result = toMcpMediaToolResult(payload, image);
+  const artifact = result.structuredContent.artifact;
+  const title =
+    typeof payload.label === 'string' && payload.label.trim()
+      ? payload.label
+      : artifact
+        ? readableLabel(artifact.kind)
+        : 'Media';
+  const message = artifact
+    ? `${title}\nStatus: ${readableLabel(artifact.status.toLowerCase())}${artifact.url ? `\n[Open ${artifact.kind}](${artifact.url})` : ''}`
+    : formatToolData(payload);
+  result.content = [
+    { type: 'text', text: message },
+    ...result.content.flatMap((part) =>
+      part.type === 'text'
+        ? []
+        : [part.type === 'resource_link' ? { ...part, name: title } : part],
+    ),
+  ];
+  return result;
+}
 
 function trustedImageUrl(
   value: string,
@@ -96,7 +126,7 @@ export async function toNativeMcpMediaResult(
   origins: readonly string[],
   logger?: Pick<LoggerService, 'warn'>,
 ) {
-  const fallback = toMcpMediaToolResult(payload);
+  const fallback = readableMediaResult(payload);
   const artifact = fallback.structuredContent.artifact;
   if (
     artifact?.kind !== 'image' ||
@@ -108,7 +138,7 @@ export async function toNativeMcpMediaResult(
   if (!url) return fallback;
   try {
     const image = await fetchImage(url);
-    const result = toMcpMediaToolResult(payload, image);
+    const result = readableMediaResult(payload, image);
     if (result.structuredContent.artifact)
       result.structuredContent.artifact.sizeBytes = Buffer.byteLength(
         image.data,

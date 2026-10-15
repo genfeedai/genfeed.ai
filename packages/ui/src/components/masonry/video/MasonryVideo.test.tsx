@@ -72,9 +72,16 @@ vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="dropdown-status" />,
 }));
 
-const mockVideoPlayer = vi.fn(() => <div data-testid="video-player" />);
+type VideoPlayerCall = {
+  className?: string;
+  config?: { preload?: string };
+  thumbnail?: string;
+};
+const mockVideoPlayer = vi.fn((_props: VideoPlayerCall) => (
+  <div data-testid="video-player" />
+));
 vi.mock('@ui/display/video-player/VideoPlayer', () => ({
-  default: (props: unknown) => mockVideoPlayer(props),
+  default: (props: VideoPlayerCall) => mockVideoPlayer(props),
 }));
 
 const writeIngredientTransferDataMock = vi.fn();
@@ -160,6 +167,24 @@ describe('MasonryVideo', () => {
       thumbnail?: string;
     };
     expect(firstCallProps.thumbnail).toBe('https://example.com/thumb.jpg');
+  });
+
+  it('leaves the video unloaded behind its poster until it plays', () => {
+    render(<MasonryVideo video={mockVideo} />);
+
+    expect(mockVideoPlayer.mock.calls[0]?.[0]?.config?.preload).toBe('none');
+  });
+
+  it('preloads metadata to show a first frame when no poster exists', () => {
+    render(
+      <MasonryVideo
+        video={{ ...mockVideo, thumbnailUrl: undefined } as unknown as IVideo}
+      />,
+    );
+
+    expect(mockVideoPlayer.mock.calls[0]?.[0]?.config?.preload).toBe(
+      'metadata',
+    );
   });
 
   it('should make the embedded video player ignore pointer events so the card remains draggable', () => {

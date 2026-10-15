@@ -202,7 +202,6 @@ export const createE2ETestApp = async (
     }),
   );
 
-  // Set global prefix
   app.setGlobalPrefix('v1');
 
   await app.init();

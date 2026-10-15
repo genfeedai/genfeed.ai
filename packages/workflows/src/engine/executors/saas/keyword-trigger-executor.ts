@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type KeywordTriggerPlatform = 'twitter' | 'instagram' | 'threads';
 
 export type KeywordMatchMode = 'exact' | 'contains' | 'regex';
@@ -41,10 +37,6 @@ export type KeywordChecker = (params: {
   caseSensitive: boolean;
   lastPostId: string | null;
 }) => Promise<KeywordTriggerOutput | null>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * Keyword Trigger Executor

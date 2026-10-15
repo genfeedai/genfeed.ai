@@ -14,10 +14,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ---------------------------------------------------------------------------
-// Shared mock factories
-// ---------------------------------------------------------------------------
-
 function makeMockSession(id = 'sess_1'): Stripe.Checkout.Session {
   return {
     id,

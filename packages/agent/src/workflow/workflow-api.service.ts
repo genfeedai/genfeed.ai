@@ -8,10 +8,6 @@ import type {
   WorkflowPhase,
 } from './types';
 
-// ---------------------------------------------------------------------------
-// API response types (based on GEN-122 contract)
-// ---------------------------------------------------------------------------
-
 export interface WorkflowApiState {
   id: string;
   agentId: string;
@@ -45,10 +41,6 @@ export interface WorkflowApiStatePayload {
 export interface TransitionResponse {
   workflow: WorkflowApiState;
 }
-
-// ---------------------------------------------------------------------------
-// Service
-// ---------------------------------------------------------------------------
 
 export interface WorkflowApiService {
   getWorkflow(

@@ -62,67 +62,42 @@ Get your API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/se
 
 ## Available Tools
 
-### Content Creation
+Use `find_tools` to discover the connected account's tools and input schemas.
 
 | Tool | Description |
 |------|-------------|
-| `create_video` | Generate AI videos |
-| `create_image` | Generate AI images |
-| `generate_content` | Generate articles (`type: "article"`) and social copy |
-| `create_avatar` | Create digital avatars |
-| `create_music` | Generate AI music |
-
-### Content Management
-
-| Tool | Description |
-|------|-------------|
-| `list_assets` | List images, videos, music, avatars or characters by `type` |
+| `get_account` | Read profile, credits, and usage as a readable message |
+| `get_brands` | Resolve the brand for the task |
+| `get_generation_options` | Read supported models and credit estimates |
+| `generate` | Generate image, video, voice, or music for an approved request |
+| `generate_content` | Generate article drafts or social copy |
+| `list_assets` | List media and named characters |
+| `get_job_status` | Read generation progress and results |
 | `get_articles` | Search articles or retrieve one |
-| `get_job_status` | Check generation progress |
+| `get_posts` | Read posts or the content calendar |
+| `get_trends` | Discover topic ideas |
+| `get_content_analytics` | Read content performance |
+| `get_video_analytics` | Read video performance |
+| `create_scheduled_release` | Create a draft or scheduled multi-channel release |
+| `get_scheduled_release` | Read release execution state |
+| `control_scheduled_release` | Pause, resume, cancel, or publish a confirmed release |
+| `create_workflow` | Create an automation workflow |
+| `execute_workflow` | Run a saved workflow |
+| `get_workflow_status` | Read saved workflow status |
 
-### Publishing
+Before generating, resolve a brand and confirm the requested spend. Before publishing,
+resolve a verified channel, check scheduler capabilities, validate the target, and
+confirm the exact content and time. Pending approvals require the user's decision.
+See [the complete workflow](./SKILL.md).
 
-| Tool | Description |
-|------|-------------|
-| `publish_content` | Publish to social platforms |
-| `get_posts` | List posts, open one, or show the calendar |
-
-### Analytics
-
-| Tool | Description |
-|------|-------------|
-| `get_video_analytics` | Video performance metrics |
-| `get_content_analytics` | Content performance metrics |
-| `get_trending_topics` | Discover trending topics |
-| `get_credits` | Check credit balance |
-| `get_account` | Profile, credit balance and usage |
-
-### Workflows
-
-| Tool | Description |
-|------|-------------|
-| `create_workflow` | Create automation workflows |
-| `execute_workflow` | Run a workflow |
-| `get_workflow_status` | Check workflow status |
-| `list_workflows` | List all workflows |
-| `list_workflow_templates` | Browse workflow templates |
-
-## Example
-
-```
-> Connect to Genfeed and create a product hero image
-
-Agent connects to MCP server, calls create_image with an optimized prompt,
-and returns the generated image URL.
-```
+Tool text is for display; identifiers and complete results remain in structured
+fields for follow-up calls. A readable account lookup is the connection check;
+no generation or publication is needed to test access.
 
 ## CLI Alternative
 
-```bash
-genfeed generate image "A sunset over mountains" --json
-genfeed generate video "Product Demo" --no-wait
-genfeed publish <id> --platforms instagram,twitter
-```
+Run `genfeed --help` to inspect the installed CLI. Its commands are separate from
+MCP tool names.
 
 ## License
 

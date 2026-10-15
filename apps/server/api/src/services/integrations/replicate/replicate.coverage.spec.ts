@@ -16,10 +16,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 type MockClient = {
   models?: { create: ReturnType<typeof vi.fn> };
   predictions?: {
@@ -44,10 +40,6 @@ function makeClient(overrides: Partial<MockClient> = {}): MockClient {
     ...overrides,
   };
 }
-
-// ---------------------------------------------------------------------------
-// Suite
-// ---------------------------------------------------------------------------
 
 describe('ReplicateService (coverage)', () => {
   let service: ReplicateService;
@@ -104,10 +96,6 @@ describe('ReplicateService (coverage)', () => {
 
     service = module.get<ReplicateService>(ReplicateService);
   });
-
-  // -------------------------------------------------------------------------
-  // runModel
-  // -------------------------------------------------------------------------
 
   describe('runModel', () => {
     it('creates prediction and returns the prediction id', async () => {
@@ -205,10 +193,6 @@ describe('ReplicateService (coverage)', () => {
       service.client = originalClient;
     });
   });
-
-  // -------------------------------------------------------------------------
-  // runTraining — error branches not covered by existing spec
-  // -------------------------------------------------------------------------
 
   describe('runTraining — uncovered branches', () => {
     it('throws (and logs) when trainings.create fails with a non-404 error', async () => {
@@ -321,10 +305,6 @@ describe('ReplicateService (coverage)', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // getPrediction
-  // -------------------------------------------------------------------------
-
   describe('getPrediction', () => {
     it('returns prediction object for given id', async () => {
       const prediction = {
@@ -383,11 +363,6 @@ describe('ReplicateService (coverage)', () => {
       spy.mockRestore();
     });
   });
-
-  // -------------------------------------------------------------------------
-  // generateImageToVideo / generateTextToVideo / generateTextToImage /
-  // enhanceVideo / generateTextCompletion — all delegate to runModel
-  // -------------------------------------------------------------------------
 
   describe('delegation wrappers', () => {
     it('generateImageToVideo delegates to runModel', async () => {
@@ -489,10 +464,6 @@ describe('ReplicateService (coverage)', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // generateTextCompletionSync
-  // -------------------------------------------------------------------------
-
   describe('generateTextCompletionSync', () => {
     it('creates prediction, waits, and joins array output', async () => {
       const wait = vi
@@ -564,10 +535,6 @@ describe('ReplicateService (coverage)', () => {
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
-
-  // -------------------------------------------------------------------------
-  // getAspectRatio
-  // -------------------------------------------------------------------------
 
   describe('getAspectRatio', () => {
     it('returns 16:9 when no dimensions supplied', () => {
@@ -647,10 +614,6 @@ describe('ReplicateService (coverage)', () => {
       expect(service.getAspectRatio(450, 1000)).toBe('1:2');
     });
   });
-
-  // -------------------------------------------------------------------------
-  // parseReplicateInput — uncovered branches
-  // -------------------------------------------------------------------------
 
   describe('parseReplicateInput — uncovered branches', () => {
     it('does NOT add num_outputs when outputs param is undefined for owned model', () => {
@@ -749,10 +712,6 @@ describe('ReplicateService (coverage)', () => {
       ).toBeUndefined();
     });
   });
-
-  // -------------------------------------------------------------------------
-  // transcribeAudio
-  // -------------------------------------------------------------------------
 
   describe('transcribeAudio', () => {
     const whisperOutput = {
@@ -1054,10 +1013,6 @@ describe('ReplicateService (coverage)', () => {
       expect(result.confidence).toBeUndefined();
     });
   });
-
-  // -------------------------------------------------------------------------
-  // IS_CLOUD = true — webhook attached
-  // -------------------------------------------------------------------------
 
   describe('webhook attachment (IS_CLOUD = true)', () => {
     // Re-load the service under test with IS_CLOUD = true for this suite

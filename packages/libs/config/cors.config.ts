@@ -88,7 +88,6 @@ export function getGenfeedCorsOrigins(
     ];
   }
 
-  // Production origins
   const productionOrigins: (string | RegExp)[] = [
     // Main domain
     /^https:\/\/genfeed\.ai$/,

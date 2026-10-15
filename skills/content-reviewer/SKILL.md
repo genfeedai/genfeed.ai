@@ -543,7 +543,7 @@ Flag these immediately when spotted:
 
 ## Genfeed Integration
 
-- Use `rate_content` to score quality against historical performance data
+- Assess quality with the review rubric and available historical performance evidence.
 - Reference the brand voice profile for voice alignment scoring
 - Compare against top-performing ingredients from the content library
 - Flag when content deviates from ingredients that have historically performed well

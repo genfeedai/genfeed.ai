@@ -171,7 +171,6 @@ describe('VideosEffectsController', () => {
     expect(controller).toBeDefined();
   });
 
-  // --- reverseVideo ---
   it('should reverse video and return serialized result', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const result = await controller.reverseVideo(
@@ -215,7 +214,6 @@ describe('VideosEffectsController', () => {
     );
   });
 
-  // --- mirrorVideo ---
   it('should mirror video and return serialized result', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const result = await controller.mirrorVideo(mockRequest, mockUser, videoId);

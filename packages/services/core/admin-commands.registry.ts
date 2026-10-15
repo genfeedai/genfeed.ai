@@ -45,7 +45,6 @@ export const adminNavigationCommands: ICommand[] = [
     label: 'Go to App',
     priority: 10,
   },
-  // OVERVIEW
   {
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/overview/dashboard`);

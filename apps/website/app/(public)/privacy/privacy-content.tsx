@@ -90,7 +90,6 @@ export default function PrivacyContent() {
         title={<>Privacy Policy</>}
         description="How we protect your data. We don't sell your information."
       >
-        {/* Main Privacy Sections */}
         <section className="py-16 md:py-32 gsap-hero">
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">

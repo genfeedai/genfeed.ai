@@ -6,7 +6,6 @@
 
 export const DEFAULT_QUEUE = 'default';
 
-// ---------- Workflows ----------
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
 /**
  * Platform-originated system-workflow work: platform-cron sweep dispatches
@@ -58,17 +57,14 @@ export const AGENT_TURN_QUEUE = 'agent-turn';
  */
 export const SCHEDULED_PUBLISH_QUEUE = 'scheduled-publish';
 
-// ---------- Distribution & messaging ----------
 export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
 export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
 
-// ---------- Platform ----------
 export const HEYGEN_POLL_QUEUE = 'heygen-poll';
 export const REPLICATE_POLL_QUEUE = 'replicate-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 export const ACCOUNT_GENERATION_QUEUE = 'account-generation';
 
-// ---------- Media validation ----------
 /** Per-asset media perception (#4879): frames, OCR, transcript and scene
  * description, persisted once per asset hash off the publish request path. */
 export const MEDIA_PERCEPTION_QUEUE = 'media-perception';
@@ -78,7 +74,6 @@ export const MEDIA_MODERATION_QUEUE = 'media-moderation';
  * visual by a cold-start-tolerant vision model, off the generation request. */
 export const BRAND_VISION_QUEUE = 'brand-vision';
 
-// ---------- Review ----------
 /** Review batch rewrites (#5365): up to 100 sequential LLM rewrites run off the
  * request path, with per-item credit settlement and progress. */
 export const TURBO_REWRITE_QUEUE = 'turbo-rewrite';

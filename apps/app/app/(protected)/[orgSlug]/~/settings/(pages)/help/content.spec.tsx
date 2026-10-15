@@ -17,10 +17,11 @@ vi.mock('@services/core/environment.service', () => ({
       get documentation() {
         return mocks.documentation;
       },
-      gettingStarted: 'https://docs.genfeed.ai/getting-started',
+      gettingStarted:
+        'https://genfeed.ai/articles/getting-started-with-genfeed-cloud',
       selfHostedGettingStarted:
-        'https://docs.genfeed.ai/guides/self-host-quickstart',
-      workflows: 'https://docs.genfeed.ai/cloud/studio',
+        'https://docs.genfeed.ai/self-host/installation',
+      workflows: 'https://docs.genfeed.ai/guides/studio',
       faq: 'https://docs.genfeed.ai/faq',
       changelog: 'https://genfeed.ai/changelog',
       community: 'https://discord.gg/Qy867n83Z4',
@@ -87,7 +88,7 @@ describe('Help navigation', () => {
       screen
         .getByRole('link', { name: /^Getting started/ })
         .getAttribute('href'),
-    ).toBe('https://docs.genfeed.ai/getting-started');
+    ).toBe('https://genfeed.ai/articles/getting-started-with-genfeed-cloud');
   });
 
   it('gives self-hosted users an operator fallback without a broken support link', () => {
@@ -103,7 +104,7 @@ describe('Help navigation', () => {
       screen
         .getByRole('link', { name: /^Getting started/ })
         .getAttribute('href'),
-    ).toBe('https://docs.genfeed.ai/guides/self-host-quickstart');
+    ).toBe('https://docs.genfeed.ai/self-host/installation');
   });
 
   it('uses a configured self-hosted support destination', () => {

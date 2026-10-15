@@ -55,7 +55,6 @@ export class AllExceptionFilter implements ExceptionFilter {
     let detail = 'An unexpected error occurred';
     let title = 'Internal Server Error';
 
-    // Handle different exception types
     const exceptionObj = exception as Record<string, unknown>;
     if (
       exceptionObj.getStatus &&

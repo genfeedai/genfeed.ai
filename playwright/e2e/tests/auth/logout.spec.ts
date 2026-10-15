@@ -172,15 +172,12 @@ test.describe('Logout Flow', () => {
     }) => {
       await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
-      // Set some data in local storage
       await authenticatedPage.evaluate(() => {
         localStorage.setItem('testKey', 'testValue');
       });
 
-      // Simulate logout
       await simulateLogout(authenticatedPage);
 
-      // Check local storage
       const hasBetterAuthData = await authenticatedPage.evaluate(() => {
         return localStorage.getItem('__better_auth_client_jwt');
       });
@@ -232,10 +229,8 @@ test.describe('Logout Flow', () => {
         (c) => c.name === '__session',
       )?.value;
 
-      // Simulate logout
       await simulateLogout(authenticatedPage);
 
-      // Check that session is different or cleared
       const cookiesAfter = await authenticatedPage.context().cookies();
       const sessionAfter = cookiesAfter.find(
         (c) => c.name === '__session',
@@ -250,13 +245,11 @@ test.describe('Logout Flow', () => {
     }) => {
       await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
-      // Simulate logout
       await simulateLogout(authenticatedPage);
 
       // Navigate to login
       await authenticatedPage.goto(APP_ROUTES.LOGIN);
 
-      // Check that no user data is visible
       const pageContent = await authenticatedPage.content();
 
       // Should not contain user-specific data

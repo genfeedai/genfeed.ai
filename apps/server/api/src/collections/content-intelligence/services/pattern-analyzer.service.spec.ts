@@ -27,8 +27,6 @@ import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ─── Mocks ─────────────────────────────────────────────────────────────────
-
 const mockLogger = {
   error: vi.fn(),
   log: vi.fn(),
@@ -124,8 +122,6 @@ function makePost(overrides: Partial<ScrapedPost> = {}): ScrapedPost {
     ...overrides,
   };
 }
-
-// ─── analyzeCreator ────────────────────────────────────────────────────────
 
 describe('PatternAnalyzerService.analyzeCreator', () => {
   let service: PatternAnalyzerService;
@@ -268,8 +264,6 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     );
   });
 });
-
-// ─── Rule-based pattern extraction (via analyzeCreator) ───────────────────
 
 describe('PatternAnalyzerService rule-based extraction', () => {
   let service: PatternAnalyzerService;
@@ -423,8 +417,6 @@ describe('PatternAnalyzerService rule-based extraction', () => {
     expect(patterns).toHaveLength(0);
   });
 });
-
-// ─── LLM response parsing ─────────────────────────────────────────────────
 
 describe('PatternAnalyzerService LLM response parsing', () => {
   let service: PatternAnalyzerService;
@@ -615,8 +607,6 @@ describe('PatternAnalyzerService LLM response parsing', () => {
   });
 });
 
-// ─── calculateViralScore ──────────────────────────────────────────────────
-
 describe('PatternAnalyzerService.calculateViralScore (via sourceMetrics)', () => {
   let service: PatternAnalyzerService;
 
@@ -695,8 +685,6 @@ describe('PatternAnalyzerService.calculateViralScore (via sourceMetrics)', () =>
     expect(pattern.sourceMetrics.viralScore).toBe(25);
   });
 });
-
-// ─── Top 30 posts sorting ─────────────────────────────────────────────────
 
 describe('PatternAnalyzerService post sorting and capping', () => {
   let service: PatternAnalyzerService;

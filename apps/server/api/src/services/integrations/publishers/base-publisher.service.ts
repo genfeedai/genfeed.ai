@@ -141,7 +141,6 @@ export abstract class BasePublisherService implements IPublisher {
       post.category === PostCategory.IMAGE ||
       (post.category === PostCategory.TEXT && hasIngredients);
 
-    // Build media URLs
     const mediaUrls = ingredients.map((ingredient) =>
       this.requireAuthorizedMediaUrl(ingredient, !isImagePost),
     );

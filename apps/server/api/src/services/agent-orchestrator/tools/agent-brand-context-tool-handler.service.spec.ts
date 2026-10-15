@@ -88,9 +88,25 @@ describe('AgentBrandContextToolHandler', () => {
         gaps: [{ editIn: 'voice', layer: 'voice' }],
         model: { creditsPerRound: 3, key: 'model-a' },
         settingsPath: '/settings/agent/context',
-        systemPrompt: SNAPSHOT.systemPrompt,
       },
       success: true,
+    });
+    expect(result.data).not.toHaveProperty('systemPrompt');
+    expect(result.data).not.toHaveProperty('memoryPrompt');
+    expect(result.data).not.toHaveProperty('systemPromptChars');
+  });
+
+  it('includes rendered prompts only with explicit diagnostic opt-in', async () => {
+    const { handler } = createHandler();
+    const result = await handler.execute(
+      'get_brand_context',
+      { includeSystemPrompt: true },
+      CONTEXT,
+    );
+    expect(result.data).toMatchObject({
+      memoryPrompt: SNAPSHOT.memoryPrompt,
+      systemPrompt: SNAPSHOT.systemPrompt,
+      systemPromptChars: SNAPSHOT.systemPrompt.length,
     });
   });
 

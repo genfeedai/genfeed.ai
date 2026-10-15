@@ -149,10 +149,6 @@ export function convertRatioToOrientation(
   return 'landscape';
 }
 
-// ============================================================================
-// IModel-based overloads
-// ============================================================================
-
 /** Get default aspect ratio from an IModel document (DB-backed with constant fallback). */
 export function getDefaultAspectRatioFromModel(model: IModel): string {
   return getDefaultAspectRatio(model.key, getModelCapability(model));

@@ -5,10 +5,6 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 export type RepostTriggerPlatform = 'twitter' | 'instagram';
 
 export interface NewRepostTriggerOutput {
@@ -33,10 +29,6 @@ export type NewRepostChecker = (params: {
   minReposterFollowerCount?: number;
   lastRepostId: string | null;
 }) => Promise<NewRepostTriggerOutput | null>;
-
-// =============================================================================
-// EXECUTOR
-// =============================================================================
 
 /**
  * New Repost Trigger Executor

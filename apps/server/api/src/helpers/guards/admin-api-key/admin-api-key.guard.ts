@@ -35,7 +35,6 @@ export class AdminApiKeyGuard implements CanActivate {
       throw new UnauthorizedException('Authorization header is required');
     }
 
-    // Extract token from Bearer header
     const parsed = parseAuthorizationHeader(authHeader);
 
     if (parsed?.normalizedScheme !== 'bearer') {
@@ -44,7 +43,6 @@ export class AdminApiKeyGuard implements CanActivate {
 
     const token = parsed.token;
 
-    // Validate against admin API key
     const adminApiKey = this.configService.get('GENFEEDAI_API_KEY');
 
     if (!adminApiKey) {

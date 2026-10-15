@@ -1,7 +1,3 @@
-// =============================================================================
-// COMFYUI PROMPT TYPES
-// =============================================================================
-
 /**
  * A ComfyUI prompt is a graph of nodes, keyed by node ID.
  * Each node has a class_type (e.g. "KSampler", "CLIPTextEncode") and inputs.

@@ -9,7 +9,7 @@ import {
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
@@ -111,7 +111,6 @@ export default function PostDetailHeader({
   const isEditable = scope === PageScope.PUBLISHING && !isPublished;
   const canCreateRemix = post.status === PostStatus.PUBLIC;
 
-  // Can expand to thread if:
   // - It's a Twitter/X post
   // - It's editable (not published)
   // - It doesn't already have children (not already a thread)

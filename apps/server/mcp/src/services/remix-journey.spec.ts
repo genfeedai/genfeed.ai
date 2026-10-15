@@ -345,19 +345,25 @@ function build() {
   type Result = {
     isError?: boolean;
     content: { text: string }[];
+    structuredContent?: {
+      data?: Record<string, unknown>;
+      code?: string;
+      approvalId?: string;
+    };
   };
   const call = async (name: string, args: Record<string, unknown>) =>
     (await registry.handleToolCall({ name, arguments: args })) as Result;
   const json = (result: Result) => {
     expect(result.isError).toBeFalsy();
-    return JSON.parse(result.content[0].text) as Record<string, unknown>;
+    expect(result.structuredContent?.data).toBeDefined();
+    return result.structuredContent?.data as Record<string, unknown>;
   };
   const latestApproval = () =>
     [...api.approvals.values()].slice(-1)[0] as Approval;
   const approve = async (name: string, args: Record<string, unknown>) => {
     const pending = await call(name, args);
     expect(pending.isError).toBe(true);
-    expect(pending.content[0].text).toContain('approval_pending');
+    expect(pending.structuredContent?.code).toBe('approval_pending');
     const approval = latestApproval();
     expect(approval).toMatchObject({
       status: 'PENDING',

@@ -73,7 +73,6 @@ export class BrandsRelationshipsController {
     const totalCredentialsConnected =
       (countResult.docs[0] as unknown as { total?: number })?.total || 0;
 
-    // Get real analytics data with custom date range
     const startDate = query.startDate;
     const endDate = query.endDate;
     const metrics = await this.analyticsAggregationService.getOverviewMetrics(
@@ -142,7 +141,6 @@ export class BrandsRelationshipsController {
       resolveTenantReadScope(user),
     );
 
-    // Get time series data with platform breakdown
     const startDate = query.startDate;
     const endDate = query.endDate;
     const groupBy = query.groupBy || 'day';

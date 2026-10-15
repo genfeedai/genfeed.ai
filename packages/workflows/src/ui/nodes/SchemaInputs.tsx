@@ -86,7 +86,6 @@ const DEFAULT_ENUM_VALUES: Record<string, string[]> = {
     '4:5',
     '5:4',
   ],
-  // Character orientation
   character_orientation: ['image', 'video'],
   // Video duration
   duration: ['4', '5', '6', '8', '10'],
@@ -102,7 +101,6 @@ const DEFAULT_ENUM_VALUES: Record<string, string[]> = {
   refine: ['no_refiner', 'expert_ensemble_refiner', 'base_image_refiner'],
   // Resolution options
   resolution: ['1K', '2K', '4K', '720p', '1080p'],
-  // Safety filter level
   safety_filter_level: [
     'block_only_high',
     'block_medium_and_above',
@@ -110,7 +108,6 @@ const DEFAULT_ENUM_VALUES: Record<string, string[]> = {
   ],
   // Scheduler options
   scheduler: ['K_EULER', 'K_EULER_ANCESTRAL', 'DDIM', 'DPM_SOLVER', 'PNDM'],
-  // Sync mode
   sync_mode: ['loop', 'bounce', 'cut_off', 'silence', 'remap'],
 };
 

@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export const SKILLS_PRO_TOOL_NAMES = new Set([
   'archive_skill',
@@ -20,7 +21,7 @@ export async function handleSkillsProTool(
     const result = await client.verifySkillsProEntitlement(
       requiredString(args, 'receiptId'),
     );
-    return textJsonResult('Skills Pro entitlement', result);
+    return textDataResult('Skills Pro entitlement', result);
   }
 
   if (name === 'create_skill') {
@@ -31,18 +32,18 @@ export async function handleSkillsProTool(
       ownerKind: typeof args.ownerKind === 'string' ? args.ownerKind : 'user',
       slug: requiredString(args, 'slug'),
     });
-    return textJsonResult('Skill created', result);
+    return textDataResult('Skill created', result);
   }
 
   if (name === 'fork_skill') {
-    return textJsonResult(
+    return textDataResult(
       'Skill forked',
       await client.forkSkill(requiredString(args, 'skillId')),
     );
   }
 
   if (name === 'export_skill') {
-    return textJsonResult(
+    return textDataResult(
       'Skill exported',
       await client.exportSkill(requiredString(args, 'skillId')),
     );
@@ -50,21 +51,21 @@ export async function handleSkillsProTool(
 
   if (name === 'publish_skill') {
     const audience = args.audience === 'public' ? 'public' : 'organization';
-    return textJsonResult(
+    return textDataResult(
       'Skill published',
       await client.publishSkill(requiredString(args, 'skillId'), audience),
     );
   }
 
   if (name === 'archive_skill') {
-    return textJsonResult(
+    return textDataResult(
       'Skill archived',
       await client.archiveSkill(requiredString(args, 'skillId')),
     );
   }
 
   if (name === 'rollback_skill') {
-    return textJsonResult(
+    return textDataResult(
       'Skill rolled back',
       await client.rollbackSkill(
         requiredString(args, 'skillId'),
@@ -78,7 +79,7 @@ export async function handleSkillsProTool(
       requiredString(args, 'receiptId'),
       requiredString(args, 'skillSlug'),
     );
-    return textJsonResult('Skills Pro skill installed', result);
+    return textDataResult('Skills Pro skill installed', result);
   }
 
   throw new Error(`Unknown Skills Pro tool: ${name}`);
@@ -92,11 +93,12 @@ function requiredString(args: Record<string, unknown>, key: string): string {
   return value;
 }
 
-function textJsonResult(label: string, payload: unknown) {
+function textDataResult(label: string, payload: unknown) {
   return {
+    structuredContent: { data: payload },
     content: [
       {
-        text: `${label}:\n\n${JSON.stringify(payload, null, 2)}`,
+        text: `${label}:\n\n${formatToolData(payload)}`,
         type: 'text' as const,
       },
     ],

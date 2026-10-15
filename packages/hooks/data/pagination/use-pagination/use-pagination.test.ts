@@ -33,7 +33,6 @@ describe('usePagination', () => {
   it('handles page navigation', () => {
     const { result } = renderHook(() => usePagination({ pageSize: 10 }));
 
-    // Set total pages to allow navigation
     act(() => {
       result.current.setTotalPages(10);
     });

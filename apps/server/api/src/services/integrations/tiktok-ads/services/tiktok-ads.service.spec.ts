@@ -63,8 +63,6 @@ describe('TikTokAdsService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── getAdAccounts ────────────────────────────────────────────────────────
-
   describe('getAdAccounts', () => {
     it('should return mapped ad accounts', async () => {
       httpService.get.mockReturnValue(
@@ -110,8 +108,6 @@ describe('TikTokAdsService', () => {
       expect(logger.error).toHaveBeenCalled();
     });
   });
-
-  // ─── listCampaigns ────────────────────────────────────────────────────────
 
   describe('listCampaigns', () => {
     it('should map campaign fields correctly', async () => {
@@ -163,8 +159,6 @@ describe('TikTokAdsService', () => {
     });
   });
 
-  // ─── createCampaign ───────────────────────────────────────────────────────
-
   describe('createCampaign', () => {
     it('should return campaign_id from API', async () => {
       httpService.post.mockReturnValue(
@@ -213,8 +207,6 @@ describe('TikTokAdsService', () => {
     });
   });
 
-  // ─── pauseCampaign ────────────────────────────────────────────────────────
-
   describe('pauseCampaign', () => {
     it('should post DISABLE status update', async () => {
       httpService.post.mockReturnValue(of(makeApiResponse({})));
@@ -232,8 +224,6 @@ describe('TikTokAdsService', () => {
       });
     });
   });
-
-  // ─── uploadImage ──────────────────────────────────────────────────────────
 
   describe('uploadImage', () => {
     it('should return imageId and imageUrl', async () => {
@@ -259,8 +249,6 @@ describe('TikTokAdsService', () => {
     });
   });
 
-  // ─── uploadVideo ──────────────────────────────────────────────────────────
-
   describe('uploadVideo', () => {
     it('should return videoId', async () => {
       httpService.post.mockReturnValue(
@@ -276,8 +264,6 @@ describe('TikTokAdsService', () => {
       expect(result).toEqual({ videoId: 'vid-55' });
     });
   });
-
-  // ─── getCampaignInsights ──────────────────────────────────────────────────
 
   describe('getCampaignInsights', () => {
     it('should normalise report row metrics to numbers', async () => {

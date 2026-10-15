@@ -354,10 +354,6 @@ describe('quality-routing.helper', () => {
     });
   });
 
-  // ==========================================================================
-  // DB-backed quality resolution tests
-  // ==========================================================================
-
   function createMockModel(overrides: Partial<IModel> = {}): IModel {
     return {
       category: ModelCategory.IMAGE,

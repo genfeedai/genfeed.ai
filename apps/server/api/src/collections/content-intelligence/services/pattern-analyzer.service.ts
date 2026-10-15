@@ -122,12 +122,10 @@ export class PatternAnalyzerService {
         return { patterns: [], patternsExtracted: 0 };
       }
 
-      // Calculate metrics
       const metrics = this.creatorScraperService.calculateAggregateMetrics(
         scrapeResult.posts,
       );
 
-      // Extract patterns from posts
       const patterns = await this.extractPatterns(
         scrapeResult.posts,
         creator.organizationId,
@@ -135,11 +133,9 @@ export class PatternAnalyzerService {
         this.readCreatorPlatform(creator),
       );
 
-      // Store patterns
       const storedPatterns =
         await this.patternStoreService.storeBulkPatterns(patterns);
 
-      // Update creator with metrics and status
       await this.contentIntelligenceService.updateMetrics(
         creatorId,
         organizationId,

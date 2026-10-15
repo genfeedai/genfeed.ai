@@ -65,17 +65,21 @@ export default function GlobalModalsRenderer({
 }: GlobalModalsRendererProps) {
   return (
     <>
-      <LazyModalPostBatch
-        key={openTrigger}
-        ingredient={publishIngredient || undefined}
-        ingredients={
-          publishIngredients.length > 1 ? publishIngredients : undefined
-        }
-        credentials={credentials}
-        onConfirm={closePublishModal}
-        isOpen={publishIngredients.length > 0}
-        openKey={openTrigger}
-      />
+      {/* Mounted only while open, like the other modals: rendering it closed
+          still downloads its chunk on every protected page. */}
+      {publishIngredients.length > 0 && (
+        <LazyModalPostBatch
+          key={openTrigger}
+          ingredient={publishIngredient || undefined}
+          ingredients={
+            publishIngredients.length > 1 ? publishIngredients : undefined
+          }
+          credentials={credentials}
+          onConfirm={closePublishModal}
+          isOpen
+          openKey={openTrigger}
+        />
+      )}
 
       {currentConfirm && (
         <LazyModalConfirm

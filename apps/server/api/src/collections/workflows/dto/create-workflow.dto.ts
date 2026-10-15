@@ -24,10 +24,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-// =============================================================================
-// VISUAL BUILDER DTOs
-// =============================================================================
-
 export class WorkflowNodePositionDto {
   @IsNumber()
   @ApiProperty({ description: 'X coordinate on canvas' })
@@ -405,10 +401,6 @@ export class CreateWorkflowDto {
     type: WorkflowRecurrenceDto,
   })
   readonly recurrence?: WorkflowRecurrenceDto;
-
-  // ===========================================================================
-  // VISUAL BUILDER FIELDS
-  // ===========================================================================
 
   @IsArray()
   @ValidateNested({ each: true })

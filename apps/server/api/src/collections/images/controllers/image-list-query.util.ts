@@ -28,7 +28,6 @@ export async function buildImageListAggregate(
     ? tenant.brandId
     : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'exists');
 
-  // Use IngredientFilterUtil to build ingredient-specific filters
   const parentConditions = IngredientFilterUtil.buildParentFilter(
     query.parentId,
   );

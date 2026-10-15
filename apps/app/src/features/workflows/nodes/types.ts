@@ -11,10 +11,6 @@ import type {
 } from '@genfeedai/contracts';
 import type { BaseNodeData } from '@genfeedai/contracts/types/nodes';
 
-// =============================================================================
-// PLATFORM EXPORT TYPES
-// =============================================================================
-
 /**
  * Supported social platforms with their specs
  */
@@ -169,10 +165,6 @@ export const PLATFORM_SPECS: Record<ExportPlatform, PlatformSpec> = {
   },
 };
 
-// =============================================================================
-// EFFECTS NODE DATA
-// =============================================================================
-
 /**
  * Color grade mode — preset uses FFmpeg filters, ai-style uses Replicate
  */
@@ -209,10 +201,6 @@ export interface ColorGradeNodeData extends BaseNodeData {
   // Job state
   jobId: string | null;
 }
-
-// =============================================================================
-// DISTRIBUTION NODE DATA
-// =============================================================================
 
 /**
  * Platform Export Node - exports media with platform-specific encoding
@@ -319,10 +307,6 @@ interface PublishNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
-// =============================================================================
-// AUTOMATION NODE DATA
-// =============================================================================
-
 /**
  * Review Gate Node - pauses execution for human approval
  */
@@ -400,10 +384,6 @@ export interface WebhookTriggerNodeData extends BaseNodeData {
   outputPayload: Record<string, unknown> | null;
 }
 
-// =============================================================================
-// REPURPOSING NODE DATA
-// =============================================================================
-
 /**
  * Clip Selector Node - AI-powered selection of best clips from long video
  */
@@ -461,10 +441,6 @@ export interface PlatformMultiplierNodeData extends BaseNodeData {
   // Job state
   jobId: string | null;
 }
-
-// =============================================================================
-// NODE DEFINITIONS
-// =============================================================================
 
 type EffectsNodeType = 'colorGrade';
 

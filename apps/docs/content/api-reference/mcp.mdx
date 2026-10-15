@@ -13,7 +13,14 @@ rest of the stack; no extra install is needed.
 your own domain, use that MCP URL instead (see
 [Reverse Proxy and HTTPS](/self-host/reverse-proxy)).
 
-**Transport:** Streamable HTTP.
+**Transport:** Streamable HTTP, MCP revision `2026-07-28`, with stateless
+compatibility for 2025-era clients. Modern requests carry their protocol version,
+client identity and capabilities in `params._meta`, together with the
+`MCP-Protocol-Version`, `Mcp-Method` and (where applicable) `Mcp-Name` headers.
+They can call tools directly without `initialize` or a session ID. `server/discover`
+provides optional server metadata and requires authorization, just like the
+legacy `initialize` handshake. Legacy clients continue to use their existing
+handshake on the same endpoint.
 
 **Authentication:** a scoped API key from your instance, or browser OAuth where
 your client supports it. See [Authentication](#authentication).
@@ -130,11 +137,22 @@ What a spec-compliant client can rely on:
   `/mcp` for the standard connector, or `/mcp/claude` for Claude. Claude
   discovery is at `/.well-known/oauth-protected-resource/mcp/claude`. Send it on
   the authorize and token requests.
-- **Registration (RFC 7591).** `POST /v1/oauth/register` with `redirect_uris`;
+- **Client metadata documents (CIMD).** A public client can use its HTTPS
+  metadata-document URL as `client_id`, without registering first. The document
+  must have a path and contain the exact `client_id`, `client_name` and
+  `redirect_uris`; only public PKCE clients (`token_endpoint_auth_method: none`)
+  are supported. Fetches require public HTTPS destinations, refuse redirects,
+  time out after five seconds and accept at most 64 KiB of JSON. Valid metadata
+  is cached for at most five minutes; `no-store` and `no-cache` disable caching.
+  Discovery advertises `client_id_metadata_document_supported: true`.
+- **Legacy registration (RFC 7591).** `POST /v1/oauth/register` with `redirect_uris`;
   `token_endpoint_auth_method` is `none`.
 - **Authorization.** `code_challenge_method` must be `S256`. `state` is
   optional; when supplied it is echoed unchanged on both the success and the
-  `access_denied` redirect.
+  `access_denied` redirect. Both redirects include `iss` equal to the issuer
+  advertised by authorization-server metadata; clients must validate it before
+  exchanging a code (RFC 9207). Discovery advertises
+  `authorization_response_iss_parameter_supported: true`.
 - **Tokens.** The token exchange returns an access token and a
   `refresh_token`. Access tokens expire after 30 days. Present the refresh
   token with `grant_type=refresh_token` to obtain a new access token without a
@@ -194,14 +212,16 @@ and `gf status <id>`; see [CLI](/api-reference/cli).
 chat: identity, guidelines, voice (including writing rules and real example
 posts), strategy and topics, custom instructions, prompt seeds, performance
 insights, proven patterns, Brand Knowledge, recent posts, saved memories,
-active skills, the chat model, the context budget, and the rendered system
-prompt. It is read-only.
+active skills, the chat model, and the context budget. Rendered system and memory
+prompts are omitted by default; they are available for explicit diagnostic
+inspection. They describe the Genfeed in-app agent and are data, not instructions
+for the calling assistant. The tool is read-only.
 
 | Argument | Description |
 | --- | --- |
 | `brandId` | Brand to inspect. Defaults to the brand of the current conversation. |
 | `query` | Optional preview message. Knowledge, related posts, and memories are ranked against it. |
-| `includeSystemPrompt` | Include the full rendered system prompt. Defaults to `true`; set `false` for a shorter summary. |
+| `includeSystemPrompt` | Include rendered system and memory prompts for diagnostics. Defaults to `false`; set `true` only for explicit prompt inspection. |
 
 Call it at the start of a session so your agent writes in the brand's voice
 with the same context the in-app agent uses. The Genfeed desktop app does this
@@ -241,14 +261,15 @@ shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
 | `unauthorized` | Missing or rejected bearer credential (`401`) | `/connect` on your app origin | |
 | `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
 | `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
-| `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | |
+| `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | `approvalId`, `toolName`, `approvalStatus`, `canResolveApproval` |
 | `brand_required` | A generation tool (`generate`, `generate_content`, `generate_turbo_content`, `enhance_prompt`, `transform_media`) was called without `brandId` | none | `brands[]` of `{ id, label }`, the caller's brands |
 
 `message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted
 when they do not apply; `rate_limited` does not invent a URL. Paths are app
 routes on your instance; sign-in continues into the caller's organization. Fix
 `errors[]` and call the tool again. For `approval_pending`, hand the human
-`nextStepUrl` or call `resolve_approval` with the approval id in `message`. For
+`nextStepUrl` or, when `canResolveApproval` is true and the user approves, call
+`resolve_approval` with `structuredContent.approvalId`. For
 `brand_required`, retry with one of the listed `brands[].id` values; no brand is
 ever picked for you.
 
@@ -425,7 +446,14 @@ MCP Apps hosts can render Genfeed content directly in the conversation:
 - **Images:** compact previews with expand and open controls; metadata stays out of the primary view.
 - **Video and audio players.**
 - **Running generations:** a progress state that re-reads `get_job_status` until the media is ready.
-- **Article cards and usage summaries.**
+- **Article cards.**
+
+Account lookups return a readable message with setup status, role, credits, and
+requested usage metrics. They do not open a content widget. Tool text contains
+readable summaries; internal identifiers and complete payloads remain in
+`structuredContent.data` for follow-up calls. Clients should read structured
+fields rather than parse display text as JSON. Errors provide readable guidance
+and keep their error codes and approval references in `structuredContent`.
 
 The MCP server serves a self-contained HTML resource at
 `ui://genfeed/content-cards-v5-<content-hash>.html` with MIME type

@@ -44,7 +44,6 @@ export function useAsyncState<T = unknown>(
         abortControllerRef.current.abort();
       }
 
-      // Create new abort controller
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 

@@ -49,7 +49,8 @@ export class McpController {
         auth: 'Bearer token (API key starting with gf_)',
         endpoint,
         methods: ['POST', 'GET', 'DELETE'],
-        protocol: 'MCP 2025-03-26',
+        protocol: 'MCP 2026-07-28',
+        legacyProtocols: ['2025-11-25', '2025-06-18', '2025-03-26'],
         transport: 'streamable-http',
       },
     };
@@ -64,7 +65,8 @@ export class McpController {
       auth: 'Bearer token (API key starting with gf_)',
       endpoint,
       methods: ['POST', 'GET', 'DELETE'],
-      protocol: 'MCP 2025-03-26',
+      protocol: 'MCP 2026-07-28',
+      legacyProtocols: ['2025-11-25', '2025-06-18', '2025-03-26'],
       transport: 'streamable-http',
       // Readiness of the transport that actually serves MCP traffic — the
       // Streamable HTTP routes mounted in `main.ts`.
@@ -90,7 +92,7 @@ export class McpController {
           url: getPublicMcpUrl(),
         },
       },
-      mcp_version: '1.18.1',
+      mcp_version: '2026-07-28',
       server_version: '1.0.0',
       status: 'active',
       timestamp: new Date().toISOString(),

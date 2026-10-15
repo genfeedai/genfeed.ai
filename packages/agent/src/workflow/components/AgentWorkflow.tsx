@@ -74,7 +74,6 @@ function ClarifyingView() {
         </div>
       )}
 
-      {/* Show previously answered questions */}
       {(() => {
         const answeredQuestions = questions.filter(
           (q) => q.answer && q.id !== currentQuestion?.id,
@@ -163,7 +162,6 @@ function AgentWorkflowInner() {
         <PhaseView />
       </div>
 
-      {/* Manual controls */}
       {phase !== 'complete' && (
         <div className="flex items-center gap-2 justify-end">
           {showForceAdvance && (

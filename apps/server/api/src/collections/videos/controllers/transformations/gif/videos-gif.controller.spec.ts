@@ -159,7 +159,6 @@ describe('VideosGifController', () => {
     expect(controller).toBeDefined();
   });
 
-  // --- createGif ---
   it('should create gif from video and return serialized ingredient', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const result = await controller.createGif(mockRequest, mockUser, videoId);

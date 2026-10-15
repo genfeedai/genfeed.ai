@@ -3,6 +3,7 @@ import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import { HttpException } from '@nestjs/common';
+import { ZodError } from 'zod';
 
 /**
  * One contract for MCP gating failures. Transport rejections (auth and the
@@ -41,6 +42,10 @@ export interface McpToolError {
   nextStepUrl?: string;
   errors?: McpToolFieldError[];
   estimatedCredits?: number;
+  approvalId?: string;
+  toolName?: string;
+  approvalStatus?: string;
+  canResolveApproval?: boolean;
 }
 
 export interface McpApprovalCostEstimate {
@@ -115,6 +120,14 @@ function compactToolError(error: McpToolError): McpToolError {
   return {
     code: error.code,
     message: error.message,
+    ...(error.approvalId
+      ? {
+          approvalId: error.approvalId,
+          toolName: error.toolName,
+          approvalStatus: error.approvalStatus,
+          canResolveApproval: error.canResolveApproval,
+        }
+      : {}),
     ...(error.brands ? { brands: error.brands } : {}),
     ...(error.errors && error.errors.length > 0
       ? { errors: error.errors }
@@ -134,7 +147,20 @@ export function mcpToolErrorResult(error: McpToolError): McpToolErrorResult {
   return {
     content: [
       {
-        text: JSON.stringify(structuredContent, null, 2),
+        text: [
+          error.errors?.length === 1
+            ? `${error.errors[0].field}: ${error.message}`
+            : error.message,
+          ...(error.errors ?? [])
+            .filter((entry) => entry.message !== error.message)
+            .map((entry) => `${entry.field}: ${entry.message}`),
+          error.retryAfterSeconds
+            ? `Try again in ${error.retryAfterSeconds} seconds.`
+            : '',
+          error.nextStepUrl ? `Continue in Genfeed: ${error.nextStepUrl}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
         type: 'text',
       },
     ],
@@ -179,18 +205,18 @@ export function approvalPendingToolResult(
 ): McpToolErrorResult {
   return mcpToolErrorResult({
     code: 'approval_pending',
+    approvalId: approval.id,
+    toolName: approval.toolName,
+    approvalStatus: approval.status,
+    canResolveApproval,
     ...(estimate?.estimatedCredits !== null &&
     estimate?.estimatedCredits !== undefined
       ? { estimatedCredits: estimate.estimatedCredits }
       : {}),
     message:
       `This action requires approval before it runs. ` +
-      `Approval ID: ${approval.id}. Tool: ${approval.toolName}. ` +
-      `Status: ${approval.status}. A reviewer has been notified. ` +
-      'Hand them the approval queue.' +
-      (canResolveApproval
-        ? ` Or call \`resolve_approval\` with approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).`
-        : '') +
+      'Review the pending action in Genfeed before continuing.' +
+      (canResolveApproval ? ' You can also approve or decline it here.' : '') +
       approvalCostNote(estimate),
     nextStepUrl: nextStepUrl('approval_pending'),
   });
@@ -303,6 +329,16 @@ function readHttpExceptionSignals(
 export function readMcpToolFailureSignals(
   error: unknown,
 ): McpToolFailureSignals {
+  if (error instanceof ZodError) {
+    return {
+      domainCode: 'VALIDATION_FAILED',
+      status: 400,
+      validationErrors: error.issues.map((issue) => ({
+        field: issue.path.map(String).join('.') || 'request',
+        message: issue.message,
+      })),
+    };
+  }
   if (typeof error === 'string') {
     return { message: error };
   }

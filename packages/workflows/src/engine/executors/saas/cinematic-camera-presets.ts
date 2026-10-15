@@ -16,9 +16,6 @@ export interface CinematicCameraPreset {
 const off = { enabled: false } as const;
 
 export const CINEMATIC_CAMERA_PRESETS: Record<string, CinematicCameraPreset> = {
-  // -------------------------------------------------------------------------
-  // 6. Commercial Clean — Sony Venice 2
-  // -------------------------------------------------------------------------
   commercial_clean: {
     camera: 'Sony Venice 2',
     colorGrade: {
@@ -52,9 +49,6 @@ export const CINEMATIC_CAMERA_PRESETS: Record<string, CinematicCameraPreset> = {
       'shot on Sony Venice 2, clean cinematic look, accurate colors, soft lighting, polished, commercial',
   },
 
-  // -------------------------------------------------------------------------
-  // 2. Documentary Raw — RED V-Raptor XL
-  // -------------------------------------------------------------------------
   documentary_raw: {
     camera: 'RED V-Raptor XL',
     colorGrade: {
@@ -87,9 +81,6 @@ export const CINEMATIC_CAMERA_PRESETS: Record<string, CinematicCameraPreset> = {
     promptFragment:
       'shot on RED V-Raptor XL, handheld, natural lighting, documentary style, 8K downscaled',
   },
-  // -------------------------------------------------------------------------
-  // 1. Hollywood Blockbuster — ARRI Alexa Mini LF
-  // -------------------------------------------------------------------------
   hollywood_blockbuster: {
     camera: 'ARRI Alexa Mini LF',
     colorGrade: {
@@ -123,9 +114,6 @@ export const CINEMATIC_CAMERA_PRESETS: Record<string, CinematicCameraPreset> = {
       'shot on ARRI Alexa Mini LF, anamorphic lens, cinematic lighting, film grain, shallow depth of field',
   },
 
-  // -------------------------------------------------------------------------
-  // 4. Indie Film — Blackmagic Pocket 6K Pro
-  // -------------------------------------------------------------------------
   indie_film: {
     camera: 'Blackmagic Pocket 6K Pro',
     colorGrade: {
@@ -159,9 +147,6 @@ export const CINEMATIC_CAMERA_PRESETS: Record<string, CinematicCameraPreset> = {
       'shot on Blackmagic Pocket 6K Pro, indie film look, moody lighting, crushed blacks, textured',
   },
 
-  // -------------------------------------------------------------------------
-  // 3. Social Media Cinematic — Canon C70
-  // -------------------------------------------------------------------------
   social_media_cinematic: {
     camera: 'Canon C70',
     colorGrade: {
@@ -195,9 +180,6 @@ export const CINEMATIC_CAMERA_PRESETS: Record<string, CinematicCameraPreset> = {
       'shot on Canon C70, vibrant colors, soft lighting, social media ready, vertical format',
   },
 
-  // -------------------------------------------------------------------------
-  // 5. Vintage 35mm — Kodak Vision3 500T
-  // -------------------------------------------------------------------------
   vintage_35mm: {
     camera: 'Kodak Vision3 500T',
     colorGrade: {

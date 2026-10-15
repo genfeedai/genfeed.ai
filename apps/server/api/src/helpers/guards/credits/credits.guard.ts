@@ -208,7 +208,6 @@ export class CreditsGuard implements CanActivate {
           request.creditsOutputCount ??
           (Number(body?.outputs ?? attributes?.outputs ?? outputs) || outputs);
 
-        // Update dimensions and duration from deserialized body
         width = Number(body?.width ?? attributes?.width ?? width) || width;
         height = Number(body?.height ?? attributes?.height ?? height) || height;
         duration =
@@ -376,7 +375,6 @@ export class CreditsGuard implements CanActivate {
               // LLM admission remains a minimum; settlement bills the answering model's actual tokens.
               requiredCredits = getMinimumTextCredits(model);
             } else {
-              // Use exact generation tariff quantities
               modelQuote = await this.modelCreditQuote.quoteSnapshotByKey(
                 modelKey,
                 {

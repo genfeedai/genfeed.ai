@@ -80,10 +80,8 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           </div>
         }
       >
-        {/* Stats Bar */}
         <SkillsStatsBar />
 
-        {/* Skill Categories */}
         {SKILL_CATEGORIES.map((category, catIndex) => (
           <WebSection
             key={category.id}

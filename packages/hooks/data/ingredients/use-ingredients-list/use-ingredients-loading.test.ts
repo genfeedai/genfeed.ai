@@ -7,7 +7,7 @@ import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 const mockGetIngredientsService = vi.fn();
 const mockGetFoldersService = vi.fn();
@@ -87,8 +87,30 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
+/** Wraps a rows-only mock as the paged read the Library now issues. */
+function pageOf(
+  rows: (query: unknown, signal?: AbortSignal) => Promise<IIngredient[]>,
+  links: { hasNext?: boolean; nextCursor?: string | null; page?: number } = {},
+) {
+  return vi.fn(async (query: unknown, signal?: AbortSignal) => {
+    const items = await rows(query, signal);
+    return {
+      hasNext: links.hasNext ?? false,
+      hasPrevious: false,
+      items,
+      nextCursor: links.nextCursor,
+      page: links.page ?? 1,
+      pageSize: 30,
+      total: items.length,
+      totalPages: 1,
+    };
+  });
+}
+
 describe('useIngredientsLoading', () => {
-  let ingredientsFindAllMock: ReturnType<typeof vi.fn>;
+  let ingredientsFindAllMock: Mock<
+    (query: unknown, signal?: AbortSignal) => Promise<IIngredient[]>
+  >;
   const mockForm = {
     getValues: vi.fn(() => ({})),
     reset: vi.fn(),
@@ -114,9 +136,14 @@ describe('useIngredientsLoading', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    ingredientsFindAllMock = vi.fn().mockResolvedValue([]);
+    ingredientsFindAllMock = vi
+      .fn<(query: unknown, signal?: AbortSignal) => Promise<IIngredient[]>>()
+      .mockResolvedValue([]);
     mockGetIngredientsService.mockResolvedValue({
       findAll: ingredientsFindAllMock,
+      findAllPage: pageOf((query, signal) =>
+        ingredientsFindAllMock(query, signal),
+      ),
     });
     mockGetFoldersService.mockResolvedValue({
       findAll: vi.fn().mockResolvedValue([]),
@@ -148,7 +175,6 @@ describe('useIngredientsLoading', () => {
 
   it('initializes isLoading state', () => {
     const { result } = renderHook(() => useIngredientsLoading(baseProps));
-    // isLoading is a boolean
     expect(typeof result.current.isLoading).toBe('boolean');
   });
 
@@ -228,6 +254,7 @@ describe('useIngredientsLoading', () => {
       expect.not.objectContaining({
         category: IngredientCategory.INGREDIENT,
       }),
+      expect.any(AbortSignal),
     );
   });
 
@@ -454,5 +481,166 @@ describe('useIngredientsLoading', () => {
     expect(mockNotificationError).toHaveBeenCalledWith(
       'Failed to refresh videos',
     );
+  });
+
+  it('sends exactly one list request on mount', async () => {
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(ingredientsFindAllMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends exactly one list request per filter change', async () => {
+    const { result, rerender } = renderHook(
+      (props: typeof baseProps) => useIngredientsLoading(props),
+      { initialProps: baseProps },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const callsAfterMount = ingredientsFindAllMock.mock.calls.length;
+
+    rerender({ ...baseProps, query: { ...baseProps.query, search: 'cat' } });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(ingredientsFindAllMock).toHaveBeenCalledTimes(callsAfterMount + 1);
+  });
+
+  it('passes an abort signal so superseded list requests are cancelled on the wire', async () => {
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const signal = ingredientsFindAllMock.mock.calls[0]?.[1];
+    expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('requests keyset pages and appends the next page on demand', async () => {
+    const first = [{ id: 'a' }, { id: 'b' }] as IIngredient[];
+    const second = [{ id: 'b' }, { id: 'c' }] as IIngredient[];
+    const findAllPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        hasNext: true,
+        hasPrevious: false,
+        items: first,
+        nextCursor: 'cursor-1',
+        page: 1,
+        pageSize: 30,
+        total: 2,
+        totalPages: 1,
+      })
+      .mockResolvedValueOnce({
+        hasNext: false,
+        hasPrevious: false,
+        items: second,
+        nextCursor: null,
+        page: 1,
+        pageSize: 30,
+        total: 2,
+        totalPages: 1,
+      });
+    mockGetIngredientsService.mockResolvedValue({ findAllPage });
+
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(findAllPage.mock.calls[0]?.[0]).toMatchObject({ paging: 'cursor' });
+    expect(result.current.hasMoreIngredients).toBe(true);
+
+    await act(async () => {
+      await result.current.loadMoreIngredients();
+    });
+
+    expect(findAllPage.mock.calls[1]?.[0]).toMatchObject({
+      cursor: 'cursor-1',
+      paging: 'cursor',
+    });
+    expect(result.current.ingredients.map((item) => item.id)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+    expect(result.current.hasMoreIngredients).toBe(false);
+  });
+
+  it('asks for the next page number when the API answers with page links', async () => {
+    const findAllPage = pageOf(async () => [{ id: 'a' }] as IIngredient[], {
+      hasNext: true,
+      page: 1,
+    });
+    mockGetIngredientsService.mockResolvedValue({ findAllPage });
+
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await result.current.loadMoreIngredients();
+    });
+
+    expect(findAllPage.mock.calls[1]?.[0]).toMatchObject({ page: 2 });
+  });
+
+  it('drops an older page that resolves after the list reloaded', async () => {
+    let resolveOlder: ((rows: IIngredient[]) => void) | undefined;
+    const findAllPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        hasNext: true,
+        hasPrevious: false,
+        items: [{ id: 'a' }],
+        nextCursor: 'cursor-1',
+        page: 1,
+        pageSize: 30,
+        total: 1,
+        totalPages: 1,
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOlder = (rows) =>
+              resolve({
+                hasNext: false,
+                hasPrevious: false,
+                items: rows,
+                nextCursor: null,
+                page: 1,
+                pageSize: 30,
+                total: 1,
+                totalPages: 1,
+              });
+          }),
+      )
+      .mockResolvedValue({
+        hasNext: false,
+        hasPrevious: false,
+        items: [{ id: 'fresh' }],
+        nextCursor: null,
+        page: 1,
+        pageSize: 30,
+        total: 1,
+        totalPages: 1,
+      });
+    mockGetIngredientsService.mockResolvedValue({ findAllPage });
+
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.loadMoreIngredients();
+    });
+    await waitFor(() => expect(resolveOlder).toBeDefined());
+    await act(async () => result.current.findAllIngredientsByCategory(true));
+    await act(async () => {
+      resolveOlder?.([{ id: 'stale' }] as IIngredient[]);
+      await pending;
+    });
+
+    expect(result.current.ingredients.map((item) => item.id)).toEqual([
+      'fresh',
+    ]);
   });
 });

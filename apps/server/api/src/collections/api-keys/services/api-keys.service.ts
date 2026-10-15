@@ -173,7 +173,6 @@ export class ApiKeysService extends BaseService<
    * Generate a secure API key
    */
   generateApiKey(): string {
-    // Format: gf_live_<random_string> or gf_test_<random_string>
     const prefix = this.configService.isProduction ? 'gf_live' : 'gf_test';
     const randomBytes = crypto.randomBytes(32).toString('base64url');
     return `${prefix}_${randomBytes}`;

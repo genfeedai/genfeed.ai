@@ -491,9 +491,11 @@ Use this during Phase 3 (Days 8-10) to draft the warmup story post brief directl
 - Include the posting time recommendation in the scheduling metadata
 - Flag the external link (if any) for placement in the first comment post-publish, not in the post body
 
-### `publish_post` (with gating conditions)
+### Publishing through Genfeed (with gating conditions)
 
-Only invoke `publish_post` after the user confirms ALL of the following:
+Resolve the chosen brand with `get_brands` and its connected channel with `list_brand_publishing_readiness`. Check `get_scheduler_capabilities` and `validate_scheduler_target` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
+
+Only request scheduling or publishing after the user confirms ALL of the following:
 
 - Post is value-only with no promotional content, external links in body, or follow CTAs
 - Hook (Line 1) is specific and compelling — not generic or filler

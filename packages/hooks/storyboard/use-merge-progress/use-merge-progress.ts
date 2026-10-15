@@ -16,7 +16,6 @@ interface JobProgress {
   totalSteps?: number;
 }
 
-// Map backend step names to frontend step IDs
 const backendToFrontendStep: Record<string, string> = {
   downloading: 'download',
   'downloading-music': 'download-music',
@@ -62,7 +61,6 @@ export function useMergeProgress({
   onComplete,
   onError,
 }: UseMergeProgressOptions) {
-  // Compute initial steps structure based on configuration
   const initialSteps = useMemo<MergeProgressStep[]>(() => {
     if (!ingredientId) {
       return [];
@@ -125,7 +123,6 @@ export function useMergeProgress({
    * Update steps based on backend progress event
    */
   const updateProgress = useCallback((progress: JobProgress) => {
-    // Update overall progress
     if (progress.percent !== undefined) {
       setOverallProgress(progress.percent);
     }
@@ -134,14 +131,11 @@ export function useMergeProgress({
       const newSteps = [...currentSteps];
       const stepMap: Record<string, number> = {};
 
-      // Map step IDs to indices
       newSteps.forEach((step, index) => {
         stepMap[step.id] = index;
       });
 
-      // Update based on current step
       if (progress.step) {
-        // Map backend step name to frontend step ID
         const frontendStepId =
           backendToFrontendStep[progress.step] || progress.step;
         const stepIndex = stepMap[frontendStepId];
@@ -153,7 +147,6 @@ export function useMergeProgress({
             }
           }
 
-          // Update current step
           if (progress.stepProgress !== undefined) {
             newSteps[stepIndex] = {
               ...newSteps[stepIndex],

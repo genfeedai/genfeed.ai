@@ -231,7 +231,6 @@ export class TwitterSocialAdapter {
         sortOrder: 'recency',
       });
 
-      // Find the newest mention that's newer than lastMentionId
       const newMention = results.find(
         (tweet) => !lastMentionId || tweet.id > lastMentionId,
       );

@@ -10,7 +10,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
-// Mock OpenAI
 vi.mock('openai', () => {
   return {
     __esModule: true,

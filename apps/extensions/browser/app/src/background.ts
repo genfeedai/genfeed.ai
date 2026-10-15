@@ -81,8 +81,6 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((err) => logger.error('Failed to set side panel behavior', err));
 
-// === Context Menu Setup ===
-
 const CONTEXT_MENU_REMIX = 'genfeed-remix';
 const CONTEXT_MENU_IDEA = 'genfeed-idea';
 const CONTEXT_MENU_SOURCE = 'genfeed-source';

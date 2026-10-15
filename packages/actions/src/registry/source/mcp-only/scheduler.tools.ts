@@ -141,7 +141,8 @@ const updateProperties = {
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
-    description: 'Create a multi-channel scheduled release.',
+    description:
+      'Create a multi-channel release from prepared content and existing media. Use after list_brand_publishing_readiness and validate_scheduler_target for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Scheduling waits for server-enforced approval. The Claude connector cannot redeem approvals; review and release in Genfeed.',
     name: 'create_scheduled_release',
     parameters: {
       properties: {
@@ -173,7 +174,8 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: 'Update a release or a target.',
+    description:
+      'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then list_brand_publishing_readiness and validate_scheduler_target before changing publishing settings. Changes to already-live content may update public posts. Every update waits for server-enforced approval; review and apply in Genfeed.',
     name: 'update_scheduled_release',
     parameters: {
       properties: {
@@ -199,7 +201,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Control a scheduled release lifecycle: cancel, pause, resume, or publish now.',
+      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check list_brand_publishing_readiness and validate_scheduler_target before resume or publish-now. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
     name: 'control_scheduled_release',
     parameters: {
       properties: {

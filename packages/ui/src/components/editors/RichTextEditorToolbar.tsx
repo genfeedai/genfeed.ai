@@ -65,7 +65,6 @@ export default function RichTextEditorToolbar({
       role="toolbar"
       aria-label="Formatting options"
     >
-      {/* Headings */}
       {shouldShowHeadings && (
         <Select
           value={headingValue}
@@ -99,7 +98,6 @@ export default function RichTextEditorToolbar({
 
       {shouldShowHeadings && <div className="w-px h-6 bg-border mx-1" />}
 
-      {/* Text formatting */}
       <Button
         withWrapper={false}
         variant={ButtonVariant.UNSTYLED}

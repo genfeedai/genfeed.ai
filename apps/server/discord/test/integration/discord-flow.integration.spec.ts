@@ -257,7 +257,6 @@ describe('Discord Bot Manager Integration Flow', () => {
 
       expect(service.getActiveCount()).toBe(1);
 
-      // Find the DELETED subscription callback
       const deletedCall = redisService.subscribe.mock.calls.find(
         (call: unknown[]) => call[0] === REDIS_EVENTS.INTEGRATION_DELETED,
       );

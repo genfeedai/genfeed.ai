@@ -93,7 +93,6 @@ export class TemplatesController {
     const readScope = resolveTenantReadScope(user);
     const organization = readScope.organizationId;
 
-    // Use TemplateFilterUtil to build filters
     const filters = TemplateFilterUtil.buildTemplateFilters(query);
 
     const templates = await this.templatesService.findAll(

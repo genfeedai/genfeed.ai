@@ -96,7 +96,6 @@ export function buildCombinedMetadata(
 ): Record<string, string> {
   const combined: Record<string, string> = {};
 
-  // Filter non-empty string values
   for (const [key, value] of Object.entries(metadata)) {
     if (typeof value === 'string' && value.trim().length > 0) {
       combined[key] = value;

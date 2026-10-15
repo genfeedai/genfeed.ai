@@ -42,7 +42,10 @@ describe('handleMetaAdsTool', () => {
 
     expect(client.listMetaAdAccounts).toHaveBeenCalled();
     expect(result.content[0].text).toContain('Found 1 ad accounts');
-    expect(result.content[0].text).toContain('act_1');
+    expect(result).toMatchObject({
+      structuredContent: { data: [{ id: 'act_1', name: 'Main account' }] },
+    });
+    expect(result.content[0].text).not.toContain('act_1');
   });
 
   it('explains the missing permission when no ad account is returned', async () => {
@@ -128,7 +131,7 @@ describe('handleMetaAdsTool', () => {
       '2026-08-06',
     );
     expect(result.content[0].text).toContain('Campaign Insights');
-    expect(result.content[0].text).toContain('impressions');
+    expect(result.content[0].text).toContain('Impressions');
   });
 
   it('forwards the date preset to ad set insights', async () => {

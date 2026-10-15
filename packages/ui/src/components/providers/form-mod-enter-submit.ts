@@ -59,7 +59,6 @@ export function findSubmittableForm(
     return null;
   }
 
-  // Opt out: data-mod-enter-submit="false"
   if (form.dataset.modEnterSubmit === 'false') {
     return null;
   }

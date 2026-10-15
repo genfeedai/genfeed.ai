@@ -61,8 +61,6 @@ export interface MetaTopPerformer {
   insights: MetaInsightsData;
 }
 
-// ─── Write Operation Interfaces ──────────────────────────────────────────────
-
 export interface CreateCampaignParams {
   name: string;
   objective: string;

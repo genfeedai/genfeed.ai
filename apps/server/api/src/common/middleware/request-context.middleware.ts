@@ -9,6 +9,7 @@ import {
 } from '@api/common/constants/request-context-cache.constants';
 import { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { isAdminIpAllowed } from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
+import { isLocalIdentityPeer } from '@api/helpers/utils/local-identity/local-identity-peer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -17,7 +18,6 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
-import { isBearerScheme } from '@libs/auth/authorization-header';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';
@@ -99,9 +99,11 @@ export class RequestContextMiddleware implements NestMiddleware {
     const user = req.user;
 
     if (isSelfHostedDeployment() && !user) {
-      // Guards authenticate bearer credentials after Express middleware runs.
-      // Default context here would make bootstrap return another workspace.
-      if (isBetterAuthEnabled() && isBearerScheme(req.headers?.authorization)) {
+      // The seeded workspace context belongs to the local identity only: this
+      // machine and the Docker network, with login off. Any other request is
+      // authenticated by the guard, which hydrates the verified actor, and a
+      // default context here would make bootstrap return another workspace.
+      if (isBetterAuthEnabled() || !isLocalIdentityPeer(req)) {
         return;
       }
       await this.hydrateSelfHostedContext(req);

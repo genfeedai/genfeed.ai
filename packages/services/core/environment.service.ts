@@ -218,19 +218,19 @@ export const EnvironmentService = {
     get gettingStarted(): string {
       return (
         process.env.NEXT_PUBLIC_HELP_GETTING_STARTED_URL ??
-        'https://docs.genfeed.ai/getting-started'
+        'https://genfeed.ai/articles/getting-started-with-genfeed-cloud'
       );
     },
     get selfHostedGettingStarted(): string {
       return (
         process.env.NEXT_PUBLIC_HELP_SELF_HOSTED_START_URL ??
-        'https://docs.genfeed.ai/guides/self-host-quickstart'
+        'https://docs.genfeed.ai/self-host/installation'
       );
     },
     get workflows(): string {
       return (
         process.env.NEXT_PUBLIC_HELP_WORKFLOWS_URL ??
-        'https://docs.genfeed.ai/cloud/studio'
+        'https://docs.genfeed.ai/guides/studio'
       );
     },
     get faq(): string {

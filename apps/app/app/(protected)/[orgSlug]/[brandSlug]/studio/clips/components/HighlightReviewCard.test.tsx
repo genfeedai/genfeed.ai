@@ -25,7 +25,6 @@ describe('HighlightReviewCard', () => {
       />,
     );
 
-    // Title input
     const titleInput = screen.getByDisplayValue('Epic Opening Hook');
     expect(titleInput).toBeDefined();
 

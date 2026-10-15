@@ -55,10 +55,6 @@ export class AgentSpawnToolHandler {
     });
   }
 
-  // ──────────────────────────────────────────────
-  // CAMPAIGN COORDINATION TOOLS
-  // ──────────────────────────────────────────────
-
   async requestAsset(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -86,7 +82,6 @@ export class AgentSpawnToolHandler {
       };
     }
 
-    // Build a comprehensive task from the asset request
     const specsStr = specifications
       ? ` Specifications: ${JSON.stringify(specifications)}`
       : '';

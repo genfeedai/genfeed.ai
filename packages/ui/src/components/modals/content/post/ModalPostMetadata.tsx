@@ -78,7 +78,6 @@ export default function PostMetadataOverlay({
     isOpen: Boolean(post),
   });
 
-  // Initialize form with post data
   useEffect(() => {
     if (post) {
       form.reset({

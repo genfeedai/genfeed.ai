@@ -36,7 +36,6 @@ export interface UsePostDetailDraftsReturn {
   isDescriptionDirty: boolean;
   isLabelDirty: boolean;
 
-  // Auto-save
   autoSaveRefs: {
     currentDescriptions: React.RefObject<Map<string, string>>;
     lastSavedDescriptions: React.RefObject<Map<string, string>>;
@@ -57,7 +56,6 @@ export function usePostDetailDrafts({
   updateDescriptionRefs,
   updateLabelRefs,
 }: UsePostDetailDraftsOptions): UsePostDetailDraftsReturn {
-  // Draft state
   const [labelDraft, setLabelDraft] = useState('');
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [childDescriptions, setChildDescriptions] = useState<
@@ -268,7 +266,6 @@ export function usePostDetailDrafts({
     }
   }, [post?.id, post?.ingredients, post]);
 
-  // Auto-save for post
   const performAutoSaveForPost = useCallback(
     async (postIdToSave: string) => {
       if (!postIdToSave) {

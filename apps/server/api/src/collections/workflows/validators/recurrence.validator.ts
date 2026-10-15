@@ -6,7 +6,6 @@ import { WorkflowRecurrenceType } from '@genfeedai/contracts';
  */
 function applyTimezone(date: Date, timezone: string): Date {
   try {
-    // Convert to target timezone
     const tzString = date.toLocaleString('en-US', { timeZone: timezone });
     return new Date(tzString);
   } catch (_e) {
@@ -26,7 +25,6 @@ export const RecurrenceValidator = {
       return { valid: true };
     }
 
-    // Check timezone
     if (recurrence.timezone) {
       try {
         // Test if timezone is valid
@@ -36,7 +34,6 @@ export const RecurrenceValidator = {
       }
     }
 
-    // Check end date
     if (recurrence.endDate && recurrence.endDate <= new Date()) {
       return { error: 'End date must be in the future', valid: false };
     }

@@ -1,9 +1,5 @@
 import type { WorkflowPersistenceService } from './types';
 
-// =============================================================================
-// Module-level workflow persistence configuration
-// =============================================================================
-
 /**
  * Injected persistence backend for the workflow store's CRUD actions
  * (`saveWorkflow`, `loadWorkflowById`, `listWorkflows`, `deleteWorkflow`,

@@ -18,7 +18,6 @@ export default function AnnouncementComposeForm({
 }: Props) {
   return (
     <Form spacing="section" className="max-w-2xl" onSubmit={onSubmit}>
-      {/* Body */}
       <div className="flex flex-col gap-2">
         <label
           htmlFor="announcement-body"
@@ -37,7 +36,6 @@ export default function AnnouncementComposeForm({
         />
       </div>
 
-      {/* Tweet text */}
       <div className="flex flex-col gap-2">
         <label
           htmlFor="announcement-tweet"

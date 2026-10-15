@@ -91,9 +91,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Content */}
           <div className="flex flex-col gap-6 lg:col-span-2">
-            {/* Overview Card */}
             <DetailCard title="Overview">
               {template.description && (
                 <Text as="p" color="subtle-70">
@@ -134,7 +132,6 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
 
             <TemplateVariablesCard variables={template.variables} />
 
-            {/* Content Card */}
             <DetailCard title="Content">
               <div className="flex flex-col gap-3">
                 {template.content.prompt && (
@@ -183,7 +180,6 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
             </DetailCard>
           </div>
 
-          {/* Sidebar */}
           <TemplateSidebar
             metadata={template.metadata}
             performance={template.performance}

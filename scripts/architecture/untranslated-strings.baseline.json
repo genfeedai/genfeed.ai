@@ -117,7 +117,6 @@
     "apps/app/app/(protected)/[orgSlug]/~/discovery/discovery-org-brand-gate.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx": 9,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/content.tsx": 3,
-    "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/content.tsx": 4,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/credit-top-up-panel.tsx": 10,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/managed-credits-checkout-card.tsx": 4,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/integrations/content.tsx": 1,

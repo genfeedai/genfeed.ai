@@ -86,7 +86,6 @@ export function useCrudModal<
     (isSuccess: boolean = false) => {
       closeModalHelper(modalId);
 
-      // Reset form to default values
       form.reset(stableDefaultValues);
 
       if (isSuccess) {

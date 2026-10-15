@@ -39,7 +39,6 @@ interface UIStore {
   // Modals
   activeModal: ModalType;
 
-  // Connection drop menu
   connectionDropMenu: ConnectionDropMenuState | null;
 
   // Node detail modal

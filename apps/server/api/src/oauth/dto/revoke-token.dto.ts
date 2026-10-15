@@ -20,6 +20,6 @@ export class OAuthRevokeTokenDto {
   token_type_hint?: OAuthRevocationTokenTypeHint;
 
   @IsString()
-  @MaxLength(200)
+  @MaxLength(2048)
   client_id!: string;
 }

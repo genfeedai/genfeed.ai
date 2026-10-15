@@ -104,7 +104,6 @@ function EditorComposition({
 
   return (
     <AbsoluteFill style={{ backgroundColor }}>
-      {/* Render video tracks */}
       {videoTracks.map((track) =>
         track.clips.map((clip) => {
           return (
@@ -131,7 +130,6 @@ function EditorComposition({
         }),
       )}
 
-      {/* Render text tracks */}
       {textTracks.map((track) =>
         track.clips.map((clip) => {
           if (!clip.textOverlay) {

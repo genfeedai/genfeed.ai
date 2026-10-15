@@ -7,7 +7,6 @@ import {
   vi,
 } from 'vitest';
 
-// Mock the auth service
 const mockAuthService = {
   clearToken: vi.fn(),
   getToken: vi.fn(),
@@ -19,7 +18,6 @@ vi.mock('~services/auth.service', () => ({
   authService: mockAuthService,
 }));
 
-// Mock the logger
 vi.mock('~utils/logger.util', () => ({
   logger: {
     error: vi.fn(),

@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { ClientService } from '@mcp/services/client.service';
 
 /** Matches CreateEditorProjectDto's per-create source-video bound. */
@@ -30,9 +31,10 @@ export async function handleEditorTool(
   const editorPath = `${APP_ROUTES.STUDIO.EDITOR}/${id}`;
 
   return {
+    structuredContent: { data: { editorPath, id, project } },
     content: [
       {
-        text: `Opened in Editor:\n\n${JSON.stringify({ editorPath, id, project }, null, 2)}`,
+        text: `Editor project ready. [Open in Editor](${getPublicAppUrl()}${editorPath})`,
         type: 'text' as const,
       },
     ],

@@ -13,7 +13,6 @@ vi.mock('@files/helpers/utils/security/security.util', () => ({
   },
 }));
 
-// Mock ease-curves helper
 vi.mock('@files/services/ffmpeg/helpers/ease-curves.helper', () => ({
   getPanExpression: vi.fn(() => 'iw*0.5'),
   getZoomExpression: vi.fn(() => '1+0.1*t'),

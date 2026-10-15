@@ -98,7 +98,6 @@ function reorderByHandlePosition(nodes: Node[], edges: Edge[]): Node[] {
     const targetNode = nodeMap.get(targetId);
     if (!targetNode) continue;
 
-    // Get source nodes with their target handle indices
     const sourceInfos: {
       nodeId: string;
       handleIndex: number;

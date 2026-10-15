@@ -1,9 +1,5 @@
 import { type EdgeStyle, EdgeStyleEnum } from '@genfeedai/contracts/types';
 
-// =============================================================================
-// Module-level edge-style mirror
-// =============================================================================
-
 /**
  * Pushes an edge-style preference into the live graph.
  *

@@ -1,7 +1,3 @@
-// =============================================================================
-// NODE DEFINITION & REGISTRY
-// =============================================================================
-
 import type { NodeCategory, NodeType } from './base';
 import type { HandleDefinition, VisualHandleDefinition } from './handles';
 import type { WorkflowNodeData } from './union';
@@ -30,10 +26,6 @@ export interface VisualNodeDefinition {
   inputs: VisualHandleDefinition[];
   outputs: VisualHandleDefinition[];
 }
-
-// =============================================================================
-// NODE REGISTRY
-// =============================================================================
 
 export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
   animation: {

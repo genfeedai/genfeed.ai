@@ -41,7 +41,6 @@ describe('InstagramPublisherService', () => {
   const mockCredentialId = testId('credential');
   const mockIngredientId = testId('ingredient');
 
-  // Mock credential
   const mockCredential = {
     id: mockCredentialId,
     accessToken: 'encrypted-access-token',
@@ -53,7 +52,6 @@ describe('InstagramPublisherService', () => {
     userId: mockUserId,
   } as unknown as CredentialDocument;
 
-  // Mock organization
   const mockOrganization = {
     id: mockOrganizationId,
     isDeleted: false,
@@ -141,7 +139,6 @@ describe('InstagramPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Create publish context helper
   const createPublishContext = (
     post: PostEntity,
     settings: ChannelTargetSettings = {},

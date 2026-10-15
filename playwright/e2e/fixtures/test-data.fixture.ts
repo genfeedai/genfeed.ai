@@ -13,10 +13,6 @@ import {
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
 
-// ----------------------------------------------------------------------------
-// Type Definitions
-// ----------------------------------------------------------------------------
-
 interface TestUser {
   id: string;
   email: string;
@@ -74,10 +70,6 @@ interface TestPrompt {
   category: string;
   model: string;
 }
-
-// ----------------------------------------------------------------------------
-// User Data
-// ----------------------------------------------------------------------------
 
 export const testUsers: Record<string, TestUser> = {
   admin: {
@@ -310,10 +302,6 @@ export function createTestMusic(overrides: Partial<TestMusic> = {}): TestMusic {
     ...overrides,
   };
 }
-
-// ----------------------------------------------------------------------------
-// Prompt Data
-// ----------------------------------------------------------------------------
 
 export const testPrompts: Record<string, TestPrompt[]> = {
   image: [

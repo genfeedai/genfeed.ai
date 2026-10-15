@@ -35,7 +35,6 @@ export class ArticleEntity extends BaseEntity implements Article {
     error?: string;
   };
 
-  // Virality analysis
   viralityAnalysis?: {
     score: number;
     factors: {
@@ -54,7 +53,6 @@ export class ArticleEntity extends BaseEntity implements Article {
     analyzedAt: Date;
   };
 
-  // Performance metrics
   performanceMetrics?: {
     views: number;
     shares: number;

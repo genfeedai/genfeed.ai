@@ -16,10 +16,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 
-// ────────────────────────────────────────────────────────────
-// Mock every service boundary before importing the hook
-// ────────────────────────────────────────────────────────────
-
 const mockSubscribe = vi.fn();
 const mockUnsubscribe = vi.fn();
 
@@ -116,10 +112,6 @@ import {
 } from '@pages/studio/playground/utils/studio-playground-settings';
 import { useStudioGeneration } from './useStudioGeneration';
 
-// ────────────────────────────────────────────────────────────
-// Fixtures
-// ────────────────────────────────────────────────────────────
-
 function makeModel(key: string): IModel {
   return { isActive: true, key, label: key } as IModel;
 }
@@ -174,10 +166,6 @@ beforeEach(() => {
     status: IngredientStatus.PROCESSING,
   });
 });
-
-// ────────────────────────────────────────────────────────────
-// Tests
-// ────────────────────────────────────────────────────────────
 
 describe('resolveModelKey', () => {
   const settings = {

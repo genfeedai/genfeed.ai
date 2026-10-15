@@ -39,17 +39,13 @@ const HeroSection = memo(function HeroSection({
         className,
       )}
     >
-      {/* Text Content */}
       <div className={cn('flex flex-col gap-6', VARIANT_TEXT_CLASSES[variant])}>
-        {/* Badge */}
         {badge && (
           <span className="gen-label text-muted-foreground">{badge}</span>
         )}
 
-        {/* Title */}
         <h1 className="gen-heading gen-heading-xl text-foreground">{title}</h1>
 
-        {/* Description */}
         {description && (
           <p
             className={cn(
@@ -61,7 +57,6 @@ const HeroSection = memo(function HeroSection({
           </p>
         )}
 
-        {/* CTAs */}
         {(primaryCta || secondaryCta) && (
           <div
             className={cn(
@@ -106,7 +101,6 @@ const HeroSection = memo(function HeroSection({
         )}
       </div>
 
-      {/* Showcase */}
       {showcase && (
         <div className={cn(variant === 'centered' && 'mt-12 w-full')}>
           {showcase}

@@ -26,7 +26,6 @@ export default function ModalGalleryItemImage({
         onClickIngredient={() => onSelect(image)}
       />
 
-      {/* Format badge */}
       {imageFormat && (
         <div className="absolute top-2 left-2 z-10">
           <Badge

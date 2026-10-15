@@ -12,6 +12,7 @@ import {
   canonicalizeRequestedMcpResource,
   resolveMcpResourceUrl,
   resolveOAuthAppUrl,
+  resolveOAuthIssuerUrl,
 } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
@@ -131,6 +132,7 @@ export class OAuthAuthorizeService {
       return {
         redirectUrl: appendRedirectParams(dto.redirect_uri, {
           error: 'access_denied',
+          iss: resolveOAuthIssuerUrl(this.configService),
           state,
         }),
       };
@@ -196,6 +198,7 @@ export class OAuthAuthorizeService {
     return {
       redirectUrl: appendRedirectParams(dto.redirect_uri, {
         code,
+        iss: resolveOAuthIssuerUrl(this.configService),
         state,
       }),
     };

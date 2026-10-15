@@ -103,6 +103,7 @@ function MasonryVideoTile({
     isFleetNsfwLocked,
     isInteractionBlocked,
     placeholderImageUrl,
+    hasPosterThumbnail,
     thumbnailImageUrl,
     ingredientUrl,
     metadata,
@@ -141,14 +142,12 @@ function MasonryVideoTile({
     >
       {/* Inner wrapper with overflow-hidden for media clipping */}
       <div className={cn('overflow-hidden', MASONRY_TILE_RADIUS_CLASS)}>
-        {/* Brand logo for public galleries */}
         <MasonryBrandLogo
           ingredient={video}
           isPublicGallery={isPublicGallery}
           isPublicProfile={isPublicProfile}
         />
 
-        {/* Media content */}
         <MasonryVideoMediaArea
           accessibleLabel={accessibleLabel}
           video={video}
@@ -161,6 +160,7 @@ function MasonryVideoTile({
           isDragEnabled={isDragEnabled}
           hasUpdateParent={!!onUpdateParent}
           placeholderImageUrl={placeholderImageUrl}
+          hasPosterThumbnail={hasPosterThumbnail}
           thumbnailImageUrl={thumbnailImageUrl}
           ingredientUrl={ingredientUrl}
           metadataLabel={metadataLabel}
@@ -182,7 +182,6 @@ function MasonryVideoTile({
         />
       )}
 
-      {/* Quick actions bar */}
       {actions ? (
         <MasonryVideoActionsBar
           video={video}

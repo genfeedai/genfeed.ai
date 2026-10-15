@@ -9,7 +9,6 @@ const testDir = path.resolve(__dirname, '../packages/serializers/__tests__');
 
 fs.mkdirSync(testDir, { recursive: true });
 
-// --- Generate attribute tests ---
 function findTsFiles(dir: string, base: string = ''): string[] {
   const results: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

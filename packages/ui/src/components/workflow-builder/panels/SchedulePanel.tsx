@@ -147,7 +147,6 @@ export default function SchedulePanel({
 
       {!isCollapsed && (
         <div className="p-4 pt-0 space-y-4">
-          {/* Current schedule info */}
           {schedule && (
             <div className="flex items-center gap-2 p-2 bg-background">
               <Calendar className="size-4" />
@@ -158,7 +157,6 @@ export default function SchedulePanel({
             </div>
           )}
 
-          {/* Enable toggle */}
           <div className="flex items-center justify-between">
             <label htmlFor={enableScheduleId} className="text-sm">
               Enable Schedule
@@ -171,7 +169,6 @@ export default function SchedulePanel({
             />
           </div>
 
-          {/* Preset or Custom toggle */}
           <div className="flex gap-2">
             <Button
               type="button"
@@ -191,7 +188,6 @@ export default function SchedulePanel({
             />
           </div>
 
-          {/* Schedule selection */}
           {isCustom ? (
             <div>
               <label htmlFor={cronExpressionId} className="text-xs font-medium">
@@ -228,7 +224,6 @@ export default function SchedulePanel({
             </div>
           )}
 
-          {/* Timezone */}
           <div>
             <label htmlFor={timezoneId} className="text-xs font-medium">
               Timezone
@@ -247,7 +242,6 @@ export default function SchedulePanel({
             </Select>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-2">
             {schedule && (
               <Button

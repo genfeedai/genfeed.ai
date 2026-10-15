@@ -201,7 +201,6 @@ export const TemplateFilterUtil = {
       return value !== 'false' && value !== '0' && value !== '';
     }
 
-    // Handle boolean values
     return Boolean(value);
   },
 

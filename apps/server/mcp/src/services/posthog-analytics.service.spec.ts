@@ -1,7 +1,7 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
-import type { Server } from '@modelcontextprotocol/sdk/server';
+import type { Server } from '@modelcontextprotocol/server';
 
 const mocks = vi.hoisted(() => ({
   instrument: vi.fn(),

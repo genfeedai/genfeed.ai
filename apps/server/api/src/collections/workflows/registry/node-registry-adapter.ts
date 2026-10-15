@@ -16,10 +16,6 @@ import {
 
 export type { RegistryNodeDefinition as NodeDefinition };
 
-// =============================================================================
-// ADAPTER: Convert modern NodeDefinition → registry NodeDefinition format
-// =============================================================================
-
 /**
  * Maps a modern HandleDefinition to a registry NodePort
  */
@@ -57,7 +53,6 @@ function modernToRegistryDefinition(
     outputs[handle.id] = handleToPort(handle);
   }
 
-  // Map modern categories to registry categories
   const categoryMap: Record<string, RegistryNodeDefinition['category']> = {
     ai: 'ai',
     automation: 'processing',
@@ -81,10 +76,6 @@ function modernToRegistryDefinition(
     type,
   };
 }
-
-// =============================================================================
-// UNIFIED NODE REGISTRY
-// =============================================================================
 
 /**
  * Build the unified registry from the merged modern/SaaS definitions.

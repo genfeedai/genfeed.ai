@@ -4,6 +4,7 @@ import type {
   ValidateSchedulerTargetInput,
 } from '@mcp/services/client/scheduler.client';
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export const SCHEDULER_TOOL_NAMES = new Set([
   'control_scheduled_release',
@@ -55,7 +56,7 @@ export function handleSchedulerTool(
         requiredString(a, 'releaseId'),
         controlAction(a),
       );
-      return textJsonResult('Scheduled release updated', result);
+      return textDataResult('Scheduled release updated', result);
     },
     create_scheduled_release: async (a) => {
       const release = createReleasePayload(a);
@@ -63,13 +64,13 @@ export function handleSchedulerTool(
         release,
         optionalString(a, 'idempotencyKey'),
       );
-      return textJsonResult('Scheduled release created', result);
+      return textDataResult('Scheduled release created', result);
     },
     get_scheduled_release: async (a) => {
       const result = await client.getScheduledRelease(
         requiredString(a, 'releaseId'),
       );
-      return textJsonResult('Scheduled release', result);
+      return textDataResult('Scheduled release', result);
     },
     get_scheduler_capabilities: async (a) => {
       const platform = optionalString(a, 'platform');
@@ -83,18 +84,19 @@ export function handleSchedulerTool(
           );
         }
         const result = await client.getSchedulerCapability(platform);
-        return textJsonResult('Scheduler capability', result);
+        return textDataResult('Scheduler capability', result);
       }
       const result = await client.listSchedulerCapabilities({
         includeHidden: optionalBoolean(a, 'includeHidden'),
         includePlanned: optionalBoolean(a, 'includePlanned'),
       });
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} scheduler capabilities:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} scheduler capabilities:\n\n${formatToolData(result)}`
                 : 'No scheduler capabilities found.',
             type: 'text' as const,
           },
@@ -106,11 +108,12 @@ export function handleSchedulerTool(
         requiredString(a, 'brandId'),
       );
       return {
+        structuredContent: { data: result },
         content: [
           {
             text:
               result.length > 0
-                ? `Found ${result.length} publishing channels with readiness:\n\n${JSON.stringify(result, null, 2)}`
+                ? `Found ${result.length} publishing channels with readiness:\n\n${formatToolData(result)}`
                 : 'No connected publishing channels found for this brand.',
             type: 'text' as const,
           },
@@ -132,13 +135,13 @@ export function handleSchedulerTool(
         updateChanges(a, scope),
         targetId,
       );
-      return textJsonResult('Scheduled release updated', result);
+      return textDataResult('Scheduled release updated', result);
     },
     validate_scheduler_target: async (a) => {
       const result = await client.validateSchedulerTarget(
         validateTargetPayload(a),
       );
-      return textJsonResult('Scheduler target validation', result);
+      return textDataResult('Scheduler target validation', result);
     },
   };
 
@@ -296,11 +299,12 @@ function validateTargetPayload(
   return payload;
 }
 
-function textJsonResult(label: string, data: unknown) {
+function textDataResult(label: string, data: unknown) {
   return {
+    structuredContent: { data },
     content: [
       {
-        text: `${label}:\n\n${JSON.stringify(data, null, 2)}`,
+        text: `${label}:\n\n${formatToolData(data)}`,
         type: 'text' as const,
       },
     ],

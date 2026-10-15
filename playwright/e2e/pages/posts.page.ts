@@ -35,7 +35,6 @@ export class PostsPage {
   readonly gridViewButton: Locator;
   readonly tableViewButton: Locator;
 
-  // Stats cards
   readonly statsCards: Locator;
 
   // Post list / grid
@@ -77,7 +76,6 @@ export class PostsPage {
   readonly postDetailContent: Locator;
   readonly postDetailSidebar: Locator;
 
-  // Confirm delete modal
   readonly confirmDeleteModal: Locator;
   readonly confirmDeleteButton: Locator;
 
@@ -117,7 +115,6 @@ export class PostsPage {
       'button[aria-label="Table View"],' + ' button:has-text("Table View")',
     );
 
-    // Stats cards
     this.statsCards = page.locator(
       '[data-testid="stats-cards"],' +
         ' [class*="stats-card"],' +

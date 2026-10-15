@@ -16,7 +16,6 @@ export class BrandsPage {
   // Main layout
   readonly mainContent: Locator;
 
-  // Brand list
   readonly brandList: Locator;
   readonly brandCard: Locator;
   readonly emptyState: Locator;
@@ -37,7 +36,6 @@ export class BrandsPage {
   readonly brandDefaultAvatarTrigger: Locator;
   readonly saveBrandIdentityButton: Locator;
 
-  // Connected accounts
   readonly connectedAccounts: Locator;
   readonly connectAccountButton: Locator;
   readonly accountCard: Locator;
@@ -56,7 +54,6 @@ export class BrandsPage {
 
     this.mainContent = page.locator('main, [data-testid="main-content"]');
 
-    // Brand list
     this.brandList = page.locator(
       '[data-testid="brands-list"],' +
         ' [data-testid="brand-grid"],' +
@@ -117,7 +114,6 @@ export class BrandsPage {
       '[data-testid="save-brand-identity"]',
     );
 
-    // Connected accounts
     this.connectedAccounts = page.locator(
       '[data-testid="connected-accounts"],' +
         ' [data-testid="social-accounts"],' +

@@ -34,7 +34,6 @@ export class YoutubeService {
       refresh_token: credential.refreshToken,
     });
 
-    // Handle token refresh
     oauth2Client.on('tokens', (tokens: Auth.Credentials) => {
       if (tokens.refresh_token) {
         this.logger.log('Refresh token received');

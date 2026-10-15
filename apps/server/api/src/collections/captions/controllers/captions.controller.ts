@@ -69,7 +69,6 @@ export class CaptionsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    // Build match conditions
     const matchConditions: Record<string, unknown> = {
       isDeleted: false,
       organizationId: tenant.organizationId,
@@ -142,7 +141,6 @@ export class CaptionsController {
       );
     }
 
-    // Validate that the ingredient is a video
     const ingredientCategory = ingredient.category as IngredientCategory;
     if (ingredientCategory !== IngredientCategory.VIDEO) {
       this.loggerService.error(

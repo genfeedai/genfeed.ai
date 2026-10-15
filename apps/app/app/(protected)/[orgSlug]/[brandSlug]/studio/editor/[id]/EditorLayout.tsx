@@ -49,7 +49,6 @@ export default function EditorLayout({
 }: EditorLayoutProps) {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* Toolbar */}
       <EditorToolbar
         projectName={project.name}
         format={project.settings.format}
@@ -88,9 +87,7 @@ export default function EditorLayout({
         />
       )}
 
-      {/* Main content area — three-column layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left panel — Text overlays */}
         <div className="w-60 shrink-0 overflow-y-auto">
           <EditorTextPanel
             tracks={project.tracks}
@@ -105,9 +102,7 @@ export default function EditorLayout({
           />
         </div>
 
-        {/* Center — Preview + Timeline */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Preview area */}
           <div className="flex-1 p-4 bg-muted/30">
             <div className="h-full flex items-center justify-center">
               <div className="w-full max-w-4xl">
@@ -126,7 +121,6 @@ export default function EditorLayout({
             </div>
           </div>
 
-          {/* Timeline area */}
           <div className="h-64 shrink-0 border-t border-border overflow-hidden">
             <EditorTimeline
               tracks={project.tracks}
@@ -145,7 +139,6 @@ export default function EditorLayout({
           </div>
         </div>
 
-        {/* Right panel — Effects & Properties */}
         <div className="w-64 shrink-0 overflow-y-auto flex flex-col">
           <EditorEffectsPanel
             tracks={project.tracks}

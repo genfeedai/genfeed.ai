@@ -9,7 +9,7 @@ import {
 
 export class OAuthAuthorizeRequestDto {
   @IsString()
-  @MaxLength(200)
+  @MaxLength(2048)
   client_id!: string;
 
   @IsString()

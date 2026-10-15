@@ -83,7 +83,6 @@ export class BrandPersistenceService {
       updateData.fontFamily = fontFamily;
     }
 
-    // Build system prompt from scraped content
     if (scrapedData.tagline || scrapedData.aboutText) {
       const systemPromptParts: string[] = [];
 

@@ -103,7 +103,6 @@ function ImageInputNodeComponent(props: NodeProps) {
 
   return (
     <BaseNode {...props} headerActions={headerActions}>
-      {/* Hidden file input */}
       <Input
         ref={fileInputRef}
         type="file"
@@ -138,7 +137,6 @@ function ImageInputNodeComponent(props: NodeProps) {
         </div>
       )}
 
-      {/* Image Preview or Empty State */}
       {nodeData.image ? (
         <div
           className={

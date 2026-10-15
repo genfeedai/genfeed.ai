@@ -52,7 +52,6 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="space-y-3">
-        {/* Duration Info */}
         <div className="text-xs text-muted-foreground">
           {nodeData.videoDuration
             ? `Source: ${formatMinutesSeconds(nodeData.videoDuration)}`

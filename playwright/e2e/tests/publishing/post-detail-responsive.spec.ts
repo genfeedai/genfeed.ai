@@ -62,6 +62,9 @@ for (const viewport of [
     await expect(prompt).toBeVisible();
     const promptBounds = await prompt.boundingBox();
     expect(promptBounds?.width).toBeGreaterThanOrEqual(120);
+    await expect(
+      canvas.getByRole('button', { name: 'Rewrite', exact: true }),
+    ).toBeDisabled();
     await prompt.fill('QA layout check');
     await expect(
       canvas.getByRole('button', { name: 'Rewrite', exact: true }),
@@ -80,7 +83,11 @@ for (const viewport of [
     await page.screenshot({
       path: testInfo.outputPath('post-editor-controls.png'),
     });
-    await prompt.fill('');
+    // Use the editor's select-all command: fill('') can send Delete before
+    // ProseMirror has synchronized Playwright's DOM-only selection.
+    await prompt.press('ControlOrMeta+A');
+    await prompt.press('Backspace');
+    await expect(prompt).toHaveText('');
     await expect(
       canvas.getByRole('button', { name: 'Rewrite', exact: true }),
     ).toBeDisabled();
