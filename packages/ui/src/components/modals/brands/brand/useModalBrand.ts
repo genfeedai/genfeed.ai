@@ -25,6 +25,7 @@ import type {
   ILink,
   IStructuredError,
 } from '@genfeedai/contracts/interfaces';
+import type { MemberOrganizationOption } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import {
   closeModal,
   openModal,
@@ -32,6 +33,7 @@ import {
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@genfeedai/hooks/auth/use-user-role/use-user-role';
 import { useElements } from '@genfeedai/hooks/data/elements/use-elements/use-elements';
+import { useMemberOrganizations } from '@genfeedai/hooks/data/organization/use-member-organizations/use-member-organizations';
 import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
@@ -46,7 +48,6 @@ import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
-import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import type { IBrandRelocationPreview } from '@genfeedai/services/social/brand-relocation.types';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { LinksService } from '@genfeedai/services/social/links.service';
@@ -97,10 +98,7 @@ const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   websiteUrl: '',
 };
 
-export type OrganizationOption = {
-  id: string;
-  label: string;
-};
+export type OrganizationOption = MemberOrganizationOption;
 
 function getStructuredErrorStatus(error: unknown): number | undefined {
   if (!error || typeof error !== 'object') {
@@ -220,9 +218,6 @@ export function useModalBrand(
   const getLinksService = useAuthedService((token: string) =>
     LinksService.getInstance(token),
   );
-  const getOrgsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
 
   const { imageModels, musicModels, videoModels, fontFamilies } = useElements();
   const { openConfirm } = useConfirmModal();
@@ -286,26 +281,8 @@ export function useModalBrand(
 
   const currentOrganizationId = activeBrand?.organization?.id ?? null;
 
-  const { data: organizationOptionsData } = useQuery({
-    queryKey: ['brand-modal-organization-options', isSuperAdmin],
-    queryFn: async (): Promise<OrganizationOption[]> => {
-      const service = await getOrgsService();
-      if (isSuperAdmin) {
-        const organizations = await service.getAllOrganizations();
-        return organizations.map((organization) => ({
-          id: organization.id,
-          label: organization.label,
-        }));
-      }
-      const organizations = await service.getMyOrganizations();
-      return organizations.map((organization) => ({
-        id: organization.id,
-        label: organization.label,
-      }));
-    },
-  });
-
-  const organizationOptions = organizationOptionsData ?? [];
+  // Member organizations only, alphabetical — never other tenants.
+  const { organizations: organizationOptions } = useMemberOrganizations();
   const canMoveOrganization =
     isSuperAdmin || (hasElevatedRole && organizationOptions.length >= 2);
 

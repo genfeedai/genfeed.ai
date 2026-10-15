@@ -1,12 +1,11 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useMemberOrganizations } from '@hooks/data/organization/use-member-organizations/use-member-organizations';
 import type { BrandMoveDestination } from '@props/settings/brand-move.props';
-import { OrganizationsService } from '@services/organization/organizations.service';
-import { useQuery } from '@tanstack/react-query';
 
 /**
- * Organizations a brand of `sourceOrganizationId` could move to: every
- * organization for a superadmin, otherwise the user's own, minus the source.
+ * Organizations a brand of `sourceOrganizationId` could move to: the
+ * organizations the user belongs to, minus the source, alphabetical. A
+ * superadmin gets the same list — the picker never enumerates other tenants.
  * The server still requires owner/admin in both, so a listed destination can
  * be refused later; this only keeps the picker honest.
  */
@@ -15,23 +14,10 @@ export function useBrandMoveDestinations(sourceOrganizationId: string | null): {
   isSuperAdmin: boolean;
 } {
   const { isSuperAdmin } = useAccessState();
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
-
-  const { data } = useQuery({
-    queryFn: async (): Promise<BrandMoveDestination[]> => {
-      const service = await getOrganizationsService();
-      const organizations = isSuperAdmin
-        ? await service.getAllOrganizations()
-        : await service.getMyOrganizations();
-      return organizations.map(({ id, label }) => ({ id, label }));
-    },
-    queryKey: ['brand-move-destinations', isSuperAdmin],
-  });
+  const { organizations } = useMemberOrganizations();
 
   return {
-    destinations: (data ?? []).filter(
+    destinations: organizations.filter(
       (destination) => destination.id !== sourceOrganizationId,
     ),
     isSuperAdmin,

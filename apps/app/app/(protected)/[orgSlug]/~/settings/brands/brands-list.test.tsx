@@ -72,7 +72,7 @@ vi.mock('./brand-move-dialog', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn((options: { queryKey: string[] }) =>
-    options.queryKey[0] === 'brand-move-destinations'
+    options.queryKey[0] === 'member-organizations'
       ? {
           data: [
             { id: 'org-123', label: 'Current' },
