@@ -775,6 +775,12 @@ describe('UniversalWorkspaceShell', () => {
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('0px');
     expect(aside).not.toHaveClass('border-r');
+    expect(aside).toHaveStyle({
+      transform: 'translateX(100%)',
+      width: '320px',
+    });
+    expect((aside as HTMLElement).style.transition).not.toMatch(/width/);
+    expect(aside).toHaveClass('motion-reduce:transition-none');
   });
 
   it('keeps the mobile drawer closed without a context sidebar selection', () => {
