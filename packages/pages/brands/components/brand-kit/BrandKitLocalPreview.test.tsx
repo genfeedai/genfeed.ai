@@ -188,6 +188,29 @@ describe('local brand preview', () => {
     ).toHaveAttribute('href', 'https://instagram.com/acme');
     expect(screen.queryByText('A')).not.toBeInTheDocument();
   });
+  it('keeps the preview on a flat card when brand colors have no contrast', () => {
+    const { container } = render(
+      <BrandKitLocalPreview
+        brand={{
+          ...brand,
+          backgroundColor: '#050505',
+          primaryColor: '#111111',
+          secondaryColor: '#0a0a0a',
+        }}
+        content={null}
+        approvedContent={null}
+      />,
+    );
+    const surface = screen.getByTestId('brand-kit-preview-surface');
+    expect(surface).toHaveClass('bg-card', 'text-card-foreground');
+    expect(surface).not.toHaveAttribute('style');
+    expect(container.innerHTML).not.toContain('linear-gradient');
+    expect(container.innerHTML).not.toContain('radial-gradient');
+    expect(screen.getByText('Saved live sample')).toBeInTheDocument();
+    expect(screen.getByTitle('#111111')).toHaveStyle({
+      backgroundColor: '#111111',
+    });
+  });
   it('does not offer an approved snapshot when none exists', () => {
     render(
       <BrandKitLocalPreview

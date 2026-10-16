@@ -3,7 +3,13 @@
 import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import type { BrandKitLocalPreviewProps } from '@props/pages/brand-kit-workspace.props';
+import type {
+  BrandKitLocalPreviewProps,
+  BrandPreviewColor,
+  BrandPreviewSocialLink,
+  BrandPreviewSurfaceProps,
+  BrandPreviewTemplate,
+} from '@props/pages/brand-kit-workspace.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import {
   Select,
@@ -15,11 +21,6 @@ import {
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-
-interface PreviewSocialLink {
-  platform: string;
-  url: string;
-}
 
 function hasPreviewValue(value: unknown): boolean {
   if (typeof value === 'string') return value.trim().length > 0;
@@ -36,7 +37,27 @@ function hasPreviewValue(value: unknown): boolean {
   return false;
 }
 
-function readPreviewSocialLinks(value: unknown): PreviewSocialLink[] {
+function isPreviewHex(value: string): boolean {
+  return /^#[\da-f]{3,8}$/iu.test(value) && [4, 5, 7, 9].includes(value.length);
+}
+
+function previewFontStyle(font: string): {
+  fontFamily?: string;
+  fontWeight?: number;
+} {
+  if (!font || font === 'inherit') return {};
+  const fontWeight = font.endsWith('_BLACK')
+    ? 900
+    : font.endsWith('_BOLD')
+      ? 700
+      : undefined;
+  return {
+    fontFamily: /^MONTSERRAT_/u.test(font) ? 'Montserrat, sans-serif' : font,
+    ...(fontWeight ? { fontWeight } : {}),
+  };
+}
+
+function readPreviewSocialLinks(value: unknown): BrandPreviewSocialLink[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry) => {
     if (!isRecord(entry) || typeof entry.url !== 'string') return [];
@@ -52,6 +73,102 @@ function readPreviewSocialLinks(value: unknown): PreviewSocialLink[] {
   });
 }
 
+const PREVIEW_FRAME_CLASS: Record<BrandPreviewTemplate, string> = {
+  cover: 'aspect-video',
+  profile: '',
+  social: 'aspect-square',
+};
+
+function BrandPreviewSurface({
+  colors,
+  description,
+  fontFamily,
+  label,
+  logoUrl,
+  sample,
+  slug,
+  socialLinks,
+  template,
+}: BrandPreviewSurfaceProps) {
+  return (
+    <div
+      className={`flex flex-col gap-4 rounded-card bg-card p-5 text-card-foreground shadow-border ${PREVIEW_FRAME_CLASS[template]}`}
+      data-testid="brand-kit-preview-surface"
+    >
+      <div className="flex items-center gap-3">
+        {logoUrl ? (
+          <Image
+            src={logoUrl}
+            alt=""
+            width={40}
+            height={40}
+            unoptimized
+            className="size-10 object-contain"
+          />
+        ) : (
+          <span className="flex size-10 items-center justify-center rounded-md border border-border text-sm font-medium">
+            {label.slice(0, 1)}
+          </span>
+        )}
+        <span className="text-sm font-medium">{label}</span>
+      </div>
+      {template === 'profile' ? (
+        <p className="text-sm leading-relaxed">{description}</p>
+      ) : (
+        <div className="space-y-2">
+          <p
+            className="text-2xl font-semibold leading-tight"
+            style={previewFontStyle(fontFamily)}
+          >
+            {sample}
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </p>
+        </div>
+      )}
+      {socialLinks.length > 0 ? (
+        <ul className="flex flex-col gap-2">
+          {socialLinks.map((link) => (
+            <li
+              className="flex min-w-0 items-center gap-2 text-sm"
+              key={`${link.platform}-${link.url}`}
+            >
+              <span aria-hidden="true" className="shrink-0">
+                {getPlatformIcon(link.platform, 'size-4')}
+              </span>
+              <a
+                className="min-w-0 truncate underline-offset-2 hover:underline"
+                href={link.url}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {link.url}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="mt-auto flex items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-xs text-muted-foreground">{slug}</p>
+        {colors.length > 0 ? (
+          <ul className="flex shrink-0 gap-1.5">
+            {colors.map((color) => (
+              <li key={color.key}>
+                <span
+                  className="block size-4 rounded-sm border border-border"
+                  style={{ backgroundColor: color.value }}
+                  title={color.value}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 /** Pure browser rendering. Changing a preview never calls a generation service. */
 export default function BrandKitLocalPreview({
   brand,
@@ -60,7 +177,7 @@ export default function BrandKitLocalPreview({
 }: BrandKitLocalPreviewProps) {
   const t = useTranslations('pages.brandKitSettings.preview');
   const [source, setSource] = useState('draft');
-  const [template, setTemplate] = useState('social');
+  const [template, setTemplate] = useState<BrandPreviewTemplate>('social');
   const draft = source === 'approved' ? approvedContent : content;
   const fallbackBrand = source === 'approved' ? null : brand;
   function value(key: BrandKitFieldKey, fallback: unknown) {
@@ -85,12 +202,13 @@ export default function BrandKitLocalPreview({
     const result = value(key, fallback);
     return typeof result === 'string' && result.trim() ? result : fallback;
   }
-  function color(key: BrandKitFieldKey, fallback: string) {
-    const result = text(key, fallback);
-    return /^#[\da-f]{3,8}$/iu.test(result) &&
-      [4, 5, 7, 9].includes(result.length)
-      ? result
-      : fallback;
+  function readColor(
+    key: BrandKitFieldKey,
+    slot: BrandPreviewColor['key'],
+    fallback: string | null | undefined,
+  ): BrandPreviewColor | undefined {
+    const result = text(key, fallback ?? '');
+    return isPreviewHex(result) ? { key: slot, value: result } : undefined;
   }
   const label = text('label', fallbackBrand?.label ?? t('brand'));
   const logo = value('logo', {
@@ -103,17 +221,14 @@ export default function BrandKitLocalPreview({
       ? logo.url
       : undefined;
   const socialLinks = readPreviewSocialLinks(value('socialLinks', []));
-  const background = color(
-    'backgroundColor',
-    fallbackBrand?.backgroundColor || '#000000',
-  );
-  const secondary = color(
-    'secondaryColor',
-    fallbackBrand?.secondaryColor || '#FFFFFF',
-  );
-  const primary = color(
-    'primaryColor',
-    fallbackBrand?.primaryColor || '#000000',
+  const colors = [
+    readColor('primaryColor', 'primary', fallbackBrand?.primaryColor),
+    readColor('secondaryColor', 'secondary', fallbackBrand?.secondaryColor),
+    readColor('backgroundColor', 'background', fallbackBrand?.backgroundColor),
+  ].filter((color): color is BrandPreviewColor => color !== undefined);
+  const description = text(
+    'description',
+    fallbackBrand?.description || t('description'),
   );
   const sample = text(
     'voiceSampleOutput',
@@ -149,7 +264,14 @@ export default function BrandKitLocalPreview({
           ]}
         />
       </div>
-      <Select value={template} onValueChange={setTemplate}>
+      <Select
+        value={template}
+        onValueChange={(next) => {
+          if (next === 'cover' || next === 'profile' || next === 'social') {
+            setTemplate(next);
+          }
+        }}
+      >
         <SelectTrigger aria-label={t('templateLabel')}>
           <SelectValue />
         </SelectTrigger>
@@ -162,85 +284,17 @@ export default function BrandKitLocalPreview({
       {isApprovedUnavailable ? (
         <p className="text-sm text-muted-foreground">{t('noApproved')}</p>
       ) : (
-        <div
-          className={`relative flex overflow-hidden rounded-lg border border-border p-8 ${template === 'cover' ? 'aspect-video' : template === 'profile' ? 'min-h-64' : 'aspect-square'} flex-col justify-between`}
-          style={{
-            backgroundColor: background,
-            color: secondary,
-            fontFamily: /^MONTSERRAT_/u.test(font)
-              ? 'Montserrat, sans-serif'
-              : font,
-            fontWeight: font.endsWith('_BLACK')
-              ? 900
-              : font.endsWith('_BOLD')
-                ? 700
-                : undefined,
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-20"
-            style={{
-              background: `linear-gradient(135deg, transparent 45%, ${primary} 100%)`,
-            }}
-          />
-          <div className="relative flex items-center gap-3">
-            {logoUrl ? (
-              <Image
-                src={logoUrl}
-                alt=""
-                width={40}
-                height={40}
-                unoptimized
-                className="size-10 object-contain"
-              />
-            ) : (
-              <span className="flex size-10 items-center justify-center rounded-md border border-current text-lg font-bold">
-                {label.slice(0, 1)}
-              </span>
-            )}
-            <span className="text-lg font-semibold">{label}</span>
-          </div>
-          <div className="relative space-y-4 py-8">
-            <p
-              className={
-                template === 'profile'
-                  ? 'text-2xl font-bold leading-tight'
-                  : 'text-3xl font-bold leading-tight sm:text-4xl'
-              }
-            >
-              {template === 'profile' ? label : sample}
-            </p>
-            <p className="text-sm leading-relaxed opacity-80">
-              {text(
-                'description',
-                fallbackBrand?.description || t('description'),
-              )}
-            </p>
-            {socialLinks.length > 0 ? (
-              <ul className="flex flex-col gap-2">
-                {socialLinks.map((link) => (
-                  <li
-                    className="flex min-w-0 items-center gap-2 text-xs"
-                    key={`${link.platform}-${link.url}`}
-                  >
-                    <span aria-hidden="true" className="shrink-0">
-                      {getPlatformIcon(link.platform, 'size-4')}
-                    </span>
-                    <a
-                      className="min-w-0 truncate underline-offset-2 hover:underline"
-                      href={link.url}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      {link.url}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-          <p className="relative text-xs opacity-70">{brand.slug}</p>
-        </div>
+        <BrandPreviewSurface
+          colors={colors}
+          description={description}
+          fontFamily={font}
+          label={label}
+          logoUrl={logoUrl}
+          sample={sample}
+          slug={brand.slug}
+          socialLinks={socialLinks}
+          template={template}
+        />
       )}
       <p className="text-xs text-muted-foreground">{t('creditFree')}</p>
     </section>
