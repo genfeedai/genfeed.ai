@@ -171,12 +171,17 @@ function SourceEvidenceRows({
 }: {
   evidence: readonly IBrandKitSourceEvidence[];
 }) {
+  const translate = useTranslations('pages.brandKitReview');
+
   if (evidence.length === 0) {
     return null;
   }
 
   return (
-    <ul aria-label="Source evidence" className="mt-3 divide-y divide-border">
+    <ul
+      aria-label={translate('sourceEvidence')}
+      className="mt-3 divide-y divide-border"
+    >
       {evidence.map((source, index) => (
         <li
           className="grid min-h-8 items-center gap-1 py-1.5 text-xs sm:grid-cols-[minmax(0,1fr)_auto]"
@@ -849,8 +854,8 @@ export default function BrandKitReviewCard({
           : undefined
       }
       data-testid="brand-kit-review-card"
-      label="Brand Kit Review"
-      description="Scan the brand site and apply proposed profile fields."
+      label={translate('title')}
+      description={translate('description')}
       bodyClassName="gap-3 p-4"
     >
       <div
@@ -860,9 +865,9 @@ export default function BrandKitReviewCard({
       >
         <div className="flex min-w-0 items-center gap-1 rounded-lg bg-background-tertiary p-1 shadow-border">
           <Input
-            aria-label="Website URL"
+            aria-label={translate('websiteUrl')}
             className={INLINE_INPUT_CLASSNAME}
-            placeholder="https://example.com"
+            placeholder={translate('websiteUrlPlaceholder')}
             value={websiteUrl}
             onChange={(event) => setWebsiteUrl(event.target.value)}
           />
@@ -882,9 +887,9 @@ export default function BrandKitReviewCard({
         </div>
 
         <Input
-          aria-label="Social URLs"
+          aria-label={translate('socialUrls')}
           className="h-8 border-0 bg-background-tertiary text-sm text-foreground shadow-border placeholder:text-muted-foreground/80 focus-visible:border-0"
-          placeholder="Social URLs (optional, comma-separated)"
+          placeholder={translate('socialUrlsPlaceholder')}
           value={socialUrls}
           onChange={(event) => setSocialUrls(event.target.value)}
         />
@@ -1011,7 +1016,7 @@ export default function BrandKitReviewCard({
                                 <Checkbox
                                   aria-label={`Select ${field.label}`}
                                   isChecked={selectedFields.has(key)}
-                                  label="Select"
+                                  label={translate('select')}
                                   onCheckedChange={(checked) =>
                                     handleToggleField(key, checked === true)
                                   }
@@ -1019,7 +1024,7 @@ export default function BrandKitReviewCard({
                                 <Button
                                   ariaLabel={`Apply ${field.label}`}
                                   isDisabled={isApplying}
-                                  label="Apply"
+                                  label={translate('apply')}
                                   size={ButtonSize.SM}
                                   variant={ButtonVariant.SECONDARY}
                                   onClick={() => void handleApplyKeys([key])}
@@ -1044,16 +1049,16 @@ export default function BrandKitReviewCard({
                               {isAssetField ? (
                                 <BrandKitAssetGrid
                                   assets={currentAssets}
-                                  emptyLabel="Empty"
+                                  emptyLabel={translate('empty')}
                                 />
                               ) : isSocialField ? (
                                 <SocialLinkReadout
-                                  emptyLabel="Empty"
+                                  emptyLabel={translate('empty')}
                                   value={field.currentValue}
                                 />
                               ) : (
                                 <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
-                                  {currentValue || 'Empty'}
+                                  {currentValue || translate('empty')}
                                 </pre>
                               )}
                             </div>
@@ -1065,11 +1070,11 @@ export default function BrandKitReviewCard({
                               {isAssetField ? (
                                 <BrandKitAssetGrid
                                   assets={proposedAssets}
-                                  emptyLabel="No proposal"
+                                  emptyLabel={translate('noProposal')}
                                 />
                               ) : isSocialField ? (
                                 <SocialLinkReadout
-                                  emptyLabel="No proposal"
+                                  emptyLabel={translate('noProposal')}
                                   value={field.proposedValue}
                                 />
                               ) : isSelectable && selectedFields.has(key) ? (
@@ -1086,7 +1091,7 @@ export default function BrandKitReviewCard({
                                 />
                               ) : (
                                 <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
-                                  {proposedValue || 'No proposal'}
+                                  {proposedValue || translate('noProposal')}
                                 </pre>
                               )}
                             </div>
@@ -1126,9 +1131,9 @@ export default function BrandKitReviewCard({
                     </p>
                   </div>
                   <Checkbox
-                    aria-label="Replace existing logo and banner"
+                    aria-label={translate('replaceExistingAria')}
                     isChecked={shouldReplaceExisting}
-                    label="Replace existing logo/banner"
+                    label={translate('replaceExisting')}
                     onCheckedChange={(checked) =>
                       setShouldReplaceExisting(checked === true)
                     }
@@ -1185,7 +1190,7 @@ export default function BrandKitReviewCard({
                   <Button
                     isDisabled={selectedCandidateIds.size === 0}
                     isLoading={isImportingAssets}
-                    label="Import Selected Assets"
+                    label={translate('importSelectedAssets')}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
                     onClick={() => void handleImportAssets()}

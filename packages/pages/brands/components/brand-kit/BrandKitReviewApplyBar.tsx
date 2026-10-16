@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 import {
   createContext,
   type Dispatch,
@@ -50,6 +51,8 @@ export function BrandKitReviewApplyControls({
 }: {
   state: BrandKitReviewApplyState;
 }) {
+  const translate = useTranslations('pages.brandKitReview');
+
   return (
     <div
       className="flex min-w-0 flex-1 flex-wrap items-center gap-3"
@@ -59,7 +62,7 @@ export function BrandKitReviewApplyControls({
       <Button
         isDisabled={state.isDisabled}
         isLoading={state.isApplying}
-        label="Apply Selected Fields"
+        label={translate('applySelected')}
         onClick={state.onApply}
       />
     </div>

@@ -387,7 +387,6 @@
     "packages/pages/analytics/platform-detail/analytics-platform-detail.tsx": 20,
     "packages/pages/analytics/posts-list/analytics-posts-list.tsx": 24,
     "packages/pages/brands/components/banner/BrandDetailBanner.tsx": 2,
-    "packages/pages/brands/components/brand-kit/BrandKitReviewCard.tsx": 15,
     "packages/pages/brands/components/brand-kit/writing-voice/AgentProfilePlatformOverride.tsx": 1,
     "packages/pages/brands/components/brand-kit/writing-voice/AgentProfilePlatformOverrideFields.tsx": 22,
     "packages/pages/brands/components/brand-kit/writing-voice/AgentProfilePlatformOverrideWideFields.tsx": 9,

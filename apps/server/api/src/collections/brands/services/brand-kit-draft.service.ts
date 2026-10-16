@@ -82,6 +82,17 @@ export interface BrandKitApplyEffects {
     links: readonly BrandKitApplySocialLink[],
   ) => Promise<number>;
 }
+
+interface BrandKitApplyPlan {
+  appliedFields: BrandKitFieldKey[];
+  diagnostics: IBrandKitDiagnostic[];
+  logoCandidate?: IBrandKitAssetImportCandidate;
+  preservedFields: BrandKitFieldKey[];
+  socialLinks?: readonly BrandKitApplySocialLink[];
+  strategyUpdates: Record<string, unknown>;
+  updateData: Record<string, unknown>;
+  voiceUpdates: Record<string, unknown>;
+}
 const BRAND_KIT_FIELD_KEYS = new Set<BrandKitFieldKey>(
   BRAND_KIT_FIELD_OWNERSHIP.map((field) => field.key),
 );
@@ -196,18 +207,82 @@ export class BrandKitDraftService {
       throw new NotFoundException('Brand', brandId);
     }
 
-    const diagnostics: IBrandKitDiagnostic[] = [];
-    const appliedFields: BrandKitFieldKey[] = [];
-    const preservedFields: BrandKitFieldKey[] = [];
-    const updateData: Record<string, unknown> = {};
-    const voiceUpdates: Record<string, unknown> = {};
-    const strategyUpdates: Record<string, unknown> = {};
-    let logoCandidate: IBrandKitAssetImportCandidate | undefined;
-    let socialLinks: readonly BrandKitApplySocialLink[] | undefined;
+    const plan = this.collectBrandKitApplyPlan(dto.fields);
 
-    for (const [rawKey, decision] of Object.entries(dto.fields ?? {})) {
-      if (!this.isBrandKitFieldKey(rawKey)) {
-        diagnostics.push({
+    if (
+      Object.keys(plan.voiceUpdates).length > 0 ||
+      Object.keys(plan.strategyUpdates).length > 0
+    ) {
+      plan.updateData.agentConfig = this.mergeBrandKitAgentConfig(
+        brand.agentConfig,
+        plan.voiceUpdates,
+        plan.strategyUpdates,
+      );
+    }
+
+    if (Object.keys(plan.updateData).length > 0) {
+      await writeBrand(
+        brandId,
+        organizationId,
+        plan.updateData as Partial<UpdateBrandDto>,
+        brand.agentConfig,
+      );
+    }
+
+    if (plan.logoCandidate) {
+      await this.applyLogoCandidate(
+        plan.logoCandidate,
+        effects,
+        plan.appliedFields,
+        plan.preservedFields,
+        plan.diagnostics,
+      );
+    }
+
+    if (plan.socialLinks) {
+      await this.applySocialLinks(
+        plan.socialLinks,
+        effects,
+        plan.appliedFields,
+        plan.preservedFields,
+        plan.diagnostics,
+      );
+    }
+
+    const hasBlockingDiagnostic = plan.diagnostics.some(
+      (diagnostic) => diagnostic.severity === 'error',
+    );
+
+    return {
+      appliedFields: plan.appliedFields,
+      brandId,
+      diagnostics: plan.diagnostics,
+      id: brandId,
+      preservedFields: plan.preservedFields,
+      status:
+        hasBlockingDiagnostic && plan.appliedFields.length === 0
+          ? 'blocked'
+          : plan.diagnostics.length > 0 || plan.preservedFields.length > 0
+            ? 'partial'
+            : 'accepted',
+    };
+  }
+
+  private collectBrandKitApplyPlan(
+    fields: ApplyBrandKitDto['fields'] | undefined,
+  ): BrandKitApplyPlan {
+    const plan: BrandKitApplyPlan = {
+      appliedFields: [],
+      diagnostics: [],
+      preservedFields: [],
+      strategyUpdates: {},
+      updateData: {},
+      voiceUpdates: {},
+    };
+
+    for (const [rawKey, decision] of Object.entries(fields ?? {})) {
+      if (!decision || !this.isBrandKitFieldKey(rawKey)) {
+        plan.diagnostics.push({
           code: 'brand_kit_apply_unknown_field',
           message: `${rawKey} is not a supported brand kit field.`,
           severity: 'warning',
@@ -216,14 +291,14 @@ export class BrandKitDraftService {
       }
 
       if (decision.action === 'preserve' || decision.action === 'reject') {
-        preservedFields.push(rawKey);
+        plan.preservedFields.push(rawKey);
         continue;
       }
 
       if (rawKey === 'logo') {
         const candidate = this.readLogoApplyCandidate(decision.value);
         if (!candidate) {
-          diagnostics.push({
+          plan.diagnostics.push({
             code: 'brand_kit_apply_invalid_value',
             fieldKey: rawKey,
             message: `${rawKey} did not include a public logo URL.`,
@@ -231,14 +306,14 @@ export class BrandKitDraftService {
           });
           continue;
         }
-        logoCandidate = candidate;
+        plan.logoCandidate = candidate;
         continue;
       }
 
       if (rawKey === 'socialLinks') {
         const links = this.readSocialLinkApplyValues(decision.value);
         if (!links) {
-          diagnostics.push({
+          plan.diagnostics.push({
             code: 'brand_kit_apply_invalid_value',
             fieldKey: rawKey,
             message: `${rawKey} did not include a supported value.`,
@@ -246,13 +321,13 @@ export class BrandKitDraftService {
           });
           continue;
         }
-        socialLinks = links;
+        plan.socialLinks = links;
         continue;
       }
 
       if (BRAND_KIT_DEFERRED_APPLY_FIELDS.has(rawKey)) {
-        preservedFields.push(rawKey);
-        diagnostics.push({
+        plan.preservedFields.push(rawKey);
+        plan.diagnostics.push({
           code: 'brand_kit_apply_deferred_field',
           fieldKey: rawKey,
           message:
@@ -265,7 +340,7 @@ export class BrandKitDraftService {
       const value = this.coerceBrandKitApplyValue(rawKey, decision.value);
 
       if (value === undefined) {
-        diagnostics.push({
+        plan.diagnostics.push({
           code: 'brand_kit_apply_invalid_value',
           fieldKey: rawKey,
           message: `${rawKey} did not include a supported value.`,
@@ -279,25 +354,25 @@ export class BrandKitDraftService {
       const strategyField = BRAND_KIT_STRATEGY_FIELDS[rawKey];
 
       if (scalarField) {
-        updateData[scalarField] = value;
-        appliedFields.push(rawKey);
+        plan.updateData[scalarField] = value;
+        plan.appliedFields.push(rawKey);
         continue;
       }
 
       if (voiceField) {
-        voiceUpdates[voiceField] = value;
-        appliedFields.push(rawKey);
+        plan.voiceUpdates[voiceField] = value;
+        plan.appliedFields.push(rawKey);
         continue;
       }
 
       if (strategyField) {
-        strategyUpdates[strategyField] = value;
-        appliedFields.push(rawKey);
+        plan.strategyUpdates[strategyField] = value;
+        plan.appliedFields.push(rawKey);
         continue;
       }
 
-      preservedFields.push(rawKey);
-      diagnostics.push({
+      plan.preservedFields.push(rawKey);
+      plan.diagnostics.push({
         code: 'brand_kit_apply_unsupported_field',
         fieldKey: rawKey,
         message: `${rawKey} is reviewable but not directly applied yet.`,
@@ -305,63 +380,7 @@ export class BrandKitDraftService {
       });
     }
 
-    if (
-      Object.keys(voiceUpdates).length > 0 ||
-      Object.keys(strategyUpdates).length > 0
-    ) {
-      updateData.agentConfig = this.mergeBrandKitAgentConfig(
-        brand.agentConfig,
-        voiceUpdates,
-        strategyUpdates,
-      );
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      await writeBrand(
-        brandId,
-        organizationId,
-        updateData as Partial<UpdateBrandDto>,
-        brand.agentConfig,
-      );
-    }
-
-    if (logoCandidate) {
-      await this.applyLogoCandidate(
-        logoCandidate,
-        effects,
-        appliedFields,
-        preservedFields,
-        diagnostics,
-      );
-    }
-
-    if (socialLinks) {
-      await this.applySocialLinks(
-        socialLinks,
-        effects,
-        appliedFields,
-        preservedFields,
-        diagnostics,
-      );
-    }
-
-    const hasBlockingDiagnostic = diagnostics.some(
-      (diagnostic) => diagnostic.severity === 'error',
-    );
-
-    return {
-      appliedFields,
-      brandId,
-      diagnostics,
-      id: brandId,
-      preservedFields,
-      status:
-        hasBlockingDiagnostic && appliedFields.length === 0
-          ? 'blocked'
-          : diagnostics.length > 0 || preservedFields.length > 0
-            ? 'partial'
-            : 'accepted',
-    };
+    return plan;
   }
 
   private async applyLogoCandidate(
