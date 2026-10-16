@@ -17,6 +17,7 @@ import { AdminPlatformSettingsService } from '@services/admin/platform-settings.
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -79,6 +80,7 @@ export default function AdminFlagsPage() {
   const [flags, setFlags] = useState<IPlatformFlags>(DEFAULT_PLATFORM_FLAGS);
   const [savingKey, setSavingKey] = useState<PlatformFlagKey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
 
   const loadFlags = useCallback(
@@ -113,6 +115,12 @@ export default function AdminFlagsPage() {
     loadFlags(controller.signal);
 
     return () => controller.abort();
+  }, [loadFlags]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadFlags(new AbortController().signal);
+    setIsRefreshing(false);
   }, [loadFlags]);
 
   async function handleToggle(
@@ -198,6 +206,10 @@ export default function AdminFlagsPage() {
       label={translate('title')}
       description={translate('description')}
       icon={ToggleRight}
+      moduleChrome
+      refresh={
+        <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+      }
     >
       {renderContent()}
     </Container>
