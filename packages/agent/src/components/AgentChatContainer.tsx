@@ -331,6 +331,83 @@ export function AgentChatContainer({
       composerShell?.placement !== 'dock',
     overlayHeightPx: composerOverlayHeightPx,
   });
+  const placeComposerInColumn =
+    isColumnComposer && !(container.isEmpty && !onboardingMode);
+  const dockedComposer = shouldShowDockedComposer ? (
+    shouldShowArchivedComposer && onUnarchive ? (
+      <AgentArchivedComposerBar
+        layoutMode={promptBarLayoutMode}
+        message={
+          archivedNotice ??
+          'This thread is archived. Unarchive it to continue the conversation.'
+        }
+        onUnarchive={onUnarchive}
+      />
+    ) : (
+      <AgentChatPromptBar
+        composerBanner={
+          onboardingMode ? undefined : (runtimeBanner ?? undefined)
+        }
+        activeWorkEvent={activeWorkEvent}
+        workEvents={container.workEvents}
+        addFiles={container.addFiles}
+        agentMode={container.draftAgentMode}
+        onAgentModeChange={container.setAgentMode}
+        apiService={apiService}
+        knowledgeSelection={knowledgeSelection}
+        knowledgeSection={knowledgeSection}
+        chatAttachments={container.chatAttachments}
+        clearAllAttachments={container.clearAllAttachments}
+        dragHandlers={container.dragHandlers}
+        dragState={container.dragState}
+        // Pass the raw error through. AgentComposerStatusStack runs
+        // formatAgentError itself; pre-formatting here produced
+        // "Title: Summary", which no longer matched any classifier
+        // pattern on the second pass, so a real provider 401 degraded
+        // into the generic "Run failed / The agent hit an error".
+        error={isComposerDocked ? container.error : null}
+        getCompletedAttachments={container.getCompletedAttachments}
+        isAttachmentUploading={container.isAttachmentUploading}
+        isBusy={container.isBusy}
+        isComposerUnavailable={
+          (!onboardingMode && isLoadingThread) ||
+          (onboardingMode && !activeThreadId) ||
+          (!onboardingMode && stableSocketConnectionState !== 'connected')
+        }
+        followUps={container.followUpQueue.queue}
+        isReadOnly={isReadOnly}
+        isRunActive={container.isRunActive}
+        isSubmittingInputRequest={container.isSubmittingInputRequest}
+        isTurnStalled={container.isTurnStalled}
+        latestProposedPlan={container.latestProposedPlan}
+        layoutMode={promptBarLayoutMode}
+        onClearError={() => container.setError(null)}
+        onKeepWaiting={container.handleKeepWaiting}
+        onStopAndRetry={container.handleStopAndRetry}
+        onOverlayElement={setComposerOverlayElement}
+        creditsAvailable={creditsRemaining}
+        onMoveFollowUp={container.followUpQueue.move}
+        onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}
+        onRemoveFollowUp={container.followUpQueue.remove}
+        onRetryFollowUp={container.retryFollowUp}
+        onSend={sendConversationMessage}
+        onSendFollowUpNow={container.sendFollowUpNow}
+        isInterruptingFollowUps={container.followUpQueue.isInterrupting}
+        onStop={container.handleStopRun}
+        onSubmitInputRequest={container.handleSubmitInputRequest}
+        pendingInputRequest={
+          composerShell && !onboardingMode
+            ? container.pendingInputRequest
+            : null
+        }
+        placeholder={container.pendingInputRequest?.prompt ?? placeholder}
+        promptBarSuggestions={promptBarSuggestions}
+        removeAttachment={container.removeAttachment}
+        showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
+        socketConnectionState={stableSocketConnectionState}
+      />
+    )
+  ) : null;
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col">
@@ -467,86 +544,11 @@ export function AgentChatContainer({
                 ? greetingTimeline
                 : container.timeline
             }
+            columnFooter={placeComposerInColumn ? dockedComposer : undefined}
           />
         )}
 
-        {shouldShowDockedComposer ? (
-          shouldShowArchivedComposer && onUnarchive ? (
-            <AgentArchivedComposerBar
-              layoutMode={promptBarLayoutMode}
-              message={
-                archivedNotice ??
-                'This thread is archived. Unarchive it to continue the conversation.'
-              }
-              onUnarchive={onUnarchive}
-            />
-          ) : (
-            <AgentChatPromptBar
-              composerBanner={
-                onboardingMode ? undefined : (runtimeBanner ?? undefined)
-              }
-              activeWorkEvent={activeWorkEvent}
-              workEvents={container.workEvents}
-              addFiles={container.addFiles}
-              agentMode={container.draftAgentMode}
-              onAgentModeChange={container.setAgentMode}
-              apiService={apiService}
-              knowledgeSelection={knowledgeSelection}
-              knowledgeSection={knowledgeSection}
-              chatAttachments={container.chatAttachments}
-              clearAllAttachments={container.clearAllAttachments}
-              dragHandlers={container.dragHandlers}
-              dragState={container.dragState}
-              // Pass the raw error through. AgentComposerStatusStack runs
-              // formatAgentError itself; pre-formatting here produced
-              // "Title: Summary", which no longer matched any classifier
-              // pattern on the second pass, so a real provider 401 degraded
-              // into the generic "Run failed / The agent hit an error".
-              error={isComposerDocked ? container.error : null}
-              getCompletedAttachments={container.getCompletedAttachments}
-              isAttachmentUploading={container.isAttachmentUploading}
-              isBusy={container.isBusy}
-              isComposerUnavailable={
-                (!onboardingMode && isLoadingThread) ||
-                (onboardingMode && !activeThreadId) ||
-                (!onboardingMode && stableSocketConnectionState !== 'connected')
-              }
-              followUps={container.followUpQueue.queue}
-              isReadOnly={isReadOnly}
-              isRunActive={container.isRunActive}
-              isSubmittingInputRequest={container.isSubmittingInputRequest}
-              isTurnStalled={container.isTurnStalled}
-              latestProposedPlan={container.latestProposedPlan}
-              layoutMode={promptBarLayoutMode}
-              onClearError={() => container.setError(null)}
-              onKeepWaiting={container.handleKeepWaiting}
-              onStopAndRetry={container.handleStopAndRetry}
-              onOverlayElement={setComposerOverlayElement}
-              creditsAvailable={creditsRemaining}
-              onMoveFollowUp={container.followUpQueue.move}
-              onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}
-              onRemoveFollowUp={container.followUpQueue.remove}
-              onRetryFollowUp={container.retryFollowUp}
-              onSend={sendConversationMessage}
-              onSendFollowUpNow={container.sendFollowUpNow}
-              isInterruptingFollowUps={container.followUpQueue.isInterrupting}
-              onStop={container.handleStopRun}
-              onSubmitInputRequest={container.handleSubmitInputRequest}
-              pendingInputRequest={
-                composerShell && !onboardingMode
-                  ? container.pendingInputRequest
-                  : null
-              }
-              placeholder={container.pendingInputRequest?.prompt ?? placeholder}
-              promptBarSuggestions={promptBarSuggestions}
-              removeAttachment={container.removeAttachment}
-              showSuggestedActionsWhenNotEmpty={
-                showSuggestedActionsWhenNotEmpty
-              }
-              socketConnectionState={stableSocketConnectionState}
-            />
-          )
-        ) : null}
+        {placeComposerInColumn ? null : dockedComposer}
       </div>
     </div>
   );

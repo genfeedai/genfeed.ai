@@ -9,6 +9,7 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 const MAX_PICK_ONE_OPTIONS = 5;
 
 export function AgentInputRequestOverlay({
+  hiddenOptionIds,
   isSubmitting = false,
   onSubmit,
   request,
@@ -23,8 +24,11 @@ export function AgentInputRequestOverlay({
     [request.options, request.recommendedOptionId],
   );
   const visibleOptions = useMemo(
-    () => (request.options ?? []).slice(0, MAX_PICK_ONE_OPTIONS),
-    [request.options],
+    () =>
+      (request.options ?? [])
+        .filter((option) => !hiddenOptionIds?.includes(option.id))
+        .slice(0, MAX_PICK_ONE_OPTIONS),
+    [hiddenOptionIds, request.options],
   );
   const [freeTextAnswer, setFreeTextAnswer] = useState('');
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);

@@ -163,6 +163,7 @@ const SKIP_WARNING_CARDS = ONBOARDING_BUTTON_CARDS.filter(
 export const ONBOARDING_CONVERSATION_FLOW = `## Brand setup conversation (follow this order)
 - The server already wrote the greeting and asked for one public URL. Do not greet again or ask another question first.
 - The user types only URLs. Use request_input for every other question with allowFreeText: false. Never ask a question in prose when a card fits. Short replies, no emoji, raw JSON, internal details, or checklist.
+- If the URL answer is Skip (id: skip), do not call scan_brand_url. Continue without a website and advance to goals.
 - On receiving a URL (typed or from Use <domain>), call scan_brand_url once before doing anything else. Accept websites, social profiles, link pages, or any public page.
 - On data.status: scanned, show the tool's found-identity confirmation card, then request_input with allowFreeText: false: Looks right (id: looks_right), Try another link (id: try_another_link), Skip (id: skip). Looks right and Skip advance to goals; Skip does not undo the scanned brand.
 - Try another link always requests a new URL via request_input with allowFreeText: true. Never automatically retry the same URL.
@@ -173,17 +174,15 @@ export const ONBOARDING_CONVERSATION_FLOW = `## Brand setup conversation (follow
 Ask one request_input at a time, in this order. Set allowFreeText: false on every card. Use at most 5 options per card, including Skip as its LAST option (id: skip). In multi-select cards Skip is exclusive of other selections. Options taken from the scan are suggestions: say they are suggested from the site, never present them as facts, and never invent options the scan did not return.
 ${ONBOARDING_BUTTON_CARDS.map(renderCard).join('\n')}
 - Right after each answered card, call save_onboarding_answers with only that field. Each answered card earns +${ONBOARDING_ANSWER_REWARD_CREDITS} credits once; a skip never does. Never save skip as a value and never treat Skip as complete_onboarding.
+- Skip (id: skip) is already confirmed in the product modal, including on ${SKIP_WARNING_CARDS.map((card) => card.title).join(', ')}. Call save_onboarding_answers with skippedFields: [that field] and advance. Do not ask a second confirmation card.
 - Skip on ${ONBOARDING_BUTTON_CARDS.filter((card) => !card.skipWarning)
   .map((card) => card.title)
   .join(
     ', ',
   )}: call save_onboarding_answers with skippedFields: [that field] and advance.
-
-## Skip warnings
-Only ${SKIP_WARNING_CARDS.map((card) => card.title).join(', ')} warn before skipping. When the user picks Skip on one of them, reply with exactly one line, then request_input with allowFreeText: false: ${renderOptions(ONBOARDING_SKIP_CONFIRMATION_OPTIONS)}.
-${SKIP_WARNING_CARDS.map((card) => `- ${card.title}: "${card.skipWarning}"`).join('\n')}
-- skip_confirmed: call save_onboarding_answers with skippedFields: [that field] and advance to the next card.
+- Retired confirmation options, do not request them: ${renderOptions(ONBOARDING_SKIP_CONFIRMATION_OPTIONS)}.
 - answer_it: ask the same card again with the same options. Warn at most once per card.
+${SKIP_WARNING_CARDS.map((card) => `- ${card.title}: "${card.skipWarning}"`).join('\n')}
 
 ## Instagram voice branch
 - On Learn from my Instagram, call connect_social_account with platform: instagram and show its card. Say in one line that connecting only reads recent posts to learn the voice and never publishes.

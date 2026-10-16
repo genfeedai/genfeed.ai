@@ -124,6 +124,18 @@ describe('onboarding button card contract', () => {
     expect(ONBOARDING_CONVERSATION_FLOW).toContain(
       'answer_it: ask the same card again',
     );
+    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
+      'already confirmed in the product modal',
+    );
+    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
+      'Do not ask a second confirmation card',
+    );
+    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
+      'If the URL answer is Skip (id: skip), do not call scan_brand_url',
+    );
+    expect(ONBOARDING_CONVERSATION_FLOW).not.toContain(
+      'When the user picks Skip',
+    );
   });
 
   it('saves after every card and never pays for a skip', () => {

@@ -480,7 +480,13 @@
     "placeholder": "Type your answer",
     "useAnswer": "Use this answer",
     "submit": "Submit answers",
-    "failed": "Your answer was not saved. Try again."
+    "failed": "Your answer was not saved. Try again.",
+    "skipCardTitle": "Skip for now",
+    "skipCardBody": "You can answer this later. Posts, images, and videos stay generic until you do.",
+    "skipConfirmTitle": "Skip this step?",
+    "skipConfirmBody": "Onboarding is how the brand gets specific. Finishing it makes the posts, images, and videos match you. Skipping leaves that output generic.",
+    "skipStay": "Answer it",
+    "skipConfirm": "Skip anyway"
   },
   "turboRunResultCard": {
     "noDraftPreview": "No preview available for this draft.",

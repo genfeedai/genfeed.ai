@@ -937,6 +937,59 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
   });
 
+  it('confirms onboarding skip from its own card and keeps the composer under the question', async () => {
+    storeState.pendingInputRequest = {
+      allowFreeText: true,
+      inputRequestId: 'url-request',
+      options: [{ id: 'skip', label: 'Skip' }],
+      prompt: 'Share a public link',
+      runId: 'run-url',
+      threadId: 'thread-1',
+      title: 'Your brand link',
+    };
+    const apiService = createApiService({
+      respondToInputRequest: vi.fn().mockResolvedValue({}),
+    });
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Agent"
+        draftScopeKey="acme:thread-1:1"
+        placement="surface"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} onboardingMode />
+      </ConversationComposerShellProvider>,
+    );
+
+    const columnComposer = container.querySelector(
+      '[data-testid="agent-column-composer"]',
+    );
+    expect(
+      columnComposer?.querySelector('[data-testid="chat-input"]'),
+    ).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Skip' })).toBeNull();
+    expect(columnComposer).toHaveAttribute('data-composer-overlap', 'false');
+
+    fireEvent.click(screen.getByRole('button', { name: 'skipCardTitle' }));
+    expect(screen.getByText('skipConfirmBody')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'skipStay' }));
+    expect(apiService.respondToInputRequest).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'skipCardTitle' }));
+    fireEvent.click(screen.getByRole('button', { name: 'skipConfirm' }));
+    await waitFor(() =>
+      expect(apiService.respondToInputRequest).toHaveBeenCalledWith(
+        'thread-1',
+        'url-request',
+        'Skip',
+        undefined,
+        expect.any(Object),
+        ['skip'],
+      ),
+    );
+  });
+
   it('pins the stream to the execution that continues an answered input request', async () => {
     const apiService = createApiService({
       respondToInputRequest: vi.fn().mockResolvedValue({
