@@ -745,7 +745,9 @@ export default function BrandKitReviewCard({
 
         for (const key of result.appliedFields) {
           const field = nextFields[key];
-          const sent = fields[key]?.value;
+          const sentDecision = fields[key];
+          const sent =
+            sentDecision?.action === 'accept' ? sentDecision.value : undefined;
           if (!field || sent === undefined) {
             continue;
           }
