@@ -37,12 +37,6 @@ describe('HeyGenSpeechVoicesService', () => {
     };
   }
 
-  function requestedTypes(): unknown[] {
-    return httpServiceMock.get.mock.calls.map(
-      ([url, config]) => `${url}?type=${config.params.type}`,
-    );
-  }
-
   beforeEach(() => {
     vi.clearAllMocks();
     apiKeyHelperMock.getApiKey.mockReturnValue('test-api-key');
@@ -58,83 +52,59 @@ describe('HeyGenSpeechVoicesService', () => {
     speechService = new HeyGenSpeechVoicesService(
       heygen,
       byok as unknown as ByokService,
-      apiKeyHelperMock as unknown as ApiKeyHelperService,
     );
   });
 
-  it('lists only public voices on the platform key, never its private clones', async () => {
-    httpServiceMock.get.mockReturnValueOnce(
-      voicePage([voice('public-1'), voice('public-2', 'PENDING')]),
-    );
-
-    await expect(speechService.getSpeechVoices('org-1')).resolves.toEqual({
-      hasPersonalConnection: false,
-      voices: [
-        {
-          language: 'en',
-          mode: 'instant',
-          name: 'Voice public-1',
-          ownership: 'public',
-          voiceId: 'public-1',
-        },
-      ],
-    });
-    expect(requestedTypes()).toEqual([
-      'https://api.heygen.com/v3/models/audio/voices?type=public',
-    ]);
-    expect(httpServiceMock.get.mock.calls[0]?.[1]).toMatchObject({
-      headers: { 'X-Api-Key': 'test-api-key' },
-    });
-  });
-
-  it('lists the workspace clones and public voices with the workspace key', async () => {
-    byok.lookupApiKeyWithIdentity.mockResolvedValue({
-      apiKey: 'workspace-key',
-      credentialId: 'cred-1',
-    });
-    httpServiceMock.get
-      .mockReturnValueOnce(
-        voicePage([voice('clone-1'), voice('clone-2', 'FAILED')]),
-      )
-      .mockReturnValueOnce(voicePage([voice('public-1')]));
-
-    const catalog = await speechService.getSpeechVoices('org-1');
-
-    expect(catalog.hasPersonalConnection).toBe(true);
-    expect(
-      catalog.voices.map(({ ownership, voiceId }) => [ownership, voiceId]),
-    ).toEqual([
-      ['private', 'clone-1'],
-      ['public', 'public-1'],
-    ]);
-    for (const [, config] of httpServiceMock.get.mock.calls)
-      expect(config).toMatchObject({
-        headers: { 'X-Api-Key': 'workspace-key' },
-      });
-  });
-
-  it('keeps the public voices when the private listing fails', async () => {
-    byok.lookupApiKeyWithIdentity.mockResolvedValue({
-      apiKey: 'workspace-key',
-      credentialId: 'cred-1',
-    });
-    httpServiceMock.get
-      .mockReturnValueOnce(throwError(() => new Error('private down')))
-      .mockReturnValueOnce(voicePage([voice('public-1')]));
-
-    const catalog = await speechService.getSpeechVoices('org-1');
-
-    expect(catalog.voices.map((entry) => entry.voiceId)).toEqual(['public-1']);
-  });
-
-  it('returns an empty catalog when no HeyGen key exists at all', async () => {
-    apiKeyHelperMock.getApiKey.mockReturnValueOnce('');
-
+  it('lists nothing and never calls HeyGen on the platform key', async () => {
     await expect(speechService.getSpeechVoices('org-1')).resolves.toEqual({
       hasPersonalConnection: false,
       voices: [],
     });
     expect(httpServiceMock.get).not.toHaveBeenCalled();
+  });
+
+  it('lists only the active clones of the workspace key', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue({
+      apiKey: 'workspace-key',
+      credentialId: 'cred-1',
+    });
+    httpServiceMock.get.mockReturnValueOnce(
+      voicePage([voice('clone-1'), voice('clone-2', 'FAILED')]),
+    );
+
+    await expect(speechService.getSpeechVoices('org-1')).resolves.toEqual({
+      hasPersonalConnection: true,
+      voices: [
+        {
+          language: 'en',
+          mode: 'instant',
+          name: 'Voice clone-1',
+          ownership: 'private',
+          voiceId: 'clone-1',
+        },
+      ],
+    });
+    expect(httpServiceMock.get).toHaveBeenCalledTimes(1);
+    expect(httpServiceMock.get.mock.calls[0]?.[1]).toMatchObject({
+      headers: { 'X-Api-Key': 'workspace-key' },
+    });
+    expect(httpServiceMock.get.mock.calls[0]?.[1].params).not.toHaveProperty(
+      'type',
+    );
+  });
+
+  it('surfaces a listing failure instead of an empty catalog', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue({
+      apiKey: 'workspace-key',
+      credentialId: 'cred-1',
+    });
+    httpServiceMock.get.mockReturnValueOnce(
+      throwError(() => new Error('heygen down')),
+    );
+
+    await expect(speechService.getSpeechVoices('org-1')).rejects.toThrow(
+      'heygen down',
+    );
   });
 
   it('speaks a workspace clone on the workspace key without a pre-check', async () => {
@@ -155,25 +125,11 @@ describe('HeyGenSpeechVoicesService', () => {
     expect(httpServiceMock.get).not.toHaveBeenCalled();
   });
 
-  it('accepts an active public voice on the platform key', async () => {
-    httpServiceMock.get.mockReturnValueOnce(voicePage([voice('public-1')]));
-
-    await expect(
-      speechService.resolveSpeechConnection('org-1', 'public-1'),
-    ).resolves.toMatchObject({
-      apiKey: 'test-api-key',
-      binding: { kind: 'platform' },
-    });
-  });
-
-  it("refuses the platform key's private clones and inactive voices", async () => {
-    httpServiceMock.get.mockReturnValue(
-      voicePage([voice('public-pending', 'PENDING')]),
-    );
-
-    for (const voiceId of ['genfeed-private-clone', 'public-pending'])
+  it("refuses every voice on the platform key, including Genfeed's private clones", async () => {
+    for (const voiceId of ['genfeed-private-clone', 'any-other-voice'])
       await expect(
         speechService.resolveSpeechConnection('org-1', voiceId),
       ).rejects.toBeInstanceOf(BadRequestException);
+    expect(httpServiceMock.get).not.toHaveBeenCalled();
   });
 });

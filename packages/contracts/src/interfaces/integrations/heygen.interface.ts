@@ -67,7 +67,7 @@ export interface HeyGenCatalogVoice {
 export interface HeyGenSpeechVoice {
   voiceId: string;
   name: string;
-  /** `instant` or `professional` clone; null for HeyGen's public voices. */
+  /** `instant` or `professional` clone. */
   mode: string | null;
   language: string | null;
   ownership: 'private' | 'public';

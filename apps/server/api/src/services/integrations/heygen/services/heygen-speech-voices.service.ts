@@ -1,8 +1,7 @@
-import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import type { ResolvedHeyGenConnection } from '@api/services/integrations/heygen/heygen-identity.types';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
+import { ByokProvider } from '@genfeedai/contracts';
 import type {
   HeyGenSpeechVoice,
   HeyGenSpeechVoiceCatalog,
@@ -28,15 +27,13 @@ export class HeyGenSpeechVoicesService {
   constructor(
     private readonly heygenService: HeyGenService,
     private readonly byokService: ByokService,
-    private readonly apiKeyHelperService: ApiKeyHelperService,
   ) {}
 
   /**
-   * Voices the workspace can speak with: `ACTIVE` private clones from its own
-   * HeyGen key, plus HeyGen's public HeyGen Voice voices read with the key
-   * that would speak them (the workspace key when connected, otherwise the
-   * platform key). The platform key's private clones belong to Genfeed's own
-   * workspace and are never listed.
+   * `ACTIVE` HeyGen Voice clones from the workspace's own HeyGen key. The
+   * endpoint lists only the key owner's voices and has no public catalogue, so
+   * without a personal connection nothing is listed: the platform key's clones
+   * belong to Genfeed's own workspace and must never reach a customer.
    */
   async getSpeechVoices(
     organizationId: string,
@@ -46,59 +43,38 @@ export class HeyGenSpeechVoicesService {
       organizationId,
       ByokProvider.HEYGEN,
     );
-    const apiKey =
-      credential?.apiKey ??
-      this.apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
-    if (!apiKey) return { voices: [], hasPersonalConnection: false };
-    const sources: Promise<HeyGenSpeechVoice[]>[] = [
-      ...(credential ? [this.readSpeechVoices(apiKey, 'private')] : []),
-      this.readSpeechVoices(apiKey, 'public'),
-    ];
-    const results = await Promise.allSettled(sources);
-    const failure = results.find((result) => result.status === 'rejected');
-    if (failure && results.every((result) => result.status === 'rejected'))
-      throw failure.reason;
+    if (!credential) return { voices: [], hasPersonalConnection: false };
     return {
-      voices: results.flatMap((result) =>
-        result.status === 'fulfilled' ? result.value : [],
-      ),
-      hasPersonalConnection: Boolean(credential),
+      voices: await this.readSpeechVoices(credential.apiKey),
+      hasPersonalConnection: true,
     };
   }
 
   /**
    * The connection that speaks `voiceId` for this workspace and pays for it.
-   * A workspace key reaches its own clones and HeyGen enforces ownership. The
-   * platform key also reaches Genfeed's private clones, so on the platform key
-   * only an `ACTIVE` public HeyGen Voice voice is accepted.
+   * Only the workspace's own key qualifies, and HeyGen enforces ownership. The
+   * platform key also reaches Genfeed's private clones, so it never speaks.
    */
   async resolveSpeechConnection(
     organizationId: string,
-    voiceId: string,
+    _voiceId: string,
   ): Promise<ResolvedHeyGenConnection> {
     const connection =
       await this.heygenService.resolveOrganizationConnection(organizationId);
-    if (connection.binding.kind === 'byok') return connection;
-    const publicVoices = await this.readSpeechVoices(
-      connection.apiKey,
-      'public',
-    );
-    if (!publicVoices.some((voice) => voice.voiceId === voiceId))
+    if (connection.binding.kind !== 'byok')
       throw new BadRequestException(
-        'This HeyGen voice needs your own HeyGen connection. Connect HeyGen or pick a public HeyGen Voice voice.',
+        'HeyGen Voice speaks with your own voice clones. Connect your HeyGen account to use one.',
       );
     return connection;
   }
 
   private async readSpeechVoices(
     apiKey: string,
-    ownership: 'private' | 'public',
   ): Promise<HeyGenSpeechVoice[]> {
     const items = await this.heygenService.getCatalog(
       '/models/audio/voices',
       apiKey,
       100,
-      { type: ownership },
     );
     return items.flatMap((item) => {
       const voice = speechVoiceSchema.parse(item);
@@ -109,7 +85,7 @@ export class HeyGenSpeechVoicesService {
               name: voice.name,
               mode: voice.mode ?? null,
               language: voice.language ?? null,
-              ownership,
+              ownership: 'private',
             },
           ]
         : [];

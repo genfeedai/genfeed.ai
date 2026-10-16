@@ -84,8 +84,8 @@ export class HeyGenService extends BaseService<IHeyGen> {
   }
 
   /**
-   * HeyGen Voice (TTS) voices: the workspace's ACTIVE private clones plus
-   * HeyGen's public voices. Distinct from `fetchVoices`, which lists the stock
+   * HeyGen Voice (TTS) voices: the workspace's own ACTIVE clones, listed
+   * only when it has connected its own HeyGen account. Distinct from `fetchVoices`, which lists the stock
    * catalog voices avatar video uses.
    */
   async fetchSpeechVoices(

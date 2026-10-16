@@ -31,8 +31,8 @@ export interface UseHeyGenSpeechVoicesReturn {
 }
 
 /**
- * HeyGen Voice (text-to-speech) voices: the workspace's ACTIVE private clones
- * plus HeyGen's public voices. A failed load leaves `voices` empty and
+ * HeyGen Voice (text-to-speech) voices: the workspace's own ACTIVE clones,
+ * listed only when it has connected its own HeyGen account. A failed load leaves `voices` empty and
  * `isLoaded` false so callers degrade to other providers' voices.
  */
 export function useHeyGenSpeechVoices({
