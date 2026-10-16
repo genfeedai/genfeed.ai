@@ -1,7 +1,7 @@
 import { AgentFailureReason } from '@genfeedai/contracts';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import pages from '../../../../../messages/en/pages.json';
 import AgentFailuresPage from './content';
@@ -18,7 +18,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: PropsWithChildren) => children,
+  default: ({ children, right }: PropsWithChildren<{ right?: ReactNode }>) => (
+    <>
+      {right}
+      {children}
+    </>
+  ),
 }));
 vi.mock('@ui/overview/WorkspaceSurface', () => ({
   WorkspaceSurface: ({ children }: PropsWithChildren) => children,

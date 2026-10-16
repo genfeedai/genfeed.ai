@@ -5,6 +5,7 @@ import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { logger } from '@services/core/logger.service';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
@@ -81,16 +82,14 @@ export default function AgentFailuresPage() {
     <Container
       label={translate('title')}
       description={translate('description')}
+      moduleChrome
       refresh={
-        <Button
-          label={translate('refresh')}
-          isDisabled={state === 'loading'}
+        <ButtonRefresh
           onClick={refreshFailures}
-          variant={ButtonVariant.SECONDARY}
+          isRefreshing={state === 'loading'}
         />
       }
-    >
-      <WorkspaceSurface title={translate('feed')} tone="muted">
+      right={
         <Select value={reason ?? 'all'} onValueChange={changeReason}>
           <SelectTrigger aria-label={translate('reasonFilter')}>
             <SelectValue />
@@ -104,6 +103,13 @@ export default function AgentFailuresPage() {
             ))}
           </SelectContent>
         </Select>
+      }
+    >
+      <WorkspaceSurface
+        framed={state === 'ready' && failures.length > 0}
+        title={translate('feed')}
+        tone="muted"
+      >
         {state === 'loading' ? (
           <LazyLoadingFallback variant="grid" />
         ) : state === 'error' ? (
