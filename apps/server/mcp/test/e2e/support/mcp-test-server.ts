@@ -4,6 +4,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@mcp/config/config.service';
 import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';
 import { AuthService } from '@mcp/services/auth.service';
+import type { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import { mcpAccessModeMiddleware } from '@mcp/shared/middleware/mcp-access-mode.middleware';
@@ -76,7 +77,7 @@ export async function startMcpTestServer(
     silentLogger,
     httpService,
     configService,
-    { instrumentServer: () => undefined } as never,
+    { instrumentServer: () => undefined } as unknown as PostHogAnalyticsService,
   );
 
   const authenticate = async (
