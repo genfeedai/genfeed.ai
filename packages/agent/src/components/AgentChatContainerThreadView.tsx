@@ -92,15 +92,11 @@ export type AgentChatContainerThreadViewProps = {
   showFollowUpButton: boolean;
   timeline: TimelineEntry[];
   /**
-   * Full-page composer for a settled thread. It stays in flow under a short
-   * transcript and sticks to the viewport only once content passes behind it.
+   * Composer under the transcript. A settled thread keeps it in the scroll so
+   * a short conversation stays in flow. Onboarding lifts it out of the scroll
+   * and pins it to the column floor, with the choice cards directly above it.
    */
   columnFooter?: ReactNode;
-  /**
-   * Onboarding composer. It renders under the choice cards, inside the
-   * transcript track, so it cannot sit on the viewport floor.
-   */
-  onboardingComposer?: ReactNode;
 };
 
 /**
@@ -150,7 +146,6 @@ export function AgentChatContainerThreadView({
   showFollowUpButton,
   timeline,
   columnFooter,
-  onboardingComposer,
 }: AgentChatContainerThreadViewProps): ReactElement {
   const inputCardRef = useRef<HTMLDivElement>(null);
   const columnFooterRef = useRef<HTMLDivElement>(null);
@@ -160,7 +155,7 @@ export function AgentChatContainerThreadView({
     if (onboardingMode && pendingInputRequest?.inputRequestId)
       inputCardRef.current?.scrollIntoView?.({ block: 'end' });
   }, [onboardingMode, pendingInputRequest?.inputRequestId]);
-  const hasColumnFooter = columnFooter != null;
+  const hasColumnFooter = columnFooter != null && !onboardingMode;
   useEffect(() => {
     const scroll = scrollContainerRef.current;
     if (!hasColumnFooter || !scroll) {
@@ -207,7 +202,6 @@ export function AgentChatContainerThreadView({
               onSkip={() => onSubmitInputRequest('Skip', ['skip'])}
             />
           ) : null}
-          {onboardingComposer}
         </div>
       ) : (
         <div ref={inputCardRef}>
@@ -291,10 +285,8 @@ export function AgentChatContainerThreadView({
             // Docked composer status owns busy chrome — hide pure Thinking rows.
             suppressThinkingPlaceholder={padBottomForComposer}
           />
-          {onboardingMode ? inputCard : null}
-          {onboardingMode && !inputCard ? onboardingComposer : null}
         </div>
-        {columnFooter ? (
+        {hasColumnFooter ? (
           <div
             className={cn(
               'z-20',
@@ -329,7 +321,34 @@ export function AgentChatContainerThreadView({
         ) : null}
       </div>
 
-      {!isAtBottom && !columnFooter ? (
+      {onboardingMode && (inputCard || columnFooter) ? (
+        <div
+          className="relative z-20 shrink-0 bg-background"
+          data-testid="agent-column-composer"
+        >
+          {!isAtBottom ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
+              <Button
+                ariaLabel="Scroll to latest message"
+                className="pointer-events-auto rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
+                icon={<ArrowDown className="size-4" />}
+                onClick={scrollToBottom}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </div>
+          ) : null}
+          {inputCard ? (
+            <div className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'pb-2')}>
+              {inputCard}
+            </div>
+          ) : null}
+          {columnFooter}
+        </div>
+      ) : null}
+
+      {!isAtBottom && !columnFooter && !onboardingMode ? (
         <div
           className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
           style={{ bottom: composerTranscriptPaddingPx }}

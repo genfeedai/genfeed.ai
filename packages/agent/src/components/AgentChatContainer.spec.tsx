@@ -934,8 +934,16 @@ describe('AgentChatContainer', () => {
         isStreaming
       />,
     );
+    const footer = screen.getByTestId('agent-column-composer');
     const answer = screen.getByTestId('onboarding-answer');
-    expect(answer).toContainElement(screen.getByTestId('chat-input'));
+    const composer = screen.getByTestId('chat-input');
+    expect(footer).toContainElement(answer);
+    expect(footer).toContainElement(composer);
+    expect(answer.contains(composer)).toBe(false);
+    expect(
+      answer.compareDocumentPosition(composer) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       screen.getByRole('heading', { name: 'Your brand link' }),
     ).toBeInTheDocument();
@@ -970,11 +978,14 @@ describe('AgentChatContainer', () => {
       </ConversationComposerShellProvider>,
     );
 
+    const footer = container.querySelector(
+      '[data-testid="agent-column-composer"]',
+    );
     const answer = container.querySelector('[data-testid="onboarding-answer"]');
-    expect(answer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
-    expect(
-      container.querySelector('[data-testid="agent-column-composer"]'),
-    ).toBeNull();
+    expect(footer?.contains(answer)).toBe(true);
+    expect(answer?.querySelector('[data-testid="chat-input"]')).toBeNull();
+    expect(footer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
+    expect(footer?.textContent ?? '').not.toContain(ONBOARDING_GREETING);
     expect(screen.queryByRole('button', { name: 'Skip' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'submit' })).toBeNull();
 
@@ -1688,8 +1699,13 @@ describe('AgentChatContainer', () => {
         onboardingMode
       />,
     );
+    const footer = container.querySelector(
+      '[data-testid="agent-column-composer"]',
+    );
     const answer = container.querySelector('[data-testid="onboarding-answer"]');
-    expect(answer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
+    expect(footer?.contains(answer)).toBe(true);
+    expect(answer?.querySelector('[data-testid="chat-input"]')).toBeNull();
+    expect(footer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
     expect(
       screen.getByRole('button', { name: 'Grow audience' }),
     ).toBeInTheDocument();
@@ -1716,8 +1732,13 @@ describe('AgentChatContainer', () => {
       <AgentChatContainer apiService={apiService as never} onboardingMode />,
     );
 
+    const footer = container.querySelector(
+      '[data-testid="agent-column-composer"]',
+    );
     const answer = container.querySelector('[data-testid="onboarding-answer"]');
-    expect(answer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
+    expect(footer?.contains(answer)).toBe(true);
+    expect(answer?.querySelector('[data-testid="chat-input"]')).toBeNull();
+    expect(footer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
     expect(screen.queryByRole('textbox', { name: 'Other' })).toBeNull();
     await waitFor(() =>
       expect(storeState.seedComposer).toHaveBeenCalledWith(

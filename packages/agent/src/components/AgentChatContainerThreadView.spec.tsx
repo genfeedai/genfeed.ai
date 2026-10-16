@@ -241,12 +241,13 @@ describe('AgentChatContainerThreadView', () => {
       />,
     );
 
+    const footer = screen.getByTestId('agent-column-composer');
+    const heading = screen.getByRole('heading', { name: 'Goals' });
+    expect(footer).toContainElement(heading);
+    expect(footer).not.toContainElement(screen.getByText('timeline'));
     expect(
-      screen
-        .getByText('timeline')
-        .compareDocumentPosition(
-          screen.getByRole('heading', { name: 'Goals' }),
-        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen.getByText('timeline').compareDocumentPosition(heading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(scroll).toHaveBeenCalledWith({ block: 'end' });
     view.unmount();

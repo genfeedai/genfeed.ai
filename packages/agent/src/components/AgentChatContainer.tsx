@@ -592,11 +592,10 @@ export function AgentChatContainer({
                 : container.timeline
             }
             columnFooter={
-              onboardingMode || !placeComposerInColumn
-                ? undefined
-                : dockedComposer
+              onboardingMode || placeComposerInColumn
+                ? dockedComposer
+                : undefined
             }
-            onboardingComposer={onboardingMode ? dockedComposer : undefined}
           />
         )}
 
