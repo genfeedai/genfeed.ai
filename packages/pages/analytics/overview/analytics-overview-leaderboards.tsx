@@ -258,6 +258,7 @@ export default function AnalyticsOverviewLeaderboards({
               <AppTable<IOrgLeaderboardItem>
                 items={orgsLeaderboard}
                 isLoading={false}
+                framed={false}
                 columns={orgsColumns}
                 getRowKey={(item, index) => `${item.organization.id}-${index}`}
                 emptyLabel="No organizations found"
@@ -303,6 +304,7 @@ export default function AnalyticsOverviewLeaderboards({
             <AppTable<IBrandWithStats>
               items={brandsLeaderboard}
               isLoading={false}
+              framed={false}
               columns={brandsColumns}
               getRowKey={(item, index) => `${item.id}-${index}`}
               emptyLabel="No brands found"
