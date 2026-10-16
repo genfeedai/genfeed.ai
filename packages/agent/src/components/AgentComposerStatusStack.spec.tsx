@@ -136,7 +136,9 @@ describe('AgentComposerStatusStack', () => {
 
     const notice = screen.getByRole('alert');
     expect(notice).toHaveClass('max-w-2xl');
-    expect(notice).toHaveClass('bg-destructive/10');
+    expect(notice).toHaveClass('bg-background/80');
+    expect(notice).toHaveClass('backdrop-blur-xl');
+    expect(notice).not.toHaveClass('backdrop-blur-none');
     expect(notice).toHaveClass('shadow-none');
     expect(notice).not.toHaveClass('shadow-border');
     expect(

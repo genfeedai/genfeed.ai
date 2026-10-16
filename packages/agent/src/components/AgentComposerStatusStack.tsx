@@ -464,10 +464,8 @@ export function AgentComposerStatusStack({
         <div
           className={cn(
             STATUS_SURFACE_CLASS,
-            'mx-auto flex w-full max-w-2xl items-start gap-2 text-foreground shadow-none backdrop-blur-none',
-            isApprovalExpired
-              ? 'border-warning/50 bg-warning/10'
-              : 'border-destructive/50 bg-destructive/10',
+            'mx-auto flex w-full max-w-2xl items-start gap-2 border-destructive/40 bg-background/80 text-foreground shadow-none backdrop-blur-xl',
+            isApprovalExpired && 'border-warning/50',
           )}
           role="alert"
         >

@@ -39,7 +39,6 @@ type AgentChatEmptyStateProps = {
   isBusy: boolean;
   isComposerVisible: boolean;
   composerBanner?: ReactNode;
-  composerPaddingPx?: number;
   isReadOnly: boolean;
   isRunActive: boolean;
   isWideLayout: boolean;
@@ -83,7 +82,6 @@ export function AgentChatEmptyState({
   isBusy,
   isComposerVisible,
   composerBanner,
-  composerPaddingPx,
   isReadOnly,
   isRunActive,
   isWideLayout,
@@ -129,7 +127,7 @@ export function AgentChatEmptyState({
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-          <div className="flex min-h-full flex-col justify-center gap-5">
+          <div className="flex flex-col gap-5">
             <div className="w-full text-left">
               <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
                 {emptyStateTitle}
@@ -149,65 +147,67 @@ export function AgentChatEmptyState({
   }
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden">
-      <div
-        className="flex min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-6"
-        style={{ paddingBottom: composerPaddingPx }}
-      >
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-6">
         <div
           className={cn(
-            'mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center',
+            'mx-auto flex w-full max-w-2xl flex-col items-center gap-5',
             isWideLayout && 'md:max-w-3xl',
           )}
         >
-          <h2 className="mb-2 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground md:text-[1.75rem]">
-            {emptyStateTitle}
-          </h2>
-          <p className="mb-5 w-full max-w-2xl break-words text-center text-sm leading-5 text-muted-foreground">
-            {emptyStateDescription}
-          </p>
-
+          <div className="w-full text-center">
+            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-foreground md:text-[1.75rem]">
+              {emptyStateTitle}
+            </h2>
+            <p className="mt-2 break-words text-sm leading-5 text-muted-foreground">
+              {emptyStateDescription}
+            </p>
+          </div>
           {promptBarSuggestions ? (
-            <div className="mb-5 w-full max-w-2xl">{promptBarSuggestions}</div>
-          ) : null}
-
-          {isComposerVisible ? (
-            <PromptBarContainer
-              className="w-full"
-              layoutMode="inflow"
-              maxWidth="full"
-              showTopFade={false}
-              topContent={composerTopContent}
-              zIndex={60}
-            >
-              <AgentChatInput
-                addFiles={addFiles}
-                agentMode={agentMode}
-                onAgentModeChange={onAgentModeChange}
-                apiService={apiService}
-                knowledgeSelection={knowledgeSelection}
-                knowledgeSection={knowledgeSection}
-                attachments={chatAttachments}
-                clearAllAttachments={clearAllAttachments}
-                disabled={isReadOnly}
-                hasQueuedFollowUps={followUps.length > 0}
-                onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
-                dragHandlers={dragHandlers}
-                dragState={dragState}
-                getCompletedAttachments={getCompletedAttachments}
-                isUploading={isAttachmentUploading}
-                onSend={onSend}
-                onStop={onStop}
-                placeholder={placeholder}
-                removeAttachment={removeAttachment}
-                showStop={isRunActive}
-                willQueueFollowUp={isBusy}
-                creditsAvailable={creditsAvailable}
-              />
-            </PromptBarContainer>
+            <div className="w-full">{promptBarSuggestions}</div>
           ) : null}
         </div>
       </div>
+      {isComposerVisible ? (
+        <div className="shrink-0 px-4 pb-4 md:px-6">
+          <PromptBarContainer
+            className={cn(
+              'mx-auto w-full max-w-2xl',
+              isWideLayout && 'md:max-w-3xl',
+            )}
+            layoutMode="inflow"
+            maxWidth="full"
+            showTopFade={false}
+            topContent={composerTopContent}
+            zIndex={60}
+          >
+            <AgentChatInput
+              addFiles={addFiles}
+              agentMode={agentMode}
+              onAgentModeChange={onAgentModeChange}
+              apiService={apiService}
+              knowledgeSelection={knowledgeSelection}
+              knowledgeSection={knowledgeSection}
+              attachments={chatAttachments}
+              clearAllAttachments={clearAllAttachments}
+              disabled={isReadOnly}
+              hasQueuedFollowUps={followUps.length > 0}
+              onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
+              dragHandlers={dragHandlers}
+              dragState={dragState}
+              getCompletedAttachments={getCompletedAttachments}
+              isUploading={isAttachmentUploading}
+              onSend={onSend}
+              onStop={onStop}
+              placeholder={placeholder}
+              removeAttachment={removeAttachment}
+              showStop={isRunActive}
+              willQueueFollowUp={isBusy}
+              creditsAvailable={creditsAvailable}
+            />
+          </PromptBarContainer>
+        </div>
+      ) : null}
     </div>
   );
 }
