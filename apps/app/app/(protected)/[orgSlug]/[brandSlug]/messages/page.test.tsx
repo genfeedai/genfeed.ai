@@ -867,7 +867,6 @@ describe('SocialMessagesPage', () => {
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Instagram · instagram account',
-        exact: true,
       }),
     );
     await waitFor(() =>
