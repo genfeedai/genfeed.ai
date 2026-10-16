@@ -15,19 +15,18 @@
  * - No fixed prices or credit amounts: those change independently of a release.
  *   Point at https://genfeed.ai/pricing instead.
  * - `content` is sanitized HTML, not markdown (see launch-articles.ts).
- * - Help articles ship without `coverImageUrl`; the site derives a stable cover
- *   from the slug until editorial artwork exists.
+ * - Every help article has permanent editorial artwork shared by its header
+ *   and OG card; the website renders the short OG headline in code.
  *
  * Keep `helpArticleSlugs` in `apps/website/packages/data/help-articles.data.ts`
  * aligned with the slugs below; `help-articles.spec.ts` enforces it.
  */
 
 import { ArticleCategory } from '@genfeedai/contracts';
+import { articleArtwork } from './article-artwork';
 import type { SeedArticle } from './launch-articles';
 
-export type HelpSeedArticle = Omit<SeedArticle, 'coverImageUrl'> & {
-  coverImageUrl?: string;
-};
+export type HelpSeedArticle = SeedArticle;
 
 const SITE = 'https://genfeed.ai';
 const APP = 'https://app.genfeed.ai';
@@ -887,6 +886,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: GETTING_STARTED,
+    coverImageUrl: articleArtwork(SLUGS.gettingStarted),
     label: LABELS[SLUGS.gettingStarted],
     publishedAt: PUBLISHED_AT[0],
     slug: SLUGS.gettingStarted,
@@ -896,6 +896,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: CREDITS_AND_BILLING,
+    coverImageUrl: articleArtwork(SLUGS.credits),
     label: LABELS[SLUGS.credits],
     publishedAt: PUBLISHED_AT[1],
     slug: SLUGS.credits,
@@ -905,6 +906,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: ORGANIZATIONS,
+    coverImageUrl: articleArtwork(SLUGS.organizations),
     label: LABELS[SLUGS.organizations],
     publishedAt: PUBLISHED_AT[2],
     slug: SLUGS.organizations,
@@ -914,6 +916,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: TEAM,
+    coverImageUrl: articleArtwork(SLUGS.team),
     label: LABELS[SLUGS.team],
     publishedAt: PUBLISHED_AT[3],
     slug: SLUGS.team,
@@ -923,6 +926,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: SETTINGS,
+    coverImageUrl: articleArtwork(SLUGS.settings),
     label: LABELS[SLUGS.settings],
     publishedAt: PUBLISHED_AT[4],
     slug: SLUGS.settings,
@@ -932,6 +936,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: BRAND,
+    coverImageUrl: articleArtwork(SLUGS.brand),
     label: LABELS[SLUGS.brand],
     publishedAt: PUBLISHED_AT[5],
     slug: SLUGS.brand,
@@ -941,6 +946,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: CONNECT_ACCOUNTS,
+    coverImageUrl: articleArtwork(SLUGS.connectAccounts),
     label: LABELS[SLUGS.connectAccounts],
     publishedAt: PUBLISHED_AT[6],
     slug: SLUGS.connectAccounts,
@@ -950,6 +956,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: APPROVAL_QUEUE,
+    coverImageUrl: articleArtwork(SLUGS.approvalQueue),
     label: LABELS[SLUGS.approvalQueue],
     publishedAt: PUBLISHED_AT[7],
     slug: SLUGS.approvalQueue,
@@ -959,6 +966,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: STUDIO,
+    coverImageUrl: articleArtwork(SLUGS.studio),
     label: LABELS[SLUGS.studio],
     publishedAt: PUBLISHED_AT[8],
     slug: SLUGS.studio,
@@ -968,6 +976,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: MCP,
+    coverImageUrl: articleArtwork(SLUGS.mcp),
     label: LABELS[SLUGS.mcp],
     publishedAt: PUBLISHED_AT[9],
     slug: SLUGS.mcp,
@@ -977,6 +986,7 @@ export const HELP_ARTICLES: readonly HelpSeedArticle[] = [
   {
     category: ArticleCategory.HELP,
     content: CLOUD_VS_SELF_HOSTED,
+    coverImageUrl: articleArtwork(SLUGS.cloudVsSelfHosted),
     label: LABELS[SLUGS.cloudVsSelfHosted],
     publishedAt: PUBLISHED_AT[10],
     slug: SLUGS.cloudVsSelfHosted,

@@ -7,6 +7,7 @@ import {
   getEditorialArticleCard,
   getEditorialArticleCoverUrl,
 } from '@data/editorial-og.data';
+import { helpArticleSlugs } from '@data/help-articles.data';
 import { integrations } from '@data/integrations.data';
 import {
   getMarketingOgImage,
@@ -83,10 +84,25 @@ describe('dedicated editorial OG coverage', () => {
         competitor.name,
       );
     }
-    expect(Object.keys(ARTICLE_OG_CARDS)).toHaveLength(41);
-    expect(new Set(Object.values(ARTICLE_OG_CARDS)).size).toBe(41);
+    expect(Object.keys(ARTICLE_OG_CARDS)).toHaveLength(52);
+    expect(new Set(Object.values(ARTICLE_OG_CARDS)).size).toBe(52);
     for (const slug of Object.keys(ARTICLE_OG_CARDS))
       expectDedicated(`/articles/${slug}`);
+  });
+
+  it('gives every Cloud help article matching header artwork and an editorial OG card', () => {
+    for (const slug of helpArticleSlugs) {
+      const id = ARTICLE_OG_CARDS[slug];
+      const cover = `https://cdn.genfeed.ai/assets/cards/articles/${id}.webp`;
+      expect(getEditorialArticleCard(slug, cover)).toBe(id);
+      expectDedicated(`/articles/${slug}`);
+      expect(MARKETING_OG_CARDS[id].artwork).toBe(
+        `https://cdn.genfeed.ai/assets/og/${id}.jpg`,
+      );
+      const words = MARKETING_OG_CARDS[id].headline.join(' ').split(/\s+/);
+      expect(words.length).toBeGreaterThanOrEqual(2);
+      expect(words.length).toBeLessThanOrEqual(4);
+    }
   });
 
   it('reserves the generic card for utility and unknown routes', () => {

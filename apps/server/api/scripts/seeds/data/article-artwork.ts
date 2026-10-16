@@ -51,6 +51,17 @@ export const ARTICLE_ARTWORK_IDS = {
   'what-is-an-ai-content-agent': 'card-0035',
   'what-is-an-ai-influencer': 'card-0036',
   'what-is-social-listening-find-content-ideas': 'card-0037',
+  'getting-started-with-genfeed-cloud': 'card-0042',
+  'how-credits-and-billing-work': 'card-0043',
+  'organizations-in-genfeed-cloud': 'card-0044',
+  'invite-your-team-roles-and-members': 'card-0045',
+  'account-and-workspace-settings': 'card-0046',
+  'brand-setup-and-brand-memory': 'card-0047',
+  'connect-your-social-accounts': 'card-0048',
+  'approval-queue-review-before-publishing': 'card-0049',
+  'using-studio-for-images-and-video': 'card-0050',
+  'connect-claude-code-or-cursor-to-genfeed-cloud-mcp': 'card-0051',
+  'genfeed-cloud-vs-self-hosted': 'card-0052',
 } as const;
 
 type ArticleArtworkSlug = keyof typeof ARTICLE_ARTWORK_IDS;

@@ -331,6 +331,50 @@ export const EDITORIAL_OG_ARTWORKS = {
     headline: ['From terminal', 'to timeline'],
     route: '/articles/schedule-social-media-posts-claude-code-mcp',
   },
+  'card-0042': {
+    headline: ['Your first', 'post'],
+    route: '/articles/getting-started-with-genfeed-cloud',
+  },
+  'card-0043': {
+    headline: ['Know your', 'credits'],
+    route: '/articles/how-credits-and-billing-work',
+  },
+  'card-0044': {
+    headline: ['One workspace', 'Every brand'],
+    route: '/articles/organizations-in-genfeed-cloud',
+  },
+  'card-0045': {
+    headline: ['Build your', 'team'],
+    route: '/articles/invite-your-team-roles-and-members',
+  },
+  'card-0046': {
+    headline: ['Make it', 'yours'],
+    route: '/articles/account-and-workspace-settings',
+  },
+  'card-0047': {
+    headline: ['Your brand', 'Your voice'],
+    route: '/articles/brand-setup-and-brand-memory',
+  },
+  'card-0048': {
+    headline: ['Connect your', 'channels'],
+    route: '/articles/connect-your-social-accounts',
+  },
+  'card-0049': {
+    headline: ['Review then', 'publish'],
+    route: '/articles/approval-queue-review-before-publishing',
+  },
+  'card-0050': {
+    headline: ['Create your', 'next visual'],
+    route: '/articles/using-studio-for-images-and-video',
+  },
+  'card-0051': {
+    headline: ['Your editor', 'publishes'],
+    route: '/articles/connect-claude-code-or-cursor-to-genfeed-cloud-mcp',
+  },
+  'card-0052': {
+    headline: ['Choose your', 'setup'],
+    route: '/articles/genfeed-cloud-vs-self-hosted',
+  },
 } as const;
 
 export const ARTICLE_OG_CARDS = {
@@ -376,6 +420,17 @@ export const ARTICLE_OG_CARDS = {
   'meta-muse-connectors-schedule-social-media-posts': 'card-0040',
   'grok-bot-social-media-automation': 'card-0039',
   'schedule-social-media-posts-claude-code-mcp': 'card-0041',
+  'getting-started-with-genfeed-cloud': 'card-0042',
+  'how-credits-and-billing-work': 'card-0043',
+  'organizations-in-genfeed-cloud': 'card-0044',
+  'invite-your-team-roles-and-members': 'card-0045',
+  'account-and-workspace-settings': 'card-0046',
+  'brand-setup-and-brand-memory': 'card-0047',
+  'connect-your-social-accounts': 'card-0048',
+  'approval-queue-review-before-publishing': 'card-0049',
+  'using-studio-for-images-and-video': 'card-0050',
+  'connect-claude-code-or-cursor-to-genfeed-cloud-mcp': 'card-0051',
+  'genfeed-cloud-vs-self-hosted': 'card-0052',
 } as const;
 
 export function getEditorialArticleCard(slug: string, source?: string) {
