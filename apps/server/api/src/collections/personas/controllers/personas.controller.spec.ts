@@ -7,15 +7,19 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_data, _serializer) => ({ data: _data })),
 }));
 
+import { PersonaReferencesController } from '@api/collections/personas/controllers/persona-references.controller';
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
+import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { brandAvailabilityWhere } from '@api/collections/personas/utils/persona-availability.util';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { PersonaAvailabilityMode, PersonaStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -49,20 +53,27 @@ describe('PersonasController', () => {
     remove: vi.fn(),
     updateAvailability: vi.fn(),
     withAvailabilitySummary: vi.fn(),
+    withReferenceIngredientIds: vi.fn(),
   };
 
   const ownershipMethods = { moveOwnership: vi.fn() };
+  const referencesMethods = { setPrimary: vi.fn() };
 
   beforeEach(async () => {
     mockServiceMethods.withAvailabilitySummary.mockImplementation(
       async (docs: unknown[]) => docs,
     );
+    mockServiceMethods.withReferenceIngredientIds.mockImplementation(
+      async (docs: unknown[]) => docs,
+    );
+    referencesMethods.setPrimary.mockResolvedValue([]);
     mockServiceMethods.assertCanManageSharing.mockResolvedValue(undefined);
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PersonasController],
       providers: [
         { provide: PersonasService, useValue: mockServiceMethods },
         { provide: CharacterOwnershipService, useValue: ownershipMethods },
+        { provide: PersonaReferencesService, useValue: referencesMethods },
         {
           provide: LoggerService,
           useValue: {
@@ -87,6 +98,44 @@ describe('PersonasController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('decorates persona reads using the active organization override', async () => {
+    const selectedOrganizationId = testId('org', 2);
+    const persona = { id: personaId } as PersonaDocument;
+    await runWithTenantContext({ organizationId: selectedOrganizationId }, () =>
+      controller.decorateForResponse(persona, mockUser),
+    );
+    expect(mockServiceMethods.withAvailabilitySummary).toHaveBeenCalledWith(
+      [persona],
+      selectedOrganizationId,
+    );
+    expect(mockServiceMethods.withReferenceIngredientIds).toHaveBeenCalledWith(
+      [persona],
+      selectedOrganizationId,
+    );
+  });
+
+  it('reads references in the verified selected organization and brand', async () => {
+    const list = vi.fn().mockResolvedValue([]);
+    const referencesController = new PersonaReferencesController({
+      list,
+    } as never);
+    const selectedOrganizationId = testId('org', 2);
+    const selectedBrandId = testId('brand', 2);
+    await runWithTenantReadScope(
+      {
+        brandId: selectedBrandId,
+        isOrganizationOverride: true,
+        organizationId: selectedOrganizationId,
+      },
+      () => referencesController.list(mockUser, personaId),
+    );
+    expect(list).toHaveBeenCalledWith({
+      brandId: selectedBrandId,
+      organizationId: selectedOrganizationId,
+      personaId,
+    });
   });
 
   describe('patch (member assignment)', () => {
@@ -175,6 +224,70 @@ describe('PersonasController', () => {
         unknown
       >;
       expect(patchArg.organizationId).toBe(organizationId);
+    });
+
+    it('keeps the ordered references consistent when the avatar changes', async () => {
+      const imageId = testId('ingredient', 7);
+      mockServiceMethods.findOne.mockResolvedValue({
+        avatarIngredientId: testId('ingredient', 1),
+        id: personaId,
+        organizationId,
+        userId,
+      });
+      mockServiceMethods.patch.mockResolvedValue({ id: personaId });
+
+      await controller.patch(mockRequest, mockUser, personaId, {
+        avatarIngredientId: imageId,
+        label: 'Anna',
+      });
+
+      expect(referencesMethods.setPrimary).toHaveBeenCalledWith({
+        actor: expect.objectContaining({ userId }),
+        brandId,
+        ingredientId: imageId,
+        organizationId,
+        personaId,
+      });
+      const patchArg = mockServiceMethods.patch.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(patchArg.avatarIngredientId).toBeUndefined();
+      expect(patchArg.label).toBe('Anna');
+    });
+
+    it('does not touch the references when the avatar is unchanged', async () => {
+      const imageId = testId('ingredient', 1);
+      mockServiceMethods.findOne.mockResolvedValue({
+        avatarIngredientId: imageId,
+        id: personaId,
+        organizationId,
+        userId,
+      });
+      mockServiceMethods.patch.mockResolvedValue({ id: personaId });
+
+      await controller.patch(mockRequest, mockUser, personaId, {
+        avatarIngredientId: imageId,
+      });
+
+      expect(referencesMethods.setPrimary).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 before touching the references for a character the caller cannot modify', async () => {
+      mockServiceMethods.findOne.mockResolvedValue({
+        avatarIngredientId: null,
+        id: personaId,
+        organizationId,
+        userId: testId('user', 9),
+      });
+
+      await expect(
+        controller.patch(mockRequest, mockUser, personaId, {
+          avatarIngredientId: testId('ingredient', 7),
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(referencesMethods.setPrimary).not.toHaveBeenCalled();
+      expect(mockServiceMethods.patch).not.toHaveBeenCalled();
     });
 
     it('answers 404 when the creator patches their own unshared character in another organization', async () => {

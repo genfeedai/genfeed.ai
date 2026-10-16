@@ -5,5 +5,12 @@ export interface SaveAsCharacterProps {
   assetId: string;
   active?: boolean;
   imageUrl: string;
-  children?: (action: IQuickAction | null) => ReactNode;
+  /**
+   * Receives the "Save as character" action plus one "Add to @handle" action
+   * for each existing character that does not yet use the image.
+   */
+  children?: (
+    action: IQuickAction | null,
+    addActions: IQuickAction[],
+  ) => ReactNode;
 }

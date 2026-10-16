@@ -37,7 +37,7 @@ export default function DropdownOptionItem({
       type="button"
       key={option.key != null ? String(option.key) : `option-${index}`}
       className={cn(
-        'w-full px-3 py-2 text-left hover:bg-background transition-colors',
+        'dropdown-case w-full px-3 py-2 text-left hover:bg-background transition-colors',
         value === option.key && 'bg-primary/20',
       )}
       onClick={() => onSelect(option.key)}

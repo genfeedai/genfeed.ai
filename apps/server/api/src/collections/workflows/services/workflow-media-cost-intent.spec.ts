@@ -92,6 +92,34 @@ describe('workflow media billing intent', () => {
     },
   );
 
+  it('resolves an upscale row as a held charge on the platform key', async () => {
+    const transaction = {
+      model: { findFirst: vi.fn().mockResolvedValue(null) },
+      mediaVendorCost: { create: vi.fn() },
+    };
+    await createWorkflowMediaCostIntent(
+      transaction as unknown as Prisma.TransactionClient,
+      {
+        actionId: 'upscale',
+        executionId: 'run',
+        ingredientId: 'asset',
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        nodeId: 'node',
+        organizationId: 'org',
+        provider: 'replicate',
+      },
+      'continuation',
+    );
+    expect(transaction.mediaVendorCost.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        pricingSnapshot: expect.objectContaining({
+          billingDisposition: 'pending_charge',
+          isByok: false,
+        }),
+      }),
+    });
+  });
+
   it('falls back to the flat avatar row when the output records no engine', async () => {
     const transaction = {
       ingredient: { findFirst: vi.fn().mockResolvedValue(null) },

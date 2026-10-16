@@ -168,6 +168,7 @@ const characters = [
     hasReferenceImage: true,
     id: 'p1',
     label: 'Anna',
+    referenceIngredientIds: ['img-1'],
   },
   {
     avatarIngredientId: null,
@@ -175,6 +176,7 @@ const characters = [
     hasReferenceImage: false,
     id: 'p2',
     label: 'Ghost',
+    referenceIngredientIds: [],
   },
 ];
 
@@ -209,6 +211,7 @@ describe('CharacterMentionList', () => {
             isShared: true,
             label: 'Anna',
             owningBrandName: 'Podcast',
+            referenceIngredientIds: ['img-1'],
           },
           {
             handle: 'ben',
@@ -216,6 +219,7 @@ describe('CharacterMentionList', () => {
             id: 'p2',
             isShared: false,
             label: 'Ben',
+            referenceIngredientIds: ['img-2'],
           },
         ]}
       />,

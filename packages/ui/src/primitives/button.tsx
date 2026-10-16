@@ -1,14 +1,13 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { Slot } from '@radix-ui/react-slot';
-import BrandMark from '@ui/primitives/brand-mark';
+import { LoaderCircle } from 'lucide-react';
 import type {
   ButtonHTMLAttributes,
   MouseEvent,
   ReactElement,
   ReactNode,
 } from 'react';
-import { HoverAnimatedIconSlot } from './animated-icons/hover-animated-icon-slot';
 import {
   type ButtonStyleProps,
   buttonVariants,
@@ -50,9 +49,11 @@ function Spinner({
     <output
       aria-hidden={ariaHidden}
       aria-label={ariaHidden ? undefined : 'Loading'}
-      className="genfeed-loader-root inline-flex size-4 shrink-0 items-center justify-center"
+      className="inline-flex size-4 shrink-0 items-center justify-center"
     >
-      <BrandMark />
+      {/* A plain spinner: the animated brand mark is for page-level loading,
+          not for a pending action inside a control. */}
+      <LoaderCircle className="size-4 animate-spin" />
     </output>
   );
 }
@@ -68,7 +69,6 @@ function Button({
   isDisabled = false,
   isLoading = false,
   isPingEnabled = false,
-  isStatic = false,
   label,
   onClick,
   onMouseDown,
@@ -99,14 +99,8 @@ function Button({
     <>
       {/* The spinner is decorative: its "Loading" label must not join the
           button's accessible name while an action is pending. */}
-      {isLoading ? (
-        <Spinner aria-hidden="true" />
-      ) : icon ? (
-        // Button stays server-renderable: the hover animation lives in a
-        // client slot that listens to this button from inside it.
-        <HoverAnimatedIconSlot defaultSizeClassName="size-4" icon={icon} />
-      ) : null}
-      {isLoading && !icon ? null : (children ?? label)}
+      {isLoading ? <Spinner aria-hidden="true" /> : (icon ?? null)}
+      {children ?? label}
     </>
   );
 
@@ -134,7 +128,7 @@ function Button({
         className={cn(
           // Lucide defaults to 24px; buttons use 16px unless the icon sets size.
           '[&_svg:not([class*="size-"])]:size-4',
-          buttonVariants({ isStatic, size, variant: resolvedVariant }),
+          buttonVariants({ size, variant: resolvedVariant }),
           transformClass,
           className,
         )}

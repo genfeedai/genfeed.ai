@@ -330,7 +330,6 @@ describe('website plan catalogue', () => {
     expect(websitePlans.map((plan) => plan.type)).toEqual([
       'payg',
       'subscription',
-      'subscription',
       'enterprise',
     ]);
     expect(websitePlans.map((plan) => plan.price)).toEqual([0, 499, null]);

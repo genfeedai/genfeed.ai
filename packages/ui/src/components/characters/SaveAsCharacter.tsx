@@ -7,6 +7,7 @@ import {
   isPersonaHandle,
   normalizePersonaHandle,
 } from '@genfeedai/contracts';
+import { MAX_CHARACTER_REFERENCES } from '@genfeedai/contracts/constants';
 import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -24,7 +25,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { Input } from '@ui/primitives/input';
-import { UserRound } from 'lucide-react';
+import { UserRound, UserRoundPlus } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
@@ -53,8 +54,9 @@ export default function SaveAsCharacter({
     queryFn: async () => (await getService()).listCharacters(),
     staleTime: 30_000,
   });
-  const savedReference = characters?.find(
-    (character) => character.avatarIngredientId === assetId,
+  // Any reference image counts, not only the primary one.
+  const savedReference = characters?.find((character) =>
+    character.referenceIngredientIds.includes(assetId),
   );
   const inspection = useQuery({
     queryKey: ['character-image-inspection', organizationId, brandId, assetId],
@@ -83,6 +85,7 @@ export default function SaveAsCharacter({
     !existing &&
     !isChecking &&
     (inspection.error || (inspection.data && inspection.data.hasFace === null));
+  const [addingTo, setAddingTo] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
@@ -143,6 +146,66 @@ export default function SaveAsCharacter({
     }
   }
 
+  async function addToCharacter(characterId: string, label: string) {
+    if (inFlight.current || !brandId) return;
+    inFlight.current = true;
+    setAddingTo(characterId);
+    try {
+      const service = await getService();
+      if (currentScope.current !== scope) return;
+      await service.addReferences(characterId, [assetId]);
+      await queryClient.invalidateQueries({ queryKey });
+      window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
+      NotificationsService.getInstance().success(
+        translate('saveExisting.addSuccess', { handle: label }),
+      );
+    } catch {
+      NotificationsService.getInstance().error(
+        translate('saveExisting.addError'),
+      );
+    } finally {
+      inFlight.current = false;
+      setAddingTo(null);
+    }
+  }
+
+  // Granted characters belong to another organization and cannot be edited.
+  const addActions: IQuickAction[] =
+    isChecking || notCharacter || !characters
+      ? []
+      : characters
+          .filter(
+            (character) =>
+              !character.isGranted &&
+              !character.referenceIngredientIds.includes(assetId),
+          )
+          .map((character) => {
+            const handle = character.handle ?? '';
+            const isFull =
+              character.referenceIngredientIds.length >=
+              MAX_CHARACTER_REFERENCES;
+            return {
+              id: `add-to-character-${character.id}`,
+              label: handle
+                ? translate('saveExisting.addTo', { handle })
+                : translate('saveExisting.addToLabel', {
+                    name: character.label,
+                  }),
+              icon: <UserRoundPlus className="size-4" />,
+              isDisabled: isFull || addingTo !== null,
+              isLoading: addingTo === character.id,
+              onClick: () =>
+                addToCharacter(character.id, handle || character.label),
+              showInMenu: true,
+              tooltip: isFull
+                ? translate('saveExisting.addLimit', {
+                    handle: handle || character.label,
+                    max: MAX_CHARACTER_REFERENCES,
+                  })
+                : undefined,
+            };
+          });
+
   const action: IQuickAction = {
     id: 'save-as-character',
     label: existing
@@ -163,21 +226,26 @@ export default function SaveAsCharacter({
   };
   return (
     <>
-      {children ? (
-        children(notCharacter ? null : action)
-      ) : notCharacter ? null : (
-        <Button
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.SM}
-          withWrapper={false}
-          className="w-full text-xs"
-          isDisabled={action.isDisabled}
-          onClick={action.onClick}
-        >
-          {action.icon}
-          {action.label}
-        </Button>
-      )}
+      {children
+        ? children(notCharacter ? null : action, addActions)
+        : notCharacter
+          ? null
+          : [action, ...addActions].map((item) => (
+              <Button
+                key={item.id}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.SM}
+                withWrapper={false}
+                className="w-full text-xs"
+                isDisabled={item.isDisabled}
+                isLoading={item.isLoading}
+                onClick={item.onClick}
+                title={item.tooltip}
+              >
+                {item.icon}
+                {item.label}
+              </Button>
+            ))}
       <Dialog
         open={open && openedScope === scope}
         onOpenChange={(value) => {

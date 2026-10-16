@@ -22,7 +22,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { EmptyState } from '@ui/card/EmptyState';
+import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -35,6 +37,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -47,7 +50,7 @@ import { useBrandMoveDestinations } from './use-brand-move-destinations';
 const ITEMS_PER_PAGE = 20;
 
 function BrandsListContent() {
-  const { organizationId } = useBrand();
+  const { organizationId, refreshBrands } = useBrand();
   const { openBrandOverlay } = useBrandOverlay();
   const { openConfirm } = useConfirmModal();
   const { orgSlug } = useOrgUrl();
@@ -61,9 +64,10 @@ function BrandsListContent() {
   );
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 
-  // Edit / row open go to the brand settings page — the real home for brand
-  // identity, voice, interview, publishing, and agent defaults. Overlay stays
-  // create-only so the list can spin up a brand without a full navigation.
+  // The brand name and the "Open settings" action go to the brand settings
+  // page — the real home for identity, voice, publishing and agent defaults.
+  // A click anywhere else on the row opens the brand overview overlay; the
+  // checkbox only selects.
   const openBrandSettings = useCallback(
     (brand: Brand) => {
       if (!orgSlug || !brand.slug) {
@@ -101,6 +105,7 @@ function BrandsListContent() {
     data: brands,
     isLoading,
     error: brandsError,
+    isFetching: isRefreshing,
     refetch,
   } = useQuery({
     queryKey: ['brands', organizationId, currentPage],
@@ -154,9 +159,11 @@ function BrandsListContent() {
     characters: BlockedCharacter[];
   } | null>(null);
 
+  // Table and brand switcher together, so a change made here (or a move
+  // into this organization from elsewhere) shows everywhere at once.
   const refresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+    await Promise.all([refetch(), refreshBrands()]);
+  }, [refetch, refreshBrands]);
 
   const handleMoved = useCallback(async () => {
     setSelectedIds([]);
@@ -201,26 +208,40 @@ function BrandsListContent() {
       {
         header: 'Brand',
         key: 'label',
-        render: (brand: Brand) => (
-          <div className="flex items-center gap-2.5">
-            {brand.logoUrl ? (
-              <Image
-                alt={brand.label}
-                className="size-6 rounded-md object-cover outline-media"
-                src={brand.logoUrl}
-                sizes="24px"
-                unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-                width={24}
-                height={24}
-              />
-            ) : (
-              <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
-                {brand.label.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className="font-medium">{brand.label}</span>
-          </div>
-        ),
+        render: (brand: Brand) => {
+          const link = getBrandLink(brand);
+          return (
+            <div className="flex items-center gap-2.5">
+              {brand.logoUrl ? (
+                <Image
+                  alt={brand.label}
+                  className="size-6 rounded-md object-cover outline-media"
+                  src={brand.logoUrl}
+                  sizes="24px"
+                  unoptimized={!canOptimizeImageSource(brand.logoUrl)}
+                  width={24}
+                  height={24}
+                />
+              ) : (
+                <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
+                  {brand.label.charAt(0).toUpperCase()}
+                </div>
+              )}
+              {link ? (
+                <Link
+                  aria-label={link.label}
+                  className="font-medium text-foreground hover:underline focus-visible:underline focus-visible:outline-none"
+                  href={link.href}
+                  prefetch={false}
+                >
+                  {brand.label}
+                </Link>
+              ) : (
+                <span className="font-medium">{brand.label}</span>
+              )}
+            </div>
+          );
+        },
       },
       {
         header: 'Slug',
@@ -235,9 +256,15 @@ function BrandsListContent() {
         header: 'Platforms',
         key: 'credentials',
         render: (brand: Brand) => (
-          <span className="text-sm text-foreground/70">
-            {brand.totalCredentials} connected
-          </span>
+          <PlatformAvatarStack
+            emptyLabel="None"
+            items={(brand.credentials ?? []).map((credential) => ({
+              id: credential.id,
+              label: credential.label,
+              platform: credential.platform,
+              username: credential.externalHandle,
+            }))}
+          />
         ),
       },
       {
@@ -254,7 +281,7 @@ function BrandsListContent() {
         ),
       },
     ],
-    [],
+    [getBrandLink],
   );
 
   const actions = useMemo(
@@ -297,6 +324,10 @@ function BrandsListContent() {
       icon={Building2}
       right={
         <div className="flex items-center gap-2">
+          <ButtonRefresh
+            isRefreshing={isRefreshing}
+            onClick={() => void refresh()}
+          />
           {canMoveBrands && selectedBrands.length > 0 ? (
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -336,7 +367,9 @@ function BrandsListContent() {
         getRowKey={(brand) => brand.id}
         isLoading={isLoading}
         items={brands || []}
-        getRowLink={getBrandLink}
+        onRowClick={(brand) =>
+          openBrandOverlay(brand, () => void refresh(), 'overview')
+        }
         onSelectionChange={setSelectedIds}
         selectable={canMoveBrands}
         selectedIds={selectedIds}

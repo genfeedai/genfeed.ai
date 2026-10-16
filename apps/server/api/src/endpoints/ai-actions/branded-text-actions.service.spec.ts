@@ -4,6 +4,7 @@ import type {
   TextActionRequestV1,
 } from '@api/endpoints/ai-actions/branded-text-actions.types';
 import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
@@ -357,6 +358,26 @@ describe('BrandedTextActionsService', () => {
       });
     },
   );
+
+  it('names the missing provider key instead of a generic retryable failure', async () => {
+    ctx.branded.generate.mockRejectedValue(
+      new MissingProviderKeyException('OpenRouter', 'OPENROUTER_API_KEY'),
+    );
+
+    expect(await ctx.service.run(request)).toEqual({
+      code: 'provider_unavailable',
+      kind: 'failed',
+      message:
+        'Missing provider key: OPENROUTER_API_KEY. Add it to the server environment, then try again.',
+      reasonCode: 'missing_provider_key',
+    });
+  });
+
+  it('rethrows unrelated seam errors', async () => {
+    ctx.branded.generate.mockRejectedValue(new Error('database down'));
+
+    await expect(ctx.service.run(request)).rejects.toThrow('database down');
+  });
 
   it('tells an in-flight repeat to wait instead of dispatching again', async () => {
     ctx.branded.generate.mockResolvedValue({

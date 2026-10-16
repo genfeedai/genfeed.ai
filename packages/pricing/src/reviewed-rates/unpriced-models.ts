@@ -31,9 +31,5 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'meta/musicgen': NO_PUBLIC_RATE,
   'mureka/v9':
     'The provider pricing page was unreachable (HTTP 404) when captured.',
-  'topazlabs/image-upscale':
-    'Topaz bills provider units whose mapping to an image or megapixel is contradictory on the public page.',
-  'topazlabs/video-upscale':
-    'Topaz bills provider units that the public page gives only as rough guides.',
   'x-ai/grok-4.1-fast': IDENTITY_404,
 };

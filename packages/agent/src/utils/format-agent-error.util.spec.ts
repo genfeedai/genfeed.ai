@@ -70,6 +70,20 @@ describe('formatAgentError', () => {
     expect(formatted.isRetryable).toBe(false);
   });
 
+  it('maps a missing key for any language-model provider to configuration guidance', () => {
+    for (const message of [
+      'Missing provider key: OPENROUTER_API_KEY',
+      'Missing provider key: OPENAI_API_KEY',
+      'Missing provider key: ANTHROPIC_API_KEY',
+    ]) {
+      expect(formatAgentError(message)).toMatchObject({
+        isConfigurationError: true,
+        isRetryable: false,
+        title: 'AI provider not connected',
+      });
+    }
+  });
+
   it('marks only known transient failures as immediately retryable', () => {
     expect(
       formatAgentError({ source: 'acknowledgement', status: 504 }),

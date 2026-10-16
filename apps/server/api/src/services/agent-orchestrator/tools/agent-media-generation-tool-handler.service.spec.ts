@@ -156,6 +156,64 @@ describe('FLUX generation source admission', () => {
     expect(result.error).toBeUndefined();
     expect(result.references).toEqual(references);
   });
+
+  it('trims extra character references instead of refusing, keeping explicit sources', async () => {
+    const characterImages = Array.from({ length: 14 }, (_, i) => `anna-${i}`);
+    const explicit = ['image-a', 'image-b', 'image-c'];
+    const result = await resolveGenerationReferences({
+      ctx: context,
+      modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+      explicitReferences: explicit,
+      handles: ['anna'],
+      personasService: {
+        resolveCharacterHandles: async () => ({
+          resolvedIngredientIds: characterImages,
+          unresolvedHandles: [],
+        }),
+      },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.references).toEqual([
+      ...characterImages.slice(0, 7),
+      ...explicit,
+    ]);
+  });
+});
+
+describe('character references across handles', () => {
+  it('keeps earlier handles first and caps the flat list by the model limit', async () => {
+    const result = await resolveGenerationReferences({
+      ctx: context,
+      handles: ['anna', 'bob'],
+      personasService: {
+        resolveCharacterHandles: async () => ({
+          resolvedIngredientIds: [
+            'anna-0',
+            'anna-1',
+            'anna-2',
+            'anna-3',
+            'anna-4',
+            'anna-5',
+            'bob-0',
+            'bob-1',
+            'bob-2',
+          ],
+          unresolvedHandles: [],
+        }),
+      },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.references).toEqual([
+      'anna-0',
+      'anna-1',
+      'anna-2',
+      'anna-3',
+      'anna-4',
+      'anna-5',
+      'bob-0',
+      'bob-1',
+    ]);
+  });
 });
 
 describe('AgentMediaGenerationToolHandler ownership', () => {

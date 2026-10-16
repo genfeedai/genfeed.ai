@@ -13,24 +13,15 @@ import {
   useRouteModalGlobalSideEffectCleanup,
 } from '@ui/utils/modal-global-side-effects';
 import { usePathname, useSearchParams } from 'next/navigation';
-import {
-  createContext,
-  type ReactNode,
-  use,
-  useCallback,
-  useEffect,
-} from 'react';
+import { type ReactNode, use, useCallback, useEffect } from 'react';
 import GlobalModalsRenderer from './GlobalModalsRenderer';
+import { GlobalModalsContext } from './global-modals.context';
 import { useGlobalModalsState } from './useGlobalModalsState';
 
 export type {
   GlobalModalsContextValue,
   GlobalModalsProviderProps,
 } from '@genfeedai/props/modals/global-modals.props';
-
-const GlobalModalsContext = createContext<GlobalModalsContextValue | null>(
-  null,
-);
 
 export function usePostModal(
   options: UsePostModalOptions = {},

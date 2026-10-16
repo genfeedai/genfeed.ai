@@ -23,7 +23,13 @@ import {
 } from '@ui/primitives/dialog';
 import { SelectField } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, useCallback, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   countByStatus,
   describePreview,
@@ -73,6 +79,14 @@ export default function BrandMoveDialog({
   // Bumped on every destination change so a slow preview run can't overwrite
   // the results of a newer one.
   const runIdRef = useRef(0);
+  const moveControllerRef = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      moveControllerRef.current?.abort();
+      runIdRef.current += 1;
+    },
+    [],
+  );
 
   const { destinations: availableDestinations } =
     useBrandMoveDestinations(sourceOrganizationId);
@@ -161,6 +175,8 @@ export default function BrandMoveDialog({
 
   const handleMove = useCallback(async () => {
     setPhase('moving');
+    const controller = new AbortController();
+    moveControllerRef.current = controller;
     let service: BrandsService;
     try {
       service = await getBrandsService();
@@ -171,36 +187,45 @@ export default function BrandMoveDialog({
       setPhase('review');
       return;
     }
-    const results: BrandMoveEntry[] = [];
-
-    for (const entry of entries) {
-      if (entry.status !== 'ready') {
-        results.push(entry);
-        continue;
-      }
-
-      updateEntry(entry.brand.id, { status: 'moving' });
-      let result: BrandMoveEntry;
-      try {
-        const { summary } = await service.relocateBrand(entry.brand.id, {
-          organizationId: destinationId,
-        });
-        result = {
-          ...entry,
-          membersSevered: summary.membersSevered,
-          status: 'moved',
-        };
-      } catch (error) {
-        logger.error('Failed to move brand', error);
-        result = {
-          ...entry,
-          reason: errorReason(error, translate('moveFailed')),
-          status: 'failed',
-        };
-      }
-      results.push(result);
-      updateEntry(entry.brand.id, result);
-    }
+    const results = await Promise.all(
+      entries.map(async (entry): Promise<BrandMoveEntry> => {
+        if (entry.status !== 'ready') return entry;
+        updateEntry(entry.brand.id, { status: 'moving' });
+        let result: BrandMoveEntry;
+        try {
+          const { summary } = await service.relocateBrand(
+            entry.brand.id,
+            { organizationId: destinationId },
+            {
+              signal: controller.signal,
+              onProcessing: (isReconnecting) =>
+                updateEntry(entry.brand.id, {
+                  reason: translate(
+                    isReconnecting ? 'reconnecting' : 'processing',
+                  ),
+                }),
+            },
+          );
+          result = {
+            ...entry,
+            membersSevered: summary.membersSevered,
+            reason: undefined,
+            status: 'moved',
+          };
+        } catch (error) {
+          if (controller.signal.aborted) return entry;
+          logger.error('Failed to move brand', error);
+          result = {
+            ...entry,
+            reason: errorReason(error, translate('moveFailed')),
+            status: 'failed',
+          };
+        }
+        if (!controller.signal.aborted) updateEntry(entry.brand.id, result);
+        return result;
+      }),
+    );
+    if (controller.signal.aborted) return;
 
     const movedCount = countByStatus(results, 'moved');
     if (movedCount > 0) {
@@ -213,13 +238,13 @@ export default function BrandMoveDialog({
       }
     }
 
+    setPhase('done');
     const message = summarizeBatch(results, translate);
     if (countByStatus(results, 'failed') > 0) {
       notificationsService.error(message);
     } else {
       notificationsService.success(message);
     }
-    setPhase('done');
   }, [
     destinationId,
     entries,
@@ -238,12 +263,16 @@ export default function BrandMoveDialog({
     <Dialog
       open
       onOpenChange={(isOpen) => {
-        if (!isOpen && phase !== 'moving') {
+        if (!isOpen) {
           onClose();
         }
       }}
     >
-      <DialogContent aria-describedby={undefined} className="max-w-xl">
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-w-xl"
+        showCloseButton={false}
+      >
         <DialogHeader>
           <DialogTitle>
             {brands.length === 1
@@ -269,7 +298,11 @@ export default function BrandMoveDialog({
         </SelectField>
 
         {phase !== 'choose' ? (
-          <ul className="flex flex-col gap-3" data-testid="brand-move-list">
+          <ul
+            aria-live="polite"
+            className="flex flex-col gap-3"
+            data-testid="brand-move-list"
+          >
             {entries.map((entry) => {
               const detail =
                 entry.status === 'ready' && entry.preview
@@ -300,8 +333,9 @@ export default function BrandMoveDialog({
 
         <DialogFooter>
           <Button
-            isDisabled={phase === 'moving'}
-            label={translate(phase === 'done' ? 'close' : 'cancel')}
+            label={translate(
+              phase === 'done' || phase === 'moving' ? 'close' : 'cancel',
+            )}
             onClick={onClose}
             variant={ButtonVariant.GHOST}
           />

@@ -119,7 +119,11 @@ function WorkflowSelectorSection({
           <SelectContent>
             <SelectItem value="none">Select a workflow…</SelectItem>
             {workflows.map((workflow) => (
-              <SelectItem key={workflow.id} value={workflow.id}>
+              <SelectItem
+                className="normal-case"
+                key={workflow.id}
+                value={workflow.id}
+              >
                 {workflow.label}
               </SelectItem>
             ))}

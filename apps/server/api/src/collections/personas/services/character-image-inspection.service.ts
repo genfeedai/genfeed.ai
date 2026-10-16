@@ -52,8 +52,10 @@ export class CharacterImageInspectionService {
         organizationId,
         brandId,
         isDeleted: false,
+        // Already a character when the image is any of its references.
         OR: [
           { avatarIngredientId: image.id },
+          { references: { some: { ingredientId: image.id } } },
           ...(image.personaId ? [{ id: image.personaId }] : []),
         ],
       },

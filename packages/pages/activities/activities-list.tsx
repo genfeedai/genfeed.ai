@@ -9,6 +9,8 @@ import {
   type IngredientCategory,
 } from '@genfeedai/contracts';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
+import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ActivitiesListProps } from '@props/content/activities.props';
@@ -19,8 +21,14 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { ArrowUpRight, ClipboardList, Mail, MailOpen, X } from 'lucide-react';
-import Link from 'next/link';
+import {
+  ArrowUpRight,
+  ClipboardList,
+  ExternalLink,
+  Mail,
+  MailOpen,
+  X,
+} from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -39,9 +47,19 @@ import {
   parseActivityValue,
   parsePostActivityValue,
 } from './activities-list.utils';
-import ActivityLinkCell from './components/ActivityLinkCell';
 import ActivityStatusCell from './components/ActivityStatusCell';
 import ActivityThumbnailCell from './components/ActivityThumbnailCell';
+
+/** The live post behind a published-post activity, when it carries one. */
+function getPublishedPostLink(activity: IActivity) {
+  if (activity.key !== ActivityKey.POST_PUBLISHED || !activity.value) {
+    return undefined;
+  }
+  const postInfo = parsePostActivityValue(activity.value);
+  return postInfo?.url && postInfo.platform
+    ? { platform: postInfo.platform, url: postInfo.url }
+    : undefined;
+}
 
 export default function ActivitiesList({
   activityMessageFormatter = formatActivityMessage,
@@ -157,46 +175,43 @@ export default function ActivitiesList({
           );
         },
       },
-      {
-        className: 'w-16',
-        header: '',
-        key: 'link',
-        render: (a: IActivity) => {
-          if (a.key === ActivityKey.POST_PUBLISHED && a.value) {
-            const postInfo = parsePostActivityValue(a.value);
-            if (postInfo?.url && postInfo?.platform) {
-              return (
-                <ActivityLinkCell
-                  url={postInfo.url}
-                  platform={postInfo.platform}
-                />
-              );
-            }
-          }
-          const path = getActivityDestinationPath(a);
-          if (!path) {
-            return null;
-          }
-          const destination = href(path);
-          return (
-            <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
-              <Link
-                href={destination}
-                aria-label={`Open ${getActivityDescription(a, activityMessageFormatter)}`}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <ArrowUpRight className="size-4" />
-              </Link>
-            </Button>
-          );
-        },
-      },
     ],
-    [activityMessageFormatter, handleViewIngredient, href],
+    [activityMessageFormatter, handleViewIngredient],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
     () => [
+      {
+        // Published posts open on the network they went out to.
+        href: (a: IActivity) => getPublishedPostLink(a)?.url,
+        icon: (a: IActivity) => {
+          const platform = getPublishedPostLink(a)?.platform;
+          return (
+            (platform ? getPlatformIcon(platform, 'size-4') : null) ?? (
+              <ExternalLink className="size-4" />
+            )
+          );
+        },
+        isExternal: true,
+        tooltip: (a: IActivity) => {
+          const platform = getPublishedPostLink(a)?.platform;
+          return platform
+            ? `View on ${getPostsPlatformLabel(platform)}`
+            : 'View post';
+        },
+      },
+      {
+        href: (a: IActivity) => {
+          if (getPublishedPostLink(a)) {
+            return undefined;
+          }
+          const path = getActivityDestinationPath(a);
+          return path ? href(path) : undefined;
+        },
+        icon: <ArrowUpRight className="size-4" />,
+        tooltip: (a: IActivity) =>
+          `Open ${getActivityDescription(a, activityMessageFormatter)}`,
+      },
       {
         getClassName: (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
         icon: (a: IActivity) =>
@@ -210,7 +225,7 @@ export default function ActivitiesList({
           a.isRead ? 'Mark as unread' : 'Mark as read',
       },
     ],
-    [toggleActivityRead],
+    [activityMessageFormatter, href, toggleActivityRead],
   );
 
   const handleBulkMarkAsRead = useCallback(async () => {

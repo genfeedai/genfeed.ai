@@ -7,7 +7,7 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
+import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import { Database } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -44,22 +44,17 @@ export default function TrainingSourcesTab() {
   }, [error, notificationsService]);
 
   return isLoading && sourceImages.length === 0 ? (
-    <MasonryGrid
-      ingredients={[]}
-      selectedIngredientId={[]}
-      isActionsEnabled={false}
-      isLoading
-    />
+    <IngredientsMediaGrid isLoading items={[]} />
   ) : sourceImages.length === 0 ? (
     <div className="text-center py-12">
       <Database className="mx-auto size-12 text-muted-foreground mb-4" />
       <p className="text-muted-foreground">No training sources available.</p>
     </div>
   ) : (
-    <MasonryGrid
-      ingredients={sourceImages}
-      selectedIngredientId={[]}
-      isActionsEnabled={false}
+    <IngredientsMediaGrid
+      isLoading={false}
+      isTimeGroupingEnabled={false}
+      items={sourceImages}
     />
   );
 }

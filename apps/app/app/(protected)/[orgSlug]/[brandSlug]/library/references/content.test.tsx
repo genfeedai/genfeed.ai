@@ -6,7 +6,13 @@ import {
   MemberRole,
   PersonaAvailabilityMode,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryCharactersPage from './content';
 
@@ -17,11 +23,16 @@ const mocks = vi.hoisted(() => {
   const updateAvailability = vi.fn();
   const moveOwnership = vi.fn();
   const listGrants = vi.fn();
+  const addReferences = vi.fn();
+  const removeReference = vi.fn();
+  const reorderReferences = vi.fn();
+  const openGallery = vi.fn();
   const listGrantableOrganizations = vi.fn();
   const grantToOrganization = vi.fn();
   const revokeGrant = vi.fn();
   const postImage = vi.fn();
   const personasService = {
+    addReferences,
     composeSheetPrompt,
     createFromSheet,
     grantToOrganization,
@@ -29,11 +40,17 @@ const mocks = vi.hoisted(() => {
     listGrantableOrganizations,
     listGrants,
     moveOwnership,
+    removeReference,
+    reorderReferences,
     revokeGrant,
     updateAvailability,
   };
   const imagesService = { post: postImage };
   return {
+    addReferences,
+    openGallery,
+    removeReference,
+    reorderReferences,
     role: undefined as string | undefined,
     grantToOrganization,
     listGrantableOrganizations,
@@ -84,6 +101,16 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useGalleryModal: () => ({
+      closeGallery: vi.fn(),
+      openGallery: mocks.openGallery,
+    }),
+  }),
+);
+
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
@@ -133,6 +160,7 @@ vi.mock('@services/core/socket-manager.service', () => ({
 vi.mock('@services/content/personas.service', () => ({
   PersonasService: {
     getInstance: () => ({
+      addReferences: mocks.addReferences,
       composeSheetPrompt: mocks.composeSheetPrompt,
       createFromSheet: mocks.createFromSheet,
       grantToOrganization: mocks.grantToOrganization,
@@ -140,6 +168,8 @@ vi.mock('@services/content/personas.service', () => ({
       listGrantableOrganizations: mocks.listGrantableOrganizations,
       listGrants: mocks.listGrants,
       moveOwnership: mocks.moveOwnership,
+      removeReference: mocks.removeReference,
+      reorderReferences: mocks.reorderReferences,
       revokeGrant: mocks.revokeGrant,
       updateAvailability: mocks.updateAvailability,
     }),
@@ -301,6 +331,7 @@ describe('LibraryCharactersPage', () => {
       label: 'Anna',
       owningBrandId: 'brand-2',
       owningBrandName: 'Podcast',
+      referenceIngredientIds: [],
     };
     const privateCharacter = {
       availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
@@ -312,6 +343,7 @@ describe('LibraryCharactersPage', () => {
       label: 'Ben',
       owningBrandId: 'brand-1',
       owningBrandName: 'Personal brand',
+      referenceIngredientIds: [],
     };
 
     it('shows a shared badge with the owning brand and brand count', async () => {
@@ -588,6 +620,163 @@ describe('LibraryCharactersPage', () => {
 
       expect(
         screen.queryByTestId('character-availability'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('managing reference images (#7004)', () => {
+    const anna = {
+      avatarIngredientId: 'img-a',
+      handle: 'anna',
+      id: 'p1',
+      label: 'Anna',
+      referenceIngredientIds: ['img-a', 'img-b'],
+    };
+
+    async function openManageDialog() {
+      render(<LibraryCharactersPage />);
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Manage references for Anna',
+        }),
+      );
+      return screen.findByRole('dialog');
+    }
+
+    function referenceOrder(dialog: HTMLElement): string[] {
+      return within(dialog)
+        .getAllByText(/^Reference \d+ of Anna$/)
+        .map((image) => image.getAttribute('data-src') ?? '');
+    }
+
+    it('shows the ordered reference thumbnails on the row', async () => {
+      mocks.listCharacters.mockResolvedValue([anna]);
+      render(<LibraryCharactersPage />);
+
+      await screen.findByText('@anna');
+      expect(
+        screen
+          .getAllByText(/^Reference \d+ of Anna$/)
+          .map((image) => image.getAttribute('data-src')),
+      ).toEqual([
+        'https://cdn.test/ingredients/images/img-a',
+        'https://cdn.test/ingredients/images/img-b',
+      ]);
+    });
+
+    it('persists a new order and promotes the first reference to primary', async () => {
+      mocks.listCharacters.mockResolvedValue([anna]);
+      mocks.reorderReferences.mockResolvedValue([
+        { ingredientId: 'img-b', position: 0 },
+        { ingredientId: 'img-a', position: 1 },
+      ]);
+      const dialog = await openManageDialog();
+
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Move reference 2 up' }),
+      );
+
+      await waitFor(() =>
+        expect(mocks.reorderReferences).toHaveBeenCalledWith('p1', [
+          'img-b',
+          'img-a',
+        ]),
+      );
+      await waitFor(() =>
+        expect(referenceOrder(dialog)).toEqual([
+          'https://cdn.test/ingredients/images/img-b',
+          'https://cdn.test/ingredients/images/img-a',
+        ]),
+      );
+    });
+
+    it('removes a reference and keeps the next one as primary', async () => {
+      mocks.listCharacters.mockResolvedValue([anna]);
+      mocks.removeReference.mockResolvedValue([
+        { ingredientId: 'img-b', position: 0 },
+      ]);
+      const dialog = await openManageDialog();
+
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Remove reference 1' }),
+      );
+
+      await waitFor(() =>
+        expect(mocks.removeReference).toHaveBeenCalledWith('p1', 'img-a'),
+      );
+      await waitFor(() =>
+        expect(referenceOrder(dialog)).toEqual([
+          'https://cdn.test/ingredients/images/img-b',
+        ]),
+      );
+      expect(
+        within(dialog).getByRole('button', { name: 'Remove reference 1' }),
+      ).toBeDisabled();
+    });
+
+    it('appends images picked from the Library', async () => {
+      mocks.listCharacters.mockResolvedValue([anna]);
+      mocks.addReferences.mockResolvedValue([
+        { ingredientId: 'img-a', position: 0 },
+        { ingredientId: 'img-b', position: 1 },
+        { ingredientId: 'img-c', position: 2 },
+      ]);
+      const dialog = await openManageDialog();
+
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Add from Library' }),
+      );
+
+      expect(mocks.openGallery).toHaveBeenCalledWith(
+        expect.objectContaining({ maxSelectableItems: 12 }),
+      );
+      const { onSelect } = mocks.openGallery.mock.calls[0][0] as {
+        onSelect: (items: Array<{ id: string; isDeleted?: boolean }>) => void;
+      };
+      onSelect([
+        { id: 'img-b' },
+        { id: 'img-c' },
+        { id: 'img-d', isDeleted: true },
+      ]);
+
+      await waitFor(() =>
+        expect(mocks.addReferences).toHaveBeenCalledWith('p1', ['img-c']),
+      );
+      await waitFor(() => expect(referenceOrder(dialog)).toHaveLength(3));
+    });
+
+    it('explains the 14 image limit instead of adding more', async () => {
+      mocks.listCharacters.mockResolvedValue([
+        {
+          ...anna,
+          referenceIngredientIds: Array.from(
+            { length: 14 },
+            (_, index) => `img-${index}`,
+          ),
+        },
+      ]);
+      const dialog = await openManageDialog();
+
+      expect(
+        within(dialog).getByText(
+          'A character can have up to 14 reference images. Remove one to add another.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog).getByRole('button', { name: 'Add from Library' }),
+      ).toBeDisabled();
+      expect(mocks.openGallery).not.toHaveBeenCalled();
+    });
+
+    it('does not offer reference management for a granted character', async () => {
+      mocks.listCharacters.mockResolvedValue([
+        { ...anna, grantedByOrganizationName: 'Acme', isGranted: true },
+      ]);
+      render(<LibraryCharactersPage />);
+
+      await screen.findByText('@anna');
+      expect(
+        screen.queryByRole('button', { name: 'Manage references for Anna' }),
       ).not.toBeInTheDocument();
     });
   });

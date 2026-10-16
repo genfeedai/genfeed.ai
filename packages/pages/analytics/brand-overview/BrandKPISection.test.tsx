@@ -1,5 +1,5 @@
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it } from 'vitest';
 import pages from '../../../../apps/app/messages/en/pages.json';
@@ -53,6 +53,7 @@ describe('BrandKPISection metric definitions', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'About Likes' })).toBeNull();
     expect(screen.getByText('Avg Views/Post')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Tab' });
     act(() =>
       screen
         .getByRole('button', { name: 'About Average views per post' })

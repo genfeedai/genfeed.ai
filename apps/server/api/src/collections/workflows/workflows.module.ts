@@ -98,6 +98,7 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
+import { WorkflowUpscaleFundingService } from '@api/collections/workflows/services/workflow-upscale-funding.service';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { YoutubeLongFormWorkflowService } from '@api/collections/workflows/services/youtube-long-form-workflow.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -258,6 +259,7 @@ import { Module } from '@nestjs/common';
     WorkflowMediaGenerationExecutorRegistrarService,
     WorkflowLipSyncFundingService,
     WorkflowLipSyncExecutorRegistrarService,
+    WorkflowUpscaleFundingService,
     WorkflowKnowledgeGroundingService,
     WorkflowContentExecutorRegistrarService,
     WorkflowPostGenerationService,

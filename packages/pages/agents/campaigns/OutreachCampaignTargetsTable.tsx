@@ -1,15 +1,15 @@
 'use client';
 
 import {
-  ButtonVariant,
   CampaignTargetStatus,
   CampaignType,
   formatEnumLabel,
 } from '@genfeedai/contracts';
+import type { TableAction } from '@props/ui/display/table.props';
 import type { CampaignTarget } from '@services/automation/outreach-campaigns.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { ExternalLink } from 'lucide-react';
 import { useMemo } from 'react';
 
 const targetStatusVariants: Record<
@@ -85,24 +85,27 @@ export default function OutreachCampaignTargetsTable({
       {
         header: 'Reply',
         key: 'reply',
+        // The reply itself opens from the row's icon action.
         render: (target: CampaignTarget) =>
-          target.replyUrl ? (
-            <PrimitiveButton asChild variant={ButtonVariant.LINK}>
-              <a
-                href={target.replyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Reply
-              </a>
-            </PrimitiveButton>
-          ) : target.errorMessage ? (
+          target.errorMessage ? (
             <span className="text-sm text-destructive">
               {target.errorMessage}
             </span>
           ) : (
             '-'
           ),
+      },
+    ],
+    [],
+  );
+
+  const targetActions = useMemo<TableAction<CampaignTarget>[]>(
+    () => [
+      {
+        href: (target) => target.replyUrl || undefined,
+        icon: <ExternalLink />,
+        isExternal: true,
+        tooltip: 'View Reply',
       },
     ],
     [],
@@ -158,6 +161,9 @@ export default function OutreachCampaignTargetsTable({
       </h3>
       <AppTable<CampaignTarget>
         items={targets}
+        actions={
+          campaignType === CampaignType.DM_OUTREACH ? undefined : targetActions
+        }
         columns={
           campaignType === CampaignType.DM_OUTREACH
             ? dmTargetColumns

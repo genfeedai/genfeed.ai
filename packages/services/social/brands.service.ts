@@ -46,11 +46,16 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import {
+  type BrandRelocationDocument,
+  type BrandRelocationPollOptions,
+  type BrandRelocationPollResponse,
+  pollBrandRelocation,
+} from '@services/social/brand-relocation.client';
 import type {
   IBrandRelocationPatchBody,
   IBrandRelocationPreview,
   IBrandRelocationResult,
-  IBrandRelocationSummary,
 } from '@services/social/brand-relocation.types';
 
 export class BrandsService extends BaseService<Brand> {
@@ -661,29 +666,109 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => res.data.data);
   }
 
-  /**
-   * Moves a brand to another organization. Unlike the generic `patch()`
-   * (which maps the JSON:API document to an entity and drops the
-   * top-level `meta`), this reads the raw response so callers get both
-   * the updated brand AND the relocation summary
-   * (`workflowsMoved`, `membersSevered`, `schedulesHeld`, `schedulingPending`,
-   * `personaGrantsRevoked`, `personasSharingReset`).
-   */
+  /** Starts an idempotent background move and returns its processing receipt. */
+  public async startBrandRelocation(
+    id: string,
+    body: IBrandRelocationPatchBody,
+    requestId: string,
+    signal?: AbortSignal,
+  ): Promise<BrandRelocationPollResponse> {
+    const response = await this.instance.patch<BrandRelocationDocument>(
+      `/${id}`,
+      BaseService.cleanBody(body),
+      {
+        headers: { 'Idempotency-Key': requestId },
+        signal,
+      },
+    );
+    return this.readRelocationDocument(response.data);
+  }
+
+  public async getBrandRelocation(
+    id: string,
+    operationId: string,
+    signal?: AbortSignal,
+  ): Promise<BrandRelocationPollResponse> {
+    const response = await this.instance.get<BrandRelocationDocument>(
+      `/${id}/relocations/${operationId}`,
+      { signal },
+    );
+    return this.readRelocationDocument(response.data);
+  }
+
+  /** Both move UIs resume the same durable request after a lost response or reload. */
   public async relocateBrand(
     id: string,
     body: IBrandRelocationPatchBody,
+    options: BrandRelocationPollOptions = {},
   ): Promise<IBrandRelocationResult> {
-    const cleanedBody = BaseService.cleanBody(body);
+    const key = `brand-relocation:${id}:${body.organizationId}`;
+    let requestId = globalThis.crypto.randomUUID();
+    try {
+      requestId = globalThis.localStorage?.getItem(key) ?? requestId;
+    } catch {
+      /* Storage can be unavailable in private browsing. */
+    }
+    const remember = () => {
+      try {
+        globalThis.localStorage?.setItem(key, requestId);
+      } catch {
+        /* The in-memory request id still deduplicates retries. */
+      }
+    };
+    const forget = () => {
+      try {
+        globalThis.localStorage?.removeItem(key);
+      } catch {
+        /* Completion does not depend on storage. */
+      }
+    };
+    remember();
+    try {
+      const result = await pollBrandRelocation(
+        async () => {
+          const response = await this.startBrandRelocation(id, body, requestId);
+          requestId = response.operation.id;
+          remember();
+          return response;
+        },
+        () => this.getBrandRelocation(id, requestId, options.signal),
+        options,
+      );
+      forget();
+      // Response decoration is optional after commit. Refresh failures can never
+      // turn the durable success into a failed move.
+      let brand: Brand | undefined;
+      if (result.brand) {
+        try {
+          brand = await this.mapOne(result.brand);
+        } catch {
+          /* Lists refresh from the committed operation. */
+        }
+      }
+      return {
+        brand,
+        summary: result.operation.summary ?? {
+          workflowsMoved: 0,
+          membersSevered: 0,
+          schedulesHeld: 0,
+          schedulingPending: 0,
+          personaGrantsRevoked: 0,
+          personasSharingReset: 0,
+        },
+      };
+    } catch (error) {
+      if (!options.signal?.aborted) forget();
+      throw error;
+    }
+  }
 
-    return await this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, cleanedBody)
-      .then(async (res) => {
-        const document = res.data;
-        const brand = await this.mapOne(document);
-        const summary = (document.meta ??
-          {}) as unknown as IBrandRelocationSummary;
-
-        return { brand, summary };
-      });
+  private readRelocationDocument(
+    document: BrandRelocationDocument,
+  ): BrandRelocationPollResponse {
+    return {
+      operation: { ...document.data.attributes, id: document.data.id },
+      brand: document.meta?.brand,
+    };
   }
 }

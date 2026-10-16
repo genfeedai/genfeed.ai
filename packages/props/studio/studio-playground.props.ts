@@ -256,7 +256,13 @@ export interface StudioPlaygroundInspectorProps {
   onEdit?: (job: StudioPlaygroundJob) => void;
   onSelect: (job: StudioPlaygroundJob) => void;
   onUseInPost: (ingredient: IIngredient) => void;
+  /** Attaches the asset to the composer under its reference role. */
+  onUseAsReference?: (job: StudioPlaygroundJob) => void;
+  /** False when the current composer type cannot take this asset as a reference. */
+  isUseAsReferenceEnabled?: boolean;
   onVary: (job: StudioPlaygroundJob) => void;
+  /** The asset this one was transformed from (extend, upscale, reframe, …). */
+  parentJob?: StudioPlaygroundJob;
   runJobs: readonly StudioPlaygroundJob[];
 }
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   OutlierPerformanceResponse,
@@ -16,13 +15,12 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { AnalyticsOutliersProps } from '@props/analytics/analytics-outliers.props';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
-import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,
@@ -32,7 +30,7 @@ import {
 } from '@ui/primitives/select';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import Link from 'next/link';
+import { ScanSearch, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import OutlierBaselineDrawer from './outlier-baseline-drawer';
@@ -213,54 +211,37 @@ export default function AnalyticsOutliers({
             '—'
           ),
       },
+    ],
+    [translate],
+  );
+
+  const actions = useMemo<TableAction<OutlierPerformanceResponse>[]>(
+    () => [
       {
-        className: 'min-w-48',
-        header: translate('actions'),
-        key: 'actions',
-        render: (post) => {
-          const hookHref = post.postId
+        href: (post) =>
+          post.postId
             ? href(`${APP_ROUTES.ANALYTICS.HOOKS}?postId=${post.postId}`)
-            : null;
-          const canRemix = Boolean(remix && (post.postId || post.sourcePostId));
-          return (
-            <div className="flex flex-wrap gap-2">
-              {hookHref ? (
-                <Button
-                  asChild
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  withWrapper={false}
-                >
-                  <Link href={hookHref}>{translate('analyzeHook')}</Link>
-                </Button>
-              ) : null}
-              {canRemix ? (
-                <Button
-                  label={translate('remix')}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  withWrapper={false}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (post.postId) {
-                      void remix?.openRemix({
-                        kind: 'owned_post',
-                        postId: post.postId,
-                      });
-                      return;
-                    }
-                    if (post.sourcePostId) {
-                      void remix?.openRemix({
-                        kind: 'source_post',
-                        sourcePostId: post.sourcePostId,
-                      });
-                    }
-                  }}
-                />
-              ) : null}
-            </div>
-          );
+            : undefined,
+        icon: <ScanSearch aria-hidden="true" />,
+        tooltip: translate('analyzeHook'),
+      },
+      {
+        icon: <Sparkles aria-hidden="true" />,
+        isVisible: (post) =>
+          Boolean(remix && (post.postId || post.sourcePostId)),
+        onClick: (post) => {
+          if (post.postId) {
+            void remix?.openRemix({ kind: 'owned_post', postId: post.postId });
+            return;
+          }
+          if (post.sourcePostId) {
+            void remix?.openRemix({
+              kind: 'source_post',
+              sourcePostId: post.sourcePostId,
+            });
+          }
         },
+        tooltip: translate('remix'),
       },
     ],
     [href, remix, translate],
@@ -307,6 +288,7 @@ export default function AnalyticsOutliers({
       <Table<OutlierPerformanceResponse>
         items={posts ?? []}
         isLoading={posts === null}
+        actions={actions}
         columns={columns}
         emptyLabel={emptyLabel}
         getRowKey={(post) => post.id}

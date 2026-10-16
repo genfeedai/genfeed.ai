@@ -449,6 +449,9 @@ describe('branded receipt full-migration service and relocation acceptance', () 
             invalidate: vi.fn().mockResolvedValue(undefined),
             invalidateByTags: vi.fn().mockResolvedValue(undefined),
           } as never,
+          {
+            invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+          } as never,
         ),
       );
     }

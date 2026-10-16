@@ -30,21 +30,24 @@ export function readMediaReferenceStrings(
     .slice(0, max);
 }
 
-export function capMediaReferences(
-  references: string[],
-  modelKey?: string,
-): string[] {
+/** Most reference images the agent sends to the model. */
+export function maxMediaReferences(modelKey?: string): number {
   const catalogLimit =
     modelKey && modelKey in MODEL_OUTPUT_CAPABILITIES
       ? MODEL_OUTPUT_CAPABILITIES[
           modelKey as keyof typeof MODEL_OUTPUT_CAPABILITIES
         ].maxReferences
       : undefined;
-  const cap =
-    typeof catalogLimit === 'number' && catalogLimit > 0
-      ? Math.min(modelKey && isFlux3ImageModel(modelKey) ? 10 : 8, catalogLimit)
-      : 8;
-  return references.slice(0, cap);
+  return typeof catalogLimit === 'number' && catalogLimit > 0
+    ? Math.min(modelKey && isFlux3ImageModel(modelKey) ? 10 : 8, catalogLimit)
+    : 8;
+}
+
+export function capMediaReferences(
+  references: string[],
+  modelKey?: string,
+): string[] {
+  return references.slice(0, maxMediaReferences(modelKey));
 }
 
 export async function resolveGenerationReferences(params: {
@@ -113,21 +116,26 @@ export async function resolveGenerationReferences(params: {
     };
   }
 
-  const merged: string[] = [];
-  const seen = new Set<string>();
-  for (const id of [
-    ...resolved,
-    ...explicit,
-    ...(params.attachmentFallback ? [params.attachmentFallback] : []),
-  ]) {
-    if (seen.has(id)) {
-      continue;
-    }
-    seen.add(id);
-    merged.push(id);
-  }
+  // Character references first (handles in order, each handle's references
+  // in position order), then explicit ids, then the attachment; deduped,
+  // keeping the first occurrence.
+  const characterReferences = [...new Set(resolved)];
+  const supplied = [
+    ...new Set([
+      ...explicit,
+      ...(params.attachmentFallback ? [params.attachmentFallback] : []),
+    ]),
+  ].filter((id) => !characterReferences.includes(id));
 
-  if (flux && merged.length > 10)
+  // A character can hold more references than the model accepts. The
+  // caller-supplied images and one reference per handle must fit; the extra
+  // character references fill the remaining slots, earlier handles first.
+  // With one reference per character this is the previous behaviour.
+  const requiredCharacterCount = Math.min(
+    characterReferences.length,
+    handles.length,
+  );
+  if (flux && requiredCharacterCount + supplied.length > 10)
     return {
       error: {
         success: false,
@@ -136,5 +144,14 @@ export async function resolveGenerationReferences(params: {
       },
       references: [],
     };
-  return { references: capMediaReferences(merged, params.modelKey) };
+  const characterBudget = Math.max(
+    maxMediaReferences(params.modelKey) - supplied.length,
+    requiredCharacterCount,
+  );
+  return {
+    references: capMediaReferences(
+      [...characterReferences.slice(0, characterBudget), ...supplied],
+      params.modelKey,
+    ),
+  };
 }

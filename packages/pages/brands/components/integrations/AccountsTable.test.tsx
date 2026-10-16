@@ -256,16 +256,10 @@ describe('AccountsTable', () => {
       />,
     );
 
-    const menuTrigger = screen.getByRole('button', {
-      name: /More actions/,
-    });
-    fireEvent.pointerDown(menuTrigger);
-    fireEvent.click(menuTrigger);
-    // Radix portals the menu content to `document.body` — query it
-    // globally, not scoped to the row.
-    expect(screen.getByRole('menuitem', { name: 'Reconnect' })).toHaveAttribute(
-      'data-disabled',
-    );
+    // Row actions are icon-only buttons named by their tooltip.
+    expect(screen.getByRole('button', { name: 'Reconnect' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeEnabled();
   });
 
   it('leaves a sibling account on the same platform reconnectable while one account reconnects', () => {
@@ -311,28 +305,11 @@ describe('AccountsTable', () => {
       throw new Error('expected two account rows');
     }
 
-    // Query the trigger once and reuse the same handle for both events —
-    // opening the menu marks the rest of the page `aria-hidden` (Radix
-    // hides everything outside the open portal from assistive tech), so a
-    // second by-role query for the same trigger after it opens finds
-    // nothing.
-    const reconnectingTrigger = within(reconnectingRow).getByRole('button', {
-      name: /More actions/,
-    });
-    fireEvent.pointerDown(reconnectingTrigger);
-    fireEvent.click(reconnectingTrigger);
-    expect(screen.getByRole('menuitem', { name: 'Reconnect' })).toHaveAttribute(
-      'data-disabled',
-    );
-    fireEvent.keyDown(document.body, { key: 'Escape' });
-
-    const otherTrigger = within(otherRow).getByRole('button', {
-      name: /More actions/,
-    });
-    fireEvent.pointerDown(otherTrigger);
-    fireEvent.click(otherTrigger);
     expect(
-      screen.getByRole('menuitem', { name: 'Reconnect' }),
-    ).not.toHaveAttribute('data-disabled');
+      within(reconnectingRow).getByRole('button', { name: 'Reconnect' }),
+    ).toBeDisabled();
+    expect(
+      within(otherRow).getByRole('button', { name: 'Reconnect' }),
+    ).toBeEnabled();
   });
 });

@@ -27,6 +27,7 @@ import {
   useState,
 } from 'react';
 import {
+  buildProtectedBootstrapCacheKey,
   clearClientProtectedBootstrapCache,
   loadClientProtectedBootstrap,
 } from '../../providers/protected-bootstrap/client-protected-bootstrap';
@@ -120,7 +121,10 @@ export function useBrandProviderState({
   );
   const isBrandsFetchEnabled = effectiveIsAuthLoaded && effectiveIsSignedIn;
   const clientBootstrapCacheKey = isBrandsFetchEnabled
-    ? `protected-bootstrap:${sessionKey}`
+    ? buildProtectedBootstrapCacheKey({
+        organizationId: effectiveOrgId,
+        userId: effectiveUserId,
+      })
     : undefined;
 
   useEffect(() => {

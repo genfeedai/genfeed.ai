@@ -67,6 +67,8 @@ export default function DesktopSidebar({
   return (
     <aside
       aria-label={ariaLabel}
+      // Page menu: the one surface exempt from the product motion policy.
+      data-motion="allow"
       data-testid="desktop-sidebar-rail"
       className={cn(
         // One step off the page (gray-100 on pure black). The right edge is

@@ -596,6 +596,7 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+  brandRelocations BrandRelocation[] @relation("brand_relocation_actor")
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_actor")
   brandedGenerationReceiptEvents BrandedGenerationReceiptEvent[] @relation("branded_generation_receipt_event_actor")
 contentLearningExperiments ContentLearningExperiment[]
@@ -777,6 +778,8 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+  brandRelocations BrandRelocation[] @relation("brand_relocation_source")
+  incomingBrandRelocations BrandRelocation[] @relation("brand_relocation_destination")
   postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[]
 contentLearningScopeStates ContentLearningScopeState[]
@@ -836,6 +839,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   postPublishFinalizations      PostPublishFinalization[]
   postProviderPublishReceipts   PostProviderPublishReceipt[]
   postIngredientLinks           PostIngredient[]
+  personaReferences             PersonaReference[]
   postGroups                    PostGroup[]
   postingCadences               PostingCadence[]
   slotReservations              SlotReservation[]
@@ -1035,6 +1039,7 @@ model McpApproval {
 }
 
 model Brand {
+  relocations BrandRelocation[]
   postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_brand")
 contentLearningScopeStates ContentLearningScopeState[]
@@ -2402,6 +2407,7 @@ model Ingredient {
   bookmarkGenerated         Bookmark[]                 @relation("bookmark_generated")
   trainingSources           Training[]                 @relation("training_sources")
   personaAvatars            Persona[]                  @relation("persona_avatar")
+  personaReferences         PersonaReference[]         @relation("ingredient_persona_references")
   personaVoices             Persona[]                  @relation("persona_voice")
   captions                  Caption[]
   editorProjectVideos       EditorProject[]            @relation("editor_project_video")
@@ -4434,6 +4440,7 @@ model Persona {
 
   availabilityAudits PersonaAvailabilityAudit[]
   grants             PersonaGrant[]
+  references         PersonaReference[]
   tags            Tag[]        @relation("persona_tags")
   credentials     Credential[] @relation("persona_credentials")
   assignedMembers User[]       @relation("persona_assigned_members")
@@ -4453,6 +4460,30 @@ model Persona {
   // Partial unique (organizationId, brandId, handle) WHERE handle IS NOT NULL
   // AND isDeleted = false lives in 20260824120000_persona_handle_brand_unique.
   @@map("personas")
+}
+
+/// Ordered reference images of a character. Position 0 is the primary
+/// reference and is mirrored to `Persona.avatarIngredientId` for readers that
+/// need a single image (remix identity, avatar video, thumbnails). @mentions
+/// send the references in position order, capped by the model's reference
+/// limit. Rows are hard-deleted on removal (like `PostIngredient`); a
+/// soft-deleted ingredient is skipped by every reader and returns on restore.
+model PersonaReference {
+  id             String       @id @default(cuid())
+  personaId      String
+  persona        Persona      @relation(fields: [personaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ingredientId   String
+  ingredient     Ingredient   @relation("ingredient_persona_references", fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  position       Int
+  createdAt      DateTime     @default(now())
+
+  @@unique([personaId, ingredientId], map: "persona_references_persona_ingredient_key")
+  @@index([personaId, position], map: "persona_references_persona_position_idx")
+  @@index([ingredientId], map: "persona_references_ingredient_idx")
+  @@index([organizationId], map: "persona_references_organization_idx")
+  @@map("persona_references")
 }
 
 /// Use-only grant of a character to another organization (#6037). Only one
@@ -5297,6 +5328,7 @@ model WorkflowExecution {
   @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
+  @@index([workflowId, organizationId], map: "workflow_executions_workflow_org_idx")
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
   @@map("workflow_executions")
@@ -9564,4 +9596,29 @@ model WorkflowExecutionReadLineage {
   @@id([parentExecutionId, childExecutionId, parentNodeId, itemIndex, organizationId])
   @@index([childExecutionId, organizationId], map: "workflow_execution_read_lineage_child_idx")
   @@map("workflow_execution_read_lineage")
+}
+
+/// Durable command receipt. Source ownership never follows the moved brand.
+model BrandRelocation {
+  id String @id
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  organizationId String
+  organization Organization @relation("brand_relocation_source", fields: [organizationId], references: [id], onDelete: Restrict)
+  destinationOrganizationId String
+  destinationOrganization Organization @relation("brand_relocation_destination", fields: [destinationOrganizationId], references: [id], onDelete: Restrict)
+  userId String
+  user User @relation("brand_relocation_actor", fields: [userId], references: [id], onDelete: Restrict)
+  status String @default("processing")
+  payload Json
+  summary Json?
+  error String?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, userId, createdAt])
+  @@index([brandId, createdAt])
+  @@index([status, isDeleted, createdAt])
+  @@map("brand_relocations")
 }

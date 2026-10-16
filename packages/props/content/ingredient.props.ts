@@ -14,47 +14,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 
-export interface IngredientListProps<T extends IIngredient = IIngredient> {
-  ingredients: T[];
-  selectedIngredientId: string[];
-  scrollFocusedIngredientId?: string | null;
-  isActionsEnabled?: boolean;
-  highlightSelection?: boolean;
-  isSquare?: boolean;
-  isLoading?: boolean;
-  format?: IngredientFormat;
-  emptyLabel?: string;
-  onShareIngredient?: (ingredient: T) => void;
-  onClickIngredient?: (ingredient: T) => void; // Primary click action (select for edit or open modal)
-  onDeleteIngredient?: (ingredient: T) => void;
-  onVoteIngredient?: (ingredient: T) => void;
-  onPublishIngredient?: (ingredient: T) => void;
-  onToggleFavorite?: (ingredient: T) => void;
-  onCopyPrompt?: (ingredient: T) => void;
-  onReprompt?: (ingredient: T) => void;
-  onEditIngredient?: (ingredient: T) => void;
-  onMarkArchived?: (ingredient: T) => void | Promise<void>;
-  onMarkValidated?: (ingredient: T) => void | Promise<void>;
-  onMarkRejected?: (ingredient: T) => void | Promise<void>;
-  onSeeDetails?: (ingredient: T) => void;
-  onConvertToVideo?: (ingredient: T) => void;
-  onUseAsVideoReference?: (ingredient: T) => void;
-  onCreateVariation?: (ingredient: T) => void;
-  onConvertToPortrait?: (ingredient: T) => void;
-  onGenerateCaptions?: (ingredient: T) => void;
-  onReverse?: (ingredient: T) => void;
-  onMirror?: (ingredient: T) => void;
-  onUpdateParent?: (ingredient: T, parentId: string | null) => void;
-  onScopeChange?: (scope: AssetScope, updatedIngredient?: IIngredient) => void;
-  onRefresh?: () => void;
-  isPortraiting?: boolean;
-  isGeneratingCaptions?: boolean;
-  isMirroring?: boolean;
-  isReversing?: boolean;
-  isDragEnabled?: boolean;
-  ignoreFormatCompatibility?: boolean;
-}
-
 export interface IngredientTimeGroupHeadingProps {
   label: string;
   count: number;
@@ -66,33 +25,37 @@ export interface IngredientTimeGroupHeadingProps {
 }
 
 export interface IngredientsMediaGridProps {
-  emptyLabel: string;
+  /** Shown when `items` is empty. Omit when the caller renders its own empty state. */
+  emptyLabel?: string;
   emptyDescription?: string;
   items: IIngredient[];
   isLoading: boolean;
-  isActionsEnabled: boolean;
-  isDragEnabled: boolean;
+  /** Tile action menus and the review overlay. Off for read-only grids. */
+  isActionsEnabled?: boolean;
+  isDragEnabled?: boolean;
+  /** Group newest-first lists under time headings. On unless a surface opts out. */
+  isTimeGroupingEnabled?: boolean;
   format?: IngredientFormat;
-  selectedIds: string[];
-  onDeleteIngredient: (ingredient: IIngredient) => void;
-  onMarkArchived: (ingredient: IIngredient) => Promise<void> | void;
-  onConvertToPortrait: (ingredient: IIngredient) => Promise<void> | void;
-  onGenerateCaptions: (ingredient: IIngredient) => Promise<void> | void;
+  selectedIds?: string[];
+  onDeleteIngredient?: (ingredient: IIngredient) => void;
+  onMarkArchived?: (ingredient: IIngredient) => Promise<void> | void;
+  onConvertToPortrait?: (ingredient: IIngredient) => Promise<void> | void;
+  onGenerateCaptions?: (ingredient: IIngredient) => Promise<void> | void;
   onReverse?: (ingredient: IIngredient) => Promise<void> | void;
   onMirror?: (ingredient: IIngredient) => Promise<void> | void;
-  onSeeDetails: (ingredient: IIngredient) => Promise<void> | void;
-  onUpdateParent: (
+  onSeeDetails?: (ingredient: IIngredient) => Promise<void> | void;
+  onUpdateParent?: (
     ingredient: IIngredient,
     parentId: string | null,
   ) => Promise<void> | void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
   onReviewUpdated?: (ingredient: IIngredient) => void;
-  onPublishIngredient: (ingredient: IIngredient) => void;
-  onClickIngredient: (ingredient: IIngredient) => void;
+  onPublishIngredient?: (ingredient: IIngredient) => void;
+  onClickIngredient?: (ingredient: IIngredient) => void;
   /** Toggle this asset in the surrounding surface's selection set. */
   onToggleSelection?: (ingredient: IIngredient) => void;
-  isPortraiting: boolean;
-  isGeneratingCaptions: boolean;
+  isPortraiting?: boolean;
+  isGeneratingCaptions?: boolean;
   isMirroring?: boolean;
   isReversing?: boolean;
   onScopeChange?: (scope: AssetScope, updatedIngredient?: IIngredient) => void;
@@ -104,6 +67,14 @@ export interface IngredientsMediaGridProps {
 export interface IngredientReviewActionsProps {
   ingredient: IIngredient;
   onUpdated: (ingredient: IIngredient) => void;
+}
+
+/** Hover layer every media grid tile shares: tags, review and provenance. */
+export interface IngredientTileOverlaysProps {
+  ingredient: IIngredient;
+  /** Review (validate / reject) needs a persisted, actionable asset. */
+  isReviewEnabled: boolean;
+  onReviewUpdated: (ingredient: IIngredient) => void;
 }
 
 export interface IngredientInspectorRailProps {

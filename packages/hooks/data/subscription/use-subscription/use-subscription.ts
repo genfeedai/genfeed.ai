@@ -12,6 +12,7 @@ import { SubscriptionsService } from '@genfeedai/services/billing/subscriptions.
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -79,6 +80,7 @@ export function useSubscription(): UseSubscriptionReturn {
     isLoading: isLoadingCredits,
     refetch: refetchCredits,
     error: creditsQueryError,
+    isError: isCreditsError,
   } = useQuery({
     queryKey: creditsQueryKey,
     queryFn: async () => {
@@ -96,8 +98,9 @@ export function useSubscription(): UseSubscriptionReturn {
   });
 
   const isLoading = isLoadingSubscription || isLoadingCredits;
-  const error =
-    creditsQueryError instanceof Error ? creditsQueryError.message : null;
+  const error = isCreditsError
+    ? getErrorMessage(creditsQueryError, 'Failed to load credit balance')
+    : null;
 
   const openBillingPortal = async () => {
     try {

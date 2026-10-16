@@ -66,6 +66,7 @@ describe('AnalyticsMetricInfo with real translated primitives', () => {
       name: 'About Average views per post',
     });
     expect(screen.getAllByRole('button')).toHaveLength(1);
+    fireEvent.keyDown(document, { key: 'Tab' });
     act(() => trigger.focus());
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       'Platform-reported views divided by the number of selected published posts.',
@@ -83,6 +84,7 @@ describe('AnalyticsMetricInfo with real translated primitives', () => {
         'aria-hidden',
         'true',
       );
+      fireEvent.keyDown(document, { key: 'Tab' });
       act(() => trigger.focus());
       const tooltip = await screen.findByRole('tooltip');
       expect(tooltip).toHaveTextContent(definition);
@@ -103,6 +105,7 @@ describe('AnalyticsMetricInfo with real translated primitives', () => {
     // Leave Radix's hoverable-content grace area as well as the trigger.
     fireEvent.pointerMove(document.body, { clientX: 1000, clientY: 1000 });
     await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    fireEvent.keyDown(document, { key: 'Tab' });
     act(() => trigger.focus());
     await screen.findByRole('tooltip');
     act(() => trigger.blur());
@@ -120,10 +123,12 @@ describe('AnalyticsMetricInfo with real translated primitives', () => {
       </NextIntlClientProvider>,
     );
     const triggers = screen.getAllByRole('button', { name: 'About Posts' });
+    fireEvent.keyDown(document, { key: 'Tab' });
     act(() => triggers[0].focus());
     const first = (await screen.findByRole('tooltip')).id;
     fireEvent.click(triggers[0]);
     expect(onClick).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Tab' });
     act(() => triggers[1].focus());
     const second = (await screen.findByRole('tooltip')).id;
     expect(second).not.toBe(first);

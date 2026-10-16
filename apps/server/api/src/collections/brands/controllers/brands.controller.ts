@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
@@ -7,15 +8,13 @@ import {
   verifyBrandAccess,
   verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
-import {
-  recordBrandRelocation,
-  toRelocationActor,
-} from '@api/collections/brands/controllers/brand-relocation.helpers';
+import { toRelocationActor } from '@api/collections/brands/controllers/brand-relocation.helpers';
 import { decorateBrandResponse } from '@api/collections/brands/controllers/brand-response.helpers';
 import { BrandFleetAccess } from '@api/collections/brands/decorators/brand-fleet-access.decorator';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -49,7 +48,10 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
-import { BrandSerializer } from '@genfeedai/serializers';
+import {
+  BrandRelocationSerializer,
+  BrandSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
@@ -65,8 +67,10 @@ import {
   Post,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import { isUUID } from 'class-validator';
+import type { Request, Response } from 'express';
 
 @AutoSwagger()
 @Controller('brands')
@@ -91,6 +95,7 @@ export class BrandsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly brandSetupService: BrandSetupService,
     private readonly brandWatermarkLogoService: BrandWatermarkLogoService,
+    private readonly relocationJobs: BrandRelocationJobsService,
   ) {
     super(
       loggerService,
@@ -173,6 +178,7 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() updateDto: UpdateBrandDto,
+    @Res({ passthrough: true }) response?: Response,
   ): Promise<JsonApiSingleResponse> {
     // `syncOrganizationName` is an onboarding-only control flag, never persisted
     // on the brand row — strip it before any CRUD patch (REST audit #1354).
@@ -245,6 +251,20 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
+    const headerId = request.headers?.['idempotency-key'];
+    if (headerId !== undefined) {
+      if (typeof headerId !== 'string' || !isUUID(headerId))
+        throw new BadRequestException('Idempotency-Key must be a UUID');
+      const operation = await this.relocationJobs.enqueue(
+        id,
+        headerId,
+        updateDto,
+        toRelocationActor(user, request),
+      );
+      response?.status(HttpStatus.ACCEPTED);
+      return serializeSingle(request, BrandRelocationSerializer, operation);
+    }
+
     const existing = (await findBrandToRelocate(this.brandsService, id)) as
       | (BrandDocument & { organizationId?: string })
       | null;
@@ -267,34 +287,14 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 
-    // Spans both tenants; the service's assertCanRelocate authorizes it
-    // (superadmin, or owner/admin of both orgs; an API key needs admin scope).
-    const { brand: moved, summary } = await crossOrgUnsafe(
-      async () =>
-        await this.brandsService.relocateToOrganization(
-          id,
-          updateDto,
-          toRelocationActor(user, request),
-        ),
+    const operation = await this.relocationJobs.enqueue(
+      id,
+      randomUUID(),
+      updateDto,
+      toRelocationActor(user, request),
     );
-
-    await recordBrandRelocation(this.activityRecorder, this.loggerService, {
-      brandId: id,
-      brandOwnerId: existing.userId,
-      destinationOrganizationId: requestedOrgId,
-      sourceOrganizationId: existing.organizationId,
-      summary,
-      userId: user.userId ?? user.id,
-    });
-
-    return {
-      ...serializeSingle(
-        request,
-        BrandSerializer,
-        await this.decorateForResponse(moved, user),
-      ),
-      meta: { ...summary },
-    };
+    response?.status(HttpStatus.ACCEPTED);
+    return serializeSingle(request, BrandRelocationSerializer, operation);
   }
 
   /**

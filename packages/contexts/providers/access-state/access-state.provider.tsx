@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/services/auth/auth.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import {
+  buildProtectedBootstrapCacheKey,
   clearClientProtectedBootstrapCache,
   loadClientProtectedBootstrap,
 } from '@providers/protected-bootstrap/client-protected-bootstrap';
@@ -89,10 +90,13 @@ export function AccessStateProvider({
 
   const shouldFetch =
     effectiveIsAuthLoaded && effectiveIsSignedIn && !!effectiveUserId;
-  const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? organizationId;
+  const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? null;
   const clientBootstrapCacheKey =
     shouldFetch && effectiveUserId
-      ? `protected-bootstrap:${effectiveUserId}:${effectiveOrgId || 'no-org'}`
+      ? buildProtectedBootstrapCacheKey({
+          organizationId: effectiveOrgId,
+          userId: effectiveUserId,
+        })
       : undefined;
 
   const accessStateQueryKey = useMemo(

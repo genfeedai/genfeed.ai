@@ -60,6 +60,35 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('PlatformPreview', () => {
+  it('keeps compact hover video previews idle until playback is requested', () => {
+    const { container } = render(
+      <PlatformPreview
+        presentation="compact"
+        target={{
+          author: { name: 'Genfeed', handle: 'genfeedai' },
+          caption: 'A compact video preview',
+          platform: CredentialPlatform.TIKTOK,
+          media: [
+            {
+              id: 'clip',
+              kind: 'short_video',
+              url: 'https://cdn.example.com/clip.mp4',
+            },
+          ],
+        }}
+      />,
+    );
+    expect(container.querySelector('video')).toBeNull();
+    expect(screen.queryByTestId('preview-card')).not.toBeInTheDocument();
+    expect(screen.getByText('A compact video preview')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Video 1' }));
+    expect(container.querySelector('video')).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/clip.mp4',
+    );
+    expect(screen.getByText('A compact video preview')).toBeVisible();
+  });
+
   it('registers dedicated renderers for every social layout', () => {
     expect(
       hasDedicatedPlatformPreviewRenderer(CredentialPlatform.TWITTER),

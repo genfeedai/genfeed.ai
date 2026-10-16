@@ -1,3 +1,4 @@
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
@@ -111,7 +112,10 @@ function setup() {
     resolveActiveSkills: vi.fn(),
     buildSkillPromptSections: vi.fn(),
   };
-  const openRouter = { chatCompletion: vi.fn() };
+  const openRouter = {
+    assertApiKeyAvailable: vi.fn(),
+    chatCompletion: vi.fn(),
+  };
   const service = new BrandedTextGenerationService(
     receipts as never,
     snapshots as never,
@@ -414,6 +418,29 @@ describe('BrandedTextGenerationService', () => {
         }),
       ).rejects.toThrow('branded_generation_input_invalid');
       expect(h.receipts.create).not.toHaveBeenCalled();
+    });
+
+    it('fails with a missing-provider-key error before creating a receipt or charging', async () => {
+      h.openRouter.assertApiKeyAvailable.mockImplementation(() => {
+        throw new MissingProviderKeyException(
+          'OpenRouter',
+          'OPENROUTER_API_KEY',
+        );
+      });
+      const admitDispatch = vi.fn();
+
+      const promise = h.service.generate({ ...h.request, admitDispatch });
+
+      await expect(promise).rejects.toBeInstanceOf(MissingProviderKeyException);
+      await expect(promise).rejects.toThrow(
+        'Missing provider key: OPENROUTER_API_KEY',
+      );
+      expect(h.openRouter.assertApiKeyAvailable).toHaveBeenCalledWith(
+        'byok-key',
+      );
+      expect(h.receipts.create).not.toHaveBeenCalled();
+      expect(admitDispatch).not.toHaveBeenCalled();
+      expect(h.openRouter.chatCompletion).not.toHaveBeenCalled();
     });
   });
 

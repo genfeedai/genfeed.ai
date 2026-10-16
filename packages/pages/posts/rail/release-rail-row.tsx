@@ -162,15 +162,15 @@ export function ReleaseRailActions({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center gap-1 transition-opacity',
-        hoverRevealClassName(),
+        'flex shrink-0 items-center gap-1',
+        hoverRevealClassName({ at: 'lg' }),
       )}
     >
       <Link
         aria-label={translate('open')}
         className={buttonVariants({
           size: ButtonSize.ICON,
-          variant: ButtonVariant.SECONDARY,
+          variant: ButtonVariant.GHOST,
         })}
         href={href(getPublishingPostHref(primaryTargetId))}
         onClick={(event) => event.stopPropagation()}
@@ -185,10 +185,10 @@ export function ReleaseRailActions({
         )
         .map((target) => (
           <Link
-            aria-label={translate('open')}
+            aria-label={translate('openVariations')}
             className={buttonVariants({
               size: ButtonSize.ICON,
-              variant: ButtonVariant.SECONDARY,
+              variant: ButtonVariant.GHOST,
             })}
             href={href(
               buildSourcePostVariationsHref({

@@ -1,10 +1,13 @@
 import type { PersonaAvailabilityMode } from '@genfeedai/contracts';
+import { MAX_CHARACTER_REFERENCE_USAGE_LOOKUP } from '@genfeedai/contracts/constants';
 import type {
   BrandCharacterListItem,
   CharacterAvailabilityInput,
   CharacterGrantInput,
   CharacterGrantItem,
   CharacterImageInspection,
+  CharacterReferenceItem,
+  CharacterReferenceUsage,
   ComposeCharacterSheetPromptInput,
   ComposeCharacterSheetPromptResult,
   CreatePersonaFromSheetInput,
@@ -30,6 +33,8 @@ export class Persona {
   label!: string;
   owningBrandId?: string | null;
   owningBrandName?: string | null;
+  /** Ordered reference images; index 0 is the primary (`avatarIngredientId`). */
+  referenceIngredientIds?: string[];
 
   constructor(partial: Partial<Persona>) {
     Object.assign(this, partial);
@@ -54,6 +59,9 @@ function toCharacterListItems(rows: Persona[]): BrandCharacterListItem[] {
     label: row.label,
     owningBrandId: row.owningBrandId,
     owningBrandName: row.owningBrandName,
+    referenceIngredientIds:
+      row.referenceIngredientIds ??
+      (row.avatarIngredientId ? [row.avatarIngredientId] : []),
   }));
 }
 
@@ -132,6 +140,79 @@ export class PersonasService extends BaseService<
       { brandId },
     );
     return deserializeResource<Persona>(response.data);
+  }
+
+  async listReferences(id: string): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.get<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references`);
+    return response.data.data;
+  }
+
+  /** Appends Library images as references; images already referenced are skipped. */
+  async addReferences(
+    id: string,
+    ingredientIds: string[],
+  ): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.post<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references`, { ingredientIds });
+    return response.data.data;
+  }
+
+  /** Persists the order; `ingredientIds` must list every current reference once. */
+  async reorderReferences(
+    id: string,
+    ingredientIds: string[],
+  ): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.put<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references`, { ingredientIds });
+    return response.data.data;
+  }
+
+  async removeReference(
+    id: string,
+    ingredientId: string,
+  ): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.delete<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references/${ingredientId}`);
+    return response.data.data;
+  }
+
+  /**
+   * The characters that use each asset as a reference image. The endpoint caps
+   * one lookup, so a larger selection goes out in several requests.
+   */
+  async findReferenceUsage(
+    ingredientIds: string[],
+    signal?: AbortSignal,
+  ): Promise<CharacterReferenceUsage[]> {
+    const ids = [...new Set(ingredientIds)];
+    const usage: CharacterReferenceUsage[] = [];
+
+    for (
+      let start = 0;
+      start < ids.length;
+      start += MAX_CHARACTER_REFERENCE_USAGE_LOOKUP
+    ) {
+      const response = await this.instance.post<{
+        data: CharacterReferenceUsage[];
+      }>(
+        '/reference-usage',
+        {
+          ingredientIds: ids.slice(
+            start,
+            start + MAX_CHARACTER_REFERENCE_USAGE_LOOKUP,
+          ),
+        },
+        { signal },
+      );
+      usage.push(...response.data.data);
+    }
+
+    return usage;
   }
 
   async inspectImage(assetId: string): Promise<CharacterImageInspection> {

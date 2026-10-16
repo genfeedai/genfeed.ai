@@ -4341,4 +4341,140 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
       },
     ],
   },
+  // Captured 2026-10-15; `size` enum resolved from components.schemas.
+  'bytedance/seedream-5-pro': {
+    sourceUrl: 'https://replicate.com/bytedance/seedream-5-pro',
+    inputProperties: {
+      prompt: { type: 'string', title: 'Prompt', default: '' },
+      image_input: {
+        type: 'array',
+        items: { type: 'string', format: 'uri' },
+        title: 'Image Input',
+        default: [],
+      },
+      layer_decomposition: {
+        type: 'boolean',
+        title: 'Layer Decomposition',
+        default: false,
+      },
+      size: {
+        enum: ['1K', '1.5K', '2K', 'auto'],
+        type: 'string',
+        title: 'size',
+        default: '2K',
+      },
+      output_format: {
+        enum: ['png', 'jpeg'],
+        type: 'string',
+        title: 'output_format',
+        default: 'png',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'none',
+            subtype: 'null',
+            title: 'model variant',
+            type: 'equals',
+            value: null,
+          },
+          {
+            description: '1K',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1K',
+          },
+        ],
+        prices: [
+          {
+            metric: 'image_output_count',
+            price: '$0.045',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            description: 'none',
+            subtype: 'null',
+            title: 'model variant',
+            type: 'equals',
+            value: null,
+          },
+          {
+            description: '2K',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '2K',
+          },
+        ],
+        prices: [
+          {
+            metric: 'image_output_count',
+            price: '$0.09',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            description: 'layer-small',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'layer-small',
+          },
+          {
+            description: 'none',
+            subtype: 'null',
+            title: 'target resolution',
+            type: 'equals',
+            value: null,
+          },
+        ],
+        prices: [
+          {
+            metric: 'image_output_count',
+            price: '$0.0225',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            description: 'layer-large',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'layer-large',
+          },
+          {
+            description: 'none',
+            subtype: 'null',
+            title: 'target resolution',
+            type: 'equals',
+            value: null,
+          },
+        ],
+        prices: [
+          {
+            metric: 'image_output_count',
+            price: '$0.045',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+        ],
+      },
+    ],
+  },
 };

@@ -137,6 +137,10 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
       },
     },
   ],
+  // Public schema and billingConfig, 2026-10-15: standard mode bills by size.
+  'bytedance/seedream-5-pro': [
+    field('size', identity('1K', '2K'), 'target resolution', 'resolution'),
+  ],
   'kwaivgi/kling-o1': [
     {
       criterionTitle: 'model variant',
@@ -155,6 +159,27 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
         ],
       },
     },
+  ],
+};
+
+/**
+ * Billing tiers no request we dispatch can reach, dropped before mapping so an
+ * unreachable price neither fails the refresh nor reads as a price change.
+ * Each entry names the input that keeps the tier unreachable.
+ */
+export const REPLICATE_UNREACHABLE_BILLING_TIERS: Readonly<
+  Record<
+    string,
+    readonly { criterionTitle: string; values: readonly VariantScalar[] }[]
+  >
+> = {
+  // Layer decomposition needs `layer_decomposition: true`, which we never send.
+  'bytedance/seedream-5-pro': [
+    { criterionTitle: 'model variant', values: ['layer-small', 'layer-large'] },
+  ],
+  // Replicate's own fallback route; `resolution` accepts only 1K, 2K and 4K.
+  'google/nano-banana-pro': [
+    { criterionTitle: 'target resolution', values: ['fallback'] },
   ],
 };
 

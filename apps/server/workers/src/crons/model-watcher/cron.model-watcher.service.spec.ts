@@ -385,6 +385,49 @@ describe('CronModelWatcherService', () => {
       );
     });
 
+    it('refreshes the FLUX.3 Edit alias row from the model Replicate hosts', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () => Promise.resolve({ next: null, results: [] }),
+        ok: true,
+      } as Response);
+      const modelsService = Reflect.get(service, 'modelsService');
+      modelsService.prisma.model.findMany.mockResolvedValueOnce([
+        {
+          category: ModelCategory.IMAGE_EDIT,
+          endpoint: 'black-forest-labs/flux-3-image-edit',
+          id: 'flux-edit',
+          isActive: true,
+          isFree: false,
+          key: 'black-forest-labs/flux-3-image-edit',
+          pricingType: 'conditional',
+          provider: ModelProvider.REPLICATE,
+          providerCostUsd: 0.024,
+          reviewedProviderContractVersion: 'rates:flux-3',
+        },
+      ]);
+
+      const result = await service.discoverNewModels();
+
+      expect(modelDiscoveryService.fetchReplicateModel).toHaveBeenCalledWith(
+        'black-forest-labs',
+        'flux-3-image',
+      );
+      expect(
+        replicateContractSyncService.synchronizeModel,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: 'black-forest-labs/flux-3-image-edit',
+          id: 'flux-edit',
+        }),
+        expect.objectContaining({ name: 'flux-3-image' }),
+        expect.anything(),
+        expect.anything(),
+        expect.any(Date),
+      );
+      expect(replicateContractSyncService.recordFailure).not.toHaveBeenCalled();
+      expect(result.errors).toBe(0);
+    });
+
     it('raises one deduped provider-level alert when the whole Replicate sync fails', async () => {
       Reflect.get(
         service,

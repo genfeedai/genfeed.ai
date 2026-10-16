@@ -8,6 +8,7 @@ export interface OverviewContentProps {
   icon?: IconComponent;
   cards?: OverviewCard[];
   actionsTitle?: string;
+  actionsLayout?: 'cards' | 'compact';
   header?: ReactNode;
   children?: ReactNode;
 }

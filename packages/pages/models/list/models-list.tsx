@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  PageScope,
-} from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize, PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { ModelsListProps } from '@props/admin/models.props';
 import type { TableAction } from '@props/ui/display/table.props';
@@ -13,26 +8,11 @@ import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Button } from '@ui/primitives/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  CircleCheck,
-  CircleX,
-  Coins,
-  Cpu,
-  Info,
-  MoreHorizontal,
-  Trash2,
-} from 'lucide-react';
+import { CircleCheck, CircleX, Cpu, Info, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
-import AdminModelsFilters from './components/AdminModelsFilters';
+import { useMemo, useState } from 'react';
+import AdminModelsToolbar from './components/AdminModelsToolbar';
 
 import ModelsCatalogOverview from './components/ModelsCatalogOverview';
 import { useModelsList } from './useModelsList';
@@ -45,6 +25,8 @@ export default function ModelsList({
   onPricingDetails,
   renderExpandedRow,
   renderToolbar,
+  beforeList,
+  onRefresh,
 }: ModelsListProps) {
   const translate = useTranslations('pages.models');
   const {
@@ -76,16 +58,39 @@ export default function ModelsList({
     category,
     scope,
     onRefreshRegister,
+    onRefresh,
   });
 
-  // Actions - info button for all users, delete for admin only
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  async function handleRefresh() {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  // One way to see a model's details: on the admin pricing page a row click
+  // expands its pricing inline and the pencil opens the editor; elsewhere a
+  // row click (or the info action) opens the read-only details.
+  const isPricingInline = isAdminScope && Boolean(onPricingDetails);
+  const handleRowClick =
+    isPricingInline && onPricingDetails ? onPricingDetails : handleViewDetails;
   const actions: TableAction<IModel>[] = useMemo(
     () => [
-      {
-        icon: <Info />,
-        onClick: handleViewDetails,
-        tooltip: translate('viewDetails'),
-      },
+      isPricingInline
+        ? {
+            icon: <Pencil />,
+            onClick: handleViewDetails,
+            tooltip: translate('editModel'),
+          }
+        : {
+            icon: <Info />,
+            onClick: handleViewDetails,
+            tooltip: translate('viewDetails'),
+          },
       ...(isAdminScope
         ? [
             {
@@ -146,6 +151,7 @@ export default function ModelsList({
     ],
     [
       isAdminScope,
+      isPricingInline,
       translate,
       handleViewDetails,
       openConfirm,
@@ -156,31 +162,33 @@ export default function ModelsList({
     ],
   );
 
-  return (
+  const content = (
     <>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            {translate('catalogTitle')}
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {translate('catalogDescription')}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isAdminScope ? <AdminModelsFilters category={category} /> : null}
-          {renderToolbar?.(models)}
-          <div className="w-full sm:w-64">
-            <FormSearchbar
-              className="w-full"
-              onSearch={handleSearchChange}
-              placeholder={translate('searchModels')}
-              size={ComponentSize.SM}
-              value={searchTerm}
-            />
+      {beforeList}
+      {!isAdminScope ? (
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              {translate('catalogTitle')}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {translate('catalogDescription')}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {renderToolbar?.(models)}
+            <div className="w-full sm:w-64">
+              <FormSearchbar
+                className="w-full"
+                onSearch={handleSearchChange}
+                placeholder={translate('searchModels')}
+                size={ComponentSize.SM}
+                value={searchTerm}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       {!isAdminScope ? (
         <ModelsCatalogOverview
@@ -202,71 +210,10 @@ export default function ModelsList({
               }
             : undefined
         }
-        columns={
-          isAdminScope
-            ? [
-                ...columns,
-                {
-                  key: 'actions',
-                  header: '',
-                  render: (model: IModel) => (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant={ButtonVariant.GHOST}
-                          size={ButtonSize.ICON}
-                          aria-label={translate('moreOptions', {
-                            label: model.label,
-                          })}
-                        >
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        onClick={(event) => event.stopPropagation()}
-                        onKeyDown={(event) => event.stopPropagation()}
-                      >
-                        {onPricingDetails ? (
-                          <DropdownMenuItem
-                            onSelect={() => onPricingDetails(model)}
-                          >
-                            <Coins />
-                            {translate('pricingDetails')}
-                          </DropdownMenuItem>
-                        ) : null}
-                        {actions
-                          .filter(
-                            (action) =>
-                              !action.isVisible || action.isVisible(model),
-                          )
-                          .map((action) => (
-                            <DropdownMenuItem
-                              key={
-                                typeof action.tooltip === 'string'
-                                  ? action.tooltip
-                                  : action.tooltip(model)
-                              }
-                              onSelect={() => action.onClick?.(model)}
-                            >
-                              {typeof action.icon === 'function'
-                                ? action.icon(model)
-                                : action.icon}
-                              {typeof action.tooltip === 'string'
-                                ? action.tooltip
-                                : action.tooltip(model)}
-                            </DropdownMenuItem>
-                          ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ),
-                },
-              ]
-            : columns
-        }
-        actions={isAdminScope ? undefined : actions}
+        columns={columns}
+        actions={actions}
         renderExpandedRow={renderExpandedRow}
-        onRowClick={handleViewDetails}
+        onRowClick={handleRowClick}
         getRowKey={(model: IModel) => model.id}
         emptyLabel={translate('noModelsFound')}
         emptyState={
@@ -317,5 +264,19 @@ export default function ModelsList({
         </div>
       )}
     </>
+  );
+
+  if (!isAdminScope) return content;
+  return (
+    <AdminModelsToolbar
+      category={category}
+      iconActions={renderToolbar?.(models)}
+      isRefreshing={isRefreshing}
+      onRefresh={() => void handleRefresh()}
+      onSearch={handleSearchChange}
+      searchTerm={searchTerm}
+    >
+      {content}
+    </AdminModelsToolbar>
   );
 }

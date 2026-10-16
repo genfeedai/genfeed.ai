@@ -1,3 +1,7 @@
+import {
+  MISSING_PROVIDER_KEY_CODE,
+  MissingProviderKeyException,
+} from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { HttpException } from '@nestjs/common';
 
 const MESSAGES: Record<string, string> = {
@@ -7,6 +11,8 @@ const MESSAGES: Record<string, string> = {
   channel_limit_exceeded:
     "The generated text did not fit this account's limits. Try again.",
   dispatch_window_expired: 'Generation timed out before it started. Try again.',
+  [MISSING_PROVIDER_KEY_CODE]:
+    'Missing provider key: OPENROUTER_API_KEY. Add it to the server environment, then try again.',
   no_approved_revision:
     'This brand has no usable style guide yet. Set one up, then try again.',
   no_draft_revision:
@@ -37,6 +43,9 @@ export function accountGenerationFailure(
 
 /** A thrown seam failure as a stable reason code. */
 export function accountGenerationErrorCode(error: unknown): string {
+  if (error instanceof MissingProviderKeyException) {
+    return MISSING_PROVIDER_KEY_CODE;
+  }
   if (error instanceof HttpException) {
     const body = error.getResponse();
     if (typeof body === 'string') return body;

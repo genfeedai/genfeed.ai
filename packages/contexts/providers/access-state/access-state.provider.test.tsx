@@ -54,10 +54,16 @@ const loadClientProtectedBootstrapMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue(null),
 );
 
-vi.mock('@providers/protected-bootstrap/client-protected-bootstrap', () => ({
-  clearClientProtectedBootstrapCache: vi.fn(),
-  loadClientProtectedBootstrap: loadClientProtectedBootstrapMock,
-}));
+vi.mock(
+  '@providers/protected-bootstrap/client-protected-bootstrap',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@providers/protected-bootstrap/client-protected-bootstrap')
+    >()),
+    clearClientProtectedBootstrapCache: vi.fn(),
+    loadClientProtectedBootstrap: loadClientProtectedBootstrapMock,
+  }),
+);
 
 function createWrapper() {
   const queryClient = new QueryClient({

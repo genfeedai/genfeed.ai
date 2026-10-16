@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -199,12 +200,27 @@ describe('OpenRouterService', () => {
       expect(headers.Authorization).toBe('Bearer test-api-key');
     });
 
-    it('throws when OPENROUTER_API_KEY is not configured', async () => {
+    it('throws a missing-provider-key error when OPENROUTER_API_KEY is not configured', async () => {
       configService.get.mockReturnValue(undefined as unknown as string);
 
       await expect(service.chatCompletion(defaultParams)).rejects.toThrow(
-        'OPENROUTER_API_KEY is not configured',
+        'Missing provider key: OPENROUTER_API_KEY',
       );
+    });
+
+    it('fails fast with a 503 that names the variable before any request', () => {
+      configService.get.mockReturnValue(undefined as unknown as string);
+
+      expect(() => service.assertApiKeyAvailable()).toThrow(
+        MissingProviderKeyException,
+      );
+      expect(httpService.post).not.toHaveBeenCalled();
+    });
+
+    it('accepts an organization key when the server key is absent', () => {
+      configService.get.mockReturnValue(undefined as unknown as string);
+
+      expect(() => service.assertApiKeyAvailable('org-key')).not.toThrow();
     });
 
     it('logs and rethrows error on HTTP failure', async () => {
@@ -452,7 +468,7 @@ describe('OpenRouterService', () => {
       configService.get.mockReturnValue(undefined as unknown as string);
 
       await expect(service.streamChatCompletion(defaultParams)).rejects.toThrow(
-        'OPENROUTER_API_KEY is not configured',
+        'Missing provider key: OPENROUTER_API_KEY',
       );
     });
 

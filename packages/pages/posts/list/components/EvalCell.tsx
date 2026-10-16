@@ -55,6 +55,7 @@ export default function EvalCell({
   return (
     <Button
       variant={isGrid ? ButtonVariant.GHOST : ButtonVariant.DEFAULT}
+      ariaLabel={isGrid ? undefined : 'Evaluate'}
       icon={<ArrowUp />}
       label={isGrid ? 'Evaluate' : undefined}
       tooltip="Evaluate"

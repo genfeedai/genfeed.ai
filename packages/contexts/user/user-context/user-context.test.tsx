@@ -37,10 +37,16 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@providers/protected-bootstrap/client-protected-bootstrap', () => ({
-  clearClientProtectedBootstrapCache: vi.fn(),
-  loadClientProtectedBootstrap: vi.fn().mockResolvedValue(null),
-}));
+vi.mock(
+  '@providers/protected-bootstrap/client-protected-bootstrap',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@providers/protected-bootstrap/client-protected-bootstrap')
+    >()),
+    clearClientProtectedBootstrapCache: vi.fn(),
+    loadClientProtectedBootstrap: vi.fn().mockResolvedValue(null),
+  }),
+);
 
 function createWrapper() {
   const queryClient = new QueryClient({

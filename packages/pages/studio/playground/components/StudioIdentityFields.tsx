@@ -122,13 +122,16 @@ export default function StudioIdentityFields({
       : null;
   // A saved Voice pick the chosen model (or HeyGen's current catalogue) can no
   // longer speak is cleared so the user re-picks instead of sending a mismatch.
+  // An avatar voice id without its provider ref is cleared the same way.
   const isSavedVoiceStale =
-    type === 'voice' &&
     Boolean(settings.voiceId) &&
-    (!isStudioVoiceSelectionValid(settings) ||
-      (settings.voiceRef?.provider === VoiceProvider.HEYGEN &&
-        isHeyGenSpeechLoaded &&
-        !selectedVoiceOption));
+    (isAvatarType
+      ? !settings.voiceRef
+      : type === 'voice' &&
+        (!isStudioVoiceSelectionValid(settings) ||
+          (settings.voiceRef?.provider === VoiceProvider.HEYGEN &&
+            isHeyGenSpeechLoaded &&
+            !selectedVoiceOption)));
   useEffect(() => {
     if (isSavedVoiceStale) {
       onChange({ voiceRef: undefined, voiceId: undefined });

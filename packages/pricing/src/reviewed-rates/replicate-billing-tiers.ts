@@ -9,6 +9,7 @@ import {
 } from './replicate-variant-rule';
 import {
   DERIVED_CRITERION_TITLES,
+  REPLICATE_UNREACHABLE_BILLING_TIERS,
   REPLICATE_VARIANT_SELECTORS,
 } from './replicate-variant-selectors';
 import { variantOwn } from './variant-rule-validation';
@@ -266,13 +267,53 @@ function mapBillingCriterion(
  * map to exactly one input field and every price to a billed unit: anything
  * else fails the whole model, so a reviewed rate is never replaced by a guess.
  */
+function isUnreachableTier(tier: unknown, endpoint?: string): boolean {
+  const exclusions =
+    endpoint && variantOwn(REPLICATE_UNREACHABLE_BILLING_TIERS, endpoint)
+      ? REPLICATE_UNREACHABLE_BILLING_TIERS[endpoint]
+      : undefined;
+  if (!exclusions || !isJsonObject(tier) || !Array.isArray(tier.criteria))
+    return false;
+  return tier.criteria.some(
+    (criterion) =>
+      isJsonObject(criterion) &&
+      typeof criterion.title === 'string' &&
+      exclusions.some(
+        (exclusion) =>
+          words(exclusion.criterionTitle) === words(String(criterion.title)) &&
+          exclusion.values.some((value) => value === criterion.value),
+      ),
+  );
+}
+
+/** A criterion every remaining tier leaves null does not distinguish them. */
+function nullCriterionTitles(tiers: unknown[]): Set<string> {
+  const titles = new Set<string>();
+  const nonNull = new Set<string>();
+  for (const tier of tiers) {
+    if (!isJsonObject(tier) || !Array.isArray(tier.criteria)) continue;
+    for (const criterion of tier.criteria) {
+      if (!isJsonObject(criterion) || typeof criterion.title !== 'string')
+        continue;
+      const title = words(criterion.title);
+      if (criterion.value === null && criterion.subtype === 'null')
+        titles.add(title);
+      else nonNull.add(title);
+    }
+  }
+  for (const title of nonNull) titles.delete(title);
+  return titles;
+}
+
 export function mapReplicateBillingTiers(
-  tiers: unknown[],
+  allTiers: unknown[],
   inputProperties: Record<string, unknown>,
   endpoint?: string,
 ): ReplicateBillingMapping {
+  const tiers = allTiers.filter((tier) => !isUnreachableTier(tier, endpoint));
   if (tiers.length === 0)
     return { reason: 'no_billing_tiers', status: 'failed' };
+  const ignoredTitles = nullCriterionTitles(tiers);
   const rates: ReviewedProviderRate[] = [];
   const selectorKeys = new Set<string>();
   const variantRules = new Map<string, ReviewedVariantRule>();
@@ -288,6 +329,7 @@ export function mapReplicateBillingTiers(
     for (const rawCriterion of criteria) {
       if (!isJsonObject(rawCriterion) || typeof rawCriterion.title !== 'string')
         return { reason: 'invalid_billing_criterion', status: 'failed' };
+      if (ignoredTitles.has(words(rawCriterion.title))) continue;
       if (rawCriterion.type !== undefined && rawCriterion.type !== 'equals')
         return {
           reason: `unsupported_criterion_type:${String(rawCriterion.type)}`,

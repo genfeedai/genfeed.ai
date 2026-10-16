@@ -4,34 +4,43 @@ import { useModelsContext } from '@contexts/models/models-context/models-context
 import { PageScope } from '@genfeedai/contracts';
 import ModelsList from '@pages/models/list/models-list';
 import type { AdminModelsPageContentProps } from '@props/admin/models.props';
-import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
 import ModelPricingDetails, {
   ModelPricingToolbar,
 } from './model-pricing-details';
+import { ADMIN_MODEL_PRICING_QUERY_KEY } from './use-admin-model-pricing-report';
 
 export default function AdminModelsPageContent({
   type,
 }: AdminModelsPageContentProps) {
   const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
   const { setRefreshModels } = useModelsContext();
+  const queryClient = useQueryClient();
+  const refreshPricing = useCallback(
+    () =>
+      queryClient.invalidateQueries({
+        queryKey: ADMIN_MODEL_PRICING_QUERY_KEY,
+      }),
+    [queryClient],
+  );
   return (
-    <>
-      <ModelPricingAttentionPanel />
-      <ModelsList
-        category={type}
-        scope={PageScope.SUPERADMIN}
-        onRefreshRegister={setRefreshModels}
-        onPricingDetails={(model) =>
-          setExpandedModelId((id) => (id === model.id ? null : model.id))
-        }
-        renderExpandedRow={(model) =>
-          expandedModelId === model.id ? (
-            <ModelPricingDetails modelId={model.id} />
-          ) : undefined
-        }
-        renderToolbar={(models) => <ModelPricingToolbar models={models} />}
-      />
-    </>
+    <ModelsList
+      beforeList={<ModelPricingAttentionPanel />}
+      category={type}
+      scope={PageScope.SUPERADMIN}
+      onRefreshRegister={setRefreshModels}
+      onRefresh={refreshPricing}
+      onPricingDetails={(model) =>
+        setExpandedModelId((id) => (id === model.id ? null : model.id))
+      }
+      renderExpandedRow={(model) =>
+        expandedModelId === model.id ? (
+          <ModelPricingDetails modelId={model.id} />
+        ) : undefined
+      }
+      renderToolbar={(models) => <ModelPricingToolbar models={models} />}
+    />
   );
 }

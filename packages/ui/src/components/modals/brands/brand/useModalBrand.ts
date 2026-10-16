@@ -25,6 +25,7 @@ import type {
   ILink,
   IStructuredError,
 } from '@genfeedai/contracts/interfaces';
+import type { MemberOrganizationOption } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import {
   closeModal,
   openModal,
@@ -32,6 +33,7 @@ import {
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@genfeedai/hooks/auth/use-user-role/use-user-role';
 import { useElements } from '@genfeedai/hooks/data/elements/use-elements/use-elements';
+import { useMemberOrganizations } from '@genfeedai/hooks/data/organization/use-member-organizations/use-member-organizations';
 import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
@@ -46,7 +48,6 @@ import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
-import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import type { IBrandRelocationPreview } from '@genfeedai/services/social/brand-relocation.types';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { LinksService } from '@genfeedai/services/social/links.service';
@@ -97,10 +98,7 @@ const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   websiteUrl: '',
 };
 
-export type OrganizationOption = {
-  id: string;
-  label: string;
-};
+export type OrganizationOption = MemberOrganizationOption;
 
 function getStructuredErrorStatus(error: unknown): number | undefined {
   if (!error || typeof error !== 'object') {
@@ -124,6 +122,7 @@ export type UseModalBrandReturn = {
   imageModels: ReturnType<typeof useElements>['imageModels'];
   isGenerating: boolean;
   isLoadingBrand: boolean;
+  relocationProgress: string | null;
   isSubmitting: boolean;
   musicModels: ReturnType<typeof useElements>['musicModels'];
   navigateToBrandSettings: (() => void) | undefined;
@@ -220,9 +219,6 @@ export function useModalBrand(
   const getLinksService = useAuthedService((token: string) =>
     LinksService.getInstance(token),
   );
-  const getOrgsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
 
   const { imageModels, musicModels, videoModels, fontFamilies } = useElements();
   const { openConfirm } = useConfirmModal();
@@ -243,6 +239,12 @@ export function useModalBrand(
   >(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previousPrompt, setPreviousPrompt] = useState<string | null>(null);
+  const [isRelocating, setIsRelocating] = useState(false);
+  const [relocationProgress, setRelocationProgress] = useState<string | null>(
+    null,
+  );
+  const relocationControllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => relocationControllerRef.current?.abort(), []);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const promptSubscriptionRef = useRef<(() => void) | null>(null);
 
@@ -286,26 +288,8 @@ export function useModalBrand(
 
   const currentOrganizationId = activeBrand?.organization?.id ?? null;
 
-  const { data: organizationOptionsData } = useQuery({
-    queryKey: ['brand-modal-organization-options', isSuperAdmin],
-    queryFn: async (): Promise<OrganizationOption[]> => {
-      const service = await getOrgsService();
-      if (isSuperAdmin) {
-        const organizations = await service.getAllOrganizations();
-        return organizations.map((organization) => ({
-          id: organization.id,
-          label: organization.label,
-        }));
-      }
-      const organizations = await service.getMyOrganizations();
-      return organizations.map((organization) => ({
-        id: organization.id,
-        label: organization.label,
-      }));
-    },
-  });
-
-  const organizationOptions = organizationOptionsData ?? [];
+  // Member organizations only, alphabetical — never other tenants.
+  const { organizations: organizationOptions } = useMemberOrganizations();
   const canMoveOrganization =
     isSuperAdmin || (hasElevatedRole && organizationOptions.length >= 2);
 
@@ -798,6 +782,11 @@ export function useModalBrand(
         return;
       }
 
+      const controller = new AbortController();
+      relocationControllerRef.current = controller;
+      setIsRelocating(true);
+      let isCommitted = false;
+      setRelocationProgress('Moving this brand in the background…');
       try {
         const service = await getBrandsService();
         const formData = {
@@ -811,11 +800,29 @@ export function useModalBrand(
             ...formData,
             organizationId: destOrganizationId,
           },
+          {
+            signal: controller.signal,
+            onProcessing: (isReconnecting) =>
+              setRelocationProgress(
+                isReconnecting
+                  ? 'Checking progress. The move continues while the connection recovers.'
+                  : 'Moving this brand in the background…',
+              ),
+          },
         );
 
-        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
-        await refreshBrand();
-        await refreshBrands();
+        isCommitted = true;
+        if (updatedBrand)
+          mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
+        try {
+          await refreshBrand();
+          await refreshBrands();
+        } catch (refreshError) {
+          logger.warn(
+            'Brand moved; refreshing its view will be retried',
+            refreshError,
+          );
+        }
         onConfirm?.(true);
         setOverlayView('overview');
 
@@ -823,6 +830,14 @@ export function useModalBrand(
           buildRelocationToastMessage(summary),
         );
       } catch (relocationError) {
+        if (controller.signal.aborted) return;
+        if (isCommitted) {
+          logger.warn(
+            'Brand moved; its view could not finish refreshing',
+            relocationError,
+          );
+          return;
+        }
         logger.error('Failed to relocate brand', relocationError);
 
         const status = getStructuredErrorStatus(relocationError);
@@ -840,7 +855,16 @@ export function useModalBrand(
           return;
         }
 
-        setError('Failed to save brand');
+        setError(
+          relocationError instanceof Error
+            ? relocationError.message
+            : 'The move could not complete. Please try again.',
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsRelocating(false);
+          setRelocationProgress(null);
+        }
       }
     },
     [
@@ -1002,7 +1026,8 @@ export function useModalBrand(
     imageModels,
     isGenerating,
     isLoadingBrand,
-    isSubmitting,
+    isSubmitting: isSubmitting || isRelocating,
+    relocationProgress,
     musicModels,
     navigateToBrandSettings,
     organizationDefaults,

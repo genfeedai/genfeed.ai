@@ -102,3 +102,23 @@ export function compareProviderRates(
     status: 'changed',
   };
 }
+
+/** Keep approved rates live while an observed rate change awaits review. */
+export async function markRateReview(
+  prisma: PrismaService,
+  modelId: string,
+  version: string,
+  now: Date,
+): Promise<void> {
+  await prisma.model.update({
+    data: {
+      pendingProviderContractVersion: version,
+      providerPricingSyncedAt: now,
+      providerSchemaSyncedAt: now,
+      providerSyncFailedAt: null,
+      providerSyncFailureCode: null,
+      providerSyncStatus: 'review_required',
+    },
+    where: { id: modelId },
+  });
+}

@@ -67,11 +67,19 @@ function selectors(
 }
 function unit(value: unknown): ProviderBillingUnit | null {
   switch (value) {
+    // Fal's pricing API names units in the plural.
     case 'image':
+    case 'images':
+    case 'audios':
       return 'output';
+    case 'seconds':
     case 'video_second':
     case 'second_of_video':
       return 'second';
+    case 'megapixels':
+      return 'megapixel';
+    case 'requests':
+      return 'request';
     case 'request':
     case 'output':
     case 'second':

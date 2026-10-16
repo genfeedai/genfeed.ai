@@ -280,6 +280,13 @@ body.gf-studio-app {
   box-shadow: var(--shadow-tooltip);
 }
 
+/* Dropdown copy reads in Title Case on every select and menu primitive
+   (triggers, options, menu items). One switch for the whole product; put
+   `normal-case` on an item that shows user-authored text (emails, handles). */
+@utility dropdown-case {
+  text-transform: capitalize;
+}
+
 .app-region-drag {
   -webkit-app-region: drag;
   app-region: drag;

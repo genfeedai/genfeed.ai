@@ -33,6 +33,14 @@ import {
   countRelocationMovingResources,
 } from '@api/collections/brands/utils/brand-relocation-preview.util';
 import {
+  claimRelocationReceipt,
+  completeRelocationReceipt,
+  pickRelocationPassthrough,
+  refreshRelocationReceiptSummary,
+  stripRelocationOrganization,
+  toRelocationSummary,
+} from '@api/collections/brands/utils/brand-relocation-receipt.util';
+import {
   type BrandRelocationHeldSchedule,
   findActiveBrandSchedules,
   holdBrandSchedules,
@@ -48,7 +56,9 @@ import {
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
@@ -56,6 +66,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
 import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
+import type { IBrandRelocationSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -109,18 +120,7 @@ export interface BrandRelocationActingUser {
 }
 
 /** Server-authoritative summary of a completed (or no-op) brand relocation. */
-export interface BrandRelocationSummary {
-  workflowsMoved: number;
-  membersSevered: number;
-  /** Enabled schedules paused because their actor does not carry over. */
-  schedulesHeld: number;
-  /** Held schedules whose queued scheduler job could not be removed. */
-  schedulingPending: number;
-  /** Persona grants revoked because their character changed owner. */
-  personaGrantsRevoked: number;
-  /** Characters reset to their owning brand only because they were shared beyond it. */
-  personasSharingReset: number;
-}
+export type BrandRelocationSummary = IBrandRelocationSummary;
 
 /** Result of `relocateToOrganization`: the moved brand plus a summary for the client. */
 export interface BrandRelocationResult {
@@ -143,7 +143,7 @@ export interface BrandRelocationPreview {
   schedulesToHold: BrandRelocationHeldSchedule[];
 }
 
-const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
+export const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
   membersSevered: 0,
   personaGrantsRevoked: 0,
   personasSharingReset: 0,
@@ -164,6 +164,7 @@ export class BrandRelocationService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
@@ -211,6 +212,7 @@ export class BrandRelocationService {
     },
     actingUser: BrandRelocationActingUser,
     patchSameOrganization?: BrandSameOrganizationPatch,
+    relocationId?: string,
   ): Promise<BrandRelocationResult> {
     const destOrgId = updateBrandDto.organizationId;
     if (!destOrgId) {
@@ -243,7 +245,10 @@ export class BrandRelocationService {
 
     await this.assertSourceKeepsAnotherBrand(brandId, sourceOrgId);
 
-    const passthrough = this.pickRelocationPassthrough(updateBrandDto);
+    const passthrough = pickRelocationPassthrough(
+      updateBrandDto,
+      BrandRelocationService.RELOCATION_PASSTHROUGH_FIELDS,
+    );
     this.logger.log('Relocating brand between organizations', {
       brandId,
       destOrgId,
@@ -274,6 +279,7 @@ export class BrandRelocationService {
               brandId,
               destOrgId,
               passthrough,
+              relocationId,
               slug: updateBrandDto.slug,
               sourceOrgId,
             }),
@@ -320,6 +326,16 @@ export class BrandRelocationService {
     );
     await this.invalidateRelocationCaches(brandId, sourceOrgId, destOrgId);
 
+    const summary = toRelocationSummary(moveResult, schedulingPending);
+    if (relocationId)
+      await refreshRelocationReceiptSummary(
+        this.prisma,
+        relocationId,
+        sourceOrgId,
+        summary,
+        this.logger,
+      );
+
     const moved = (await this.prisma.brand.findFirst({
       where: { id: brandId },
     })) as BrandDocument | null;
@@ -327,17 +343,7 @@ export class BrandRelocationService {
       throw new NotFoundException('Brand', brandId);
     }
 
-    return {
-      brand: moved,
-      summary: {
-        membersSevered: moveResult.membersSevered,
-        personaGrantsRevoked: moveResult.personaGrantsRevoked,
-        personasSharingReset: moveResult.personasSharingReset,
-        schedulesHeld: moveResult.heldSchedules.length,
-        schedulingPending,
-        workflowsMoved: moveResult.workflowsMoved,
-      },
-    };
+    return { brand: moved, summary };
   }
 
   /**
@@ -377,6 +383,7 @@ export class BrandRelocationService {
       brandId: string;
       destOrgId: string;
       passthrough: Record<string, unknown>;
+      relocationId?: string;
       slug: string | undefined;
       sourceOrgId: string;
     },
@@ -386,6 +393,14 @@ export class BrandRelocationService {
     // observation: brand, credential and post). Whichever the cascade updates
     // first, the others have not followed yet, so the checks wait for commit,
     // when every parent and child agree.
+    if (move.relocationId)
+      await claimRelocationReceipt(
+        tx,
+        move.relocationId,
+        brandId,
+        sourceOrgId,
+        destOrgId,
+      );
     await tx.$executeRaw`SET CONSTRAINTS ALL DEFERRED`;
     await this.prepareLearningRelocation(
       tx,
@@ -416,6 +431,16 @@ export class BrandRelocationService {
       move.passthrough,
     );
     await assertNoBrandOrgOrphans(tx, brandId, destOrgId);
+    if (move.relocationId)
+      await completeRelocationReceipt(tx, move.relocationId, sourceOrgId, {
+        membersSevered: result.membersSevered,
+        personaGrantsRevoked,
+        personasSharingReset: sharedPersonas.length,
+        schedulesHeld: held.length,
+        schedulingPending: touchedWorkflowIds.length,
+        workflowsMoved: result.workflowsMoved,
+      });
+
     return {
       ...result,
       heldSchedules: held,
@@ -541,7 +566,7 @@ export class BrandRelocationService {
     dto: Partial<UpdateBrandDto>,
     patchSameOrganization?: BrandSameOrganizationPatch,
   ): Promise<BrandRelocationResult> {
-    const updates = this.stripRelocationField(dto);
+    const updates = stripRelocationOrganization(dto);
     if (patchSameOrganization)
       return {
         brand: await patchSameOrganization(updates),
@@ -602,28 +627,6 @@ export class BrandRelocationService {
     }
   }
 
-  private stripRelocationField<T extends { organizationId?: string }>(
-    dto: T,
-  ): Omit<T, 'organizationId'> {
-    // Strip the relocation trigger: it is not a Brand column, so leaking it into a
-    // normal CRUD patch (e.g. a client retry after the move already committed)
-    // would make Prisma reject the update on an unknown field.
-    const { organizationId: _omitOrg, ...rest } = dto;
-    return rest;
-  }
-
-  private pickRelocationPassthrough(
-    dto: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const out: Record<string, unknown> = {};
-    for (const key of BrandRelocationService.RELOCATION_PASSTHROUGH_FIELDS) {
-      if (Object.hasOwn(dto, key) && dto[key] !== undefined) {
-        out[key] = dto[key];
-      }
-    }
-    return out;
-  }
-
   private async assertDestinationOrganizationExists(
     destOrgId: string,
   ): Promise<void> {
@@ -655,7 +658,7 @@ export class BrandRelocationService {
     }
   }
 
-  private async assertCanRelocate(
+  async assertCanRelocate(
     actingUser: BrandRelocationActingUser,
     sourceOrgId: string,
     destOrgId: string,
@@ -963,7 +966,20 @@ export class BrandRelocationService {
         CACHE_PATTERNS.BRANDS_LIST(sourceOrgId),
         CACHE_PATTERNS.BRANDS_LIST(destOrgId),
       );
-      await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
+      await this.cacheInvalidationService.invalidateByTags([
+        CACHE_TAGS.BRANDS,
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(sourceOrgId),
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(destOrgId),
+      ]);
+      // Members' bootstrap payload (brand list, active brand) is cached per
+      // user and organization; without this both orgs show the pre-move
+      // brands until the cache expires.
+      await this.accessBootstrapCacheService.invalidateForOrganization(
+        sourceOrgId,
+      );
+      await this.accessBootstrapCacheService.invalidateForOrganization(
+        destOrgId,
+      );
     } catch (error: unknown) {
       // The move is committed; a cache that stays stale expires on its own.
       this.logger.warn('Brand relocation cache invalidation failed', {

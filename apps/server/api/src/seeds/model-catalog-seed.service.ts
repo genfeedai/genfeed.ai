@@ -126,11 +126,13 @@ export class ModelCatalogSeedService {
   ) {}
 
   private resolveSeedCatalog(): readonly ModelCatalogSeedEntry[] {
+    const isCloud = isCloudDeployment();
     return getModelCatalogForDeployment(
       !shouldUseLowestCostModelDefaults({
-        isCloud: isCloudDeployment(),
+        isCloud,
         nodeEnv: this.configService.get('NODE_ENV'),
       }),
+      { isCloud },
     );
   }
 

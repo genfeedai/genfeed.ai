@@ -10,6 +10,7 @@ describe('createStudioCharacterMentionExtension', () => {
         hasReferenceImage: true,
         id: 'p1',
         label: 'Anna',
+        referenceIngredientIds: ['img-1'],
       },
     ]);
 

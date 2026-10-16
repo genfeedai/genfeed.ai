@@ -1,5 +1,5 @@
 import { MemberRole } from '@genfeedai/contracts';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandsList from './brands-list';
 import '@testing-library/jest-dom/vitest';
@@ -33,6 +33,7 @@ const mockBrands = [
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     organizationId: 'org-123',
+    refreshBrands: vi.fn().mockResolvedValue(undefined),
     settings: { subscriptionTier: 'scale' },
   })),
 }));
@@ -72,7 +73,7 @@ vi.mock('./brand-move-dialog', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn((options: { queryKey: string[] }) =>
-    options.queryKey[0] === 'brand-move-destinations'
+    options.queryKey[0] === 'member-organizations'
       ? {
           data: [
             { id: 'org-123', label: 'Current' },
@@ -90,10 +91,10 @@ vi.mock('@tanstack/react-query', () => ({
   })),
 }));
 
+const brandOverlay = vi.hoisted(() => ({ openBrandOverlay: vi.fn() }));
+
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useBrandOverlay: vi.fn(() => ({
-    openBrandOverlay: vi.fn(),
-  })),
+  useBrandOverlay: vi.fn(() => brandOverlay),
   useConfirmModal: vi.fn(() => ({
     openConfirm: vi.fn(),
   })),
@@ -167,7 +168,11 @@ describe('BrandsList', () => {
     render(<BrandsList />);
     expect(screen.getByText('Test Brand')).toBeInTheDocument();
     expect(screen.getByText('@testbrand')).toBeInTheDocument();
-    expect(screen.getByText('3 connected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: '3 connected: Instagram, TikTok, YouTube',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('shows the brand logo, or the brand initial when none is uploaded', () => {
@@ -178,7 +183,7 @@ describe('BrandsList', () => {
       expect.stringContaining('cdn.example.com'),
     );
     expect(screen.getByText('N')).toBeInTheDocument();
-    expect(screen.getByText('0 connected')).toBeInTheDocument();
+    expect(screen.getByText('None')).toBeInTheDocument();
   });
 
   it('requests the organization by the query param the API accepts', async () => {
@@ -205,14 +210,30 @@ describe('BrandsList', () => {
     });
   });
 
-  it('links the row to brand settings instead of the edit overlay', () => {
+  it('links the brand name to its settings page', () => {
     render(<BrandsList />);
 
-    // A real anchor, not a click handler: the router prefetches the
-    // settings route before the click and cmd-click opens it in a new tab.
-    expect(
-      screen.getByRole('link', { name: 'Open Test Brand settings' }),
-    ).toHaveAttribute('href', '/default/testbrand/settings');
+    // A real anchor on the name: cmd-click opens it in a new tab.
+    const link = screen.getByRole('link', { name: 'Open Test Brand settings' });
+    expect(link).toHaveAttribute('href', '/default/testbrand/settings');
+    expect(link).toHaveTextContent('Test Brand');
+  });
+
+  it('opens the brand overview overlay when the rest of the row is clicked', () => {
+    brandOverlay.openBrandOverlay.mockClear();
+    render(<BrandsList />);
+
+    const row = screen
+      .getByRole('link', { name: 'Open Test Brand settings' })
+      .closest('tr');
+    expect(row).not.toBeNull();
+    fireEvent.click(row as HTMLTableRowElement);
+
+    expect(brandOverlay.openBrandOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({ label: 'Test Brand' }),
+      expect.any(Function),
+      'overview',
+    );
   });
 
   it('offers no selection or move action to members who cannot move brands', async () => {

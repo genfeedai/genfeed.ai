@@ -384,3 +384,94 @@ describe('FalModelContractSyncService', () => {
     );
   });
 });
+
+describe('fal refresh of a rate-sheet contract', () => {
+  /** What the reviewed rate sheet seeds: per-resolution rates fal's API never states. */
+  const sheetContract = {
+    ...reviewedContract,
+    endpoint: 'minimax/h3-max/text-to-video',
+    pricing: {
+      currency: 'USD',
+      rates: [
+        {
+          component: 'output',
+          isPerOutput: true,
+          unit: 'second',
+          unitPriceUsd: 0.05,
+          when: { resolution: '480P' },
+        },
+        {
+          component: 'output',
+          isPerOutput: true,
+          unit: 'second',
+          unitPriceUsd: 0.16,
+          when: { resolution: '1080P' },
+        },
+      ],
+      source: 'provider-model-page',
+      sourceUrl: 'https://fal.ai/models/minimax/h3-max/text-to-video',
+      verifiedAt: '2026-10-06T21:45:00.000Z',
+    },
+  };
+  const sheetModel = {
+    ...reviewedModel,
+    endpoint: 'minimax/h3-max/text-to-video',
+    key: 'fal/minimax/h3-max/text-to-video',
+  };
+  const falPrice = (unit: string, unitPrice: number) => [
+    {
+      currency: 'USD',
+      endpoint_id: 'minimax/h3-max/text-to-video',
+      unit,
+      unit_price: unitPrice,
+    },
+  ];
+
+  it('confirms the sheet when fal states its base rate in the plural unit', async () => {
+    const { model, service } = harness(sheetContract);
+
+    const result = await service.synchronizeModel(
+      sheetModel,
+      providerModel('minimax/h3-max/text-to-video'),
+      falPrice('seconds', 0.05),
+      new Date('2026-10-16T07:00:00Z'),
+    );
+
+    expect(result).toMatchObject({ drifted: false });
+    expect(model.update.mock.calls[0]?.[0].data).toMatchObject({
+      pendingProviderContractVersion: null,
+      providerSyncStatus: 'fresh',
+    });
+  });
+
+  it('reports a different base rate as a price change for review', async () => {
+    const { model, service } = harness(sheetContract);
+
+    const result = await service.synchronizeModel(
+      sheetModel,
+      providerModel('minimax/h3-max/text-to-video'),
+      falPrice('seconds', 0.03),
+      new Date('2026-10-16T07:00:00Z'),
+    );
+
+    expect(result.drifted).toBe(true);
+    expect(model.update.mock.calls[0]?.[0].data).toMatchObject({
+      providerSyncStatus: 'review_required',
+    });
+  });
+
+  it('leaves the reviewed sheet untouched when fal prices in an opaque unit', async () => {
+    const { model, modelProviderContract, service } = harness(sheetContract);
+
+    const result = await service.synchronizeModel(
+      sheetModel,
+      providerModel('minimax/h3-max/text-to-video'),
+      falPrice('units', 1),
+      new Date('2026-10-16T07:00:00Z'),
+    );
+
+    expect(result.refreshFailure).toBeUndefined();
+    expect(model.update).not.toHaveBeenCalled();
+    expect(modelProviderContract.upsert).not.toHaveBeenCalled();
+  });
+});

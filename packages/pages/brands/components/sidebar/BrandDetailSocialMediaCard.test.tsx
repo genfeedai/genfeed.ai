@@ -1,6 +1,12 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -487,12 +493,7 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    const moreActionsTrigger = screen.getAllByRole('button', {
-      name: 'More actions for Genfeed',
-    })[0];
-    fireEvent.pointerDown(moreActionsTrigger);
-    fireEvent.click(moreActionsTrigger);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Reconnect' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
 
     await waitFor(() => {
       expect(servicesPlatform).toHaveBeenCalledWith('twitter');
@@ -553,12 +554,7 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    const moreActionsTrigger = screen.getAllByRole('button', {
-      name: 'More actions for Genfeed',
-    })[0];
-    fireEvent.pointerDown(moreActionsTrigger);
-    fireEvent.click(moreActionsTrigger);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
     expect(
       screen.getByRole('heading', { name: 'Genfeed settings' }),
@@ -587,12 +583,7 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    const moreActionsTrigger = screen.getAllByRole('button', {
-      name: 'More actions for Genfeed',
-    })[0];
-    fireEvent.pointerDown(moreActionsTrigger);
-    fireEvent.click(moreActionsTrigger);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
     expect(screen.getByTestId('posting-times-editor')).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Import' })).toBeNull();
@@ -910,12 +901,14 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    const moreActionsTrigger = screen.getAllByRole('button', {
-      name: 'More actions for Genfeed Labs',
-    })[0];
-    fireEvent.pointerDown(moreActionsTrigger);
-    fireEvent.click(moreActionsTrigger);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Disconnect' }));
+    fireEvent.click(
+      within(screen.getByRole('row', { name: /Genfeed Labs/ })).getByRole(
+        'button',
+        {
+          name: 'Disconnect',
+        },
+      ),
+    );
 
     // The confirmation has to say the other account survives — that is the
     // whole difference from the old one-account-per-platform behaviour.

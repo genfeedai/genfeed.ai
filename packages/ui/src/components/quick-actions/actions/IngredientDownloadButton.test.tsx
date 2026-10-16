@@ -224,6 +224,7 @@ describe('IngredientDownloadButton', () => {
       expect(wrapper).toContainElement(
         screen.getByRole('button', { name: 'original' }),
       );
+      fireEvent.keyDown(document.body, { key: 'Tab' });
       fireEvent.focus(wrapper);
       expect(await screen.findByRole('tooltip')).toHaveTextContent(
         'originalLocked',
