@@ -213,7 +213,7 @@ describe('OrganizationSwitcher', () => {
     ]);
 
     expect(capturedItems[0]?.trailingAction?.href).toBe('/acme-org/~/settings');
-    expect(capturedItems[0]?.trailingAction?.target).toBe('_blank');
+    expect(capturedItems[0]?.trailingAction?.target).toBeUndefined();
   });
 
   it('hides organization creation when the subscription is inactive', async () => {

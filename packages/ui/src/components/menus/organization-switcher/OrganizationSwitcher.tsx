@@ -113,7 +113,6 @@ export default function OrganizationSwitcher({
             icon: Settings,
             href: createOrganizationAppRoute(o.slug, '/settings'),
             onAction: () => {},
-            target: '_blank',
           },
         }))}
         renderTrigger={({ isOpen }) => (
