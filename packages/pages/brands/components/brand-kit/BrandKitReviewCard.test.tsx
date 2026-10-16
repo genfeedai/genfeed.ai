@@ -323,6 +323,13 @@ const brandFixture = {
   label: 'Acme',
 } as IBrand;
 
+function expandReviewSection(label: string) {
+  const trigger = screen.getByRole('button', { name: label });
+  if (trigger.getAttribute('data-state') !== 'open') {
+    fireEvent.click(trigger);
+  }
+}
+
 describe('BrandKitReviewCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -471,7 +478,14 @@ describe('BrandKitReviewCard', () => {
     expect(screen.queryByText('Platforms')).not.toBeInTheDocument();
     expect(screen.queryByText('Goals')).not.toBeInTheDocument();
     expect(screen.queryByText('No proposal')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Confidence: not scored'),
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText('Select Logo')).toBeInTheDocument();
+    expandReviewSection('Social links');
+    expandReviewSection('Logo');
+    expandReviewSection('Asset Candidates');
+    expandReviewSection('Description');
     const instagram = screen.getByRole('link', {
       name: 'https://instagram.com/acme',
     });
@@ -659,6 +673,7 @@ describe('BrandKitReviewCard', () => {
     expect(applyPayload.fields.strategyPlatforms).toBeUndefined();
     expect(applyPayload.fields.strategyGoals).toBeUndefined();
     expect(applyPayload.fields.voiceStyle).toBeUndefined();
+    expandReviewSection('Social links');
     await waitFor(() => {
       expect(onDraftCreated).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -706,6 +721,7 @@ describe('BrandKitReviewCard', () => {
       name: 'Import Selected Assets',
     });
     expect(importButton).toBeDisabled();
+    expandReviewSection('Asset Candidates');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Select Website logo' }),
@@ -760,9 +776,21 @@ describe('BrandKitReviewCard', () => {
     await screen.findByText('67% readiness');
 
     expect(screen.getAllByText('extracted').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('inferred').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Verify').length).toBeGreaterThan(0);
+    expect(screen.queryByText('inferred')).not.toBeInTheDocument();
     expect(screen.getByText('missing')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Confidence: not scored'),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Confidence: 91%')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Homepage description' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Website metadata matched the public homepage.'),
+    ).not.toBeInTheDocument();
+    expandReviewSection('Description');
+    expandReviewSection('Diagnostics');
     expect(
       screen.getByRole('link', { name: 'Homepage description' }),
     ).toHaveAttribute('href', 'https://acme.test/about');
@@ -809,10 +837,15 @@ describe('BrandKitReviewCard', () => {
 
     await screen.findByText('Primary color');
 
-    expect(screen.getByText('candidate')).toBeInTheDocument();
+    expect(screen.queryByText('candidate')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Candidate only · not a Genfeed product token'),
-    ).toBeInTheDocument();
+      screen.queryByText('Candidate only · not a Genfeed product token'),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('Verify').length).toBeGreaterThan(0);
+    expandReviewSection('Primary color');
+    expect(screen.getByLabelText('Primary color proposed value')).toHaveValue(
+      '#051230',
+    );
   });
 
   it('announces scanning and failed scans with the right live semantics', async () => {

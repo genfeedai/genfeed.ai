@@ -823,7 +823,6 @@
   "brandKitReview": {
     "apply": "Apply",
     "applySelected": "Apply Selected Fields",
-    "candidateTokenNotice": "Candidate only · not a Genfeed product token",
     "description": "Scan the brand site and apply proposed profile fields.",
     "empty": "Empty",
     "importSelectedAssets": "Import Selected Assets",

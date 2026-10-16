@@ -23,8 +23,15 @@ import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
+import { ColorInput } from '@ui/primitives/color-input';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
@@ -133,8 +140,95 @@ function formatAppliedFieldsSummary(result: IBrandKitApplyResult): string {
   return `Applied ${result.appliedFields.length} fields; preserved ${result.preservedFields.length}. Status: ${result.status}.`;
 }
 
-function formatConfidence(confidence: number | undefined): string {
-  return `Confidence: ${confidence ? `${Math.round(confidence * 100)}%` : 'not scored'}`;
+function formatConfidence(confidence: number | undefined): string | null {
+  if (!confidence) {
+    return null;
+  }
+
+  return `Confidence: ${Math.round(confidence * 100)}%`;
+}
+
+function showsScoredKind(
+  kind: EvidenceKind,
+  confidence: number | undefined,
+): boolean {
+  return Boolean(confidence) && (kind === 'extracted' || kind === 'inferred');
+}
+
+function toColorPickerValue(value: string): string {
+  const trimmed = value.trim();
+  if (/^#[\da-f]{6}$/iu.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  if (/^#[\da-f]{3}$/iu.test(trimmed)) {
+    const [, red, green, blue] = trimmed;
+    return `#${red}${red}${green}${green}${blue}${blue}`.toLowerCase();
+  }
+  return '#000000';
+}
+
+function ReviewProposedValue({
+  editableValue,
+  isAssetField,
+  isColorField,
+  isEditable,
+  isSocialField,
+  label,
+  noProposalLabel,
+  onValueChange,
+  proposedAssets,
+  proposedValue,
+  socialValue,
+}: {
+  editableValue: string;
+  isAssetField: boolean;
+  isColorField: boolean;
+  isEditable: boolean;
+  isSocialField: boolean;
+  label: string;
+  noProposalLabel: string;
+  onValueChange: (value: string) => void;
+  proposedAssets: readonly IBrandKitAssetValue[];
+  proposedValue: string;
+  socialValue: unknown;
+}) {
+  if (isAssetField) {
+    return (
+      <BrandKitAssetGrid
+        assets={[...proposedAssets]}
+        emptyLabel={noProposalLabel}
+      />
+    );
+  }
+  if (isSocialField) {
+    return (
+      <SocialLinkReadout emptyLabel={noProposalLabel} value={socialValue} />
+    );
+  }
+  if (isEditable && isColorField) {
+    return (
+      <ColorInput
+        aria-label={`${label} proposed value`}
+        value={toColorPickerValue(editableValue)}
+        onChange={(event) => onValueChange(event.target.value)}
+      />
+    );
+  }
+  if (isEditable) {
+    return (
+      <Textarea
+        aria-label={`${label} proposed value`}
+        className="min-h-[72px]"
+        value={editableValue}
+        onChange={(event) => onValueChange(event.target.value)}
+      />
+    );
+  }
+  return (
+    <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
+      {proposedValue || noProposalLabel}
+    </pre>
+  );
 }
 
 function getFieldEvidenceKind(
@@ -182,37 +276,42 @@ function SourceEvidenceRows({
       aria-label={translate('sourceEvidence')}
       className="mt-3 divide-y divide-border"
     >
-      {evidence.map((source, index) => (
-        <li
-          className="grid min-h-8 items-center gap-1 py-1.5 text-xs sm:grid-cols-[minmax(0,1fr)_auto]"
-          key={`${source.sourceType}-${source.sourceId ?? source.url ?? index}`}
-        >
-          <div className="min-w-0">
-            {source.url ? (
-              <a
-                className="block truncate rounded-sm font-medium text-foreground/80 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                href={source.url}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {source.label}
-              </a>
-            ) : (
-              <span className="font-medium text-foreground/80">
-                {source.label}
-              </span>
-            )}
-            {source.excerpt ? (
-              <p className="truncate text-2xs text-muted-foreground">
-                {source.excerpt}
-              </p>
-            ) : null}
-          </div>
-          <span className="font-mono text-2xs uppercase text-muted-foreground">
-            {source.sourceType} · {formatConfidence(source.confidence)}
-          </span>
-        </li>
-      ))}
+      {evidence.map((source, index) => {
+        const confidenceLabel = formatConfidence(source.confidence);
+        return (
+          <li
+            className="grid min-h-8 items-center gap-1 py-1.5 text-xs sm:grid-cols-[minmax(0,1fr)_auto]"
+            key={`${source.sourceType}-${source.sourceId ?? source.url ?? index}`}
+          >
+            <div className="min-w-0">
+              {source.url ? (
+                <a
+                  className="block truncate rounded-sm font-medium text-foreground/80 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  href={source.url}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {source.label}
+                </a>
+              ) : (
+                <span className="font-medium text-foreground/80">
+                  {source.label}
+                </span>
+              )}
+              {source.excerpt ? (
+                <p className="truncate text-2xs text-muted-foreground">
+                  {source.excerpt}
+                </p>
+              ) : null}
+            </div>
+            <span className="font-mono text-2xs uppercase text-muted-foreground">
+              {confidenceLabel
+                ? `${source.sourceType} · ${confidenceLabel}`
+                : source.sourceType}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -988,18 +1087,19 @@ export default function BrandKitReviewCard({
         ) : null}
 
         {draft?.evidence.length ? (
-          <section
-            aria-labelledby="brand-kit-source-evidence"
-            className="space-y-1"
-          >
-            <h3
-              className="text-sm font-semibold"
-              id="brand-kit-source-evidence"
-            >
-              {translate('sourceEvidence')}
-            </h3>
-            <SourceEvidenceRows evidence={draft.evidence} />
-          </section>
+          <Collapsible>
+            <CollapsibleTrigger className="py-0 text-left hover:no-underline">
+              <h3
+                className="text-sm font-semibold"
+                id="brand-kit-source-evidence"
+              >
+                {translate('sourceEvidence')}
+              </h3>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SourceEvidenceRows evidence={draft.evidence} />
+            </CollapsibleContent>
+          </Collapsible>
         ) : null}
 
         {draft ? (
@@ -1048,129 +1148,135 @@ export default function BrandKitReviewCard({
                         ? toAssetValues(field.currentValue)
                         : [];
                       const evidenceKind = getFieldEvidenceKind(key, field);
+                      const confidenceLabel = showsScoredKind(
+                        evidenceKind,
+                        field.confidence,
+                      )
+                        ? formatConfidence(field.confidence)
+                        : null;
 
                       return (
-                        <div
-                          key={key}
-                          className="rounded-md bg-background-secondary p-3 shadow-border"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <div className="font-medium">{field.label}</div>
-                                <EvidenceLabel kind={evidenceKind} />
+                        <Collapsible key={key}>
+                          <div className="rounded-md bg-background-secondary p-3 shadow-border">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <CollapsibleTrigger className="w-auto min-w-0 flex-none justify-start py-0 text-left hover:no-underline">
+                                    <span className="font-medium">
+                                      {field.label}
+                                    </span>
+                                  </CollapsibleTrigger>
+                                  {confidenceLabel ? (
+                                    <EvidenceLabel kind={evidenceKind} />
+                                  ) : (
+                                    <Badge variant="warning">
+                                      {brandOsTranslate('verify')}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {confidenceLabel ? (
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {confidenceLabel}
+                                  </div>
+                                ) : null}
                               </div>
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                {formatConfidence(field.confidence)}
+
+                              {isSelectable ? (
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    aria-label={`Select ${field.label}`}
+                                    isChecked={selectedFields.has(key)}
+                                    label={translate('select')}
+                                    onCheckedChange={(checked) =>
+                                      handleToggleField(key, checked === true)
+                                    }
+                                  />
+                                  <Button
+                                    ariaLabel={`Apply ${field.label}`}
+                                    isDisabled={isApplying}
+                                    label={translate('apply')}
+                                    size={ButtonSize.SM}
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={() => void handleApplyKeys([key])}
+                                  />
+                                </div>
+                              ) : (
+                                <span className="rounded-full bg-background-secondary px-2 py-1 text-xs text-muted-foreground">
+                                  {isAssetField
+                                    ? 'Pick images below'
+                                    : isDeferred
+                                      ? 'Safe import pending'
+                                      : 'Review only'}
+                                </span>
+                              )}
+                            </div>
+
+                            <CollapsibleContent>
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div>
+                                  <div className="mb-1 text-xs font-medium text-muted-foreground">
+                                    {BRAND_KIT_REVIEW_COPY.current}
+                                  </div>
+                                  {isAssetField ? (
+                                    <BrandKitAssetGrid
+                                      assets={currentAssets}
+                                      emptyLabel={translate('empty')}
+                                    />
+                                  ) : isSocialField ? (
+                                    <SocialLinkReadout
+                                      emptyLabel={translate('empty')}
+                                      value={field.currentValue}
+                                    />
+                                  ) : (
+                                    <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
+                                      {currentValue || translate('empty')}
+                                    </pre>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <div className="mb-1 text-xs font-medium text-muted-foreground">
+                                    {BRAND_KIT_REVIEW_COPY.proposed}
+                                  </div>
+                                  <ReviewProposedValue
+                                    editableValue={
+                                      fieldValues[key] ?? proposedValue
+                                    }
+                                    isAssetField={isAssetField}
+                                    isColorField={COLOR_FIELD_KEYS.has(key)}
+                                    isEditable={
+                                      isSelectable && selectedFields.has(key)
+                                    }
+                                    isSocialField={isSocialField}
+                                    label={field.label}
+                                    noProposalLabel={translate('noProposal')}
+                                    proposedAssets={proposedAssets}
+                                    proposedValue={proposedValue}
+                                    socialValue={field.proposedValue}
+                                    onValueChange={(value) =>
+                                      handleFieldValueChange(key, value)
+                                    }
+                                  />
+                                </div>
                               </div>
-                              {evidenceKind === 'candidate' ? (
-                                <p className="mt-1 text-2xs text-warning">
-                                  {translate('candidateTokenNotice')}
-                                </p>
+
+                              {field.diagnostics.length > 0 ? (
+                                <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                                  {field.diagnostics.map((diagnostic) => (
+                                    <li key={`${key}-${diagnostic.code}`}>
+                                      <span className="font-medium capitalize text-foreground/70">
+                                        {diagnostic.severity}:
+                                      </span>{' '}
+                                      {diagnostic.message}
+                                    </li>
+                                  ))}
+                                </ul>
                               ) : null}
-                            </div>
 
-                            {isSelectable ? (
-                              <div className="flex items-center gap-2">
-                                <Checkbox
-                                  aria-label={`Select ${field.label}`}
-                                  isChecked={selectedFields.has(key)}
-                                  label={translate('select')}
-                                  onCheckedChange={(checked) =>
-                                    handleToggleField(key, checked === true)
-                                  }
-                                />
-                                <Button
-                                  ariaLabel={`Apply ${field.label}`}
-                                  isDisabled={isApplying}
-                                  label={translate('apply')}
-                                  size={ButtonSize.SM}
-                                  variant={ButtonVariant.SECONDARY}
-                                  onClick={() => void handleApplyKeys([key])}
-                                />
-                              </div>
-                            ) : (
-                              <span className="rounded-full bg-background-secondary px-2 py-1 text-xs text-muted-foreground">
-                                {isAssetField
-                                  ? 'Pick images below'
-                                  : isDeferred
-                                    ? 'Safe import pending'
-                                    : 'Review only'}
-                              </span>
-                            )}
+                              <SourceEvidenceRows evidence={field.evidence} />
+                            </CollapsibleContent>
                           </div>
-
-                          <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            <div>
-                              <div className="mb-1 text-xs font-medium text-muted-foreground">
-                                {BRAND_KIT_REVIEW_COPY.current}
-                              </div>
-                              {isAssetField ? (
-                                <BrandKitAssetGrid
-                                  assets={currentAssets}
-                                  emptyLabel={translate('empty')}
-                                />
-                              ) : isSocialField ? (
-                                <SocialLinkReadout
-                                  emptyLabel={translate('empty')}
-                                  value={field.currentValue}
-                                />
-                              ) : (
-                                <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
-                                  {currentValue || translate('empty')}
-                                </pre>
-                              )}
-                            </div>
-
-                            <div>
-                              <div className="mb-1 text-xs font-medium text-muted-foreground">
-                                {BRAND_KIT_REVIEW_COPY.proposed}
-                              </div>
-                              {isAssetField ? (
-                                <BrandKitAssetGrid
-                                  assets={proposedAssets}
-                                  emptyLabel={translate('noProposal')}
-                                />
-                              ) : isSocialField ? (
-                                <SocialLinkReadout
-                                  emptyLabel={translate('noProposal')}
-                                  value={field.proposedValue}
-                                />
-                              ) : isSelectable && selectedFields.has(key) ? (
-                                <Textarea
-                                  aria-label={`${field.label} proposed value`}
-                                  className="min-h-[72px]"
-                                  value={fieldValues[key] ?? proposedValue}
-                                  onChange={(event) =>
-                                    handleFieldValueChange(
-                                      key,
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              ) : (
-                                <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
-                                  {proposedValue || translate('noProposal')}
-                                </pre>
-                              )}
-                            </div>
-                          </div>
-
-                          {field.diagnostics.length > 0 ? (
-                            <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                              {field.diagnostics.map((diagnostic) => (
-                                <li key={`${key}-${diagnostic.code}`}>
-                                  <span className="font-medium capitalize text-foreground/70">
-                                    {diagnostic.severity}:
-                                  </span>{' '}
-                                  {diagnostic.message}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-
-                          <SourceEvidenceRows evidence={field.evidence} />
-                        </div>
+                        </Collapsible>
                       );
                     })}
                   </div>
@@ -1179,16 +1285,13 @@ export default function BrandKitReviewCard({
             })}
 
             {draft.assetCandidates.length > 0 ? (
-              <section className="space-y-3">
+              <Collapsible>
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-semibold">
+                  <CollapsibleTrigger className="w-auto min-w-0 flex-1 justify-start py-0 text-left hover:no-underline">
+                    <span className="text-sm font-semibold">
                       {BRAND_KIT_REVIEW_COPY.assetCandidates}
-                    </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {BRAND_KIT_REVIEW_COPY.assetSelectionHint}
-                    </p>
-                  </div>
+                    </span>
+                  </CollapsibleTrigger>
                   <Checkbox
                     aria-label={translate('replaceExistingAria')}
                     isChecked={shouldReplaceExisting}
@@ -1198,49 +1301,54 @@ export default function BrandKitReviewCard({
                     }
                   />
                 </div>
+                <CollapsibleContent>
+                  <p className="text-xs text-muted-foreground">
+                    {BRAND_KIT_REVIEW_COPY.assetSelectionHint}
+                  </p>
 
-                {ASSET_ROLE_ORDER.map((role) => {
-                  const candidates = candidatesByRole.get(role) ?? [];
+                  {ASSET_ROLE_ORDER.map((role) => {
+                    const candidates = candidatesByRole.get(role) ?? [];
 
-                  if (candidates.length === 0) {
-                    return null;
-                  }
+                    if (candidates.length === 0) {
+                      return null;
+                    }
 
-                  return (
-                    <div key={role} className="space-y-2">
-                      <h4 className="text-xs font-medium text-muted-foreground">
-                        {ASSET_ROLE_LABELS[role]}
-                      </h4>
-                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-                        {candidates.map((candidate) => {
-                          const importStatus = importStatusByCandidateId.get(
-                            candidate.candidateId,
-                          );
+                    return (
+                      <div key={role} className="space-y-2">
+                        <h4 className="text-xs font-medium text-muted-foreground">
+                          {ASSET_ROLE_LABELS[role]}
+                        </h4>
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                          {candidates.map((candidate) => {
+                            const importStatus = importStatusByCandidateId.get(
+                              candidate.candidateId,
+                            );
 
-                          return (
-                            <BrandKitAssetTile
-                              key={candidate.candidateId}
-                              asset={candidate}
-                              isSelectable
-                              isSelected={selectedCandidateIds.has(
-                                candidate.candidateId,
-                              )}
-                              sourceUrl={candidate.sourceUrl}
-                              statusLabel={
-                                importStatus
-                                  ? ASSET_IMPORT_STATUS_LABELS[importStatus]
-                                  : undefined
-                              }
-                              onToggle={() =>
-                                handleToggleCandidate(candidate.candidateId)
-                              }
-                            />
-                          );
-                        })}
+                            return (
+                              <BrandKitAssetTile
+                                key={candidate.candidateId}
+                                asset={candidate}
+                                isSelectable
+                                isSelected={selectedCandidateIds.has(
+                                  candidate.candidateId,
+                                )}
+                                sourceUrl={candidate.sourceUrl}
+                                statusLabel={
+                                  importStatus
+                                    ? ASSET_IMPORT_STATUS_LABELS[importStatus]
+                                    : undefined
+                                }
+                                onToggle={() =>
+                                  handleToggleCandidate(candidate.candidateId)
+                                }
+                              />
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </CollapsibleContent>
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">
@@ -1265,25 +1373,31 @@ export default function BrandKitReviewCard({
                     {`Imported ${assetImportResult.importedAssetIds.length} assets; skipped ${assetImportResult.skippedCandidateIds.length}; failed ${assetImportResult.failedCandidateIds.length}. Status: ${assetImportResult.status}.`}
                   </div>
                 ) : null}
-              </section>
+              </Collapsible>
             ) : null}
 
             {diagnostics.length > 0 ? (
-              <section className="space-y-2">
-                <h3 className="text-sm font-semibold">
-                  {BRAND_KIT_REVIEW_COPY.diagnostics}
-                </h3>
-                <ul className="space-y-1 text-xs text-muted-foreground">
-                  {diagnostics.map((diagnostic) => (
-                    <li key={`${diagnostic.code}-${diagnostic.fieldKey ?? ''}`}>
-                      <span className="font-medium capitalize text-foreground/70">
-                        {diagnostic.severity}:
-                      </span>{' '}
-                      {diagnostic.message}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <Collapsible>
+                <CollapsibleTrigger className="py-0 text-left hover:no-underline">
+                  <span className="text-sm font-semibold">
+                    {BRAND_KIT_REVIEW_COPY.diagnostics}
+                  </span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <ul className="space-y-1 text-xs text-muted-foreground">
+                    {diagnostics.map((diagnostic) => (
+                      <li
+                        key={`${diagnostic.code}-${diagnostic.fieldKey ?? ''}`}
+                      >
+                        <span className="font-medium capitalize text-foreground/70">
+                          {diagnostic.severity}:
+                        </span>{' '}
+                        {diagnostic.message}
+                      </li>
+                    ))}
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
             ) : null}
 
             {applyResult ? (
