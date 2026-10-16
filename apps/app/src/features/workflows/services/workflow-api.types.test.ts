@@ -280,6 +280,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'description',
     'edges',
     'exampleOutput',
+    'featuredRank',
     'icon',
     'id',
     'inputVariables',
