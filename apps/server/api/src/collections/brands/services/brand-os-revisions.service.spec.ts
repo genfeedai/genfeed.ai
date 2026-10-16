@@ -88,6 +88,22 @@ function seedRow(id = 'seed-1', version = 1): BrandOsRevision {
   };
 }
 
+function assertApprovalMetadata(record: BrandOsRevision): void {
+  const isDraft = record.status === BrandOsRevisionStatus.DRAFT;
+  const hasApprover = record.approvedById != null;
+  const hasApprovedAt = record.approvedAt != null;
+  const isLegal = isDraft
+    ? !hasApprover && !hasApprovedAt
+    : hasApprover && hasApprovedAt;
+  if (isLegal) return;
+  throw Object.assign(
+    new Error(
+      'new row for relation "brand_os_revisions" violates check constraint "brand_os_revisions_approval_metadata"',
+    ),
+    { code: '23514' },
+  );
+}
+
 function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
   const rows = structuredClone(initial);
   let counter = Math.max(0, ...rows.map((item) => item.version));
@@ -123,6 +139,7 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
     brandOsRevision: {
       create: vi.fn(async ({ data }: { data: Partial<BrandOsRevision> }) => {
         const created = { ...row(`rev-${counter}`, counter), ...data };
+        assertApprovalMetadata(created);
         rows.push(created);
         return created;
       }),
@@ -159,6 +176,7 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
         }) => {
           const found = rows.find((record) => matches(record, where));
           if (!found) throw new Error('No matching revision');
+          assertApprovalMetadata({ ...found, ...data });
           Object.assign(found, data);
           return found;
         },
@@ -172,6 +190,9 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
           where: Record<string, unknown>;
         }) => {
           const found = rows.filter((record) => matches(record, where));
+          found.forEach((record) => {
+            assertApprovalMetadata({ ...record, ...data });
+          });
           found.forEach((record) => {
             Object.assign(record, data);
           });
@@ -1093,6 +1114,8 @@ describe('BrandOsRevisionsService', () => {
     it('builds a draft from the brand own fields once the default was superseded', async () => {
       const superseded = {
         ...seedRow(),
+        approvedAt: TIMESTAMP,
+        approvedById: USER,
         status: BrandOsRevisionStatus.SUPERSEDED,
       };
       const { service, rows } = harness([superseded]);
@@ -1103,13 +1126,20 @@ describe('BrandOsRevisionsService', () => {
       expect(result.content.sourceType).toBe('current_brand');
     });
 
-    it('supersedes the default kit when another draft is created, never the other way', async () => {
+    it('retires the default kit when another draft is created, never the other way', async () => {
       const { service, rows } = harness([seedRow()]);
       await service.create(ORG, BRAND, draft());
-      expect(rows.map((item) => item.status)).toEqual([
-        BrandOsRevisionStatus.SUPERSEDED,
-        BrandOsRevisionStatus.DRAFT,
-      ]);
+      expect(rows[0]).toMatchObject({
+        approvedAt: null,
+        approvedById: null,
+        id: 'seed-1',
+        isDeleted: true,
+        status: BrandOsRevisionStatus.DRAFT,
+      });
+      expect(rows[1]).toMatchObject({
+        isDeleted: false,
+        status: BrandOsRevisionStatus.DRAFT,
+      });
 
       const other = harness([row('own', 1)]);
       await other.service.create(
@@ -1118,6 +1148,7 @@ describe('BrandOsRevisionsService', () => {
         buildGenfeedDefaultKitDraft({ id: BRAND, label: 'Acme' }),
       );
       expect(other.rows.every((item) => item.status === 'DRAFT')).toBe(true);
+      expect(other.rows[0].isDeleted).toBe(false);
     });
 
     it('starts a brand that already has its own voice from its own fields', async () => {
@@ -1143,12 +1174,42 @@ describe('BrandOsRevisionsService', () => {
         voice: { tone: 'Dry and technical' },
       });
       const result = await service.ensureBaselineDraft(ORG, BRAND);
-      const byId = Object.fromEntries(
-        rows.map((item) => [item.id, item.status]),
-      );
-      expect(byId['seed-1']).toBe(BrandOsRevisionStatus.SUPERSEDED);
+      expect(rows.find((item) => item.id === 'seed-1')).toMatchObject({
+        approvedAt: null,
+        approvedById: null,
+        isDeleted: true,
+        status: BrandOsRevisionStatus.DRAFT,
+      });
       expect(result.id).not.toBe('seed-1');
       expect(isGenfeedDefaultKitDraft(result.content)).toBe(false);
+    });
+
+    it('rejects SUPERSEDED on an unapproved draft and retires the default kit inside the check', async () => {
+      const { rows, service, tx } = harness([seedRow()]);
+      await expect(
+        tx.brandOsRevision.updateMany({
+          data: { status: BrandOsRevisionStatus.SUPERSEDED },
+          where: {
+            id: { in: ['seed-1'] },
+            status: BrandOsRevisionStatus.DRAFT,
+          },
+        }),
+      ).rejects.toThrow('brand_os_revisions_approval_metadata');
+      expect(rows[0]).toMatchObject({
+        approvedAt: null,
+        approvedById: null,
+        isDeleted: false,
+        status: BrandOsRevisionStatus.DRAFT,
+      });
+      await expect(service.create(ORG, BRAND, draft())).resolves.toMatchObject({
+        status: BrandOsRevisionStatus.DRAFT,
+      });
+      expect(rows.find((item) => item.id === 'seed-1')).toMatchObject({
+        approvedAt: null,
+        approvedById: null,
+        isDeleted: true,
+        status: BrandOsRevisionStatus.DRAFT,
+      });
     });
 
     it('never touches an owner-edited draft even when the brand has its own voice', async () => {

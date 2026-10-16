@@ -190,7 +190,7 @@ export class BrandOsRevisionsService {
       )
         return this.toRevision(existing);
       if (existing)
-        await this.supersedeDefaultKitRows(tx, organizationId, brandId);
+        await this.retireDefaultKitRows(tx, organizationId, brandId);
       const content = await this.buildSeedContent(
         brand,
         organizationId,
@@ -218,7 +218,7 @@ export class BrandOsRevisionsService {
     ): Promise<IBrandOsRevision> => {
       await this.lockBrand(tx, organizationId, brandId);
       if (!isGenfeedDefaultKitDraft(normalized))
-        await this.supersedeDefaultKitRows(tx, organizationId, brandId);
+        await this.retireDefaultKitRows(tx, organizationId, brandId);
       return this.createDraft(tx, organizationId, brandId, normalized);
     };
     return transaction ? write(transaction) : this.prisma.$transaction(write);
@@ -424,7 +424,14 @@ export class BrandOsRevisionsService {
     });
   }
 
-  private async supersedeDefaultKitRows(
+  /**
+   * Hides unapproved Genfeed default-kit drafts. Those rows have no approver,
+   * and `brand_os_revisions_approval_metadata` rejects SUPERSEDED unless
+   * approvedById and approvedAt are both set. Soft-delete leaves a legal DRAFT
+   * and drops the row from live reads. Approved revisions are superseded only
+   * by approve(), which already has that metadata.
+   */
+  private async retireDefaultKitRows(
     tx: Prisma.TransactionClient,
     organizationId: string,
     brandId: string,
@@ -445,7 +452,7 @@ export class BrandOsRevisionsService {
       .map((row) => row.id);
     if (ids.length === 0) return;
     await tx.brandOsRevision.updateMany({
-      data: { status: BrandOsRevisionStatus.SUPERSEDED },
+      data: { isDeleted: true },
       where: {
         brandId,
         id: { in: ids },

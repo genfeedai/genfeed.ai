@@ -419,14 +419,18 @@ describe('BrandOsScanService durable bounded scan', () => {
     const h = harness([seed]);
     h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(envelope());
     await h.service.start(h.input);
-    const byId = Object.fromEntries(
-      h.state.rows.map((row) => [row.id, row.status]),
-    );
-    expect(byId['seed-1']).toBe(BrandOsRevisionStatus.SUPERSEDED);
+    expect(h.state.rows.find((row) => row.id === 'seed-1')).toMatchObject({
+      approvedAt: null,
+      approvedById: null,
+      isDeleted: true,
+      status: BrandOsRevisionStatus.DRAFT,
+    });
     expect(
       h.state.rows.some(
         (row) =>
-          row.id !== 'seed-1' && row.status === BrandOsRevisionStatus.DRAFT,
+          row.id !== 'seed-1' &&
+          row.isDeleted === false &&
+          row.status === BrandOsRevisionStatus.DRAFT,
       ),
     ).toBe(true);
   });
