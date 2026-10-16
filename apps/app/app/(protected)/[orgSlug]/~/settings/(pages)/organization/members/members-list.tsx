@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, MemberRole, ModalEnum } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  MemberRole,
+  ModalEnum,
+  SubscriptionTier,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   EMPTY_STATES,
@@ -14,7 +19,6 @@ import type {
 import {
   getSeatLimitForTier,
   getUpgradeTierForLimit,
-  PLAN_LABELS,
 } from '@genfeedai/pricing';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
@@ -45,9 +49,11 @@ function formatTierLabel(tier: string | null): string {
     return 'a paid plan';
   }
 
-  return tier in PLAN_LABELS
-    ? PLAN_LABELS[tier as keyof typeof PLAN_LABELS]
-    : tier.charAt(0).toUpperCase() + tier.slice(1);
+  if (tier === SubscriptionTier.SCALE) {
+    return 'Agencies';
+  }
+
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
 }
 
 function formatInvitationStatus(status: IMemberInvitation['status']): string {
