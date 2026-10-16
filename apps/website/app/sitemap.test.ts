@@ -59,6 +59,16 @@ describe('website sitemap', () => {
     expect(urls.size).toBe(routes.length);
   });
 
+  it('lists the X landing page and leaves the player card off the sitemap', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+    const urls = new Set(routes.map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/x')).toBe(true);
+    expect(urls.has('https://genfeed.ai/x/card')).toBe(false);
+  });
+
   it('lists the expert landing page', async () => {
     findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
 

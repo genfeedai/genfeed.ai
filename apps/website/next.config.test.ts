@@ -95,6 +95,37 @@ describe('website next.config', () => {
     );
   });
 
+  it('lets X frame the player card and no other website response', async () => {
+    const headers = await config.headers?.();
+    const playerHeaders = headers?.find((entry) => entry.source === '/x/card');
+
+    expect(playerHeaders?.headers).toContainEqual({
+      key: 'Content-Security-Policy',
+      value:
+        'frame-ancestors https://x.com https://*.x.com https://twitter.com https://*.twitter.com',
+    });
+    expect(
+      playerHeaders?.headers.some(
+        (header) => header.key.toLowerCase() === 'x-frame-options',
+      ),
+    ).toBe(false);
+
+    const otherHeaders = headers?.filter((entry) => entry.source !== '/x/card');
+    expect(otherHeaders?.length).toBeGreaterThan(0);
+    for (const entry of otherHeaders ?? []) {
+      expect(
+        entry.headers.some(
+          (header) => header.key === 'Content-Security-Policy',
+        ),
+      ).toBe(false);
+      expect(
+        entry.headers.some(
+          (header) => header.key.toLowerCase() === 'x-frame-options',
+        ),
+      ).toBe(false);
+    }
+  });
+
   it('advertises the LLM index from robots-adjacent discovery', async () => {
     const headers = await config.headers?.();
     const rootHeaders = headers?.find((entry) => entry.source === '/(.*)');

@@ -1,6 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAppNextConfig } from '@genfeedai/next-config';
+import {
+  X_PLAYER_CARD_PATH,
+  X_PLAYER_FRAME_ANCESTORS,
+} from './packages/data/x-player-card';
 
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,6 +50,17 @@ const config = createAppNextConfig({
         },
       ],
       source: '/llms-full.txt',
+    },
+    {
+      // Next combines every matching header rule, so a catch-all
+      // X-Frame-Options would still frame-block this path. Leave it unset.
+      headers: [
+        {
+          key: 'Content-Security-Policy',
+          value: X_PLAYER_FRAME_ANCESTORS,
+        },
+      ],
+      source: X_PLAYER_CARD_PATH,
     },
     {
       has: [

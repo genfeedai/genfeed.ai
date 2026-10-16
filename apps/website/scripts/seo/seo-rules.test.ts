@@ -6,6 +6,7 @@ import {
   checkDuplicateTitles,
   checkSitemapCoverage,
   checkSitemapEntriesResolve,
+  checkSocialTags,
   checkSoftNotFound,
   checkStructuredData,
   collectBreadcrumbTargets,
@@ -62,6 +63,16 @@ describe('page parser', () => {
     expect(facts.openGraph['og:type']).toBe('website');
     expect(facts.twitter['twitter:card']).toBe('summary_large_image');
     expect(facts.internalLinkCount).toBe(1);
+  });
+
+  it('accepts a player card without requiring summary_large_image', () => {
+    const html = healthyHtml('/pricing').replace(
+      'content="summary_large_image"',
+      'content="player"',
+    );
+
+    expect(parsePage(html).twitter['twitter:card']).toBe('player');
+    expect(checkSocialTags(input('/pricing', html))).toEqual([]);
   });
 
   it('decodes entities and ignores script and style text in the word count', () => {

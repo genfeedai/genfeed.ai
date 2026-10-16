@@ -48,6 +48,7 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/use-cases/use-cases-hub-content.tsx',
   'app/(public)/vs/vs-hub-content.tsx',
   'app/(public)/workflows/workflows-content.tsx',
+  'app/(x-player)/x/card/content.tsx',
   'app/u/[handle]/profile-page.tsx',
   'app/u/layout.tsx',
   'packages/components/PageLayout.tsx',
