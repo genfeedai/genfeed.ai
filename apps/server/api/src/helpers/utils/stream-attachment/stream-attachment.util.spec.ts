@@ -27,6 +27,7 @@ describe('streamRemoteAttachment', () => {
 
     expect(result).toBeInstanceOf(StreamableFile);
     expect(res.set).toHaveBeenCalledWith({
+      'Access-Control-Expose-Headers': 'Content-Disposition',
       'Cache-Control': 'no-store',
       'Content-Disposition': 'attachment; filename="image-1-watermarked.png"',
       'Content-Type': 'image/png',

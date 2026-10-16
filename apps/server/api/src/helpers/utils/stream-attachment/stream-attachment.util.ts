@@ -21,6 +21,7 @@ export async function streamRemoteAttachment(
     upstream.body as unknown as import('stream/web').ReadableStream,
   );
   res.set({
+    'Access-Control-Expose-Headers': 'Content-Disposition',
     'Cache-Control': 'no-store',
     'Content-Disposition': `attachment; filename="${sanitizeAttachmentFilename(filename)}"`,
     'Content-Type':
