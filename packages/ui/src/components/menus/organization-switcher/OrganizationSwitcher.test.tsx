@@ -229,7 +229,7 @@ describe('OrganizationSwitcher', () => {
   });
 
   it('hides organization creation when the plan has reached its org limit', async () => {
-    mockSubscriptionTier = 'pro';
+    mockSubscriptionTier = 'free';
 
     renderSwitcher();
 
@@ -240,7 +240,7 @@ describe('OrganizationSwitcher', () => {
     expect(capturedFooterActions).toEqual([]);
   });
 
-  it.each(['free', 'pro', null])(
+  it.each(['free', 'scale', null])(
     'allows an unsubscribed platform superadmin to create beyond the %s plan limit',
     (tier) => {
       mockIsSuperAdmin = true;
@@ -257,7 +257,7 @@ describe('OrganizationSwitcher', () => {
 
   it('allows a subscribed platform superadmin to create beyond the plan limit', () => {
     mockIsSuperAdmin = true;
-    mockSubscriptionTier = 'pro';
+    mockSubscriptionTier = 'scale';
 
     renderSwitcher();
 
@@ -282,7 +282,7 @@ describe('OrganizationSwitcher', () => {
   );
 
   it('allows organization creation when a capped plan only belongs to another org', async () => {
-    mockSubscriptionTier = 'pro';
+    mockSubscriptionTier = 'free';
     mockOrganizations = [
       {
         brand: null,

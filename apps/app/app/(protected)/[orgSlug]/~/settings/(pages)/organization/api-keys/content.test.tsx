@@ -68,7 +68,7 @@ const mocks = vi.hoisted(() => ({
   revokeApiKey: vi.fn(),
   rotateApiKey: vi.fn(),
   saveByokProviderKey: vi.fn(),
-  settingsSubscriptionTier: 'pro',
+  settingsSubscriptionTier: 'scale',
   validateByokProviderKey: vi.fn(),
 }));
 
@@ -344,7 +344,7 @@ describe('SettingsApiKeysPage', () => {
     mocks.isReady = true;
     mocks.isSelfHosted = false;
     mocks.organizationId = 'org-1';
-    mocks.settingsSubscriptionTier = 'pro';
+    mocks.settingsSubscriptionTier = 'scale';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     mocks.findAllApiKeys.mockResolvedValue(productApiKeys());
     mocks.createApiKey.mockResolvedValue({

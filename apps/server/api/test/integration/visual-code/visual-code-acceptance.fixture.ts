@@ -1776,7 +1776,7 @@ export async function seedVisualCodeAcceptanceActor(
       // and shows the module.
       isReleasePreviewEnabled: true,
       moduleOverrides: { motion: true },
-      subscriptionTier: paid ? 'pro' : 'free',
+      subscriptionTier: paid ? 'scale' : 'free',
     }),
   });
   if (paid)

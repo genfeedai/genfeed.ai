@@ -8,7 +8,7 @@ describe('PlanLimitExceededException', () => {
       currentCount: 1,
       limit: 1,
       resource: 'brands',
-      upgradeTier: 'pro',
+      upgradeTier: 'scale',
     });
     const response = error.getResponse() as {
       detail: string;
@@ -24,7 +24,7 @@ describe('PlanLimitExceededException', () => {
       currentCount: 1,
       limit: 1,
       resource: 'brands',
-      upgradeTier: 'pro',
+      upgradeTier: 'scale',
     });
   });
 

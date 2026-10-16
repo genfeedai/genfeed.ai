@@ -564,19 +564,17 @@ describe('SubscriptionsController', () => {
       id: 'sub_1',
       organizationId: 'org_1',
       status: 'active',
-      stripePriceId: 'price_pro_monthly',
+      stripePriceId: 'price_scale_monthly',
       ...overrides,
     });
 
     const creditsByPrice: Record<string, number> = {
-      price_pro_monthly: 5_900,
-      price_pro_yearly: 5_900,
+      price_scale_yearly: 60_000,
       price_scale_monthly: 60_000,
     };
     const tiersByPrice: Record<string, string> = {
       price_enterprise_monthly: 'enterprise',
-      price_pro_monthly: 'pro',
-      price_pro_yearly: 'pro',
+      price_scale_yearly: 'scale',
       price_scale_monthly: 'scale',
     };
 
@@ -593,16 +591,16 @@ describe('SubscriptionsController', () => {
       ]);
     });
 
-    it('resolves the pro tier plan limit from the Stripe price id', async () => {
+    it('reports partial credit usage for the Agencies Stripe price', async () => {
       mockSubscriptionsService.findAll.mockResolvedValue({
-        docs: [buildSubscription({ stripePriceId: 'price_pro_monthly' })],
+        docs: [buildSubscription({ stripePriceId: 'price_scale_monthly' })],
         limit: 20,
         page: 1,
         totalDocs: 1,
         totalPages: 1,
       });
       mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        2_950,
+        30_000,
       );
 
       const result = await controller.getCreditUsage(defaultQuery);
@@ -611,14 +609,14 @@ describe('SubscriptionsController', () => {
       expect(result.data).toHaveLength(1);
       expect(result.data[0]).toEqual(
         expect.objectContaining({
-          balance: 2_950,
+          balance: 30_000,
           isMaxedOut: false,
           isUnderUsing: false,
           organizationId: 'org_1',
           organizationName: 'Acme Inc',
-          planLimit: 5_900,
+          planLimit: 60_000,
           tier: 'scale',
-          usedCredits: 2_950,
+          usedCredits: 30_000,
         }),
       );
       expect(result.data[0]?.usedPercent).toBeCloseTo(50, 5);
@@ -630,7 +628,7 @@ describe('SubscriptionsController', () => {
       mockSubscriptionsService.findAll.mockImplementation(async () => {
         observed.subscriptions = isCrossOrgUnsafe();
         return {
-          docs: [buildSubscription({ stripePriceId: 'price_pro_monthly' })],
+          docs: [buildSubscription({ stripePriceId: 'price_scale_monthly' })],
           limit: 20,
           page: 1,
           totalDocs: 1,
@@ -640,7 +638,7 @@ describe('SubscriptionsController', () => {
       mockCreditsUtilsService.getOrganizationCreditsBalance.mockImplementation(
         async () => {
           observed.balance = isCrossOrgUnsafe();
-          return 2_950;
+          return 30_000;
         },
       );
 
@@ -735,7 +733,7 @@ describe('SubscriptionsController', () => {
       ]);
       mockCreditsUtilsService.getOrganizationCreditsBalance.mockImplementation(
         (organizationId: string) =>
-          Promise.resolve(organizationId === 'org_maxed' ? 400 : 7_600),
+          Promise.resolve(organizationId === 'org_maxed' ? 400 : 59_000),
       );
 
       const result = await controller.getCreditUsage(defaultQuery);
@@ -770,17 +768,17 @@ describe('SubscriptionsController', () => {
         { id: 'org_no_cycle', name: 'No Cycle Org' },
       ]);
       mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        2_950,
+        30_000,
       );
 
       const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
-          balance: 2_950,
+          balance: 30_000,
           currentPeriodEnd: null,
-          planLimit: 5_900,
-          usedCredits: 2_950,
+          planLimit: 60_000,
+          usedCredits: 30_000,
         }),
       );
       expect(result.data[0]?.usedPercent).toBeCloseTo(50, 5);

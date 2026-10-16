@@ -1,3 +1,4 @@
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type BusinessErrorDetails = Record<string, unknown>;
@@ -29,6 +30,10 @@ const PLAN_LIMIT_RESOURCE_LABELS: Record<
 function formatTierLabel(tier: string | null): string {
   if (!tier) {
     return 'a higher plan';
+  }
+
+  if (tier === SubscriptionTier.SCALE) {
+    return 'Agencies';
   }
 
   return tier.charAt(0).toUpperCase() + tier.slice(1);

@@ -265,9 +265,9 @@ describe('SubscriptionsService', () => {
       await service.syncSubscriptionState(
         buildSubscription(),
         'sub_stripe_1',
-        'price_pro',
+        'price_scale',
         'active',
-        'pro',
+        'scale',
       );
 
       expect(organizationSettingDelegate.updateMany).toHaveBeenCalledWith({
@@ -1212,7 +1212,7 @@ describe('SubscriptionsService', () => {
         },
       });
       stripeService.getSubscription.mockResolvedValue(
-        buildStripeSubscription({ priceId: 'price_pro', unitAmount: 4_900 }),
+        buildStripeSubscription({ priceId: 'price_scale', unitAmount: 4_900 }),
       );
       stripeService.getPrice.mockImplementation((priceId: string) =>
         Promise.resolve({

@@ -55,7 +55,7 @@ function buildUser(
     isSuperAdmin: overrides.isSuperAdmin ?? false,
     organizationId: overrides.organizationId ?? 'org_1',
     stripeSubscriptionStatus: overrides.stripeSubscriptionStatus ?? 'active',
-    subscriptionTier: overrides.subscriptionTier ?? 'pro',
+    subscriptionTier: overrides.subscriptionTier ?? 'scale',
     userId: overrides.userId ?? 'user_1',
   };
 }

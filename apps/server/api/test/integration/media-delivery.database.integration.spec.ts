@@ -82,7 +82,7 @@ describe.skipIf(!databaseUrl)(
       });
       for (const [id, subscriptionTier] of [
         [freeOrg, 'free'],
-        [paidOrg, 'pro'],
+        [paidOrg, 'scale'],
       ] as const) {
         await db.organization.create({
           data: {

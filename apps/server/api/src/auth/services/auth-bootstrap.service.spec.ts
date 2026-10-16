@@ -37,7 +37,6 @@ vi.mock('@genfeedai/contracts', () => ({
     CREATOR: 'creator',
     ENTERPRISE: 'enterprise',
     FREE: 'free',
-    PRO: 'pro',
     SCALE: 'scale',
   },
   subscriptionStatusFromStripe: (status: string | null | undefined) => {
