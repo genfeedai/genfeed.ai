@@ -11,6 +11,7 @@ import {
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE } from '@genfeedai/contracts/constants';
+import { brandOfferingSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -209,9 +210,8 @@ describe('MediaPromptEnhancementService', () => {
   it('honors explicit request overrides and exposes only contributing IDs and versions', async () => {
     const { service, promptEnhancement } = setup(false);
     const receipt = await service.enhance({ ...input, harness: true });
-    expect(receipt).toEqual({
+    expect(receipt).toMatchObject({
       originalPrompt: input.prompt,
-      enhancedPrompt: 'A cinematic view of a red bicycle',
       brandId: 'brand',
       brandMode: 'approved_brand',
       brandRevisionId: 'revision-approved',
@@ -220,12 +220,18 @@ describe('MediaPromptEnhancementService', () => {
       source: 'request',
       appliedPacks: [{ id: 'public-pack', version: '1.2.3' }],
     });
+    expect(receipt.enhancedPrompt).toContain(
+      'A cinematic view of a red bicycle',
+    );
+    expect(receipt.enhancedPrompt).toContain(
+      brandOfferingSubjectLock('unknown'),
+    );
     expect(JSON.stringify(receipt)).not.toContain('Private guidance');
     expect(promptEnhancement.enhance).toHaveBeenCalledWith({
       actorUserId: 'user',
       organizationId: input.organizationId,
       brandId: input.brandId,
-      userPrompt: input.prompt,
+      userPrompt: `${brandOfferingSubjectLock('unknown')}\n\n${input.prompt.trim()}`,
       promptId: undefined,
       model: input.model,
       contentType: input.contentType,
@@ -476,6 +482,37 @@ describe('MediaPromptEnhancementService', () => {
       ).rejects.toThrow('generate without brand');
     });
   });
+  it('locks a software brand before the cinematic rewrite sees the prompt', async () => {
+    const { service, harness, promptEnhancement } = setup();
+    const identity =
+      'A recruiting software platform with an ATS and CRM for candidates.';
+    harness.resolveBrief.mockResolvedValue({
+      appliedPacks: ['public-pack'],
+      systemDirectives: [identity],
+      styleDirectives: [],
+      guardrails: [],
+      sources: [],
+      metadata: { contentType: 'video' },
+    });
+    const receipt = await service.enhance({
+      ...input,
+      contentType: 'video',
+      prompt: 'Open on the product.',
+    });
+    const sent = promptEnhancement.enhance.mock.calls[0]?.[0] as {
+      userPrompt?: string;
+    };
+    expect(
+      sent.userPrompt?.startsWith(brandOfferingSubjectLock('software')),
+    ).toBe(true);
+    expect(sent.userPrompt).toContain('Open on the product.');
+    expect(sent.userPrompt).not.toContain(identity);
+    expect(receipt.enhancedPrompt).toContain(
+      brandOfferingSubjectLock('software'),
+    );
+    expect(receipt.enhancedPrompt).toContain(identity);
+  });
+
   it('folds existing harness guidance locally without sending it to the text enhancer', async () => {
     const { service, harness, promptEnhancement } = setup();
     const privateGuidance = 'Private brand rendering guidance';
@@ -504,7 +541,7 @@ describe('MediaPromptEnhancementService', () => {
       actorUserId: 'user',
       organizationId: input.organizationId,
       brandId: 'selected-brand',
-      userPrompt: input.prompt,
+      userPrompt: `${brandOfferingSubjectLock('unknown')}\n\n${input.prompt.trim()}`,
       contentType: 'video',
       model: input.model,
     });

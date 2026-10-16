@@ -22,8 +22,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   buildMediaPromptFromHarness,
+  type ContentHarnessBrief,
   selectMediaKnowledgeSources,
 } from '@genfeedai/harness';
+import { lockMediaUserPrompt } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -52,6 +54,31 @@ export interface MediaPromptEnhancementInput {
   brandMode?: 'raw';
   /** An explicit Knowledge pick; absent means automatic brand retrieval. */
   knowledgeSelection?: KnowledgeSelection;
+}
+
+function brandOfferingCorpus(
+  snapshot: BrandIdentitySnapshotV1,
+  brief: ContentHarnessBrief,
+  prompt: string,
+): string {
+  const identity = snapshot.identity;
+  const voice = snapshot.voice;
+  return [
+    prompt,
+    identity?.description,
+    identity?.positioning,
+    identity?.name,
+    voice?.tone,
+    voice?.style,
+    ...(voice?.audience ?? []),
+    ...(voice?.messagingPillars ?? []),
+    ...brief.systemDirectives,
+    ...brief.styleDirectives,
+    ...brief.guardrails,
+    ...brief.sources.map((source) => source.content),
+  ]
+    .filter((value): value is string => typeof value === 'string')
+    .join('\n');
 }
 
 function hasKnowledgeSelection(
@@ -140,18 +167,28 @@ export class MediaPromptEnhancementService {
       });
       if (!brief) throw new Error('Harness brief is unavailable');
       stage = 'provider';
+      const subjectLock = lockMediaUserPrompt(
+        input.prompt,
+        brandOfferingCorpus(snapshot, brief, input.prompt),
+      );
       const { result } = await this.promptEnhancement.enhance({
         actorUserId: input.actorUserId,
         organizationId: input.organizationId,
         brandId: input.brandId,
-        userPrompt: input.prompt,
+        userPrompt: subjectLock,
         promptId: input.promptId,
         ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
         model: input.model,
         contentType: input.contentType,
       });
       stage = 'response';
-      const enhancedPrompt = buildMediaPromptFromHarness(result, brief);
+      const enhancedPrompt = buildMediaPromptFromHarness(result, {
+        ...brief,
+        guardrails: [
+          ...brief.guardrails,
+          subjectLock.split('\n\n')[0] ?? subjectLock,
+        ],
+      });
       const knowledgeReceipts = collectKnowledgeReceipts(
         selectMediaKnowledgeSources(brief),
       );
