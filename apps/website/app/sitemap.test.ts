@@ -78,7 +78,7 @@ describe('website sitemap', () => {
     ).toMatchObject({ changeFrequency: 'weekly', priority: 0.8 });
   });
 
-  it('merges API articles with launch fallbacks without duplicate URLs', async () => {
+  it('lists only public API articles when the article API answers', async () => {
     findAllPublicArticles.mockResolvedValue([
       {
         slug: launchArticleSlugs[0],
@@ -95,8 +95,12 @@ describe('website sitemap', () => {
       .map((route) => route.url)
       .filter((url) => url.startsWith('https://genfeed.ai/articles/'));
 
-    expect(articleUrls).toContain(
+    expect(articleUrls).toEqual([
+      `https://genfeed.ai/articles/${launchArticleSlugs[0]}`,
       'https://genfeed.ai/articles/newly-published-article',
+    ]);
+    expect(articleUrls).not.toContain(
+      `https://genfeed.ai/articles/${helpArticleSlugs[0]}`,
     );
     expect(new Set(articleUrls).size).toBe(articleUrls.length);
   });

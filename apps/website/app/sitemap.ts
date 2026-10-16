@@ -408,11 +408,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   let articleRoutes: MetadataRoute.Sitemap = [];
+  let hasLoadedPublicArticles = false;
   try {
     const articles = await PublicService.getInstance().findAllPublicArticles({
       sortBy: 'publishedAt',
       sortOrder: 'desc',
     });
+    hasLoadedPublicArticles = true;
     articleRoutes = articles.reduce<MetadataRoute.Sitemap>(
       (routes, article) => {
         if (!article.slug) {
@@ -433,27 +435,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       [],
     );
   } catch {
-    // The committed launch-article fallback below keeps the initial public
-    // corpus discoverable while a transient API failure is recovered.
+    // Static launch/help slugs stay discoverable only while the public list
+    // cannot be loaded. Unseeded slugs 404, so they must not be listed once
+    // the API answers.
   }
 
-  const launchArticleRoutes: MetadataRoute.Sitemap = launchArticleSlugs.map(
-    (slug) => ({
-      changeFrequency: 'weekly',
-      lastModified: new Date(),
-      priority: 0.8,
-      url: `https://genfeed.ai/articles/${slug}`,
-    }),
-  );
-
-  const helpArticleRoutes: MetadataRoute.Sitemap = helpArticleSlugs.map(
-    (slug) => ({
-      changeFrequency: 'weekly',
-      lastModified: new Date(),
-      priority: 0.8,
-      url: `https://genfeed.ai/articles/${slug}`,
-    }),
-  );
+  const knownArticleUrls = new Set(articleRoutes.map((route) => route.url));
+  const fallbackArticleRoutes: MetadataRoute.Sitemap = hasLoadedPublicArticles
+    ? []
+    : [...launchArticleSlugs, ...helpArticleSlugs]
+        .filter(
+          (slug) =>
+            !knownArticleUrls.has(`https://genfeed.ai/articles/${slug}`),
+        )
+        .map((slug) => ({
+          changeFrequency: 'weekly' as const,
+          lastModified: new Date(),
+          priority: 0.8,
+          url: `https://genfeed.ai/articles/${slug}`,
+        }));
 
   const allRoutes = [
     ...staticRoutes,
@@ -464,8 +464,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...integrationRoutes,
     ...useCaseRoutes,
     ...articleRoutes,
-    ...launchArticleRoutes,
-    ...helpArticleRoutes,
+    ...fallbackArticleRoutes,
   ];
 
   const seen = new Set<string>();
