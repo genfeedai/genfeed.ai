@@ -1,23 +1,46 @@
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import {
+  extensionForImageContentType,
   getIngredientExtension,
-  isImageIngredient,
 } from '@genfeedai/helpers/media/ingredient-type.helper';
 import { saveAs } from 'file-saver';
 
-const IMAGE_EXTENSIONS_BY_MIME = new Map([
-  ['image/avif', 'avif'],
-  ['image/gif', 'gif'],
-  ['image/heic', 'heic'],
-  ['image/heif', 'heif'],
-  ['image/jpeg', 'jpg'],
-  ['image/png', 'png'],
-  ['image/webp', 'webp'],
-]);
-const IMAGE_EXTENSIONS = new Set([
-  ...IMAGE_EXTENSIONS_BY_MIME.values(),
-  'jpeg',
-]);
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
+
+function startsWithBytes(
+  bytes: Uint8Array,
+  signature: readonly number[],
+): boolean {
+  return signature.every((value, index) => bytes[index] === value);
+}
+
+function asciiAt(bytes: Uint8Array, start: number, end: number): string {
+  let text = '';
+  const last = Math.min(end, bytes.length);
+  for (let index = start; index < last; index += 1) {
+    text += String.fromCharCode(bytes[index] ?? 0);
+  }
+  return text;
+}
+
+// PNG, JPEG, GIF, and WebP signatures already accepted for stored image bytes.
+function extensionFromTrustedImageBytes(bytes: Uint8Array): string | undefined {
+  if (startsWithBytes(bytes, PNG_SIGNATURE)) {
+    return 'png';
+  }
+  if (startsWithBytes(bytes, JPEG_SIGNATURE)) {
+    return 'jpg';
+  }
+  const header = asciiAt(bytes, 0, 6);
+  if (header === 'GIF87a' || header === 'GIF89a') {
+    return 'gif';
+  }
+  if (asciiAt(bytes, 0, 4) === 'RIFF' && asciiAt(bytes, 8, 12) === 'WEBP') {
+    return 'webp';
+  }
+  return undefined;
+}
 
 /**
  * `IngredientCategory` was harmonized to SCREAMING_SNAKE to match its Prisma
@@ -37,25 +60,22 @@ export function sanitizeDownloadFilename(filename: string): string {
 export function ingredientDownloadFilename(
   ingredient: IIngredient,
   mimeType?: string,
+  bytes?: Uint8Array,
 ): string {
   const metadata = ingredient.metadata as IMetadata | undefined;
-  const rawExtension = ingredient.metadataExtension ?? metadata?.extension;
-  const metadataExtension =
-    typeof rawExtension === 'string'
-      ? rawExtension.trim().toLowerCase().replace(/^\./, '')
-      : '';
-  const mimeExtension = IMAGE_EXTENSIONS_BY_MIME.get(
-    (mimeType || ingredient.mimeType || '')
-      .split(';', 1)[0]
-      .trim()
-      .toLowerCase(),
-  );
   const extension =
-    mimeExtension ??
-    (isImageIngredient(ingredient) && IMAGE_EXTENSIONS.has(metadataExtension)
-      ? metadataExtension
-      : getIngredientExtension(ingredient));
+    (bytes ? extensionFromTrustedImageBytes(bytes) : undefined) ??
+    extensionForImageContentType(mimeType) ??
+    getIngredientExtension(ingredient);
   return `${metadata?.label || 'genfeed'}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}.${extension}`;
+}
+
+export async function ingredientDownloadFilenameForBlob(
+  ingredient: IIngredient,
+  blob: Blob,
+): Promise<string> {
+  const bytes = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+  return ingredientDownloadFilename(ingredient, blob.type, bytes);
 }
 
 export function filenameFromContentDisposition(
@@ -104,7 +124,10 @@ export async function downloadIngredient(
     throw new Error('No download URL available');
   }
   const blob = await fetchDownloadBlob(originalUrl);
-  saveDownloadBlob(blob, ingredientDownloadFilename(ingredient, blob.type));
+  saveDownloadBlob(
+    blob,
+    await ingredientDownloadFilenameForBlob(ingredient, blob),
+  );
 }
 
 export async function downloadUrl(

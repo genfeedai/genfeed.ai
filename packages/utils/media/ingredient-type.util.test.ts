@@ -32,6 +32,7 @@ interface MockIngredient {
   metadata?: { extension?: string; label?: string };
   metadataExtension?: string;
   metadataLabel?: string;
+  mimeType?: string;
 }
 
 describe('ingredient-type.util', () => {
@@ -165,6 +166,22 @@ describe('ingredient-type.util', () => {
     it('should return "jpg" for image ingredients', () => {
       const ingredient: MockIngredient = { category: 'image' };
       expect(getIngredientExtension(ingredient as never)).toBe('jpg');
+    });
+
+    it('preserves a validated png metadata extension', () => {
+      const ingredient: MockIngredient = {
+        category: 'image',
+        metadata: { extension: 'PNG' },
+      };
+      expect(getIngredientExtension(ingredient as never)).toBe('png');
+    });
+
+    it('preserves a validated png mime type', () => {
+      const ingredient: MockIngredient = {
+        category: 'image',
+        mimeType: 'image/png',
+      };
+      expect(getIngredientExtension(ingredient as never)).toBe('png');
     });
 
     it('should return "mp3" for MUSIC category', () => {

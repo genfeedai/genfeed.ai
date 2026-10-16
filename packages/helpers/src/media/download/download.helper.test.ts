@@ -161,6 +161,27 @@ describe('download.helper', () => {
         'Track-music-ing-123.mp3',
       );
     });
+
+    it('saves original PNG bytes with a png suffix', async () => {
+      const pngBytes = new Uint8Array([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]);
+      const mockBlob = new Blob([pngBytes], {
+        type: 'application/octet-stream',
+      });
+      mockFetch.mockResolvedValue({
+        blob: () => Promise.resolve(mockBlob),
+        ok: true,
+      });
+
+      const ingredient = createMockIngredient();
+
+      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
+
+      const filename = mockSaveAs.mock.calls[0]?.[1] as string;
+      expect(filename.endsWith('.jpg')).toBe(false);
+      expect(filename).toBe('Test Image-image-ing-123.png');
+    });
   });
 
   describe('downloadUrl', () => {
@@ -239,6 +260,49 @@ describe('download.helper', () => {
         } as IIngredient),
       ).toBe(`genfeed-image-ing-123.${extension}`);
     });
+
+    it('saves PNG bytes with a png suffix when the declared type is jpeg', () => {
+      const pngBytes = new Uint8Array([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]);
+      const filename = ingredientDownloadFilename(
+        {
+          category: IngredientCategory.IMAGE,
+          id: 'ing-123',
+        } as IIngredient,
+        'image/jpeg',
+        pngBytes,
+      );
+
+      expect(filename.endsWith('.jpg')).toBe(false);
+      expect(filename).toBe('genfeed-image-ing-123.png');
+    });
+
+    it.each<[Uint8Array, string]>([
+      [new Uint8Array([0xff, 0xd8, 0xff, 0x00]), 'jpg'],
+      [
+        new Uint8Array([
+          0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42,
+          0x50,
+        ]),
+        'webp',
+      ],
+      [new Uint8Array([1, 2, 3, 4]), 'jpg'],
+    ])(
+      'uses trusted original bytes or the jpg fallback',
+      (bytes, extension) => {
+        expect(
+          ingredientDownloadFilename(
+            {
+              category: IngredientCategory.IMAGE,
+              id: 'ing-123',
+            } as IIngredient,
+            'application/octet-stream',
+            bytes,
+          ),
+        ).toBe(`genfeed-image-ing-123.${extension}`);
+      },
+    );
 
     it('uses the downloaded bytes MIME type ahead of stale metadata', () => {
       expect(

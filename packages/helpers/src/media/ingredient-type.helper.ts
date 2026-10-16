@@ -3,6 +3,49 @@ import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 
 const AVATAR_IMAGE_EXTENSIONS = new Set([IngredientExtension.JPG, 'jpeg']);
 
+const IMAGE_EXTENSIONS_BY_MIME = new Map<string, string>([
+  ['image/avif', 'avif'],
+  ['image/gif', 'gif'],
+  ['image/heic', 'heic'],
+  ['image/heif', 'heif'],
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+]);
+
+const IMAGE_METADATA_EXTENSIONS = new Set<string>([
+  ...IMAGE_EXTENSIONS_BY_MIME.values(),
+  'jpeg',
+]);
+
+export function extensionForImageContentType(
+  mimeType: string | null | undefined,
+): string | undefined {
+  if (typeof mimeType !== 'string') {
+    return undefined;
+  }
+
+  const normalized = mimeType.split(';', 1)[0]?.trim().toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+
+  return IMAGE_EXTENSIONS_BY_MIME.get(normalized);
+}
+
+function validatedImageMetadataExtension(
+  ingredient: IIngredient | null | undefined,
+): string | undefined {
+  const extension = getNormalizedMetadataExtension(ingredient)
+    ?.trim()
+    .replace(/^\./, '');
+  if (!extension || !IMAGE_METADATA_EXTENSIONS.has(extension)) {
+    return undefined;
+  }
+
+  return extension;
+}
+
 function getNormalizedMetadataExtension(
   ingredient: IIngredient | null | undefined,
 ): string | null {
@@ -72,6 +115,14 @@ export function isImageIngredient(
 }
 
 export function getIngredientExtension(ingredient: IIngredient): string {
+  if (isImageIngredient(ingredient)) {
+    const imageExtension =
+      extensionForImageContentType(ingredient.mimeType) ??
+      validatedImageMetadataExtension(ingredient);
+    if (imageExtension) {
+      return imageExtension;
+    }
+  }
   if (isVideoIngredient(ingredient)) {
     return 'mp4';
   }

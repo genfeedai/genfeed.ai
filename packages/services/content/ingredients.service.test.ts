@@ -23,11 +23,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   saveDownloadBlob,
-  ingredientDownloadFilename,
+  ingredientDownloadFilenameForBlob,
   filenameFromContentDisposition,
 } = vi.hoisted(() => ({
   saveDownloadBlob: vi.fn(),
-  ingredientDownloadFilename: vi.fn(() => 'Test Image-image-ing-123.png'),
+  ingredientDownloadFilenameForBlob: vi.fn(
+    () => 'Test Image-image-ing-123.png',
+  ),
   filenameFromContentDisposition: vi.fn(
     (header: string | undefined) =>
       /filename="([^"]+)"/.exec(header ?? '')?.[1],
@@ -35,7 +37,7 @@ const {
 }));
 vi.mock('@genfeedai/helpers/media/download/download.helper', () => ({
   filenameFromContentDisposition,
-  ingredientDownloadFilename,
+  ingredientDownloadFilenameForBlob,
   saveDownloadBlob,
 }));
 
@@ -96,9 +98,9 @@ describe('IngredientsService', () => {
       'https://api.genfeed.ai/v1/ingredients/ing-123/original-download',
       { responseType: 'blob', timeout: 600_000 },
     );
-    expect(ingredientDownloadFilename).toHaveBeenCalledWith(
+    expect(ingredientDownloadFilenameForBlob).toHaveBeenCalledWith(
       ingredient,
-      'image/png',
+      blob,
     );
     expect(saveDownloadBlob).toHaveBeenCalledWith(
       blob,

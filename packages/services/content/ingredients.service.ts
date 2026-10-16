@@ -18,7 +18,7 @@ import type {
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import {
   filenameFromContentDisposition,
-  ingredientDownloadFilename,
+  ingredientDownloadFilenameForBlob,
   saveDownloadBlob,
 } from '@genfeedai/helpers/media/download/download.helper';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
@@ -122,7 +122,7 @@ export class IngredientsService<
     );
     saveDownloadBlob(
       response.data,
-      ingredientDownloadFilename(ingredient, response.data.type),
+      await ingredientDownloadFilenameForBlob(ingredient, response.data),
     );
   }
 
