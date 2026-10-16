@@ -8,6 +8,7 @@ import {
   applyReleaseTargetUpdates,
   GROUP_ACTION_STATES,
   type PostGroupTargetOperationDependencies,
+  resolvePublishNowReleaseId,
   schedulePostGroupTarget,
   updatePostGroupTarget,
 } from '@api/collections/post-groups/services/post-group-target.operations';
@@ -664,10 +665,11 @@ export class PostGroupsService {
     userId: string,
     groupId: string,
   ): Promise<IReleaseGroup> {
-    const releaseId = await this.resolvePublishNowReleaseId(
+    const releaseId = await resolvePublishNowReleaseId(
       organizationId,
       userId,
       groupId,
+      this.targetOperationDependencies(),
     );
     const release = await this.prisma.$transaction(async (tx) => {
       const group = await this.persistenceService.getGroupOrThrow(
@@ -764,53 +766,6 @@ export class PostGroupsService {
     await this.approveReleaseTargets(release, userId, 'immediate');
     await this.enqueueReleaseTargets(release, userId);
     return release;
-  }
-
-  /**
-   * Group-level publish has no target id. A legacy grouping value is resolved
-   * only while a single non-deleted root post in this organization still
-   * carries it. After that post is rebound, a retry with the old id 404s.
-   * Per-target schedule and publish stay idempotent through
-   * `ensureReleaseForPost`.
-   */
-  private async resolvePublishNowReleaseId(
-    organizationId: string,
-    userId: string,
-    groupId: string,
-  ): Promise<string> {
-    const existing = await this.prisma.postGroup.findFirst({
-      select: { id: true },
-      where: scopedWhere(organizationId, { id: groupId }),
-    });
-    if (existing) {
-      return existing.id;
-    }
-
-    const roots = await this.prisma.post.findMany({
-      orderBy: { id: 'asc' },
-      select: { id: true },
-      take: 2,
-      where: scopedWhere(organizationId, {
-        groupId,
-        parentId: null,
-      }),
-    });
-    const root = roots[0];
-    if (!root) {
-      throw new NotFoundException('PostGroup', groupId);
-    }
-    if (roots.length > 1) {
-      throw new BadRequestException(
-        'This grouping has several posts. Publish each target separately.',
-      );
-    }
-
-    const release = await this.ensureReleaseForPost(
-      organizationId,
-      userId,
-      root.id,
-    );
-    return release.id;
   }
 
   private targetOperationDependencies(): PostGroupTargetOperationDependencies {

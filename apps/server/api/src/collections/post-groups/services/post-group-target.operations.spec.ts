@@ -27,6 +27,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { type Mock, vi } from 'vitest';
 
 describe('applyReleaseTargetUpdates', () => {
   const contractService = new PostGroupContractService();
@@ -330,8 +331,12 @@ describe('applyReleaseTargetUpdates', () => {
 describe('schedulePostGroupTarget legacy group ids', () => {
   const contractService = new PostGroupContractService();
   const releaseId = 'release-created';
-  let ensureReleaseForPost: ReturnType<typeof vi.fn>;
-  let enqueueReleaseTargets: ReturnType<typeof vi.fn>;
+  let ensureReleaseForPost: Mock<
+    PostGroupTargetOperationDependencies['ensureReleaseForPost']
+  >;
+  let enqueueReleaseTargets: Mock<
+    PostGroupTargetOperationDependencies['enqueueReleaseTargets']
+  >;
   let findGroup: ReturnType<typeof vi.fn>;
   let getGroupOrThrow: ReturnType<typeof vi.fn>;
   let getTargetOrThrow: ReturnType<typeof vi.fn>;
@@ -342,8 +347,12 @@ describe('schedulePostGroupTarget legacy group ids', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-08T22:25:13.000Z'));
-    ensureReleaseForPost = vi.fn().mockResolvedValue(makeRelease(releaseId));
-    enqueueReleaseTargets = vi.fn().mockResolvedValue(undefined);
+    ensureReleaseForPost = vi
+      .fn<PostGroupTargetOperationDependencies['ensureReleaseForPost']>()
+      .mockResolvedValue(makeRelease(releaseId));
+    enqueueReleaseTargets = vi
+      .fn<PostGroupTargetOperationDependencies['enqueueReleaseTargets']>()
+      .mockResolvedValue(undefined);
     findGroup = vi.fn().mockResolvedValue(null);
     getGroupOrThrow = vi.fn().mockResolvedValue(makeGroup(releaseId));
     getTargetOrThrow = vi.fn().mockResolvedValue(
