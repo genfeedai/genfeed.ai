@@ -129,7 +129,6 @@ import {
   isStudioPlaygroundType,
   listStudioPlaygroundTypeConfigs,
 } from '@pages/studio/playground/utils/studio-playground-types';
-import { resolveStudioReferencePreviewUrl } from '@pages/studio/playground/utils/studio-reference-preview';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -1275,20 +1274,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         },
   );
 
-  const referencePreviewUrlRef = useRef<string | undefined>(undefined);
   const handleSubmit = useCallback(() => {
     if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
       return;
     }
-    const referencePreviewUrl = referencePreviewUrlRef.current;
-    const previewOption = referencePreviewUrl
-      ? { referencePreviewUrl }
-      : undefined;
     if (type === 'image-edit') {
-      const submission = previewOption
-        ? submit(prompt, resolvedReferences, previewOption)
-        : submit(prompt, resolvedReferences);
-      void submission.then((accepted) => {
+      void submit(prompt, resolvedReferences).then((accepted) => {
         if (accepted) setPrompt('');
       });
       return;
@@ -1314,7 +1305,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         imageReferenceIds: prepared.referenceIds,
       },
       {
-        ...(previewOption ?? {}),
         originalText: prompt,
         ...(crunModel
           ? {
@@ -1839,11 +1829,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       settings.editPrimaryId,
     ],
   );
-  referencePreviewUrlRef.current = resolveStudioReferencePreviewUrl({
-    assets: attachedAssets,
-    avatarPreview: settings.avatarRef?.preview,
-    type,
-  });
 
   const handleRemoveAttachedAsset = useCallback<
     StudioPlaygroundComposerProps['onRemoveAttachedAsset']
