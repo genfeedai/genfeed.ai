@@ -14,7 +14,11 @@ const mocks = vi.hoisted(() => ({
   useQuickActions: vi.fn(),
   push: vi.fn(),
   isSelfHostedDeployment: vi.fn(() => false),
-  useBrand: vi.fn(() => ({ settings: null })),
+  useBrand: vi.fn(
+    (): { settings: { subscriptionTier: SubscriptionTier } | null } => ({
+      settings: null,
+    }),
+  ),
 }));
 
 vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({

@@ -4917,7 +4917,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -9462,22 +9462,6 @@
       "file": "packages/ui/src/components/pwa/pwa.helper.test.ts",
       "fingerprint": "e531e57b8f64c92c1741",
       "message": "Conversion of type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' to type 'PWAAppConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'appName' is missing in type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' but required in type 'PWAAppConfig'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/ui/src/components/quick-actions/actions/IngredientQuickActions.test.tsx",
-      "fingerprint": "3ded72aaa37dc61a119b",
-      "message": "Type '{ subscriptionTier: SubscriptionTier.FREE; }' is not assignable to type 'null'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/quick-actions/actions/IngredientQuickActions.test.tsx",
-      "fingerprint": "7bcfd38dcaede0edc3f9",
-      "message": "Type '{ subscriptionTier: SubscriptionTier.PRO; }' is not assignable to type 'null'.",
       "workspace": "ui"
     },
     {
