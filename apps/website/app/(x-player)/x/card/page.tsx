@@ -26,24 +26,23 @@ export const metadata: Metadata = {
     type: 'website',
     url: X_PLAYER_CARD_URL,
   },
-  title,
-  twitter: {
-    card: 'player',
-    creator: '@genfeedai',
-    creatorId: '1928229187782848512',
-    description,
-    images: [image],
-    players: {
-      height: X_PLAYER_HEIGHT,
-      playerUrl: X_PLAYER_CARD_URL,
-      // Next 16.4.1 requires streamUrl and always emits twitter:player:stream.
-      // This card is an HTML frame, so the stream URL is the same final page.
-      streamUrl: X_PLAYER_CARD_URL,
-      width: X_PLAYER_WIDTH,
-    },
-    site: '@genfeedai',
-    title,
+  // Next 16.4.1 requires streamUrl on twitter.players and always emits
+  // twitter:player:stream. This page is HTML, so that tag is omitted.
+  // twitter: null replaces the layout summary card.
+  other: {
+    'twitter:card': 'player',
+    'twitter:creator': '@genfeedai',
+    'twitter:creator:id': '1928229187782848512',
+    'twitter:description': description,
+    'twitter:image': image.url,
+    'twitter:player': X_PLAYER_CARD_URL,
+    'twitter:player:height': X_PLAYER_HEIGHT,
+    'twitter:player:width': X_PLAYER_WIDTH,
+    'twitter:site': '@genfeedai',
+    'twitter:title': title,
   },
+  title,
+  twitter: null,
 };
 
 export default function XPlayerCardPage() {

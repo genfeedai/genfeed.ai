@@ -8,26 +8,20 @@ import { metadata } from './page';
 
 describe('X player card metadata', () => {
   it('overrides this route with a player card on the final apex URL', () => {
-    expect(metadata.twitter?.card).toBe('player');
-    if (metadata.twitter?.card !== 'player') {
-      throw new Error('Expected a player card');
-    }
-
-    const player = Array.isArray(metadata.twitter.players)
-      ? metadata.twitter.players[0]
-      : metadata.twitter.players;
-
-    expect(player).toEqual({
-      height: 480,
-      playerUrl: 'https://genfeed.ai/x/card',
-      streamUrl: 'https://genfeed.ai/x/card',
-      width: 640,
+    expect(metadata.twitter).toBeNull();
+    expect(metadata.other).toMatchObject({
+      'twitter:card': 'player',
+      'twitter:image': 'https://genfeed.ai/og',
+      'twitter:player': 'https://genfeed.ai/x/card',
+      'twitter:player:height': 480,
+      'twitter:player:width': 640,
     });
+    expect(metadata.other).not.toHaveProperty('twitter:player:stream');
     expect(metadata.alternates?.canonical).toBe('https://genfeed.ai/x/card');
     expect(metadata.openGraph?.url).toBe('https://genfeed.ai/x/card');
     expect(site.url).toBe('https://genfeed.ai');
     expect(site.cards.default).toBe('https://genfeed.ai/og');
-    expect(metadata.twitter.images).toEqual([
+    expect(metadata.openGraph?.images).toEqual([
       expect.objectContaining({
         height: 630,
         type: 'image/png',
@@ -35,7 +29,6 @@ describe('X player card metadata', () => {
         width: 1200,
       }),
     ]);
-    expect(metadata.openGraph?.images).toEqual(metadata.twitter.images);
   });
 });
 
