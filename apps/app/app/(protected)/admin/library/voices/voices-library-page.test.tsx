@@ -32,7 +32,18 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { info: vi.fn(), error: vi.fn() },
 }));
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
+  default: ({
+    children,
+    right,
+  }: {
+    children: ReactNode;
+    right?: ReactNode;
+  }) => (
+    <main>
+      {right}
+      {children}
+    </main>
+  ),
 }));
 vi.mock('@ui/overview/WorkspaceSurface', () => ({
   WorkspaceSurface: ({

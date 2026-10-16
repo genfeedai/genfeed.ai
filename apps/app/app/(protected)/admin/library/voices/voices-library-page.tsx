@@ -176,23 +176,25 @@ export default function VoicesLibraryPage() {
       description="Superadmin catalog for importing and curating DB-backed provider voices."
       icon={Volume2}
       label="Voice Library"
+      moduleChrome
+      right={
+        <VoicesCatalogControls
+          view={view}
+          onViewChange={setView}
+          isSyncingAll={isSyncingAll}
+          providerFilter={providerFilter}
+          search={search}
+          syncingProvider={syncingProvider}
+          onProviderFilterChange={(pf) =>
+            dispatch({ type: 'SET_PROVIDER_FILTER', providerFilter: pf })
+          }
+          onSearchChange={(s) => dispatch({ type: 'SET_SEARCH', search: s })}
+          onSync={handleSync}
+        />
+      }
     >
-      <VoicesCatalogControls
-        view={view}
-        onViewChange={setView}
-        isSyncingAll={isSyncingAll}
-        providerFilter={providerFilter}
-        search={search}
-        syncingProvider={syncingProvider}
-        onProviderFilterChange={(pf) =>
-          dispatch({ type: 'SET_PROVIDER_FILTER', providerFilter: pf })
-        }
-        onSearchChange={(s) => dispatch({ type: 'SET_SEARCH', search: s })}
-        onSync={handleSync}
-      />
-
       <WorkspaceSurface
-        className="mt-6"
+        framed={hasError || view === ViewType.LIST}
         title="Catalog Voices"
         tone="muted"
         data-testid="voices-library-results-surface"
