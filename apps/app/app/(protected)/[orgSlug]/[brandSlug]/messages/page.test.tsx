@@ -802,9 +802,8 @@ describe('SocialMessagesPage', () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('button', { name: /Connect a social channel/i })
-        .length,
-    ).toBeGreaterThan(0);
+      screen.queryByRole('button', { name: /Connect a social channel/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('navigation', { name: 'Social conversations' }),
     ).toBeInTheDocument();
@@ -832,6 +831,63 @@ describe('SocialMessagesPage', () => {
       'min-h-0',
       'flex-1',
     );
+  });
+
+  it('syncs only the existing connected account and shows it in the account filter', async () => {
+    render(<SocialMessagesPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sync inbox' }));
+    await waitFor(() =>
+      expect(mocks.syncYoutube).toHaveBeenCalledWith(25, 'credential-1'),
+    );
+    expect(mocks.syncInstagram).not.toHaveBeenCalled();
+    expect(mocks.syncX).not.toHaveBeenCalled();
+    expect(mocks.syncLinkedIn).not.toHaveBeenCalled();
+    expect(mocks.syncInstagramDms).not.toHaveBeenCalled();
+    expect(mocks.syncXDms).not.toHaveBeenCalled();
+    expect(mocks.syncLinkedInDms).not.toHaveBeenCalled();
+    expect(
+      screen.queryByLabelText('Credential or account ID'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'YouTube' }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('uses the account picker to filter conversations and sync only that account', async () => {
+    mocks.brandContext.brands[0].credentials = ['youtube', 'instagram'].map(
+      (platform) => ({
+        id: `credential-${platform}`,
+        externalName: `${platform} account`,
+        isConnected: true,
+        platform,
+      }),
+    );
+    render(<SocialMessagesPage />);
+    await screen.findByRole('button', { name: 'Sync inbox' });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Instagram · instagram account',
+        exact: true,
+      }),
+    );
+    await waitFor(() =>
+      expect(mocks.listPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ credentialId: 'credential-instagram' }),
+        expect.any(AbortSignal),
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Sync inbox' }));
+    await waitFor(() =>
+      expect(mocks.syncInstagram).toHaveBeenCalledWith(
+        25,
+        'credential-instagram',
+      ),
+    );
+    expect(mocks.syncInstagramDms).toHaveBeenCalledWith(
+      25,
+      'credential-instagram',
+    );
+    expect(mocks.syncYoutube).not.toHaveBeenCalled();
   });
 
   it('makes account connection the first empty state when no social account is connected', async () => {
@@ -914,6 +970,16 @@ describe('SocialMessagesPage', () => {
   });
 
   it('switches to the DM surface, queries DMs, and syncs direct messages', async () => {
+    mocks.brandContext.brands[0].credentials = [
+      'youtube',
+      'instagram',
+      'twitter',
+      'linkedin',
+    ].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
     mocks.listPage.mockImplementation(
       (params: { conversationType?: string }) => {
         const isDmQuery = params.conversationType === 'dm';
@@ -973,6 +1039,16 @@ describe('SocialMessagesPage', () => {
   });
 
   it('sweeps every comment platform when syncing the comments surface', async () => {
+    mocks.brandContext.brands[0].credentials = [
+      'youtube',
+      'instagram',
+      'twitter',
+      'linkedin',
+    ].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
     render(<SocialMessagesPage />);
 
     await screen.findByRole('button', { name: 'Sync inbox' });
@@ -993,6 +1069,16 @@ describe('SocialMessagesPage', () => {
   });
 
   it('syncs the unified mailbox and keeps remaining platform enqueues after a partial failure', async () => {
+    mocks.brandContext.brands[0].credentials = [
+      'youtube',
+      'instagram',
+      'twitter',
+      'linkedin',
+    ].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
     mocks.syncX.mockRejectedValue(new Error('X is not connected'));
 
     render(<SocialMessagesPage />);

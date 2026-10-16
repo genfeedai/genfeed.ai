@@ -19,6 +19,7 @@ function setup() {
     refreshSelectedThread: vi.fn(),
     selectedConversation: null,
     selectedId: 'conversation-1',
+    syncCredentials: [],
   };
   const hook = renderHook(
     (input: UseMessagesActionsParams) => useMessagesActions(input),

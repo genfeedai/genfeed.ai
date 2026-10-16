@@ -17,10 +17,7 @@ import {
   MESSAGES_TYPE_QUERY_PARAM,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
-import type {
-  SocialAutomationState,
-  SocialConversationStatus,
-} from '@genfeedai/contracts/interfaces';
+import type { SocialConversationStatus } from '@genfeedai/contracts/interfaces';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
@@ -31,14 +28,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import {
   ChevronLeft,
@@ -59,14 +48,13 @@ import { createPortal } from 'react-dom';
 
 import { useRefreshInboxIndicators } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
-
+import MessagesAdvancedFilters from './messages-advanced-filters';
 import {
   getParticipantLabel,
   MessagesConversationSidebar,
 } from './messages-conversation-sidebar';
 import {
   ALL_BRANDS_FILTER,
-  AUTOMATION_OPTIONS,
   formatMessageTime,
   getMessageProvenanceItems,
   parseMessagesSurface,
@@ -90,7 +78,6 @@ const SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS = new Set([
   Platform.INSTAGRAM,
   Platform.LINKEDIN,
   Platform.TWITTER,
-  Platform.UNIPILE,
   Platform.YOUTUBE,
 ]);
 
@@ -328,12 +315,13 @@ export default function MessagesPage() {
           ),
     [brands, filters.brandFilter],
   );
-  const hasConnectedAccounts = useMemo(
+  const connectedAccounts = useMemo(
     () =>
-      inboxBrands.some((brand) =>
-        (brand.credentials ?? []).some(
+      inboxBrands.flatMap((brand) =>
+        (brand.credentials ?? []).filter(
           (credential) =>
             credential.isConnected === true &&
+            !credential.isDeleted &&
             MESSAGE_CREDENTIAL_PLATFORMS.has(
               String(credential.platform).toLowerCase() as Platform,
             ),
@@ -341,19 +329,32 @@ export default function MessagesPage() {
       ),
     [inboxBrands],
   );
-  const hasSyncableAccounts = useMemo(
+  const filteredAccounts = useMemo(
     () =>
-      inboxBrands.some((brand) =>
-        (brand.credentials ?? []).some(
-          (credential) =>
-            credential.isConnected === true &&
-            SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS.has(
-              String(credential.platform).toLowerCase() as Platform,
-            ),
-        ),
+      connectedAccounts.filter(
+        (credential) =>
+          filters.platform === 'all' ||
+          String(credential.platform).toLowerCase() === filters.platform,
       ),
-    [inboxBrands],
+    [connectedAccounts, filters.platform],
   );
+  const syncCredentials = useMemo(
+    () =>
+      filteredAccounts.filter(
+        (credential) =>
+          !filters.credentialId || credential.id === filters.credentialId,
+      ),
+    [filteredAccounts, filters.credentialId],
+  );
+  const hasConnectedAccounts = connectedAccounts.length > 0;
+  const hasSyncableAccounts = syncCredentials.some((credential) => {
+    const platform = String(credential.platform).toLowerCase() as Platform;
+    return (
+      SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS.has(platform) &&
+      (filters.conversationType !== SocialConversationType.DM ||
+        platform !== Platform.YOUTUBE)
+    );
+  });
   const isAccountsLoading =
     credentialsLoading || isBrandScopeResolved === false;
   const connectionBrandId =
@@ -467,6 +468,7 @@ export default function MessagesPage() {
     refreshSelectedThread,
     selectedConversation,
     selectedId,
+    syncCredentials,
   });
 
   const error = actionError ?? loadError;
@@ -547,44 +549,15 @@ export default function MessagesPage() {
           sendDmReason: 'Select a conversation before sending a DM.',
         });
   const advancedFilters = (
-    <div className="space-y-3">
-      <div className="space-y-1.5">
-        <p className="text-2xs font-medium text-foreground/54">
-          {translate('actions.automation')}
-        </p>
-        <Select
-          value={filters.automationState}
-          onValueChange={(value) => {
-            filters.setAutomationState(value as SocialAutomationState | 'all');
-          }}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={translate('actions.automation')} />
-          </SelectTrigger>
-          <SelectContent>
-            {AUTOMATION_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <Input
-        label="Credential or account ID"
-        value={filters.credentialId}
-        onChange={(event) => {
-          filters.setCredentialId(event.target.value);
-        }}
-      />
-      <Input
-        label="Assigned owner ID"
-        value={filters.assignedOwnerId}
-        onChange={(event) => {
-          filters.setAssignedOwnerId(event.target.value);
-        }}
-      />
-    </div>
+    <MessagesAdvancedFilters
+      accounts={filteredAccounts}
+      assignedOwnerId={filters.assignedOwnerId}
+      automationState={filters.automationState}
+      credentialId={filters.credentialId}
+      onAssignedOwnerIdChange={filters.setAssignedOwnerId}
+      onAutomationStateChange={filters.setAutomationState}
+      onCredentialIdChange={filters.setCredentialId}
+    />
   );
   // In-place OAuth connect — return to this messages surface after verify.
   const handleOAuthConnect = usePlatformOAuthConnect({

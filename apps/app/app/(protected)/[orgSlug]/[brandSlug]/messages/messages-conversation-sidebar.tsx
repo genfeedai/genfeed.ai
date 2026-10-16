@@ -349,7 +349,7 @@ export function MessagesConversationSidebar({
     (!hasConnectedAccounts
       ? 'Bring comments and direct messages from every connected channel into one place.'
       : !hasSyncableAccounts
-        ? 'Your connected TikTok account is read-only. New conversations will appear here when available.'
+        ? 'Your connected accounts do not support syncing this conversation type. Conversations will appear here when available.'
         : conversationType === 'all'
           ? 'Your accounts are connected. Sync now to collect the latest comments and direct messages.'
           : isDmSurface
@@ -382,14 +382,11 @@ export function MessagesConversationSidebar({
             withWrapper={false}
           />
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 space-y-3 p-3">
+        <PopoverContent align="start" className="w-72 space-y-2 p-3">
           <p className="text-xs font-semibold text-foreground/72">
             {translate('sidebar.filters')}
           </p>
           <div className="space-y-1.5">
-            <p className="text-2xs font-medium text-foreground/54">
-              {translate('sidebar.type')}
-            </p>
             <Select
               value={conversationType}
               onValueChange={(value) => {
@@ -397,7 +394,14 @@ export function MessagesConversationSidebar({
               }}
             >
               <SelectTrigger aria-label={translate('sidebar.filterByTypeAria')}>
-                <SelectValue placeholder={translate('sidebar.surfaces.all')} />
+                <span className="min-w-0 truncate">
+                  <span className="shrink-0 text-muted-foreground">
+                    {translate('sidebar.type')}:{' '}
+                  </span>
+                  <SelectValue
+                    placeholder={translate('sidebar.surfaces.all')}
+                  />
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {SURFACE_FILTERS.map((filter) => (
@@ -409,9 +413,6 @@ export function MessagesConversationSidebar({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <p className="text-2xs font-medium text-foreground/54">
-              {translate('sidebar.status')}
-            </p>
             <Select
               value={view}
               onValueChange={(value) => {
@@ -421,7 +422,12 @@ export function MessagesConversationSidebar({
               <SelectTrigger
                 aria-label={translate('sidebar.filterByStatusAria')}
               >
-                <SelectValue placeholder={translate('sidebar.views.inbox')} />
+                <span className="min-w-0 truncate">
+                  <span className="shrink-0 text-muted-foreground">
+                    {translate('sidebar.status')}:{' '}
+                  </span>
+                  <SelectValue placeholder={translate('sidebar.views.inbox')} />
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {VIEW_FILTERS.map((filter) => (
@@ -434,14 +440,16 @@ export function MessagesConversationSidebar({
           </div>
           {brandOptions.length > 0 ? (
             <div className="space-y-1.5">
-              <p className="text-2xs font-medium text-foreground/54">
-                {translate('sidebar.brand')}
-              </p>
               <Select value={brandFilter} onValueChange={onBrandFilterChange}>
                 <SelectTrigger
                   aria-label={translate('sidebar.filterByBrandAria')}
                 >
-                  <SelectValue placeholder={translate('sidebar.allBrands')} />
+                  <span className="min-w-0 truncate">
+                    <span className="shrink-0 text-muted-foreground">
+                      {translate('sidebar.brand')}:{' '}
+                    </span>
+                    <SelectValue placeholder={translate('sidebar.allBrands')} />
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">
@@ -457,9 +465,6 @@ export function MessagesConversationSidebar({
             </div>
           ) : null}
           <div className="space-y-1.5">
-            <p className="text-2xs font-medium text-foreground/54">
-              {translate('sidebar.platform')}
-            </p>
             <Select
               value={platform}
               onValueChange={(value) => {
@@ -469,7 +474,14 @@ export function MessagesConversationSidebar({
               <SelectTrigger
                 aria-label={translate('sidebar.filterByPlatformAria')}
               >
-                <SelectValue placeholder={translate('sidebar.platforms.all')} />
+                <span className="min-w-0 truncate">
+                  <span className="shrink-0 text-muted-foreground">
+                    {translate('sidebar.platform')}:{' '}
+                  </span>
+                  <SelectValue
+                    placeholder={translate('sidebar.platforms.all')}
+                  />
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {PLATFORM_OPTIONS.map((option) => (
@@ -555,15 +567,6 @@ export function MessagesConversationSidebar({
                   triggerLabel="Connect accounts"
                   triggerSize={ButtonSize.SM}
                   triggerVariant={ButtonVariant.DEFAULT}
-                />
-              ) : null}
-              {hasConnectedAccounts && onOAuthConnect ? (
-                <AgentOAuthConnectMenu
-                  hideIcon
-                  onOAuthConnect={onOAuthConnect}
-                  triggerLabel="Connect another"
-                  triggerSize={ButtonSize.SM}
-                  triggerVariant={ButtonVariant.GHOST}
                 />
               ) : null}
               {!hasConnectedAccounts && !onOAuthConnect ? (

@@ -1918,10 +1918,14 @@
       "title": "Reply composer"
     },
     "sidebar": {
+      "account": "Account",
+      "allAccounts": "All accounts",
       "allBrands": "All brands",
+      "assignedOwnerId": "Assigned owner ID",
       "brand": "Brand",
       "chooseBrandToConnect": "Choose a brand in Filters before connecting an account.",
       "filterAria": "Filter social conversations",
+      "filterByAccountAria": "Filter conversations by account",
       "filterByBrandAria": "Filter conversations by brand",
       "filterByPlatformAria": "Filter conversations by platform",
       "filterByStatusAria": "Filter conversations by status",

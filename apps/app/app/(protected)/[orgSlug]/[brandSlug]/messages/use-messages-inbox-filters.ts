@@ -80,11 +80,13 @@ function messagesInboxFiltersReducer(
         ...state,
         conversationPage: 1,
         platform: action.platform,
+        credentialId: '',
       };
     case 'set-brand-filter':
       return {
         ...state,
         brandFilterOverride: action.brandFilter,
+        credentialId: '',
         conversationPage: 1,
       };
     case 'sync-route-brand':
@@ -95,6 +97,7 @@ function messagesInboxFiltersReducer(
         ...state,
         brandFilterOverride: null,
         brandFilterRouteKey: action.brandSlug,
+        credentialId: '',
       };
     case 'set-inbox-view': {
       const next = resolveInboxViewStatus(action.view);

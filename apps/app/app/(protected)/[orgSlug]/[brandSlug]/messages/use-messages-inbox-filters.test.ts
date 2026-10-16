@@ -119,6 +119,24 @@ describe('useMessagesInboxFilters', () => {
     expect(result.current.conversationPage).toBe(2);
   });
 
+  it('clears the selected account when its brand or platform scope changes', () => {
+    const { result, rerender } = renderHook(
+      ({ brandSlug, routeBrandId }) =>
+        useMessagesInboxFilters({ brandSlug, routeBrandId }),
+      { initialProps: { brandSlug: 'demo', routeBrandId: 'brand-1' } },
+    );
+    act(() => result.current.setCredentialId('instagram-account'));
+    act(() => result.current.setPlatform('youtube'));
+    expect(result.current.credentialId).toBe('');
+    expect(result.current.query.credentialId).toBeUndefined();
+    act(() => result.current.setCredentialId('youtube-account'));
+    act(() => result.current.setBrandFilter('brand-2'));
+    expect(result.current.credentialId).toBe('');
+    act(() => result.current.setCredentialId('other-account'));
+    rerender({ brandSlug: 'another', routeBrandId: 'brand-3' });
+    expect(result.current.credentialId).toBe('');
+  });
+
   it('resets conversation page when search changes', () => {
     const { result } = renderHook(() =>
       useMessagesInboxFilters({

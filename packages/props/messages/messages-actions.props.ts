@@ -1,3 +1,4 @@
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 import type { SocialMessagesService } from '@genfeedai/services/social/messages.service';
@@ -5,6 +6,7 @@ import type { SocialMessagesService } from '@genfeedai/services/social/messages.
 export interface UseMessagesActionsParams {
   readonly canAttachReferences: boolean;
   readonly canWrite: boolean;
+  readonly syncCredentials: readonly Pick<ICredential, 'id' | 'platform'>[];
   /** Which inbox surface is open — decides what a sync actually sweeps. */
   readonly conversationType: MessagesSurface;
   readonly getMessagesService: () => Promise<SocialMessagesService>;

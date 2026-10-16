@@ -45,6 +45,7 @@ export function useMessagesActions({
   refreshSelectedThread,
   selectedConversation,
   selectedId,
+  syncCredentials,
 }: UseMessagesActionsParams) {
   const translate = useTranslations('common.messages.actions');
   const suggestionAbortRef = useRef<AbortController | null>(null);
@@ -290,24 +291,59 @@ export function useMessagesActions({
     try {
       const service = await getMessagesService();
       const isDirectMessage = conversationType === SocialConversationType.DM;
-      // One rejected enqueue must not hide the rest: a brand often has only
-      // some platforms connected, and the other jobs are already queued.
-      const directMessageJobs: MessagesSyncJob[] = [
-        { platform: 'Instagram', run: () => service.syncInstagramDms() },
-        { platform: 'X', run: () => service.syncXDms() },
-        { platform: 'LinkedIn', run: () => service.syncLinkedInDms() },
-      ];
-      const commentJobs: MessagesSyncJob[] = [
-        { platform: 'YouTube', run: () => service.syncYoutube() },
-        { platform: 'Instagram', run: () => service.syncInstagram() },
-        { platform: 'X', run: () => service.syncX() },
-        { platform: 'LinkedIn', run: () => service.syncLinkedIn() },
-      ];
-      const jobs: MessagesSyncJob[] = isDirectMessage
-        ? directMessageJobs
-        : conversationType === SocialConversationType.COMMENT
-          ? commentJobs
-          : [...commentJobs, ...directMessageJobs];
+      const jobs = syncCredentials.flatMap((credential): MessagesSyncJob[] => {
+        const commentJobs: MessagesSyncJob[] = [];
+        const directMessageJobs: MessagesSyncJob[] = [];
+        switch (String(credential.platform).toLowerCase()) {
+          case 'youtube':
+            commentJobs.push({
+              platform: 'YouTube',
+              run: () => service.syncYoutube(25, credential.id),
+            });
+            break;
+          case 'instagram':
+            commentJobs.push({
+              platform: 'Instagram',
+              run: () => service.syncInstagram(25, credential.id),
+            });
+            directMessageJobs.push({
+              platform: 'Instagram',
+              run: () => service.syncInstagramDms(25, credential.id),
+            });
+            break;
+          case 'twitter':
+            commentJobs.push({
+              platform: 'X',
+              run: () => service.syncX(25, credential.id),
+            });
+            directMessageJobs.push({
+              platform: 'X',
+              run: () => service.syncXDms(25, credential.id),
+            });
+            break;
+          case 'linkedin':
+            commentJobs.push({
+              platform: 'LinkedIn',
+              run: () => service.syncLinkedIn(25, credential.id),
+            });
+            directMessageJobs.push({
+              platform: 'LinkedIn',
+              run: () => service.syncLinkedInDms(25, credential.id),
+            });
+            break;
+        }
+        return isDirectMessage
+          ? directMessageJobs
+          : conversationType === SocialConversationType.COMMENT
+            ? commentJobs
+            : [...commentJobs, ...directMessageJobs];
+      });
+      if (jobs.length === 0) {
+        setNotice(
+          'No connected accounts support syncing this conversation type.',
+        );
+        return;
+      }
       const outcome = await settleMessagesSyncJobs(jobs);
       await loadConversations();
       const feedback = getMessagesSyncFeedback({
@@ -340,6 +376,7 @@ export function useMessagesActions({
     getMessagesService,
     loadConversations,
     onLoadError,
+    syncCredentials,
   ]);
 
   const handleApproveDraft = useCallback(

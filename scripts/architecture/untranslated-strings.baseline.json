@@ -47,7 +47,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/captions/library-captions-page.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/voices/library-voices-page.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-row.tsx": 4,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-page.tsx": 7,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-page.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-surface-adapter.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/replies/replies-page.tsx": 14,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/reply-drip/reply-drip-page.tsx": 24,

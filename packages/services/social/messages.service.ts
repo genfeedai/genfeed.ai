@@ -232,42 +232,67 @@ export class SocialMessagesService extends BaseService<
     );
   }
 
-  syncYoutube(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
-    return this.enqueueSync('/youtube/sync', limit);
+  syncYoutube(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/youtube/sync', limit, credentialId);
   }
 
-  syncInstagram(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
-    return this.enqueueSync('/instagram/sync', limit);
+  syncInstagram(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/instagram/sync', limit, credentialId);
   }
 
-  syncInstagramDms(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
-    return this.enqueueSync('/instagram/dms/sync', limit);
+  syncInstagramDms(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/instagram/dms/sync', limit, credentialId);
   }
 
-  syncX(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
-    return this.enqueueSync('/x/sync', limit);
+  syncX(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/x/sync', limit, credentialId);
   }
 
-  syncXDms(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
-    return this.enqueueSync('/x/dms/sync', limit);
+  syncXDms(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/x/dms/sync', limit, credentialId);
   }
 
-  syncLinkedIn(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
-    return this.enqueueSync('/linkedin/sync', limit);
+  syncLinkedIn(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/linkedin/sync', limit, credentialId);
   }
 
-  syncLinkedInDms(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
-    return this.enqueueSync('/linkedin/dms/sync', limit);
+  syncLinkedInDms(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/linkedin/dms/sync', limit, credentialId);
   }
 
   private enqueueSync(
     path: string,
     limit: number,
+    credentialId?: string,
   ): Promise<SocialInboxSyncEnqueueResult> {
     return this.executeWithErrorHandling(
       `POST ${this.baseURL}${path}`,
       this.instance
-        .post<SocialInboxSyncEnqueueResult>(path, { limit })
+        .post<SocialInboxSyncEnqueueResult>(path, {
+          ...(credentialId ? { credentialId } : {}),
+          limit,
+        })
         .then((response) => response.data),
     );
   }

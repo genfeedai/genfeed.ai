@@ -1,4 +1,5 @@
 import type {
+  ICredential,
   SocialAutomationState,
   SocialConversationStatus,
   SocialPlatform,
@@ -45,4 +46,14 @@ export interface UseMessagesInboxFiltersParams {
   /** Type filter seeded from the `?type=` deep link. */
   readonly initialConversationType?: MessagesSurface;
   readonly routeBrandId: string | undefined;
+}
+
+export interface MessagesAdvancedFiltersProps {
+  accounts: readonly ICredential[];
+  assignedOwnerId: string;
+  automationState: SocialAutomationState | 'all';
+  credentialId: string;
+  onAssignedOwnerIdChange: (value: string) => void;
+  onAutomationStateChange: (value: SocialAutomationState | 'all') => void;
+  onCredentialIdChange: (value: string) => void;
 }

@@ -316,6 +316,17 @@ describe('SocialMessagesService', () => {
     });
   });
 
+  it('syncs a selected connected credential instead of sweeping unrelated accounts', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse({ jobId: 'job-selected', status: 'queued' }),
+    );
+    await service.syncInstagram(25, 'connected-instagram');
+    expect(http.post).toHaveBeenCalledWith('/instagram/sync', {
+      credentialId: 'connected-instagram',
+      limit: 25,
+    });
+  });
+
   it('syncYoutube POSTs the sync limit', async () => {
     const payload = { jobId: 'job-1', status: 'queued' };
     http.post.mockResolvedValue(axiosResponse(payload));
