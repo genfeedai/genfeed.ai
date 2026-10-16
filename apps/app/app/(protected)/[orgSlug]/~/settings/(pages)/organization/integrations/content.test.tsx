@@ -163,7 +163,7 @@ describe('SettingsIntegrationsPage', () => {
     mocks.desktop = false;
     mocks.isBillingEnabled = true;
     mocks.isReady = true;
-    mocks.subscriptionTier = 'pro';
+    mocks.subscriptionTier = 'scale';
     mocks.organizationId = 'org-1';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     mocks.removeByokProviderKey.mockResolvedValue({});
