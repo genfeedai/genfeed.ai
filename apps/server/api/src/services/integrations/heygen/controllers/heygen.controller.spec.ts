@@ -38,12 +38,12 @@ function providerFailure(options: {
 describe('HeyGenController', () => {
   let controller: HeyGenController;
   let heygenService: {
-    getVoices: ReturnType<typeof vi.fn>;
     getConnectionStatus: ReturnType<typeof vi.fn>;
     getAvatars: ReturnType<typeof vi.fn>;
     getAvatarPage: ReturnType<typeof vi.fn>;
     getSpeechVoices: ReturnType<typeof vi.fn>;
   };
+  let voiceCatalogService: { getVoices: ReturnType<typeof vi.fn> };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -65,8 +65,8 @@ describe('HeyGenController', () => {
       getAvatars: vi.fn().mockResolvedValue([]),
       getAvatarPage: vi.fn(),
       getSpeechVoices: vi.fn(),
-      getVoices: vi.fn().mockResolvedValue([]),
     };
+    voiceCatalogService = { getVoices: vi.fn().mockResolvedValue([]) };
     loggerService = {
       error: vi.fn(),
       log: vi.fn(),
@@ -78,7 +78,7 @@ describe('HeyGenController', () => {
         { provide: LoggerService, useValue: loggerService },
         { provide: HeyGenService, useValue: heygenService },
         { provide: HeyGenSpeechVoicesService, useValue: heygenService },
-        { provide: HeyGenVoiceCatalogService, useValue: heygenService },
+        { provide: HeyGenVoiceCatalogService, useValue: voiceCatalogService },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -101,7 +101,7 @@ describe('HeyGenController', () => {
   });
 
   it('should return mapped voices with correct shape', async () => {
-    heygenService.getVoices.mockResolvedValue([
+    voiceCatalogService.getVoices.mockResolvedValue([
       {
         index: 0,
         name: 'Alice',
@@ -126,11 +126,11 @@ describe('HeyGenController', () => {
 
   it('should pass organization from user metadata to getVoices', async () => {
     await controller.getVoices(mockUser);
-    expect(heygenService.getVoices).toHaveBeenCalledWith(testId('org'));
+    expect(voiceCatalogService.getVoices).toHaveBeenCalledWith(testId('org'));
   });
 
   it('classifies a provider rejection instead of returning an empty catalog', async () => {
-    heygenService.getVoices.mockRejectedValue(
+    voiceCatalogService.getVoices.mockRejectedValue(
       providerFailure({ data: { secret: 'provider-payload' }, status: 422 }),
     );
     const error = await controller.getVoices(mockUser).catch((e) => e);
@@ -146,7 +146,7 @@ describe('HeyGenController', () => {
   });
 
   it('reports provider timeouts as a gateway timeout', async () => {
-    heygenService.getVoices.mockRejectedValue(
+    voiceCatalogService.getVoices.mockRejectedValue(
       providerFailure({
         code: 'ECONNABORTED',
         message: 'timeout of 15000ms exceeded',
@@ -160,7 +160,7 @@ describe('HeyGenController', () => {
   it.each([401, 403])(
     'answers rejected HeyGen credentials (%i) with a 502 and a stable code',
     async (providerStatus) => {
-      heygenService.getVoices.mockRejectedValue(
+      voiceCatalogService.getVoices.mockRejectedValue(
         providerFailure({ status: providerStatus }),
       );
       const error = await controller.getVoices(mockUser).catch((e) => e);
@@ -184,7 +184,7 @@ describe('HeyGenController', () => {
   });
 
   it('surfaces a not-connected configuration failure as a client error', async () => {
-    heygenService.getVoices.mockRejectedValue(
+    voiceCatalogService.getVoices.mockRejectedValue(
       new BadRequestException('Connect HeyGen to load identities.'),
     );
     const error = await controller.getVoices(mockUser).catch((e) => e);
@@ -195,7 +195,9 @@ describe('HeyGenController', () => {
   });
 
   it('logs sanitized diagnostics and hides unexpected fault details', async () => {
-    heygenService.getVoices.mockRejectedValue(new Error('sk-secret exploded'));
+    voiceCatalogService.getVoices.mockRejectedValue(
+      new Error('sk-secret exploded'),
+    );
     const error = await controller.getVoices(mockUser).catch((e) => e);
     expect(error.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
     expect(JSON.stringify(error.getResponse())).not.toContain('sk-secret');
@@ -211,15 +213,18 @@ describe('HeyGenController', () => {
 
   it('scopes each voice catalog to the caller organization', async () => {
     const otherOrg = { ...mockUser, organizationId: testId('other-org') };
-    heygenService.getVoices.mockImplementation(async (orgId: string) => [
+    voiceCatalogService.getVoices.mockImplementation(async (orgId: string) => [
       { index: 0, name: orgId, preview: '', voiceId: `voice-${orgId}` },
     ]);
 
     const first = await controller.getVoices(mockUser);
     const second = await controller.getVoices(otherOrg as unknown as User);
 
-    expect(heygenService.getVoices).toHaveBeenNthCalledWith(1, testId('org'));
-    expect(heygenService.getVoices).toHaveBeenNthCalledWith(
+    expect(voiceCatalogService.getVoices).toHaveBeenNthCalledWith(
+      1,
+      testId('org'),
+    );
+    expect(voiceCatalogService.getVoices).toHaveBeenNthCalledWith(
       2,
       testId('other-org'),
     );
@@ -304,7 +309,7 @@ describe('HeyGenController', () => {
 
   // --- getStatus ---
   it('should return credential-derived connected status', async () => {
-    heygenService.getVoices.mockResolvedValue([]);
+    voiceCatalogService.getVoices.mockResolvedValue([]);
     const result = await controller.getStatus(mockUser);
     expect(result.data.type).toBe('service-status');
     expect(result.data.attributes.isConnected).toBe(true);
@@ -328,7 +333,7 @@ describe('HeyGenController', () => {
   });
 
   it('should handle unknown error message in getVoices', async () => {
-    heygenService.getVoices.mockRejectedValue('string error');
+    voiceCatalogService.getVoices.mockRejectedValue('string error');
     try {
       await controller.getVoices(mockUser);
     } catch (error) {

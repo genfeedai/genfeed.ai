@@ -214,7 +214,7 @@ export default function StudioIdentityFields({
       isLoadingIdentities ||
       isLoadingMoreAvatars ||
       error ||
-      matchingAvatars.length > avatarLimit
+      matchingAvatars.length >= avatarLimit
     )
       return;
     void loadMoreAvatars();

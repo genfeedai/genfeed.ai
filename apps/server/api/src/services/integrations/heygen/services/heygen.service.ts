@@ -375,10 +375,9 @@ export class HeyGenService {
     organizationId: string,
   ): Promise<HeyGenCatalogVoice[]> {
     const apiKey = this.getApiKey();
-    if (!apiKey)
-      throw new BadRequestException(
-        'The public HeyGen connection is unavailable.',
-      );
+    // No platform key means no stock voices, not a failure: a workspace with
+    // its own key still lists its voices.
+    if (!apiKey) return [];
     return this.readVoiceCatalog(
       {
         apiKey,
@@ -403,18 +402,27 @@ export class HeyGenService {
       ByokProvider.HEYGEN,
     );
     if (!credential) return [];
-    return this.readVoiceCatalog(
-      {
-        apiKey: credential.apiKey,
-        binding: {
-          provider: 'heygen',
-          kind: 'byok',
-          organizationId,
-          credentialVersionId: credential.credentialId,
+    // Stock voices stay usable when the workspace's own listing fails.
+    try {
+      return await this.readVoiceCatalog(
+        {
+          apiKey: credential.apiKey,
+          binding: {
+            provider: 'heygen',
+            kind: 'byok',
+            organizationId,
+            credentialVersionId: credential.credentialId,
+          },
         },
-      },
-      'private',
-    );
+        'private',
+      );
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} personal voices unavailable`,
+        { error: error instanceof Error ? error.message : 'unknown' },
+      );
+      return [];
+    }
   }
 
   private async readVoiceCatalog(

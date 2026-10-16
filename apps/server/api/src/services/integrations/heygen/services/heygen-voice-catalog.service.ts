@@ -5,7 +5,6 @@ import type {
   HeyGenCatalogVoice,
   HeyGenGender,
 } from '@genfeedai/contracts/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 function readStoredGender(providerData: unknown): HeyGenGender | null {
@@ -24,21 +23,12 @@ export class HeyGenVoiceCatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly heygenService: HeyGenService,
-    private readonly loggerService: LoggerService,
   ) {}
 
   async getVoices(organizationId: string): Promise<HeyGenCatalogVoice[]> {
     const [stored, personal] = await Promise.all([
       this.readStoredPublicVoices(organizationId),
-      this.heygenService
-        .getPersonalVoices(organizationId)
-        .catch((error: unknown) => {
-          this.loggerService.warn(
-            'HeyGen personal voices unavailable; showing stock voices only',
-            { error: error instanceof Error ? error.message : 'unknown' },
-          );
-          return [];
-        }),
+      this.heygenService.getPersonalVoices(organizationId),
     ]);
     // Before the first sync the table is empty; read the live catalogue once.
     const publicVoices =

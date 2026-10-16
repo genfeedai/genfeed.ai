@@ -1,7 +1,6 @@
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { HeyGenVoiceCatalogService } from '@api/services/integrations/heygen/services/heygen-voice-catalog.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
 
 describe('HeyGenVoiceCatalogService', () => {
   const findMany = vi.fn();
@@ -9,7 +8,6 @@ describe('HeyGenVoiceCatalogService', () => {
     getPersonalVoices: vi.fn(),
     getPublicVoices: vi.fn(),
   };
-  const logger = { warn: vi.fn() };
   let service: HeyGenVoiceCatalogService;
 
   function row(id: string, providerData: unknown = { gender: 'female' }) {
@@ -37,7 +35,6 @@ describe('HeyGenVoiceCatalogService', () => {
     service = new HeyGenVoiceCatalogService(
       { externalVoice: { findMany } } as unknown as PrismaService,
       heygen as unknown as HeyGenService,
-      logger as unknown as LoggerService,
     );
   });
 
@@ -104,13 +101,20 @@ describe('HeyGenVoiceCatalogService', () => {
     expect(voices.map((voice) => voice.voiceId)).toEqual(['live']);
   });
 
-  it('keeps the stock voices when the personal listing fails', async () => {
+  it('does not hide a credential lookup failure behind the stock voices', async () => {
     findMany.mockResolvedValue([row('a')]);
-    heygen.getPersonalVoices.mockRejectedValue(new Error('heygen down'));
+    heygen.getPersonalVoices.mockRejectedValue(new Error('storage down'));
+
+    await expect(service.getVoices('org-1')).rejects.toThrow('storage down');
+  });
+
+  it('returns only the workspace voices when no stock voices exist anywhere', async () => {
+    findMany.mockResolvedValue([]);
+    heygen.getPublicVoices.mockResolvedValue([]);
+    heygen.getPersonalVoices.mockResolvedValue([personalVoice]);
 
     const voices = await service.getVoices('org-1');
 
-    expect(voices.map((voice) => voice.voiceId)).toEqual(['a']);
-    expect(logger.warn).toHaveBeenCalled();
+    expect(voices.map((voice) => voice.voiceId)).toEqual(['mine']);
   });
 });
