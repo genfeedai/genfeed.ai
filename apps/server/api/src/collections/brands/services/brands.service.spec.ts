@@ -50,6 +50,17 @@ import {
 } from '@libs/prisma/tenant-context';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
+function sqlText(query: unknown): string {
+  if (Array.isArray(query)) {
+    return query.join(' ');
+  }
+  if (query !== null && typeof query === 'object' && 'sql' in query) {
+    const sql = query.sql;
+    return typeof sql === 'string' ? sql : '';
+  }
+  return '';
+}
+
 describe('BrandsService', () => {
   let service: BrandsService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
@@ -60,6 +71,8 @@ describe('BrandsService', () => {
     update: ReturnType<typeof vi.fn>;
   };
   let queryRaw: ReturnType<typeof vi.fn>;
+  let txQueryRaw: ReturnType<typeof vi.fn>;
+  let transactionMock: ReturnType<typeof vi.fn>;
   let credentialDelegate: { findMany: ReturnType<typeof vi.fn> };
   let brandLifecycleService: {
     remove: ReturnType<typeof vi.fn>;
@@ -147,6 +160,14 @@ describe('BrandsService', () => {
     };
 
     queryRaw = vi.fn().mockResolvedValue([]);
+    txQueryRaw = vi.fn().mockResolvedValue([]);
+    transactionMock = vi.fn(
+      async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback({
+          $queryRaw: txQueryRaw,
+          link: linkDelegate,
+        }),
+    );
     credentialDelegate = { findMany: vi.fn().mockResolvedValue([]) };
     organizationDelegate = {
       findFirst: vi.fn().mockResolvedValue({ accountType: 'BUSINESS' }),
@@ -162,6 +183,7 @@ describe('BrandsService', () => {
     const prisma = {
       // Brand kit asset relations resolve through a single ranked raw query.
       $queryRaw: queryRaw,
+      $transaction: transactionMock,
       asset: assetDelegate,
       brand: delegate,
       link: linkDelegate,
@@ -1767,6 +1789,179 @@ describe('BrandsService', () => {
       );
       expect(result.status).toBe('accepted');
       expect(cacheInvalidationService.invalidate).toHaveBeenCalled();
+    });
+
+    it('locks each social category before reading or writing its link', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {},
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      linkDelegate.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'link_existing' });
+
+      await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          socialLinks: {
+            action: 'accept',
+            value: [
+              {
+                platform: 'myspace',
+                url: 'https://myspace.com/acme',
+              },
+              {
+                platform: 'instagram',
+                url: 'http://127.0.0.1/admin',
+              },
+              {
+                platform: 'linkedin',
+                url: 'https://linkedin.com/company/acme',
+              },
+              {
+                platform: 'x',
+                url: 'https://x.com/acme',
+              },
+              {
+                platform: 'twitter',
+                url: 'https://twitter.com/acme',
+              },
+            ],
+          },
+        },
+      });
+
+      const linkedinKey = JSON.stringify([
+        'brand-social-link',
+        brandId,
+        'LINKEDIN',
+      ]);
+      const twitterKey = JSON.stringify([
+        'brand-social-link',
+        brandId,
+        'TWITTER',
+      ]);
+      expect(txQueryRaw.mock.calls.map((call) => String(call[1]))).toEqual([
+        linkedinKey,
+        twitterKey,
+        twitterKey,
+      ]);
+      expect(sqlText(txQueryRaw.mock.calls[0]?.[0])).toContain(
+        'pg_advisory_xact_lock(hashtextextended(',
+      );
+      const lockOrders = txQueryRaw.mock.invocationCallOrder;
+      const readOrders = linkDelegate.findFirst.mock.invocationCallOrder;
+      expect(lockOrders).toHaveLength(3);
+      expect(readOrders).toHaveLength(3);
+      for (let index = 0; index < lockOrders.length; index += 1) {
+        expect(lockOrders[index]).toBeLessThan(readOrders[index] ?? 0);
+      }
+      expect(linkDelegate.findFirst).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'asc' },
+        where: { brandId, category: 'LINKEDIN', isDeleted: false },
+      });
+      expect(linkDelegate.findFirst).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'asc' },
+        where: { brandId, category: 'TWITTER', isDeleted: false },
+      });
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(delegate.findFirst.mock.invocationCallOrder[0]).toBeLessThan(
+        transactionMock.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
+    it('turns a concurrent second save of the same category into an update', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {},
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      const rows = new Map<string, { id: string }>();
+      linkDelegate.findFirst.mockImplementation(async (args: unknown) => {
+        const where = (args as { where: { brandId: string; category: string } })
+          .where;
+        return rows.get(`${where.brandId}:${where.category}`) ?? null;
+      });
+      linkDelegate.create.mockImplementation(async (args: unknown) => {
+        const data = (args as { data: { brandId: string; category: string } })
+          .data;
+        const row = { id: `link_${rows.size + 1}` };
+        rows.set(`${data.brandId}:${data.category}`, row);
+        return row;
+      });
+
+      const tails = new Map<string, Promise<void>>();
+      transactionMock.mockImplementation(
+        async (callback: (tx: unknown) => Promise<unknown>) => {
+          const releases: Array<() => void> = [];
+          const queryRaw = vi.fn(async (query: unknown, key: unknown) => {
+            const text = sqlText(query);
+            if (!text.includes('pg_advisory_xact_lock')) {
+              return [];
+            }
+
+            const lockKey = String(key);
+            const previous = tails.get(lockKey) ?? Promise.resolve();
+            let release = () => {};
+            const held = new Promise<void>((resolve) => {
+              release = resolve;
+            });
+            tails.set(
+              lockKey,
+              previous.then(() => held),
+            );
+            await previous;
+            releases.push(release);
+            return [];
+          });
+
+          try {
+            return await callback({
+              $queryRaw: queryRaw,
+              link: linkDelegate,
+            });
+          } finally {
+            for (const release of releases) {
+              release();
+            }
+          }
+        },
+      );
+
+      const request = {
+        fields: {
+          socialLinks: {
+            action: 'accept' as const,
+            value: [
+              {
+                platform: 'instagram',
+                url: 'https://instagram.com/acme',
+              },
+            ],
+          },
+        },
+      };
+
+      await Promise.all([
+        service.applyBrandKitDraft(brandId, organizationId, request),
+        service.applyBrandKitDraft(brandId, organizationId, request),
+      ]);
+
+      expect(linkDelegate.create).toHaveBeenCalledTimes(1);
+      expect(linkDelegate.update).toHaveBeenCalledTimes(1);
+      expect(linkDelegate.update).toHaveBeenCalledWith({
+        data: {
+          label: 'Instagram',
+          url: 'https://instagram.com/acme',
+        },
+        where: { id: 'link_1' },
+      });
     });
 
     it('rejects unsupported font candidates without mutating the brand', async () => {

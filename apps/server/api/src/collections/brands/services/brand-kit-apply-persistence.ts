@@ -145,21 +145,27 @@ export async function saveAppliedBrandKitSocialLinks(
       continue;
     }
 
-    const existing = await prisma.link.findFirst({
-      where: { brandId, category, isDeleted: false },
-    });
     const label = link.label?.trim() || SOCIAL_LINK_LABELS[platform];
     const persisted: BrandKitApplySocialLink = { label, platform, url };
-    if (existing) {
-      await prisma.link.update({
-        data: { label, url },
-        where: { id: existing.id },
+    const lockKey = JSON.stringify(['brand-social-link', brandId, category]);
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
+      const existing = await tx.link.findFirst({
+        orderBy: { createdAt: 'asc' },
+        where: { brandId, category, isDeleted: false },
       });
-    } else {
-      await prisma.link.create({
+      if (existing) {
+        await tx.link.update({
+          data: { label, url },
+          where: { id: existing.id },
+        });
+        return;
+      }
+
+      await tx.link.create({
         data: { brandId, category, label, url },
       });
-    }
+    });
     saved.push(persisted);
   }
 
