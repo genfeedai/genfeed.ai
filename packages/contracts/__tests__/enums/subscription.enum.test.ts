@@ -21,8 +21,8 @@ describe('subscription.enum', () => {
   });
 
   describe('SubscriptionPlan', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(SubscriptionPlan)).toHaveLength(3);
+    it('should have 4 members', () => {
+      expect(Object.values(SubscriptionPlan)).toHaveLength(4);
     });
 
     it('should have correct values', () => {
