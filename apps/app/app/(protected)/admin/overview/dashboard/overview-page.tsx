@@ -10,6 +10,7 @@ import type {
   StatsGridProps,
 } from '@props/admin/dashboard.props';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
@@ -206,6 +207,7 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
   return (
     <WorkspaceSurface
       eyebrow="Operational Snapshot"
+      framed={false}
       title="Quick Stats"
       tone="muted"
       data-testid="admin-overview-stats"
@@ -229,6 +231,7 @@ function QuickActionsGrid() {
   return (
     <WorkspaceSurface
       eyebrow="Command Deck"
+      framed={false}
       title="Quick Actions"
       tone="muted"
       data-testid="admin-overview-quick-actions"
@@ -266,7 +269,8 @@ function QuickActionsGrid() {
 }
 
 export default function OverviewPage() {
-  const { stats, leaderboard, timeseries, isLoading } = useAdminStats();
+  const { stats, leaderboard, timeseries, isLoading, isRefreshing, refresh } =
+    useAdminStats();
 
   // Build KPI items from real data with trends
   // Use monthlyGrowth as general indicator, with fallback values for display
@@ -301,7 +305,14 @@ export default function OverviewPage() {
   // Breadcrumb owns identity (Admin / Dashboard). No second page title,
   // no hr dividers, no page-only dots — stack surfaces like workspace home.
   return (
-    <Container label="Dashboard" titleVisibility="sr-only">
+    <Container
+      label="Dashboard"
+      titleVisibility="sr-only"
+      moduleChrome
+      refresh={
+        <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
+      }
+    >
       <div className="flex w-full flex-col gap-5">
         <KPISection
           items={kpiItems}
