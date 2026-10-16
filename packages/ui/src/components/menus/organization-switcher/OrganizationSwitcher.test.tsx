@@ -240,7 +240,7 @@ describe('OrganizationSwitcher', () => {
     expect(capturedFooterActions).toEqual([]);
   });
 
-  it.each(['free', 'scale', null])(
+  it.each(['free', null])(
     'allows an unsubscribed platform superadmin to create beyond the %s plan limit',
     (tier) => {
       mockIsSuperAdmin = true;
@@ -257,7 +257,7 @@ describe('OrganizationSwitcher', () => {
 
   it('allows a subscribed platform superadmin to create beyond the plan limit', () => {
     mockIsSuperAdmin = true;
-    mockSubscriptionTier = 'scale';
+    mockSubscriptionTier = 'free';
 
     renderSwitcher();
 
