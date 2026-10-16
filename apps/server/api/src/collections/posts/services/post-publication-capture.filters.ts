@@ -30,7 +30,9 @@ export function publicYoutubeInboxPostFilter(
     credentialId: credential.id,
     externalId: { not: null },
     platform: Platform.YOUTUBE,
-    status: { in: [PostStatus.PUBLIC] },
+    status: {
+      in: [PostStatus.PUBLIC, PostStatus.UNLISTED, PostStatus.PRIVATE],
+    },
     AND: [
       legacyOrCaptureFilter({
         visibility: 'public',

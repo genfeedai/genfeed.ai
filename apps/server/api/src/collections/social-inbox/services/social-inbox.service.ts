@@ -11,6 +11,7 @@ import type {
   SocialInboxScope,
   XPostRepliesIngestInput,
   XPostRepliesIngestResult,
+  YoutubeCommentIngestResult,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
@@ -191,7 +192,7 @@ export class SocialInboxService {
   ingestYoutubeComments(
     scope: SocialInboxScope,
     options: { credentialId?: string; limit?: number } = {},
-  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+  ): Promise<YoutubeCommentIngestResult> {
     return this.ingestionService.ingestYoutubeComments(scope, options);
   }
 

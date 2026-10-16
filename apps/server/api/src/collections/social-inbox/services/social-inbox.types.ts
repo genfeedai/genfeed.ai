@@ -83,6 +83,19 @@ export interface XPostRepliesIngestResult {
   messagesCreated: number;
 }
 
+/** One owned YouTube post whose comment list or ingest failed without aborting the sweep. */
+export interface YoutubeInboxPostFailure {
+  errorName: string;
+  message: string;
+  postId: string;
+}
+
+export interface YoutubeCommentIngestResult {
+  conversationsCreated: number;
+  messagesCreated: number;
+  postFailures: YoutubeInboxPostFailure[];
+}
+
 export interface SocialActionInput {
   text: string;
   idempotencyKey?: string;

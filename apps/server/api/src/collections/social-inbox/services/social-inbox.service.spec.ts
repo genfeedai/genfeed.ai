@@ -2146,7 +2146,11 @@ describe('SocialInboxService', () => {
       });
 
       // thread-1 counted once despite two comments; thread-2 once.
-      expect(result).toEqual({ conversationsCreated: 2, messagesCreated: 3 });
+      expect(result).toEqual({
+        conversationsCreated: 2,
+        messagesCreated: 3,
+        postFailures: [],
+      });
       expect(context.conversations).toHaveLength(2);
       expect(context.messages).toHaveLength(3);
 
@@ -2189,7 +2193,11 @@ describe('SocialInboxService', () => {
         limit: 50,
       });
 
-      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(second).toEqual({
+        conversationsCreated: 0,
+        messagesCreated: 0,
+        postFailures: [],
+      });
       expect(context.conversations).toHaveLength(2);
       expect(context.messages).toHaveLength(3);
     });
@@ -2213,7 +2221,11 @@ describe('SocialInboxService', () => {
         limit: 50,
       });
 
-      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(second).toEqual({
+        conversationsCreated: 0,
+        messagesCreated: 0,
+        postFailures: [],
+      });
       // The batched dedup already told us these rows exist; a resweep must not
       // re-run the findOrCreateConversation + findFirst pair per comment.
       expect(
@@ -2222,6 +2234,89 @@ describe('SocialInboxService', () => {
       expect(context.prisma.socialMessage.findFirst).not.toHaveBeenCalled();
       // The workflow trigger retry claim still runs for known messages.
       expect(context.prisma.socialMessage.updateMany).toHaveBeenCalledTimes(3);
+    });
+
+    it('records one owned-post failure and continues the sweep', async () => {
+      const context = createContext();
+      const ownedPostToken = 'owned-post-token';
+      const tenantToken = 'tenant-scope-token';
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@channel',
+          externalId: 'channel-1',
+          externalName: 'Channel',
+          id: 'credential-1',
+          label: 'Channel',
+          userId: 'user-1',
+          username: 'channel',
+        },
+      ]);
+      context.prisma.post.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          description: 'Owned upload',
+          externalId: ownedPostToken,
+          id: 'post-failed',
+          label: 'Owned',
+          url: null,
+        },
+        {
+          brandId: 'brand-1',
+          description: 'Sibling upload',
+          externalId: 'kept-post-token',
+          id: 'post-kept',
+          label: 'Sibling',
+          url: null,
+        },
+      ]);
+      context.youtubeService.listVideoComments.mockImplementation(
+        async (...args: readonly unknown[]) => {
+          if (args[2] === ownedPostToken) {
+            throw new Error(
+              `comments.list failed for ${ownedPostToken} in ${tenantToken}`,
+            );
+          }
+          return [
+            {
+              authorChannelId: 'author-1',
+              authorDisplayName: 'Taylor',
+              commentId: 'comment-kept',
+              createdAt: new Date('2026-01-02T00:00:00.000Z'),
+              text: 'Still imported',
+              threadId: 'thread-kept',
+            },
+          ];
+        },
+      );
+
+      const result = await context.service.ingestYoutubeComments(
+        {
+          brandId: 'brand-1',
+          organizationId: tenantToken,
+          userId: 'user-1',
+        },
+        { limit: 25 },
+      );
+
+      expect(result).toEqual({
+        conversationsCreated: 1,
+        messagesCreated: 1,
+        postFailures: [
+          {
+            errorName: 'Error',
+            message: 'comments.list failed for [redacted] in [redacted]',
+            postId: 'post-failed',
+          },
+        ],
+      });
+      expect(context.youtubeService.listVideoComments).toHaveBeenCalledTimes(2);
+      const logged = JSON.stringify(context.logger.warn.mock.calls);
+      const diagnosed = JSON.stringify(result);
+      expect(logged).not.toContain(ownedPostToken);
+      expect(logged).not.toContain(tenantToken);
+      expect(diagnosed).not.toContain(ownedPostToken);
+      expect(diagnosed).not.toContain(tenantToken);
     });
   });
 

@@ -21,7 +21,7 @@ it('preserves the exact pre-pagination analytics capture fence', () =>
   expect(extensionPublicationAnalyticsDiscoveryFilter()).toEqual({
     OR: [...legacy, { isAnalyticsEnabled: true }],
   }));
-it('requires public captured post kind while preserving legacy public YouTube scope', () =>
+it('includes owned published YouTube posts while preserving credential and capture scope', () =>
   expect(
     publicYoutubeInboxPostFilter({ id: 'credential', brandId: 'brand' }),
   ).toEqual({
@@ -29,7 +29,9 @@ it('requires public captured post kind while preserving legacy public YouTube sc
     credentialId: 'credential',
     externalId: { not: null },
     platform: Platform.YOUTUBE,
-    status: { in: [PostStatus.PUBLIC] },
+    status: {
+      in: [PostStatus.PUBLIC, PostStatus.UNLISTED, PostStatus.PRIVATE],
+    },
     AND: [
       {
         OR: [

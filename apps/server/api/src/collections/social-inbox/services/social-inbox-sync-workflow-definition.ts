@@ -1,3 +1,4 @@
+import type { YoutubeInboxPostFailure } from '@api/collections/social-inbox/services/social-inbox.types';
 import type {
   WorkflowEdge,
   WorkflowVisualNode,
@@ -29,6 +30,8 @@ export interface SocialInboxSyncInput {
 export interface SocialInboxSyncResult {
   conversationsCreated: number;
   messagesCreated: number;
+  /** Present on YouTube comment sync. Empty when every owned post was listed. */
+  postFailures?: YoutubeInboxPostFailure[];
 }
 
 export const SOCIAL_INBOX_SYNC_ACTION_IDS = {
