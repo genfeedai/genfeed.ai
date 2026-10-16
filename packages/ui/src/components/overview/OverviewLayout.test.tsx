@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Sparkles } from 'lucide-react';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import OverviewLayout, { OverviewContent } from './OverviewLayout';
 
 describe('OverviewLayout', () => {
@@ -55,6 +55,21 @@ describe('OverviewLayout', () => {
     expect(quickActionCard).toHaveClass('rounded-card');
     expect(quickActionCard).toHaveClass('shadow-border');
     expect(quickActionCard).toHaveClass('bg-card');
+  });
+
+  it('invokes compact actions as buttons without requiring a destination', () => {
+    const onClick = vi.fn();
+    render(
+      <OverviewContent
+        actionsLayout="compact"
+        cards={[{ ...cards[0], href: undefined, onClick }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('link', { name: 'Go' })).not.toBeInTheDocument();
   });
 
   it('lays quick actions on the container ladder without a fixed tile height', () => {

@@ -32,17 +32,32 @@ export function OverviewContent({
           aria-label={actionsTitle}
           className="flex flex-wrap gap-2 border-b border-border pb-4"
         >
-          {cards.map((card) => (
-            <Link
-              key={card.id}
-              href={card.href || '#'}
-              className="inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <card.icon className="size-4 shrink-0" />
-              {card.cta}
-              <ArrowUpRight aria-hidden className="size-3.5" />
-            </Link>
-          ))}
+          {cards.map((card) =>
+            card.onClick ? (
+              <Button
+                key={card.id}
+                onClick={card.onClick}
+                variant={ButtonVariant.UNSTYLED}
+                textTransform="none"
+                withWrapper={false}
+                className="inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <card.icon className="size-4 shrink-0" />
+                {card.cta}
+                <ArrowUpRight aria-hidden className="size-3.5" />
+              </Button>
+            ) : (
+              <Link
+                key={card.id}
+                href={card.href || '#'}
+                className="inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <card.icon className="size-4 shrink-0" />
+                {card.cta}
+                <ArrowUpRight aria-hidden className="size-3.5" />
+              </Link>
+            ),
+          )}
         </nav>
       ) : null}
       {header ? <div>{header}</div> : null}
