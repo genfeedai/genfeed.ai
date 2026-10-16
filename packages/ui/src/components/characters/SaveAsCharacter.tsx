@@ -171,10 +171,14 @@ export default function SaveAsCharacter({
 
   // Granted characters belong to another organization and cannot be edited.
   const addActions: IQuickAction[] =
-    existing || isChecking || notCharacter || !characters
+    isChecking || notCharacter || !characters
       ? []
       : characters
-          .filter((character) => !character.isGranted)
+          .filter(
+            (character) =>
+              !character.isGranted &&
+              !character.referenceIngredientIds.includes(assetId),
+          )
           .map((character) => {
             const handle = character.handle ?? '';
             const isFull =

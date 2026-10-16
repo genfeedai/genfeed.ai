@@ -322,6 +322,25 @@ describe('SaveAsCharacter', () => {
         screen.queryByRole('button', { name: 'saveExisting.addTo anna' }),
       ).not.toBeInTheDocument();
     });
+    it('still offers the other characters once one already uses the image', async () => {
+      mocks.list.mockResolvedValue([
+        { ...anna, referenceIngredientIds: ['image-0', 'image-1'] },
+        {
+          id: 'character-2',
+          avatarIngredientId: 'image-9',
+          handle: 'bob',
+          label: 'Bob',
+          referenceIngredientIds: ['image-9'],
+        },
+      ]);
+      mount();
+      expect(
+        await screen.findByRole('button', { name: 'saveExisting.addTo bob' }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole('button', { name: 'saveExisting.addTo anna' }),
+      ).not.toBeInTheDocument();
+    });
     it('disables a character that is at the reference limit', async () => {
       mocks.list.mockResolvedValue([
         {
