@@ -168,13 +168,13 @@
     "symbol": "apps/server/api/src/services/content-optimization/content-optimization.service.ts"
   },
   {
-    "actual": 1134,
+    "actual": 1117,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts"
   },
   {
-    "actual": 200,
+    "actual": 197,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "method-lines",
     "symbol": "StripeService.createPaymentSession"
