@@ -5,6 +5,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { displayedYouTubeAudience } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { YouTubePublishingSettingsProps } from '@genfeedai/props/components/youtube-publishing.props';
@@ -24,9 +25,10 @@ export default function YouTubePublishingSettings({
 }: YouTubePublishingSettingsProps) {
   const translate = useTranslations('ui.youtubePublishing');
   const savedPrivacy =
-    typeof post.targetSettings?.privacyStatus === 'string'
-      ? post.targetSettings.privacyStatus
-      : '';
+    displayedYouTubeAudience(
+      post.visibility,
+      post.targetSettings?.privacyStatus,
+    ) ?? '';
   const savedMadeForKids = post.targetSettings?.madeForKids === true;
   const [privacy, setPrivacy] = useState(savedPrivacy);
   const [madeForKids, setMadeForKids] = useState(savedMadeForKids);
@@ -59,9 +61,8 @@ export default function YouTubePublishingSettings({
     setError(null);
     try {
       const service = await getReleasesService();
-      const groupId =
-        post.groupId ?? (await service.ensureFromPost(post.id)).id;
-      await service.updateTarget(groupId, post.id, {
+      const release = await service.ensureFromPost(post.id);
+      await service.updateTarget(release.id, post.id, {
         ...(post.targetExecutionState === TargetExecutionState.DRAFT
           ? { executionState: TargetExecutionState.DRAFT }
           : {}),

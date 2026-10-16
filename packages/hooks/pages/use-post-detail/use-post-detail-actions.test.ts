@@ -214,8 +214,8 @@ describe('usePostDetailActions', () => {
         await result.current.handlePublishNow();
       });
 
-      expect(mockEnsureFromPost).not.toHaveBeenCalled();
-      expect(mockPublishNow).toHaveBeenCalledWith('group-9', 'post-1');
+      expect(mockEnsureFromPost).toHaveBeenCalledWith('post-1');
+      expect(mockPublishNow).toHaveBeenCalledWith('group-1', 'post-1');
       expect(mockScheduleTarget).not.toHaveBeenCalled();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Publishing now',
@@ -234,8 +234,8 @@ describe('usePostDetailActions', () => {
         await result.current.handlePublishViaTikTokApp();
       });
 
-      expect(mockEnsureFromPost).not.toHaveBeenCalled();
-      expect(mockPublishViaTikTokApp).toHaveBeenCalledWith('group-9', 'post-1');
+      expect(mockEnsureFromPost).toHaveBeenCalledWith('post-1');
+      expect(mockPublishViaTikTokApp).toHaveBeenCalledWith('group-1', 'post-1');
       expect(mockPublishNow).not.toHaveBeenCalled();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',

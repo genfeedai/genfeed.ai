@@ -350,7 +350,7 @@ describe('YoutubeUploadService', () => {
         unknown
       >;
 
-    it('uses canonical visibility over provider settings', async () => {
+    it('uploads the narrower audience when canonical visibility and provider settings disagree', async () => {
       const post = createPost({
         visibility: PostVisibility.UNLISTED,
       });
@@ -359,7 +359,62 @@ describe('YoutubeUploadService', () => {
         privacyStatus: 'private',
       });
 
+      expect(statusOf()).toEqual({ privacyStatus: 'private' });
+    });
+
+    it('does not let a public canonical default widen an explicit private setting', async () => {
+      const post = createPost({ visibility: PostVisibility.PUBLIC });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'private',
+      });
+
+      expect(statusOf()).toEqual({ privacyStatus: 'private' });
+    });
+
+    it('does not let stale public settings widen a private canonical choice', async () => {
+      const post = createPost({ visibility: PostVisibility.PRIVATE });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'public',
+      });
+
+      expect(statusOf()).toEqual({ privacyStatus: 'private' });
+    });
+
+    it('does not let an unknown canonical visibility widen an explicit provider privacy', async () => {
+      const post = createPost({ visibility: 'some-unknown-visibility' });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'unlisted',
+      });
+
       expect(statusOf()).toEqual({ privacyStatus: 'unlisted' });
+    });
+
+    it('keeps an audience both fields already agree on', async () => {
+      const post = createPost({ visibility: PostVisibility.UNLISTED });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'unlisted',
+      });
+
+      expect(statusOf()).toEqual({ privacyStatus: 'unlisted' });
+    });
+
+    it('drops the publish timer when provider privacy narrows a future public release', async () => {
+      const futureDate = new Date(Date.now() + 86400000);
+      const post = createPost({
+        scheduledDate: futureDate,
+        status: PostStatus.SCHEDULED,
+        visibility: PostVisibility.PUBLIC,
+      });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'private',
+      });
+
+      expect(statusOf()).toEqual({ privacyStatus: 'private' });
     });
 
     it('drops the publish timer when a non-public privacy is requested', async () => {

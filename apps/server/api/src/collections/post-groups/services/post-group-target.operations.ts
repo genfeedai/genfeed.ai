@@ -37,10 +37,11 @@ import {
   type ChannelTargetValidationResult,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import type {
-  ChannelTargetInput,
-  UpdateChannelTargetInput,
-  UpdateReleaseGroupInput,
+import {
+  type ChannelTargetInput,
+  parseKnownPostVisibility,
+  type UpdateChannelTargetInput,
+  type UpdateReleaseGroupInput,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   IPublishingProviderReadiness,
@@ -52,6 +53,11 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 
 export type PostGroupTargetOperationDependencies = {
   contractService: PostGroupContractService;
+  ensureReleaseForPost: (
+    organizationId: string,
+    userId: string,
+    postId: string,
+  ) => Promise<IReleaseGroup>;
   enqueueReleaseTargets: (
     release: IReleaseGroup,
     userId: string,
@@ -317,6 +323,47 @@ function buildScheduleMutation(
   };
 }
 
+function alignYouTubeVisibilityUpdate(
+  existing: SchedulerPostTarget,
+  input: UpdateChannelTargetInput,
+  contractService: PostGroupContractService,
+): UpdateChannelTargetInput {
+  if (
+    existing.platform !== CredentialPlatform.YOUTUBE ||
+    input.visibility === undefined ||
+    parseKnownPostVisibility(input.settings?.privacyStatus)
+  ) {
+    return input;
+  }
+  return {
+    ...input,
+    settings: {
+      ...contractService.asRecord(existing.targetSettings),
+      ...input.settings,
+      privacyStatus: input.visibility,
+    },
+  };
+}
+
+async function resolveCanonicalReleaseId(
+  params: UpdatePostGroupTargetParams,
+  dependencies: PostGroupTargetOperationDependencies,
+): Promise<string> {
+  const existing = await dependencies.prisma.postGroup.findFirst({
+    select: { id: true },
+    where: scopedWhere(params.organizationId, { id: params.groupId }),
+  });
+  if (existing) {
+    return existing.id;
+  }
+  const release = await dependencies.ensureReleaseForPost(
+    params.organizationId,
+    params.userId,
+    params.targetId,
+  );
+  return release.id;
+}
+
 export async function updatePostGroupTarget(
   params: UpdatePostGroupTargetParams,
   dependencies: PostGroupTargetOperationDependencies,
@@ -327,8 +374,9 @@ export async function updatePostGroupTarget(
     changesPublishedTargetState(input) ? 'publish' : 'schedule',
   );
 
+  const groupId = await resolveCanonicalReleaseId(params, dependencies);
   const result = await dependencies.prisma.$transaction((tx) =>
-    updateTargetInTransaction(tx, params, input, dependencies),
+    updateTargetInTransaction(tx, { ...params, groupId }, input, dependencies),
   );
   if (
     input.scheduledDate !== undefined ||
@@ -374,16 +422,21 @@ async function updateTargetInTransaction(
     group.id,
     params.targetId,
   );
+  const alignedInput = alignYouTubeVisibilityUpdate(
+    existing,
+    input,
+    dependencies.contractService,
+  );
   const validation = dependencies.contractService.validateTargetUpdate(
     group,
     existing,
-    input,
+    alignedInput,
   );
   const { isManualRetry, manualRetryApproval } = await resolveManualRetry(
     {
       existing,
       groupId: params.groupId,
-      input,
+      input: alignedInput,
       organizationId: params.organizationId,
       targetId: params.targetId,
       tx,
@@ -392,20 +445,20 @@ async function updateTargetInTransaction(
     dependencies,
   );
   const targetMutation = buildTargetMutation(
-    input,
+    alignedInput,
     isManualRetry,
     validation,
     dependencies.contractService,
   );
 
-  if (input.executionState !== undefined) {
+  if (alignedInput.executionState !== undefined) {
     await dependencies.postLifecycleService.transition(
       {
         actorId: params.userId,
-        error: isManualRetry ? null : input.error,
+        error: isManualRetry ? null : alignedInput.error,
         groupId: group.id,
         mutation: targetMutation,
-        nextState: input.executionState,
+        nextState: alignedInput.executionState,
         organizationId: params.organizationId,
         postId: existing.id,
         reason: isManualRetry ? 'Manual retry requested' : undefined,
@@ -416,9 +469,9 @@ async function updateTargetInTransaction(
     await tx.post.updateMany({
       data: {
         ...targetMutation,
-        ...(input.error !== undefined && {
-          targetError: input.error
-            ? dependencies.contractService.toJson(input.error)
+        ...(alignedInput.error !== undefined && {
+          targetError: alignedInput.error
+            ? dependencies.contractService.toJson(alignedInput.error)
             : Prisma.JsonNull,
         }),
       },

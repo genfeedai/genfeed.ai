@@ -14,7 +14,7 @@ import {
   readChannelSettingBoolean,
   readChannelSettingString,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { resolveYouTubeUploadVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -100,7 +100,10 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
       const hasFutureScheduledDate =
         post.scheduledDate && new Date(post.scheduledDate) > new Date();
 
-      const requestedPrivacy = resolvePostVisibility(post.visibility);
+      const requestedPrivacy = resolveYouTubeUploadVisibility(
+        post.visibility,
+        readChannelSettingString(settings, 'privacyStatus'),
+      );
       const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
       // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
       // and YouTube rejects the field when it is absent rather than defaulting.

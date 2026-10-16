@@ -75,6 +75,12 @@ const recurrenceSchema = {
   type: 'object',
 };
 
+const audienceVisibilitySchema = {
+  description: 'Audience visibility',
+  enum: ['public', 'private', 'unlisted'],
+  type: 'string',
+};
+
 const targetSchema = {
   properties: {
     attachments: { items: attachmentSchema, type: 'array' },
@@ -87,6 +93,7 @@ const targetSchema = {
     scheduledDate: { description: 'ISO 8601', type: 'string' },
     settings: { ...JSON_OBJECT_SCHEMA },
     timezone: { description: 'IANA', type: 'string' },
+    visibility: audienceVisibilitySchema,
   },
   required: ['credentialId', 'platform'],
   type: 'object',
@@ -127,6 +134,7 @@ const targetUpdateProperties = {
   scheduledDate: { type: 'string' },
   settings: { ...JSON_OBJECT_SCHEMA },
   timezone: { type: 'string' },
+  visibility: audienceVisibilitySchema,
 };
 
 const updateProperties = {
@@ -303,11 +311,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
           description: 'Publishing settings',
           ...JSON_OBJECT_SCHEMA,
         },
-        visibility: {
-          description: 'Audience visibility',
-          enum: ['public', 'private', 'unlisted'],
-          type: 'string',
-        },
+        visibility: audienceVisibilitySchema,
       },
       required: ['platform'],
       type: 'object',

@@ -10,22 +10,29 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { refresh, updateTarget, notify, getTikTok, getReleases } = vi.hoisted(
-  () => {
-    const refresh = vi.fn();
-    const updateTarget = vi.fn();
-    const notify = vi.fn();
-    const tiktok = { refreshAuthorizedSignals: refresh };
-    const releases = { updateTarget, ensureFromPost: vi.fn() };
-    return {
-      refresh,
-      updateTarget,
-      notify,
-      getTikTok: () => Promise.resolve(tiktok),
-      getReleases: () => Promise.resolve(releases),
-    };
-  },
-);
+const {
+  refresh,
+  updateTarget,
+  notify,
+  getTikTok,
+  getReleases,
+  ensureFromPost,
+} = vi.hoisted(() => {
+  const refresh = vi.fn();
+  const updateTarget = vi.fn();
+  const ensureFromPost = vi.fn();
+  const notify = vi.fn();
+  const tiktok = { refreshAuthorizedSignals: refresh };
+  const releases = { updateTarget, ensureFromPost };
+  return {
+    refresh,
+    updateTarget,
+    notify,
+    ensureFromPost,
+    getTikTok: () => Promise.resolve(tiktok),
+    getReleases: () => Promise.resolve(releases),
+  };
+});
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => { kind: string }) =>
     factory('token').kind === 'tiktok' ? getTikTok : getReleases,
@@ -103,6 +110,7 @@ describe('TikTok publishing settings', () => {
     });
     refresh.mockResolvedValue(credential());
     updateTarget.mockResolvedValue({});
+    ensureFromPost.mockResolvedValue({ id: 'release-from-post' });
   });
 
   it('shows the real creator and leaves privacy and interactions unselected', async () => {
@@ -191,7 +199,7 @@ describe('TikTok publishing settings', () => {
     );
     await waitFor(() =>
       expect(updateTarget).toHaveBeenCalledWith(
-        'group-1',
+        'release-from-post',
         'post-1',
         expect.objectContaining({
           settings: {
@@ -204,6 +212,10 @@ describe('TikTok publishing settings', () => {
           visibility: 'private',
         }),
       ),
+    );
+    expect(ensureFromPost).toHaveBeenCalledWith('post-1');
+    expect(updateTarget.mock.calls[0]?.[2].settings).not.toHaveProperty(
+      'privacyStatus',
     );
     expect(onSaved).toHaveBeenCalledOnce();
   });

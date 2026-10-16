@@ -29,6 +29,41 @@ describe('MCP_SCHEDULER_TOOLS', () => {
     expect(tool?.description).toContain('Read-only');
   });
 
+  it('accepts audience visibility on create and update targets', () => {
+    const audience = {
+      description: 'Audience visibility',
+      enum: ['public', 'private', 'unlisted'],
+      type: 'string',
+    };
+
+    expect(
+      toolsByName.get('create_scheduled_release')?.parameters.properties
+        .release,
+    ).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({
+          targets: expect.objectContaining({
+            items: expect.objectContaining({
+              properties: expect.objectContaining({ visibility: audience }),
+            }),
+          }),
+        }),
+      }),
+    );
+    expect(
+      toolsByName.get('update_scheduled_release')?.parameters.properties
+        .changes,
+    ).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({ visibility: audience }),
+      }),
+    );
+    expect(
+      toolsByName.get('validate_scheduler_target')?.parameters.properties
+        .visibility,
+    ).toEqual(audience);
+  });
+
   it('merges the capability list and platform get into one optional-platform tool', () => {
     const tool = toolsByName.get('get_scheduler_capabilities');
     expect(tool?.creditCost).toBe(0);

@@ -156,9 +156,8 @@ export default function TikTokPublishingSettings({
     setError(null);
     try {
       const service = await getReleasesService();
-      const groupId =
-        post.groupId ?? (await service.ensureFromPost(post.id)).id;
-      await service.updateTarget(groupId, post.id, {
+      const release = await service.ensureFromPost(post.id);
+      await service.updateTarget(release.id, post.id, {
         ...(post.targetExecutionState === TargetExecutionState.DRAFT
           ? { executionState: TargetExecutionState.DRAFT }
           : {}),

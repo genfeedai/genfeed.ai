@@ -163,12 +163,13 @@ describe('YouTube publishing settings', () => {
         screen.getByRole('button', { name: 'Save YouTube settings' }),
       );
       await waitFor(() =>
-        expect(updateTarget).toHaveBeenCalledWith('group-1', 'post-1', {
+        expect(updateTarget).toHaveBeenCalledWith('created-group', 'post-1', {
           executionState: TargetExecutionState.DRAFT,
           settings: { madeForKids: false, privacyStatus: visibility },
           visibility,
         }),
       );
+      expect(ensureFromPost).toHaveBeenCalledWith('post-1');
       expect(onSaved).toHaveBeenCalledOnce();
     },
   );
@@ -204,5 +205,48 @@ describe('YouTube publishing settings', () => {
       ),
     );
     expect(ensureFromPost).toHaveBeenCalledWith('post-1');
+  });
+
+  it('shows the narrower audience when both stored values are set', () => {
+    render(
+      <YouTubePublishingSettings
+        post={{
+          ...post,
+          targetSettings: { privacyStatus: PostVisibility.PUBLIC },
+          visibility: PostVisibility.PRIVATE,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('Private');
+  });
+
+  it('shows a known canonical audience when provider privacy is absent', () => {
+    render(
+      <YouTubePublishingSettings
+        post={{ ...post, visibility: PostVisibility.UNLISTED }}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('Unlisted');
+  });
+
+  it('keeps privacy unset when neither stored value is a known audience', () => {
+    render(
+      <YouTubePublishingSettings
+        post={
+          {
+            ...post,
+            targetSettings: { privacyStatus: 'organization' },
+            visibility: 'scheduled',
+          } as unknown as IPost
+        }
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('Choose privacy');
+    expect(
+      screen.getByRole('button', { name: 'Save YouTube settings' }),
+    ).toBeDisabled();
   });
 });

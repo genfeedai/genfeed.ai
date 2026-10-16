@@ -133,9 +133,6 @@ export function usePostDetailActions({
     if (!post) {
       throw new Error('Post is required');
     }
-    if (post.groupId) {
-      return post.groupId;
-    }
     const releases = await getReleaseGroupsService();
     const release = await releases.ensureFromPost(requirePostId(post));
     return release.id;

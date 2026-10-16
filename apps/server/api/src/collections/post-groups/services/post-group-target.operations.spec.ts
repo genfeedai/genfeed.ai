@@ -38,6 +38,7 @@ describe('applyReleaseTargetUpdates', () => {
     tx = { post: { updateMany } } as unknown as SchedulerTx;
     dependencies = {
       contractService,
+      ensureReleaseForPost: vi.fn(),
       enqueueReleaseTargets: vi.fn(),
       persistenceService: new PostGroupPersistenceService(
         {} as PrismaService,

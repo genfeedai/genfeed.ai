@@ -31,6 +31,7 @@ const TARGET_UPDATE_FIELDS = new Set([
   'scheduledDate',
   'settings',
   'timezone',
+  'visibility',
 ]);
 
 /**

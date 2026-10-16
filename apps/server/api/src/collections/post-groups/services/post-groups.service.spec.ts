@@ -2263,6 +2263,148 @@ describe('PostGroupsService', () => {
     expect(prisma.post.updateMany).toHaveBeenCalled();
     expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
   });
+
+  it('resolves a legacy group id to one canonical release and reuses it', async () => {
+    const legacyId = 'legacy-batch';
+    const releaseId = 'release-created';
+    let storedGroupId: string | null = legacyId;
+
+    prisma.postGroup.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeGroup({ ...data, id: releaseId })),
+    );
+    prisma.postGroup.findFirst.mockImplementation(
+      (args: { where?: { id?: string } } | undefined) =>
+        Promise.resolve(
+          args?.where?.id === releaseId
+            ? makeGroup({ id: releaseId, status: ReleaseStatus.DRAFT })
+            : null,
+        ),
+    );
+    prisma.post.findFirst.mockImplementation(
+      (args: { where?: { groupId?: string; id?: string } } | undefined) => {
+        const where = args?.where;
+        const matchesTarget =
+          where?.id === 'target-1' &&
+          (where.groupId === undefined || where.groupId === storedGroupId);
+        return Promise.resolve(
+          matchesTarget
+            ? {
+                ...makeTarget({ groupId: storedGroupId, id: 'target-1' }),
+                ingredientLinks: [],
+              }
+            : null,
+        );
+      },
+    );
+    prisma.post.updateMany.mockImplementation(
+      ({ data }: { data: { groupId?: string } }) => {
+        if (typeof data.groupId === 'string') {
+          storedGroupId = data.groupId;
+        }
+        return Promise.resolve({ count: 1 });
+      },
+    );
+
+    await service.updateTarget('org-1', 'user-1', legacyId, 'target-1', {
+      timezone: 'Europe/Malta',
+    });
+    await service.updateTarget('org-1', 'user-1', legacyId, 'target-1', {
+      timezone: 'Europe/Malta',
+    });
+
+    expect(prisma.postGroup.create).toHaveBeenCalledTimes(1);
+    expect(prisma.postGroup.create.mock.calls[0]?.[0].data).not.toHaveProperty(
+      'id',
+    );
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { groupId: releaseId },
+        where: expect.objectContaining({
+          id: 'target-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(prisma.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          groupId: releaseId,
+          id: 'target-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+  });
+
+  it('does not redirect a real release that does not contain the target', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-other' }),
+    );
+    prisma.post.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.updateTarget('org-1', 'user-1', 'group-other', 'target-missing', {
+        timezone: 'UTC',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+  });
+
+  it('writes YouTube privacy from visibility without dropping stored settings', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({
+        baseContent: 'Launch video',
+        id: 'group-1',
+        media: [{ assetId: 'video-1', kind: 'video', order: 0 }],
+      }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        category: PostCategory.VIDEO,
+        description: 'Launch video',
+        platform: CredentialPlatform.YOUTUBE,
+        targetSettings: { madeForKids: true, playlistId: 'playlist-1' },
+        visibility: PostVisibility.PUBLIC,
+      }),
+    );
+
+    await service.updateTarget('org-1', 'user-1', 'group-1', 'target-1', {
+      visibility: PostVisibility.PRIVATE,
+    });
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetSettings: {
+            madeForKids: true,
+            playlistId: 'playlist-1',
+            privacyStatus: PostVisibility.PRIVATE,
+          },
+          visibility: PostVisibility.PRIVATE,
+        }),
+      }),
+    );
+  });
+
+  it('does not invent YouTube settings for a timezone-only target update', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(makeGroup());
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({ platform: CredentialPlatform.YOUTUBE }),
+    );
+
+    await service.updateTarget('org-1', 'user-1', 'group-1', 'target-1', {
+      timezone: 'Europe/Malta',
+    });
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { timezone: 'Europe/Malta' },
+      }),
+    );
+  });
 });
 
 function makeCredential(

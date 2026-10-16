@@ -150,6 +150,32 @@ describe('handleSchedulerTool', () => {
     );
   });
 
+  it('forwards target visibility and still rejects unknown target fields', async () => {
+    const client = buildClient();
+
+    await call(client, 'update_scheduled_release', {
+      changes: { visibility: 'private' },
+      releaseId: 'release-1',
+      scope: 'target',
+      targetId: 'target-1',
+    });
+
+    expect(client.updateScheduledRelease).toHaveBeenCalledWith(
+      'release-1',
+      { visibility: 'private' },
+      'target-1',
+    );
+
+    await expect(
+      call(client, 'update_scheduled_release', {
+        changes: { headline: 'not a target field' },
+        releaseId: 'release-1',
+        scope: 'target',
+        targetId: 'target-1',
+      }),
+    ).rejects.toThrow(/not editable for target scope: headline/);
+  });
+
   it('rejects ambiguous update scope arguments', async () => {
     const client = buildClient();
 

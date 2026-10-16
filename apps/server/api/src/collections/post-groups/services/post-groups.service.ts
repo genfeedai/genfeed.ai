@@ -764,6 +764,8 @@ export class PostGroupsService {
   private targetOperationDependencies(): PostGroupTargetOperationDependencies {
     return {
       contractService: this.contractService,
+      ensureReleaseForPost: (organizationId, userId, postId) =>
+        this.ensureReleaseForPost(organizationId, userId, postId),
       enqueueReleaseTargets: (release, userId, targetIds, source) =>
         this.enqueueReleaseTargets(release, userId, targetIds, source),
       persistenceService: this.persistenceService,

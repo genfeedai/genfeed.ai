@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
+  CredentialPlatform,
   PostFrequency,
   PostStatus,
   PostVisibility,
@@ -13,6 +14,7 @@ import {
   createReleaseGroupSchema,
   deriveReleaseStatusFromTargets,
   deriveReleaseStatusProjectionFromTargets,
+  displayedYouTubeAudience,
   isTerminalReleaseStatus,
   isTerminalTargetExecutionState,
   MAX_THREAD_DELAY_MINUTES,
@@ -24,6 +26,7 @@ import {
   recurrenceInputSchema,
   resolveDefaultTargetExecutionState,
   resolvePostVisibility,
+  resolveYouTubeUploadVisibility,
   updateChannelTargetSchema,
   updateRecurrenceSeriesSchema,
 } from '../../src/api-types/contracts/scheduler.contract';
@@ -146,6 +149,58 @@ describe('channelTargetInputSchema', () => {
     });
     expect(result.caption).toBe('X-specific caption');
   });
+
+  test('adopts YouTube privacyStatus when canonical visibility is omitted', () => {
+    const result = channelTargetInputSchema.parse({
+      credentialId: 'cred-youtube',
+      platform: CredentialPlatform.YOUTUBE,
+      settings: { madeForKids: false, privacyStatus: PostVisibility.PRIVATE },
+    });
+
+    expect(result.visibility).toBe(PostVisibility.PRIVATE);
+    expect(result.settings).toEqual({
+      madeForKids: false,
+      privacyStatus: PostVisibility.PRIVATE,
+    });
+  });
+
+  test('writes YouTube privacyStatus from an explicit visibility', () => {
+    const result = channelTargetInputSchema.parse({
+      credentialId: 'cred-youtube',
+      platform: CredentialPlatform.YOUTUBE,
+      settings: { playlistId: 'playlist-1' },
+      visibility: PostVisibility.UNLISTED,
+    });
+
+    expect(result.visibility).toBe(PostVisibility.UNLISTED);
+    expect(result.settings).toEqual({
+      playlistId: 'playlist-1',
+      privacyStatus: PostVisibility.UNLISTED,
+    });
+  });
+
+  test('rejects a YouTube audience that disagrees with itself', () => {
+    const result = channelTargetInputSchema.safeParse({
+      credentialId: 'cred-youtube',
+      platform: CredentialPlatform.YOUTUBE,
+      settings: { privacyStatus: PostVisibility.PRIVATE },
+      visibility: PostVisibility.PUBLIC,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('does not treat another platform privacyStatus as visibility', () => {
+    const result = channelTargetInputSchema.parse({
+      ...validTarget,
+      settings: { privacyStatus: PostVisibility.PRIVATE },
+    });
+
+    expect(result.visibility).toBe(PostVisibility.PUBLIC);
+    expect(result.settings).toEqual({
+      privacyStatus: PostVisibility.PRIVATE,
+    });
+  });
 });
 
 describe('recurrenceInputSchema', () => {
@@ -235,6 +290,63 @@ describe('updateChannelTargetSchema (worker state writes)', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  test('adopts a real privacyStatus and leaves visibility unset otherwise', () => {
+    const adopted = updateChannelTargetSchema.parse({
+      settings: { privacyStatus: PostVisibility.UNLISTED },
+    });
+    const untouched = updateChannelTargetSchema.parse({
+      order: 1,
+    });
+
+    expect(adopted.visibility).toBe(PostVisibility.UNLISTED);
+    expect(adopted.settings).toEqual({
+      privacyStatus: PostVisibility.UNLISTED,
+    });
+    expect(untouched.visibility).toBeUndefined();
+  });
+
+  test('rejects disagreeing visibility and privacyStatus', () => {
+    const result = updateChannelTargetSchema.safeParse({
+      settings: { privacyStatus: PostVisibility.PUBLIC },
+      visibility: PostVisibility.PRIVATE,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('does not invent privacyStatus from visibility alone', () => {
+    const result = updateChannelTargetSchema.parse({
+      visibility: PostVisibility.PRIVATE,
+    });
+
+    expect(result.visibility).toBe(PostVisibility.PRIVATE);
+    expect(result.settings).toBeUndefined();
+  });
+});
+
+describe('YouTube audience delivery', () => {
+  test('uses the narrower audience and leaves an unknown pair unset', () => {
+    expect(
+      resolveYouTubeUploadVisibility(PostVisibility.UNLISTED, 'private'),
+    ).toBe(PostVisibility.PRIVATE);
+    expect(
+      resolveYouTubeUploadVisibility(PostVisibility.PRIVATE, 'public'),
+    ).toBe(PostVisibility.PRIVATE);
+    expect(resolveYouTubeUploadVisibility(undefined, 'unlisted')).toBe(
+      PostVisibility.UNLISTED,
+    );
+    expect(resolveYouTubeUploadVisibility('scheduled', 'organization')).toBe(
+      PostVisibility.PUBLIC,
+    );
+    expect(displayedYouTubeAudience(undefined, undefined)).toBeUndefined();
+    expect(
+      displayedYouTubeAudience('scheduled', 'organization'),
+    ).toBeUndefined();
+    expect(
+      displayedYouTubeAudience(PostVisibility.PUBLIC, PostVisibility.PRIVATE),
+    ).toBe(PostVisibility.PRIVATE);
   });
 });
 

@@ -136,8 +136,127 @@ export const channelTargetErrorSchema = z.object({
   providerDetail: z.unknown().optional(),
 });
 
+const YOUTUBE_AUDIENCE_MISMATCH =
+  'YouTube visibility and settings.privacyStatus must match.';
+
+const POST_VISIBILITY_AUDIENCE_RANK: Record<PostVisibility, number> = {
+  [PostVisibility.PRIVATE]: 0,
+  [PostVisibility.UNLISTED]: 1,
+  [PostVisibility.PUBLIC]: 2,
+};
+
+/** A PostVisibility value, or undefined when the stored string is not one. */
+export function parseKnownPostVisibility(
+  value: unknown,
+): PostVisibility | undefined {
+  const parsed = z.nativeEnum(PostVisibility).safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/** private is narrower than unlisted, which is narrower than public. */
+export function narrowerPostVisibility(
+  left: PostVisibility,
+  right: PostVisibility,
+): PostVisibility {
+  return POST_VISIBILITY_AUDIENCE_RANK[left] <=
+    POST_VISIBILITY_AUDIENCE_RANK[right]
+    ? left
+    : right;
+}
+
+/**
+ * Audience a YouTube upload will request. Unknown canonical values fail closed
+ * to public, then an explicit settings privacy can only narrow that audience.
+ */
+export function resolveYouTubeUploadVisibility(
+  canonical: string | null | undefined,
+  settingsPrivacy: unknown,
+): PostVisibility {
+  const canonicalVisibility = resolvePostVisibility(canonical);
+  const settingsVisibility = parseKnownPostVisibility(settingsPrivacy);
+  if (!settingsVisibility) {
+    return canonicalVisibility;
+  }
+  return narrowerPostVisibility(canonicalVisibility, settingsVisibility);
+}
+
+/**
+ * Audience the YouTube editor shows. Unknown values stay unset so the control
+ * can require a choice instead of inheriting the public upload default.
+ */
+export function displayedYouTubeAudience(
+  canonical: unknown,
+  settingsPrivacy: unknown,
+): PostVisibility | undefined {
+  const canonicalVisibility = parseKnownPostVisibility(canonical);
+  const settingsVisibility = parseKnownPostVisibility(settingsPrivacy);
+  if (canonicalVisibility && settingsVisibility) {
+    return narrowerPostVisibility(canonicalVisibility, settingsVisibility);
+  }
+  return canonicalVisibility ?? settingsVisibility;
+}
+
+type AudienceAlignmentInput = {
+  platform?: CredentialPlatform;
+  settings?: Record<string, unknown>;
+  visibility?: PostVisibility;
+};
+
+function providerPrivacy(
+  target: AudienceAlignmentInput,
+): PostVisibility | undefined {
+  if (
+    target.platform !== undefined &&
+    target.platform !== CredentialPlatform.YOUTUBE
+  ) {
+    return undefined;
+  }
+  return parseKnownPostVisibility(target.settings?.privacyStatus);
+}
+
+function enforceYouTubeAudienceAgreement(
+  target: AudienceAlignmentInput,
+  ctx: z.RefinementCtx,
+): void {
+  const privacy = providerPrivacy(target);
+  if (
+    privacy !== undefined &&
+    target.visibility !== undefined &&
+    privacy !== target.visibility
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      message: YOUTUBE_AUDIENCE_MISMATCH,
+      path: ['settings', 'privacyStatus'],
+    });
+  }
+}
+
+function alignChannelAudience<T extends AudienceAlignmentInput>(
+  target: T,
+  options: { defaultVisibility: boolean },
+): T {
+  const privacy = providerPrivacy(target);
+  const visibilityWasSet = target.visibility !== undefined;
+  let visibility = target.visibility;
+  if (!visibilityWasSet && privacy) {
+    visibility = privacy;
+  } else if (!visibilityWasSet && options.defaultVisibility) {
+    visibility = PostVisibility.PUBLIC;
+  }
+
+  const settings =
+    target.platform === CredentialPlatform.YOUTUBE &&
+    visibilityWasSet &&
+    privacy === undefined
+      ? { ...target.settings, privacyStatus: target.visibility }
+      : target.settings;
+
+  return { ...target, settings, visibility };
+}
+
 /** A single channel destination within a create-release request. */
-export const channelTargetInputSchema = z.object({
+const channelTargetInputObjectSchema = z.object({
   attachments: z.array(releaseAttachmentInputSchema).optional(),
   /** Per-target caption override; omit to inherit the release `baseContent`. */
   caption: z.string().optional(),
@@ -147,8 +266,18 @@ export const channelTargetInputSchema = z.object({
   scheduledDate: dateStringSchema.optional(),
   settings: channelTargetSettingsSchema.optional(),
   timezone: timezoneSchema.optional(),
-  visibility: z.nativeEnum(PostVisibility).default(PostVisibility.PUBLIC),
+  visibility: z.nativeEnum(PostVisibility).optional(),
 });
+
+export const channelTargetInputSchema = channelTargetInputObjectSchema
+  .superRefine(enforceYouTubeAudienceAgreement)
+  .transform((target) => {
+    const aligned = alignChannelAudience(target, { defaultVisibility: true });
+    return {
+      ...aligned,
+      visibility: aligned.visibility ?? PostVisibility.PUBLIC,
+    };
+  });
 
 /** Create a release group and its channel targets in one call. */
 export const createReleaseGroupSchema = z.object({
@@ -210,7 +339,7 @@ export const updateRecurrenceSeriesSchema = z
  * provider IDs, error, retry accounting) — the "update target state without
  * guessing post semantics" user story from #1124.
  */
-export const updateChannelTargetSchema = z.object({
+const updateChannelTargetObjectSchema = z.object({
   error: channelTargetErrorSchema.nullable().optional(),
   executionState: z.nativeEnum(TargetExecutionState).optional(),
   externalProviderId: optionalStringSchema,
@@ -229,6 +358,13 @@ export const updateChannelTargetSchema = z.object({
   validationState: z.nativeEnum(TargetValidationState).optional(),
   visibility: z.nativeEnum(PostVisibility).optional(),
 });
+
+export const updateChannelTargetSchema = updateChannelTargetObjectSchema
+  .superRefine(enforceYouTubeAudienceAgreement)
+  .transform(
+    (target): z.output<typeof updateChannelTargetObjectSchema> =>
+      alignChannelAudience(target, { defaultVisibility: false }),
+  );
 
 export type ReleaseMediaReferenceInput = z.infer<
   typeof releaseMediaReferenceSchema
