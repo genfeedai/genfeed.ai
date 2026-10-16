@@ -86,6 +86,10 @@ type AgentChatPromptBarProps = {
   socketConnectionState: AgentSocketConnectionState;
   creditsAvailable?: number | null;
   onOverlayElement?: (node: HTMLElement | null) => void;
+  /** Onboarding renders the bar in the question stack, never in a shell slot. */
+  isPortalSuppressed?: boolean;
+  /** The bar already sits inside the conversation track, so it must not inset again. */
+  isTrackAligned?: boolean;
 };
 
 export function AgentChatPromptBar({
@@ -134,14 +138,18 @@ export function AgentChatPromptBar({
   socketConnectionState,
   creditsAvailable = null,
   onOverlayElement,
+  isPortalSuppressed = false,
+  isTrackAligned = false,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isDockComposer = composerShell?.placement === 'dock';
-  const isPortaled = Boolean(composerShell?.portalTarget);
+  const isPortaled =
+    Boolean(composerShell?.portalTarget) && !isPortalSuppressed;
   // Full-page agent threads render the bar as a column footer. Absolute
   // positioning inside the overflow-hidden shell clips it on reload, before
   // the portal target exists and again when the viewport height settles.
-  const isSurfaceColumn = composerShell?.placement === 'surface' && !isPortaled;
+  const isSurfaceColumn =
+    isTrackAligned || (composerShell?.placement === 'surface' && !isPortaled);
   const resolvedLayoutMode =
     isPortaled || isSurfaceColumn ? 'inflow' : layoutMode;
   const statusStack = (
@@ -228,9 +236,13 @@ export function AgentChatPromptBar({
       className={cn(
         'w-full min-w-0 max-w-full',
         isPortaled && 'pointer-events-auto',
-        isSurfaceColumn && 'mx-auto max-w-3xl px-3 pb-3 sm:px-4',
-        resolvedLayoutMode === 'fixed' && 'bottom-2 md:bottom-4',
-        resolvedLayoutMode === 'surface-fixed' && 'bottom-0',
+        isSurfaceColumn &&
+          !isTrackAligned &&
+          'mx-auto max-w-3xl px-3 pb-3 sm:px-4',
+        resolvedLayoutMode === 'fixed' &&
+          !isTrackAligned &&
+          'bottom-2 md:bottom-4',
+        resolvedLayoutMode === 'surface-fixed' && !isTrackAligned && 'bottom-0',
       )}
     >
       <AgentChatInput
@@ -275,7 +287,7 @@ export function AgentChatPromptBar({
     </PromptBarContainer>
   );
 
-  return composerShell?.portalTarget
+  return isPortaled && composerShell?.portalTarget
     ? createPortal(promptBar, composerShell.portalTarget)
     : promptBar;
 }

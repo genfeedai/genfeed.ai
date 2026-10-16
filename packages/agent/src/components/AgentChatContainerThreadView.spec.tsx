@@ -244,8 +244,9 @@ describe('AgentChatContainerThreadView', () => {
     expect(
       screen
         .getByText('timeline')
-        .compareDocumentPosition(screen.getByText('pending card')) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+        .compareDocumentPosition(
+          screen.getByRole('heading', { name: 'Goals' }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(scroll).toHaveBeenCalledWith({ block: 'end' });
     view.unmount();

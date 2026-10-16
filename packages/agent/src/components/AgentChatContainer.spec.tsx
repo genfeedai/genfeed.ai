@@ -384,6 +384,7 @@ type StoreState = {
   setActiveRunStatus: ReturnType<typeof vi.fn>;
   setCreditsRemaining: ReturnType<typeof vi.fn>;
   setDraftAgentMode: ReturnType<typeof vi.fn>;
+  seedComposer: ReturnType<typeof vi.fn>;
   setError: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
   setIsLoadingOlderMessages: ReturnType<typeof vi.fn>;
@@ -471,6 +472,7 @@ const storeState: StoreState = {
     storeState.draftAgentMode = mode;
   }),
   setDraftRuntimeKey: vi.fn(),
+  seedComposer: vi.fn(),
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn((plan) => {
     storeState.latestProposedPlan = plan;
@@ -595,6 +597,7 @@ describe('AgentChatContainer', () => {
     storeState.setActiveRunStatus.mockReset();
     storeState.setCreditsRemaining.mockReset();
     storeState.setDraftAgentMode.mockReset();
+    storeState.seedComposer.mockReset();
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
@@ -931,10 +934,15 @@ describe('AgentChatContainer', () => {
         isStreaming
       />,
     );
-    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
+    const answer = screen.getByTestId('onboarding-answer');
+    expect(answer).toContainElement(screen.getByTestId('chat-input'));
     expect(
-      screen.getByRole('button', { name: 'Submit requested input' }),
+      screen.getByRole('heading', { name: 'Your brand link' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Submit requested input' }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'submit' })).toBeNull();
   });
 
   it('confirms onboarding skip from its own card and keeps the composer under the question', async () => {
@@ -962,14 +970,13 @@ describe('AgentChatContainer', () => {
       </ConversationComposerShellProvider>,
     );
 
-    const columnComposer = container.querySelector(
-      '[data-testid="agent-column-composer"]',
-    );
+    const answer = container.querySelector('[data-testid="onboarding-answer"]');
+    expect(answer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
     expect(
-      columnComposer?.querySelector('[data-testid="chat-input"]'),
-    ).not.toBeNull();
+      container.querySelector('[data-testid="agent-column-composer"]'),
+    ).toBeNull();
     expect(screen.queryByRole('button', { name: 'Skip' })).toBeNull();
-    expect(columnComposer).toHaveAttribute('data-composer-overlap', 'false');
+    expect(screen.queryByRole('button', { name: 'submit' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'skipCardTitle' }));
     expect(screen.getByText('skipConfirmBody')).toBeInTheDocument();
@@ -1666,31 +1673,84 @@ describe('AgentChatContainer', () => {
   });
 
   it('keeps the composer beside a button-only onboarding card', () => {
-    if (storeState.pendingInputRequest)
-      storeState.pendingInputRequest.allowFreeText = false;
-    render(
+    storeState.pendingInputRequest = {
+      allowFreeText: false,
+      inputRequestId: 'goal-request',
+      options: [{ id: 'grow_audience', label: 'Grow audience' }],
+      prompt: 'Pick a goal',
+      runId: 'run-goal',
+      threadId: 'thread-1',
+      title: 'Goal',
+    };
+    const { container } = render(
       <AgentChatContainer
         apiService={createApiService() as never}
         onboardingMode
       />,
     );
-    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
+    const answer = container.querySelector('[data-testid="onboarding-answer"]');
+    expect(answer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Submit requested input' }),
+      screen.getByRole('button', { name: 'Grow audience' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Submit requested input' }),
+    ).toBeNull();
+    expect(screen.queryByText('Choose one')).toBeNull();
   });
 
-  it('keeps the URL card and the composer in the same onboarding column', () => {
-    render(
-      <AgentChatContainer
-        apiService={createApiService() as never}
-        onboardingMode
-      />,
+  it('prefills the onboarding prompt bar from the suggested link and submits it', async () => {
+    storeState.pendingInputRequest = {
+      allowFreeText: true,
+      inputRequestId: 'url-request',
+      options: [{ id: 'https://genfeed.ai', label: 'Use Genfeed.Ai' }],
+      prompt: 'Share a public link about your brand.',
+      runId: 'run-url',
+      threadId: 'thread-1',
+      title: 'Your brand link',
+    };
+    const apiService = createApiService({
+      respondToInputRequest: vi.fn().mockResolvedValue({}),
+    });
+    const { container } = render(
+      <AgentChatContainer apiService={apiService as never} onboardingMode />,
     );
-    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Submit requested input' }),
-    ).toBeInTheDocument();
+
+    const answer = container.querySelector('[data-testid="onboarding-answer"]');
+    expect(answer?.querySelector('[data-testid="chat-input"]')).not.toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Other' })).toBeNull();
+    await waitFor(() =>
+      expect(storeState.seedComposer).toHaveBeenCalledWith(
+        'https://genfeed.ai',
+        'thread-1',
+      ),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use Genfeed.Ai' }));
+    await waitFor(() =>
+      expect(apiService.respondToInputRequest).toHaveBeenCalledWith(
+        'thread-1',
+        'url-request',
+        'Use Genfeed.Ai',
+        undefined,
+        expect.any(Object),
+        ['https://genfeed.ai'],
+      ),
+    );
+
+    fireEvent.paste(screen.getByLabelText('Composer paste'), {
+      clipboardData: { getData: () => 'https://example.com' },
+    });
+    await waitFor(() =>
+      expect(apiService.respondToInputRequest).toHaveBeenCalledWith(
+        'thread-1',
+        'url-request',
+        'https://example.com',
+        undefined,
+        expect.any(Object),
+        undefined,
+      ),
+    );
   });
 
   it('keeps the empty-state composer full-width inside the centered column', () => {

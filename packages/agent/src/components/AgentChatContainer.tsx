@@ -17,6 +17,7 @@ import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-con
 import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
+import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import {
@@ -36,10 +37,25 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
+
+function readOnboardingUrlSeed(
+  request: AgentInputRequest | null,
+): string | null {
+  if (!request || request.allowFreeText === false) return null;
+  const urls = (request.options ?? []).filter((option) =>
+    /^https?:\/\//i.test(option.id),
+  );
+  return (
+    urls.find((option) => option.id === request.recommendedOptionId)?.id ??
+    urls[0]?.id ??
+    null
+  );
+}
 
 export function AgentChatContainer({
   knowledgeSelection,
@@ -242,11 +258,42 @@ export function AgentChatContainer({
       attachments?: Parameters<typeof container.handleSend>[2],
       options?: Parameters<typeof container.handleSend>[3],
     ) => {
+      const request = container.pendingInputRequest;
+      if (
+        onboardingMode &&
+        request &&
+        request.allowFreeText !== false &&
+        content.trim()
+      ) {
+        void container.handleSubmitInputRequest(content);
+        return true;
+      }
       composerShell?.onSendMessage?.();
       return container.handleSend(content, mentions, attachments, options);
     },
-    [composerShell?.onSendMessage, container.handleSend],
+    [
+      composerShell?.onSendMessage,
+      container.handleSend,
+      container.handleSubmitInputRequest,
+      container.pendingInputRequest,
+      onboardingMode,
+    ],
   );
+  const seededOnboardingRequestId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!onboardingMode) return;
+    const request = container.pendingInputRequest;
+    const url = readOnboardingUrlSeed(request);
+    if (
+      !request ||
+      !url ||
+      seededOnboardingRequestId.current === request.inputRequestId
+    ) {
+      return;
+    }
+    seededOnboardingRequestId.current = request.inputRequestId;
+    useAgentChatStore.getState().seedComposer(url, request.threadId);
+  }, [container.pendingInputRequest, onboardingMode]);
 
   const handleSuggestionSend = useCallback(
     (prompt: string) => {
@@ -326,6 +373,7 @@ export function AgentChatContainer({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
     isComposerVisible:
+      !onboardingMode &&
       !isColumnComposer &&
       composerShell?.isComposerVisible !== false &&
       composerShell?.placement !== 'dock',
@@ -394,6 +442,8 @@ export function AgentChatContainer({
         onSendFollowUpNow={container.sendFollowUpNow}
         isInterruptingFollowUps={container.followUpQueue.isInterrupting}
         onStop={container.handleStopRun}
+        isPortalSuppressed={onboardingMode}
+        isTrackAligned={onboardingMode}
         onSubmitInputRequest={container.handleSubmitInputRequest}
         pendingInputRequest={
           composerShell && !onboardingMode
@@ -445,9 +495,6 @@ export function AgentChatContainer({
           </div>
         ) : container.isEmpty && !onboardingMode ? (
           <AgentChatEmptyState
-            composerPaddingPx={
-              onboardingMode ? composerTranscriptPaddingPx : undefined
-            }
             addFiles={container.addFiles}
             agentMode={container.draftAgentMode}
             onAgentModeChange={container.setAgentMode}
@@ -544,11 +591,16 @@ export function AgentChatContainer({
                 ? greetingTimeline
                 : container.timeline
             }
-            columnFooter={placeComposerInColumn ? dockedComposer : undefined}
+            columnFooter={
+              onboardingMode || !placeComposerInColumn
+                ? undefined
+                : dockedComposer
+            }
+            onboardingComposer={onboardingMode ? dockedComposer : undefined}
           />
         )}
 
-        {placeComposerInColumn ? null : dockedComposer}
+        {onboardingMode || placeComposerInColumn ? null : dockedComposer}
       </div>
     </div>
   );

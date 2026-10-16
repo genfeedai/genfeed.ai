@@ -5,6 +5,7 @@ import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/Agen
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
 import { AgentWorkObjects } from '@genfeedai/agent/components/AgentWorkObjects';
+import { OnboardingChoiceCards } from '@genfeedai/agent/components/OnboardingChoiceCards';
 import { OnboardingSkipCard } from '@genfeedai/agent/components/OnboardingSkipCard';
 import {
   AGENT_CONVERSATION_SCROLL_CLASS,
@@ -91,11 +92,15 @@ export type AgentChatContainerThreadViewProps = {
   showFollowUpButton: boolean;
   timeline: TimelineEntry[];
   /**
-   * Full-page composer. It lives in the transcript scroll so a short
-   * onboarding column keeps the bar under the question, and sticks to the
-   * bottom only once the transcript is tall enough to pass behind it.
+   * Full-page composer for a settled thread. It stays in flow under a short
+   * transcript and sticks to the viewport only once content passes behind it.
    */
   columnFooter?: ReactNode;
+  /**
+   * Onboarding composer. It renders under the choice cards, inside the
+   * transcript track, so it cannot sit on the viewport floor.
+   */
+  onboardingComposer?: ReactNode;
 };
 
 /**
@@ -145,6 +150,7 @@ export function AgentChatContainerThreadView({
   showFollowUpButton,
   timeline,
   columnFooter,
+  onboardingComposer,
 }: AgentChatContainerThreadViewProps): ReactElement {
   const inputCardRef = useRef<HTMLDivElement>(null);
   const columnFooterRef = useRef<HTMLDivElement>(null);
@@ -182,24 +188,38 @@ export function AgentChatContainerThreadView({
   );
   const inputCard =
     pendingInputRequest && shouldShowInputRequestOverlay ? (
-      <div className="flex flex-col gap-3" ref={inputCardRef}>
-        <AgentInputRequestOverlay
-          hiddenOptionIds={
-            onboardingMode ? ONBOARDING_HIDDEN_OPTION_IDS : undefined
-          }
-          key={pendingInputRequest.inputRequestId}
-          isSubmitting={isSubmittingInputRequest}
-          onSubmit={onSubmitInputRequest}
-          request={pendingInputRequest}
-          variant="inline"
-        />
-        {onboardingMode && !isLegacySkipConfirmation ? (
-          <OnboardingSkipCard
+      onboardingMode ? (
+        <div
+          className="flex flex-col gap-3"
+          data-testid="onboarding-answer"
+          ref={inputCardRef}
+        >
+          <OnboardingChoiceCards
+            hiddenOptionIds={ONBOARDING_HIDDEN_OPTION_IDS}
             isSubmitting={isSubmittingInputRequest}
-            onSkip={() => onSubmitInputRequest('Skip', ['skip'])}
+            key={pendingInputRequest.inputRequestId}
+            onSubmit={onSubmitInputRequest}
+            request={pendingInputRequest}
           />
-        ) : null}
-      </div>
+          {!isLegacySkipConfirmation ? (
+            <OnboardingSkipCard
+              isSubmitting={isSubmittingInputRequest}
+              onSkip={() => onSubmitInputRequest('Skip', ['skip'])}
+            />
+          ) : null}
+          {onboardingComposer}
+        </div>
+      ) : (
+        <div ref={inputCardRef}>
+          <AgentInputRequestOverlay
+            isSubmitting={isSubmittingInputRequest}
+            key={pendingInputRequest.inputRequestId}
+            onSubmit={onSubmitInputRequest}
+            request={pendingInputRequest}
+            variant="inline"
+          />
+        </div>
+      )
     ) : null;
   return (
     <div
@@ -272,12 +292,13 @@ export function AgentChatContainerThreadView({
             suppressThinkingPlaceholder={padBottomForComposer}
           />
           {onboardingMode ? inputCard : null}
+          {onboardingMode && !inputCard ? onboardingComposer : null}
         </div>
         {columnFooter ? (
           <div
             className={cn(
-              'sticky bottom-0 z-20',
-              hasContentBehindComposer && 'bg-background',
+              'z-20',
+              hasContentBehindComposer && 'sticky bottom-0 bg-background',
             )}
             data-composer-overlap={hasContentBehindComposer ? 'true' : 'false'}
             data-testid="agent-column-composer"
