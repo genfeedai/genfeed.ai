@@ -14,6 +14,7 @@ import {
   type FalCandidateContract,
   prepareFalModelContract,
 } from '@workers/services/fal-model-contract.util';
+import { resolveOpenapiProperty } from '@workers/services/openapi-property.util';
 import {
   prepareReplicateModelContract,
   type ReplicateCandidateContract,
@@ -338,43 +339,6 @@ export async function collectProviderModel(
   };
 }
 
-function resolvedProperty(
-  property: Record<string, unknown>,
-  openapi: Record<string, unknown>,
-  seen = new Set<string>(),
-): Record<string, unknown> {
-  let resolved = property;
-  const ref = property.$ref;
-  if (typeof ref === 'string' && ref.startsWith('#/') && !seen.has(ref)) {
-    let value: unknown = openapi;
-    for (const segment of ref.slice(2).split('/'))
-      value = isRecord(value)
-        ? value[segment.replaceAll('~1', '/').replaceAll('~0', '~')]
-        : undefined;
-    if (isRecord(value))
-      resolved = {
-        ...resolvedProperty(value, openapi, new Set([...seen, ref])),
-        ...property,
-      };
-  }
-  if (Array.isArray(resolved.allOf))
-    for (const child of resolved.allOf)
-      if (isRecord(child))
-        resolved = { ...resolvedProperty(child, openapi, seen), ...resolved };
-  const variants = resolved.anyOf ?? resolved.oneOf;
-  if (Array.isArray(variants)) {
-    const nonNull = variants.filter(
-      (child) => isRecord(child) && child.type !== 'null',
-    );
-    if (nonNull.length === 1 && isRecord(nonNull[0]))
-      resolved = {
-        ...resolvedProperty(nonNull[0], openapi, seen),
-        ...resolved,
-      };
-  }
-  return resolved;
-}
-
 /** Batch public schemas to respect fal's unauthenticated rate limits. */
 export async function collectFalImportMetadata(
   targets: ProviderModelImportTarget[],
@@ -437,7 +401,7 @@ export function providerModelCapabilities(
 ) {
   const properties = isRecord(schema.properties) ? schema.properties : {};
   const property = (name: string) =>
-    resolvedProperty(
+    resolveOpenapiProperty(
       isRecord(properties[name]) ? properties[name] : {},
       openapi,
     );

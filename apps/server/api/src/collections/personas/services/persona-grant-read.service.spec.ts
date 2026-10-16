@@ -64,6 +64,43 @@ describe('PersonaGrantReadService (#6037)', () => {
     }
   });
 
+  it('finds granted characters by any reference image, not only the primary', async () => {
+    const { prisma, service } = setup();
+    prisma.personaGrant.findMany.mockResolvedValue([]);
+
+    await service.findReferenceGrants({
+      ingredientIds: ['side-1'],
+      organizationId: 'org-2',
+    });
+
+    expect(prisma.personaGrant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          persona: {
+            select: expect.objectContaining({
+              references: {
+                select: { ingredientId: true, position: true },
+                where: { ingredientId: { in: ['side-1'] } },
+              },
+            }),
+          },
+        }),
+        where: expect.objectContaining({
+          persona: {
+            is: {
+              isDeleted: false,
+              OR: [
+                { avatarIngredientId: { in: ['side-1'] } },
+                { references: { some: { ingredientId: { in: ['side-1'] } } } },
+                { ingredients: { some: { id: { in: ['side-1'] } } } },
+              ],
+            },
+          },
+        }),
+      }),
+    );
+  });
+
   it('lists only granted characters whose receiving availability includes the brand', async () => {
     const { prisma, service } = setup();
     prisma.personaGrant.findMany.mockResolvedValue([

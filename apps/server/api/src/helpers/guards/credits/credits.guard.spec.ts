@@ -840,17 +840,17 @@ describe('CreditsGuard', () => {
 
     it('charges credits normally for a resolvable modelKey when allowByokBypass is not set', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
-        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
       });
       modelsService.findOne.mockResolvedValue({
         cost: 10,
-        key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        key: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         provider: ModelProvider.REPLICATE,
       });
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
 
       const context = createContext({
-        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
       });
       await guard.canActivate(context);
 
@@ -878,6 +878,121 @@ describe('CreditsGuard', () => {
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(orgId, 10);
+    });
+  });
+
+  describe('Topaz upscale quantities come from the stored source media', () => {
+    function topazGuard(metadata: Record<string, number> | null) {
+      const quoteSnapshotByKey = vi.fn().mockResolvedValue({
+        costSource: 'reviewed-provider',
+        credits: 3,
+      });
+      const prisma = {
+        ingredient: {
+          findFirst: vi.fn().mockResolvedValue(metadata ? { metadata } : null),
+        },
+      };
+      const topaz = new CreditsGuard(
+        runtimeSettingsMock({ get: vi.fn() } as unknown as ConfigService),
+        reflector,
+        creditsUtilsService as unknown as CreditsUtilsService,
+        modelsService as unknown as ModelsService,
+        byokService as unknown as ByokService,
+        loggerService,
+        { quoteSnapshotByKey } as never,
+        prisma as never,
+      );
+      return { prisma, quoteSnapshotByKey, topaz };
+    }
+    function contextWith(
+      params: Record<string, string>,
+      body: Record<string, unknown>,
+    ): ExecutionContext {
+      const context = createContext(body);
+      context.switchToHttp().getRequest().params = params;
+      return context;
+    }
+
+    it('prices an image upscale at the source size times the factor, ignoring client sizes', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+        key === CREDITS_KEY
+          ? {
+              isBodyModelIgnored: true,
+              modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+            }
+          : undefined,
+      );
+      modelsService.findOne.mockResolvedValue({
+        key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        provider: ModelProvider.REPLICATE,
+      });
+      const { prisma, quoteSnapshotByKey, topaz } = topazGuard({
+        height: 768,
+        width: 1024,
+      });
+
+      // The stub snapshot is not reservable; only the priced quantities matter.
+      await topaz
+        .canActivate(
+          contextWith(
+            { imageId: 'image-1' },
+            { height: 1, upscaleFactor: '6x', width: 1 },
+          ),
+        )
+        .catch(() => undefined);
+
+      expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'image-1', isDeleted: false, organizationId: orgId },
+        }),
+      );
+      expect(quoteSnapshotByKey).toHaveBeenCalledWith(
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        expect.objectContaining({ height: 4608, width: 6144 }),
+      );
+    });
+
+    it('refuses an image upscale whose source size is unknown', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+        key === CREDITS_KEY
+          ? { modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE }
+          : undefined,
+      );
+      const { topaz } = topazGuard({ height: 0, width: 0 });
+
+      await expect(
+        topaz.canActivate(contextWith({ imageId: 'image-1' }, {})),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('prices a video upscale per source second at the target resolution and frame rate', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+        key === CREDITS_KEY
+          ? { modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE }
+          : undefined,
+      );
+      modelsService.findOne.mockResolvedValue({
+        key: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        provider: ModelProvider.REPLICATE,
+      });
+      const { quoteSnapshotByKey, topaz } = topazGuard({ duration: 12.5 });
+
+      await topaz
+        .canActivate(
+          contextWith(
+            { videoId: 'video-1' },
+            { duration: 1, targetFps: 60, targetResolution: '4k' },
+          ),
+        )
+        .catch(() => undefined);
+
+      expect(quoteSnapshotByKey).toHaveBeenCalledWith(
+        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        expect.objectContaining({
+          duration: 12.5,
+          selectors: { target_fps: 60, target_resolution: '4k' },
+        }),
+      );
     });
   });
 

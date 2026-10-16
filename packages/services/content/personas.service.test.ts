@@ -34,6 +34,43 @@ describe('PersonasService', () => {
     expect(result.prompt).toContain('CHARACTER REFERENCE SHEET PRESET');
   });
 
+  it('looks up which characters use the assets as references', async () => {
+    const usage = [
+      {
+        characters: [{ handle: 'vincent', id: 'p1', label: 'Vincent' }],
+        ingredientId: 'img-1',
+      },
+    ];
+    const post = vi.fn().mockResolvedValue({ data: { data: usage } });
+    (service as unknown as { instance: { post: typeof post } }).instance = {
+      post,
+    };
+
+    const result = await service.findReferenceUsage(['img-1', 'img-1']);
+
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledWith(
+      '/reference-usage',
+      { ingredientIds: ['img-1'] },
+      { signal: undefined },
+    );
+    expect(result).toEqual(usage);
+  });
+
+  it('splits a lookup larger than the endpoint cap into several requests', async () => {
+    const post = vi.fn().mockResolvedValue({ data: { data: [] } });
+    (service as unknown as { instance: { post: typeof post } }).instance = {
+      post,
+    };
+    const ids = Array.from({ length: 101 }, (_, index) => `img-${index}`);
+
+    await service.findReferenceUsage(ids);
+
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[0][1].ingredientIds).toHaveLength(100);
+    expect(post.mock.calls[1][1].ingredientIds).toEqual(['img-100']);
+  });
+
   it('creates a persona from an approved sheet', async () => {
     const post = vi.fn().mockResolvedValue({
       data: { data: { handle: 'anna', id: 'p1', label: 'Anna' } },

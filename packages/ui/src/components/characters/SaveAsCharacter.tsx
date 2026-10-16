@@ -53,8 +53,9 @@ export default function SaveAsCharacter({
     queryFn: async () => (await getService()).listCharacters(),
     staleTime: 30_000,
   });
-  const savedReference = characters?.find(
-    (character) => character.avatarIngredientId === assetId,
+  // Any reference image counts, not only the primary one.
+  const savedReference = characters?.find((character) =>
+    character.referenceIngredientIds.includes(assetId),
   );
   const inspection = useQuery({
     queryKey: ['character-image-inspection', organizationId, brandId, assetId],

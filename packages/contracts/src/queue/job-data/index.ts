@@ -1,3 +1,4 @@
+export * from './brand-relocation-job.interface';
 export * from './brand-vision-job.interface';
 export * from './credit-deduction-job.interface';
 export * from './heygen-poll-job.interface';

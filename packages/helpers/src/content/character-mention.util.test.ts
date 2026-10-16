@@ -78,6 +78,35 @@ describe('character-mention.util', () => {
     expect(result.notices).toEqual([]);
   });
 
+  it('sends every reference of a character in priority order', () => {
+    const result = applyCharacterMentionsToSubmit({
+      catalog: [
+        {
+          avatarIngredientId: 'img-front',
+          handle: 'anna',
+          hasReferenceImage: true,
+          id: 'p1',
+          label: 'Anna',
+          referenceIngredientIds: ['img-front', 'img-side', 'img-back'],
+        },
+      ],
+      document: {
+        content: [
+          {
+            attrs: { handle: 'anna', id: 'p1', label: 'Anna' },
+            type: 'characterMention',
+          },
+        ],
+        type: 'doc',
+      },
+      existingReferenceIds: ['img-side'],
+      text: '@anna walking',
+    });
+
+    // Existing references keep their place; duplicates are dropped.
+    expect(result.referenceIds).toEqual(['img-side', 'img-front', 'img-back']);
+  });
+
   it('omits no-image characters with a non-blocking notice', () => {
     const token = { handle: 'ghost', id: 'p2', label: 'Ghost' };
     const result = applyCharacterMentionsToSubmit({

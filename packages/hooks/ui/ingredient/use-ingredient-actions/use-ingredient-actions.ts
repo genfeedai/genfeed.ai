@@ -1,3 +1,4 @@
+import { useOptionalConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
@@ -29,6 +30,7 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
+import { useCharacterReferenceDeleteWarning } from '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import {
@@ -156,7 +158,8 @@ export function useIngredientActions({
     AssetsService.getInstance(token),
   );
 
-  // Global confirm modal access is handled in parent contexts
+  const confirmModal = useOptionalConfirmModal();
+  const getCharacterReferenceWarning = useCharacterReferenceDeleteWarning();
 
   // UI state
   const [showActions, setShowActions] = useState(false);
@@ -574,33 +577,57 @@ export function useIngredientActions({
           setActionStates((prev) => ({ ...prev, isDeleting: false }));
         }
       } else {
-        setActionStates((prev) => ({ ...prev, isDeleting: true }));
-        const url = `DELETE /ingredients/${ingredient.id}`;
+        const deleteIngredient = async () => {
+          setActionStates((prev) => ({ ...prev, isDeleting: true }));
 
-        try {
-          const service = await getIngredientsService();
-          await service.delete(ingredient.id);
+          try {
+            const service = await getIngredientsService();
+            await service.delete(ingredient.id);
 
-          logger.info(`${url} success`);
+            logger.info(`${url} success`);
 
-          if (onRefresh) {
-            await onRefresh();
+            if (onRefresh) {
+              await onRefresh();
+            }
+
+            notificationsService.success('Ingredient deleted successfully');
+            setActionStates((prev) => ({ ...prev, isDeleting: false }));
+          } catch (error: unknown) {
+            logger.error(`${url} failed`, error);
+            notificationsService.error('Failed to delete ingredient');
+            setActionStates((prev) => ({ ...prev, isDeleting: false }));
           }
+        };
 
-          notificationsService.success('Ingredient deleted successfully');
-          setActionStates((prev) => ({ ...prev, isDeleting: false }));
-        } catch (error: unknown) {
-          logger.error(`${url} failed`, error);
-          notificationsService.error('Failed to delete ingredient');
-          setActionStates((prev) => ({ ...prev, isDeleting: false }));
+        // A character that keeps this asset as a reference image loses it on
+        // delete, so that case asks first. Any other asset deletes as before,
+        // as does any surface without the global confirm dialog.
+        const characterReferenceWarning = confirmModal
+          ? await getCharacterReferenceWarning([ingredient.id])
+          : undefined;
+
+        if (!confirmModal || !characterReferenceWarning) {
+          await deleteIngredient();
+          return;
         }
+
+        confirmModal.openConfirm({
+          children: characterReferenceWarning,
+          confirmLabel: 'Move to Trash',
+          isError: true,
+          label: 'Move to Trash',
+          message: 'Move this asset to Trash? You can restore it later.',
+          onConfirm: deleteIngredient,
+        });
       }
     },
     [
       onDeleteIngredient,
+      getCharacterReferenceWarning,
       getIngredientsService,
       notificationsService,
       onRefresh,
+      confirmModal,
     ],
   );
 

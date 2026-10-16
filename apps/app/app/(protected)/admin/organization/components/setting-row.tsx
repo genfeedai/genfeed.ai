@@ -1,7 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import type { SettingRowProps } from '@props/admin/organization-settings.props';
 import { Button } from '@ui/primitives/button';
 import { TableCell, TableRow } from '@ui/primitives/table';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Pencil } from 'lucide-react';
 
 function formatValue(value: unknown, type: string): string {
@@ -26,21 +28,27 @@ function formatValue(value: unknown, type: string): string {
 
 export function SettingRow({ label, value, type, onEdit }: SettingRowProps) {
   return (
-    <TableRow className="border-b border-border">
+    <TableRow className="group border-b border-border">
       <TableCell className="px-4 py-3">{label}</TableCell>
       <TableCell className="px-4 py-3">
         <span className="font-mono text-sm">{formatValue(value, type)}</span>
       </TableCell>
       <TableCell className="px-4 py-3 text-right">
-        <Button
-          variant={ButtonVariant.DEFAULT}
-          size={ButtonSize.SM}
-          onClick={onEdit}
-          aria-label={`Edit ${label}`}
-          title="Edit"
+        {/* Row action: icon-only, shown on row hover or keyboard focus. */}
+        <div
+          className={cn('flex justify-end', hoverRevealClassName({ at: 'lg' }))}
         >
-          <Pencil className="size-4" />
-        </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            onClick={onEdit}
+            ariaLabel={`Edit ${label}`}
+            icon={<Pencil className="size-3.5" />}
+            tooltip="Edit"
+            tooltipPosition="left"
+            withWrapper={false}
+          />
+        </div>
       </TableCell>
     </TableRow>
   );

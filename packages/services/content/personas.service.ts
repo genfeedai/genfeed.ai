@@ -1,10 +1,12 @@
 import type { PersonaAvailabilityMode } from '@genfeedai/contracts';
+import { MAX_CHARACTER_REFERENCE_USAGE_LOOKUP } from '@genfeedai/contracts/constants';
 import type {
   BrandCharacterListItem,
   CharacterAvailabilityInput,
   CharacterGrantInput,
   CharacterGrantItem,
   CharacterImageInspection,
+  CharacterReferenceUsage,
   ComposeCharacterSheetPromptInput,
   ComposeCharacterSheetPromptResult,
   CreatePersonaFromSheetInput,
@@ -30,6 +32,8 @@ export class Persona {
   label!: string;
   owningBrandId?: string | null;
   owningBrandName?: string | null;
+  /** Ordered reference images; index 0 is the primary (`avatarIngredientId`). */
+  referenceIngredientIds?: string[];
 
   constructor(partial: Partial<Persona>) {
     Object.assign(this, partial);
@@ -54,6 +58,9 @@ function toCharacterListItems(rows: Persona[]): BrandCharacterListItem[] {
     label: row.label,
     owningBrandId: row.owningBrandId,
     owningBrandName: row.owningBrandName,
+    referenceIngredientIds:
+      row.referenceIngredientIds ??
+      (row.avatarIngredientId ? [row.avatarIngredientId] : []),
   }));
 }
 
@@ -132,6 +139,40 @@ export class PersonasService extends BaseService<
       { brandId },
     );
     return deserializeResource<Persona>(response.data);
+  }
+
+  /**
+   * The characters that use each asset as a reference image. The endpoint caps
+   * one lookup, so a larger selection goes out in several requests.
+   */
+  async findReferenceUsage(
+    ingredientIds: string[],
+    signal?: AbortSignal,
+  ): Promise<CharacterReferenceUsage[]> {
+    const ids = [...new Set(ingredientIds)];
+    const usage: CharacterReferenceUsage[] = [];
+
+    for (
+      let start = 0;
+      start < ids.length;
+      start += MAX_CHARACTER_REFERENCE_USAGE_LOOKUP
+    ) {
+      const response = await this.instance.post<{
+        data: CharacterReferenceUsage[];
+      }>(
+        '/reference-usage',
+        {
+          ingredientIds: ids.slice(
+            start,
+            start + MAX_CHARACTER_REFERENCE_USAGE_LOOKUP,
+          ),
+        },
+        { signal },
+      );
+      usage.push(...response.data.data);
+    }
+
+    return usage;
   }
 
   async inspectImage(assetId: string): Promise<CharacterImageInspection> {

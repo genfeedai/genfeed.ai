@@ -15,10 +15,21 @@ import {
   isPersonaSharedAcrossBrands,
   resolvePersonaBrandIds,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { rethrowHandleConflict } from '@api/collections/personas/utils/persona-handle-conflict.util';
 import {
   assertOwningBrandLive,
   withPersonaHandleLocks,
 } from '@api/collections/personas/utils/persona-handle-lock.util';
+import {
+  findCharacterReferenceImageIds,
+  orderedReferenceIdsFromRow,
+  PERSONA_REFERENCES_SELECT,
+  personaReferencesAnyWhere,
+} from '@api/collections/personas/utils/persona-references.util';
+import {
+  withPersonaAvailabilitySummary,
+  withPersonaReferenceIngredientIds,
+} from '@api/collections/personas/utils/persona-response.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
@@ -29,8 +40,6 @@ import type { PrismaUpdate } from '@api/shared/services/base/base-query-normaliz
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
-  IngredientCategory,
-  IngredientStatus,
   isPersonaHandle,
   MemberRole,
   normalizePersonaHandle,
@@ -59,39 +68,6 @@ export type PersonaClient = Pick<
   | 'personaGrant'
   | 'personaGrantAudit'
 >;
-
-function isPersonaHandleUniqueViolation(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const record = error as {
-    code?: unknown;
-    meta?: { target?: unknown; constraint?: unknown };
-  };
-  if (record.code !== 'P2002') {
-    return false;
-  }
-  const target = record.meta?.target;
-  const constraint = record.meta?.constraint;
-  const haystack = [
-    ...(Array.isArray(target) ? target.map(String) : [String(target ?? '')]),
-    String(constraint ?? ''),
-  ]
-    .join(' ')
-    .toLowerCase();
-  return haystack.includes('handle') || haystack.includes('org_brand_handle');
-}
-
-function rethrowHandleConflict(error: unknown, handle?: string | null): never {
-  if (isPersonaHandleUniqueViolation(error)) {
-    throw new ValidationException(
-      'A character with this handle already exists in this brand',
-      'handle',
-      handle,
-    );
-  }
-  throw error;
-}
 
 @Injectable()
 export class PersonasService extends BaseService<
@@ -306,7 +282,10 @@ export class PersonasService extends BaseService<
     }
     const docs =
       result.docs.length > 0
-        ? await this.withAvailabilitySummary(result.docs, organizationId)
+        ? await this.withReferenceIngredientIds(
+            await this.withAvailabilitySummary(result.docs, organizationId),
+            organizationId,
+          )
         : result.docs;
     // Characters granted to this organization (#6037) ride on the first page.
     const grantedToBrandId = (input as { grantedToBrandId?: unknown } | null)
@@ -333,6 +312,7 @@ export class PersonasService extends BaseService<
           isShared: false,
           owningBrandId: null,
           owningBrandName: null,
+          referenceIngredientIds: orderedReferenceIdsFromRow(grant.persona),
         })),
       ],
     };
@@ -355,6 +335,7 @@ export class PersonasService extends BaseService<
         handle: true,
         id: true,
         label: true,
+        references: PERSONA_REFERENCES_SELECT,
       },
       take: 20,
       where: scopedWhere(params.organizationId, {
@@ -397,19 +378,21 @@ export class PersonasService extends BaseService<
       if (!row.handle) {
         return [];
       }
+      const referenceIngredientIds = orderedReferenceIdsFromRow(row);
       return [
         {
           availableBrandCount:
             row.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
               ? organizationBrandCount
               : resolvePersonaBrandIds(row, []).length,
-          avatarIngredientId: row.avatarIngredientId,
+          avatarIngredientId: referenceIngredientIds[0] ?? null,
           handle: row.handle,
-          hasReferenceImage: Boolean(row.avatarIngredientId),
+          hasReferenceImage: referenceIngredientIds.length > 0,
           id: row.id,
           isShared: isPersonaSharedAcrossBrands(row),
           label: row.label,
           owningBrandName: row.brand?.label ?? null,
+          referenceIngredientIds,
         },
       ];
     });
@@ -419,22 +402,25 @@ export class PersonasService extends BaseService<
         organizationId: params.organizationId,
         prefix,
       })
-    ).flatMap((grant) =>
-      grant.persona.handle
-        ? [
-            {
-              avatarIngredientId: grant.persona.avatarIngredientId,
-              grantedByOrganizationName: grant.ownerOrganization.label,
-              handle: grant.persona.handle,
-              hasReferenceImage: Boolean(grant.persona.avatarIngredientId),
-              id: grant.persona.id,
-              isGranted: true,
-              label: grant.persona.label,
-              owningBrandName: null,
-            },
-          ]
-        : [],
-    );
+    ).flatMap((grant) => {
+      if (!grant.persona.handle) {
+        return [];
+      }
+      const referenceIngredientIds = orderedReferenceIdsFromRow(grant.persona);
+      return [
+        {
+          avatarIngredientId: referenceIngredientIds[0] ?? null,
+          grantedByOrganizationName: grant.ownerOrganization.label,
+          handle: grant.persona.handle,
+          hasReferenceImage: referenceIngredientIds.length > 0,
+          id: grant.persona.id,
+          isGranted: true,
+          label: grant.persona.label,
+          owningBrandName: null,
+          referenceIngredientIds,
+        },
+      ];
+    });
     return [...own, ...granted]
       .sort((a, b) => a.label.localeCompare(b.label))
       .slice(0, 20);
@@ -470,6 +456,7 @@ export class PersonasService extends BaseService<
           select: {
             avatarIngredientId: true,
             handle: true,
+            references: PERSONA_REFERENCES_SELECT,
           },
           where: scopedWhere(params.organizationId, {
             handle: { in: uniqueNormalized },
@@ -488,33 +475,39 @@ export class PersonasService extends BaseService<
         ).map((grant) => grant.persona)
       : [];
 
-    const byHandle = new Map<string, string | null>();
+    // Every live reference of each handle, primary first.
+    const byHandle = new Map<string, string[]>();
     for (const row of [...rows, ...grantedRows]) {
       if (!row.handle) {
         continue;
       }
-      byHandle.set(row.handle.toLowerCase(), row.avatarIngredientId);
+      byHandle.set(row.handle.toLowerCase(), orderedReferenceIdsFromRow(row));
     }
 
+    // Handles in request order, each contributing all of its references in
+    // position order; callers cap the flat list by the model's limit, so the
+    // earlier handles' references come first.
     const resolvedIngredientIds: string[] = [];
     const unresolvedHandles: string[] = [];
     const seenIds = new Set<string>();
     const seenUnresolved = new Set<string>();
     for (const handle of requested) {
       const normalized = handle.toLowerCase();
-      const ingredientId = byHandle.get(normalized);
-      if (!ingredientId) {
+      const ingredientIds = byHandle.get(normalized) ?? [];
+      if (ingredientIds.length === 0) {
         if (!seenUnresolved.has(normalized)) {
           seenUnresolved.add(normalized);
           unresolvedHandles.push(handle);
         }
         continue;
       }
-      if (seenIds.has(ingredientId)) {
-        continue;
+      for (const ingredientId of ingredientIds) {
+        if (seenIds.has(ingredientId)) {
+          continue;
+        }
+        seenIds.add(ingredientId);
+        resolvedIngredientIds.push(ingredientId);
       }
-      seenIds.add(ingredientId);
-      resolvedIngredientIds.push(ingredientId);
     }
 
     if (unresolvedHandles.length > 0) {
@@ -531,12 +524,13 @@ export class PersonasService extends BaseService<
   /**
    * The one character admission check every generation path runs. `assetIds`
    * are the library assets a request feeds into a generation: reference
-   * images, frames and source media. An id is a character input when it is a
-   * character's reference image, or an output already linked to a character.
+   * images, frames and source media. An id is a character input when it is
+   * any reference image of a character (primary or not), or an output already
+   * linked to a character.
    * Rejects the request (not-found, before any output or charge) when the
    * character is not available to the active brand, so revoking availability
-   * stops new use on the next request. Returns the avatar ids the brand may
-   * use across brands plus the character to link the output to. Two indexed
+   * stops new use on the next request. Returns the reference ids the brand
+   * may use across brands plus the character to link the output to. Two indexed
    * queries per request (own characters, and grants to the organization, run
    * in parallel); refusals are logged with path, brand and character.
    */
@@ -562,10 +556,14 @@ export class PersonasService extends BaseService<
             select: { id: true },
             where: { id: { in: ids } },
           },
+          references: {
+            select: { ingredientId: true, position: true },
+            where: { ingredientId: { in: ids } },
+          },
         },
         where: scopedWhere(params.organizationId, {
           OR: [
-            { avatarIngredientId: { in: ids } },
+            ...personaReferencesAnyWhere(ids),
             { ingredients: { some: { id: { in: ids } } } },
           ],
         }),
@@ -614,26 +612,12 @@ export class PersonasService extends BaseService<
         params.handle,
       );
     }
-    const image = await this.prisma.ingredient.findFirst({
-      where: {
-        id: params.assetId,
-        organizationId: params.organizationId,
-        brandId: params.brandId,
-        isDeleted: false,
-        category: {
-          in: [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT],
-        },
-        status: {
-          in: [
-            IngredientStatus.GENERATED,
-            IngredientStatus.UPLOADED,
-            IngredientStatus.VALIDATED,
-          ],
-        },
-      },
-      select: { id: true },
+    const [imageId] = await findCharacterReferenceImageIds(this.prisma, {
+      brandId: params.brandId,
+      ingredientIds: [params.assetId],
+      organizationId: params.organizationId,
     });
-    if (!image) {
+    if (!imageId) {
       throw new ValidationException(
         'Choose a completed image from this brand',
         'assetId',
@@ -656,9 +640,9 @@ export class PersonasService extends BaseService<
         userId: params.userId,
       });
     }
-    return this.create({
+    const persona = await this.create({
       ...availability,
-      avatarIngredientId: image.id,
+      avatarIngredientId: imageId,
       brandId: params.brandId,
       handle,
       label: params.label,
@@ -666,6 +650,21 @@ export class PersonasService extends BaseService<
       status: PersonaStatus.ACTIVE,
       userId: params.userId,
     });
+    // The approved image is the primary reference (position 0), mirrored to
+    // `avatarIngredientId`. Should this write fail, readers still fall back
+    // to `[avatarIngredientId]` and the first reference edit stores it.
+    await this.prisma.personaReference.createMany({
+      data: [
+        {
+          ingredientId: imageId,
+          organizationId: params.organizationId,
+          personaId: persona.id,
+          position: 0,
+        },
+      ],
+      skipDuplicates: true,
+    });
+    return { ...persona, referenceIngredientIds: [imageId] };
   }
 
   async isOrganizationOwnerOrAdmin(params: {
@@ -949,34 +948,18 @@ export class PersonasService extends BaseService<
     return updated;
   }
 
-  /**
-   * Adds the read-model summary: `isShared`, and `availableBrandCount` (every
-   * organization brand for `all brands`).
-   */
-  async withAvailabilitySummary(
+  withReferenceIngredientIds(
     docs: PersonaDocument[],
     organizationId: string,
   ): Promise<PersonaDocument[]> {
-    let organizationBrandCount: number | null = null;
-    for (const doc of docs) {
-      if (doc.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS) {
-        organizationBrandCount ??= await this.prisma.brand.count({
-          where: scopedWhere(organizationId),
-        });
-      }
-    }
-    return docs.map((doc) => ({
-      ...doc,
-      availableBrandCount:
-        doc.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
-          ? (organizationBrandCount ?? 0)
-          : resolvePersonaBrandIds(doc, []).length,
-      isShared: isPersonaSharedAcrossBrands(doc),
-      owningBrandId: doc.brandId ?? null,
-      owningBrandName:
-        (doc.brand as { label?: string | null } | null | undefined)?.label ??
-        null,
-    }));
+    return withPersonaReferenceIngredientIds(this.prisma, docs, organizationId);
+  }
+
+  withAvailabilitySummary(
+    docs: PersonaDocument[],
+    organizationId: string,
+  ): Promise<PersonaDocument[]> {
+    return withPersonaAvailabilitySummary(this.prisma, docs, organizationId);
   }
 
   async assignMembers(

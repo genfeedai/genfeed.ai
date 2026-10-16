@@ -718,6 +718,23 @@ describe('Studio identity catalog recovery', () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
+    it('clears an avatar voice id saved without its provider so the user re-picks', () => {
+      mocks.identities.mockReturnValue({ ...identities, error: null });
+      const onChange = vi.fn();
+      render(
+        <StudioIdentityFields
+          settings={{ ...settings, voiceId: 'voice-1', voiceRef: undefined }}
+          type="avatar"
+          onChange={onChange}
+        />,
+      );
+
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({
+        voiceRef: undefined,
+        voiceId: undefined,
+      });
+    });
+
     it('keeps a saved HeyGen voice while its catalogue has not loaded', () => {
       mocks.identities.mockReturnValue({
         ...identities,

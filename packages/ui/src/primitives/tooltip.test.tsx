@@ -65,6 +65,8 @@ describe('shared tooltip interactions', () => {
       ),
     );
     const trigger = screen.getByRole('button', { name: 'Action' });
+    // Keyboard focus always follows a key press (Tab).
+    fireEvent.keyDown(document.body, { key: 'Tab' });
     fireEvent.focus(trigger);
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       'Keyboard hint',
@@ -72,6 +74,38 @@ describe('shared tooltip interactions', () => {
     expect(trigger).toHaveAttribute('data-state', 'instant-open');
     fireEvent.keyDown(trigger, { key: 'Escape' });
     expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('stays closed when a dialog hands focus back after a mouse click', async () => {
+    render(
+      <Button withWrapper={false} tooltip="Move to organization">
+        Move
+      </Button>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Move' })).toHaveAttribute(
+        'data-state',
+        'closed',
+      ),
+    );
+    const trigger = screen.getByRole('button', { name: 'Move' });
+
+    // Click opens a confirm; the confirm closes and focus returns here.
+    fireEvent.pointerDown(trigger, { pointerType: 'mouse' });
+    fireEvent.click(trigger);
+    fireEvent.blur(trigger);
+    fireEvent.focus(trigger);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+
+    // A real hover afterwards still shows the hint.
+    moveOver(trigger);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Move to organization',
+    );
   });
 
   it('leaves disabled tooltip content absent', () => {

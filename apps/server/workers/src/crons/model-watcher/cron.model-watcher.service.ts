@@ -1,6 +1,7 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ModelProvider } from '@genfeedai/contracts';
+import { resolveFlux3ReplicateEndpoint } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -179,11 +180,17 @@ export class CronModelWatcherService {
       // candidate for every observed endpoint. Reviewed runtime fields stay
       // pinned until an operator explicitly promotes the candidate.
       const syncedEndpoints: string[] = [];
-      for (const listedModel of candidates.values()) {
+      for (const [endpoint, listedModel] of candidates) {
         if (
-          await this.syncListedModel(listedModel, existingModels, summary, url)
+          await this.syncListedModel(
+            endpoint,
+            listedModel,
+            existingModels,
+            summary,
+            url,
+          )
         )
-          syncedEndpoints.push(`${listedModel.owner}/${listedModel.name}`);
+          syncedEndpoints.push(endpoint);
       }
 
       // Step 7: Keep the coarse discovery freshness marker in sync too.
@@ -306,13 +313,13 @@ export class CronModelWatcherService {
    * resolves true when the endpoint was synchronized.
    */
   private async syncListedModel(
+    modelKey: string,
     listedModel: IReplicateModel,
     existingModels: ReadonlyMap<string, ReplicateSyncModelRecord>,
     summary: IModelDiscoveryRunSummary,
     url: string,
   ): Promise<boolean> {
     // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
-    const modelKey = `${listedModel.owner}/${listedModel.name}`;
     let registryModel = existingModels.get(modelKey);
     try {
       const model = await this.hydrateReplicateSchema(listedModel);
@@ -418,7 +425,8 @@ export class CronModelWatcherService {
     let attempted = 0;
     for (const endpoint of existingModels.keys()) {
       if (candidates.has(endpoint)) continue;
-      const [owner, name] = endpoint.split('/');
+      // An alias row (FLUX.3 Edit) refreshes from the model Replicate hosts.
+      const [owner, name] = resolveFlux3ReplicateEndpoint(endpoint).split('/');
       if (!owner || !name) {
         summary.errors++;
         continue;

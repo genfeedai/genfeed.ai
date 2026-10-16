@@ -185,6 +185,7 @@ describe.each([true, false])(
       );
       const hooks: { beforeAnswer?: () => Promise<void> } = {};
       const openRouter = {
+        assertApiKeyAvailable: vi.fn(),
         chatCompletion: vi.fn().mockImplementation(async () => {
           await hooks.beforeAnswer?.();
           return {

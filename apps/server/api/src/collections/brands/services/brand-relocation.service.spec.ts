@@ -21,6 +21,7 @@ import {
   SECOND_ORDER_TARGETS,
 } from '@api/collections/brands/constants/brand-org-cascade.constants';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
@@ -76,6 +77,9 @@ describe('BrandRelocationService', () => {
   let queryRaw: ReturnType<typeof vi.fn>;
   let executeRaw: ReturnType<typeof vi.fn>;
   let transactionSpy: ReturnType<typeof vi.fn>;
+  let accessBootstrapCacheService: {
+    invalidateForOrganization: ReturnType<typeof vi.fn>;
+  };
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
@@ -121,6 +125,9 @@ describe('BrandRelocationService', () => {
       invalidate: vi.fn(),
       invalidateByTags: vi.fn(),
     };
+    accessBootstrapCacheService = {
+      invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+    };
     prismaProxy = new Proxy(
       {},
       {
@@ -157,12 +164,56 @@ describe('BrandRelocationService', () => {
       prismaProxy as unknown as PrismaService,
       logger as unknown as LoggerService,
       cacheInvalidationService as unknown as CacheInvalidationService,
+      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       moduleRef as unknown as ModuleRef,
     );
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('locks its receipt before moving and commits done with the ownership transaction', async () => {
+    primeRelocatableBrand();
+    getDelegate('brandRelocation').updateMany.mockResolvedValue({ count: 1 });
+    await service.relocateToOrganization(
+      BRAND_ID,
+      { organizationId: DEST_ORG },
+      { userId: USER_ID, isSuperAdmin: true },
+      undefined,
+      'move-1',
+    );
+    expect(getDelegate('brandRelocation').updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'move-1', status: 'processing' }),
+      }),
+    );
+    expect(getDelegate('brandRelocation').update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'done',
+          summary: expect.objectContaining({ membersSevered: 0 }),
+        }),
+      }),
+    );
+    expect(
+      getDelegate('brandRelocation').updateMany.mock.invocationCallOrder[0],
+    ).toBeLessThan(getDelegate('brand').updateMany.mock.invocationCallOrder[0]);
+  });
+
+  it('does not move ownership after its receipt has been finalized', async () => {
+    primeRelocatableBrand();
+    getDelegate('brandRelocation').updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { userId: USER_ID, isSuperAdmin: true },
+        undefined,
+        'move-1',
+      ),
+    ).rejects.toThrow('already finished');
+    expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
   });
 
   function primeBrand(currentOrg = SOURCE_ORG): void {
@@ -913,7 +964,18 @@ describe('BrandRelocationService', () => {
       cacheInvalidationService.invalidate.mock.calls.flat();
     expect(invalidatedKeys).toContain(`brands:list:${SOURCE_ORG}`);
     expect(invalidatedKeys).toContain(`brands:list:${DEST_ORG}`);
-    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      'brands',
+      `brand-ctx:${SOURCE_ORG}`,
+      `brand-ctx:${DEST_ORG}`,
+    ]);
+    // Members of both orgs must see the move on their next bootstrap.
+    expect(
+      accessBootstrapCacheService.invalidateForOrganization,
+    ).toHaveBeenCalledWith(SOURCE_ORG);
+    expect(
+      accessBootstrapCacheService.invalidateForOrganization,
+    ).toHaveBeenCalledWith(DEST_ORG);
 
     expect(result).toEqual({
       brand: { id: BRAND_ID, organizationId: DEST_ORG },

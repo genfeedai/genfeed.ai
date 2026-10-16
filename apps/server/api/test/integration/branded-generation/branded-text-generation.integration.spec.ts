@@ -207,6 +207,7 @@ describe('Branded text generation seam (real Postgres)', () => {
   function buildSeam() {
     const providerIds: string[] = [];
     const openRouter = {
+      assertApiKeyAvailable: vi.fn(),
       chatCompletion: vi.fn().mockImplementation(async () => {
         const id = `seam-generation-${randomUUID()}`;
         providerIds.push(id);

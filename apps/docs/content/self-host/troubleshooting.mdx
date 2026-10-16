@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: 'Fix common self-hosted Genfeed problems: Docker Compose v2 on Debian 13, P1001 database errors, port conflicts, Node.js versions, and missing provider keys.'
+description: 'Fix self-hosted Genfeed setup: Docker Compose, database connections, port conflicts, provider keys, sign-in, persistent sessions, and disk space.'
 ---
 
 # Troubleshooting
@@ -88,11 +88,43 @@ Install Node.js 24, or skip Node entirely and use the
 [release bundle](/self-host/installation#option-2-release-bundle-with-docker-compose).
 This is separate from `@genfeedai/cli`, which needs Node.js 22.12 or newer.
 
+## Missing provider key
+
+**Symptom:** the first chat, agent run, or draft fails with
+`Missing provider key: OPENROUTER_API_KEY`. The API returns HTTP `503` with
+`code: "missing_provider_key"`, and agent flows show "AI provider not connected".
+
+**Cause:** text generation routes through OpenRouter, and the key is not set.
+`OPENROUTER_API_KEY` starts blank in `.env.example`. An OpenAI or Anthropic
+key does not replace it, because those keys only serve `openai/*` and
+`anthropic/*` models and branded drafts are OpenRouter-only.
+
+**Fix:**
+
+1. Create a key at [openrouter.ai/keys](https://openrouter.ai/keys) and add
+   credits.
+2. In `.env`, set `OPENROUTER_API_KEY` to the real key. Or save it per
+   organization under **Organization settings → Integrations**.
+3. Recreate the stack, because `restart` does not re-read `.env`:
+
+   ```bash
+   docker compose --env-file .env -f compose.yml up -d
+   ```
+
+4. Run the same generation again. The failed attempt was rejected before any
+   work started, so nothing needs cleaning up.
+
+The same message can name `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`: set that key,
+or choose a model that routes through OpenRouter. See
+[Provider API keys](/self-host/provider-api-keys).
+
 ## Generation does nothing or fails
 
-The model keys in `.env` start blank, and self-hosting has no Genfeed credits.
-Add the key for the provider behind the model you chose, recreate the stack, and
-try a small request. See [Provider API keys](/self-host/provider-api-keys).
+Read the error first. If it says `Missing provider key`, follow the section
+above. Otherwise, add the key for the provider behind the model you chose
+(Replicate or fal for media, ElevenLabs for voice), recreate the stack, and try a
+small request. Self-hosting has no Genfeed credits. Then check the provider's
+dashboard for balance and model access, and read the container logs.
 
 If a turn fails with `OPENROUTER_API_KEY is not configured`, set a real
 `OPENROUTER_API_KEY` in `.env` and recreate the stack. Text generation and the
@@ -104,6 +136,80 @@ and a placeholder in `.env` counts as not configured.
 The Community image does not start GPU or local-model services, so a model that
 needs your own ComfyUI or GPU host will not run unless you point
 `DARKROOM_COMFYUI_URL` at one.
+
+## I cannot sign up or sign in
+
+- **No sign-up form, and no login page at all.** If you set
+  `BETTER_AUTH_ENABLED=false`, there is no login wall: you are already the seeded
+  local user. Nothing to fix.
+- **The login page has no email and password form.** It offers Google and Magic
+  Link. Magic Link needs `RESEND_API_KEY`; Google needs OAuth credentials.
+  Otherwise create the account through the API and sign in at `/login/password`.
+  See [Create the first user](/self-host/installation#create-the-first-user).
+- **The login wall does not appear after you enabled it.** Set
+  `BETTER_AUTH_ENABLED=true` (and, if you set it, `NEXT_PUBLIC_BETTER_AUTH_ENABLED`
+  to match), then recreate the stack. A plain restart does not re-read `.env`.
+- **Sign-in fails behind a domain.** Set `BETTER_AUTH_URL` to your public API URL
+  and `BETTER_AUTH_TRUSTED_ORIGINS` to your public app URL, then recreate the
+  stack. See [Reverse proxy and HTTPS](/self-host/reverse-proxy).
+- **A new account is empty.** Each signup gets its own organization and brand,
+  separate from the seeded `default` workspace.
+
+## I am logged out after a restart
+
+Sessions are signed with `BETTER_AUTH_SECRET`. Left empty, the container
+generates one and keeps it in `/data/.better-auth-secret` on the `genfeed_data`
+volume. If you are logged out after every restart, that volume is not persisting:
+check that you did not run `docker compose down -v`, change the project name, or
+remove the volume. If you set `BETTER_AUTH_SECRET` yourself, make sure the value
+is identical on every start.
+
+## Back up and reset
+
+Back up both volumes, `postgres_data` and `genfeed_data`. `genfeed_data` holds
+`/data/.encryption-key` (or whatever you set as `TOKEN_ENCRYPTION_KEY`). Stored
+provider and channel credentials cannot be decrypted without it, so keep a copy
+of that key with your database backups.
+
+To start over from a clean state:
+
+```bash
+docker compose --env-file .env -f compose.yml down -v
+docker compose --env-file .env -f compose.yml up -d
+```
+
+`down -v` deletes the database, generated files, and generated secrets. There is
+no undo.
+
+## Email is not sending
+
+Magic links, password resets, verification emails, and invites are sent through
+Resend. Set `RESEND_API_KEY` (and `RESEND_FROM_EMAIL` for a sender you have
+verified with Resend), recreate the stack, and check
+`docker compose --env-file .env -f compose.yml logs genfeed` for delivery errors.
+Email and password sign-in does not need email unless verification is switched
+on.
+
+## The disk is full
+
+Genfeed needs about 10 GB free, and generated media and Docker images grow it.
+See where the space went:
+
+```bash
+docker system df
+docker compose --env-file .env -f compose.yml exec genfeed du -sh /data/files
+```
+
+Remove unused images with `docker image prune` after an upgrade. Do not run
+`docker volume prune` unless you have a backup, because it removes the volumes
+of stopped stacks.
+
+## Apple Silicon
+
+The image is `linux/amd64`. On Apple Silicon, Docker Desktop runs it under
+emulation, which is slower to start and to run. If the container exits at once or
+the health check keeps failing, give Docker Desktop more CPU and memory in its
+settings, and allow extra time on first start.
 
 ## The web UI loads but nothing works behind my domain
 

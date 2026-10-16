@@ -4,9 +4,11 @@ import type {
   OrganizationCreditUsageResponse,
   SubscriptionChangePreview,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { Subscription } from '@genfeedai/models/billing/subscription.model';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
+import type { AxiosRequestConfig } from 'axios';
 
 export class SubscriptionsService extends BaseService<Subscription> {
   constructor(token: string) {
@@ -58,7 +60,10 @@ export class SubscriptionsService extends BaseService<Subscription> {
       createdAt?: string;
     }>;
   }> {
-    const res = await this.instance.get('current/credits');
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [500, 502, 503, 504],
+    };
+    const res = await this.instance.get('current/credits', config);
     return res.data.data;
   }
 

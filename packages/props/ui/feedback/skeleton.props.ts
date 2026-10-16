@@ -4,11 +4,6 @@ export interface SkeletonTableProps {
   className?: string;
 }
 
-export interface SkeletonMasonryProps {
-  count?: number;
-  className?: string;
-}
-
 export interface SkeletonCardProps {
   label?: string;
   'data-testid'?: string;

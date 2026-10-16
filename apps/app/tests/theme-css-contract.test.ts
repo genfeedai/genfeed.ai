@@ -24,6 +24,41 @@ describe('Tailwind theme selector contract', () => {
     expect(appEntry).not.toContain('apps/server');
   });
 
+  it('stills every element except the page menu and progress indicators', () => {
+    const appEntry = readFileSync(
+      join(process.cwd(), 'app/styles.css'),
+      'utf8',
+    );
+    const policy = readFileSync(
+      join(process.cwd(), '../../packages/styles/motion-policy.css'),
+      'utf8',
+    );
+    const rail = readFileSync(
+      join(
+        process.cwd(),
+        '../../packages/ui/src/components/shell/app-rail/AppRail.tsx',
+      ),
+      'utf8',
+    );
+    const sidebar = readFileSync(
+      join(
+        process.cwd(),
+        '../../packages/ui/src/components/layouts/app/DesktopSidebar.tsx',
+      ),
+      'utf8',
+    );
+
+    expect(appEntry).toContain(
+      '@import "../../../packages/styles/motion-policy.css";',
+    );
+    expect(policy).toContain('[data-motion="allow"] *');
+    expect(policy).toContain('[class*="genfeed-loader"]');
+    expect(policy).toContain('transition-duration: 0.01ms !important;');
+    expect(policy).toContain('animation-duration: 0.01ms !important;');
+    expect(rail).toContain('data-motion="allow"');
+    expect(sidebar).toContain('data-motion="allow"');
+  });
+
   it('binds dark variants to the data-theme attribute used by next-themes', () => {
     const source = readFileSync(
       join(process.cwd(), '../../packages/styles/globals.css'),

@@ -1,5 +1,6 @@
 import { CharacterImageInspectionController } from '@api/collections/personas/controllers/character-image-inspection.controller';
 import { PersonaGrantsController } from '@api/collections/personas/controllers/persona-grants.controller';
+import { PersonaReferencesController } from '@api/collections/personas/controllers/persona-references.controller';
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { PersonasContentController } from '@api/collections/personas/controllers/personas-content.controller';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
@@ -14,6 +15,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     PersonaGrantsController,
+    PersonaReferencesController,
     PersonasController,
     PersonasContentController,
     CharacterImageInspectionController,

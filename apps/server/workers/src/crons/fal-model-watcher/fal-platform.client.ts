@@ -25,10 +25,19 @@ const MODELS_URL = 'https://api.fal.ai/v1/models';
 const PRICING_URL = 'https://api.fal.ai/v1/models/pricing';
 const MAX_ATTEMPTS = 3;
 const MAX_PAGES = 100;
-const MODELS_PAGE_LIMIT = 50;
+/** Fal rejects `limit` above 10 when `expand=openapi-3.0` is requested. */
+const MODELS_ENDPOINT_LIMIT = 10;
 const PRICING_ENDPOINT_LIMIT = 50;
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRY_DELAY_MS = 30_000;
+
+/**
+ * Fal answers 404 for the whole request when any one requested endpoint is not
+ * addressable by its exact id, so callers split the batch to isolate it.
+ */
+export class FalEndpointNotFoundError extends Error {
+  override readonly name = 'FalEndpointNotFoundError';
+}
 
 @Injectable()
 export class FalPlatformClient {
@@ -49,15 +58,62 @@ export class FalPlatformClient {
         new Promise((resolve) => setTimeout(resolve, milliseconds)));
   }
 
-  async fetchModels(): Promise<IFalModel[]> {
+  /**
+   * OpenAPI-expanded metadata for exactly these endpoints. Endpoints fal cannot
+   * address by exact id are left out of the result.
+   */
+  async fetchModels(endpoints: readonly string[]): Promise<IFalModel[]> {
+    const models = new Map<string, IFalModel>();
+    for (const chunk of this.chunks(endpoints, MODELS_ENDPOINT_LIMIT)) {
+      for (const model of await this.isolatingMissingEndpoints(chunk, (ids) =>
+        this.fetchModelChunk(ids),
+      ))
+        models.set(model.endpoint_id, model);
+    }
+    return [...models.values()];
+  }
+
+  /**
+   * Whether fal still lists this endpoint as active. Realtime endpoints (H3 Max
+   * Director) are listed by search but not addressable by exact id.
+   */
+  async isListedActive(endpoint: string): Promise<boolean> {
+    const url = new URL(MODELS_URL);
+    url.searchParams.set('q', endpoint);
+    url.searchParams.set('limit', String(MODELS_ENDPOINT_LIMIT));
+    const data = await this.request<IFalModelsResponse>(url);
+    return (data.models ?? []).some(
+      (model) =>
+        model.endpoint_id === endpoint &&
+        (!model.metadata?.status || model.metadata.status === 'active'),
+    );
+  }
+
+  async fetchPricing(
+    endpoints: readonly string[],
+  ): Promise<Array<Record<string, unknown>>> {
+    const prices = new Map<string, Record<string, unknown>>();
+    for (const chunk of this.chunks(endpoints, PRICING_ENDPOINT_LIMIT)) {
+      for (const price of await this.isolatingMissingEndpoints(chunk, (ids) =>
+        this.fetchPricingChunk(ids),
+      ))
+        prices.set(JSON.stringify(price), price);
+    }
+    return [...prices.values()];
+  }
+
+  private async fetchModelChunk(
+    endpoints: readonly string[],
+  ): Promise<IFalModel[]> {
     const models: IFalModel[] = [];
     let cursor: string | null = null;
 
     for (let page = 0; page < MAX_PAGES; page++) {
       const url = new URL(MODELS_URL);
       url.searchParams.set('expand', 'openapi-3.0');
-      url.searchParams.set('limit', String(MODELS_PAGE_LIMIT));
-      url.searchParams.set('status', 'active');
+      url.searchParams.set('limit', String(MODELS_ENDPOINT_LIMIT));
+      for (const endpoint of endpoints)
+        url.searchParams.append('endpoint_id', endpoint);
       if (cursor) url.searchParams.set('cursor', cursor);
 
       const data = await this.request<IFalModelsResponse>(url);
@@ -73,41 +129,64 @@ export class FalPlatformClient {
     throw new Error(`Fal model pagination exceeded ${MAX_PAGES} pages`);
   }
 
-  async fetchPricing(
+  private async fetchPricingChunk(
     endpoints: readonly string[],
   ): Promise<Array<Record<string, unknown>>> {
-    const prices = new Map<string, Record<string, unknown>>();
-    for (
-      let offset = 0;
-      offset < endpoints.length;
-      offset += PRICING_ENDPOINT_LIMIT
-    ) {
-      const chunk = endpoints.slice(offset, offset + PRICING_ENDPOINT_LIMIT);
-      let cursor: string | null = null;
+    const prices: Array<Record<string, unknown>> = [];
+    let cursor: string | null = null;
 
-      for (let page = 0; page < MAX_PAGES; page++) {
-        const url = new URL(PRICING_URL);
-        for (const endpoint of chunk)
-          url.searchParams.append('endpoint_id', endpoint);
-        if (cursor) url.searchParams.set('cursor', cursor);
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const url = new URL(PRICING_URL);
+      for (const endpoint of endpoints)
+        url.searchParams.append('endpoint_id', endpoint);
+      if (cursor) url.searchParams.set('cursor', cursor);
 
-        const data = await this.request<FalPricingResponse>(url);
-        for (const price of data.prices ?? []) {
-          const identity = JSON.stringify(price);
-          prices.set(identity, price);
-        }
-        this.logger.log('FalPlatformClient fetched pricing page', {
-          count: data.prices?.length ?? 0,
-          page: page + 1,
-        });
-        if (!data.has_more || !data.next_cursor) break;
-        cursor = data.next_cursor;
-        if (page === MAX_PAGES - 1) {
-          throw new Error(`Fal pricing pagination exceeded ${MAX_PAGES} pages`);
-        }
-      }
+      const data = await this.request<FalPricingResponse>(url);
+      prices.push(...(data.prices ?? []));
+      this.logger.log('FalPlatformClient fetched pricing page', {
+        count: data.prices?.length ?? 0,
+        page: page + 1,
+      });
+      if (!data.has_more || !data.next_cursor) return prices;
+      cursor = data.next_cursor;
     }
-    return [...prices.values()];
+
+    throw new Error(`Fal pricing pagination exceeded ${MAX_PAGES} pages`);
+  }
+
+  /** On a batch 404, retry each endpoint alone and drop the unaddressable ones. */
+  private async isolatingMissingEndpoints<T>(
+    endpoints: readonly string[],
+    fetchChunk: (endpoints: readonly string[]) => Promise<T[]>,
+  ): Promise<T[]> {
+    try {
+      return await fetchChunk(endpoints);
+    } catch (error: unknown) {
+      if (!(error instanceof FalEndpointNotFoundError)) throw error;
+      if (endpoints.length === 1) {
+        this.logger.warn('FalPlatformClient endpoint not addressable', {
+          endpoint: endpoints[0],
+        });
+        return [];
+      }
+      const results: T[] = [];
+      for (const endpoint of endpoints)
+        results.push(
+          ...(await this.isolatingMissingEndpoints([endpoint], fetchChunk)),
+        );
+      return results;
+    }
+  }
+
+  private chunks(
+    values: readonly string[],
+    size: number,
+  ): Array<readonly string[]> {
+    const unique = [...new Set(values)];
+    const chunks: Array<readonly string[]> = [];
+    for (let offset = 0; offset < unique.length; offset += size)
+      chunks.push(unique.slice(offset, offset + size));
+    return chunks;
   }
 
   private getToken(): string {
@@ -131,6 +210,10 @@ export class FalPlatformClient {
         });
         lastStatus = response.status;
         if (response.ok) return (await response.json()) as T;
+        if (response.status === 404)
+          throw new FalEndpointNotFoundError(
+            'Fal could not address a requested endpoint',
+          );
 
         if (!this.isRetryable(response.status) || attempt === MAX_ATTEMPTS) {
           break;
@@ -143,7 +226,11 @@ export class FalPlatformClient {
         });
         await this.sleep(delayMs);
       } catch (error: unknown) {
-        if (attempt === MAX_ATTEMPTS) throw error;
+        if (
+          error instanceof FalEndpointNotFoundError ||
+          attempt === MAX_ATTEMPTS
+        )
+          throw error;
         const delayMs = 250 * 2 ** (attempt - 1);
         this.logger.warn('Fal platform transport retry scheduled', {
           attempt,

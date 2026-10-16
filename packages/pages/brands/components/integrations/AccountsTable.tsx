@@ -4,15 +4,14 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import { Link2, Plus } from 'lucide-react';
+import { Link2, Plus, RefreshCw, Settings, Unlink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import AccountCell from './AccountCell';
-import AccountRowActionsMenu from './AccountRowActionsMenu';
 import AccountStatusBadge from './AccountStatusBadge';
 import { getConnectionLabel } from './account-connection-status.util';
 
@@ -80,33 +79,38 @@ export default function AccountsTable({
           />
         ),
       },
+    ],
+    [healthByCredentialId, translate],
+  );
+
+  const actions = useMemo<TableAction<BrandDetailSocialConnection>[]>(
+    () => [
       {
-        className: 'w-12 text-right',
-        header: (
-          <span className="sr-only">{translate('accountsTableActions')}</span>
-        ),
-        key: 'actions',
+        icon: <RefreshCw aria-hidden="true" />,
         // Only the row being reconnected is disabled — keyed by
         // credentialId, not platform, so reconnecting one account doesn't
         // freeze Reconnect for a sibling account on the same platform. A
         // brand-new connect (no credential yet) is tracked separately, by
         // ConnectAccountModal's own connectingPlatform.
-        render: (connection) => (
-          <AccountRowActionsMenu
-            connection={connection}
-            isReconnectDisabled={
-              unavailablePlatforms.has(connection.platform) ||
-              reconnectingCredentialId === connection.credentialId
-            }
-            onDisconnect={onDisconnect}
-            onOpenSettings={onOpenSettings}
-            onReconnect={onReconnect}
-          />
-        ),
+        isDisabled: (connection) =>
+          unavailablePlatforms.has(connection.platform) ||
+          reconnectingCredentialId === connection.credentialId,
+        onClick: onReconnect,
+        tooltip: translate('reconnect'),
+      },
+      {
+        icon: <Settings aria-hidden="true" />,
+        onClick: onOpenSettings,
+        tooltip: translate('settings'),
+      },
+      {
+        className: 'text-destructive hover:text-destructive',
+        icon: <Unlink aria-hidden="true" />,
+        onClick: onDisconnect,
+        tooltip: translate('disconnect'),
       },
     ],
     [
-      healthByCredentialId,
       onDisconnect,
       onOpenSettings,
       onReconnect,
@@ -118,6 +122,7 @@ export default function AccountsTable({
 
   return (
     <AppTable<BrandDetailSocialConnection>
+      actions={actions}
       ariaLabel={translate('connectedAccounts')}
       columns={columns}
       emptyState={

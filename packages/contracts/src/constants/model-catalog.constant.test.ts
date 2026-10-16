@@ -609,3 +609,101 @@ describe('brand vision catalog models (#6727)', () => {
     ).toEqual([BRAND_VISION_DETECT_MODEL_KEY]);
   });
 });
+
+describe('model version lifecycle', () => {
+  const byKey = new Map(
+    UNIFIED_MODEL_CATALOG.map((entry) => [entry.key, entry]),
+  );
+
+  it('flags older media versions Legacy and points each at its newer model', () => {
+    for (const [key, successor] of [
+      [
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
+      ],
+      [
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      ],
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1],
+      [
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+      ],
+      [
+        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+        MODEL_KEYS.REPLICATE_MINIMAX_H3,
+      ],
+    ])
+      expect(byKey.get(key), key).toMatchObject({
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: successor,
+      });
+  });
+
+  it('retires models the provider no longer serves onto a live successor', () => {
+    for (const key of [
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
+      MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
+      MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
+      MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+      MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
+    ])
+      expect(byKey.get(key)?.lifecycle, key).toBe(ModelLifecycle.RETIRED);
+  });
+
+  it('moves X drafts and the retired Grok 4.1 Fast row onto priced Grok 4.3', () => {
+    expect(
+      byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST)?.succeededBy,
+    ).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3);
+    expect(byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3)).toMatchObject({
+      inputCostPerMillionTokens: 1.25,
+      isPublic: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens: 2.5,
+      provider: ModelProvider.OPENROUTER,
+    });
+  });
+
+  it('points every Legacy or Retired row at a non-retired model of its category', () => {
+    for (const catalog of [
+      UNIFIED_MODEL_CATALOG,
+      getModelCatalogForDeployment(true, { isCloud: true }),
+    ]) {
+      const keys = new Map(catalog.map((entry) => [entry.key, entry]));
+      for (const entry of catalog) {
+        if (!entry.succeededBy) continue;
+        const successor = keys.get(entry.succeededBy);
+        expect(successor, `${entry.key} -> ${entry.succeededBy}`).toBeDefined();
+        expect(successor?.category, entry.key).toBe(entry.category);
+        expect(successor?.lifecycle, entry.key).not.toBe(
+          ModelLifecycle.RETIRED,
+        );
+      }
+    }
+  });
+
+  it('retires Genfeed fleet deployments on Cloud only', () => {
+    const fleetKeys = Object.values(MODEL_KEYS).filter((key) =>
+      key.startsWith('genfeed-ai/'),
+    );
+    const mediaFleetKeys = fleetKeys.filter((key) => byKey.has(key));
+    expect(mediaFleetKeys.length).toBeGreaterThan(0);
+    const cloud = new Map(
+      getModelCatalogForDeployment(true, { isCloud: true }).map((entry) => [
+        entry.key,
+        entry,
+      ]),
+    );
+    for (const key of mediaFleetKeys) {
+      expect(cloud.get(key), key).toMatchObject({
+        isActive: false,
+        isPublic: false,
+        lifecycle: ModelLifecycle.RETIRED,
+      });
+      expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
+    }
+  });
+});

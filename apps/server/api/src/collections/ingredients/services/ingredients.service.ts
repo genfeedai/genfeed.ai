@@ -18,8 +18,10 @@ import {
   preserveIngredientGenerationEntry,
   stampIngredientGenerationEntry,
 } from '@api/collections/ingredients/utils/ingredient-generation-entry.util';
+import { ingredientPopulationForContext } from '@api/collections/ingredients/utils/ingredient-population.util';
 import { canEditAssetTags } from '@api/collections/ingredients/utils/ingredient-tag-edit-access.util';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
+import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
@@ -35,7 +37,6 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   FleetReviewStatus,
@@ -132,41 +133,37 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Get context-aware population options to prevent over-fetching
-   * @param context - The context determining which fields to populate
+   * Character reference hook. A character's primary reference is mirrored to
+   * `Persona.avatarIngredientId`; moving an asset to or from the trash
+   * re-mirrors it for every character using that asset. Resolved lazily
+   * (strict:false) like the asset gate, so this widely provided service gains
+   * no constructor or module edge (it is also provided by the workers domain
+   * module). Best-effort: readers already skip trashed references, so a
+   * failure only leaves the single-image mirror stale until the next write.
    */
+  protected async resyncCharacterReferences(
+    organizationId: string | null | undefined,
+    ingredientIds: readonly string[],
+  ): Promise<void> {
+    if (!organizationId || ingredientIds.length === 0) {
+      return;
+    }
+    try {
+      await this.moduleRef
+        .get(PersonaReferencesService, { strict: false })
+        .resyncForIngredients(organizationId, ingredientIds);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.constructorName} character reference re-sync failed`,
+        { error, ingredientIds, organizationId },
+      );
+    }
+  }
+
   protected getPopulationForContext(
     context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
   ): PopulateOption[] {
-    // User details are omitted from list projections unless a caller explicitly
-    // needs them; this keeps ingredient payloads and relation queries bounded.
-    switch (context) {
-      case 'list':
-        return [
-          PopulatePatterns.brandMinimal,
-          PopulatePatterns.metadataBasic,
-          PopulatePatterns.promptMinimal,
-          { path: 'tags', select: ['id', 'label'] },
-        ];
-      case 'detail':
-        return [
-          PopulatePatterns.organizationMinimal,
-          PopulatePatterns.brandMinimal,
-          PopulatePatterns.metadataFull,
-          PopulatePatterns.promptFull,
-          { path: 'parent', select: ['id', 'category', 'status'] },
-          { path: 'references', select: ['id', 'category', 'status'] },
-          { path: 'tags', select: ['id', 'label'] },
-        ];
-      case 'create':
-        return [
-          PopulatePatterns.brandMinimal,
-          PopulatePatterns.metadataBasic,
-          PopulatePatterns.promptMinimal,
-        ];
-      default:
-        return [PopulatePatterns.brandId, { path: 'metadata', select: ['id'] }];
-    }
+    return ingredientPopulationForContext(context);
   }
 
   @HandleErrors('create ingredient', 'ingredients')
@@ -433,6 +430,10 @@ export class IngredientsService extends BaseService<
         throw new NotFoundException('Ingredient', id);
       }
 
+      if (Object.hasOwn(updateDto, 'isDeleted')) {
+        await this.resyncCharacterReferences(current.organizationId, [id]);
+      }
+
       const result = await this.findOne(rowWhere, populate);
 
       if (!result) {
@@ -510,13 +511,15 @@ export class IngredientsService extends BaseService<
   /** Soft-delete one ingredient, keyed by the request organization inside a request. */
   override async remove(id: string): Promise<IngredientDocument | null> {
     const organizationId = requestOrganizationId();
-    if (!organizationId) {
-      return super.remove(id);
+    const removed = organizationId
+      ? await this.patchOneWhere(scopedWhere(organizationId, { id }), {
+          isDeleted: true,
+        })
+      : await super.remove(id);
+    if (removed) {
+      await this.resyncCharacterReferences(removed.organizationId, [id]);
     }
-
-    return this.patchOneWhere(scopedWhere(organizationId, { id }), {
-      isDeleted: true,
-    });
+    return removed;
   }
 
   async patchAll(
@@ -664,9 +667,14 @@ export class IngredientsService extends BaseService<
       return null;
     }
 
-    return this.patchOneWhere(scopedWhere(organizationId, { id }), {
-      isDeleted: true,
-    });
+    const deleted = await this.patchOneWhere(
+      scopedWhere(organizationId, { id }),
+      { isDeleted: true },
+    );
+    if (deleted) {
+      await this.resyncCharacterReferences(organizationId, [id]);
+    }
+    return deleted;
   }
 
   /**
@@ -723,6 +731,7 @@ export class IngredientsService extends BaseService<
         data: { isDeleted: true },
         where: scopedWhere(organizationId, { id: { in: [...permittedIds] } }),
       });
+      await this.resyncCharacterReferences(organizationId, [...permittedIds]);
     }
 
     this.logger.debug(`${this.constructorName} bulkSoftDeleteScoped success`, {

@@ -86,6 +86,7 @@ describe('SaveAsCharacter', () => {
         avatarIngredientId: 'image-1',
         handle: 'anna',
         label: 'Anna',
+        referenceIngredientIds: ['image-1'],
       },
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'actions.save' }));
@@ -104,7 +105,12 @@ describe('SaveAsCharacter', () => {
   });
   it('shows the durable character label after remount without creating duplicates', async () => {
     mocks.list.mockResolvedValue([
-      { id: 'character-1', avatarIngredientId: 'image-1', handle: 'anna' },
+      {
+        id: 'character-1',
+        avatarIngredientId: 'image-1',
+        handle: 'anna',
+        referenceIngredientIds: ['image-1'],
+      },
     ]);
     mount();
     expect(
@@ -207,7 +213,12 @@ describe('SaveAsCharacter', () => {
   });
   it('skips image detection for a known saved reference', async () => {
     mocks.list.mockResolvedValue([
-      { id: 'character-1', avatarIngredientId: 'image-1', handle: 'anna' },
+      {
+        id: 'character-1',
+        avatarIngredientId: 'image-1',
+        handle: 'anna',
+        referenceIngredientIds: ['image-1'],
+      },
     ]);
     mount();
     await screen.findByRole('button', { name: 'saveExisting.saved anna' });
@@ -241,6 +252,7 @@ describe('SaveAsCharacter', () => {
         avatarIngredientId: 'image-1',
         handle: null,
         label: null,
+        referenceIngredientIds: ['image-1'],
       },
     ]);
     mount();

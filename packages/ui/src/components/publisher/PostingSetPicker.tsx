@@ -146,7 +146,11 @@ export default function PostingSetPicker({
             {translate('none')}
           </SelectItem>
           {sets.map((postingSet) => (
-            <SelectItem key={postingSet.id} value={postingSet.id}>
+            <SelectItem
+              className="normal-case"
+              key={postingSet.id}
+              value={postingSet.id}
+            >
               {postingSet.label}
             </SelectItem>
           ))}

@@ -14,6 +14,7 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   getPublishingPostHref,
   getPublishingReleaseHref,
@@ -62,6 +63,7 @@ import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -72,6 +74,8 @@ import {
   Files,
   Kanban,
   LayoutGrid,
+  PanelRightOpen,
+  RotateCcw,
   Rows3,
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -437,53 +441,95 @@ export default function PublishingContentLibrary({
       }
     }
   };
-  const renderPrimaryAction = (item: PublishingContentLibraryItem) => {
-    const isFailed =
-      item.type === 'post' &&
-      (item.release
+  const isItemFailed = (item: PublishingContentLibraryItem) =>
+    item.type === 'post' &&
+    Boolean(
+      item.release
         ? item.release.targets?.some(
             (target) =>
               target.executionState === TargetExecutionState.FAILED &&
               !isTargetBlockedByReadiness(target),
           )
-        : item.status === 'failed');
+        : item.status === 'failed',
+    );
+  const getOverflowActions = (item: PublishingContentLibraryItem) =>
+    (item.release?.targets ?? []).flatMap((target) => [
+      {
+        id: `target:${target.id}`,
+        label: translate('openTarget', { platform: target.platform }),
+        href: href(getPublishingPostHref(target.id)),
+      },
+      ...(target.executionState === TargetExecutionState.PUBLISHED &&
+      isSourcePostVariationPlatform(target.platform)
+        ? [
+            {
+              id: `variations:${target.id}`,
+              label: translate('variations', { platform: target.platform }),
+              href: href(
+                buildSourcePostVariationsHref({
+                  platform: target.platform,
+                  postId: target.id,
+                }),
+              ),
+            },
+          ]
+        : []),
+    ]);
+  const runPrimaryAction = (item: PublishingContentLibraryItem) => {
+    if (isItemFailed(item)) void retryItem(item);
+    else openRowOverlay(item);
+  };
+
+  // Card views keep a labelled primary action.
+  const renderPrimaryAction = (item: PublishingContentLibraryItem) => (
+    <CollectionItemActions
+      overflow={getOverflowActions(item)}
+      primary={
+        <Button
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          isDisabled={pendingAction !== null}
+          onClick={(event) => {
+            event.stopPropagation();
+            runPrimaryAction(item);
+          }}
+        >
+          {translate(isItemFailed(item) ? 'retry' : 'open')}
+        </Button>
+      }
+    />
+  );
+
+  // Table rows: icon-only actions revealed on row hover or keyboard focus.
+  // The per-target overflow menu varies by row, so this stays a column
+  // rather than the table's static `actions` prop.
+  const renderRowActions = (item: PublishingContentLibraryItem) => {
+    const primaryLabel = translate(isItemFailed(item) ? 'retry' : 'open');
     return (
       <CollectionItemActions
-        overflow={(item.release?.targets ?? []).flatMap((target) => [
-          {
-            id: `target:${target.id}`,
-            label: translate('openTarget', { platform: target.platform }),
-            href: href(getPublishingPostHref(target.id)),
-          },
-          ...(target.executionState === TargetExecutionState.PUBLISHED &&
-          isSourcePostVariationPlatform(target.platform)
-            ? [
-                {
-                  id: `variations:${target.id}`,
-                  label: translate('variations', { platform: target.platform }),
-                  href: href(
-                    buildSourcePostVariationsHref({
-                      platform: target.platform,
-                      postId: target.id,
-                    }),
-                  ),
-                },
-              ]
-            : []),
-        ])}
+        className={cn('justify-end', hoverRevealClassName({ at: 'lg' }))}
+        overflow={getOverflowActions(item)}
         primary={
           <Button
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
+            ariaLabel={primaryLabel}
+            icon={
+              isItemFailed(item) ? (
+                <RotateCcw aria-hidden="true" />
+              ) : (
+                <PanelRightOpen aria-hidden="true" />
+              )
+            }
             isDisabled={pendingAction !== null}
+            size={ButtonSize.ICON}
+            tooltip={primaryLabel}
+            tooltipPosition="left"
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={(event) => {
               event.stopPropagation();
-              if (isFailed) void retryItem(item);
-              else openRowOverlay(item);
+              runPrimaryAction(item);
             }}
-          >
-            {translate(isFailed ? 'retry' : 'open')}
-          </Button>
+          />
         }
       />
     );
@@ -545,7 +591,7 @@ export default function PublishingContentLibrary({
     {
       header: <span className="sr-only">Actions</span>,
       key: 'actions',
-      render: (item) => renderPrimaryAction(item),
+      render: (item) => renderRowActions(item),
     },
   ];
 

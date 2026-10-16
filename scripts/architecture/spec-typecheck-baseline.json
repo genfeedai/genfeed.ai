@@ -3580,48 +3580,8 @@
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
-      "fingerprint": "4ad3be1518aa42472029",
-      "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
-      "fingerprint": "6e6cf91abefcf0ab118d",
-      "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
       "fingerprint": "9e27ce2ffeb7e4ebaa67",
       "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 14,
-      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
-      "fingerprint": "aa14ce97ee03c79cf426",
-      "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.spec.ts",
-      "fingerprint": "3e89b3afed903554ff9e",
-      "message": "'callArg' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 5,
-      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.spec.ts",
-      "fingerprint": "912b3bb3a25561e24b67",
-      "message": "'callArg' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -8697,14 +8657,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2769,
-      "count": 1,
-      "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
-      "fingerprint": "52aef4dfd01346ab12d3",
-      "message": "No overload matches this call.   Overload 1 of 2, '(props: IngredientListProps<IIngredient>, context?: any): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.     Type '{}' is missing the following properties from type 'IngredientListProps<IIngredient>': ingredients, selectedIngredientId   Overload 2 of 2, '(props: IngredientListProps<IIngredient>): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.     Type '{}' is missing the following properties from type 'IngredientListProps<IIngredient>': ingredients, selectedIngredientId",
-      "workspace": "ui"
-    },
-    {
       "code": 2352,
       "count": 2,
       "file": "packages/ui/src/components/lists/list/List.test.tsx",
@@ -9741,14 +9693,6 @@
       "count": 1,
       "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
       "fingerprint": "af5c2d5bea6ff2bd4f57",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
-      "fingerprint": "e573553c98f10789ebc4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "workers"
     },

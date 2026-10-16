@@ -40,6 +40,7 @@ export function useModelsList({
   category,
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
+  onRefresh,
 }: ModelsListProps) {
   const { organizationId } = useBrand();
   const translate = useTranslations('pages.models');
@@ -277,8 +278,8 @@ export function useModelsList({
   );
 
   const refresh = useCallback(async () => {
-    await Promise.all([refetchModels(), refetchCatalogModels()]);
-  }, [refetchCatalogModels, refetchModels]);
+    await Promise.all([refetchModels(), refetchCatalogModels(), onRefresh?.()]);
+  }, [onRefresh, refetchCatalogModels, refetchModels]);
 
   // Mark component as mounted after first render
   useEffect(() => {

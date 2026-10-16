@@ -680,6 +680,22 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 1,
     },
+    // Backup Topaz route on fal, seeded inactive: the upscale services still
+    // dispatch to Replicate, and fal's watcher keeps these contracts current.
+    [MODEL_KEYS.FAL_TOPAZ_IMAGE_UPSCALE]: {
+      category: ModelCategory.IMAGE_UPSCALE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+      maxUpscaleFactor: 6,
+    },
+    [MODEL_KEYS.FAL_TOPAZ_VIDEO_UPSCALE]: {
+      category: ModelCategory.VIDEO_UPSCALE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+      maxUpscaleFactor: 4,
+    },
 
     [MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO]: {
       aspectRatios: ['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'],
@@ -1271,10 +1287,18 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
-    // Live, and deliberately not in the agent chat picker. Wired as
-    // `LLM_DEFAULTS.grokFast` for TwitterPipelineService.draft. Do not retire
-    // it onto the frontier Grok row (that is how grok-4-fast became a 10x bill).
+    // OpenRouter lists no endpoint for it since 2026-10; the registry row is
+    // RETIRED onto Grok 4.3 so stored bindings keep resolving.
     [MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST]: {
+      category: ModelCategory.TEXT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    // Not in the agent chat picker. Wired as `LLM_DEFAULTS.grokFast` for
+    // TwitterPipelineService.draft. Do not move it onto the frontier Grok row
+    // (that is how grok-4-fast became a 10x bill).
+    [MODEL_KEYS.OPENROUTER_XAI_GROK_4_3]: {
       category: ModelCategory.TEXT,
       isBatchSupported: false,
       maxOutputs: 1,

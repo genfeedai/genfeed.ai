@@ -16,6 +16,7 @@ import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useCallback, useMemo } from 'react';
 import {
+  buildProtectedBootstrapCacheKey,
   clearClientProtectedBootstrapCache,
   loadClientProtectedBootstrap,
 } from '../../providers/protected-bootstrap/client-protected-bootstrap';
@@ -59,7 +60,10 @@ export function UserProvider({
     effectiveIsAuthLoaded && effectiveIsSignedIn && !!authUserId;
   const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? null;
   const clientBootstrapCacheKey = shouldFetch
-    ? `protected-bootstrap:${authUserId}:${effectiveOrgId ?? 'no-org'}`
+    ? buildProtectedBootstrapCacheKey({
+        organizationId: effectiveOrgId,
+        userId: authUserId,
+      })
     : undefined;
 
   const initialUser = useMemo(

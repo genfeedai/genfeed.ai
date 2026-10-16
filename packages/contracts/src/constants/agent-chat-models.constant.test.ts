@@ -268,7 +268,7 @@ describe('LLM_DEFAULTS', () => {
   });
 
   it('keeps grokFast on the cheap xAI key, not the frontier picker row', () => {
-    expect(LLM_DEFAULTS.grokFast).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST);
+    expect(LLM_DEFAULTS.grokFast).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3);
     expect(LLM_DEFAULTS.grokFast).not.toBe(LLM_DEFAULTS.grok);
     expect(getAgentChatModel(LLM_DEFAULTS.grokFast)).toBeUndefined();
   });
@@ -292,6 +292,7 @@ const LITERAL_ALLOWLIST = new Set([
 const CATALOGUE_LITERALS = [
   ...Object.values(AGENT_CHAT_MODEL_KEYS),
   MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+  MODEL_KEYS.OPENROUTER_XAI_GROK_4_3,
 ];
 
 function walkProductionTsFiles(dir: string, out: string[] = []): string[] {

@@ -1,4 +1,5 @@
 import type { BrandEntity } from '@api/collections/brands/entities/brand.entity';
+import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -76,7 +77,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 describe('BrandsController', () => {
   let agentConfigController: BrandsAgentConfigController;
-  let activitiesService: vi.Mocked<ActivityRecorderService>;
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
@@ -106,10 +106,18 @@ describe('BrandsController', () => {
     query: {},
   } as Request;
 
+  const relocationJobs = { enqueue: vi.fn(), get: vi.fn() };
+
   beforeEach(async () => {
+    relocationJobs.enqueue.mockResolvedValue({
+      id: 'move-1',
+      brandId: mockBrand.id,
+      status: 'processing',
+    });
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BrandsAgentConfigController, BrandsController],
       providers: [
+        { provide: BrandRelocationJobsService, useValue: relocationJobs },
         {
           provide: REQUEST,
           useValue: mockRequest,
@@ -244,7 +252,6 @@ describe('BrandsController', () => {
     agentConfigController = module.get<BrandsAgentConfigController>(
       BrandsAgentConfigController,
     );
-    activitiesService = module.get(ActivityRecorderService);
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
@@ -441,7 +448,7 @@ describe('BrandsController', () => {
         slug: 'new-handle',
       });
 
-      expect(brandsService.relocateToOrganization).toHaveBeenCalled();
+      expect(relocationJobs.enqueue).toHaveBeenCalled();
       expect(brandsService.isSlugAvailable).not.toHaveBeenCalled();
     });
 
@@ -475,91 +482,33 @@ describe('BrandsController', () => {
     });
   });
 
-  it('routes an explicit organization change through the relocation operation', async () => {
-    const brandId = testId('brand');
-    const destinationOrganizationId = testId('org', 2);
-    const sourceOrganizationId = testId('brand');
-    const summary = {
-      membersSevered: 0,
-      personaGrantsRevoked: 0,
-      schedulesHeld: 2,
-      schedulingPending: 0,
-      workflowsMoved: 0,
-    };
+  it('returns an accepted processing receipt without running the transaction', async () => {
     brandsService.findOne.mockResolvedValue({
       ...mockBrand,
-      organizationId: sourceOrganizationId,
+      organizationId: testId('org', 2),
     } as never);
-    brandsService.relocateToOrganization.mockResolvedValue({
-      brand: {
-        ...mockBrand,
-        organizationId: destinationOrganizationId,
-      },
-      summary,
-    } as never);
-
-    const updateDto = {
-      label: 'Relocated Brand',
-      organizationId: destinationOrganizationId,
-    };
+    const status = vi.fn();
     const result = await controller.patch(
       mockRequest,
       mockUser,
-      brandId,
-      updateDto,
+      mockBrand.id,
+      { organizationId: mockUser.organizationId },
+      { status } as never,
     );
-
-    expect(brandsService.patch).not.toHaveBeenCalled();
-    expect(brandsService.relocateToOrganization).toHaveBeenCalledWith(
-      brandId,
-      updateDto,
-      {
-        isApiKey: undefined,
-        isSuperAdmin: false,
-        scopes: undefined,
-        userId: mockUser.userId,
-      },
-    );
-    expect(result.meta).toEqual(summary);
-
-    // Recorded once in each organization, so the brand owner and both
-    // organization owners hear about the move; the source record cannot name
-    // the brand, which no longer lives there.
-    expect(activitiesService.recordMany).toHaveBeenCalledOnce();
-    const [recorded] = activitiesService.recordMany.mock.calls[0];
-    expect(recorded).toEqual([
-      expect.objectContaining({
-        brandId,
-        key: 'brand-relocated',
-        organizationId: destinationOrganizationId,
-        userId: mockBrand.userId,
-        value: JSON.stringify(summary),
-      }),
-      expect.objectContaining({
-        brandId: null,
-        data: expect.objectContaining({ brandId }),
-        key: 'brand-relocated',
-        organizationId: sourceOrganizationId,
-        userId: mockBrand.userId,
-      }),
-    ]);
+    expect(status).toHaveBeenCalledWith(202);
+    expect(result.data).toMatchObject({
+      id: 'move-1',
+      status: 'processing',
+    });
+    expect(brandsService.relocateToOrganization).not.toHaveBeenCalled();
   });
 
-  it('hands the key scopes to the relocation so an unscoped key cannot move a brand', async () => {
-    const keyUser = {
-      ...mockUser,
-      isApiKey: true,
-      scopes: ['read'],
-    } as unknown as User;
+  it('hands API key scopes to admission and preview', async () => {
+    const keyUser = { ...mockUser, isApiKey: true, scopes: ['read'] } as User;
     brandsService.findOne.mockResolvedValue({
       ...mockBrand,
-      organizationId: testId('brand'),
+      organizationId: testId('org', 2),
     } as never);
-    brandsService.relocateToOrganization.mockResolvedValue({
-      brand: { ...mockBrand, organizationId: mockUser.organizationId },
-      summary: {},
-    } as never);
-
     await controller.patch(mockRequest, keyUser, mockBrand.id, {
       organizationId: mockUser.organizationId,
     });
@@ -569,15 +518,15 @@ describe('BrandsController', () => {
       mockBrand.id,
       mockUser.organizationId,
     );
-
     const actor = {
       isApiKey: true,
       isSuperAdmin: false,
       scopes: ['read'],
       userId: mockUser.userId,
     };
-    expect(brandsService.relocateToOrganization).toHaveBeenCalledWith(
+    expect(relocationJobs.enqueue).toHaveBeenCalledWith(
       mockBrand.id,
+      expect.any(String),
       expect.anything(),
       actor,
     );
@@ -588,27 +537,22 @@ describe('BrandsController', () => {
     );
   });
 
-  it('answers a committed move even when recording its activity fails', async () => {
-    brandsService.findOne.mockResolvedValue({
-      ...mockBrand,
-      organizationId: testId('brand'),
-    } as never);
-    brandsService.relocateToOrganization.mockResolvedValue({
-      brand: { ...mockBrand, organizationId: mockUser.organizationId },
-      summary: { schedulesHeld: 1 },
-    } as never);
-    activitiesService.recordMany.mockRejectedValue(new Error('db down'));
-
-    const result = await controller.patch(mockRequest, mockUser, mockBrand.id, {
+  it('recovers an idempotent request after its brand already moved', async () => {
+    const request = {
+      ...mockRequest,
+      headers: { 'idempotency-key': 'b59b0757-e219-4ba4-b4f6-80aee3a88a34' },
+    } as unknown as Request;
+    const result = await controller.patch(request, mockUser, mockBrand.id, {
       organizationId: mockUser.organizationId,
     });
-
-    expect(result.meta).toEqual({ schedulesHeld: 1 });
-    expect(_loggerService.error).toHaveBeenCalledWith(
-      'Failed to record brand relocation activity',
-      expect.any(Error),
-      { brandId: mockBrand.id },
+    expect(result.data).toMatchObject({ id: 'move-1' });
+    expect(relocationJobs.enqueue).toHaveBeenCalledWith(
+      mockBrand.id,
+      request.headers['idempotency-key'],
+      expect.anything(),
+      expect.anything(),
     );
+    expect(brandsService.patch).not.toHaveBeenCalled();
   });
 
   describe('findAll', () => {
@@ -716,44 +660,23 @@ describe('BrandsController', () => {
       expect(flags).toEqual([false]);
     });
 
-    it('runs a relocation and its preview across tenants, never for the lookup alone', async () => {
+    it('keeps the relocation preview inside its explicit cross-org scope', async () => {
       const flags: boolean[] = [];
-      brandsService.findOne.mockImplementation(async () => {
-        flags.push(isCrossOrgUnsafe());
-        return {
-          ...mockBrand,
-          organizationId: 'cmorganization000000000000009',
-        } as never;
-      });
-      brandsService.relocateToOrganization.mockImplementation(async () => {
-        flags.push(isCrossOrgUnsafe());
-        return {
-          brand: { ...mockBrand, organizationId: mockUser.organizationId },
-          summary: {},
-        } as never;
-      });
       brandsService.previewRelocation.mockImplementation(async () => {
         flags.push(isCrossOrgUnsafe());
         return {} as never;
       });
-
       await runWithTenantContext(
         { organizationId: mockUser.organizationId },
-        async () => {
-          await controller.patch(mockRequest, mockUser, mockBrand.id, {
-            organizationId: mockUser.organizationId,
-          });
-          await controller.previewRelocation(
+        () =>
+          controller.previewRelocation(
             mockRequest,
             mockUser,
             mockBrand.id,
             mockUser.organizationId,
-          );
-        },
+          ),
       );
-
-      // lookup (cross-org: the source may be another org), relocate, preview.
-      expect(flags).toEqual([true, true, true]);
+      expect(flags).toEqual([true]);
     });
   });
 

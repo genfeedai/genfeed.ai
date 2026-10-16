@@ -1083,7 +1083,7 @@ describe('IngredientsListContent generation ledger columns', () => {
     expect(screen.getAllByText('—')).toHaveLength(3);
   });
 
-  it('offers a retry action next to the status chip for a FAILED asset', () => {
+  it('offers a retry row action for a FAILED asset', () => {
     const onReprompt = vi.fn();
     renderContent({
       filteredIngredients: [failedIngredient],

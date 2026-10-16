@@ -585,7 +585,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     variantRules: [
       {
-        criterionTitle: 'resolution',
+        criterionTitle: 'target resolution',
         selectorKey: 'resolution',
         derive: {
           kind: 'field',
@@ -2224,6 +2224,124 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl: 'https://replicate.com/runwayml/gen4-image-turbo',
     verifiedAt: '2026-10-06T09:45:38.303Z',
+  },
+  {
+    // Billed $0.08 per Topaz "unit"; the model readme maps units to output
+    // megapixels (1 unit up to 24 MP, 2 up to 48, 4 at 96, 17 at 512), and
+    // Topaz on fal states the same ($0.08 to 24 MP, $0.32 to 96 MP, $1.36 at
+    // 512 MP). Every started 24 MP block is exact through 96 MP and never
+    // below the table beyond it.
+    endpoint: 'topazlabs/image-upscale',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'megapixel',
+        unitPriceUsd: 0.08 / 24,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 24,
+        roundUnitsTo: 24,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/topazlabs/image-upscale',
+    verifiedAt: '2026-10-15T15:00:00.000Z',
+  },
+  {
+    // Replicate's page names only a priced "unit". Per second of output, the
+    // higher of Topaz's first-party tiers on fal ($0.01 up to 720p, $0.02 to
+    // 1080p, $0.08 above, doubled at 60 fps) and the per-5-second table the
+    // upscale quote used (1080p/30 $0.101), so neither source is undercut.
+    endpoint: 'topazlabs/video-upscale',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.01,
+        when: { target_fps: 15, target_resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.01,
+        when: { target_fps: 24, target_resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.01,
+        when: { target_fps: 30, target_resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { target_fps: 60, target_resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { target_fps: 15, target_resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { target_fps: 24, target_resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0202,
+        when: { target_fps: 30, target_resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0406,
+        when: { target_fps: 60, target_resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: { target_fps: 15, target_resolution: '4k' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: { target_fps: 24, target_resolution: '4k' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: { target_fps: 30, target_resolution: '4k' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.16,
+        when: { target_fps: 60, target_resolution: '4k' },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/topazlabs/video-upscale',
+    verifiedAt: '2026-10-15T15:00:00.000Z',
   },
   {
     endpoint: 'wan-video/wan-2.2-i2v-fast',

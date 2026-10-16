@@ -174,7 +174,11 @@ export default function LivestreamBotConfigCard({
                   {translate('restreamAccount.autoDetect')}
                 </SelectItem>
                 {restreamCredentials.map((credential) => (
-                  <SelectItem key={credential.id} value={credential.id}>
+                  <SelectItem
+                    className="normal-case"
+                    key={credential.id}
+                    value={credential.id}
+                  >
                     {credential.label}
                   </SelectItem>
                 ))}

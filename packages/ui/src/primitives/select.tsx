@@ -85,6 +85,7 @@ function SelectTrigger({
       className={cn(
         fieldControlClassName,
         fieldControlTriggerClassName,
+        'dropdown-case',
         className,
       )}
       {...props}
@@ -210,7 +211,7 @@ function SelectItem({
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        'relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pr-2 pl-8 text-sm text-foreground outline-none focus:bg-hover focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'dropdown-case relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pr-2 pl-8 text-sm text-foreground outline-none focus:bg-hover focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}
       value={toSelectItemValue(value)}

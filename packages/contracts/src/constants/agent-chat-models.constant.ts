@@ -207,8 +207,11 @@ export const LLM_DEFAULTS = {
   background: AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
   /** xAI / Grok jobs (trends, X realtime). */
   grok: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
-  /** Cheap Grok for high-frequency X drafts. Not in the picker. */
-  grokFast: MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+  /**
+   * Cheapest live Grok for high-frequency X drafts. Not in the picker.
+   * Grok 4.1 Fast lost every OpenRouter endpoint in 2026-10.
+   */
+  grokFast: MODEL_KEYS.OPENROUTER_XAI_GROK_4_3,
   /**
    * Seed fallback for product text (drafts, prompt enhancement) when no
    * Admin → Automation → Models `isDefault` TEXT row resolves. Rejected

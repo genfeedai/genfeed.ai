@@ -3,7 +3,6 @@
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-context';
 import {
-  ButtonSize,
   ButtonVariant,
   ComponentSize,
   categoryToString,
@@ -55,7 +54,7 @@ import { groupIngredientsByTime } from '@ui/ingredients/list/media-grid/ingredie
 import FailedIngredientsRecovery from '@ui/ingredients/list/recovery/FailedIngredientsRecovery';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { format } from 'date-fns';
 import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -581,32 +580,19 @@ export default function IngredientsListContent({
               }}
             />
             {isActionsEnabled ? (
-              <IngredientReviewActions
-                ingredient={ingredient}
-                onUpdated={handleReviewUpdated}
-              />
+              // Approve/reject are row actions: shown on row hover or focus.
+              <div className={hoverRevealClassName({ at: 'lg' })}>
+                <IngredientReviewActions
+                  ingredient={ingredient}
+                  onUpdated={handleReviewUpdated}
+                />
+              </div>
             ) : null}
-            {isFailedIngredient(ingredient) && onReprompt && (
-              <Button
-                label={translateRetry('retry')}
-                ariaLabel={translateRetry('retryAriaLabel')}
-                icon={<RefreshCw className="size-3.5" />}
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.XS}
-                onClick={() => onReprompt(ingredient)}
-              />
-            )}
           </div>
         ),
       },
     ],
-    [
-      onReprompt,
-      translate,
-      translateRetry,
-      isActionsEnabled,
-      handleReviewUpdated,
-    ],
+    [translate, isActionsEnabled, handleReviewUpdated],
   );
 
   const openIngredientPreview = useCallback(
@@ -712,10 +698,19 @@ export default function IngredientsListContent({
         isDisabled: (ingredient: IIngredient) =>
           storyboardEntry.pendingAssetId === ingredient.id,
       },
+      {
+        icon: <RefreshCw />,
+        isVisible: (ingredient: IIngredient) =>
+          Boolean(onReprompt) && isFailedIngredient(ingredient),
+        onClick: (ingredient: IIngredient) => onReprompt?.(ingredient),
+        tooltip: translateRetry('retryAriaLabel'),
+      },
     ],
     [
       handleViewIngredient,
       isActionsEnabled,
+      onReprompt,
+      translateRetry,
       scope,
       storyboardEntry.canCreateFromAsset,
       storyboardEntry.createFromAsset,

@@ -68,8 +68,6 @@ export function getSizeOverrideClassName(size?: ButtonSize | null) {
 
 export type ButtonStyleProps = {
   className?: string;
-  /** Opt out of the press scale (pagination, segmented controls, toggles). */
-  isStatic?: boolean;
   size?: ButtonSize | null;
   variant?: ButtonVariant | null;
 };
@@ -82,7 +80,7 @@ export const TEXT_TRANSFORM_CLASSES: Record<string, string> = {
 };
 
 const nativeButtonVariants = cva(
-  'inline-flex items-center gap-2 whitespace-nowrap text-left text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out cursor-pointer active:scale-[0.96] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex items-center gap-2 whitespace-nowrap text-left text-xs font-medium cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     defaultVariants: {
       size: 'default',
@@ -110,7 +108,7 @@ const nativeButtonVariants = cva(
           'justify-center rounded-md bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25',
         ghost:
           'rounded-md bg-transparent text-muted-foreground hover:bg-hover hover:text-foreground',
-        link: 'justify-center text-foreground underline-offset-4 hover:underline active:scale-100',
+        link: 'justify-center text-foreground underline-offset-4 hover:underline',
         secondary:
           'justify-center rounded-md bg-tertiary text-foreground border border-border hover:bg-hover',
       },
@@ -127,7 +125,6 @@ const nativeButtonVariants = cva(
 
 export const buttonVariants = ({
   className,
-  isStatic = false,
   size = ButtonSize.DEFAULT,
   variant = ButtonVariant.DEFAULT,
 }: ButtonStyleProps = {}) => {
@@ -143,7 +140,6 @@ export const buttonVariants = ({
       variant: BUTTON_VARIANT_CONFIG[resolvedVariant].nativeVariant,
     }),
     getSizeOverrideClassName(size),
-    isStatic && 'active:scale-100',
     className,
   );
 };

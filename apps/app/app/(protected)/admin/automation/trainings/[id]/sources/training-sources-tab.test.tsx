@@ -25,7 +25,7 @@ vi.mock('@tanstack/react-query', () => ({
   useQuery: mocks.useQuery,
 }));
 
-vi.mock('@ui/masonry/grid/MasonryGrid', () => ({
+vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
   default: vi.fn(() => <div data-testid="masonry-grid" />),
 }));
 

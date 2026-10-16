@@ -54,6 +54,22 @@ export const PRICING = {
 } as const;
 
 export const TOPAZ_VIDEO_UPSCALE_RESOLUTIONS = ['720p', '1080p', '4k'] as const;
+
+/** Topaz image `upscale_factor` values; the upscale service defaults to 4x. */
+const TOPAZ_IMAGE_UPSCALE_FACTORS: Readonly<Record<string, number>> = {
+  '2x': 2,
+  '4x': 4,
+  '6x': 6,
+  None: 1,
+};
+
+/** Linear scale of a Topaz image upscale, or null for an unknown factor. */
+export function topazImageUpscaleFactor(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') return 4;
+  return typeof value === 'string'
+    ? (TOPAZ_IMAGE_UPSCALE_FACTORS[value] ?? null)
+    : null;
+}
 export const TOPAZ_VIDEO_UPSCALE_FPS = [15, 24, 30, 60] as const;
 
 export type TopazVideoUpscaleResolution =

@@ -236,7 +236,7 @@ describe('StripeService', () => {
       );
 
       const callArg = createSpy.mock.calls[0][0];
-      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg?.allow_promotion_codes).toBe(true);
       expect(callArg).not.toHaveProperty('discounts');
     });
   });
@@ -347,7 +347,7 @@ describe('StripeService', () => {
       await service.createPaymentSession('cust', 'scale_id', 'http://origin');
 
       const callArg = createSpy.mock.calls[0][0];
-      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg?.allow_promotion_codes).toBe(true);
       expect(callArg).not.toHaveProperty('discounts');
     });
 
@@ -389,7 +389,7 @@ describe('StripeService', () => {
       );
 
       const callArg = createSpy.mock.calls[0][0];
-      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg?.allow_promotion_codes).toBe(true);
       expect(callArg).not.toHaveProperty('discounts');
     });
 
@@ -431,7 +431,7 @@ describe('StripeService', () => {
       );
 
       const callArg = createSpy.mock.calls[0][0];
-      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg?.allow_promotion_codes).toBe(true);
       expect(callArg).not.toHaveProperty('discounts');
     });
   });

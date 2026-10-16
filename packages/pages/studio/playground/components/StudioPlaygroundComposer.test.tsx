@@ -45,6 +45,7 @@ import {
   ModelLifecycle,
   ModelProvider,
   RouterPriority,
+  VoiceProvider,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
@@ -811,10 +812,20 @@ describe('StudioPlaygroundComposer', () => {
     }
   });
 
+  const avatarVoiceRef = {
+    externalVoiceId: 'voice-1',
+    provider: VoiceProvider.ELEVENLABS,
+    source: 'catalog',
+  } as const;
+
   it.each([
     ['no avatar or voice', {}],
     ['only an avatar', { avatarPhotoUrl: 'https://assets.test/photo.jpg' }],
-    ['only a voice', { voiceId: 'voice-1' }],
+    ['only a voice', { voiceId: 'voice-1', voiceRef: avatarVoiceRef }],
+    [
+      'a voice id without its provider',
+      { avatarPhotoUrl: 'https://assets.test/photo.jpg', voiceId: 'voice-1' },
+    ],
   ])('blocks an avatar video with %s', (_label, identity) => {
     render(
       <StudioPlaygroundComposer
@@ -840,6 +851,7 @@ describe('StudioPlaygroundComposer', () => {
           ...settings,
           avatarPhotoUrl: 'https://assets.test/photo.jpg',
           voiceId: 'voice-1',
+          voiceRef: avatarVoiceRef,
         }}
         type="avatar"
       />,
@@ -854,6 +866,7 @@ describe('StudioPlaygroundComposer', () => {
     const avatarIdentity = {
       avatarPhotoUrl: 'https://assets.test/photo.jpg',
       voiceId: 'voice-1',
+      voiceRef: avatarVoiceRef,
     };
     const engines = [
       { key: MODEL_KEYS.HEYGEN_AVATAR_IV, label: 'HeyGen Avatar IV' } as IModel,
@@ -888,8 +901,8 @@ describe('StudioPlaygroundComposer', () => {
         text: 'Say hello',
         useIdentity: true,
         voiceId: 'voice-1',
-        voiceProvider: undefined,
-        voiceRef: undefined,
+        voiceProvider: VoiceProvider.ELEVENLABS,
+        voiceRef: avatarVoiceRef,
       });
       expect(screen.getByText('~52 · ~4 s')).toBeVisible();
       expect(
@@ -981,11 +994,20 @@ describe('StudioPlaygroundComposer', () => {
 
     it.each([
       ['no script', '', avatarIdentity],
-      ['no avatar', 'Say hello', { voiceId: 'voice-1' }],
+      [
+        'no avatar',
+        'Say hello',
+        { voiceId: 'voice-1', voiceRef: avatarVoiceRef },
+      ],
       [
         'no voice',
         'Say hello',
         { avatarPhotoUrl: avatarIdentity.avatarPhotoUrl },
+      ],
+      [
+        'a voice id without its provider',
+        'Say hello',
+        { ...avatarIdentity, voiceRef: undefined },
       ],
     ])(
       'asks for the missing input instead of an error when there is %s',

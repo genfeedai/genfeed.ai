@@ -13,6 +13,7 @@ import type {
   StudioPlaygroundAssetActions,
 } from '@genfeedai/props/studio/studio-playground.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCharacterReferenceDeleteWarning } from '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import {
@@ -59,6 +60,7 @@ export function useStudioPlaygroundAssetActions({
   );
   const { openConfirm } = useConfirmModal();
   const { openPostBatchModal } = usePostModal({ onRefresh });
+  const getCharacterReferenceWarning = useCharacterReferenceDeleteWarning();
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
   );
@@ -159,8 +161,11 @@ export function useStudioPlaygroundAssetActions({
   );
 
   const onDeleteIngredient = useCallback(
-    (ingredient: IIngredient) => {
+    async (ingredient: IIngredient) => {
+      const children = await getCharacterReferenceWarning([ingredient.id]);
+
       openConfirm({
+        children,
         confirmLabel: 'Move to Trash',
         isError: true,
         label: 'Move to Trash',
@@ -169,12 +174,17 @@ export function useStudioPlaygroundAssetActions({
           deletePersistedIngredient(ingredient.id, ingredient.id),
       });
     },
-    [deletePersistedIngredient, openConfirm],
+    [deletePersistedIngredient, getCharacterReferenceWarning, openConfirm],
   );
 
   const onRemoveGeneration = useCallback(
-    (job: StudioPlaygroundJob) => {
+    async (job: StudioPlaygroundJob) => {
+      const children = job.ingredientId
+        ? await getCharacterReferenceWarning([job.ingredientId])
+        : undefined;
+
       openConfirm({
+        children,
         confirmLabel: translate('remove'),
         isError: true,
         label: translate('removeDialogTitle'),
@@ -194,6 +204,7 @@ export function useStudioPlaygroundAssetActions({
     },
     [
       deletePersistedIngredient,
+      getCharacterReferenceWarning,
       notificationsService,
       onDeleted,
       openConfirm,

@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ModelBillablePricingProfile } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
+import { quoteModelBillablePricing } from '../model-billable-quote';
 import { classifyModelPricingAttention } from '../model-pricing-attention';
 import { hashReviewedProviderRates } from '../reviewed-rate-hash';
 import {
@@ -134,6 +135,34 @@ describe('reviewed rate sheet', () => {
         'dispatch does not supply input megapixels',
       );
     }
+  });
+
+  it('prices Topaz image upscales per started 24 MP output block at $0.08', () => {
+    const entry = findReviewedRateSheetEntry(
+      'replicate',
+      'topazlabs/image-upscale',
+    );
+    if (!entry) throw new Error('missing Topaz image entry');
+    const profile = profileFor(entry);
+    const cost = (width: number, height: number) => {
+      const quote = quoteModelBillablePricing(
+        profile,
+        {
+          height,
+          modelKey: entry.endpoint,
+          provider: 'replicate',
+          width,
+        },
+        1,
+        entry.verifiedAt,
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      return quote.snapshot.providerCostUsd;
+    };
+    // 4x of 1024x1024 is 16.8 MP; 6x of 1024x768 is 28.3 MP; 96 MP exactly.
+    expect(cost(4096, 4096)).toBeCloseTo(0.08, 10);
+    expect(cost(6144, 4608)).toBeCloseTo(0.16, 10);
+    expect(cost(12000, 8000)).toBeCloseTo(0.32, 10);
   });
 
   it('never lists a model as both priced and unpriced', () => {

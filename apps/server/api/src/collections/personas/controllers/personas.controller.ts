@@ -8,12 +8,14 @@ import { PersonasQueryDto } from '@api/collections/personas/dto/personas-query.d
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
+import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   brandAvailabilityWhere,
   hasSharedAvailability,
   isPersonaAvailableToBrand,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { stripAvailabilityFields } from '@api/collections/personas/utils/persona-availability-fields.util';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -38,6 +40,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { PersonaSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -53,28 +56,6 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-const AVAILABILITY_FIELDS = [
-  'availabilityMode',
-  'availableBrandIds',
-  'availabilityAudits',
-  'isShared',
-  'availableBrandCount',
-  'owningBrandId',
-  'owningBrandName',
-] as const;
-
-/**
- * Availability is changed only through `PATCH /personas/:id/availability`
- * (admin-gated and audited), never through the generic create/update routes.
- */
-function stripAvailabilityFields<T extends object>(dto: T): T {
-  const copy = { ...dto } as Record<string, unknown>;
-  for (const field of AVAILABILITY_FIELDS) {
-    delete copy[field];
-  }
-  return copy as T;
-}
-
 @AutoSwagger()
 @Controller('personas')
 @UseGuards(RolesGuard)
@@ -88,6 +69,7 @@ export class PersonasController extends BaseCRUDController<
     public readonly personasService: PersonasService,
     public readonly loggerService: LoggerService,
     private readonly ownershipService: CharacterOwnershipService,
+    private readonly referencesService: PersonaReferencesService,
   ) {
     super(loggerService, personasService, PersonaSerializer, 'Persona', [
       'user',
@@ -279,11 +261,17 @@ export class PersonasController extends BaseCRUDController<
     data: PersonaDocument,
     user: User,
   ): Promise<PersonaDocument> {
-    const [decorated] = await this.personasService.withAvailabilitySummary(
+    const organizationId =
+      getTenantContext()?.organizationId ?? user.organizationId;
+    const [summarized] = await this.personasService.withAvailabilitySummary(
       [data],
-      user.organizationId,
+      organizationId,
     );
-    return decorated ?? data;
+    const [decorated] = await this.personasService.withReferenceIngredientIds(
+      [summarized ?? data],
+      organizationId,
+    );
+    return decorated ?? summarized ?? data;
   }
 
   /** Lookups by id never cross organizations (super admins excepted). */
@@ -381,6 +369,45 @@ export class PersonasController extends BaseCRUDController<
     return super.remove(request, user, id);
   }
 
+  /**
+   * Runs the generic PATCH ownership checks first (404 like the base route),
+   * so the references are only touched when the rest of the update would be
+   * allowed too.
+   */
+  private async setPrimaryReference(
+    request: Request,
+    user: User,
+    id: string,
+    ingredientId: string | null,
+  ): Promise<void> {
+    const personaId = EntityIdUtil.validate(id, 'personaId');
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    const existing = await this.personasService.findOne({
+      id: personaId,
+      organizationId: user.organizationId,
+    });
+    if (
+      !existing ||
+      (!this.canUserModifyEntity(user, existing) && !isSuperAdmin)
+    ) {
+      throw new NotFoundException('Persona', id);
+    }
+    if (existing.avatarIngredientId === ingredientId) {
+      return;
+    }
+    await this.referencesService.setPrimary({
+      actor: {
+        apiKeyContext: user,
+        isSuperAdmin,
+        userId: user.userId ?? user.id,
+      },
+      brandId: user.brandId,
+      ingredientId,
+      organizationId: user.organizationId,
+      personaId,
+    });
+  }
+
   private async assertSharedPersonaEditable(
     request: Request,
     user: User,
@@ -450,17 +477,23 @@ export class PersonasController extends BaseCRUDController<
       await this.personasService.assignMembers(personaId, memberIds, orgId);
     }
 
-    const { memberIds: _memberIds, ...rest } = updateDto;
-    const hasRemainingFields = Object.keys(rest).length > 0;
+    // The primary reference image is kept consistent with the ordered
+    // references (moved or inserted at position 0, same image validation as
+    // the references routes) instead of being written as a bare column.
+    if (Object.hasOwn(updateDto, 'avatarIngredientId')) {
+      await this.setPrimaryReference(
+        request,
+        user,
+        id,
+        updateDto.avatarIngredientId ?? null,
+      );
+    }
 
-    // If the request only carried memberIds, the assignment above is the
-    // whole update — skip the base PATCH flow (it would otherwise be a
-    // no-op patch, still worth returning the fresh entity for).
-    return super.patch(
-      request,
-      user,
-      id,
-      (hasRemainingFields ? rest : {}) as UpdatePersonaDto,
-    );
+    const {
+      avatarIngredientId: _avatarIngredientId,
+      memberIds: _memberIds,
+      ...rest
+    } = updateDto;
+    return super.patch(request, user, id, rest);
   }
 }

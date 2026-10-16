@@ -860,6 +860,14 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
   // A post's ordered media links carry the post's organization; the link has
   // no brand key of its own, so it follows the post.
   secondOrderChild('postIngredient', 'post_ingredients', POST_PARENT),
+  // A character's ordered reference images carry the character's
+  // organization; the row has no brand key, so it follows its persona (not the
+  // image, which a shared character may take from another brand).
+  secondOrderChild('personaReference', 'persona_references', {
+    fkField: 'personaId',
+    parentBrandField: 'brandId',
+    parentDelegate: 'persona',
+  }),
   {
     delegate: 'taskComment',
     table: 'task_comments',
@@ -1002,6 +1010,8 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   // API key never moves orgs, so defaultBrandId cannot share the compound
   // (brandId, organizationId) cascade used by brand-owned content (#5219).
   'ApiKey',
+  // A relocation receipt retains its source tenant and committed outcome.
+  'BrandRelocation',
   // Saved generation receipts and events retain immutable tenant ownership.
   'BrandedGenerationReceipt',
   'BrandedGenerationReceiptEvent',
@@ -1069,6 +1079,7 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'api_keys',
+  'brand_relocations',
   'branded_generation_receipts',
   'branded_generation_receipt_events',
   'crun_generation_tasks',

@@ -160,7 +160,7 @@ export default function AgentConversationBubble({
           aria-controls="workspace-agent-dock"
           aria-expanded={isOpen}
           ariaLabel={translate(isOpen ? 'close' : 'open')}
-          className="pointer-events-auto relative z-20 flex size-12 items-center justify-center rounded-full shadow-lg motion-safe:hover:scale-105 motion-safe:active:scale-95"
+          className="pointer-events-auto relative z-20 flex size-12 items-center justify-center rounded-full shadow-lg"
           data-testid="agent-conversation-bubble"
           onClick={onOpen}
           onPointerEnter={showShortcuts}

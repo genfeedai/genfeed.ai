@@ -26,8 +26,13 @@ export function hasStudioAvatarSelection(
   return Boolean(settings.avatarRef || settings.avatarPhotoUrl);
 }
 
+/**
+ * A voice counts as picked only when its id travels with its `voiceRef`, which
+ * carries the provider. An id alone (an Agent handoff, an old saved pick)
+ * cannot be quoted or sent, so the user re-picks instead of hitting a throw.
+ */
 export function hasStudioVoiceSelection(
-  settings: Pick<StudioPlaygroundSettings, 'voiceId'>,
+  settings: Pick<StudioPlaygroundSettings, 'voiceId' | 'voiceRef'>,
 ): boolean {
-  return Boolean(settings.voiceId);
+  return Boolean(settings.voiceId && settings.voiceRef);
 }

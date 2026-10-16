@@ -13,6 +13,7 @@ import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-
 import {
   ACCOUNT_GENERATION_QUEUE,
   AGENT_TURN_QUEUE,
+  BRAND_RELOCATION_QUEUE,
   BRAND_VISION_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
@@ -58,6 +59,7 @@ import { ConfigService } from '@workers/config/config.service';
       },
     }),
     BullModule.registerQueue(
+      { name: BRAND_RELOCATION_QUEUE },
       {
         name: ACCOUNT_GENERATION_QUEUE,
         defaultJobOptions: {

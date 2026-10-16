@@ -2,7 +2,14 @@
 
 import { cn } from '@genfeedai/helpers';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { type ComponentPropsWithRef, useContext } from 'react';
+import {
+  type ComponentPropsWithRef,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { SimpleTooltipProps, TooltipPosition } from './tooltip.types';
 import { TooltipProviderContext } from './tooltip-context';
 
@@ -52,9 +59,39 @@ function TooltipContent({
 }
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
+// Input modality, shared by every tooltip: was the last input a key press?
+// One pair of capture listeners for the whole page, installed lazily.
+let isKeyboardModality = false;
+let isModalityTracked = false;
+
+function trackInputModality(): void {
+  if (isModalityTracked || typeof window === 'undefined') {
+    return;
+  }
+  isModalityTracked = true;
+  window.addEventListener(
+    'keydown',
+    () => {
+      isKeyboardModality = true;
+    },
+    true,
+  );
+  window.addEventListener(
+    'pointerdown',
+    () => {
+      isKeyboardModality = false;
+    },
+    true,
+  );
+}
+
 /**
  * Simplified Tooltip component for common use cases
  * Wraps shadcn tooltip primitives with a convenient single-component API
+ *
+ * Opens only on a real hover or on keyboard focus. Focus a dialog hands back
+ * to its trigger after a mouse-driven close (confirm, modal) does not open the
+ * hint: the user just acted on that control and did not ask what it is.
  */
 function SimpleTooltip({
   label,
@@ -64,14 +101,45 @@ function SimpleTooltip({
   isDisabled = false,
 }: SimpleTooltipProps) {
   const hasSharedProvider = useContext(TooltipProviderContext) !== null;
+  const [isOpen, setIsOpen] = useState(false);
+  const isHoveredRef = useRef(false);
+
+  useEffect(() => {
+    trackInputModality();
+  }, []);
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    if (nextOpen && !isHoveredRef.current && !isKeyboardModality) {
+      return;
+    }
+    setIsOpen(nextOpen);
+  }, []);
 
   if (isDisabled || !label) {
     return children;
   }
 
   const tooltip = (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
+    <Tooltip onOpenChange={handleOpenChange} open={isOpen}>
+      <TooltipTrigger
+        asChild
+        onPointerDown={() => {
+          // Acting on the control ends the hover that showed the hint; only a
+          // fresh pointer move over it counts as hovering again.
+          isHoveredRef.current = false;
+          setIsOpen(false);
+        }}
+        onPointerLeave={() => {
+          isHoveredRef.current = false;
+        }}
+        onPointerMove={(event) => {
+          if (event.pointerType !== 'touch') {
+            isHoveredRef.current = true;
+          }
+        }}
+      >
+        {children}
+      </TooltipTrigger>
       <TooltipContent className={contentClassName} side={position}>
         {label}
       </TooltipContent>

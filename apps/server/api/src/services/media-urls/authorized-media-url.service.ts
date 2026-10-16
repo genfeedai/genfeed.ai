@@ -1,3 +1,7 @@
+import {
+  characterAssetIdsFromRow,
+  personaReferencesAnyWhere,
+} from '@api/collections/personas/utils/persona-references.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   hasMediaRecordAccess,
@@ -425,8 +429,8 @@ export class AuthorizedMediaUrlService {
   }
 
   /**
-   * Reference sheets of characters granted to the caller's organization
-   * (#6037). Only an active grant whose receiving availability includes the
+   * Reference images (every reference, not only the primary) of characters
+   * granted to the caller's organization (#6037). Only an active grant whose receiving availability includes the
    * caller's brand yields a grant, read from the owning organization; a
    * revoked or missing grant yields nothing, so access ends on the next call.
    */
@@ -435,18 +439,27 @@ export class AuthorizedMediaUrlService {
     ingredientIds: readonly string[],
   ): Promise<MediaDeliveryGrant[]> {
     if (ingredientIds.length === 0 || !scope.brandId) return [];
+    const requested = [...new Set(ingredientIds)];
     const grants = await this.prisma.personaGrant.findMany({
       select: {
         availabilityMode: true,
         availableBrandIds: true,
         ownerOrganizationId: true,
-        persona: { select: { avatarIngredientId: true } },
+        persona: {
+          select: {
+            avatarIngredientId: true,
+            references: {
+              select: { ingredientId: true, position: true },
+              where: { ingredientId: { in: requested } },
+            },
+          },
+        },
       },
       where: {
         persona: {
           is: {
-            avatarIngredientId: { in: [...new Set(ingredientIds)] },
             isDeleted: false,
+            OR: personaReferencesAnyWhere(requested),
           },
         },
         recipientOrganizationId: scope.organizationId,
@@ -455,15 +468,23 @@ export class AuthorizedMediaUrlService {
     });
     const idsByOwner = new Map<string, string[]>();
     for (const grant of grants) {
-      const avatarId = grant.persona.avatarIngredientId;
       const isGrantedToBrand =
         grant.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS ||
         (grant.availabilityMode === PersonaAvailabilityMode.SELECTED_BRANDS &&
           (grant.availableBrandIds ?? []).includes(scope.brandId));
-      if (avatarId && isGrantedToBrand) {
+      if (!isGrantedToBrand) {
+        continue;
+      }
+      // Every reference image of the granted character, not only the primary.
+      const referenceIds = characterAssetIdsFromRow(grant.persona).filter(
+        (id) => requested.includes(id),
+      );
+      if (referenceIds.length > 0) {
         idsByOwner.set(grant.ownerOrganizationId, [
-          ...(idsByOwner.get(grant.ownerOrganizationId) ?? []),
-          avatarId,
+          ...new Set([
+            ...(idsByOwner.get(grant.ownerOrganizationId) ?? []),
+            ...referenceIds,
+          ]),
         ]);
       }
     }

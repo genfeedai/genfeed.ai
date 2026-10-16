@@ -1,6 +1,6 @@
 ---
 title: System Requirements
-description: 'Check the disk, container runtime, Node.js, port, and platform requirements for running a self-hosted Genfeed instance, with measured figures.'
+description: 'Check the hardware, required services, ports, filesystem, and network requirements for a self-hosted Genfeed instance, with measured figures.'
 ---
 
 # System Requirements
@@ -9,32 +9,92 @@ Genfeed runs as one application container plus a PostgreSQL container. The
 figures below are ones we have measured; where we have not measured something,
 the table says so rather than guessing.
 
-## Requirements
+## Hardware
 
-| Item | Supported floor | Recommended |
+| Resource | Supported floor | Recommended |
 | --- | --- | --- |
-| Container runtime | Docker Engine 24+ with the Compose v2 plugin, or Docker Desktop | Same |
-| Free disk | About 8 GB | 10 GB, plus room for generated media and backups |
-| CPU | Not yet published | TBD |
-| RAM | Not yet published | TBD |
-| CPU architecture | `linux/amd64` image (Docker Desktop can emulate it on Apple Silicon) | Same |
-| Host ports | `3000` (web), `3010` (API), `3014` (MCP) free | Same |
-| Node.js | Not needed for the release bundle. `>=24 <25` for `npx @genfeedai/create` | Node.js 24 |
-| Genfeed Cloud account | Not required | Not required |
+| Free disk | About 10 GB | 15 GB, plus room for generated media and backups |
+| CPU | Not yet published | Not yet published |
+| RAM | Not yet published | Not yet published |
+| CPU architecture | `linux/amd64` image | `linux/amd64` (Docker Desktop can emulate it on Apple Silicon) |
 
 Disk covers the application image, PostgreSQL, and the media you generate, so
-it grows with use. Host ports are overridable with `SELFHOSTED_APP_PORT`,
-`SELFHOSTED_API_PORT`, and `SELFHOSTED_MCP_PORT`; see
-[Configuration](/self-host/configuration).
+it grows with use. A fresh install measured about 9.5 GB, which is why the floor
+is 10 GB; the 15 GB recommendation leaves headroom for the first media and
+database growth.
 
-## What we have measured
+### What we have measured
 
 - A clean Debian 13 machine with 8 CPUs and 15 GiB of RAM ran the stack.
 - Idle PostgreSQL used about 59 MiB.
+- On a clean Ubuntu install of v0.2.8, the stack came up in about 51 seconds
+  ([#6965](https://github.com/genfeedai/genfeed.ai/issues/6965)).
 
 These are measurements from one machine, not a minimum. We have not yet run
 smaller hosts, so no RAM or CPU minimum is promised. If you run Genfeed on
 smaller hardware, [tell us how it went](https://github.com/genfeedai/genfeed.ai/issues/new/choose).
+
+## Software
+
+| Item | Requirement |
+| --- | --- |
+| Container runtime | Docker Engine 24+ with the Compose v2 plugin, or Docker Desktop |
+| Node.js | Not needed for the release bundle. `>=24 <25` for `npx @genfeedai/create` |
+| Genfeed Cloud account | Not required |
+
+## Required services
+
+Everything below is included in the default Compose file. You do not install any
+of it yourself.
+
+| Service | Provided by | Notes |
+| --- | --- | --- |
+| PostgreSQL 16 with pgvector | The `pgvector/pgvector:pg16` container | Reachable only inside the Compose network. Point `DATABASE_URL` at your own PostgreSQL to use an external one. |
+| Redis | Embedded in the Genfeed container | Used for queues and caching. Its data lives in `/data`. |
+| File storage | Local disk at `/data/files` | Generated media. Change it with `GENFEED_STORAGE_PATH`. |
+| Model providers | Your own keys | An [OpenRouter key](/self-host/provider-api-keys) is required for text generation. |
+
+## Default ports
+
+| Port | Service | Published to the host? | Needed when |
+| --- | --- | --- | --- |
+| `3000` | Web UI | Yes (`SELFHOSTED_APP_PORT`) | Always |
+| `3010` | REST API | Yes (`SELFHOSTED_API_PORT`) | Always; the browser calls it directly |
+| `3014` | MCP server | Yes (`SELFHOSTED_MCP_PORT`) | You connect an AI agent |
+| `3012` | Files service | No | Inside the container only |
+| `3011` | Notifications | No | Inside the container only |
+| `3013` | Workers | No | Inside the container only |
+
+Only the host side of a published port changes; the container always uses the
+numbers above. See [Configuration](/self-host/configuration#image-and-ports).
+
+## Filesystem and volumes
+
+Two Docker named volumes hold your data:
+
+| Volume | Mounted at | Holds |
+| --- | --- | --- |
+| `postgres_data` | `/var/lib/postgresql/data` (postgres) | The database |
+| `genfeed_data` | `/data` (genfeed) | Generated files, the embedded Redis, and the generated secrets (`/data/.encryption-key`, `/data/.better-auth-secret`) |
+
+Back both up. `docker compose down -v` deletes them, including the secrets that
+decrypt your stored credentials. See
+[Troubleshooting](/self-host/troubleshooting#back-up-and-reset).
+
+## Network
+
+**Outbound.** The host needs to reach:
+
+- `ghcr.io`, to pull the application image, and the PostgreSQL image's registry.
+- The APIs of the providers you use, for example `openrouter.ai` for text.
+  Prompts and media go to those providers under their own terms.
+
+**Inbound.** The browser must reach both the web UI (`3000`) and the API
+(`3010`) at the addresses set in the public URL variables. On a server, put both
+behind a reverse proxy with HTTPS: see
+[Reverse proxy and HTTPS](/self-host/reverse-proxy). Do not expose port `3010`
+directly if you rely on the login wall; see
+[Create the first user](/self-host/installation#create-the-first-user).
 
 ## Operating system notes
 
@@ -46,6 +106,8 @@ smaller hardware, [tell us how it went](https://github.com/genfeedai/genfeed.ai/
   [Troubleshooting](/self-host/troubleshooting#debian-13-docker-compose-v2).
 - **Docker Desktop:** can be used instead of Docker Engine. On macOS, verify the
   release bundle with `shasum -a 256 -c` instead of `sha256sum -c`.
+- **Apple Silicon:** the image is `linux/amd64` and runs under emulation, which
+  is slower. See [Troubleshooting](/self-host/troubleshooting#apple-silicon).
 
 ## Model providers
 

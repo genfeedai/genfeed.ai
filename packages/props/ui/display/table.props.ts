@@ -124,19 +124,42 @@ export type TableProps<T> = TableBaseProps<T> &
       ))
   );
 
-export interface TableAction<T> {
+interface TableActionBase<T> {
   icon: ReactNode | ((item: T) => ReactNode);
+  /** Tooltip text and the icon-only control's accessible name. */
   tooltip: string | ((item: T) => string);
   className?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
 
   getClassName?: (item: T) => string;
-  onClick?: (item: T) => void;
   isDisabled?: (item: T) => boolean;
   isVisible?: (item: T) => boolean;
   tooltipPosition?: 'left' | 'right' | 'top' | 'bottom';
 }
+
+/** Row action that acts in place. */
+export interface TableButtonAction<T> extends TableActionBase<T> {
+  href?: never;
+  isExternal?: never;
+  onClick?: (item: T) => void;
+}
+
+/**
+ * Row action that navigates. Renders a real anchor so the destination can be
+ * prefetched and opened in a new tab. Return `undefined` from the resolver for
+ * a row with nowhere to go — the action is then omitted for that row.
+ * `onClick` runs alongside the navigation (for tracking), not instead of it.
+ */
+export interface TableLinkAction<T> extends TableActionBase<T> {
+  href: string | ((item: T) => string | undefined);
+  /** Off-site destination: opens in a new tab with `noopener noreferrer`. */
+  isExternal?: boolean;
+  onClick?: (item: T) => void;
+}
+
+/** Icon-only row action, revealed on row hover and keyboard focus. */
+export type TableAction<T> = TableButtonAction<T> | TableLinkAction<T>;
 
 export interface StandardTableActionsOptions<T> {
   onEdit?: (item: T) => void;

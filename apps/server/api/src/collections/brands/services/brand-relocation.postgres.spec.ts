@@ -3,13 +3,17 @@ import {
   type BrandRelocationActingUser,
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
+import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import { type Prisma, PrismaClient } from '@genfeedai/prisma';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import type { Queue } from 'bullmq';
 import {
   afterAll,
   beforeAll,
@@ -65,6 +69,9 @@ describe.skipIf(!connectionString)(
       {
         invalidate: vi.fn().mockResolvedValue(undefined),
         invalidateByTags: vi.fn().mockResolvedValue(undefined),
+      } as never,
+      {
+        invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
       } as never,
       { get: () => ({ unscheduleWorkflow }) } as never,
     );
@@ -496,6 +503,9 @@ describe.skipIf(!connectionString)(
           invalidate: vi.fn().mockResolvedValue(undefined),
           invalidateByTags: vi.fn().mockResolvedValue(undefined),
         } as never,
+        {
+          invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+        } as never,
         { get: () => ({ unscheduleWorkflow }) } as never,
       );
 
@@ -678,6 +688,109 @@ describe.skipIf(!connectionString)(
         );
         await assertNothingMoved(s);
       });
+    });
+
+    it('accepts processing immediately, runs on the worker, and polls done under the original tenant', async () => {
+      const s = await seed(prisma);
+      const queue = { add: vi.fn().mockResolvedValue({}), getJob: vi.fn() };
+      const recorder = { record: vi.fn().mockResolvedValue({}) };
+      const jobs = new BrandRelocationJobsService(
+        prisma as unknown as PrismaService,
+        queue as unknown as Queue,
+        service,
+        recorder as unknown as ActivityRecorderService,
+        logger as never,
+      );
+      const id = randomUUID();
+      await runWithTenantContext({ organizationId: s.source }, async () => {
+        const accepted = await jobs.enqueue(
+          s.brand,
+          id,
+          { organizationId: s.destination },
+          s.actor,
+        );
+        expect(accepted.status).toBe('processing');
+        expect((await orgOf(s)).brand).toBe(s.source);
+        await jobs.process(id, true);
+        const completed = await jobs.get(s.brand, id, s.actor);
+        expect(completed).toMatchObject({
+          status: 'done',
+          summary: expect.objectContaining({ workflowsMoved: 1 }),
+        });
+        expect((await orgOf(s)).brand).toBe(s.destination);
+        const replay = await jobs.enqueue(
+          s.brand,
+          id,
+          { organizationId: s.destination },
+          s.actor,
+        );
+        expect(replay.status).toBe('done');
+        expect(queue.add).toHaveBeenCalledOnce();
+        expect(recorder.record).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('commits the durable done receipt atomically with ownership, and never overwrites it as failed', async () => {
+      const s = await seed(prisma);
+      const id = randomUUID();
+      await prisma.brandRelocation.create({
+        data: {
+          id,
+          brandId: s.brand,
+          organizationId: s.source,
+          destinationOrganizationId: s.destination,
+          userId: s.actor.userId,
+          payload: {},
+        },
+      });
+      await service.relocateToOrganization(
+        s.brand,
+        { organizationId: s.destination },
+        s.actor,
+        undefined,
+        id,
+      );
+      expect(
+        await prisma.brandRelocation.findUnique({ where: { id } }),
+      ).toMatchObject({
+        status: 'done',
+        organizationId: s.source,
+        summary: expect.objectContaining({ workflowsMoved: 1 }),
+      });
+      const failed = await prisma.brandRelocation.updateMany({
+        where: { id, status: 'processing' },
+        data: { status: 'failed' },
+      });
+      expect(failed.count).toBe(0);
+      expect((await orgOf(s)).brand).toBe(s.destination);
+    });
+
+    it('rolls back receipt completion and ownership together when a guard refuses the move', async () => {
+      const s = await seed(prisma, { executionStatus: 'RUNNING' });
+      const id = randomUUID();
+      await prisma.brandRelocation.create({
+        data: {
+          id,
+          brandId: s.brand,
+          organizationId: s.source,
+          destinationOrganizationId: s.destination,
+          userId: s.actor.userId,
+          payload: {},
+        },
+      });
+      await expect(
+        service.relocateToOrganization(
+          s.brand,
+          { organizationId: s.destination },
+          s.actor,
+          undefined,
+          id,
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(
+        await prisma.brandRelocation.findUnique({ where: { id } }),
+      ).toMatchObject({ status: 'processing', summary: null });
+      expect((await orgOf(s)).brand).toBe(s.source);
     });
 
     it('denies an API key without an explicit admin scope before anything moves', async () => {

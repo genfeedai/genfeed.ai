@@ -29,6 +29,7 @@ import {
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
 import {
   MODEL_KEYS,
@@ -46,6 +47,7 @@ import {
   isTopazVideoUpscaleFps,
   isTopazVideoUpscaleResolution,
   quoteTopazVideoUpscaleCredits,
+  topazImageUpscaleFactor,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -55,6 +57,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
@@ -99,6 +102,7 @@ export class CreditsGuard implements CanActivate {
 
     private loggerService: LoggerService,
     private readonly modelCreditQuote: ModelCreditQuoteService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -241,6 +245,40 @@ export class CreditsGuard implements CanActivate {
       );
 
       const pricingModelKey = modelKey || creditsConfig.modelKey;
+      if (
+        pricingModelKey &&
+        baseModelKey(pricingModelKey) ===
+          MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE
+      ) {
+        // Topaz bills by output megapixels: price the source image's stored
+        // dimensions at the requested factor, never client-supplied sizes.
+        const output = await this.resolveTopazImageUpscaleOutput(
+          request,
+          user.organizationId,
+          body?.upscaleFactor ?? rawBody?.upscaleFactor,
+        );
+        width = output.width;
+        height = output.height;
+      }
+      let topazVideoSelectors: Record<string, string | number> | undefined;
+      if (
+        pricingModelKey &&
+        baseModelKey(pricingModelKey) ===
+          MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
+      ) {
+        // Billed per second of the source video at the target resolution and
+        // frame rate, read from the stored video rather than the client.
+        duration = await this.resolveSourceVideoDuration(
+          request,
+          user.organizationId,
+        );
+        topazVideoSelectors = {
+          target_fps: Number(body?.targetFps ?? rawBody?.targetFps ?? 30),
+          target_resolution: String(
+            body?.targetResolution ?? rawBody?.targetResolution ?? '1080p',
+          ),
+        };
+      }
       const pricingDuration =
         creditsConfig.source === ActivitySource.MUSIC_GENERATION &&
         pricingModelKey
@@ -353,7 +391,9 @@ export class CreditsGuard implements CanActivate {
                   )
                     ? 1
                     : outputs,
-                  selectors: this.readSelectedPricingDimensions(body),
+                  selectors:
+                    topazVideoSelectors ??
+                    this.readSelectedPricingDimensions(body),
                 },
               );
               requiredCredits = modelQuote.credits;
@@ -667,6 +707,49 @@ export class CreditsGuard implements CanActivate {
       }
       throw error;
     }
+  }
+
+  private async resolveTopazImageUpscaleOutput(
+    request: CreditsGuardRequest,
+    organizationId: string,
+    upscaleFactor: unknown,
+  ): Promise<{ height: number; width: number }> {
+    const imageId = request.params?.imageId;
+    const factor = topazImageUpscaleFactor(upscaleFactor);
+    const ingredient =
+      typeof imageId === 'string' && this.prisma
+        ? await this.prisma.ingredient.findFirst({
+            select: { metadata: { select: { height: true, width: true } } },
+            where: { id: imageId, isDeleted: false, organizationId },
+          })
+        : null;
+    const width = ingredient?.metadata?.width ?? 0;
+    const height = ingredient?.metadata?.height ?? 0;
+    if (factor === null || !(width > 0) || !(height > 0))
+      throw new BadRequestException(
+        'The source image size is unknown, so this upscale cannot be priced.',
+      );
+    return { height: height * factor, width: width * factor };
+  }
+
+  private async resolveSourceVideoDuration(
+    request: CreditsGuardRequest,
+    organizationId: string,
+  ): Promise<number> {
+    const videoId = request.params?.videoId;
+    const ingredient =
+      typeof videoId === 'string' && this.prisma
+        ? await this.prisma.ingredient.findFirst({
+            select: { metadata: { select: { duration: true } } },
+            where: { id: videoId, isDeleted: false, organizationId },
+          })
+        : null;
+    const duration = ingredient?.metadata?.duration ?? 0;
+    if (!(duration > 0))
+      throw new BadRequestException(
+        'The source video length is unknown, so this upscale cannot be priced.',
+      );
+    return duration;
   }
 
   private readSelectedPricingDimensions(

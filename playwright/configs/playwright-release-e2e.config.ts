@@ -6,8 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * Unlike every other config here, this one talks to a REAL backend: the
  * `e2e-selfhosted-release.yml` workflow boots the published self-hosted image
- * (`ghcr.io/genfeedai/genfeed.ai:<tag>`) + Postgres via docker compose in LOCAL
- * mode, then points these specs at it. So, deliberately:
+ * (`ghcr.io/genfeedai/genfeed.ai:<tag>`) + Postgres with the shipped login-enabled
+ * template, then signs up disposable real accounts. So, deliberately:
  *   - NO `webServer` — compose owns the stack; Playwright must not spawn its own.
  *   - NO `globalSetup`/`globalTeardown` — the shared ones force
  *     `PLAYWRIGHT_TEST=true` (mock/bypass mode) and prune a Turbopack dev cache

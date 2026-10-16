@@ -155,6 +155,18 @@ export interface ActivitiesReturn {
   };
 }
 
+/** An organization the signed-in user belongs to, for pickers. */
+export interface MemberOrganizationOption {
+  id: string;
+  label: string;
+}
+
+export interface UseMemberOrganizationsReturn {
+  /** Alphabetical by label. Never other tenants, even for a superadmin. */
+  organizations: MemberOrganizationOption[];
+  isLoading: boolean;
+}
+
 export interface UseOrganizationReturn {
   settings: IOrganizationSetting | null;
   isLoading: boolean;

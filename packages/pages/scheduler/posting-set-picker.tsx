@@ -310,7 +310,11 @@ export default function PostingSetPicker({
             <SelectContent>
               <SelectItem value={NONE_SIGNATURE_VALUE}>No signature</SelectItem>
               {signatures.map((signature) => (
-                <SelectItem key={signature.id} value={signature.id}>
+                <SelectItem
+                  className="normal-case"
+                  key={signature.id}
+                  value={signature.id}
+                >
                   {signature.label}
                 </SelectItem>
               ))}

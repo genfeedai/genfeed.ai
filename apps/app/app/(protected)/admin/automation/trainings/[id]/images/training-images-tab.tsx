@@ -10,7 +10,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
+import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import { Image as LucideImage } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -74,12 +74,7 @@ export default function TrainingImagesTab({
   }
 
   return isLoading && generatedAssets.length === 0 ? (
-    <MasonryGrid
-      ingredients={[]}
-      selectedIngredientId={[]}
-      isActionsEnabled={false}
-      isLoading
-    />
+    <IngredientsMediaGrid isLoading items={[]} />
   ) : generatedAssets.length === 0 ? (
     <div className="text-center py-12">
       <LucideImage className="mx-auto size-12 text-muted-foreground mb-4" />
@@ -94,10 +89,10 @@ export default function TrainingImagesTab({
       )}
     </div>
   ) : (
-    <MasonryGrid
-      ingredients={generatedAssets}
-      selectedIngredientId={[]}
-      isActionsEnabled={false}
+    <IngredientsMediaGrid
+      isLoading={false}
+      isTimeGroupingEnabled={false}
+      items={generatedAssets}
     />
   );
 }

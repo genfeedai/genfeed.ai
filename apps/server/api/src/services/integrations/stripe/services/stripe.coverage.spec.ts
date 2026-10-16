@@ -14,11 +14,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-function makeMockSession(id = 'sess_1'): Stripe.Checkout.Session {
-  return {
+function makeMockSession(
+  id = 'sess_1',
+): Stripe.Response<Stripe.Checkout.Session> {
+  const session = {
     id,
+    object: 'checkout.session',
     url: `https://checkout.stripe.com/pay/${id}`,
-  } as unknown as Stripe.Checkout.Session;
+  } as Stripe.Checkout.Session;
+  return {
+    ...session,
+    lastResponse: { headers: {}, requestId: 'req_test', statusCode: 200 },
+  };
 }
 
 function makeMockCustomer(

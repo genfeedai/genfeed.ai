@@ -9,6 +9,10 @@ export const personaAttributes = createEntityAttributes([
   'bio',
   'profileImageUrl',
   'avatar',
+  // Primary character reference image (position 0 of referenceIngredientIds).
+  'avatarIngredientId',
+  // Every live character reference image, primary first.
+  'referenceIngredientIds',
   'avatarProvider',
   'avatarExternalId',
   'voice',
