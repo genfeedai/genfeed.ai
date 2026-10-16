@@ -60,11 +60,6 @@ export class WorkflowMarketplaceController {
     readonly _loggerService: LoggerService,
   ) {}
 
-  /**
-   * Public template catalog (#5510). Showcase templates include
-   * `featuredRank` (1 is first). System catalog entries are not in this
-   * payload.
-   */
   @Get('templates')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTemplates(): Promise<{ data: WorkflowTemplates }> {
