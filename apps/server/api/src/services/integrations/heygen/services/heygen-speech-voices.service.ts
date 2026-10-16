@@ -68,9 +68,7 @@ export class HeyGenSpeechVoicesService {
     return connection;
   }
 
-  private async readSpeechVoices(
-    apiKey: string,
-  ): Promise<HeyGenSpeechVoice[]> {
+  private async readSpeechVoices(apiKey: string): Promise<HeyGenSpeechVoice[]> {
     const items = await this.heygenService.getCatalog(
       '/models/audio/voices',
       apiKey,
