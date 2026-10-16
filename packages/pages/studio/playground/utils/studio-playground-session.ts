@@ -9,6 +9,7 @@ import type {
 } from '@pages/studio/playground/types';
 import { readStudioCrunRecipeControls } from './studio-playground-recipe';
 import { isStudioPlaygroundType } from './studio-playground-types';
+import { readPersistedStudioReferencePreviewUrl } from './studio-reference-preview';
 
 export const STUDIO_PLAYGROUND_SESSION_KEY =
   'genfeed.studio.generate.session.v1';
@@ -158,6 +159,9 @@ function sanitizeSessionJob(value: unknown): StudioPlaygroundJob | null {
   }
 
   const recipe = sanitizeRecipe(value.recipe, type);
+  const referencePreviewUrl = readPersistedStudioReferencePreviewUrl(
+    value.referencePreviewUrl,
+  );
 
   return {
     createdAt: typeof createdAt === 'number' ? createdAt : 0,
@@ -168,6 +172,7 @@ function sanitizeSessionJob(value: unknown): StudioPlaygroundJob | null {
     ingredientId: pickOptionalString(value.ingredientId),
     modelKey: pickOptionalString(value.modelKey),
     prompt,
+    ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
     ...(recipe ? { recipe } : {}),
     runId: pickOptionalString(value.runId),
     status: status as IngredientStatus,
@@ -212,6 +217,10 @@ function writeSessionStore(store: Record<string, unknown>): void {
 export function serializeStudioPlaygroundSessionJob(
   job: StudioPlaygroundJob,
 ): StudioPlaygroundJob {
+  const referencePreviewUrl = readPersistedStudioReferencePreviewUrl(
+    job.referencePreviewUrl,
+  );
+
   return {
     createdAt: job.createdAt,
     error: job.error,
@@ -221,6 +230,7 @@ export function serializeStudioPlaygroundSessionJob(
     ingredientId: job.ingredientId,
     modelKey: job.modelKey,
     prompt: job.prompt,
+    ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
     recipe: sanitizeRecipe(job.recipe, job.type),
     runId: job.runId,
     status: job.status,

@@ -41,6 +41,7 @@ import {
   Scissors,
   Trash2,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
@@ -50,6 +51,31 @@ import {
   useMemo,
   useState,
 } from 'react';
+
+function GenerationReferencePreview({
+  url,
+}: {
+  url: string;
+}): ReactElement | null {
+  const [isBroken, setIsBroken] = useState(false);
+  if (isBroken) return null;
+
+  return (
+    <>
+      <Image
+        alt=""
+        className="z-[1] scale-110 object-cover blur-2xl"
+        data-testid="studio-generation-reference"
+        fill
+        onError={() => setIsBroken(true)}
+        sizes="320px"
+        src={url}
+        unoptimized
+      />
+      <div aria-hidden className="absolute inset-0 z-[1] bg-background/50" />
+    </>
+  );
+}
 
 const AUDIO_TYPES = new Set(['music', 'voice']);
 const VIDEO_TYPES = new Set(['video', 'avatar']);
@@ -572,6 +598,12 @@ export default function StudioPlaygroundCard({
         }`}
         style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
       >
+        {job.referencePreviewUrl ? (
+          <GenerationReferencePreview
+            key={job.referencePreviewUrl}
+            url={job.referencePreviewUrl}
+          />
+        ) : null}
         {isPending ? (
           <>
             <Skeleton
@@ -596,14 +628,15 @@ export default function StudioPlaygroundCard({
 
         {isFailed && job.phase === 'cancelled' ? (
           <GenerationStatus
-            status="cancelled"
             assetLabel={label.toLowerCase()}
+            className="relative z-10"
+            status="cancelled"
           />
         ) : isFailed || isPreviewUnavailable ? (
           <div
             data-testid={`studio-asset-media-status-${job.id}`}
             role="status"
-            className={`flex flex-col items-center gap-2 px-3 text-center ${
+            className={`relative z-10 flex flex-col items-center gap-2 px-3 text-center ${
               isFailed ? 'text-destructive' : 'text-muted-foreground'
             }`}
           >

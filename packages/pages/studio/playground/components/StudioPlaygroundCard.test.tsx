@@ -12,6 +12,7 @@ import type { StudioPlaygroundAssetActions } from '@genfeedai/props/studio/studi
 import StudioPlaygroundCard from '@pages/studio/playground/components/StudioPlaygroundCard';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
+import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 const masonryMocks = vi.hoisted(() => ({
@@ -33,8 +34,20 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ alt, onError, src }: React.ComponentProps<'img'>) => (
-    <img alt={alt} onError={onError} src={String(src)} />
+  default: ({
+    alt,
+    className,
+    onError,
+    src,
+    ...props
+  }: ComponentProps<'img'> & { 'data-testid'?: string }) => (
+    <img
+      alt={alt}
+      className={className}
+      data-testid={props['data-testid']}
+      onError={onError}
+      src={String(src)}
+    />
   ),
 }));
 
@@ -135,6 +148,31 @@ describe('StudioPlaygroundCard', () => {
       }),
     );
     expect(onUseAsReference).toHaveBeenCalledWith(job);
+  });
+
+  it('blurs the reference image while a generation is still in flight', () => {
+    render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          referencePreviewUrl: 'https://cdn.example.com/reference.png',
+          status: IngredientStatus.PROCESSING,
+          url: '',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        onUseAsReference={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    const preview = screen.getByTestId('studio-generation-reference');
+    expect(preview).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/reference.png',
+    );
+    expect(preview.className).toContain('blur-2xl');
   });
 
   it('uses asset identity when a legacy row has no recorded original intent', () => {

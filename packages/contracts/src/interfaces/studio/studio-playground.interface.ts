@@ -278,6 +278,12 @@ export interface StudioPlaygroundJob {
   parentId?: string;
   prompt: string;
   /**
+   * Source portrait or frame shown blurred while this job is still running,
+   * so the card does not sit empty between submit and the finished media.
+   * Display only. Dropped when it is not an http(s), blob, or image data URL.
+   */
+  referencePreviewUrl?: string;
+  /**
    * Enriched prompt payload stamped at submit. Survives session rehydrate so
    * the inspector can show what reached the provider, not the raw box.
    */

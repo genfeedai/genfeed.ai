@@ -66,6 +66,7 @@ import {
   resolveModelKey,
 } from '@pages/studio/playground/utils/studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
+import { readStudioReferencePreviewUrl } from '@pages/studio/playground/utils/studio-reference-preview';
 import {
   resolveSpeakingVoiceProvider,
   resolveSpeechVoiceProvider,
@@ -130,6 +131,11 @@ export interface StudioGenerationOptions {
   harness?: boolean;
   /** `raw` is the explicit "generate without brand" choice; never set otherwise. */
   brandMode?: 'raw';
+  /**
+   * Composer reference painted on the card until the result arrives.
+   * Not sent to the provider.
+   */
+  referencePreviewUrl?: string;
   /** Explicit Knowledge pick from the Library picker; absent means Auto. */
   knowledge?: KnowledgeSelection;
   promptId?: string;
@@ -397,6 +403,7 @@ export function useStudioGeneration({
         modelKey: string;
         promptText: string;
         recipe?: StudioPlaygroundJob['recipe'];
+        referencePreviewUrl?: string;
         runId: string;
         type: StudioPlaygroundType;
         width?: number;
@@ -412,6 +419,9 @@ export function useStudioGeneration({
           modelKey: context.modelKey || undefined,
           prompt: context.promptText,
           recipe: context.recipe,
+          ...(context.referencePreviewUrl
+            ? { referencePreviewUrl: context.referencePreviewUrl }
+            : {}),
           runId: context.runId,
           status: IngredientStatus.PROCESSING,
           type: context.type,
@@ -682,6 +692,10 @@ export function useStudioGeneration({
         return false;
       }
 
+      const referencePreviewUrl = readStudioReferencePreviewUrl(
+        options?.referencePreviewUrl,
+      );
+
       if (!brandId) {
         notificationsService.error('Please set up a brand before generating');
         return false;
@@ -857,6 +871,7 @@ export function useStudioGeneration({
         modelKey,
         promptText,
         recipe,
+        ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
         runId,
         type,
       };
@@ -877,6 +892,7 @@ export function useStudioGeneration({
             modelKey,
             prompt: promptText,
             recipe,
+            ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
             runId,
             status: IngredientStatus.PROCESSING,
             phase: 'submitting' as const,
@@ -1124,6 +1140,7 @@ export function useStudioGeneration({
           brandRetriesRef.current.set(runId, () =>
             submitGeneration(promptText, references, {
               brandMode: 'raw',
+              ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
               ...(options?.originalText !== undefined
                 ? { originalText: options.originalText }
                 : {}),
@@ -1153,6 +1170,7 @@ export function useStudioGeneration({
             modelKey: modelKey || undefined,
             prompt: promptText,
             recipe,
+            ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
             runId,
             status: IngredientStatus.PROCESSING,
             type,
@@ -1173,7 +1191,12 @@ export function useStudioGeneration({
               continue;
             const hydrated = toStudioPlaygroundJob(ingredient);
             if (!hydrated) continue;
-            reconciled.push({ ...hydrated, recipe, runId });
+            reconciled.push({
+              ...hydrated,
+              recipe,
+              ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
+              runId,
+            });
             if (isStudioPlaygroundJobPending(ingredient.status))
               pendingIds.push(id);
           } catch (readError) {
@@ -1210,6 +1233,7 @@ export function useStudioGeneration({
                     modelKey: modelKey || undefined,
                     prompt: promptText,
                     recipe,
+                    ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
                     runId,
                     status: IngredientStatus.FAILED,
                     type,
