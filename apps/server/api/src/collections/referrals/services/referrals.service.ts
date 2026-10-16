@@ -168,39 +168,6 @@ export class ReferralsService {
     };
   }
 
-  /**
-   * Read-only lookup of the code behind a public profile's sign-up CTA. Never
-   * creates a code (the profile route is unauthenticated), prefers the
-   * profile owner's own code and falls back to the organization's oldest.
-   */
-  async findPublicCode(input: {
-    organizationId: string;
-    userId?: string | null;
-  }): Promise<string | null> {
-    if (!hasOrganizationBilling()) {
-      return null;
-    }
-    const where = {
-      isActive: true,
-      isDeleted: false,
-      rewardOrganizationId: input.organizationId,
-    } as const;
-    const owned = input.userId
-      ? await this.prisma.referralCode.findFirst({
-          select: { code: true },
-          where: { ...where, ownerUserId: input.userId },
-        })
-      : null;
-    const referralCode =
-      owned ??
-      (await this.prisma.referralCode.findFirst({
-        orderBy: { createdAt: 'asc' },
-        select: { code: true },
-        where,
-      }));
-    return referralCode?.code ?? null;
-  }
-
   async listMyRewards(actor: ReferralActor): Promise<IReferralReward[]> {
     const account = await this.resolveActorAccount(actor);
     const code = await this.prisma.referralCode.findFirst({
@@ -355,6 +322,39 @@ export class ReferralsService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Read-only lookup of the code behind a public profile's sign-up CTA. Never
+   * creates a code (the profile route is unauthenticated), prefers the
+   * profile owner's own code and falls back to the organization's oldest.
+   */
+  async findPublicCode(input: {
+    organizationId: string;
+    userId?: string | null;
+  }): Promise<string | null> {
+    if (!hasOrganizationBilling()) {
+      return null;
+    }
+    const where = {
+      isActive: true,
+      isDeleted: false,
+      rewardOrganizationId: input.organizationId,
+    } as const;
+    const owned = input.userId
+      ? await this.prisma.referralCode.findFirst({
+          select: { code: true },
+          where: { ...where, ownerUserId: input.userId },
+        })
+      : null;
+    const referralCode =
+      owned ??
+      (await this.prisma.referralCode.findFirst({
+        orderBy: { createdAt: 'asc' },
+        select: { code: true },
+        where,
+      }));
+    return referralCode?.code ?? null;
   }
 
   async recordPaygPurchase(input: PurchaseReferralInput): Promise<void> {
