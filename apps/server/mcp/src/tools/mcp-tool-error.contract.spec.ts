@@ -88,6 +88,31 @@ describe('MCP tool error contract', () => {
     ).toBe(appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION));
   });
 
+  it.each(['Agencies', 'Enterprise', 'Pro', 'Scale'])(
+    'recognizes upgrade messages for %s',
+    (plan) => {
+      expect(
+        classifyMcpToolFailure({
+          message: `Upgrade to ${plan}`,
+          status: 403,
+        }),
+      ).toMatchObject({
+        code: 'plan_required',
+        nextStepUrl: appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION),
+      });
+    },
+  );
+
+  it('recognizes the plan-required title without relying on a plan name', () => {
+    expect(
+      classifyMcpToolFailure({
+        message: 'Choose an active plan',
+        status: 403,
+        title: 'Plan required',
+      })?.code,
+    ).toBe('plan_required');
+  });
+
   it('returns insufficient_credits for the ledger exception', () => {
     const error = classifyMcpToolFailure({
       domainCode: 'INSUFFICIENT_CREDITS',
