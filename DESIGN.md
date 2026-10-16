@@ -808,9 +808,10 @@ titlebar, with no border of its own. The rail's bottom holds Admin (platform
 admins), Help, and the account avatar, whose menu carries the name, email and
 settings scopes; the sidebar has no profile row.
 
-The menu and the page share one block, inset from the window by `--shell-inset`
-(8px, desktop) on the left, right, and bottom. The top of the block sits on the
-bottom of the topbar: `rounded-lg` and `border border-border`. The menu
+The menu and the page share one block directly beside the app rail, flush with
+the window's right edge and inset by `--shell-inset` (8px, desktop) at the bottom.
+The top of the block sits on the bottom of the topbar: `rounded-lg` and
+`border border-border`. The menu
 is `gray-100`, one step off the page (`bg-primary`; pure black in Dark), with
 `border-r border-border` while expanded. The page owns scrolling, so
 `sticky top-0` inside a page sticks under the block's top. The topbar sits on
@@ -826,9 +827,13 @@ settings) starts with its items.
 
 The workspace inspector attaches to the block's right side as one surface: the
 block squares its right corners and the inspector carries the outer right
-radius. The block's right border is their shared divider. Every route starts at
-the top of the page scroll. Mobile has no inset: document scroll under a fixed
-topbar on the same plane, and the rail + menu live in the navigation drawer.
+radius. The block's right border is their shared divider.
+Both sidebars use the same width curtain and content fade with shared duration
+and easing; the page's reserved inspector space moves on that same clock.
+Dragging either sidebar tracks immediately. Reduced motion remains respected.
+Every route starts at the top of the page scroll. Mobile has no inset: document
+scroll under a fixed topbar on the same plane, and the rail + menu live in the
+navigation drawer.
 
 ### Sidebar
 

@@ -7,6 +7,10 @@ import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
+import {
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
+} from './app-layout.utils';
 import CollapsedSidebarToggle from './CollapsedSidebarToggle';
 import DesktopRail from './DesktopRail';
 import DesktopSidebar from './DesktopSidebar';
@@ -241,12 +245,20 @@ export default function AppLayout({
 
           <div
             data-testid="app-content-panel"
+            data-motion="layout"
+            style={
+              hasChrome
+                ? {
+                    transition: `margin-right var(--workspace-inspector-transition-duration, ${SIDEBAR_TRANSITION_DURATION_MS}ms) ${SIDEBAR_TRANSITION_EASING}`,
+                  }
+                : undefined
+            }
             className={cn(
               'flex flex-1 flex-col bg-background',
               // Menu and page share one block directly beside the rail and
               // below the topbar. The inspector finishes the right corners.
               hasChrome &&
-                'md:mb-[var(--shell-inset)] md:mr-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))] xl:[[data-inspector-open=true]_&]:rounded-r-none',
+                'md:mb-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[var(--workspace-inspector-width,0px)] xl:[[data-inspector-open=true]_&]:rounded-r-none',
             )}
           >
             {hasChrome ? desktopSidebar : null}

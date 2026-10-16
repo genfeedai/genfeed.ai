@@ -36,6 +36,10 @@ import {
   InspectorToggleFallback,
   InspectorToggleHost,
 } from '@ui/layout/context-inspector-toggle/ContextInspectorToggle';
+import {
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
+} from '@ui/layouts/app/app-layout.utils';
 import { Button } from '@ui/primitives/button';
 import { Drawer, DrawerContent } from '@ui/primitives/drawer';
 import dynamic from 'next/dynamic';
@@ -206,6 +210,8 @@ function UniversalWorkspaceShellContent({
   // `null` keeps the inspector sized to its own content (clamped by the CSS
   // min/max below); a number means the operator has resized it explicitly.
   const [inspectorWidth, setInspectorWidth] = useState<number | null>(null);
+  const [isInspectorResizing, setIsInspectorResizing] = useState(false);
+  const inspectorDragCleanupRef = useRef<(() => void) | null>(null);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
   const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
@@ -917,6 +923,8 @@ function UniversalWorkspaceShellContent({
     ? expandedInspectorWidth
     : INSPECTOR_COLLAPSED_WIDTH;
 
+  useEffect(() => () => inspectorDragCleanupRef.current?.(), []);
+
   // The rail is fixed-positioned, so it no longer occupies a grid track. Publishing
   // its width on the AppLayout root instead — the topbar and main content offset
   // themselves by it, exactly as they do for the left sidebar. Consumers apply the
@@ -936,19 +944,28 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-width',
       `${inspectorRailWidth}px`,
     );
+    layoutRoot.style.setProperty(
+      '--workspace-inspector-transition-duration',
+      `${isInspectorResizing ? 0 : SIDEBAR_TRANSITION_DURATION_MS}ms`,
+    );
     // Open, the inspector attaches to the rounded block. The block's right
     // border is the divider; this flag squares that block's right corners.
     layoutRoot.dataset.inspectorOpen = String(isInspectorOpen);
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
+      layoutRoot.style.removeProperty(
+        '--workspace-inspector-transition-duration',
+      );
       delete layoutRoot.dataset.inspectorOpen;
     };
-  }, [inspectorRailWidth, isInspectorOpen]);
+  }, [inspectorRailWidth, isInspectorOpen, isInspectorResizing]);
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
+      inspectorDragCleanupRef.current?.();
+      setIsInspectorResizing(true);
       const startX = event.clientX;
       const startWidth = resolveInspectorWidth();
 
@@ -958,8 +975,14 @@ function UniversalWorkspaceShellContent({
         );
       };
       const handleMouseUp = (): void => {
+        setIsInspectorResizing(false);
+        inspectorDragCleanupRef.current?.();
+      };
+
+      inspectorDragCleanupRef.current = () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        inspectorDragCleanupRef.current = null;
       };
 
       window.addEventListener('mousemove', handleMouseMove);
@@ -1155,7 +1178,7 @@ function UniversalWorkspaceShellContent({
             ) : null}
           </div>
 
-          {/* Reserve layout space once; animate the fixed-width rail with a transform. */}
+          {/* Match the left sidebar: clip fixed-width contents as the rail closes. */}
           {isFocusedOnboardingRoute ? null : (
             <aside
               // Nothing selected: the empty, zero-width column is not a
@@ -1163,23 +1186,24 @@ function UniversalWorkspaceShellContent({
               aria-hidden={activeContextSidebar ? undefined : true}
               aria-label={translateContextSidebar('label')}
               className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background transition-transform duration-200 ease-out motion-reduce:transition-none xl:flex',
+                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
                 // The block's right border is the shared divider. The inspector
                 // finishes the top, right, and bottom edges and the outer radius.
                 isInspectorOpen && 'border-y border-r border-border',
               )}
               id="workspace-context-inspector"
+              data-motion="layout"
               inert={!isInspectorOpen}
               ref={inspectorRef}
               style={{
                 bottom: 'var(--shell-inset, 0px)',
-                minWidth: expandedInspectorWidth,
-                right: 'var(--shell-inset, 0px)',
+                minWidth: inspectorRailWidth,
+                right: 0,
                 top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
-                transform: isInspectorOpen
-                  ? 'translateX(0)'
-                  : 'translateX(100%)',
-                width: expandedInspectorWidth,
+                transition: isInspectorResizing
+                  ? 'none'
+                  : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+                width: inspectorRailWidth,
               }}
             >
               {isInspectorOpen ? (
@@ -1206,8 +1230,13 @@ function UniversalWorkspaceShellContent({
               <div
                 className="absolute inset-y-0 right-0 flex min-h-0 flex-col"
                 data-testid="workspace-inspector-content"
+                data-motion="layout"
                 style={{
                   minWidth: expandedInspectorWidth,
+                  opacity: isInspectorOpen ? 1 : 0,
+                  transition: isInspectorResizing
+                    ? 'none'
+                    : `opacity ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
                   width: expandedInspectorWidth,
                 }}
               >

@@ -1,10 +1,12 @@
 /* ──────────────────────────────────────────────────────────────────────────
    Product motion policy — elements do not animate.
 
-   Hover, open, press and enter states switch instantly. Two kinds of element
+   Hover, open, press and enter states switch instantly. These elements
    keep their motion:
    - the page menu (app rail + sidebar), opted in with `data-motion="allow"`
      on its container;
+   - sidebar geometry and content fade, opted in with `data-motion="layout"`
+     on the moving element only (its descendants keep the product policy);
    - progress indicators that must read as alive: the Genfeed loader,
      spinners, skeletons and progress bars.
 
@@ -15,6 +17,7 @@
    site keeps its own motion.
    ────────────────────────────────────────────────────────────────────────── */
 :where(*):not(
+  [data-motion="layout"],
   [data-motion="allow"],
   [data-motion="allow"] *,
   [class*="genfeed-loader"],
@@ -27,6 +30,7 @@
   [role="progressbar"] *
 ),
 :where(*):not(
+  [data-motion="layout"],
   [data-motion="allow"],
   [data-motion="allow"] *,
   [class*="genfeed-loader"],
@@ -39,6 +43,7 @@
   [role="progressbar"] *
 )::before,
 :where(*):not(
+  [data-motion="layout"],
   [data-motion="allow"],
   [data-motion="allow"] *,
   [class*="genfeed-loader"],

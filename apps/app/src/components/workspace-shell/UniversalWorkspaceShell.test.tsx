@@ -24,6 +24,10 @@ import {
   AgentDockProvider,
   useAgentDock,
 } from '@contexts/ui/agent-dock-context';
+import {
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
+} from '@ui/layouts/app/app-layout.utils';
 import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
 
 vi.mock('next-intl', async () => {
@@ -674,7 +678,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(aside).toBeInTheDocument();
     expect(aside).toHaveAttribute('inert');
     expect(aside).toHaveAttribute('aria-hidden', 'true');
-    expect(aside).toHaveStyle({ transform: 'translateX(100%)' });
+    expect(aside).toHaveStyle({ minWidth: '0px', width: '0px', right: '0px' });
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
@@ -765,8 +769,32 @@ describe('UniversalWorkspaceShell', () => {
     );
     expect(aside).not.toHaveClass('rounded-lg', 'border-l');
     expect(aside).toHaveStyle({
+      right: '0px',
       top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
+      width: '320px',
     });
+    expect(aside).toHaveAttribute('data-motion', 'layout');
+    expect((aside as HTMLElement).style.transition).toBe(
+      `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+    );
+
+    fireEvent.mouseDown(
+      screen.getByRole('separator', { name: 'Resize details' }),
+      { clientX: 500 },
+    );
+    fireEvent.mouseMove(window, { clientX: 460 });
+    expect(aside).toHaveStyle({ width: '360px', transition: 'none' });
+    expect(
+      layoutRoot.style.getPropertyValue(
+        '--workspace-inspector-transition-duration',
+      ),
+    ).toBe('0ms');
+    fireEvent.mouseUp(window);
+    expect(
+      layoutRoot.style.getPropertyValue(
+        '--workspace-inspector-transition-duration',
+      ),
+    ).toBe('300ms');
 
     fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
 
@@ -776,11 +804,15 @@ describe('UniversalWorkspaceShell', () => {
     ).toBe('0px');
     expect(aside).not.toHaveClass('border-r');
     expect(aside).toHaveStyle({
-      transform: 'translateX(100%)',
-      width: '320px',
+      minWidth: '0px',
+      width: '0px',
     });
-    expect((aside as HTMLElement).style.transition).not.toMatch(/width/);
-    expect(aside).toHaveClass('motion-reduce:transition-none');
+    expect(aside).toHaveAttribute('inert');
+    expect((aside as HTMLElement).style.transform).toBe('');
+    expect(screen.getByTestId('workspace-inspector-content')).toHaveStyle({
+      width: '360px',
+      opacity: '0',
+    });
   });
 
   it('keeps the mobile drawer closed without a context sidebar selection', () => {
