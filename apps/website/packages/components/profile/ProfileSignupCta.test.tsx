@@ -4,13 +4,13 @@ import ProfileSignupCta, { getProfileSignupHref } from './ProfileSignupCta';
 
 describe('ProfileSignupCta', () => {
   it('links to app sign-up with the profile owner referral code', () => {
-    render(<ProfileSignupCta handle="acme" referralCode="owner2345xyz" />);
+    render(<ProfileSignupCta handle="acme" referralCode="frend2345xyz" />);
 
     const link = screen.getByRole('link', { name: /sign up to genfeed/i });
     const url = new URL(link.getAttribute('href') ?? '');
 
     expect(url.pathname).toBe('/sign-up');
-    expect(url.searchParams.get('ref')).toBe('owner2345xyz');
+    expect(url.searchParams.get('ref')).toBe('frend2345xyz');
   });
 
   it('still offers plain sign-up when the owner has no code', () => {
