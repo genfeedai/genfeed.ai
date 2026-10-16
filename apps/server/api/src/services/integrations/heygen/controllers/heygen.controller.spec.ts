@@ -4,6 +4,7 @@ import { HeyGenController } from '@api/services/integrations/heygen/controllers/
 import { HeyGenAvatarPageDto } from '@api/services/integrations/heygen/dto/heygen-avatar-page.dto';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
+import { HeyGenVoiceCatalogService } from '@api/services/integrations/heygen/services/heygen-voice-catalog.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
@@ -77,6 +78,7 @@ describe('HeyGenController', () => {
         { provide: LoggerService, useValue: loggerService },
         { provide: HeyGenService, useValue: heygenService },
         { provide: HeyGenSpeechVoicesService, useValue: heygenService },
+        { provide: HeyGenVoiceCatalogService, useValue: heygenService },
       ],
     })
       .overrideGuard(RolesGuard)

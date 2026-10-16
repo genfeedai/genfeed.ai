@@ -181,12 +181,12 @@ export class ExternalVoiceCatalogService {
               isDefaultSelectable: true,
               isFeatured: false,
               name: voice.name,
-              providerData: { index: voice.index },
+              providerData: { gender: voice.gender, index: voice.index },
               sampleAudioUrl: voice.preview || null,
             },
             update: {
               name: voice.name,
-              providerData: { index: voice.index },
+              providerData: { gender: voice.gender, index: voice.index },
               sampleAudioUrl: voice.preview || null,
             },
             where: {

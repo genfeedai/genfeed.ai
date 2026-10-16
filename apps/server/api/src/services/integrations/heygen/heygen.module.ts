@@ -5,6 +5,7 @@ import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heyge
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
+import { HeyGenVoiceCatalogService } from '@api/services/integrations/heygen/services/heygen-voice-catalog.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { PollUntilModule } from '@api/shared/services/poll-until/poll-until.module';
 import { HttpModule } from '@nestjs/axios';
@@ -33,6 +34,7 @@ const BaseModule = createServiceModule(HeyGenService, {
     HeyGenIdentityService,
     { provide: HEYGEN_IDENTITY_SERVICE, useExisting: HeyGenIdentityService },
     HeyGenSpeechVoicesService,
+    HeyGenVoiceCatalogService,
   ],
 })
 export class HeyGenModule {}

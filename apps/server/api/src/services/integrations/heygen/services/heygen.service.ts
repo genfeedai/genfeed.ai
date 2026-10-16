@@ -370,6 +370,53 @@ export class HeyGenService {
     }));
   }
 
+  /** Stock voices on the platform key, read live (the sync and DB fallback). */
+  public async getPublicVoices(
+    organizationId: string,
+  ): Promise<HeyGenCatalogVoice[]> {
+    const apiKey = this.getApiKey();
+    if (!apiKey)
+      throw new BadRequestException(
+        'The public HeyGen connection is unavailable.',
+      );
+    return this.readVoiceCatalog(
+      {
+        apiKey,
+        binding: {
+          provider: 'heygen',
+          kind: 'platform',
+          organizationId,
+          credentialVersionId: this.platformCredentialVersion(apiKey),
+        },
+      },
+      'public',
+    );
+  }
+
+  /** The workspace's own HeyGen voices; empty without an entitled BYOK key. */
+  public async getPersonalVoices(
+    organizationId: string,
+  ): Promise<HeyGenCatalogVoice[]> {
+    // Lookup failure is not absence: let a storage error surface.
+    const credential = await this.byokService.lookupApiKeyWithIdentity(
+      organizationId,
+      ByokProvider.HEYGEN,
+    );
+    if (!credential) return [];
+    return this.readVoiceCatalog(
+      {
+        apiKey: credential.apiKey,
+        binding: {
+          provider: 'heygen',
+          kind: 'byok',
+          organizationId,
+          credentialVersionId: credential.credentialId,
+        },
+      },
+      'private',
+    );
+  }
+
   private async readVoiceCatalog(
     connection: { apiKey: string; binding: HeyGenConnectionRef },
     ownership?: 'public' | 'private',

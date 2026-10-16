@@ -231,6 +231,8 @@
     "identityVoiceSelected": "{label} selected",
     "identityGenderMale": "Male",
     "identityGenderFemale": "Female",
+    "identityGenderAll": "All",
+    "identityGenderFilterAria": "Filter by gender",
     "identityVoiceGenderFilter": "Only voices that match {avatar} are shown",
     "identityTabsAria": "Avatar and voice",
     "identityTabAvatar": "Avatar",

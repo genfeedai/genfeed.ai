@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
+import type { HeyGenGender } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioIdentityFieldsProps } from '@genfeedai/props/studio/studio-playground.props';
 import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
@@ -41,6 +42,16 @@ const HEYGEN_VOICE_NO_CLONES_MESSAGE =
 const PAGE_SIZE = 12;
 
 type IdentityTab = 'avatar' | 'voice';
+type GenderFilter = 'all' | HeyGenGender;
+
+const GENDER_FILTERS: readonly GenderFilter[] = ['all', 'female', 'male'];
+
+function matchesGenderFilter(
+  filter: GenderFilter,
+  gender: HeyGenGender | null | undefined,
+): boolean {
+  return filter === 'all' || gender === filter;
+}
 
 function toVoicePatch(
   option: StudioIdentityOption,
@@ -72,6 +83,7 @@ export default function StudioIdentityFields({
     isAvatarType ? 'avatar' : 'voice',
   );
   const [query, setQuery] = useState('');
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [avatarLimit, setAvatarLimit] = useState(PAGE_SIZE);
   const [voiceLimit, setVoiceLimit] = useState(PAGE_SIZE);
   const prefilledBrandId = useRef<string | null>(null);
@@ -176,17 +188,47 @@ export default function StudioIdentityFields({
   ]);
 
   const normalizedQuery = query.trim().toLowerCase();
-  const matchingAvatars = avatarOptions.filter((option) =>
-    option.label.toLowerCase().includes(normalizedQuery),
+  const matchingAvatars = avatarOptions.filter(
+    (option) =>
+      matchesGenderFilter(genderFilter, option.gender) &&
+      option.label.toLowerCase().includes(normalizedQuery),
   );
   const compatibleVoices = voiceOptions.filter((option) =>
     isVoiceGenderCompatible(avatarGender, option.gender),
   );
-  const matchingVoices = compatibleVoices.filter((option) =>
-    option.label.toLowerCase().includes(normalizedQuery),
+  const matchingVoices = compatibleVoices.filter(
+    (option) =>
+      matchesGenderFilter(genderFilter, option.gender) &&
+      option.label.toLowerCase().includes(normalizedQuery),
   );
   const isGenderFiltered =
     Boolean(avatarGender) && compatibleVoices.length < voiceOptions.length;
+
+  // HeyGen cannot filter by gender, so a filtered view keeps paging until it
+  // has a full page of matches or the catalogue is exhausted.
+  useEffect(() => {
+    if (
+      genderFilter === 'all' ||
+      activeTab !== 'avatar' ||
+      !hasMoreAvatars ||
+      isLoadingIdentities ||
+      isLoadingMoreAvatars ||
+      error ||
+      matchingAvatars.length > avatarLimit
+    )
+      return;
+    void loadMoreAvatars();
+  }, [
+    activeTab,
+    avatarLimit,
+    error,
+    genderFilter,
+    hasMoreAvatars,
+    isLoadingIdentities,
+    isLoadingMoreAvatars,
+    loadMoreAvatars,
+    matchingAvatars.length,
+  ]);
 
   const changeTab = (tab: IdentityTab) => {
     setActiveTab(tab);
@@ -377,25 +419,61 @@ export default function StudioIdentityFields({
     </div>
   ) : null;
 
+  const genderToggle = (
+    <div
+      aria-label={translate('identityGenderFilterAria')}
+      className="flex gap-1"
+      role="group"
+    >
+      {GENDER_FILTERS.map((filter) => (
+        <Button
+          key={filter}
+          aria-pressed={genderFilter === filter}
+          label={translate(
+            filter === 'all'
+              ? 'identityGenderAll'
+              : filter === 'female'
+                ? 'identityGenderFemale'
+                : 'identityGenderMale',
+          )}
+          onClick={() => {
+            setGenderFilter(filter);
+            setAvatarLimit(PAGE_SIZE);
+            setVoiceLimit(PAGE_SIZE);
+          }}
+          size={ButtonSize.SM}
+          variant={
+            genderFilter === filter
+              ? ButtonVariant.SECONDARY
+              : ButtonVariant.GHOST
+          }
+        />
+      ))}
+    </div>
+  );
+
   const searchInput = (
-    <Input
-      aria-label={translate(
-        activeTab === 'avatar'
-          ? 'identitySearchAvatars'
-          : 'identitySearchVoices',
-      )}
-      placeholder={translate(
-        activeTab === 'avatar'
-          ? 'identitySearchAvatars'
-          : 'identitySearchVoices',
-      )}
-      value={query}
-      onChange={(event) => {
-        setQuery(event.target.value);
-        setAvatarLimit(PAGE_SIZE);
-        setVoiceLimit(PAGE_SIZE);
-      }}
-    />
+    <div className="flex flex-col gap-2">
+      {genderToggle}
+      <Input
+        aria-label={translate(
+          activeTab === 'avatar'
+            ? 'identitySearchAvatars'
+            : 'identitySearchVoices',
+        )}
+        placeholder={translate(
+          activeTab === 'avatar'
+            ? 'identitySearchAvatars'
+            : 'identitySearchVoices',
+        )}
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setAvatarLimit(PAGE_SIZE);
+          setVoiceLimit(PAGE_SIZE);
+        }}
+      />
+    </div>
   );
 
   const tabBadge = (isDone: boolean) =>

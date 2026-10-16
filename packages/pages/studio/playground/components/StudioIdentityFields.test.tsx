@@ -326,6 +326,73 @@ describe('Studio identity catalog recovery', () => {
     });
   });
 
+  describe('gender toggle', () => {
+    const catalogAvatar = (name: string, gender: 'female' | 'male') => ({
+      label: `${name} (Public preset)`,
+      name,
+      source: 'Public preset',
+      value: `heygen:public:${name}`,
+      gender,
+    });
+
+    it('narrows avatars to the chosen gender', async () => {
+      mocks.identities.mockReturnValue({
+        ...identities,
+        error: null,
+        avatarOptions: [
+          catalogAvatar('Dante', 'male'),
+          catalogAvatar('Elowen', 'female'),
+        ],
+      });
+      const user = userEvent.setup();
+      render(
+        <StudioIdentityFields
+          settings={settings}
+          type="avatar"
+          onChange={vi.fn()}
+        />,
+      );
+      await openPicker(user);
+      expect(
+        screen.getByRole('button', { name: 'Dante (Public preset)' }),
+      ).toBeVisible();
+
+      await user.click(screen.getByRole('button', { name: 'Female' }));
+
+      expect(
+        screen.getByRole('button', { name: 'Elowen (Public preset)' }),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: 'Dante (Public preset)' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps loading catalogue pages until the filter has matches', async () => {
+      const loadMoreAvatars = vi.fn().mockResolvedValue(undefined);
+      mocks.identities.mockReturnValue({
+        ...identities,
+        error: null,
+        hasMoreAvatars: true,
+        loadMoreAvatars,
+        avatarOptions: [catalogAvatar('Dante', 'male')],
+      });
+      const user = userEvent.setup();
+      render(
+        <StudioIdentityFields
+          settings={settings}
+          type="avatar"
+          onChange={vi.fn()}
+        />,
+      );
+      await openPicker(user);
+      expect(loadMoreAvatars).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole('button', { name: 'Female' }));
+
+      expect(loadMoreAvatars).toHaveBeenCalled();
+    });
+  });
+
   it('starts from the brand saved avatar and voice when nothing is chosen', () => {
     const defaultVoiceRef = identities.voiceOptions[0].voiceRef;
     mocks.brand.mockReturnValue({
