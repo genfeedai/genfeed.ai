@@ -27,18 +27,22 @@ describe('ModalPostFooter', () => {
     const onClose = vi.fn();
     const onPreviousStep = vi.fn();
 
+    const footerProps = {
+      activeTab: 'setup' as const,
+      enabledCount: 1,
+      globalDescription: 'A caption',
+      globalLabel: 'A title',
+      globalScheduledDate: new Date('2026-10-16T21:00:00.000Z'),
+      hasYoutube: true,
+      isLoading: false,
+      onClose,
+      onNextStep,
+      onPreviousStep,
+    };
+
     const { rerender } = render(
       <form onSubmit={onSubmit}>
-        <ModalPostFooter
-          activeTab="setup"
-          globalDescription="A caption"
-          globalLabel="A title"
-          globalScheduledDate={new Date('2026-10-16T21:00:00.000Z')}
-          hasYoutube
-          onClose={onClose}
-          onNextStep={onNextStep}
-          onPreviousStep={onPreviousStep}
-        />
+        <ModalPostFooter {...footerProps} />
       </form>,
     );
 
@@ -53,12 +57,7 @@ describe('ModalPostFooter', () => {
 
     rerender(
       <form onSubmit={onSubmit}>
-        <ModalPostFooter
-          activeTab="platforms"
-          enabledCount={1}
-          isFormValid
-          onPreviousStep={onPreviousStep}
-        />
+        <ModalPostFooter {...footerProps} activeTab="platforms" isFormValid />
       </form>,
     );
 

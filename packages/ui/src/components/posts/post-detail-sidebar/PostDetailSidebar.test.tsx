@@ -35,6 +35,10 @@ vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
 
 vi.mock('@genfeedai/helpers/formatting/timezone/timezone.helper', () => ({
   getBrowserTimezone: () => 'UTC',
+  resolveTimeZone: (candidate: string | null | undefined, fallback = 'UTC') => {
+    const timeZone = candidate?.trim();
+    return timeZone ? timeZone : fallback;
+  },
 }));
 
 vi.mock('next/link', () => ({
