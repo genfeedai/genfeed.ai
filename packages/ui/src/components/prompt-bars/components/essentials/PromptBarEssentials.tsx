@@ -20,7 +20,7 @@ import {
   Clipboard,
   Clock,
   Mic,
-  SlidersHorizontal,
+  PanelLeft,
   Sparkles,
   Square,
   Undo2,
@@ -408,7 +408,12 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 ariaLabel={
                   isQuickOptionsOpen ? 'Hide settings' : 'Show settings'
                 }
-                icon={<SlidersHorizontal className="size-4" />}
+                icon={
+                  <PanelLeft
+                    aria-hidden="true"
+                    className="size-4 stroke-[1.75]"
+                  />
+                }
               />
             )}
 
