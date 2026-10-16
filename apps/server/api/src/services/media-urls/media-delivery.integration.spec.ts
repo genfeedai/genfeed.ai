@@ -238,7 +238,7 @@ describe('media issuer production module HTTP boundary', () => {
     expect(ingredientReads).toEqual([organizationId, organizationId]);
   });
   it('propagates global tenant scope and rejects cross-organization identities before signing', async () => {
-    tier = 'pro';
+    tier = 'scale';
     await request(app.getHttpServer())
       .post(`/ingredients/${ingredientId}/original-grant`)
       .set('Authorization', 'Bearer foreign')
@@ -246,7 +246,7 @@ describe('media issuer production module HTTP boundary', () => {
     expect(ingredientReads).toEqual([testId('foreignorg')]);
   });
   it('fails closed when authorized original signing is unavailable', async () => {
-    tier = 'pro';
+    tier = 'scale';
     await request(app.getHttpServer())
       .post(`/ingredients/${ingredientId}/original-grant`)
       .set('Authorization', 'Bearer paid')
