@@ -254,6 +254,18 @@ describe('media issuer production module HTTP boundary', () => {
       organizationId,
     ]);
   });
+  it.each(['paid', 'admin'])(
+    'rejects tenant overrides before reading an original for %s',
+    async (token) => {
+      tier = 'scale';
+      await request(app.getHttpServer())
+        .get(`/ingredients/${ingredientId}/original-download`)
+        .query({ organizationId: testId('foreignorg') })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403);
+      expect(ingredientReads).toEqual([]);
+    },
+  );
   it('denies free API-key and admin clean grants using the current organization entitlement', async () => {
     for (const token of ['free', 'admin']) {
       await request(app.getHttpServer())

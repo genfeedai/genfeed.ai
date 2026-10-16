@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -70,6 +71,7 @@ export class MediaDeliveryController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get(':id/original-download')
   @Header('Cache-Control', 'no-store')
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
