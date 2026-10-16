@@ -332,6 +332,60 @@ function readSocialProposals(value: unknown): BrandKitSocialProposal[] {
   });
 }
 
+function socialLinkIdentity(platform: string, url: string): string {
+  return `${platform.trim().toLowerCase()}\n${url.trim()}`;
+}
+
+function rejectedSocialLinks(
+  submitted: unknown,
+  saved: readonly BrandKitSocialProposal[],
+): unknown[] {
+  if (!Array.isArray(submitted)) {
+    return [];
+  }
+
+  const savedKeys = new Set(
+    saved.map((link) => socialLinkIdentity(link.platform, link.url)),
+  );
+  return submitted.filter((entry) => {
+    if (
+      !hasObjectValue(entry) ||
+      typeof entry.platform !== 'string' ||
+      typeof entry.url !== 'string'
+    ) {
+      return false;
+    }
+    return !savedKeys.has(socialLinkIdentity(entry.platform, entry.url));
+  });
+}
+
+function nextAppliedField(
+  key: BrandKitFieldKey,
+  field: IBrandKitDraftField,
+  sent: unknown,
+  result: IBrandKitApplyResult,
+): IBrandKitDraftField | undefined {
+  if (key !== 'socialLinks') {
+    return {
+      ...field,
+      currentValue: sent,
+      proposedValue: undefined,
+    };
+  }
+
+  const saved = readSocialProposals(result.appliedValues?.socialLinks);
+  if (saved.length === 0) {
+    return undefined;
+  }
+
+  const rejected = rejectedSocialLinks(sent, saved);
+  return {
+    ...field,
+    currentValue: result.appliedValues?.socialLinks ?? saved,
+    proposedValue: rejected.length > 0 ? rejected : undefined,
+  };
+}
+
 function SocialLinkReadout({
   emptyLabel,
   value,
@@ -747,6 +801,7 @@ export default function BrandKitReviewCard({
           onBrandOsDraftAccepted?.();
         }
         const nextFields = { ...draft.fields };
+        const retainedSelections = new Set<BrandKitFieldKey>();
 
         for (const key of result.appliedFields) {
           const field = nextFields[key];
@@ -757,11 +812,13 @@ export default function BrandKitReviewCard({
             continue;
           }
 
-          nextFields[key] = {
-            ...field,
-            currentValue: sent,
-            proposedValue: undefined,
-          };
+          const nextField = nextAppliedField(key, field, sent, result);
+          if (!nextField || hasProposedValue(nextField)) {
+            retainedSelections.add(key);
+          }
+          if (nextField) {
+            nextFields[key] = nextField;
+          }
         }
 
         const nextDraft = { ...draft, fields: nextFields };
@@ -769,7 +826,9 @@ export default function BrandKitReviewCard({
         setSelectedFields((current) => {
           const next = new Set(current);
           for (const key of result.appliedFields) {
-            next.delete(key);
+            if (!retainedSelections.has(key)) {
+              next.delete(key);
+            }
           }
           return next;
         });

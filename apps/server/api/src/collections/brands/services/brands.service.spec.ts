@@ -1694,6 +1694,14 @@ describe('BrandsService', () => {
               action: 'accept',
               value: [
                 {
+                  platform: 'myspace',
+                  url: 'https://myspace.com/acme',
+                },
+                {
+                  platform: 'instagram',
+                  url: 'http://127.0.0.1/admin',
+                },
+                {
                   platform: 'linkedin',
                   url: 'https://linkedin.com/company/acme',
                 },
@@ -1736,9 +1744,24 @@ describe('BrandsService', () => {
         },
         where: { id: 'link_existing' },
       });
+      expect(linkDelegate.create).toHaveBeenCalledTimes(1);
       expect(result.appliedFields).toEqual(
         expect.arrayContaining(['logo', 'socialLinks']),
       );
+      expect(result.appliedValues).toEqual({
+        socialLinks: [
+          {
+            label: 'LinkedIn',
+            platform: 'linkedin',
+            url: 'https://linkedin.com/company/acme',
+          },
+          {
+            label: 'Instagram',
+            platform: 'instagram',
+            url: 'https://instagram.com/acme',
+          },
+        ],
+      });
       expect(result.preservedFields).not.toEqual(
         expect.arrayContaining(['logo', 'socialLinks']),
       );

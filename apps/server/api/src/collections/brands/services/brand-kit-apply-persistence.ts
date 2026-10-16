@@ -120,7 +120,7 @@ export async function saveAppliedBrandKitSocialLinks(
   brandId: string,
   organizationId: string,
   links: readonly BrandKitApplySocialLink[],
-): Promise<number> {
+): Promise<readonly BrandKitApplySocialLink[]> {
   const brand = await prisma.brand.findFirst({
     select: { id: true },
     where: scopedWhere(organizationId, { id: brandId }),
@@ -129,7 +129,7 @@ export async function saveAppliedBrandKitSocialLinks(
     throw new NotFoundException('Brand', brandId);
   }
 
-  let saved = 0;
+  const saved: BrandKitApplySocialLink[] = [];
 
   for (const link of links) {
     const platform = link.platform.trim().toLowerCase();
@@ -149,6 +149,7 @@ export async function saveAppliedBrandKitSocialLinks(
       where: { brandId, category, isDeleted: false },
     });
     const label = link.label?.trim() || SOCIAL_LINK_LABELS[platform];
+    const persisted: BrandKitApplySocialLink = { label, platform, url };
     if (existing) {
       await prisma.link.update({
         data: { label, url },
@@ -159,7 +160,7 @@ export async function saveAppliedBrandKitSocialLinks(
         data: { brandId, category, label, url },
       });
     }
-    saved += 1;
+    saved.push(persisted);
   }
 
   return saved;

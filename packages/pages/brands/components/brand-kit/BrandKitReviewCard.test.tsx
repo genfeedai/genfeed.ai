@@ -602,10 +602,28 @@ describe('BrandKitReviewCard', () => {
   });
 
   it('applies the scanned logo and ignores empty proposals', async () => {
+    const onDraftCreated = vi.fn().mockResolvedValue(undefined);
+    mocks.applyBrandKitDraft.mockResolvedValue({
+      appliedFields: ['description', 'logo', 'socialLinks', 'voiceTone'],
+      appliedValues: {
+        socialLinks: [
+          {
+            label: 'Instagram',
+            platform: 'instagram',
+            url: 'https://instagram.com/acme',
+          },
+        ],
+      },
+      brandId: 'brand-1',
+      diagnostics: [],
+      preservedFields: [],
+      status: 'accepted',
+    });
     render(
       <BrandKitReviewCard
         brand={brandFixture}
         brandId="brand-1"
+        onDraftCreated={onDraftCreated}
         onRefreshBrand={mocks.onRefreshBrand}
       />,
     );
@@ -641,6 +659,33 @@ describe('BrandKitReviewCard', () => {
     expect(applyPayload.fields.strategyPlatforms).toBeUndefined();
     expect(applyPayload.fields.strategyGoals).toBeUndefined();
     expect(applyPayload.fields.voiceStyle).toBeUndefined();
+    await waitFor(() => {
+      expect(onDraftCreated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fields: expect.objectContaining({
+            socialLinks: expect.objectContaining({
+              currentValue: [
+                {
+                  label: 'Instagram',
+                  platform: 'instagram',
+                  url: 'https://instagram.com/acme',
+                },
+              ],
+              proposedValue: [
+                {
+                  platform: 'linkedin',
+                  sourceType: 'website',
+                  url: 'https://linkedin.com/company/acme',
+                },
+              ],
+            }),
+          }),
+        }),
+      );
+    });
+    expect(
+      screen.getByRole('link', { name: 'https://linkedin.com/company/acme' }),
+    ).toBeInTheDocument();
   });
 
   it('imports the asset candidates picked from the image grid', async () => {

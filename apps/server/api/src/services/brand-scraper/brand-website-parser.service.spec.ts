@@ -102,6 +102,21 @@ describe('BrandWebsiteParserService', () => {
     });
   });
 
+  it('drops media-config headings when they are the only value-proposition fallback', () => {
+    const parsed = service.parseHtml(
+      `<body>
+        <h1>autoPlay muted loop playsInline</h1>
+        <h2>Ship the monthly close in one sitting.</h2>
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(
+      service.extractBrandData(parsed, 'https://acme.example')
+        .valuePropositions,
+    ).toEqual(['Ship the monthly close in one sitting.']);
+  });
+
   it('does not reuse the logo as the fallback banner', () => {
     const parsed = service.parseHtml(
       '<body><img class="logo" src="/logo.png"><img src="/banner.png"></body>',

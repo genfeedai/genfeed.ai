@@ -205,7 +205,16 @@ describe('Brand Kit JSON:API contract', () => {
 
   it('serializes selective apply state as its own operation outcome', () => {
     const output = BrandKitApplySerializer.serialize({
-      appliedFields: ['description'],
+      appliedFields: ['description', 'socialLinks'],
+      appliedValues: {
+        socialLinks: [
+          {
+            label: 'Instagram',
+            platform: 'instagram',
+            url: 'https://instagram.com/acme',
+          },
+        ],
+      },
       brandId: 'brand-1',
       diagnostics: [],
       id: 'brand-1',
@@ -216,7 +225,16 @@ describe('Brand Kit JSON:API contract', () => {
     expect(output).toEqual({
       data: {
         attributes: expect.objectContaining({
-          appliedFields: ['description'],
+          appliedFields: ['description', 'socialLinks'],
+          appliedValues: {
+            socialLinks: [
+              {
+                label: 'Instagram',
+                platform: 'instagram',
+                url: 'https://instagram.com/acme',
+              },
+            ],
+          },
           brandId: 'brand-1',
           preservedFields: ['logo'],
           status: 'partial',

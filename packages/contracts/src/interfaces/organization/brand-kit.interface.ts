@@ -278,6 +278,7 @@ export interface IBrandKitApplyResult extends IBrandKitResource {
   appliedFields: BrandKitFieldKey[];
   preservedFields: BrandKitFieldKey[];
   diagnostics: IBrandKitDiagnostic[];
+  appliedValues?: Partial<Record<BrandKitFieldKey, unknown>>;
 }
 
 export type BrandKitAssetImportStatus = 'imported' | 'skipped' | 'failed';

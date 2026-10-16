@@ -17,6 +17,7 @@ export const brandKitApplyAttributes = createEntityAttributes([
   'brandId',
   'status',
   'appliedFields',
+  'appliedValues',
   'preservedFields',
   'diagnostics',
 ]);

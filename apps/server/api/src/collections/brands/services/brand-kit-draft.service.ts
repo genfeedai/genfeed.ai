@@ -80,7 +80,7 @@ export interface BrandKitApplyEffects {
   ) => Promise<IBrandKitAssetImportResponse>;
   saveSocialLinks?: (
     links: readonly BrandKitApplySocialLink[],
-  ) => Promise<number>;
+  ) => Promise<readonly BrandKitApplySocialLink[]>;
 }
 
 interface BrandKitApplyPlan {
@@ -239,15 +239,15 @@ export class BrandKitDraftService {
       );
     }
 
-    if (plan.socialLinks) {
-      await this.applySocialLinks(
-        plan.socialLinks,
-        effects,
-        plan.appliedFields,
-        plan.preservedFields,
-        plan.diagnostics,
-      );
-    }
+    const appliedSocialLinks = plan.socialLinks
+      ? await this.applySocialLinks(
+          plan.socialLinks,
+          effects,
+          plan.appliedFields,
+          plan.preservedFields,
+          plan.diagnostics,
+        )
+      : [];
 
     const hasBlockingDiagnostic = plan.diagnostics.some(
       (diagnostic) => diagnostic.severity === 'error',
@@ -255,6 +255,9 @@ export class BrandKitDraftService {
 
     return {
       appliedFields: plan.appliedFields,
+      ...(appliedSocialLinks.length > 0
+        ? { appliedValues: { socialLinks: appliedSocialLinks } }
+        : {}),
       brandId,
       diagnostics: plan.diagnostics,
       id: brandId,
@@ -444,7 +447,7 @@ export class BrandKitDraftService {
     appliedFields: BrandKitFieldKey[],
     preservedFields: BrandKitFieldKey[],
     diagnostics: IBrandKitDiagnostic[],
-  ): Promise<void> {
+  ): Promise<readonly BrandKitApplySocialLink[]> {
     if (!effects?.saveSocialLinks) {
       preservedFields.push('socialLinks');
       diagnostics.push({
@@ -454,14 +457,14 @@ export class BrandKitDraftService {
           'Social links were preserved because link saving is unavailable.',
         severity: 'warning',
       });
-      return;
+      return [];
     }
 
     try {
       const saved = await effects.saveSocialLinks(links);
-      if (saved > 0) {
+      if (saved.length > 0) {
         appliedFields.push('socialLinks');
-        return;
+        return saved;
       }
 
       preservedFields.push('socialLinks');
@@ -483,6 +486,8 @@ export class BrandKitDraftService {
         severity: 'error',
       });
     }
+
+    return [];
   }
 
   private readLogoApplyCandidate(

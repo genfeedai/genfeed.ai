@@ -136,7 +136,9 @@ export class BrandWebsiteParserService {
     const valuePropositions =
       scrapedContent.valuePropositions.length > 0
         ? scrapedContent.valuePropositions
-        : scrapedContent.headings.slice(0, 5);
+        : scrapedContent.headings
+            .filter((heading) => !isBrandKitGuidanceNoise(heading))
+            .slice(0, 5);
 
     return {
       aboutText: scrapedContent.aboutText,
