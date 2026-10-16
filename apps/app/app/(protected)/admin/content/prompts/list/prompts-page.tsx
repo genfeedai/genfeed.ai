@@ -126,6 +126,7 @@ function PromptsPageContent() {
   return (
     <WorkspaceSurface
       title="Saved Prompts"
+      framed={false}
       tone="muted"
       data-testid="content-prompts-surface"
     >

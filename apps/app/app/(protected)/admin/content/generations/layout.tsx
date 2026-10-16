@@ -29,6 +29,7 @@ export default function GenerationsLayout({ children }: LayoutProps) {
         label={t('layoutTitle')}
         description={t('description')}
         icon={Image}
+        moduleChrome
         headerTabs={{
           fullWidth: false,
           tabs: [

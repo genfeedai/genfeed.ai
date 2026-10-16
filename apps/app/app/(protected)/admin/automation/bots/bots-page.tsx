@@ -88,6 +88,7 @@ export default function BotsPage() {
       label="Bots"
       description="Manage automation bots for X/Twitter, Twitch, and YouTube"
       icon={BotIcon}
+      moduleChrome
       refresh={
         <ButtonRefresh
           onClick={() => loadBots(true)}
@@ -97,6 +98,7 @@ export default function BotsPage() {
     >
       <WorkspaceSurface
         title="Automation Bots"
+        framed={false}
         tone="muted"
         data-testid="automation-bots-surface"
       >

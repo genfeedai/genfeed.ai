@@ -315,6 +315,7 @@ export default function WorkflowsPage() {
       label={translate('title')}
       description={translate('description')}
       icon={ClipboardList}
+      moduleChrome
       refresh={
         <ButtonRefresh
           onClick={() => void loadWorkflows(true)}
@@ -370,6 +371,7 @@ export default function WorkflowsPage() {
 
           <WorkspaceSurface
             title={translate('listTitle')}
+            framed={false}
             tone="muted"
             data-testid="automation-workflows-surface"
           >

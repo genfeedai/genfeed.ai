@@ -148,6 +148,7 @@ function GenerationsPageContent() {
   return (
     <WorkspaceSurface
       title={t('title')}
+      framed={false}
       tone="muted"
       data-testid="content-generations-surface"
     >

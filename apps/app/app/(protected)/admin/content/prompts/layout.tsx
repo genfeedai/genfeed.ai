@@ -23,6 +23,7 @@ export default function PromptsLayout({ children }: LayoutProps) {
       label="Prompts"
       description="Manage AI prompts and reusable templates"
       icon={Terminal}
+      moduleChrome
       headerTabs={{
         fullWidth: false,
         tabs: [
