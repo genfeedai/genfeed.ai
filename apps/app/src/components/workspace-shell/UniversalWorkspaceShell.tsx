@@ -71,7 +71,6 @@ import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPi
 import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
 import {
   appendSearchParamsToHref,
-  isFocusedOnboardingPath,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
 import {
@@ -195,15 +194,13 @@ function UniversalWorkspaceShellContent({
     () => normalizeProtectedPathname(rawPathname),
     [rawPathname],
   );
-  const isFocusedOnboardingRoute = isFocusedOnboardingPath(normalizedPathname);
   // The right column is the context sidebar: it shows the current selection
   // and stays closed while nothing is selected.
   const contextSidebar = useContextSidebar();
   const translateContextSidebar = useTranslations('common.contextSidebar');
-  const activeContextSidebar =
-    !isFocusedOnboardingRoute && contextSidebar?.selection
-      ? contextSidebar
-      : null;
+  const activeContextSidebar = contextSidebar?.selection
+    ? contextSidebar
+    : null;
   const isInspectorOpen = activeContextSidebar?.isOpen ?? false;
   const agentDock = useAgentDock();
   const isCompactViewport = useIsCompactViewport();
@@ -399,11 +396,11 @@ function UniversalWorkspaceShellContent({
       ),
     [rawPathname, searchParamsString],
   );
-  // The composer follows the conversation surface. `/agent/*` owns the canvas,
-  // so its composer stays there. Every product route keeps its canvas clear and
-  // hosts the composer with the conversation in the inspector. Registered
-  // overlays temporarily take portal ownership from either base region.
-  const isCanvasComposerVisible = state !== 'overlay' && isAgentRoute;
+  // The full-page agent composer is an in-flow footer of the conversation
+  // column. An absolute dock on this shell is what clips the bar when the
+  // page height settles on reload. Product routes keep the composer with the
+  // conversation in the inspector. Overlays temporarily take the portal.
+
   const draftScopeKey = buildConversationComposerDraftScopeKey(
     orgSlug,
     effectiveThreadId,
@@ -642,8 +639,7 @@ function UniversalWorkspaceShellContent({
   // The dock is the conversation on product routes. `/agent/*` is the
   // conversation itself, so arriving there closes the dock; it stays closed
   // on the way back until the operator reopens it.
-  const isAgentDockHost =
-    Boolean(agentDock) && !isAgentRoute && !isFocusedOnboardingRoute;
+  const isAgentDockHost = Boolean(agentDock) && !isAgentRoute;
   const dockThreads = useAgentDockThreads(agentApiService, isAgentDockHost);
   const hasMajorPromptBar = isMajorPromptBarHost(normalizedPathname);
   const setIsAgentDockAvailable = agentDock?.setIsAvailable;
@@ -1021,6 +1017,9 @@ function UniversalWorkspaceShellContent({
       isComposerVisible
       // A message sent from an overlay opens the dock so the reply shows.
       onSendMessage={isAgentDockHost ? openAgentDock : undefined}
+      // The full-page agent composer is an in-flow footer of the conversation
+      // column. Portaling it into an absolute dock clips the bar when the
+      // shell height settles on reload.
       placement={
         state === 'overlay' ? 'overlay' : isAgentRoute ? 'surface' : 'dock'
       }
@@ -1040,11 +1039,9 @@ function UniversalWorkspaceShellContent({
       <div
         className={cn(
           'relative overflow-hidden bg-background',
-          isFocusedOnboardingRoute
-            ? 'min-h-[calc(100dvh-var(--desktop-titlebar-height))]'
-            : // Desktop: fill the page column under the topbar. Mobile keeps
-              // viewport sizing under the fixed topbar.
-              'min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] md:flex md:min-h-0 md:flex-1 md:flex-col',
+          // Desktop: fill the page column under the topbar. Mobile keeps
+          // viewport sizing under the fixed topbar.
+          'min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] md:flex md:min-h-0 md:flex-1 md:flex-col',
         )}
         data-shell-state={state}
         data-workspace-surface={surfaceKey}
@@ -1058,12 +1055,7 @@ function UniversalWorkspaceShellContent({
         </div>
 
         <div
-          className={cn(
-            'min-h-0',
-            isFocusedOnboardingRoute
-              ? 'h-[calc(100dvh-var(--desktop-titlebar-height))]'
-              : 'h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] md:h-auto md:flex-1',
-          )}
+          className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 md:h-auto md:flex-1"
           data-testid="workspace-shell-regions"
         >
           {/* The route owns the canvas. Only the conversation route overlays
@@ -1112,32 +1104,6 @@ function UniversalWorkspaceShellContent({
               </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
 
-            {/* Conversation composer floats over the canvas (Codex-style):
-                same max-w-3xl track as the agent transcript column so the
-                prompt bar is not full-bleed. Outer centers; inner owns width.
-                Empty sessions leave the slot empty (`empty:hidden`). Product
-                routes never render this slot. */}
-            {isCanvasComposerVisible ? (
-              // overflow-visible so reconnect/error status above the glass bar
-              // is not hard-clipped by the absolute bottom dock while the
-              // canvas section itself stays overflow-hidden for the page.
-              <div
-                className="group/composer-dock pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center overflow-visible px-3 pb-6 sm:px-4 md:pb-8"
-                data-testid="workspace-composer-dock"
-              >
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent opacity-0 group-has-[:not(:empty)]/composer-dock:opacity-100"
-                  data-composer-dock-fade=""
-                />
-                <div
-                  className="relative z-10 w-full min-w-0 max-w-3xl overflow-visible empty:hidden"
-                  data-testid="workspace-composer-slot"
-                  ref={setComposerPortalTarget}
-                />
-              </div>
-            ) : null}
-
             {isAgentDockHost && agentDock ? (
               <AgentDock
                 chrome={AGENT_DOCK_CHROME_VISIBLE ? 'split' : 'bubble'}
@@ -1179,111 +1145,107 @@ function UniversalWorkspaceShellContent({
           </div>
 
           {/* Match the left sidebar: clip fixed-width contents as the rail closes. */}
-          {isFocusedOnboardingRoute ? null : (
-            <aside
-              // Nothing selected: the empty, zero-width column is not a
-              // landmark.
-              aria-hidden={activeContextSidebar ? undefined : true}
-              aria-label={translateContextSidebar('label')}
-              className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
-                // The block's right border is the shared divider. The inspector
-                // finishes the top, right, and bottom edges and the outer radius.
-                isInspectorOpen && 'border-y border-r border-border',
-              )}
-              id="workspace-context-inspector"
-              data-motion="layout"
-              inert={!isInspectorOpen}
-              ref={inspectorRef}
-              style={{
-                bottom: 'var(--shell-inset, 0px)',
-                minWidth: inspectorRailWidth,
-                right: 0,
-                top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
-                transition: isInspectorResizing
-                  ? 'none'
-                  : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
-                width: inspectorRailWidth,
-              }}
-            >
-              {isInspectorOpen ? (
-                <Button
-                  aria-orientation="vertical"
-                  aria-valuemax={INSPECTOR_MAX_WIDTH}
-                  aria-valuemin={INSPECTOR_MIN_WIDTH}
-                  aria-valuenow={expandedInspectorWidth}
-                  ariaLabel={translateContextSidebar('resize')}
-                  className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
-                  onKeyDown={handleInspectorResizeKeyDown}
-                  onMouseDown={handleInspectorResizeStart}
-                  role="separator"
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                />
-              ) : null}
-              {/* Keep the contents at their expanded width while the outer rail
+          <aside
+            // Nothing selected: the empty, zero-width column is not a
+            // landmark.
+            aria-hidden={activeContextSidebar ? undefined : true}
+            aria-label={translateContextSidebar('label')}
+            className={cn(
+              'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
+              // The block's right border is the shared divider. The inspector
+              // finishes the top, right, and bottom edges and the outer radius.
+              isInspectorOpen && 'border-y border-r border-border',
+            )}
+            id="workspace-context-inspector"
+            data-motion="layout"
+            inert={!isInspectorOpen}
+            ref={inspectorRef}
+            style={{
+              bottom: 'var(--shell-inset, 0px)',
+              minWidth: inspectorRailWidth,
+              right: 0,
+              top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
+              transition: isInspectorResizing
+                ? 'none'
+                : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+              width: inspectorRailWidth,
+            }}
+          >
+            {isInspectorOpen ? (
+              <Button
+                aria-orientation="vertical"
+                aria-valuemax={INSPECTOR_MAX_WIDTH}
+                aria-valuemin={INSPECTOR_MIN_WIDTH}
+                aria-valuenow={expandedInspectorWidth}
+                ariaLabel={translateContextSidebar('resize')}
+                className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
+                onKeyDown={handleInspectorResizeKeyDown}
+                onMouseDown={handleInspectorResizeStart}
+                role="separator"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+              />
+            ) : null}
+            {/* Keep the contents at their expanded width while the outer rail
                   clips them during open/close. Measuring the conversation at
                   every intermediate width makes its tabs, empty state, and
                   composer visibly collapse before growing back. The inner shell
                   also remains mounted through collapse so drafts and active runs
                   survive. Only presentation portals are gated while hidden. */}
-              <div
-                className="absolute inset-y-0 right-0 flex min-h-0 flex-col"
-                data-testid="workspace-inspector-content"
-                data-motion="layout"
-                style={{
-                  minWidth: expandedInspectorWidth,
-                  opacity: isInspectorOpen ? 1 : 0,
-                  transition: isInspectorResizing
-                    ? 'none'
-                    : `opacity ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
-                  width: expandedInspectorWidth,
-                }}
-              >
-                {contextSidebar ? (
-                  <div
-                    className="flex min-h-0 flex-1 flex-col"
-                    hidden={!activeContextSidebar}
-                  >
-                    <WorkspaceContextSidebarRail
-                      contextSidebar={contextSidebar}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </aside>
-          )}
-        </div>
-
-        {isFocusedOnboardingRoute ? null : (
-          <Drawer
-            open={activeContextSidebar?.isMobileOpen ?? false}
-            onOpenChange={(isOpen: boolean) => {
-              // Dismissing the drawer is the mobile close: it deselects, so
-              // tapping the item again reopens it.
-              if (isOpen) {
-                activeContextSidebar?.setIsMobileOpen(true);
-              } else {
-                activeContextSidebar?.close();
-              }
-            }}
-          >
-            <DrawerContent
-              className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
-              id="workspace-context-inspector-drawer"
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                restoreContextFocus();
+            <div
+              className="absolute inset-y-0 right-0 flex min-h-0 flex-col"
+              data-testid="workspace-inspector-content"
+              data-motion="layout"
+              style={{
+                minWidth: expandedInspectorWidth,
+                opacity: isInspectorOpen ? 1 : 0,
+                transition: isInspectorResizing
+                  ? 'none'
+                  : `opacity ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+                width: expandedInspectorWidth,
               }}
             >
-              {activeContextSidebar ? (
-                <WorkspaceContextSidebarDrawerBody
-                  contextSidebar={activeContextSidebar}
-                />
+              {contextSidebar ? (
+                <div
+                  className="flex min-h-0 flex-1 flex-col"
+                  hidden={!activeContextSidebar}
+                >
+                  <WorkspaceContextSidebarRail
+                    contextSidebar={contextSidebar}
+                  />
+                </div>
               ) : null}
-            </DrawerContent>
-          </Drawer>
-        )}
+            </div>
+          </aside>
+        </div>
+
+        <Drawer
+          open={activeContextSidebar?.isMobileOpen ?? false}
+          onOpenChange={(isOpen: boolean) => {
+            // Dismissing the drawer is the mobile close: it deselects, so
+            // tapping the item again reopens it.
+            if (isOpen) {
+              activeContextSidebar?.setIsMobileOpen(true);
+            } else {
+              activeContextSidebar?.close();
+            }
+          }}
+        >
+          <DrawerContent
+            className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
+            id="workspace-context-inspector-drawer"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              restoreContextFocus();
+            }}
+          >
+            {activeContextSidebar ? (
+              <WorkspaceContextSidebarDrawerBody
+                contextSidebar={activeContextSidebar}
+              />
+            ) : null}
+          </DrawerContent>
+        </Drawer>
 
         <WorkspaceOverlayHost
           composerPortalRef={setComposerPortalTarget}

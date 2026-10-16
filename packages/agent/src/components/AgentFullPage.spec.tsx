@@ -233,6 +233,10 @@ function createApiService(overrides: Record<string, unknown> = {}) {
     getMessagesPage: vi
       .fn()
       .mockResolvedValue({ hasMore: false, messages: [], nextCursor: null }),
+    getBrandCompleteness: vi.fn().mockResolvedValue({
+      onboardingAnswers: null,
+      overallScore: null,
+    }),
     getThread: vi.fn(),
     getThreadSnapshot: vi.fn(),
     ...overrides,
@@ -1083,7 +1087,7 @@ describe('AgentFullPage', () => {
     );
   });
 
-  it('keeps onboarding out of the context sidebar even with outputs', () => {
+  it('keeps onboarding outputs out of the context sidebar', () => {
     storeState.activeThreadId = 'thread-1';
     storeState.messages = [outputMessage('thread-1')] as never;
 
@@ -1092,6 +1096,24 @@ describe('AgentFullPage', () => {
     expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
       'none',
     );
+  });
+
+  it('shows onboarding brand context in the context sidebar', async () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.threads = [{ brandId: 'brand-1', id: 'thread-1' }];
+
+    render(shellTree({ onboardingMode: true, threadId: 'thread-1' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+        'thread:onboarding-brand-context:thread-1',
+      );
+    });
+    expect(
+      within(screen.getByTestId('context-sidebar-outlet')).getByText(
+        'agent-onboarding-checklist',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('leaves the context sidebar empty without outputs, even while setup is incomplete', () => {

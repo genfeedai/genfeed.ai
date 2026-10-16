@@ -114,7 +114,6 @@ export function useAgentFullPage({
   // message fetches never fire against /threads/undefined/*.
   const threadId = isRenderableThreadId(rawThreadId) ? rawThreadId : undefined;
   const [isLoadingThread, setIsLoadingThread] = useState(false);
-  const [mobileChecklistOpen, setMobileChecklistOpen] = useState(false);
   const [mobileOutputsOpen, setMobileOutputsOpen] = useState(false);
   const [mobileSetupOpen, setMobileSetupOpen] = useState(false);
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
@@ -742,7 +741,6 @@ export function useAgentFullPage({
     handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
-    mobileChecklistOpen,
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,
@@ -754,7 +752,6 @@ export function useAgentFullPage({
     onboardingTotalJourneyCredits,
     onboardingTotalVisibleCredits,
     resolvedActions,
-    setMobileChecklistOpen,
     setMobileOutputsOpen,
     setMobileSetupOpen,
     setMobileThreadsOpen,

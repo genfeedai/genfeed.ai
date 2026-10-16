@@ -114,6 +114,7 @@ vi.mock('@ui/feedback/alert/Alert', () => ({
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   default: function MockPromptBarContainer(props: {
     children?: ReactNode;
+    className?: string;
     containerRef?: (node: HTMLDivElement | null) => void;
     isVisible?: boolean;
     layoutMode?: string;
@@ -127,6 +128,7 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
 
     return (
       <div
+        className={props.className}
         data-layout-mode={props.layoutMode}
         data-max-width={props.maxWidth}
         data-show-top-fade={props.showTopFade ? 'true' : 'false'}
@@ -912,7 +914,7 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('keeps the URL card as the only onboarding text entry', () => {
+  it('keeps the URL card and the onboarding composer together', () => {
     storeState.pendingInputRequest = {
       runId: 'run-url',
       inputRequestId: 'url-request',
@@ -922,16 +924,17 @@ describe('AgentChatContainer', () => {
       allowFreeText: true,
       options: [],
     };
-    const view = render(
+    render(
       <AgentChatContainer
         apiService={createApiService() as never}
         onboardingMode
         isStreaming
       />,
     );
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
     expect(
-      view.container.querySelector('[data-testid="agent-chat-input-shell"]'),
-    ).toBeNull();
+      screen.getByRole('button', { name: 'Submit requested input' }),
+    ).toBeInTheDocument();
   });
 
   it('pins the stream to the execution that continues an answered input request', async () => {
@@ -1298,6 +1301,41 @@ describe('AgentChatContainer', () => {
     expect(screen.getByTestId('chat-input')).toBeInTheDocument();
   });
 
+  it('keeps a surface composer in the column instead of an absolute dock', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Agent"
+        draftScopeKey="acme:thread-1:3"
+        placement="surface"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatContainer
+          apiService={apiService as never}
+          isStreaming
+          promptBarLayoutMode="surface-fixed"
+        />
+      </ConversationComposerShellProvider>,
+    );
+
+    const promptBar = container.querySelector(
+      '[data-layout-mode="inflow"][data-max-width="full"]',
+    );
+    expect(promptBar).not.toBeNull();
+    expect(promptBar?.className).toContain('max-w-3xl');
+    expect(
+      container.querySelector('[data-layout-mode="surface-fixed"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-composer-padding="20"]'),
+    ).not.toBeNull();
+  });
+
   it('supports a rail-scoped prompt bar shell layout when requested', () => {
     const apiService = createApiService();
 
@@ -1574,7 +1612,7 @@ describe('AgentChatContainer', () => {
     expect(screen.getAllByText(ONBOARDING_GREETING)).toHaveLength(1);
   });
 
-  it('hides the onboarding composer for a button-only pending request', () => {
+  it('keeps the composer beside a button-only onboarding card', () => {
     if (storeState.pendingInputRequest)
       storeState.pendingInputRequest.allowFreeText = false;
     render(
@@ -1583,20 +1621,20 @@ describe('AgentChatContainer', () => {
         onboardingMode
       />,
     );
-    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Submit requested input' }),
     ).toBeInTheDocument();
   });
 
-  it('keeps the URL card and hides the separate onboarding composer', () => {
+  it('keeps the URL card and the composer in the same onboarding column', () => {
     render(
       <AgentChatContainer
         apiService={createApiService() as never}
         onboardingMode
       />,
     );
-    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Submit requested input' }),
     ).toBeInTheDocument();

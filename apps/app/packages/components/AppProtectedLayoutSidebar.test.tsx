@@ -30,7 +30,6 @@ const baseProps: ComponentProps<typeof AppProtectedLayoutSidebar> = {
   isAdminRoute: false,
   isAnalyticsRoute: false,
   isConversationRoute: false,
-  isFocusedOnboardingRoute: false,
   isLibraryRoute: false,
   isOrgRoute: false,
   isPublishingRoute: false,

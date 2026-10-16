@@ -40,7 +40,6 @@ type Props = {
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
   isConversationRoute: boolean;
-  isFocusedOnboardingRoute: boolean;
   isLibraryRoute: boolean;
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
@@ -80,7 +79,6 @@ export default function AppProtectedLayoutSidebar({
   isAdminRoute,
   isAnalyticsRoute,
   isConversationRoute,
-  isFocusedOnboardingRoute,
   isLibraryRoute,
   isMessagesRoute = false,
   isOrgRoute,
@@ -147,10 +145,6 @@ export default function AppProtectedLayoutSidebar({
       <SidebarSearchTrigger label={translate('search')} />
     </>
   );
-
-  if (isFocusedOnboardingRoute) {
-    return null;
-  }
 
   // A module owns the nav column by handing the shell a panel: the surface
   // keeps its logo, label, switchers and primary destinations, and the panel

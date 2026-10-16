@@ -116,18 +116,6 @@ export function resolveAgentConversationRoute(
   return null;
 }
 
-/**
- * First-login agent onboarding (`/agent/onboarding` and `/agent/onboarding/:threadId`)
- * after {@link normalizeProtectedPathname}. Conversation is the canvas; the
- * workspace inspector does not host it.
- */
-export function isFocusedOnboardingPath(normalizedPathname: string): boolean {
-  return (
-    normalizedPathname === APP_ROUTES.AGENT.ONBOARDING ||
-    normalizedPathname.startsWith(`${APP_ROUTES.AGENT.ONBOARDING}/`)
-  );
-}
-
 export function normalizeProtectedPathname(
   rawPathname: string | null | undefined,
 ): string {

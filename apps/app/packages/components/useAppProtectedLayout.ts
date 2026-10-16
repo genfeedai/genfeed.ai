@@ -56,7 +56,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 import {
-  isFocusedOnboardingPath,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
   withTaskContextHref,
@@ -113,7 +112,6 @@ export function useAppProtectedLayout(
   const isAdminRoute =
     pathname === APP_ROUTES.ADMIN.ROOT ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.ADMIN}/`);
-  const isFocusedOnboardingRoute = isFocusedOnboardingPath(pathname);
   const isDiscoveryRoute =
     pathname === APP_ROUTES.DISCOVERY.ROOT ||
     pathname.startsWith(`${APP_ROUTES.DISCOVERY.ROOT}/`);
@@ -482,7 +480,6 @@ export function useAppProtectedLayout(
     isAnalyticsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,

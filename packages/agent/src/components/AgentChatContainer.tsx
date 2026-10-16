@@ -293,8 +293,6 @@ export function AgentChatContainer({
     composerShell?.placement === 'overlay';
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
-  const hasOnboardingQuestion =
-    onboardingMode && Boolean(container.pendingInputRequest);
   const [greetingCreatedAt] = useState(() => new Date().toISOString());
   const greetingTimeline: TimelineEntry[] = [
     {
@@ -313,19 +311,22 @@ export function AgentChatContainer({
   const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
     (onboardingMode || !container.isEmpty || isShellHostedComposer);
-  const shouldRenderInlineComposerFeedback =
-    !isComposerDocked || hasOnboardingQuestion;
+  const shouldRenderInlineComposerFeedback = !isComposerDocked;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
   const isArchivedThread = Boolean(isReadOnly && archivedNotice);
-  const shouldShowDockedComposer =
-    !hasOnboardingQuestion && (isComposerDocked || isArchivedThread);
+  const shouldShowDockedComposer = isComposerDocked || isArchivedThread;
   const shouldShowArchivedComposer = isArchivedThread && Boolean(onUnarchive);
+  // Surface placement without a portal means the prompt bar is the column
+  // footer. It does not cover the transcript, so the transcript does not
+  // reserve overlay height.
+  const isColumnComposer =
+    composerShell?.placement === 'surface' && !composerShell.portalTarget;
   const composerTranscriptPaddingPx = resolveComposerTranscriptPaddingPx({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
     isComposerVisible:
-      !hasOnboardingQuestion &&
+      !isColumnComposer &&
       composerShell?.isComposerVisible !== false &&
       composerShell?.placement !== 'dock',
     overlayHeightPx: composerOverlayHeightPx,
@@ -334,8 +335,9 @@ export function AgentChatContainer({
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col">
       {/*
-        One column: transcript scroll + floating composer share the same
-        AGENT_CONVERSATION_TRACK_CLASS width owner (portal or inflow).
+        One column: the transcript scrolls, and the prompt bar is the footer.
+        A shell portal (dock or overlay) is the only case that lifts the bar
+        out of this column.
       */}
       <div
         className={conversationColumnClass}
@@ -444,8 +446,7 @@ export function AgentChatContainer({
             onSubmitInputRequest={container.handleSubmitInputRequest}
             onUiAction={container.handleUiAction}
             padBottomForComposer={
-              !hasOnboardingQuestion &&
-              composerShell?.isComposerVisible !== false
+              shouldShowDockedComposer && !shouldShowArchivedComposer
             }
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}

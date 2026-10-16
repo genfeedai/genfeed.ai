@@ -15,10 +15,6 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@hooks/ui/use-theme-logo/use-theme-logo', () => ({
-  useThemeLogo: () => null,
-}));
-
 const agentFullPageSpy = vi.fn();
 const getTokenMock = vi.fn();
 const createFollowUpTasksMock = vi.fn();

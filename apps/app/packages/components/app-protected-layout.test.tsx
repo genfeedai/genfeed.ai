@@ -1273,9 +1273,7 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
-    // Org-scoped on purpose: onboarding is a registered shell route, so this is
-    // the one flow whose chrome the route itself has to suppress.
+  it('keeps shared shell chrome on onboarding agent routes', () => {
     mockPathname.value = '/org-123/brand-123/agent/onboarding';
 
     render(
@@ -1284,26 +1282,26 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
     expect(
-      screen.queryByTestId('streak-notifications-bridge'),
-    ).not.toBeInTheDocument();
+      screen.getByTestId('streak-notifications-bridge'),
+    ).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        railComponent: undefined,
-        topbarComponent: undefined,
+        railComponent: expect.anything(),
+        topbarComponent: expect.any(Function),
       }),
     );
     expect(protectedProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        includeElementsProvider: false,
-        includePromptBarProvider: false,
+        includeElementsProvider: true,
+        includePromptBarProvider: true,
       }),
     );
   });
 
-  it('disables catalog providers on org-empty focused onboarding routes', () => {
+  it('keeps catalog providers on org-empty onboarding routes', () => {
     mockPathname.value = '/org-123/~/agent/onboarding';
 
     render(
@@ -1314,8 +1312,8 @@ describe('AppProtectedLayout', () => {
 
     expect(protectedProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        includeElementsProvider: false,
-        includePromptBarProvider: false,
+        includeElementsProvider: true,
+        includePromptBarProvider: true,
       }),
     );
   });
@@ -1681,7 +1679,6 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
         isConversationRoute={false}
-        isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
         isPublishingRoute={false}
@@ -1721,7 +1718,6 @@ describe('AppProtectedLayout', () => {
         isAdminRoute={false}
         isAnalyticsRoute={false}
         isConversationRoute={false}
-        isFocusedOnboardingRoute={false}
         isLibraryRoute={false}
         isOrgRoute={false}
         isPublishingRoute={false}
@@ -1766,7 +1762,6 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
         isConversationRoute={false}
-        isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
         isPublishingRoute={false}

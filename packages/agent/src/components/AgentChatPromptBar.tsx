@@ -137,6 +137,13 @@ export function AgentChatPromptBar({
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isDockComposer = composerShell?.placement === 'dock';
+  const isPortaled = Boolean(composerShell?.portalTarget);
+  // Full-page agent threads render the bar as a column footer. Absolute
+  // positioning inside the overflow-hidden shell clips it on reload, before
+  // the portal target exists and again when the viewport height settles.
+  const isSurfaceColumn = composerShell?.placement === 'surface' && !isPortaled;
+  const resolvedLayoutMode =
+    isPortaled || isSurfaceColumn ? 'inflow' : layoutMode;
   const statusStack = (
     <AgentComposerStatusStack
       activeWorkEvent={activeWorkEvent}
@@ -198,14 +205,12 @@ export function AgentChatPromptBar({
       ) : null}
     </>
   );
-  const isPortaled = Boolean(composerShell?.portalTarget);
-  // Surface canvas portal already owns AGENT_CONVERSATION_TRACK_CLASS (max-w-3xl).
-  // The dock rail is narrower — fill it. Never re-center with a second max-w.
+  // A portal already owns the track width. The surface column matches the
+  // transcript's max-w-3xl itself. Never re-center with a second max-w.
   const promptBar = (
     <PromptBarContainer
-      layoutMode={isPortaled ? 'inflow' : layoutMode}
-      // Portal already owns max-w-4xl + matching px; fill it without re-padding.
-      maxWidth={isPortaled ? 'full' : '4xl'}
+      layoutMode={resolvedLayoutMode}
+      maxWidth={isPortaled || isSurfaceColumn ? 'full' : '4xl'}
       // Elevation belongs to the input. A stack-wide fade darkens the
       // transcript above warnings and errors instead of lifting the prompt.
       showTopFade={false}
@@ -223,8 +228,9 @@ export function AgentChatPromptBar({
       className={cn(
         'w-full min-w-0 max-w-full',
         isPortaled && 'pointer-events-auto',
-        layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
-        layoutMode === 'surface-fixed' && 'bottom-0',
+        isSurfaceColumn && 'mx-auto max-w-3xl px-3 pb-3 sm:px-4',
+        resolvedLayoutMode === 'fixed' && 'bottom-2 md:bottom-4',
+        resolvedLayoutMode === 'surface-fixed' && 'bottom-0',
       )}
     >
       <AgentChatInput

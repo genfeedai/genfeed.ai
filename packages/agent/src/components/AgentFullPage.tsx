@@ -2,11 +2,12 @@ import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPageMobileBar';
 import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
-import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/AgentFullPageOnboardingChrome';
+import { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboardingChecklist';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { isCloudDeployment } from '@genfeedai/config/deployment';
 import type { MemberRole } from '@genfeedai/contracts';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
@@ -59,6 +60,7 @@ export function AgentFullPage({
   userRole,
 }: AgentFullPageProps): ReactElement {
   const translate = useTranslations('agent.fullPage');
+  const translateChecklist = useTranslations('agent.onboardingChecklist');
   const {
     activeThreadStatus,
     agentSetup,
@@ -66,7 +68,6 @@ export function AgentFullPage({
     handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
-    mobileChecklistOpen,
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,
@@ -78,7 +79,6 @@ export function AgentFullPage({
     onboardingTotalJourneyCredits,
     onboardingTotalVisibleCredits,
     resolvedActions,
-    setMobileChecklistOpen,
     setMobileOutputsOpen,
     setMobileSetupOpen,
     setMobileThreadsOpen,
@@ -176,18 +176,27 @@ export function AgentFullPage({
       ) : null}
 
       {onboardingMode && onboardingBrandContext ? (
-        <AgentFullPageOnboardingChrome
-          brandContext={onboardingBrandContext}
-          completionPercent={onboardingCompletionPercent}
-          currentStepId={currentStepId}
-          earnedCredits={onboardingEarnedCredits}
-          signupGiftCredits={onboardingSignupGiftCredits}
-          steps={onboardingSteps}
-          totalOnboardingCreditsVisible={onboardingTotalVisibleCredits}
-          totalJourneyCredits={onboardingTotalJourneyCredits}
-          mobileChecklistOpen={mobileChecklistOpen}
-          onMobileChecklistOpenChange={setMobileChecklistOpen}
-        />
+        <ContextSidebarPanel
+          selection={{
+            id: `onboarding-brand-context:${threadId ?? 'setup'}`,
+            isOpenByDefault: true,
+            kind: 'thread',
+            origin: 'automatic',
+            title: translateChecklist('brandContext'),
+          }}
+        >
+          <AgentOnboardingChecklist
+            brandContext={onboardingBrandContext}
+            completionPercent={onboardingCompletionPercent}
+            currentStepId={currentStepId}
+            earnedCredits={onboardingEarnedCredits}
+            isCreditRewardsVisible={isCloudDeployment()}
+            signupGiftCredits={onboardingSignupGiftCredits}
+            steps={onboardingSteps}
+            totalOnboardingCreditsVisible={onboardingTotalVisibleCredits}
+            totalJourneyCredits={onboardingTotalJourneyCredits}
+          />
+        </ContextSidebarPanel>
       ) : null}
 
       <AgentFullPageMobileDrawers

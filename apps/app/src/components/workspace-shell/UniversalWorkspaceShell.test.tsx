@@ -946,7 +946,7 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
-  it('hides inspector chrome on focused onboarding so the canvas is the conversation', () => {
+  it('keeps the context sidebar on onboarding and leaves the composer in the column', () => {
     navigation.pathname = '/acme/~/agent/onboarding';
     agentState.activeThreadId = null;
 
@@ -961,10 +961,10 @@ describe('UniversalWorkspaceShell', () => {
       'agent-onboarding',
     );
     expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
     expect(
       container.querySelector('#workspace-context-inspector'),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
   });
 
   it('binds the topbar brand on product routes without a surface adapter', async () => {

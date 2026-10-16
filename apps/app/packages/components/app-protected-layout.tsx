@@ -49,10 +49,7 @@ import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
 } from '@/components/workspace-shell/WorkspaceNavPanelContext';
-import {
-  isFocusedOnboardingPath,
-  normalizeProtectedPathname,
-} from '@/lib/navigation/operator-shell';
+import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
   captureWorkspaceShellError,
   captureWorkspaceShellPerformance,
@@ -159,7 +156,6 @@ function AppLayoutWithDynamicMenu({
     isAnalyticsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
@@ -318,11 +314,10 @@ function AppLayoutWithDynamicMenu({
 
   const isStoreRoute = /\/~\/store(\/|$)/.test(sidebarPathname ?? '');
   const menuComponent = useMemo(() => {
-    // Focused onboarding has no module nav. Editor/workflow canvas routes also
-    // suppress the Automation/module sidebar so the surface can own the left rail
-    // (nodes palette, graph chrome) instead of stacking module menu items under
-    // a second logo topbar.
-    if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
+    // Editor/workflow canvas routes suppress the Automation/module sidebar so
+    // the surface can own the left rail (nodes palette, graph chrome) instead
+    // of stacking module menu items under a second logo topbar.
+    if (isEditorCanvasRoute) {
       return undefined;
     }
 
@@ -338,7 +333,6 @@ function AppLayoutWithDynamicMenu({
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
         isConversationRoute={isConversationRoute}
-        isFocusedOnboardingRoute={isFocusedOnboardingRoute}
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
@@ -372,7 +366,6 @@ function AppLayoutWithDynamicMenu({
     isAnalyticsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isFocusedOnboardingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
@@ -398,21 +391,18 @@ function AppLayoutWithDynamicMenu({
   // The rail is the only app navigation, so every route with shell chrome
   // keeps it — including canvas routes that suppress the module sidebar.
   const railComponent = useMemo(
-    () =>
-      isFocusedOnboardingRoute ? undefined : (
-        <AppProtectedRail
-          brandSlug={brandSlug}
-          isAdminChrome={isAdminRoute}
-          orgSlug={orgSlug}
-        />
-      ),
-    [brandSlug, isAdminRoute, isFocusedOnboardingRoute, orgSlug],
+    () => (
+      <AppProtectedRail
+        brandSlug={brandSlug}
+        isAdminChrome={isAdminRoute}
+        orgSlug={orgSlug}
+      />
+    ),
+    [brandSlug, isAdminRoute, orgSlug],
   );
-  const topbarComponent = isFocusedOnboardingRoute
-    ? undefined
-    : isAdminRoute
-      ? AdminAppProtectedTopbar
-      : AppProtectedTopbar;
+  const topbarComponent = isAdminRoute
+    ? AdminAppProtectedTopbar
+    : AppProtectedTopbar;
   const navigationMenuItems = isAdminRoute
     ? adminMenuItems
     : isSettingsRoute
@@ -436,7 +426,6 @@ function AppLayoutWithDynamicMenu({
                       : menuItems;
   const lowCreditsBanner =
     hasOrganizationBillingHint() &&
-    !isFocusedOnboardingRoute &&
     !suppressShellLowCreditsBanner &&
     !isLibraryLandingRoute ? (
       <LowCreditsBanner
@@ -614,13 +603,13 @@ function AppLayoutWithDynamicMenu({
   return (
     <>
       <AnalyticsOrganizationSync />
-      {!isEditorCanvasRoute && !isFocusedOnboardingRoute ? (
+      {!isEditorCanvasRoute ? (
         <StreakNotificationsBridge initialStreak={initialBootstrap?.streak} />
       ) : null}
       <CommandPaletteProvider>
         {/* Admin is an isolated control plane and intentionally has no Agent
-          thread commands. Focused onboarding excludes thread commands. */}
-        {isFocusedOnboardingRoute || isAdminRoute ? null : (
+          thread commands. */}
+        {isAdminRoute ? null : (
           <AgentThreadCommandsBridge
             threads={threads}
             enabled
@@ -651,7 +640,6 @@ function AppProtectedLayoutContent({
     [rawPathname],
   );
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
-  const isFocusedOnboardingRoute = isFocusedOnboardingPath(pathname);
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   return (
@@ -659,13 +647,9 @@ function AppProtectedLayoutContent({
       <ProtectedProviders
         includeAssetSelectionProvider={!isEditorCanvasRoute}
         includeApiStatusCheck={false}
-        includeElementsProvider={
-          !isEditorCanvasRoute && !isFocusedOnboardingRoute && !isWorkspaceRoute
-        }
+        includeElementsProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
         initialBootstrap={initialBootstrap}
-        includePromptBarProvider={
-          !isEditorCanvasRoute && !isFocusedOnboardingRoute && !isWorkspaceRoute
-        }
+        includePromptBarProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
       >
         <InstalledAppsProvider>
           <PinnedRailAppsProvider>
