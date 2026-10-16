@@ -234,6 +234,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/vs/:slug',
     '/workflows',
     '/x',
+    '/x/card',
     '/youtube',
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
