@@ -774,7 +774,7 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
   });
 
-  it('enables Create Key when the Pro org has no keys', async () => {
+  it('enables Create Key when the Agencies org has no keys', async () => {
     mocks.findAllApiKeys.mockResolvedValue([]);
     render(<SettingsApiKeysPage />);
 
@@ -813,7 +813,7 @@ describe('SettingsApiKeysPage', () => {
     render(<SettingsApiKeysPage />);
 
     expect(
-      await screen.findByText('Unlock API keys with Pro'),
+      await screen.findByText('Unlock API keys with Agencies'),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/API access is included on paid plans/),

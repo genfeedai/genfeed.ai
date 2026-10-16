@@ -212,7 +212,7 @@ describe('MembersList seat limit', () => {
   it('replaces the member table with an upgrade state for solo plans', async () => {
     renderMembers({ pageCount: 1, tier: 'free' });
 
-    expect(screen.getByText('Unlock team members with Pro')).toBeVisible();
+    expect(screen.getByText('Unlock team members with Agencies')).toBeVisible();
     expect(
       screen.getByText(/Your current plan is a solo workspace/i),
     ).toBeVisible();
@@ -230,12 +230,12 @@ describe('MembersList seat limit', () => {
     renderMembers({ pageCount: 0, tier: 'byok' });
 
     expect(
-      screen.getByText('Unlock team members with Pro'),
+      screen.getByText('Unlock team members with Agencies'),
     ).toBeInTheDocument();
     expect(mocks.findAll).not.toHaveBeenCalled();
   });
 
-  it('loads the member table and enables invites for Pro', async () => {
+  it('loads the member table and enables invites for Agencies', async () => {
     renderMembers({ pageCount: 0, tier: 'scale' });
 
     await screen.findByText('No members found');

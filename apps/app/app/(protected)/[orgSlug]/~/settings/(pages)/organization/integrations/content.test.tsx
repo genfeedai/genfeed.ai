@@ -202,14 +202,14 @@ describe('SettingsIntegrationsPage', () => {
     });
   });
 
-  it('shows the Pro upgrade prompt and blocks new keys on the free tier', async () => {
+  it('shows the Agencies upgrade prompt and blocks new keys on the free tier', async () => {
     mocks.subscriptionTier = 'free';
 
     render(<SettingsIntegrationsPage />);
 
     await screen.findByText('OpenAI');
     expect(
-      screen.getByText('Bring your own keys is included with Pro'),
+      screen.getByText('Bring your own keys is included with Agencies'),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Upgrade to Agencies' }),
@@ -233,7 +233,7 @@ describe('SettingsIntegrationsPage', () => {
 
     await screen.findByText('OpenAI');
     expect(
-      screen.queryByText('Bring your own keys is included with Pro'),
+      screen.queryByText('Bring your own keys is included with Agencies'),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add Key' })).toBeInTheDocument();
   });

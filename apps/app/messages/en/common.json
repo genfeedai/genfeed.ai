@@ -683,9 +683,9 @@
     },
     "integrations": {
       "byokUpgrade": {
-        "action": "Upgrade to Pro",
-        "description": "Upgrade to Pro to run generations on your own provider keys with no credit charge and no usage fee.",
-        "title": "Bring your own keys is included with Pro"
+        "action": "Upgrade to Agencies",
+        "description": "Upgrade to Agencies to run generations on your own provider keys with no credit charge and no usage fee.",
+        "title": "Bring your own keys is included with Agencies"
       }
     },
     "memory": {

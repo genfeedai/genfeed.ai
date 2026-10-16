@@ -14,6 +14,7 @@ import type {
 import {
   getSeatLimitForTier,
   getUpgradeTierForLimit,
+  PLAN_LABELS,
 } from '@genfeedai/pricing';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
@@ -44,7 +45,9 @@ function formatTierLabel(tier: string | null): string {
     return 'a paid plan';
   }
 
-  return tier.charAt(0).toUpperCase() + tier.slice(1);
+  return tier in PLAN_LABELS
+    ? PLAN_LABELS[tier as keyof typeof PLAN_LABELS]
+    : tier.charAt(0).toUpperCase() + tier.slice(1);
 }
 
 function formatInvitationStatus(status: IMemberInvitation['status']): string {
