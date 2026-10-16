@@ -37,6 +37,11 @@ import {
   readHeyGenVideoId,
   readHeyGenVideoStatus,
 } from '@api/services/integrations/heygen/helpers/heygen-video';
+import {
+  type HeyGenVoiceListing,
+  listPersonalHeyGenVoices,
+  listPublicHeyGenVoices,
+} from '@api/services/integrations/heygen/helpers/heygen-voice-listing';
 import { heyGenAvatarCandidateSchema } from '@api/services/integrations/heygen/heygen-identity.schema';
 import type {
   HeyGenAvatarCandidate,
@@ -371,58 +376,34 @@ export class HeyGenService {
   }
 
   /** Stock voices on the platform key, read live (the sync and DB fallback). */
-  public async getPublicVoices(
+  public getPublicVoices(
     organizationId: string,
   ): Promise<HeyGenCatalogVoice[]> {
-    const apiKey = this.getApiKey();
-    // No platform key means no stock voices, not a failure: a workspace with
-    // its own key still lists its voices.
-    if (!apiKey) return [];
-    return this.readVoiceCatalog(
-      {
-        apiKey,
-        binding: {
-          provider: 'heygen',
-          kind: 'platform',
-          organizationId,
-          credentialVersionId: this.platformCredentialVersion(apiKey),
-        },
-      },
-      'public',
-    );
+    return listPublicHeyGenVoices(this.voiceListing(), organizationId);
   }
 
   /** The workspace's own HeyGen voices; empty without an entitled BYOK key. */
-  public async getPersonalVoices(
+  public getPersonalVoices(
     organizationId: string,
   ): Promise<HeyGenCatalogVoice[]> {
-    // Lookup failure is not absence: let a storage error surface.
-    const credential = await this.byokService.lookupApiKeyWithIdentity(
-      organizationId,
-      ByokProvider.HEYGEN,
-    );
-    if (!credential) return [];
-    // Stock voices stay usable when the workspace's own listing fails.
-    try {
-      return await this.readVoiceCatalog(
-        {
-          apiKey: credential.apiKey,
-          binding: {
-            provider: 'heygen',
-            kind: 'byok',
-            organizationId,
-            credentialVersionId: credential.credentialId,
-          },
-        },
-        'private',
-      );
-    } catch (error: unknown) {
-      this.loggerService.warn(
-        `${this.constructorName} personal voices unavailable`,
-        { error: error instanceof Error ? error.message : 'unknown' },
-      );
-      return [];
-    }
+    return listPersonalHeyGenVoices(this.voiceListing(), organizationId);
+  }
+
+  private voiceListing(): HeyGenVoiceListing {
+    return {
+      constructorName: this.constructorName,
+      getPlatformApiKey: () => this.getApiKey(),
+      lookupPersonalCredential: (organizationId) =>
+        this.byokService.lookupApiKeyWithIdentity(
+          organizationId,
+          ByokProvider.HEYGEN,
+        ),
+      platformCredentialVersion: (apiKey) =>
+        this.platformCredentialVersion(apiKey),
+      readVoiceCatalog: (connection, ownership) =>
+        this.readVoiceCatalog(connection, ownership),
+      warn: (message, context) => this.loggerService.warn(message, context),
+    };
   }
 
   private async readVoiceCatalog(
