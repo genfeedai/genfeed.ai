@@ -1,16 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock file-saver
 const { mockSaveAs } = vi.hoisted(() => ({
   mockSaveAs: vi.fn(),
 }));
@@ -33,7 +24,6 @@ vi.mock('@utils/media/ingredient-type.util', () => ({
   }),
 }));
 
-// Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -43,50 +33,20 @@ global.window = {
   open: mockWindowOpen,
 } as unknown as Window & typeof globalThis;
 
-// Mock document for DOM fallback in downloadIngredient
-const mockLink = {
-  click: vi.fn(),
-  download: '',
-  href: '',
-  rel: '',
-  target: '',
-};
-const mockAppendChild = vi.fn();
-const mockRemoveChild = vi.fn();
-const originalDocument = global.document;
-const mockDocument = {
-  ...global.document,
-  body: {
-    ...global.document?.body,
-    appendChild: mockAppendChild,
-    removeChild: mockRemoveChild,
-  } as unknown as HTMLElement,
-  createElement: vi.fn(() => mockLink),
-} as unknown as Document;
-
 import {
   downloadIngredient,
   downloadUrl,
+  filenameFromContentDisposition,
+  ingredientDownloadFilename,
 } from '@helpers/media/download/download.helper';
 
 describe('download.helper', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.defineProperty(globalThis, 'document', {
-      configurable: true,
-      value: mockDocument,
-    });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterAll(() => {
-    Object.defineProperty(globalThis, 'document', {
-      configurable: true,
-      value: originalDocument,
-    });
   });
 
   describe('downloadIngredient', () => {
@@ -109,15 +69,16 @@ describe('download.helper', () => {
       ).rejects.toThrow('No download URL available');
     });
 
-    it('should fallback to anchor element when fetch response is not ok', async () => {
+    it('throws instead of opening a tab when fetch response is not ok', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 404 });
 
       const ingredient = createMockIngredient();
 
-      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
-
-      expect(global.document.createElement).toHaveBeenCalledWith('a');
-      expect(mockLink.click).toHaveBeenCalled();
+      await expect(
+        downloadIngredient(ingredient, ingredient.ingredientUrl ?? ''),
+      ).rejects.toThrow('Failed to download file (status 404)');
+      expect(mockWindowOpen).not.toHaveBeenCalled();
+      expect(mockSaveAs).not.toHaveBeenCalled();
     });
 
     it('should download and save image ingredient', async () => {
@@ -131,7 +92,11 @@ describe('download.helper', () => {
 
       await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://example.com/image.png');
+      expect(mockFetch).toHaveBeenCalledWith('https://example.com/image.png', {
+        cache: 'no-store',
+        credentials: 'omit',
+        mode: 'cors',
+      });
       expect(mockSaveAs).toHaveBeenCalledWith(
         mockBlob,
         'Test Image-image-ing-123.png',
@@ -223,7 +188,11 @@ describe('download.helper', () => {
 
       await downloadUrl('https://example.com/doc.pdf', 'my-document.pdf');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://example.com/doc.pdf');
+      expect(mockFetch).toHaveBeenCalledWith('https://example.com/doc.pdf', {
+        cache: 'no-store',
+        credentials: 'omit',
+        mode: 'cors',
+      });
       expect(mockSaveAs).toHaveBeenCalledWith(mockBlob, 'my-document.pdf');
     });
 
@@ -239,28 +208,45 @@ describe('download.helper', () => {
       expect(mockSaveAs).toHaveBeenCalledWith(mockBlob, 'download');
     });
 
-    it('should open in new tab when fetch fails with error', async () => {
+    it('throws instead of opening a new tab when fetch fails', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      await downloadUrl('https://example.com/file', 'file.pdf');
-
-      expect(mockWindowOpen).toHaveBeenCalledWith(
-        'https://example.com/file',
-        '_blank',
-        'noopener,noreferrer',
-      );
+      await expect(
+        downloadUrl('https://example.com/file', 'file.pdf'),
+      ).rejects.toThrow('Network error');
+      expect(mockWindowOpen).not.toHaveBeenCalled();
+      expect(mockSaveAs).not.toHaveBeenCalled();
     });
 
-    it('should open in new tab when response is not ok', async () => {
+    it('throws instead of opening a new tab when response is not ok', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 403 });
 
-      await downloadUrl('https://example.com/file', 'file.pdf');
+      await expect(
+        downloadUrl('https://example.com/file', 'file.pdf'),
+      ).rejects.toThrow('Failed to download file (status 403)');
+      expect(mockWindowOpen).not.toHaveBeenCalled();
+    });
+  });
 
-      expect(mockWindowOpen).toHaveBeenCalledWith(
-        'https://example.com/file',
-        '_blank',
-        'noopener,noreferrer',
-      );
+  describe('filenameFromContentDisposition', () => {
+    it('reads a quoted attachment filename', () => {
+      expect(
+        filenameFromContentDisposition(
+          'attachment; filename="image-1-watermarked.png"',
+        ),
+      ).toBe('image-1-watermarked.png');
+    });
+  });
+
+  describe('ingredientDownloadFilename', () => {
+    it('builds a stable download name from the ingredient', () => {
+      expect(
+        ingredientDownloadFilename({
+          category: IngredientCategory.IMAGE,
+          id: 'ing-123',
+          metadata: { label: 'Test Image' },
+        } as IIngredient),
+      ).toBe('Test Image-image-ing-123.png');
     });
   });
 });

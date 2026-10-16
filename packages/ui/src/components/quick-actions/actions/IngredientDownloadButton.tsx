@@ -2,7 +2,6 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { downloadUrl } from '@genfeedai/helpers/media/download/download.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IngredientDownloadButtonProps } from '@genfeedai/props/content/quick-actions.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -42,8 +41,7 @@ export default function IngredientDownloadButton({
     try {
       if (watermark) {
         const service = await getService();
-        const result = await service.exportMedia(ingredientId, true);
-        await downloadUrl(result.url, result.filename);
+        await service.downloadWatermarked(ingredientId);
       } else {
         await onDownloadOriginal();
       }

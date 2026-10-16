@@ -16,7 +16,11 @@ import type {
   MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
-import { downloadIngredient } from '@genfeedai/helpers/media/download/download.helper';
+import {
+  filenameFromContentDisposition,
+  ingredientDownloadFilename,
+  saveDownloadBlob,
+} from '@genfeedai/helpers/media/download/download.helper';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { GIF } from '@genfeedai/models/ingredients/gif.model';
@@ -112,8 +116,11 @@ export class IngredientsService<
   }
 
   public async downloadOriginal(ingredient: IIngredient): Promise<void> {
-    const grant = await this.originalGrant(ingredient.id);
-    await downloadIngredient(ingredient, grant.url as string);
+    const response = await this.instance.get<Blob>(
+      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(ingredient.id)}/original-download`,
+      { responseType: 'blob', timeout: 600_000 },
+    );
+    saveDownloadBlob(response.data, ingredientDownloadFilename(ingredient));
   }
 
   public async preparePreviews(ids: readonly string[]): Promise<void> {
@@ -130,6 +137,21 @@ export class IngredientsService<
       { timeout: 600_000 },
     );
     return deserializeResource<IIngredientExportResult>(response.data);
+  }
+
+  public async downloadWatermarked(id: string): Promise<void> {
+    const response = await this.instance.post<Blob>(
+      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/export-file`,
+      { watermark: true },
+      { responseType: 'blob', timeout: 600_000 },
+    );
+    const header = response.headers?.['content-disposition'];
+    saveDownloadBlob(
+      response.data,
+      filenameFromContentDisposition(
+        typeof header === 'string' ? header : undefined,
+      ) ?? `${id}-watermarked`,
+    );
   }
 
   private static instances = new Map<string, IngredientsService<Ingredient>>();

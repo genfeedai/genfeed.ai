@@ -5,6 +5,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { streamRemoteAttachment } from '@api/helpers/utils/stream-attachment/stream-attachment.util';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   PrepareMediaPreviewsDto,
@@ -25,9 +26,11 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 @Controller('ingredients')
 @UseGuards(RateLimitGuard)
@@ -65,6 +68,21 @@ export class MediaDeliveryController {
       MediaDeliveryGrantSerializer,
       await this.issuer.issueOriginal(this.scope(user), id),
     );
+  }
+
+  @Get(':id/original-download')
+  @Header('Cache-Control', 'no-store')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
+  async downloadOriginal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const grant = await this.issuer.issueOriginal(this.scope(user), id);
+    if (grant.state !== 'READY' || !grant.url) {
+      throw new NotFoundException('Original media is unavailable');
+    }
+    return streamRemoteAttachment(grant.url, id, res);
   }
 
   @Post(':id/public-derivative')

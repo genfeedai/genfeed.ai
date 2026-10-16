@@ -2,20 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import IngredientDownloadButton from '@ui/quick-actions/actions/IngredientDownloadButton';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { exportMedia, downloadUrl, notifyError } = vi.hoisted(() => ({
-  exportMedia: vi.fn(),
-  downloadUrl: vi.fn(),
+const { downloadWatermarked, notifyError } = vi.hoisted(() => ({
+  downloadWatermarked: vi.fn(),
   notifyError: vi.fn(),
 }));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ exportMedia }),
+  useAuthedService: () => async () => ({ downloadWatermarked }),
 }));
 vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: { getInstance: vi.fn() },
-}));
-vi.mock('@genfeedai/helpers/media/download/download.helper', () => ({
-  downloadUrl,
 }));
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: { getInstance: () => ({ error: notifyError }) },
@@ -35,13 +31,10 @@ describe('IngredientDownloadButton', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'original' }));
     await waitFor(() => expect(original).toHaveBeenCalledOnce());
-    expect(exportMedia).not.toHaveBeenCalled();
+    expect(downloadWatermarked).not.toHaveBeenCalled();
   });
   it('downloads the server-created watermark variant from the dropdown', async () => {
-    exportMedia.mockResolvedValue({
-      url: 'https://cdn.example/preview.png',
-      filename: 'preview.png',
-    });
+    downloadWatermarked.mockResolvedValue(undefined);
     const original = vi.fn();
     render(
       <IngredientDownloadButton
@@ -54,19 +47,12 @@ describe('IngredientDownloadButton', () => {
     });
     fireEvent.click(await screen.findByRole('menuitem', { name: 'branded' }));
     await waitFor(() =>
-      expect(downloadUrl).toHaveBeenCalledWith(
-        'https://cdn.example/preview.png',
-        'preview.png',
-      ),
+      expect(downloadWatermarked).toHaveBeenCalledWith('image-1'),
     );
-    expect(exportMedia).toHaveBeenCalledWith('image-1', true);
     expect(original).not.toHaveBeenCalled();
   });
   it('does not bubble portal menu clicks or pointer events to the media tile', async () => {
-    exportMedia.mockResolvedValue({
-      url: 'https://cdn.example/preview.png',
-      filename: 'preview.png',
-    });
+    downloadWatermarked.mockResolvedValue(undefined);
     const openTile = vi.fn();
     const selectTile = vi.fn();
     render(
@@ -85,13 +71,13 @@ describe('IngredientDownloadButton', () => {
     const item = await screen.findByRole('menuitem', { name: 'branded' });
     fireEvent.pointerDown(item, { button: 0 });
     fireEvent.click(item);
-    await waitFor(() => expect(exportMedia).toHaveBeenCalled());
+    await waitFor(() => expect(downloadWatermarked).toHaveBeenCalled());
     expect(openTile).not.toHaveBeenCalled();
     expect(selectTile).not.toHaveBeenCalled();
   });
 
   it('reports failed watermark exports without downloading an original', async () => {
-    exportMedia.mockRejectedValue(new Error('missing watermark'));
+    downloadWatermarked.mockRejectedValue(new Error('missing watermark'));
     const original = vi.fn();
     render(
       <IngredientDownloadButton
@@ -109,15 +95,11 @@ describe('IngredientDownloadButton', () => {
       }),
     );
     expect(original).not.toHaveBeenCalled();
-    expect(downloadUrl).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'original' })).toBeEnabled();
   });
 
   it('renders a single trigger that opens the dropdown in compact mode', async () => {
-    exportMedia.mockResolvedValue({
-      url: 'https://cdn.example/preview.png',
-      filename: 'preview.png',
-    });
+    downloadWatermarked.mockResolvedValue(undefined);
     const original = vi.fn();
     render(
       <IngredientDownloadButton
@@ -136,7 +118,7 @@ describe('IngredientDownloadButton', () => {
     });
     fireEvent.click(await screen.findByRole('menuitem', { name: 'original' }));
     await waitFor(() => expect(original).toHaveBeenCalledOnce());
-    expect(exportMedia).not.toHaveBeenCalled();
+    expect(downloadWatermarked).not.toHaveBeenCalled();
   });
 
   it('matches the compact overlay icon square without a focus ring', () => {

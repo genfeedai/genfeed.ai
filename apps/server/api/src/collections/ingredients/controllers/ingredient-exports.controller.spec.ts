@@ -27,6 +27,22 @@ describe('IngredientExportsController', () => {
       windowMs: 60_000,
     });
     expect(Reflect.getMetadata(REQUEST_TIMEOUT_MS, handler)).toBe(600_000);
+    expect(
+      Reflect.getMetadata(
+        RATE_LIMIT_KEY,
+        IngredientExportsController.prototype.exportFile,
+      ),
+    ).toEqual({
+      limit: 5,
+      scope: 'user',
+      windowMs: 60_000,
+    });
+    expect(
+      Reflect.getMetadata(
+        REQUEST_TIMEOUT_MS,
+        IngredientExportsController.prototype.exportFile,
+      ),
+    ).toBe(600_000);
   });
 
   it('rejects missing organization before rendering', async () => {
@@ -49,6 +65,31 @@ describe('IngredientExportsController', () => {
         },
         'image-1',
         { watermark: true },
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(exports.export).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing organization before streaming a file', async () => {
+    const exports = { export: vi.fn() };
+    const module = await Test.createTestingModule({
+      providers: [
+        IngredientExportsController,
+        { provide: IngredientExportService, useValue: exports },
+      ],
+    }).compile();
+    const controller = module.get(IngredientExportsController);
+    await expect(
+      controller.exportFile(
+        {
+          id: 'user-1',
+          userId: 'user-1',
+          brandId: 'brand-1',
+          organizationId: '',
+        },
+        'image-1',
+        { watermark: true },
+        { set: vi.fn() } as never,
       ),
     ).rejects.toThrow(ForbiddenException);
     expect(exports.export).not.toHaveBeenCalled();

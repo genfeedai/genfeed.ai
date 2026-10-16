@@ -12,6 +12,55 @@ function formatCategoryForFilename(category: string): string {
   return category.toLowerCase().replace(/_/g, '-');
 }
 
+export function sanitizeDownloadFilename(filename: string): string {
+  const trimmed = filename.trim() || 'download';
+  return trimmed.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 180);
+}
+
+export function ingredientDownloadFilename(ingredient: IIngredient): string {
+  const extension = getIngredientExtension(ingredient);
+  const metadata = ingredient.metadata as IMetadata | undefined;
+  return `${metadata?.label || 'genfeed'}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}.${extension}`;
+}
+
+export function filenameFromContentDisposition(
+  contentDisposition: string | undefined,
+): string | undefined {
+  if (!contentDisposition) {
+    return undefined;
+  }
+  const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1]);
+    } catch {
+      return utfMatch[1];
+    }
+  }
+  const quoted = /filename="([^"]+)"/i.exec(contentDisposition);
+  if (quoted?.[1]) {
+    return quoted[1];
+  }
+  const unquoted = /filename=([^;]+)/i.exec(contentDisposition);
+  return unquoted?.[1]?.trim();
+}
+
+export function saveDownloadBlob(blob: Blob, filename: string): void {
+  saveAs(blob, sanitizeDownloadFilename(filename));
+}
+
+async function fetchDownloadBlob(url: string): Promise<Blob> {
+  const response = await fetch(url, {
+    cache: 'no-store',
+    credentials: 'omit',
+    mode: 'cors',
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download file (status ${response.status})`);
+  }
+  return response.blob();
+}
+
 export async function downloadIngredient(
   ingredient: IIngredient,
   originalUrl: string,
@@ -19,50 +68,18 @@ export async function downloadIngredient(
   if (!originalUrl) {
     throw new Error('No download URL available');
   }
-
-  try {
-    const response = await fetch(originalUrl);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to download ingredient (status ${response.status})`,
-      );
-    }
-
-    const blob = await response.blob();
-    const extension = getIngredientExtension(ingredient);
-    const metadata = ingredient.metadata as IMetadata;
-    const metadataLabel = metadata?.label;
-
-    saveAs(
-      blob,
-      `${metadataLabel || 'genfeed'}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}.${extension}`,
-    );
-  } catch {
-    // Fallback: use anchor element for cross-origin downloads
-    const link = document.createElement('a');
-    link.href = originalUrl;
-    link.download = `${(ingredient.metadata as IMetadata)?.label || 'genfeed'}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  saveDownloadBlob(
+    await fetchDownloadBlob(originalUrl),
+    ingredientDownloadFilename(ingredient),
+  );
 }
 
 export async function downloadUrl(
   url: string,
   filename?: string,
 ): Promise<void> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download file (status ${response.status})`);
-    }
-
-    const blob = await response.blob();
-    saveAs(blob, filename || 'download');
-  } catch {
-    window.open(url, '_blank', 'noopener,noreferrer');
+  if (!url) {
+    throw new Error('No download URL available');
   }
+  saveDownloadBlob(await fetchDownloadBlob(url), filename || 'download');
 }

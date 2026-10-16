@@ -20,6 +20,24 @@ import {
 import { IngredientsService } from '@services/content/ingredients.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const {
+  saveDownloadBlob,
+  ingredientDownloadFilename,
+  filenameFromContentDisposition,
+} = vi.hoisted(() => ({
+  saveDownloadBlob: vi.fn(),
+  ingredientDownloadFilename: vi.fn(() => 'Test Image-image-ing-123.png'),
+  filenameFromContentDisposition: vi.fn(
+    (header: string | undefined) =>
+      /filename="([^"]+)"/.exec(header ?? '')?.[1],
+  ),
+}));
+vi.mock('@genfeedai/helpers/media/download/download.helper', () => ({
+  filenameFromContentDisposition,
+  ingredientDownloadFilename,
+  saveDownloadBlob,
+}));
+
 describe('IngredientsService', () => {
   const token = 'ingredients-token';
   let service: IngredientsService;
@@ -59,6 +77,50 @@ describe('IngredientsService', () => {
     http.post.mockRejectedValue(new Error('Watermark unavailable'));
     await expect(service.exportMedia('ingredient-1', true)).rejects.toThrow(
       'Watermark unavailable',
+    );
+  });
+
+  it('downloads the original as an attachment through the API', async () => {
+    const blob = new Blob(['png'], { type: 'image/png' });
+    http.get.mockResolvedValue({ data: blob });
+    const ingredient = {
+      category: IngredientCategory.IMAGE,
+      id: 'ing-123',
+      metadata: { label: 'Test Image' },
+    } as const;
+
+    await service.downloadOriginal(ingredient as never);
+
+    expect(http.get).toHaveBeenCalledWith(
+      'https://api.genfeed.ai/v1/ingredients/ing-123/original-download',
+      { responseType: 'blob', timeout: 600_000 },
+    );
+    expect(ingredientDownloadFilename).toHaveBeenCalledWith(ingredient);
+    expect(saveDownloadBlob).toHaveBeenCalledWith(
+      blob,
+      'Test Image-image-ing-123.png',
+    );
+  });
+
+  it('downloads the watermarked export as an attachment through the API', async () => {
+    const blob = new Blob(['png'], { type: 'image/png' });
+    http.post.mockResolvedValue({
+      data: blob,
+      headers: {
+        'content-disposition': 'attachment; filename="image-1-watermarked.png"',
+      },
+    });
+
+    await service.downloadWatermarked('image-1');
+
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.genfeed.ai/v1/ingredients/image-1/export-file',
+      { watermark: true },
+      { responseType: 'blob', timeout: 600_000 },
+    );
+    expect(saveDownloadBlob).toHaveBeenCalledWith(
+      blob,
+      'image-1-watermarked.png',
     );
   });
 
