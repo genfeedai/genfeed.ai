@@ -5,6 +5,7 @@ import { DYNAMIC_VIDEO_WORKFLOW_TEMPLATES } from '@api/collections/workflows/tem
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
 import { RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/research-to-content-workflow.template';
+import { SHOWCASE_WORKFLOW_TEMPLATE_IDS } from '@api/collections/workflows/templates/showcase-workflow-template-ids';
 import { SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/source-maintenance-workflow.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/weekly-brand-content-workflow.template';
@@ -69,6 +70,11 @@ export interface WorkflowTemplate {
    * from `WORKFLOW_TEMPLATE_EXAMPLE_OUTPUTS`, never inline on a graph.
    */
   exampleOutput?: WorkflowTemplateExampleOutput;
+  /**
+   * Showcase order (#5510). 1 is first. Present only on
+   * `SHOWCASE_WORKFLOW_TEMPLATE_IDS`. System catalog entries never carry it.
+   */
+  featuredRank?: number;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: Array<{
@@ -595,5 +601,27 @@ const WORKFLOW_TEMPLATE_CATALOG: Record<string, WorkflowTemplate> = {
   },
 };
 
+const SHOWCASE_RANK_BY_ID = new Map<string, number>(
+  SHOWCASE_WORKFLOW_TEMPLATE_IDS.map((templateId, index) => [
+    templateId,
+    index + 1,
+  ]),
+);
+
+/** Stamps `featuredRank` on the showcase set and leaves every other template unchanged. */
+function withShowcaseRanks(
+  templates: Record<string, WorkflowTemplate>,
+): Record<string, WorkflowTemplate> {
+  return Object.fromEntries(
+    Object.entries(templates).map(([templateId, template]) => {
+      const featuredRank = SHOWCASE_RANK_BY_ID.get(template.id);
+      return [
+        templateId,
+        featuredRank === undefined ? template : { ...template, featuredRank },
+      ];
+    }),
+  );
+}
+
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> =
-  withExampleOutputs(WORKFLOW_TEMPLATE_CATALOG);
+  withShowcaseRanks(withExampleOutputs(WORKFLOW_TEMPLATE_CATALOG));

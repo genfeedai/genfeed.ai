@@ -1,17 +1,40 @@
 import { listSystemWorkflowCatalog } from '@api/collections/workflows/system-workflow-catalog';
 import { ENGINE_VERIFIED_TEMPLATE_IDS } from '@api/collections/workflows/templates/__fixtures__/engine-verified-template-ids';
+import { SHOWCASE_WORKFLOW_TEMPLATE_IDS } from '@api/collections/workflows/templates/showcase-workflow-template-ids';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { describe, expect, it } from 'vitest';
 
 const UNRESOLVED_TEMPLATE_PLACEHOLDER = /\$\{[^}]+\}/;
 
 describe('WorkflowTemplates engine-verified starters', () => {
-  it('never rank a code template: Featured is admin-pinned (#5511)', () => {
-    const ranked = Object.entries(WORKFLOW_TEMPLATES)
-      .filter(([, template]) => 'featuredRank' in template)
-      .map(([templateId]) => templateId);
+  it('ranks only the showcase set, in showcase order (#5510)', () => {
+    const ranked = Object.values(WORKFLOW_TEMPLATES)
+      .flatMap((template) =>
+        typeof template.featuredRank === 'number'
+          ? [[template.id, template.featuredRank] as const]
+          : [],
+      )
+      .sort((left, right) => left[1] - right[1]);
 
-    expect(ranked).toEqual([]);
+    expect(ranked).toEqual(
+      SHOWCASE_WORKFLOW_TEMPLATE_IDS.map(
+        (templateId, index) => [templateId, index + 1] as const,
+      ),
+    );
+    expect(new Set(ranked.map(([templateId]) => templateId)).size).toBe(
+      ranked.length,
+    );
+  });
+
+  it('keeps showcase templates out of the system catalog', () => {
+    const systemIds = new Set(
+      listSystemWorkflowCatalog().map((entry) => entry.canonicalId),
+    );
+
+    for (const templateId of SHOWCASE_WORKFLOW_TEMPLATE_IDS) {
+      expect(systemIds.has(templateId)).toBe(false);
+      expect(WORKFLOW_TEMPLATES[templateId]?.name.length).toBeGreaterThan(0);
+    }
   });
 
   it('are complete graphs with wired edges and no unresolved placeholders', () => {

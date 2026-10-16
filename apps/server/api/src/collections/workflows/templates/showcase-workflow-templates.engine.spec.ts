@@ -527,19 +527,6 @@ describe('showcase workflow templates on the real engine', () => {
   });
 
   describe('templates made runnable in #5533', () => {
-    it.each(['multi-platform-resize', 'social-media-video-series'])(
-      '%s completes and every edge delivers its handle',
-      async (templateId) => {
-        const runs = await runTemplate(requireTemplate(templateId));
-
-        for (const run of runs) {
-          expect(run.result.status, describeFailure(run)).toBe('completed');
-          expect(findUnresolvedEdges(run), run.graphId).toEqual([]);
-          expect(findStarvedTerminalNodes(run), run.graphId).toEqual([]);
-        }
-      },
-    );
-
     it('generates the video from the declared prompt and captions it', async () => {
       const template = requireTemplate('social-media-video-series');
       const [run] = await runTemplate(template);

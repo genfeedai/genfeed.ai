@@ -306,6 +306,11 @@ export interface WorkflowTemplate {
   changeSummary?: string;
   /** What the template produces; previewed instead of its graph (#5498). */
   exampleOutput?: WorkflowTemplateExampleOutput;
+  /**
+   * Showcase order (#5510). 1 is first. Omitted on templates outside the
+   * curated set. Admin pins replace Featured when any exist (#5511).
+   */
+  featuredRank?: number;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: WorkflowInputVariable[];

@@ -167,6 +167,11 @@ type CatalogItem = {
   changeSummary?: string;
   description: string;
   edges?: Edge[];
+  /**
+   * Showcase order (#5510). Set on code templates that carry `featuredRank`.
+   * Admin-pinned Featured rows keep their own order via the array.
+   */
+  featuredRank?: number;
   /** Set on an admin-pinned Featured workflow (#5511); "Use" copies it. */
   featuredWorkflowId?: string;
   exampleOutput?: WorkflowTemplateExampleOutput;
@@ -407,6 +412,35 @@ function isCatalogSource(value: string): value is CatalogSource {
   return CATALOG_SOURCES.some((source) => source === value);
 }
 
+/** A positive integer rank. Anything else is not a showcase position. */
+function readFeaturedRank(rank: number | undefined): number | null {
+  if (typeof rank !== 'number' || !Number.isInteger(rank) || rank < 1) {
+    return null;
+  }
+  return rank;
+}
+
+function toTemplateCatalogItem(
+  template: WorkflowTemplate,
+  href: (path: string) => string,
+): CatalogItem {
+  const featuredRank = readFeaturedRank(template.featuredRank);
+  return {
+    category: template.category || 'generation',
+    changeSummary: template.changeSummary,
+    description: template.description,
+    edges: template.edges,
+    exampleOutput: template.exampleOutput,
+    ...(featuredRank === null ? {} : { featuredRank }),
+    href: href(workflowTemplatesTabPath({ template: template.id })),
+    id: `template-${template.id}`,
+    nodes: template.nodes,
+    schedule: template.schedule,
+    source: 'available',
+    title: template.name,
+  };
+}
+
 function buildCatalogItems({
   systemCatalog,
   templates,
@@ -416,6 +450,7 @@ function buildCatalogItems({
   systemCatalog: SystemWorkflowCatalogEntry[];
   templates: WorkflowTemplate[];
 }): CatalogItem[] {
+  const systemIds = new Set(systemCatalog.map((entry) => entry.canonicalId));
   const catalogItems: CatalogItem[] = systemCatalog.map((entry) => ({
     category: entry.category || entry.family || 'system',
     changeSummary: entry.changeSummary,
@@ -436,28 +471,28 @@ function buildCatalogItems({
     title: entry.label,
   }));
 
-  const templateItems: CatalogItem[] = templates.map((template) => ({
-    category: template.category || 'generation',
-    changeSummary: template.changeSummary,
-    description: template.description,
-    edges: template.edges,
-    exampleOutput: template.exampleOutput,
-    href: href(workflowTemplatesTabPath({ template: template.id })),
-    id: `template-${template.id}`,
-    nodes: template.nodes,
-    schedule: template.schedule,
-    source: 'available',
-    title: template.name,
-  }));
+  // A system workflow that is also in the public template list is shown once,
+  // as the installable system row, so All does not list it twice.
+  const templateItems: CatalogItem[] = templates
+    .filter((template) => !systemIds.has(template.id))
+    .map((template) => toTemplateCatalogItem(template, href));
 
-  return [...catalogItems, ...templateItems];
+  return [...templateItems, ...catalogItems].sort((left, right) => {
+    const leftRank = left.featuredRank ?? Number.POSITIVE_INFINITY;
+    const rightRank = right.featuredRank ?? Number.POSITIVE_INFINITY;
+    if (leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+    const leftGroup = left.systemEntry ? 1 : 0;
+    const rightGroup = right.systemEntry ? 1 : 0;
+    return leftGroup - rightGroup;
+  });
 }
 
 /**
- * Featured is the admin-pinned workflows (#5511), already in pin order. With
- * nothing pinned the row is empty and the section hides itself. A pinned
- * workflow's thumbnail is its example output (#5498); without a valid one
- * the card previews the graph.
+ * Featured is the admin-pinned workflows (#5511), already in pin order. A
+ * pinned workflow's thumbnail is its example output (#5498); without a valid
+ * one the card previews the graph.
  */
 function buildFeaturedItems(
   featured: FeaturedWorkflow[],
@@ -477,6 +512,33 @@ function buildFeaturedItems(
     source: 'available',
     title: workflow.label ?? untitledLabel,
   }));
+}
+
+/**
+ * Featured fallback when nothing is pinned (#5510): the code showcase, in
+ * `featuredRank` order. "Use" opens the template, the same path as All.
+ */
+function buildShowcaseFeaturedItems(
+  templates: WorkflowTemplate[],
+  href: (path: string) => string,
+): CatalogItem[] {
+  return templates
+    .flatMap((template) => {
+      const featuredRank = readFeaturedRank(template.featuredRank);
+      if (featuredRank === null) {
+        return [];
+      }
+      return [
+        {
+          ...toTemplateCatalogItem(template, href),
+          featuredRank,
+          id: `showcase-${template.id}`,
+        },
+      ];
+    })
+    .sort(
+      (left, right) => (left.featuredRank ?? 0) - (right.featuredRank ?? 0),
+    );
 }
 
 function buildTypeTiles(
@@ -938,10 +1000,17 @@ function WorkflowTemplatesPageContent() {
     [catalogItems, searchQuery, selectedCategory, selectedSource],
   );
 
-  const featuredItems = useMemo(
-    () => buildFeaturedItems(featured, translate('untitledWorkflow')),
-    [featured, translate],
-  );
+  const featuredItems = useMemo(() => {
+    if (featured.length > 0) {
+      return buildFeaturedItems(featured, translate('untitledWorkflow'));
+    }
+    // A failed pin read keeps its own error. Showcase fills the row only
+    // after that read succeeds and returns nothing.
+    if (sourceStatus.featured !== 'ready') {
+      return [];
+    }
+    return buildShowcaseFeaturedItems(templates, href);
+  }, [featured, href, sourceStatus.featured, templates, translate]);
 
   const typeTiles = useMemo(
     () => buildTypeTiles(catalogItems, translate),

@@ -1,15 +1,13 @@
+import { SHOWCASE_WORKFLOW_TEMPLATE_IDS } from '@api/collections/workflows/templates/showcase-workflow-template-ids';
+
 /**
  * Starter templates held to a clean run on the real workflow engine and kept
- * off the known-defect baselines (#5510). They were the code-curated Featured
- * row until admin pins replaced it (#5511); the specs keep them runnable as
- * the reference graphs operators copy and pin.
+ * off the known-defect baselines (#5510). The showcase set is the Featured
+ * fallback; the avatar graphs stay here so a later pin still copies a graph
+ * the engine spec has run.
  */
 export const ENGINE_VERIFIED_TEMPLATE_IDS = [
-  'founder-x-thread',
+  ...SHOWCASE_WORKFLOW_TEMPLATE_IDS,
   'avatar-ugc-x-landscape-heygen',
-  'daily-brand-social-publishing',
   'avatar-ugc-heygen',
-  'founder-editorial-illustration',
-  'weekly-brand-ai-content-loop',
-  'youtube-thumbnail-script',
 ] as const;

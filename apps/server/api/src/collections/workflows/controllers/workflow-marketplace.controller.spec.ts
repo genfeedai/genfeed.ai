@@ -3,6 +3,7 @@ import { WorkflowMarketplaceController } from '@api/collections/workflows/contro
 import { MostUsedWorkflowsQueryDto } from '@api/collections/workflows/dto/most-used-workflows-query.dto';
 import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { SHOWCASE_WORKFLOW_TEMPLATE_IDS } from '@api/collections/workflows/templates/showcase-workflow-template-ids';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -280,16 +281,25 @@ describe('WorkflowMarketplaceController', () => {
   });
 
   describe('getTemplates', () => {
-    it('never ranks code templates: Featured comes from admin pins (#5511)', async () => {
+    it('passes featuredRank through on the showcase set only (#5510)', async () => {
       mockWorkflowsService.getWorkflowTemplates.mockResolvedValue(
         Object.values(WORKFLOW_TEMPLATES),
       );
 
       const result = await controller.getTemplates();
+      const ranked = result.data
+        .flatMap((template) =>
+          typeof template.featuredRank === 'number'
+            ? [[template.id, template.featuredRank] as const]
+            : [],
+        )
+        .sort((left, right) => left[1] - right[1]);
 
-      expect(
-        result.data.filter((template) => 'featuredRank' in template),
-      ).toEqual([]);
+      expect(ranked).toEqual(
+        SHOWCASE_WORKFLOW_TEMPLATE_IDS.map(
+          (templateId, index) => [templateId, index + 1] as const,
+        ),
+      );
     });
   });
 

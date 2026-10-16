@@ -507,7 +507,7 @@ describe('WorkflowTemplatesPage', () => {
     });
   });
 
-  it('hides Featured when nothing is pinned', async () => {
+  it('hides Featured when nothing is pinned and no template is showcased', async () => {
     mocks.listFeatured.mockResolvedValue([]);
     await renderLoadedPage();
     expect(
@@ -516,6 +516,93 @@ describe('WorkflowTemplatesPage', () => {
     expect(
       screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
     ).toEqual(['Browse by type', 'All templates']);
+  });
+
+  it('shows the code showcase in rank order when nothing is pinned', async () => {
+    mocks.listFeatured.mockResolvedValue([]);
+    mocks.listTemplates.mockResolvedValue([
+      { ...POST_HARD_CUT_TEMPLATE, id: 'plain', name: 'Plain template' },
+      {
+        ...POST_HARD_CUT_TEMPLATE,
+        featuredRank: 2,
+        id: 'second',
+        name: 'Second showcase',
+      },
+      {
+        ...POST_HARD_CUT_TEMPLATE,
+        featuredRank: 1,
+        id: 'first',
+        name: 'First showcase',
+      },
+      {
+        ...POST_HARD_CUT_TEMPLATE,
+        id: 'system-1',
+        name: 'Digest template duplicate',
+      },
+    ]);
+    render(<WorkflowTemplatesPage />);
+
+    await waitFor(() => {
+      expect(
+        within(featuredSection()).getByText('First showcase'),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      within(featuredSection())
+        .getAllByTestId('workflow-template-card')
+        .map((card) => within(card).getByRole('heading').textContent),
+    ).toEqual(['First showcase', 'Second showcase']);
+    expect(
+      within(featuredSection()).queryByText('Plain template'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(featuredSection()).queryByText('Daily digest'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(featuredSection()).getAllByRole('link', {
+        name: 'Use template',
+      })[0],
+    ).toHaveAttribute(
+      'href',
+      '/demo/FUDNEWS/automation/workflows?view=templates&template=first',
+    );
+    expect(mocks.copyFeatured).not.toHaveBeenCalled();
+
+    expect(
+      within(allSection())
+        .getAllByTestId('workflow-template-row')
+        .map((row) => row.querySelector('p')?.textContent),
+    ).toEqual([
+      'First showcase',
+      'Second showcase',
+      'Plain template',
+      'Daily digest',
+    ]);
+    expect(
+      within(allSection()).queryByText('Digest template duplicate'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps admin pins ahead of the code showcase', async () => {
+    mocks.listTemplates.mockResolvedValue([
+      {
+        ...POST_HARD_CUT_TEMPLATE,
+        featuredRank: 1,
+        name: 'Code showcase',
+      },
+    ]);
+    render(<WorkflowTemplatesPage />);
+
+    await waitFor(() => {
+      expect(
+        within(featuredSection()).getByText('Founder thread'),
+      ).toBeInTheDocument();
+    });
+    expect(
+      within(featuredSection()).queryByText('Code showcase'),
+    ).not.toBeInTheDocument();
+    expect(within(allSection()).getByText('Code showcase')).toBeInTheDocument();
   });
 
   it('copies a Featured workflow into the organization and opens the copy', async () => {
