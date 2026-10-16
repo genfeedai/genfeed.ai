@@ -15,8 +15,9 @@ import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarAction
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import { Plus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 import { useOpenTaskComposer } from './useOpenTaskComposer';
 
 type AppSidebarSurface = {
@@ -109,6 +110,7 @@ export default function AppProtectedLayoutSidebar({
   const isDesktop = useIsDesktopClient();
   const newItemShortcut = isDesktop ? '⌘⇧N' : undefined;
   const { href } = useOrgUrl();
+  const isOnboardingHold = isAgentOnboardingPathname(usePathname());
   const sidebarStateProps = {
     isCollapsed,
     onClose,
@@ -120,12 +122,16 @@ export default function AppProtectedLayoutSidebar({
       <SidebarActionTrigger
         ariaLabel={translate('newTaskAriaLabel')}
         icon={<Plus className="size-4 flex-shrink-0" />}
+        isDisabled={isOnboardingHold}
         label={translate('newTask')}
         onClick={openTaskComposer}
         shortcut={newItemShortcut}
         testId="sidebar-primary-action"
       />
-      <SidebarSearchTrigger label={translate('search')} />
+      <SidebarSearchTrigger
+        isDisabled={isOnboardingHold}
+        label={translate('search')}
+      />
     </>
   );
 
@@ -137,12 +143,16 @@ export default function AppProtectedLayoutSidebar({
       <SidebarActionTrigger
         ariaLabel={translate('newConversationAriaLabel')}
         icon={<Plus className="size-4 flex-shrink-0" />}
+        isDisabled={isOnboardingHold}
         label={translate('newConversation')}
         onClick={() => router.push(href(APP_ROUTES.AGENT.NEW))}
         shortcut={newItemShortcut}
         testId="sidebar-primary-action"
       />
-      <SidebarSearchTrigger label={translate('search')} />
+      <SidebarSearchTrigger
+        isDisabled={isOnboardingHold}
+        label={translate('search')}
+      />
     </>
   );
 

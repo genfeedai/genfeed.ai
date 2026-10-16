@@ -44,11 +44,13 @@ import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizat
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
+import OnboardingNavigationHold from '@/components/shell/OnboardingNavigationHold';
 import { PinnedRailAppsProvider } from '@/components/shell/pinned-rail-apps.provider';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
 } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
   captureWorkspaceShellError,
@@ -244,17 +246,31 @@ function AppLayoutWithDynamicMenu({
     [brands, orgSlug],
   );
 
+  const isOnboardingHold = isAgentOnboardingPathname(sidebarPathname);
   const renderConversations = useCallback(
     () =>
       agentApiService ? (
-        <LazyAgentThreadList
-          apiService={agentApiService}
-          brandId={brandId || null}
-          onNavigate={handleNavigate}
-          resolveThreadHref={resolveAgentThreadHref}
-        />
+        <div
+          className={
+            isOnboardingHold ? 'pointer-events-none opacity-40' : undefined
+          }
+          inert={isOnboardingHold || undefined}
+        >
+          <LazyAgentThreadList
+            apiService={agentApiService}
+            brandId={brandId || null}
+            onNavigate={handleNavigate}
+            resolveThreadHref={resolveAgentThreadHref}
+          />
+        </div>
       ) : null,
-    [agentApiService, brandId, handleNavigate, resolveAgentThreadHref],
+    [
+      agentApiService,
+      brandId,
+      handleNavigate,
+      isOnboardingHold,
+      resolveAgentThreadHref,
+    ],
   );
 
   // Keep nav-panel *identity* stable across renders. The panel object is
@@ -606,13 +622,15 @@ function AppLayoutWithDynamicMenu({
       {!isEditorCanvasRoute ? (
         <StreakNotificationsBridge initialStreak={initialBootstrap?.streak} />
       ) : null}
+      <OnboardingNavigationHold pathname={sidebarPathname} />
       <CommandPaletteProvider>
         {/* Admin is an isolated control plane and intentionally has no Agent
-          thread commands. */}
+          thread commands. Onboarding keeps the list visible and refuses
+          jumps to another thread. */}
         {isAdminRoute ? null : (
           <AgentThreadCommandsBridge
             threads={threads}
-            enabled
+            enabled={!isAgentOnboardingPathname(sidebarPathname)}
             onNavigate={handleNavigate}
           />
         )}

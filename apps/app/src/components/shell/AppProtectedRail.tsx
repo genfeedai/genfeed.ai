@@ -22,6 +22,7 @@ import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.pr
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
 import { captureAppRailNavigation } from '@/lib/analytics/app-rail-analytics';
+import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 import {
   appendSearchParamsToHref,
   pickOperatorTaskContextSearchParams,
@@ -151,6 +152,7 @@ function AppProtectedRailContent({
         installedApps.status === 'ready' ? installedApps.installedAppIds : []
       }
       isAssetGateLocked={isAssetGateLocked}
+      isNavigationSuspended={isAgentOnboardingPathname(pathname)}
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
       onNavigate={onNavigate}

@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
   isNativeAppLaunchable,
   isNativeSecondaryAppId,
@@ -20,6 +21,7 @@ import type {
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
+import { Button } from '@ui/primitives/button';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -59,6 +61,7 @@ function AppRailItem({
   href,
   isActive,
   isLocked,
+  isNavigationSuspended = false,
   onNavigateStart,
 }: AppRailItemProps) {
   const t = useTranslations('common.appRail');
@@ -69,76 +72,96 @@ function AppRailItem({
   );
   const shortcutLabel = formatRailShortcut(shortcut);
   const hasBadge = !isLocked && badge !== undefined && badge.count > 0;
-  const accessibleLabel = isLocked
-    ? t('locked', { app: label })
-    : hasBadge
-      ? `${label}, ${badge.label}`
-      : label;
+  const accessibleLabel = isNavigationSuspended
+    ? `${label}. ${t('onboardingHold')}`
+    : isLocked
+      ? t('locked', { app: label })
+      : hasBadge
+        ? `${label}, ${badge.label}`
+        : label;
+  const itemClassName = cn(
+    'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
+    // Codex-style selection: a filled tile two steps above the rail,
+    // hover one step. The icon is the only foreground either way.
+    isActive
+      ? 'bg-foreground/[0.12] text-foreground'
+      : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground',
+    isLocked && 'opacity-60',
+    isNavigationSuspended && 'opacity-40',
+  );
+  const itemBody = (
+    <>
+      {hoverIcon}
+      {isLocked ? (
+        <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-gray-100 text-foreground/70 shadow-border">
+          <Lock aria-hidden="true" className="size-2.5" />
+        </span>
+      ) : hasBadge ? (
+        <span
+          aria-hidden="true"
+          data-testid={`app-rail-badge-${app.id}`}
+          className={
+            badge.kind === 'dot'
+              ? 'absolute right-0.5 top-0.5 size-1.5 rounded-full bg-info'
+              : 'absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground'
+          }
+        >
+          {badge.kind === 'dot' ? null : badge.count > 99 ? '99+' : badge.count}
+        </span>
+      ) : null}
+      <span id={`app-rail-desc-${app.id}`} className="sr-only">
+        {description}
+      </span>
+    </>
+  );
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Link
-          href={href}
-          prefetch={false}
-          aria-current={isActive ? 'page' : undefined}
-          aria-describedby={`app-rail-desc-${app.id}`}
-          aria-label={accessibleLabel}
-          data-testid={`app-rail-item-${app.id}`}
-          onBlur={(event) => {
-            intent.onBlur();
-            hoverProps.onBlur(event);
-          }}
-          onClick={onNavigateStart}
-          onFocus={(event) => {
-            intent.onFocus();
-            hoverProps.onFocus(event);
-          }}
-          onMouseEnter={(event) => {
-            intent.onMouseEnter();
-            hoverProps.onMouseEnter(event);
-          }}
-          onMouseLeave={(event) => {
-            intent.onMouseLeave();
-            hoverProps.onMouseLeave(event);
-          }}
-          className={cn(
-            'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
-            // Codex-style selection: a filled tile two steps above the rail,
-            // hover one step. The icon is the only foreground either way.
-            isActive
-              ? 'bg-foreground/[0.12] text-foreground'
-              : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground',
-            isLocked && 'opacity-60',
-          )}
-        >
-          {hoverIcon}
-          {isLocked ? (
-            <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-gray-100 text-foreground/70 shadow-border">
-              <Lock aria-hidden="true" className="size-2.5" />
-            </span>
-          ) : hasBadge ? (
-            <span
-              aria-hidden="true"
-              data-testid={`app-rail-badge-${app.id}`}
-              className={
-                badge.kind === 'dot'
-                  ? 'absolute right-0.5 top-0.5 size-1.5 rounded-full bg-info'
-                  : 'absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground'
-              }
-            >
-              {badge.kind === 'dot'
-                ? null
-                : badge.count > 99
-                  ? '99+'
-                  : badge.count}
-            </span>
-          ) : null}
-          <span id={`app-rail-desc-${app.id}`} className="sr-only">
-            {description}
-          </span>
-        </Link>
+        {isNavigationSuspended ? (
+          <Button
+            aria-describedby={`app-rail-desc-${app.id}`}
+            ariaLabel={accessibleLabel}
+            className={itemClassName}
+            data-testid={`app-rail-item-${app.id}`}
+            isDisabled
+            type="button"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          >
+            {itemBody}
+          </Button>
+        ) : (
+          <Link
+            href={href}
+            prefetch={false}
+            aria-current={isActive ? 'page' : undefined}
+            aria-describedby={`app-rail-desc-${app.id}`}
+            aria-label={accessibleLabel}
+            data-testid={`app-rail-item-${app.id}`}
+            onBlur={(event) => {
+              intent.onBlur();
+              hoverProps.onBlur(event);
+            }}
+            onClick={onNavigateStart}
+            onFocus={(event) => {
+              intent.onFocus();
+              hoverProps.onFocus(event);
+            }}
+            onMouseEnter={(event) => {
+              intent.onMouseEnter();
+              hoverProps.onMouseEnter(event);
+            }}
+            onMouseLeave={(event) => {
+              intent.onMouseLeave();
+              hoverProps.onMouseLeave(event);
+            }}
+            className={itemClassName}
+          >
+            {itemBody}
+          </Link>
+        )}
       </TooltipTrigger>
       <TooltipContent
         side="right"
@@ -198,6 +221,7 @@ export function AppRail({
   header,
   installedAppIds,
   isAssetGateLocked = false,
+  isNavigationSuspended = false,
   moduleAccess,
   modulePreferences,
   onNavigate,
@@ -300,6 +324,7 @@ export function AppRail({
   });
   const handleNavigate = useCallback(
     (item: AppRailNavigationItem, via: AppRailNavigationVia) => {
+      if (isNavigationSuspended) return;
       onNavigationEvent?.({
         from_app: activeAppId ?? null,
         to_app: item.app.id,
@@ -310,7 +335,15 @@ export function AppRail({
       onNavigate?.();
       if (via !== 'click') router.push(item.href);
     },
-    [activeAppId, onNavigationEvent, surface, t, onNavigate, router],
+    [
+      activeAppId,
+      isNavigationSuspended,
+      onNavigationEvent,
+      surface,
+      t,
+      onNavigate,
+      router,
+    ],
   );
   const commandLabel = useCallback(
     (label: string) => t('goTo', { app: label }),
@@ -320,6 +353,7 @@ export function AppRail({
     items,
     surface,
     isDesktop,
+    isSuspended: isNavigationSuspended,
     commandLabel,
     navigate: handleNavigate,
   });
@@ -331,6 +365,7 @@ export function AppRail({
         {...item}
         badge={badges?.[item.app.id]}
         isActive={item.app.id === activeAppId}
+        isNavigationSuspended={isNavigationSuspended}
         onNavigateStart={() => handleNavigate(item, 'click')}
       />
     );
@@ -343,6 +378,7 @@ export function AppRail({
         className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
         // Page menu: the one surface exempt from the product motion policy.
         data-motion="allow"
+        data-onboarding-hold={isNavigationSuspended ? 'true' : 'false'}
         data-testid="app-rail"
       >
         {header ? (
@@ -379,7 +415,16 @@ export function AppRail({
             data-testid="app-rail-bottom"
           >
             {admin ? renderItem(admin) : null}
-            {footer}
+            {footer ? (
+              <div
+                className={cn(
+                  isNavigationSuspended && 'pointer-events-none opacity-40',
+                )}
+                inert={isNavigationSuspended || undefined}
+              >
+                {footer}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </nav>

@@ -2452,6 +2452,7 @@
     "goTo": "Go to {app}",
     "help": "Help",
     "opening": "Opening app.",
+    "onboardingHold": "Finish onboarding before leaving.",
     "locked": "{app} — locked. Generate your first asset to unlock.",
     "workspaceBadge": "{count, plural, one {# unread task needing attention} other {# unread tasks needing attention}}",
     "agent": {
