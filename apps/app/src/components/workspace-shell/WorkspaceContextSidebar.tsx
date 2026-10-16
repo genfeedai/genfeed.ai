@@ -9,7 +9,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@ui/primitives/drawer';
-import { X } from 'lucide-react';
+import { PanelRightClose, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 type WorkspaceContextSidebarProps = {
@@ -50,11 +50,12 @@ export function WorkspaceContextSidebarRail({
           ) : null}
         </div>
         <Button
-          ariaLabel={translate('close')}
+          ariaLabel={translate('collapse')}
           data-testid="context-sidebar-close"
-          icon={<X className="size-4" />}
+          icon={<PanelRightClose className="size-4" />}
           onClick={contextSidebar.close}
           size={ButtonSize.SM}
+          tooltip={translate('collapse')}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         />

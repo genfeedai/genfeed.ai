@@ -22,7 +22,9 @@ describe('AgentOnboardingChecklist brand context mode', () => {
   it('shows the live score, earned credits and a row per card with its state', () => {
     render(<AgentOnboardingChecklist brandContext={brandContext} steps={[]} />);
 
-    expect(screen.getByText('Brand context')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Brand context' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId('onboarding-brand-context-score'),
     ).toHaveTextContent('62%');

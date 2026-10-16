@@ -607,7 +607,7 @@ describe('UniversalWorkspaceShell', () => {
     ).toHaveTextContent('Asset detail');
 
     fireEvent.click(
-      within(sidebar).getByRole('button', { name: 'Close details' }),
+      within(sidebar).getByRole('button', { name: 'Collapse details' }),
     );
 
     expect(screen.queryByText('Asset detail')).toBeNull();
@@ -657,7 +657,7 @@ describe('UniversalWorkspaceShell', () => {
     act(() => asset.focus());
     fireEvent.click(asset);
     act(() => screen.getByRole('button', { name: 'Inspector action' }).focus());
-    const close = screen.getByRole('button', { name: 'Close details' });
+    const close = screen.getByRole('button', { name: 'Collapse details' });
     act(() => close.focus());
     fireEvent.click(close);
     expect(asset).toHaveFocus();
@@ -796,7 +796,7 @@ describe('UniversalWorkspaceShell', () => {
       ),
     ).toBe('300ms');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse details' }));
 
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'false');
     expect(

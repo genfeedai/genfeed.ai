@@ -83,17 +83,12 @@ function BrandContextChecklist({
   return (
     <div className="flex h-full flex-col bg-background/50">
       <div className="border-b border-border px-4 py-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold text-foreground">
-            {translate('brandContext')}
-          </h2>
-          <span
-            className="text-sm font-semibold text-foreground"
-            data-testid="onboarding-brand-context-score"
-          >
-            {brandContext.score === null ? '–' : `${score}%`}
-          </span>
-        </div>
+        <span
+          className="text-sm font-semibold text-foreground"
+          data-testid="onboarding-brand-context-score"
+        >
+          {brandContext.score === null ? '–' : `${score}%`}
+        </span>
         <div
           aria-label={translate('brandContext')}
           aria-valuemax={100}

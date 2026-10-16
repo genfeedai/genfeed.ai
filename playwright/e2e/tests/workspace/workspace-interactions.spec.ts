@@ -172,7 +172,7 @@ test.describe('Workspace — deep interactions', () => {
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
       .toBe('workspace-task-review-1');
     await contextSidebar
-      .getByRole('button', { exact: true, name: 'Close details' })
+      .getByRole('button', { exact: true, name: 'Collapse details' })
       .click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))

@@ -148,7 +148,7 @@ test.describe('Context sidebar — selection driven', () => {
     ).toHaveCount(1);
 
     await contextSidebar
-      .getByRole('button', { exact: true, name: 'Close details' })
+      .getByRole('button', { exact: true, name: 'Collapse details' })
       .click();
 
     await expect(contextSidebar).toHaveCount(0);
@@ -272,7 +272,7 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
 
     await contextSidebar
-      .getByRole('button', { exact: true, name: 'Close details' })
+      .getByRole('button', { exact: true, name: 'Collapse details' })
       .click();
 
     await expect(contextSidebar).toHaveCount(0);
