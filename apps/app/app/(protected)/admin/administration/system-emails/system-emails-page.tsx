@@ -11,6 +11,7 @@ import { AdminSystemEmailsService } from '@services/admin/system-emails.service'
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
@@ -47,6 +48,7 @@ function resolvePreviewAction(email: LifecycleSystemEmailDefinition): string {
 export default function SystemEmailsPage() {
   const [emails, setEmails] = useState<LifecycleSystemEmailDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const notificationsService = NotificationsService.getInstance();
   const getSystemEmailsService = useAuthedService((token: string) =>
@@ -85,11 +87,21 @@ export default function SystemEmailsPage() {
     return () => controller.abort();
   }, [loadEmails]);
 
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadEmails(new AbortController().signal);
+    setIsRefreshing(false);
+  }, [loadEmails]);
+
   return (
     <Container
       label="System emails"
       description="Platform-owned lifecycle emails, delivery outcomes, and conversion attribution"
       icon={Mail}
+      moduleChrome
+      refresh={
+        <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+      }
     >
       <SystemEmailPerformance />
       {isLoading ? (
@@ -100,6 +112,7 @@ export default function SystemEmailsPage() {
         </div>
       ) : (
         <WorkspaceSurface
+          framed={false}
           title="Lifecycle Email Registry"
           tone="muted"
           data-testid="system-emails-surface"
