@@ -89,7 +89,10 @@ describe('MCP server e2e', () => {
     });
 
     it('keeps an owner key without the admin scope on the user role', async () => {
-      const { body } = await mcp.callTool(E2E_TOKENS.ownerCapped, 'get_account');
+      const { body } = await mcp.callTool(
+        E2E_TOKENS.ownerCapped,
+        'get_account',
+      );
 
       expect(body.result?.content?.[0]?.text).toContain('Role: User');
     });

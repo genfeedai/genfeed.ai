@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -270,6 +271,34 @@ describe('OAuthConsentPage', () => {
     expect(screen.getByText('Returns to claude.ai')).toBeInTheDocument();
     await screen.findByText('First workspace');
   });
+
+  it.each<[string, string | null, boolean]>([
+    ['https://mcp.genfeed.ai/mcp', null, true],
+    ['https://mcp.genfeed.ai/mcp', API_KEY_SCOPE_PRESETS.mcp.join(' '), true],
+    ['https://mcp.genfeed.ai/mcp', 'videos:read', false],
+    ['https://mcp.genfeed.ai/mcp/claude', null, false],
+  ])(
+    'discloses admin access for the full standard grant (%s, %s)',
+    async (resource, scope, expected) => {
+      const params = oauthParams({ resource });
+      if (scope === null) {
+        params.delete('scope');
+      } else {
+        params.set('scope', scope);
+      }
+      useSearchParamsMock.mockReturnValue(params);
+
+      render(<OAuthConsentPage />);
+      await screen.findByText('First workspace');
+
+      const notice = screen.queryByText(/approve its own queued actions/);
+      if (expected) {
+        expect(notice).toBeInTheDocument();
+      } else {
+        expect(notice).not.toBeInTheDocument();
+      }
+    },
+  );
 
   it.each<[string, boolean]>([
     ['Authorize', true],

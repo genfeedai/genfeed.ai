@@ -1,10 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import {
-  API_KEY_SCOPE_PRESETS,
-  hasExplicitApiKeyAdminScope,
-  MemberRole,
-} from '@genfeedai/contracts';
+import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import express, { type Request, type Response } from 'express';
 
 export const E2E_TOKENS = {

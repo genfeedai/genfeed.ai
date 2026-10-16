@@ -99,6 +99,12 @@ export default function OAuthConsentContent() {
     () => getRequestedScopeLabels(searchParams.get('scope'), isClaude),
     [searchParams, isClaude],
   );
+  const requestedScopes =
+    searchParams.get('scope')?.split(/\s+/).filter(Boolean) ??
+    API_KEY_SCOPE_PRESETS.mcp;
+  const showAdminNotice =
+    !isClaude &&
+    API_KEY_SCOPE_PRESETS.mcp.every((scope) => requestedScopes.includes(scope));
   // `state` is optional (RFC 6749 §4.1.1); PKCE is the CSRF protection.
   const requiredParams = [
     'client_id',
@@ -406,6 +412,12 @@ export default function OAuthConsentContent() {
             {isClaude && (
               <p className="text-sm text-muted-foreground">
                 {translate('request.claudeNotice')}
+              </p>
+            )}
+
+            {showAdminNotice && (
+              <p className="text-sm text-muted-foreground">
+                {translate('request.adminNotice')}
               </p>
             )}
 
