@@ -10,6 +10,7 @@ type OrganizationListItem = {
 
 type MockHttpClient = {
   get: ReturnType<typeof vi.fn>;
+  patch?: ReturnType<typeof vi.fn>;
 };
 
 type TestableOrganizationsService = OrganizationsService & {
@@ -148,6 +149,87 @@ describe('OrganizationsService', () => {
       // A failed request must not poison the cache — the next caller retries.
       await expect(service.getMyOrganizations()).resolves.toEqual([]);
       expect(get).toHaveBeenCalledTimes(2);
+    });
+
+    it('starts a new GET for a fresh read and lets later callers join that read', async () => {
+      const testableService =
+        service as unknown as TestableOrganizationsService;
+      let resolveStale: (value: { data: OrganizationListItem[] }) => void =
+        () => undefined;
+      let resolveFresh: (value: { data: OrganizationListItem[] }) => void =
+        () => undefined;
+      let calls = 0;
+      const get = vi.fn().mockImplementation(
+        () =>
+          new Promise<{ data: OrganizationListItem[] }>((resolve) => {
+            calls += 1;
+            if (calls === 1) resolveStale = resolve;
+            else resolveFresh = resolve;
+          }),
+      );
+      testableService.instance = { get };
+
+      const stale = service.getMyOrganizations();
+      const fresh = service.getMyOrganizations({ fresh: true });
+      const joined = service.getMyOrganizations();
+
+      expect(get).toHaveBeenCalledTimes(2);
+      expect(fresh).not.toBe(stale);
+      expect(joined).toBe(fresh);
+
+      resolveStale({ data: [{ id: 'org_old', label: 'Old', slug: 'old' }] });
+      resolveFresh({ data: [{ id: 'org_new', label: 'New', slug: 'new' }] });
+
+      await expect(stale).resolves.toEqual([
+        expect.objectContaining({ id: 'org_old' }),
+      ]);
+      await expect(fresh).resolves.toEqual([
+        expect.objectContaining({ id: 'org_new' }),
+      ]);
+      await expect(joined).resolves.toEqual([
+        expect.objectContaining({ id: 'org_new' }),
+      ]);
+    });
+
+    it('drops a membership read started before switchOrganization', async () => {
+      const testableService =
+        service as unknown as TestableOrganizationsService;
+      let resolveStale: (value: { data: OrganizationListItem[] }) => void =
+        () => undefined;
+      const get = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<{ data: OrganizationListItem[] }>((resolve) => {
+              resolveStale = resolve;
+            }),
+        )
+        .mockResolvedValueOnce({
+          data: [{ id: 'org_2', label: 'Org 2', slug: 'org-2' }],
+        });
+      const patch = vi.fn().mockResolvedValue({
+        data: {
+          brand: { id: 'brand_2', label: 'Brand 2' },
+          organization: { id: 'org_2', label: 'Org 2' },
+        },
+      });
+      testableService.instance = { get, patch };
+
+      const stale = service.getMyOrganizations();
+      await service.switchOrganization('org_2');
+      const next = service.getMyOrganizations();
+
+      expect(patch).toHaveBeenCalledWith('/org_2/activate');
+      expect(get).toHaveBeenCalledTimes(2);
+      expect(next).not.toBe(stale);
+
+      resolveStale({ data: [{ id: 'org_1', label: 'Org 1', slug: 'org-1' }] });
+      await expect(stale).resolves.toEqual([
+        expect.objectContaining({ id: 'org_1' }),
+      ]);
+      await expect(next).resolves.toEqual([
+        expect.objectContaining({ id: 'org_2' }),
+      ]);
     });
   });
 

@@ -66,6 +66,10 @@ type MyOrganizationSummary = {
   brand: { id: string; label: string } | null;
 };
 
+type MyOrganizationsReadOptions = {
+  fresh?: boolean;
+};
+
 export class OrganizationsService extends BaseService<Organization> {
   /**
    * In-flight `GET /organizations?mine=true` request shared across concurrent
@@ -441,7 +445,9 @@ export class OrganizationsService extends BaseService<Organization> {
    * Returns all organizations the current user belongs to.
    * Cross-org endpoint — not scoped to active org.
    */
-  public getMyOrganizations(): Promise<MyOrganizationSummary[]> {
+  public getMyOrganizations(
+    options?: MyOrganizationsReadOptions,
+  ): Promise<MyOrganizationSummary[]> {
     // Coalesce concurrent callers onto a single request. The protected sidebar
     // mounts OrganizationSwitcher twice at once (desktop + CSS-hidden mobile),
     // so a naive fetch fires GET ?mine=true ×2 on every shell mount. BaseService
@@ -450,7 +456,10 @@ export class OrganizationsService extends BaseService<Organization> {
     // identity-scoped: a different token resolves to a different pooled
     // instance with its own field. Mirrors the /token in-flight dedupe in
     // packages/auth-client/src/client.ts.
-    if (this.myOrganizationsInFlight) {
+    // `fresh` skips that join. A post-switch read must not reuse a GET that
+    // started before PATCH /activate, or the old active organization is
+    // treated as the confirmed one.
+    if (!options?.fresh && this.myOrganizationsInFlight) {
       return this.myOrganizationsInFlight;
     }
 
@@ -520,12 +529,17 @@ export class OrganizationsService extends BaseService<Organization> {
     organization: { id: string; label: string };
     brand: { id: string; label: string };
   }> {
-    return await this.instance
-      .patch<{
-        organization: { id: string; label: string };
-        brand: { id: string; label: string };
-      }>(`/${orgId}/activate`)
-      .then((res) => res.data);
+    this.myOrganizationsInFlight = null;
+    try {
+      return await this.instance
+        .patch<{
+          organization: { id: string; label: string };
+          brand: { id: string; label: string };
+        }>(`/${orgId}/activate`)
+        .then((res) => res.data);
+    } finally {
+      this.myOrganizationsInFlight = null;
+    }
   }
 
   /**
