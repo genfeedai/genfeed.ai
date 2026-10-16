@@ -8,17 +8,18 @@ import {
 import type { BrandCharacterListItem } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { CharactersTableProps } from '@props/characters/characters-page.props';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Plus, Share2, UserRound } from 'lucide-react';
+import { FolderOpen, Images, Plus, Share2, UserRound } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+
+const VISIBLE_REFERENCE_THUMBNAILS = 4;
 
 function resolveCharacterImageUrl(id: string): string {
   return `${EnvironmentService.ingredientsEndpoint}/images/${id}`;
@@ -30,6 +31,7 @@ export default function CharactersTable({
   isLoading,
   onCreate,
   onManageAvailability,
+  onManageReferences,
 }: CharactersTableProps) {
   const translate = useTranslations('common.settings.characters');
   const { href } = useOrgUrl();
@@ -66,6 +68,53 @@ export default function CharactersTable({
         ),
       },
       {
+        header: translate('references.column'),
+        key: 'references',
+        render: (character) => {
+          const referenceIds = character.referenceIngredientIds;
+          if (referenceIds.length === 0) {
+            return (
+              <span className="text-xs text-muted-foreground">
+                {translate('references.empty')}
+              </span>
+            );
+          }
+          const hiddenCount =
+            referenceIds.length - VISIBLE_REFERENCE_THUMBNAILS;
+          return (
+            <div className="flex items-center gap-1.5">
+              {referenceIds
+                .slice(0, VISIBLE_REFERENCE_THUMBNAILS)
+                .map((ingredientId, index) => (
+                  <Image
+                    alt={translate('references.imageAlt', {
+                      name: character.label,
+                      position: index + 1,
+                    })}
+                    className={
+                      index === 0
+                        ? 'size-8 rounded object-cover outline-media ring-2 ring-primary'
+                        : 'size-8 rounded object-cover outline-media'
+                    }
+                    height={32}
+                    key={ingredientId}
+                    src={resolveCharacterImageUrl(ingredientId)}
+                    title={
+                      index === 0 ? translate('references.primary') : undefined
+                    }
+                    width={32}
+                  />
+                ))}
+              {hiddenCount > 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  {translate('references.more', { count: hiddenCount })}
+                </span>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
         header: translate('availability.column'),
         key: 'availability',
         render: (character) => (
@@ -88,49 +137,53 @@ export default function CharactersTable({
                 {translate('availability.modes.owningBrand.label')}
               </span>
             )}
-            {canManageSharing && !character.isGranted ? (
-              <Button
-                aria-label={translate('availability.manageFor', {
-                  name: character.label,
-                })}
-                label={translate('availability.manage')}
-                onClick={() => onManageAvailability(character)}
-                variant={ButtonVariant.GHOST}
-              />
-            ) : null}
           </div>
         ),
       },
+    ],
+    [translate],
+  );
+
+  const actions = useMemo<TableAction<BrandCharacterListItem>[]>(
+    () => [
       {
-        header: translate('list.libraryColumn'),
-        key: 'library',
-        render: (character) => (
-          <Button
-            aria-label={translate('list.viewInLibraryFor', {
-              name: character.label,
-            })}
-            asChild
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            <Link
-              href={href(
-                createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
-                  characters: [character.id],
-                }),
-              )}
-            >
-              {translate('list.viewInLibrary')}
-            </Link>
-          </Button>
-        ),
+        icon: <Images />,
+        isVisible: (character) => !character.isGranted,
+        onClick: onManageReferences,
+        tooltip: (character) =>
+          translate('references.manageFor', { name: character.label }),
+      },
+      {
+        icon: <Share2 />,
+        isVisible: (character) => canManageSharing && !character.isGranted,
+        onClick: onManageAvailability,
+        tooltip: (character) =>
+          translate('availability.manageFor', { name: character.label }),
+      },
+      {
+        href: (character) =>
+          href(
+            createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
+              characters: [character.id],
+            }),
+          ),
+        icon: <FolderOpen />,
+        tooltip: (character) =>
+          translate('list.viewInLibraryFor', { name: character.label }),
       },
     ],
-    [canManageSharing, href, onManageAvailability, translate],
+    [
+      canManageSharing,
+      href,
+      onManageAvailability,
+      onManageReferences,
+      translate,
+    ],
   );
 
   return (
     <AppTable<BrandCharacterListItem>
+      actions={actions}
       ariaLabel={translate('list.title')}
       columns={columns}
       emptyState={

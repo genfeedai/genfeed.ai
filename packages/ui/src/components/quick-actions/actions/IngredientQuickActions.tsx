@@ -59,10 +59,12 @@ export default function IngredientQuickActions(
       assetId={asset.id}
       imageUrl={asset.cdnUrl || asset.ingredientUrl || ''}
     >
-      {(characterAction) => (
+      {(characterAction, addActions) => (
         <IngredientQuickActionsContent
           {...props}
-          characterAction={characterAction ?? undefined}
+          characterActions={
+            characterAction ? [characterAction, ...addActions] : addActions
+          }
           onMenuOpenChange={setActionsOpen}
         />
       )}
@@ -73,7 +75,7 @@ export default function IngredientQuickActions(
 function IngredientQuickActionsContent(
   props: StudioQuickActionsProps & {
     isMasonryCompact?: boolean;
-    characterAction?: IQuickAction;
+    characterActions?: IQuickAction[];
     onMenuOpenChange?: (open: boolean) => void;
   },
 ): React.ReactNode {
@@ -385,7 +387,7 @@ function IngredientQuickActionsContent(
   if (
     actions.length === 0 &&
     contextActions.length === 0 &&
-    !props.characterAction &&
+    !props.characterActions?.length &&
     editingActions.length === 0
   ) {
     return null;
@@ -446,7 +448,7 @@ function IngredientQuickActionsContent(
             actions={visibleActions([
               ...editingActions,
               ...actions,
-              ...(props.characterAction ? [props.characterAction] : []),
+              ...(props.characterActions ?? []),
             ])}
             isMenuOpen={isMenuOpen}
             setIsMenuOpen={(open) => {
@@ -494,12 +496,12 @@ function IngredientQuickActionsContent(
 
         {(menuActions.length > 0 ||
           editingActions.length > 0 ||
-          props.characterAction) && (
+          (props.characterActions?.length ?? 0) > 0) && (
           <QuickActionsMenu
             actions={visibleActions([
               ...editingActions,
               ...menuActions,
-              ...(props.characterAction ? [props.characterAction] : []),
+              ...(props.characterActions ?? []),
             ])}
             isMenuOpen={isMenuOpen}
             setIsMenuOpen={(open) => {

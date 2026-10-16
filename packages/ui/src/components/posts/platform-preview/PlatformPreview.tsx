@@ -85,7 +85,10 @@ export type {
 } from './PlatformPreview.types';
 
 const PreviewPresentation = createContext<
-  Pick<PlatformPreviewProps, 'renderMedia' | 'statusLabel' | 'showValidation'>
+  Pick<
+    PlatformPreviewProps,
+    'renderMedia' | 'statusLabel' | 'showValidation' | 'presentation'
+  >
 >({});
 
 const ENTITY_PATTERN = /(https?:\/\/[^\s]+|[@#][A-Za-z0-9_]+)/g;
@@ -375,7 +378,8 @@ function MediaTile({
   animatedConsequence?: string;
 }) {
   const translate = useTranslations('ui.platformPreview');
-  const { renderMedia } = useContext(PreviewPresentation);
+  const { renderMedia, presentation } = useContext(PreviewPresentation);
+  const [isPlaybackRequested, setIsPlaybackRequested] = useState(false);
   const isVideo = item.kind === 'video' || item.kind === 'short_video';
   const src = item.thumbnailUrl ?? item.url;
   const label = item.kind.replace('_', ' ');
@@ -392,11 +396,38 @@ function MediaTile({
     >
       {renderMedia ? (
         renderMedia(item, index)
+      ) : isVideo &&
+        item.url &&
+        presentation === 'compact' &&
+        !isPlaybackRequested ? (
+        <Button
+          ariaLabel={item.alt ?? translate('videoAlt', { count: index + 1 })}
+          className="absolute inset-0 size-full rounded-none"
+          onClick={() => setIsPlaybackRequested(true)}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          {item.thumbnailUrl ? (
+            <Image
+              src={item.thumbnailUrl}
+              alt=""
+              fill
+              sizes="320px"
+              className="object-cover"
+            />
+          ) : null}
+          <span className="relative flex size-10 items-center justify-center rounded-full bg-background/80 text-foreground shadow-border">
+            <Play className="size-5" />
+          </span>
+        </Button>
       ) : isVideo && item.url ? (
         <VideoPlayer
           src={item.url}
           thumbnail={item.thumbnailUrl}
           mediaClassName="object-cover"
+          mediaProps={{
+            autoPlay: presentation === 'compact' && isPlaybackRequested,
+          }}
           ariaLabel={item.alt ?? translate('videoAlt', { count: index + 1 })}
         />
       ) : src ? (
@@ -1027,6 +1058,45 @@ function GenericPlatformPreviewRenderer({
   );
 }
 
+function CompactPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
+  const status = getPreviewStatus(target);
+  const Icon = getPlatformPreviewIcon(target.platform);
+  const isVertical =
+    target.platform === CredentialPlatform.TIKTOK ||
+    target.platform === CredentialPlatform.INSTAGRAM;
+  return (
+    <article className="space-y-3" aria-label={target.platformLabel}>
+      <div className="flex items-center gap-2 border-b border-border pb-3 text-xs font-medium text-muted-foreground">
+        <Icon className="size-4" />
+        {target.platformLabel}
+        <Badge variant="outline" className={cn('ml-auto', status.className)}>
+          {translate(status.messageKey)}
+        </Badge>
+      </div>
+      <AuthorRow target={target} />
+      {target.media[0] ? (
+        <MediaTile
+          key={target.media[0].id}
+          item={target.media[0]}
+          index={0}
+          className={
+            isVertical
+              ? 'mx-auto aspect-[9/16] h-52 min-h-0'
+              : 'aspect-video min-h-0 w-full'
+          }
+        />
+      ) : null}
+      {target.title?.trim() ? (
+        <p className="line-clamp-2 text-sm font-medium">{target.title}</p>
+      ) : null}
+      <div className="line-clamp-3">
+        <CaptionText target={target} />
+      </div>
+    </article>
+  );
+}
+
 export default function PlatformPreview({
   post,
   target,
@@ -1039,6 +1109,7 @@ export default function PlatformPreview({
   renderMedia,
   statusLabel,
   showValidation,
+  presentation = 'full',
 }: PlatformPreviewProps) {
   const translate = useTranslations('ui.platformPreview');
   const resolvedTargets = useMemo(() => {
@@ -1145,9 +1216,13 @@ export default function PlatformPreview({
       ) : null}
 
       <PreviewPresentation.Provider
-        value={{ renderMedia, statusLabel, showValidation }}
+        value={{ renderMedia, statusLabel, showValidation, presentation }}
       >
-        <Renderer target={activeTarget} />
+        {presentation === 'compact' ? (
+          <CompactPreviewRenderer target={activeTarget} />
+        ) : (
+          <Renderer target={activeTarget} />
+        )}
       </PreviewPresentation.Provider>
     </section>
   );

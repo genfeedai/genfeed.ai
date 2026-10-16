@@ -9,10 +9,11 @@ import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactElement } from 'react';
+import { type ReactElement, useState } from 'react';
 
 import CharacterAvailabilityDialog from './character-availability-dialog';
 import CharacterCreateDialog from './character-create-dialog';
+import CharacterReferencesDialog from './character-references-dialog';
 import CharactersTable from './characters-table';
 import { useCharactersPage } from './use-characters-page';
 
@@ -21,7 +22,11 @@ export default function LibraryCharactersPage(): ReactElement {
   const helpTranslate = useTranslations('pages.help');
   const translateReferences = useTranslations('pages.library.references');
   const { brandId } = useBrand();
+  const [referencesCharacterId, setReferencesCharacterId] = useState<
+    string | null
+  >(null);
   const {
+    applyReferences,
     approve,
     approveCandidate,
     availabilityControls,
@@ -41,6 +46,10 @@ export default function LibraryCharactersPage(): ReactElement {
     setIsCreateDialogOpen,
     step,
   } = useCharactersPage();
+
+  const referencesCharacter = characters.find(
+    (character) => character.id === referencesCharacterId,
+  );
 
   if (!brandId) {
     return (
@@ -77,6 +86,9 @@ export default function LibraryCharactersPage(): ReactElement {
           isLoading={isLoading}
           onCreate={openCreateDialog}
           onManageAvailability={availabilityControls.open}
+          onManageReferences={(character) =>
+            setReferencesCharacterId(character.id)
+          }
         />
         <Link
           href={`${APP_ROUTES.SETTINGS.HELP}#characters`}
@@ -90,6 +102,16 @@ export default function LibraryCharactersPage(): ReactElement {
         brands={brands}
         controls={availabilityControls}
       />
+
+      {referencesCharacter ? (
+        <CharacterReferencesDialog
+          character={referencesCharacter}
+          onChanged={(references) =>
+            applyReferences(referencesCharacter.id, references)
+          }
+          onClose={() => setReferencesCharacterId(null)}
+        />
+      ) : null}
 
       <CharacterCreateDialog
         approve={approve}

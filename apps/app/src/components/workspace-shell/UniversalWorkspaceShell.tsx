@@ -139,10 +139,6 @@ const INSPECTOR_MAX_WIDTH = 480;
 // Zero, not a rail stub: collapsed means gone, exactly like the left navigation
 // sidebar. The only toggle then lives in the topbar.
 const INSPECTOR_COLLAPSED_WIDTH = 0;
-// Motion parity with DesktopSidebar — same duration, same curve, both axes.
-const INSPECTOR_TRANSITION_DURATION_MS = 300;
-const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
-const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -1159,10 +1155,7 @@ function UniversalWorkspaceShellContent({
             ) : null}
           </div>
 
-          {/* Attached to the rounded block: same top, bottom, and right inset.
-              Collapsed it goes to zero — border included, or a 1px line
-              survives at width 0. The shell reserves its width through
-              --workspace-inspector-width. */}
+          {/* Reserve layout space once; animate the fixed-width rail with a transform. */}
           {isFocusedOnboardingRoute ? null : (
             <aside
               // Nothing selected: the empty, zero-width column is not a
@@ -1170,7 +1163,7 @@ function UniversalWorkspaceShellContent({
               aria-hidden={activeContextSidebar ? undefined : true}
               aria-label={translateContextSidebar('label')}
               className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
+                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background transition-transform duration-200 ease-out motion-reduce:transition-none xl:flex',
                 // The block's right border is the shared divider. The inspector
                 // finishes the top, right, and bottom edges and the outer radius.
                 isInspectorOpen && 'border-y border-r border-border',
@@ -1180,11 +1173,13 @@ function UniversalWorkspaceShellContent({
               ref={inspectorRef}
               style={{
                 bottom: 'var(--shell-inset, 0px)',
-                minWidth: inspectorRailWidth,
+                minWidth: expandedInspectorWidth,
                 right: 'var(--shell-inset, 0px)',
                 top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
-                transition: INSPECTOR_RAIL_TRANSITION,
-                width: inspectorRailWidth,
+                transform: isInspectorOpen
+                  ? 'translateX(0)'
+                  : 'translateX(100%)',
+                width: expandedInspectorWidth,
               }}
             >
               {isInspectorOpen ? (

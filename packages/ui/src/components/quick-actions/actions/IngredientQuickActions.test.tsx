@@ -112,11 +112,14 @@ vi.mock('@ui/dropdowns/scope/DropdownScope', () => ({
 
 vi.mock('@ui/characters/SaveAsCharacter', () => ({
   default: ({ children }: SaveAsCharacterProps) =>
-    children?.({
-      id: 'save-as-character',
-      label: 'Save as character',
-      onClick: vi.fn(),
-    }),
+    children?.(
+      {
+        id: 'save-as-character',
+        label: 'Save as character',
+        onClick: vi.fn(),
+      },
+      [],
+    ),
 }));
 
 describe('IngredientQuickActions', () => {

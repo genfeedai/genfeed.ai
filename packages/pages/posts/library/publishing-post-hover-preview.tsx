@@ -55,9 +55,9 @@ function LoadedPostPreview({
         </p>
       ) : null}
       {post ? (
-        <PlatformPreview post={post} />
+        <PlatformPreview presentation="compact" post={post} />
       ) : fallback ? (
-        <PlatformPreview target={fallback} />
+        <PlatformPreview presentation="compact" target={fallback} />
       ) : null}
     </>
   );
@@ -176,6 +176,7 @@ export default function PublishingPostHoverPreview({
   const preview = resolvePublishingHoverPreview({ post, release });
   const triggerRef = useRef<HTMLDivElement>(null);
   const [side, setSide] = useState<PreviewSide>('bottom');
+  const [isOpen, setIsOpen] = useState(false);
 
   if (!preview && !postId && !target) {
     return children;
@@ -183,13 +184,15 @@ export default function PublishingPostHoverPreview({
 
   return (
     <HoverCard
-      closeDelay={200}
+      open={isOpen}
+      closeDelay={120}
       onOpenChange={(isOpen) => {
         if (isOpen) {
           setSide(pickPreviewSide(triggerRef.current));
         }
+        setIsOpen(isOpen);
       }}
-      openDelay={280}
+      openDelay={180}
     >
       <HoverCardTrigger asChild>
         <div className={cn('min-w-0', className)} ref={triggerRef}>
@@ -205,17 +208,18 @@ export default function PublishingPostHoverPreview({
       <HoverCardContent
         align="start"
         avoidCollisions={false}
-        className="max-h-[min(32rem,calc(var(--radix-hover-card-content-available-height)-0.5rem))] duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+        collisionPadding={12}
+        className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(28rem,calc(var(--radix-hover-card-content-available-height)-0.5rem))] overscroll-contain duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
         side={side}
       >
         {postId && !post ? (
           <LoadedPostPreview key={postId} postId={postId} fallback={target} />
         ) : preview?.kind === 'post' ? (
-          <PlatformPreview post={preview.post} />
+          <PlatformPreview presentation="compact" post={preview.post} />
         ) : preview?.kind === 'targets' ? (
-          <PlatformPreview targets={preview.targets} />
+          <PlatformPreview presentation="compact" targets={preview.targets} />
         ) : target ? (
-          <PlatformPreview target={target} />
+          <PlatformPreview presentation="compact" target={target} />
         ) : null}
       </HoverCardContent>
     </HoverCard>

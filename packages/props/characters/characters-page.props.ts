@@ -4,6 +4,7 @@ import type {
   BrandCharacterListItem,
   BrandCharacterSheetStep,
   CharacterGrantItem,
+  CharacterReferenceItem,
   GrantableOrganization,
 } from '@genfeedai/contracts/interfaces';
 
@@ -53,6 +54,10 @@ export interface CharactersPageState {
     setHandle: (value: string) => void;
     setLabel: (value: string) => void;
   };
+  applyReferences: (
+    characterId: string,
+    references: CharacterReferenceItem[],
+  ) => void;
   availabilityControls: CharacterAvailabilityControls;
   brandId: string;
   brands: CharacterBrandOption[];
@@ -86,6 +91,27 @@ export interface CharactersTableProps {
   isLoading: boolean;
   onCreate: () => void;
   onManageAvailability: (character: BrandCharacterListItem) => void;
+  onManageReferences: (character: BrandCharacterListItem) => void;
+}
+
+export interface CharacterReferencesControls {
+  add: () => void;
+  isBusy: boolean;
+  isFull: boolean;
+  move: (index: number, direction: -1 | 1) => Promise<void>;
+  referenceIds: string[];
+  remove: (ingredientId: string) => Promise<void>;
+}
+
+export interface UseCharacterReferencesOptions {
+  character: BrandCharacterListItem;
+  onChanged: (references: CharacterReferenceItem[]) => void;
+}
+
+export interface CharacterReferencesDialogProps {
+  character: BrandCharacterListItem;
+  onChanged: (references: CharacterReferenceItem[]) => void;
+  onClose: () => void;
 }
 
 export interface CharacterAvailabilityDialogProps {

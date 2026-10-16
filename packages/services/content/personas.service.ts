@@ -6,6 +6,7 @@ import type {
   CharacterGrantInput,
   CharacterGrantItem,
   CharacterImageInspection,
+  CharacterReferenceItem,
   CharacterReferenceUsage,
   ComposeCharacterSheetPromptInput,
   ComposeCharacterSheetPromptResult,
@@ -139,6 +140,45 @@ export class PersonasService extends BaseService<
       { brandId },
     );
     return deserializeResource<Persona>(response.data);
+  }
+
+  async listReferences(id: string): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.get<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references`);
+    return response.data.data;
+  }
+
+  /** Appends Library images as references; images already referenced are skipped. */
+  async addReferences(
+    id: string,
+    ingredientIds: string[],
+  ): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.post<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references`, { ingredientIds });
+    return response.data.data;
+  }
+
+  /** Persists the order; `ingredientIds` must list every current reference once. */
+  async reorderReferences(
+    id: string,
+    ingredientIds: string[],
+  ): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.put<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references`, { ingredientIds });
+    return response.data.data;
+  }
+
+  async removeReference(
+    id: string,
+    ingredientId: string,
+  ): Promise<CharacterReferenceItem[]> {
+    const response = await this.instance.delete<{
+      data: CharacterReferenceItem[];
+    }>(`/${id}/references/${ingredientId}`);
+    return response.data.data;
   }
 
   /**

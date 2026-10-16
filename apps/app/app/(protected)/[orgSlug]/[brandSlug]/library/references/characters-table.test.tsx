@@ -39,6 +39,7 @@ describe('CharactersTable', () => {
         isLoading={false}
         onCreate={onCreate}
         onManageAvailability={vi.fn()}
+        onManageReferences={vi.fn()}
       />,
     );
 
@@ -51,6 +52,7 @@ describe('CharactersTable', () => {
       <CharactersTable
         canManageSharing={false}
         onManageAvailability={vi.fn()}
+        onManageReferences={vi.fn()}
         characters={[
           {
             avatarIngredientId: 'img-1',
@@ -80,6 +82,7 @@ describe('CharactersTable', () => {
         isLoading={false}
         onCreate={vi.fn()}
         onManageAvailability={vi.fn()}
+        onManageReferences={vi.fn()}
       />,
     );
 
@@ -93,5 +96,55 @@ describe('CharactersTable', () => {
         name: 'View assets made with Vincent in Library',
       }),
     ).toHaveAttribute('href', '/acme/main/library/assets?characters=p2');
+  });
+
+  it('shows the first four reference thumbnails and counts the rest', () => {
+    render(
+      <CharactersTable
+        canManageSharing={false}
+        characters={[
+          {
+            avatarIngredientId: 'img-1',
+            id: 'p1',
+            label: 'Anna',
+            referenceIngredientIds: [
+              'img-1',
+              'img-2',
+              'img-3',
+              'img-4',
+              'img-5',
+              'img-6',
+            ],
+          },
+        ]}
+        isLoading={false}
+        onCreate={vi.fn()}
+        onManageAvailability={vi.fn()}
+        onManageReferences={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText(/^Reference \d+ of Anna$/)).toHaveLength(4);
+    expect(screen.getByText('+2')).toBeInTheDocument();
+  });
+
+  it('opens reference management from the row action', () => {
+    const onManageReferences = vi.fn();
+    const anna = { id: 'p1', label: 'Anna', referenceIngredientIds: [] };
+    render(
+      <CharactersTable
+        canManageSharing={false}
+        characters={[anna]}
+        isLoading={false}
+        onCreate={vi.fn()}
+        onManageAvailability={vi.fn()}
+        onManageReferences={onManageReferences}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Manage references for Anna' }),
+    );
+    expect(onManageReferences).toHaveBeenCalledWith(anna);
   });
 });

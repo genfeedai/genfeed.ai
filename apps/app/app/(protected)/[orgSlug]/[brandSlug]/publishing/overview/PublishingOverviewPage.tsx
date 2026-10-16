@@ -346,7 +346,7 @@ export default function PublishingOverviewPage() {
           ? 'Loading review queue...'
           : reviewPulse.ready > 0
             ? `${reviewPulse.ready} item${reviewPulse.ready === 1 ? '' : 's'} ready to approve or reject.`
-            : 'No queue pressure. Open Review when the next batch lands.',
+            : 'Approve or reject generated posts.',
       href: href(APP_ROUTES.PUBLISHING.REVIEW),
       icon: ClipboardCheck,
       id: 'review',
@@ -370,7 +370,7 @@ export default function PublishingOverviewPage() {
     {
       color: 'bg-sky-500/12 text-sky-300',
       cta: 'Open calendar',
-      description: 'See what ships this week and drag to reschedule.',
+      description: 'Plan posts and adjust your schedule.',
       href: href(APP_ROUTES.PUBLISHING.CALENDAR),
       icon: Calendar,
       id: 'calendar',
@@ -385,7 +385,7 @@ export default function PublishingOverviewPage() {
           ? 'Loading published posts...'
           : publishedTotal > 0
             ? `${publishedTotal} live post${publishedTotal === 1 ? '' : 's'} across destinations.`
-            : 'Nothing live yet. Approved work will land here after publish.',
+            : 'Browse posts published to your channels.',
       href: href(POSTED_POSTS_PATH),
       icon: Send,
       id: 'published',
@@ -395,11 +395,13 @@ export default function PublishingOverviewPage() {
 
   return (
     <OverviewContent
-      actionsTitle="Go to work"
+      actionsTitle="Publishing shortcuts"
+      actionsLayout="compact"
       cards={cards}
       header={
         <div className="space-y-6">
           <KPISection
+            size="sm"
             error={
               isMetricsError ? 'Publishing metrics could not be loaded.' : null
             }
@@ -407,10 +409,15 @@ export default function PublishingOverviewPage() {
             isLoading={isMetricsLoading}
             items={kpiItems}
           />
-          <Next24hQueueSection onRetry={retryQueue} state={queueState} />
-          <BlockedTargetsSection onRetry={retryBlocked} state={blockedState} />
+          <div className="grid items-start gap-6 @[60rem]:grid-cols-2">
+            <Next24hQueueSection onRetry={retryQueue} state={queueState} />
+            <BlockedTargetsSection
+              onRetry={retryBlocked}
+              state={blockedState}
+            />
+          </div>
           {isBrandReady ? (
-            <>
+            <div className="grid items-start gap-6 @[60rem]:grid-cols-2">
               <AccountHealthSection
                 connections={connections}
                 onRetry={retryAccountHealth}
@@ -421,7 +428,7 @@ export default function PublishingOverviewPage() {
                 onRetry={retryCadence}
                 state={cadenceState}
               />
-            </>
+            </div>
           ) : null}
         </div>
       }
