@@ -63,6 +63,7 @@ export {
   SEARCH_KNOWLEDGE_DATA_SCHEMA,
 } from './registry/contracts/knowledge-tool-action-contracts';
 export { REMOTION_COMPOSITION_INPUT_SCHEMA } from './registry/contracts/remotion-action-contracts';
+export { getScheduledPostActionContract } from './registry/contracts/scheduled-post-action-contracts';
 export {
   getVisualCodeActionContract,
   VISUAL_CODE_ACTION_ALIASES,

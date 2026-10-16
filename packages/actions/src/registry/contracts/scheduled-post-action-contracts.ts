@@ -17,6 +17,7 @@ const REQUEST = closedObjectSchema(
       'manual_retry',
       'publish_now',
       'scheduled_sweep',
+      'tiktok_app',
     ] as const),
     userId: STRING_SCHEMA,
     versionPinId: STRING_SCHEMA,
