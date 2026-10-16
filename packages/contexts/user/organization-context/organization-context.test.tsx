@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
+import { ROUTED_ORGANIZATION_STORAGE_KEY } from '@genfeedai/contracts/constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
@@ -185,20 +186,32 @@ describe('RoutedOrganizationProvider', () => {
   });
 
   it('confirms an already-matched route before exposing its organization id', async () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
     getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
 
-    renderProvider();
+    try {
+      renderProvider();
 
-    await waitFor(() =>
-      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
-    );
-    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
-    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('true');
-    expect(switchOrganizationMock).not.toHaveBeenCalled();
-    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
+      await waitFor(() =>
+        expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+      );
+      expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
+      expect(screen.getByTestId('is-confirmed')).toHaveTextContent('true');
+      expect(switchOrganizationMock).not.toHaveBeenCalled();
+      expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(
+        'org_alpha',
+      );
+      expect(setItem).not.toHaveBeenCalledWith(
+        ROUTED_ORGANIZATION_STORAGE_KEY,
+        expect.any(String),
+      );
+    } finally {
+      setItem.mockRestore();
+    }
   });
 
   it('switches a stale backend context, clears tenant state, refreshes the token, and verifies before matching', async () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
     const queryClient = new QueryClient();
     let resolveSwitch: (() => void) | undefined;
     switchOrganizationMock.mockImplementationOnce(
@@ -212,38 +225,54 @@ describe('RoutedOrganizationProvider', () => {
       .mockResolvedValueOnce(BRAVO_ACTIVE)
       .mockResolvedValueOnce(ALPHA_ACTIVE);
 
-    renderProvider(queryClient);
+    try {
+      renderProvider(queryClient);
 
-    await waitFor(() =>
-      expect(switchOrganizationMock).toHaveBeenCalledWith('org_alpha'),
-    );
-    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+      await waitFor(() =>
+        expect(switchOrganizationMock).toHaveBeenCalledWith('org_alpha'),
+      );
+      expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+      expect(setItem).not.toHaveBeenCalledWith(
+        ROUTED_ORGANIZATION_STORAGE_KEY,
+        expect.any(String),
+      );
 
-    await act(async () => {
-      resolveSwitch?.();
-      await Promise.resolve();
-    });
+      await act(async () => {
+        resolveSwitch?.();
+        await Promise.resolve();
+      });
 
-    await waitFor(() =>
-      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
-    );
-    expect(getOrganizationsServiceMock).toHaveBeenCalledWith({
-      forceRefresh: true,
-    });
-    expect(getMyOrganizationsMock).toHaveBeenNthCalledWith(2, { fresh: true });
-    expect(queryClient.getQueryData(['tenant-data'])).toBeUndefined();
-    expect(cancelAndClearServicesMock).toHaveBeenCalled();
-    expect(clearBootstrapCacheMock).toHaveBeenCalled();
-    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
-    expect(loggerWarnMock).toHaveBeenCalledWith(
-      'Routed organization context mismatch',
-      expect.objectContaining({
-        reportToSentry: false,
-        tags: expect.objectContaining({
-          reason: 'route-auth-mismatch',
+      await waitFor(() =>
+        expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+      );
+      expect(getOrganizationsServiceMock).toHaveBeenCalledWith({
+        forceRefresh: true,
+      });
+      expect(getMyOrganizationsMock).toHaveBeenNthCalledWith(2, {
+        fresh: true,
+      });
+      expect(queryClient.getQueryData(['tenant-data'])).toBeUndefined();
+      expect(cancelAndClearServicesMock).toHaveBeenCalled();
+      expect(clearBootstrapCacheMock).toHaveBeenCalled();
+      expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(
+        'org_alpha',
+      );
+      expect(setItem).toHaveBeenCalledWith(
+        ROUTED_ORGANIZATION_STORAGE_KEY,
+        expect.any(String),
+      );
+      expect(loggerWarnMock).toHaveBeenCalledWith(
+        'Routed organization context mismatch',
+        expect.objectContaining({
+          reportToSentry: false,
+          tags: expect.objectContaining({
+            reason: 'route-auth-mismatch',
+          }),
         }),
-      }),
-    );
+      );
+    } finally {
+      setItem.mockRestore();
+    }
   });
 
   it('fails closed when the routed slug is not an authorized membership', async () => {

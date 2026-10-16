@@ -269,6 +269,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         const activeOrganization = organizations.find(
           (organization) => organization.isActive,
         );
+        let hasSwitchedOrganization = false;
         if (activeOrganization?.id !== target.id) {
           emitSanitizedMismatch('route-auth-mismatch');
           if (isCurrentGeneration(generation, routeOrganizationSlug)) {
@@ -281,6 +282,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
           }
 
           await initialService.switchOrganization(target.id);
+          hasSwitchedOrganization = true;
           await invalidateTenantState();
           const refreshedService = await getOrganizationsService({
             forceRefresh: true,
@@ -300,7 +302,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         }
 
         if (isCurrentGeneration(generation, routeOrganizationSlug)) {
-          broadcastOrganizationChange();
+          if (hasSwitchedOrganization) {
+            broadcastOrganizationChange();
+          }
           setRequestOrganizationId(confirmedOrganization.id);
           setState({
             confirmedOrganizationId: confirmedOrganization.id,
