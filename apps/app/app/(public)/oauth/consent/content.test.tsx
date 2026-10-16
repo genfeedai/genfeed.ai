@@ -274,6 +274,7 @@ describe('OAuthConsentPage', () => {
 
   it.each<[string, string | null, boolean]>([
     ['https://mcp.genfeed.ai/mcp', null, true],
+    ['https://mcp.genfeed.ai/mcp', '', true],
     ['https://mcp.genfeed.ai/mcp', API_KEY_SCOPE_PRESETS.mcp.join(' '), true],
     ['https://mcp.genfeed.ai/mcp', 'videos:read', false],
     ['https://mcp.genfeed.ai/mcp/claude', null, false],
@@ -294,6 +295,7 @@ describe('OAuthConsentPage', () => {
       const notice = screen.queryByText(/approve its own queued actions/);
       if (expected) {
         expect(notice).toBeInTheDocument();
+        expect(screen.getByText('Videos')).toBeInTheDocument();
       } else {
         expect(notice).not.toBeInTheDocument();
       }

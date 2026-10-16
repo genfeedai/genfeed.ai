@@ -95,13 +95,13 @@ export default function OAuthConsentContent() {
   const isClaude =
     Boolean(requestedResource) &&
     resolveMcpAccessModeForResource(requestedResource ?? '') === 'claude';
+  const requestedScope = searchParams.get('scope') || null;
   const scopeLabels = useMemo(
-    () => getRequestedScopeLabels(searchParams.get('scope'), isClaude),
-    [searchParams, isClaude],
+    () => getRequestedScopeLabels(requestedScope, isClaude),
+    [requestedScope, isClaude],
   );
   const requestedScopes =
-    searchParams.get('scope')?.split(/\s+/).filter(Boolean) ??
-    API_KEY_SCOPE_PRESETS.mcp;
+    requestedScope?.split(/\s+/).filter(Boolean) ?? API_KEY_SCOPE_PRESETS.mcp;
   const showAdminNotice =
     !isClaude &&
     API_KEY_SCOPE_PRESETS.mcp.every((scope) => requestedScopes.includes(scope));
@@ -221,7 +221,7 @@ export default function OAuthConsentContent() {
             organizationId: approved ? selectedOrganizationId : undefined,
             redirect_uri: redirectUri,
             resource: searchParams.get('resource'),
-            scope: searchParams.get('scope') || undefined,
+            scope: requestedScope || undefined,
             // Forwarded unchanged when the client supplied one; omitted otherwise.
             state: searchParams.get('state') || undefined,
           }),
