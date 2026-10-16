@@ -340,7 +340,7 @@ export const EDITORIAL_OG_ARTWORKS = {
     route: '/articles/how-credits-and-billing-work',
   },
   'card-0044': {
-    headline: ['One workspace', 'Every brand'],
+    headline: ['One home', 'Every brand'],
     route: '/articles/organizations-in-genfeed-cloud',
   },
   'card-0045': {
@@ -356,7 +356,7 @@ export const EDITORIAL_OG_ARTWORKS = {
     route: '/articles/brand-setup-and-brand-memory',
   },
   'card-0048': {
-    headline: ['Connect your', 'channels'],
+    headline: ['Link your', 'channels'],
     route: '/articles/connect-your-social-accounts',
   },
   'card-0049': {
@@ -372,7 +372,7 @@ export const EDITORIAL_OG_ARTWORKS = {
     route: '/articles/connect-claude-code-or-cursor-to-genfeed-cloud-mcp',
   },
   'card-0052': {
-    headline: ['Choose your', 'setup'],
+    headline: ['Choose', 'your setup'],
     route: '/articles/genfeed-cloud-vs-self-hosted',
   },
 } as const;
