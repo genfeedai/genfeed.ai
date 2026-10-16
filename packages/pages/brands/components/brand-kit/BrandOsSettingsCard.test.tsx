@@ -230,6 +230,19 @@ function exportState(
     ...overrides,
   };
 }
+function expandRevisionField(label: string) {
+  const trigger = screen.getByRole('button', { name: label });
+  if (trigger.getAttribute('data-state') !== 'open') {
+    fireEvent.click(trigger);
+  }
+}
+async function openRevisionField(label: string) {
+  const trigger = await screen.findByRole('button', { name: label });
+  if (trigger.getAttribute('data-state') !== 'open') {
+    fireEvent.click(trigger);
+  }
+  return screen.findByLabelText(label);
+}
 async function renderSettings() {
   render(
     <BrandOsSettingsCard
@@ -238,7 +251,7 @@ async function renderSettings() {
       onRevisionSaved={mocks.saved}
     />,
   );
-  await screen.findByLabelText('Description');
+  await openRevisionField('Description');
 }
 
 beforeEach(() => {
@@ -251,6 +264,23 @@ beforeEach(() => {
 });
 
 describe('Brand OS revision settings', () => {
+  it('hides a revision value until its field is opened', async () => {
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+      />,
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Description' }),
+    ).toHaveAttribute('data-state', 'closed');
+    expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
+    expect(await openRevisionField('Description')).toHaveValue(
+      'Original voice',
+    );
+  });
+
   it('edits visual identity with a font selection and a color input while preserving the saved draft payload', async () => {
     const content = draft();
     content.fields.fontFamily = {
@@ -276,10 +306,12 @@ describe('Brand OS revision settings', () => {
     mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
     mocks.updateBrandOsRevision.mockResolvedValue(revision({ content }));
     await renderSettings();
+    expandRevisionField('Font family');
     const font = screen.getByRole('combobox', { name: 'Font family' });
     expect(font).toHaveValue(FontFamily.MONTSERRAT_REGULAR);
     fireEvent.change(font, { target: { value: FontFamily.MONTSERRAT_BOLD } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Primary color' }), {
+    expandRevisionField('Primary color');
+    fireEvent.change(screen.getByLabelText('Primary color'), {
       target: { value: '#123456' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -314,7 +346,7 @@ describe('Brand OS revision settings', () => {
       expect(
         screen.queryByText(/Only organization owners and admins/),
       ).not.toBeInTheDocument();
-      expect(screen.getByLabelText('Description')).toBeEnabled();
+      expect(await openRevisionField('Description')).toBeEnabled();
       fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
       await waitFor(() =>
         expect(mocks.approveBrandOsRevision).toHaveBeenCalled(),
@@ -330,7 +362,7 @@ describe('Brand OS revision settings', () => {
       expect(
         screen.getByText(/Only organization owners and admins/),
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('Description')).toBeDisabled();
+      expect(await openRevisionField('Description')).toBeDisabled();
       expect(
         screen.queryByRole('button', { name: 'Approve revision' }),
       ).not.toBeInTheDocument();
@@ -345,7 +377,7 @@ describe('Brand OS revision settings', () => {
     expect(
       screen.getByRole('button', { name: 'Download design.md' }),
     ).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited voice' },
     });
     expect(
@@ -358,7 +390,7 @@ describe('Brand OS revision settings', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'This draft changed',
     );
-    expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
+    expect(await openRevisionField('Description')).toHaveValue('Edited voice');
     expect(mocks.saved).not.toHaveBeenCalled();
     expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
       'brand-1',
@@ -458,7 +490,7 @@ describe('Brand OS revision settings', () => {
         )}
       />,
     );
-    expect(await screen.findByLabelText('Description')).toHaveValue(
+    expect(await openRevisionField('Description')).toHaveValue(
       'Saved description',
     );
     expect(
@@ -470,7 +502,7 @@ describe('Brand OS revision settings', () => {
     expect(include).not.toBeChecked();
     fireEvent.click(include);
     expect(include).toBeChecked();
-    expect(screen.getByLabelText('Description')).toHaveValue(
+    expect(await openRevisionField('Description')).toHaveValue(
       'Proposed description',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -576,7 +608,7 @@ describe('Brand OS revision settings', () => {
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => {});
     await renderSettings();
-    expect(screen.getByLabelText('Description')).toBeDisabled();
+    expect(await openRevisionField('Description')).toBeDisabled();
     expect(
       screen.queryByRole('button', { name: 'Approve revision' }),
     ).not.toBeInTheDocument();
@@ -600,8 +632,8 @@ describe('Brand OS revision settings', () => {
         onRevisionSaved={mocks.saved}
       />,
     );
-    await screen.findByLabelText('Description');
-    fireEvent.change(screen.getByLabelText('Description'), {
+    await openRevisionField('Description');
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Unsaved' },
     });
     mocks.listBrandOsRevisions.mockResolvedValue([
@@ -618,7 +650,7 @@ describe('Brand OS revision settings', () => {
     await screen.findByText(
       'New revisions are available. Save or discard your edits before refreshing history.',
     );
-    expect(screen.getByLabelText('Description')).toHaveValue('Unsaved');
+    expect(await openRevisionField('Description')).toHaveValue('Unsaved');
     fireEvent.click(
       screen.getByRole('button', { name: 'Discard unsaved edits' }),
     );
@@ -631,9 +663,10 @@ describe('Brand OS revision settings', () => {
         revision({ content: body.content }),
     );
     await renderSettings();
-    fireEvent.change(screen.getByLabelText('Voice audience'), {
+    fireEvent.change(await openRevisionField('Voice audience'), {
       target: { value: 'Founders\nDesigners' },
     });
+    expandRevisionField('Social links');
     fireEvent.click(screen.getByRole('button', { name: 'Add Social links' }));
     fireEvent.change(screen.getByLabelText('Social links 1 url'), {
       target: { value: 'https://example.com/social' },
@@ -668,6 +701,7 @@ describe('Brand OS revision settings', () => {
   });
   it('preserves the remaining social link input when an earlier entry is removed', async () => {
     await renderSettings();
+    expandRevisionField('Social links');
     fireEvent.click(screen.getByRole('button', { name: 'Add Social links' }));
     fireEvent.change(screen.getByLabelText('Social links 1 url'), {
       target: { value: 'https://first.example' },
@@ -700,11 +734,11 @@ describe('Brand OS revision settings', () => {
     expect(
       screen.getByRole('combobox', { name: 'Revision history' }),
     ).toBeEnabled();
-    expect(screen.getByLabelText('Description')).toBeEnabled();
+    expect(await openRevisionField('Description')).toBeEnabled();
     expect(
       screen.getByRole('button', { name: 'Save as new draft' }),
     ).toBeEnabled();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Repaired draft identity' },
     });
     mocks.getBrandOsExport.mockResolvedValue(
@@ -713,7 +747,7 @@ describe('Brand OS revision settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
     await screen.findByText('design.md · private');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Description')).toHaveValue(
+    expect(await openRevisionField('Description')).toHaveValue(
       'Repaired draft identity',
     );
     expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(1);
@@ -774,6 +808,7 @@ describe('Brand OS revision settings', () => {
           revision({ content: body.content }),
       );
       await renderSettings();
+      expandRevisionField(key === 'logo' ? 'Logo' : 'Reference assets');
       fireEvent.click(
         screen.getByRole('checkbox', { name: 'Use Candidate image' }),
       );
@@ -924,14 +959,14 @@ describe('saved callback epochs and native exit capture', () => {
           onRevisionSaved={mocks.saved}
         />,
       );
-      await screen.findByLabelText('Description');
+      await openRevisionField('Description');
       const serviceGate = cardDeferred<typeof mocks>();
       const responseGate = cardDeferred<IBrandOsRevision>();
       if (stage === 'acquiring')
         mocks.getService.mockReturnValueOnce(serviceGate.promise);
       else
         mocks.updateBrandOsRevision.mockReturnValueOnce(responseGate.promise);
-      fireEvent.change(screen.getByLabelText('Description'), {
+      fireEvent.change(await openRevisionField('Description'), {
         target: { value: 'Old edit' },
       });
       fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -951,7 +986,7 @@ describe('saved callback epochs and native exit capture', () => {
             onRevisionSaved={mocks.saved}
           />,
         );
-        await screen.findByLabelText('Description');
+        await openRevisionField('Description');
       }
       await act(async () => {
         serviceGate.resolve(mocks);
@@ -961,7 +996,7 @@ describe('saved callback epochs and native exit capture', () => {
       if (stage === 'acquiring')
         expect(mocks.updateBrandOsRevision).not.toHaveBeenCalled();
       if (stage !== 'unmounted')
-        expect(screen.getByLabelText('Description')).toHaveValue(
+        expect(await openRevisionField('Description')).toHaveValue(
           'Original voice',
         );
     },
@@ -977,7 +1012,7 @@ describe('saved callback epochs and native exit capture', () => {
           onRevisionSaved={mocks.saved}
         />,
       );
-      await screen.findByLabelText('Description');
+      await openRevisionField('Description');
       const serviceGate = cardDeferred<typeof mocks>();
       const responseGate = cardDeferred<IBrandOsRevision>();
       if (stage === 'acquiring')
@@ -1001,7 +1036,7 @@ describe('saved callback epochs and native exit capture', () => {
             onRevisionSaved={mocks.saved}
           />,
         );
-        await screen.findByLabelText('Description');
+        await openRevisionField('Description');
       }
       const exportReads = mocks.getBrandOsExport.mock.calls.length;
       await act(async () => {
@@ -1045,8 +1080,8 @@ describe('saved callback epochs and native exit capture', () => {
           </Button>
         </>,
       );
-      await screen.findByLabelText('Description');
-      fireEvent.change(screen.getByLabelText('Description'), {
+      await openRevisionField('Description');
+      fireEvent.change(await openRevisionField('Description'), {
         target: { value: 'Unsaved' },
       });
       fireEvent.click(screen.getByText('Wizard exit'));
@@ -1100,10 +1135,10 @@ describe('saved callback epochs and native exit capture', () => {
         </a>
       </>,
     );
-    await screen.findByLabelText('Description');
+    await openRevisionField('Description');
     fireEvent.click(screen.getByText('Clean exit'));
     expect(confirm).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Unsaved' },
     });
     for (const name of [
@@ -1161,7 +1196,7 @@ function cardProps() {
 async function renderReviewed(saved = reviewedRevision()) {
   mocks.listBrandOsRevisions.mockResolvedValue([saved]);
   const view = render(<BrandOsSettingsCard {...cardProps()} />);
-  await screen.findByLabelText('Description');
+  await openRevisionField('Description');
   return view;
 }
 function acknowledge() {
@@ -1257,7 +1292,7 @@ describe('saved generation rules acknowledgement and authority fences', () => {
   it('never resurrects acknowledgement after editing then reverting, and displays only saved rules', async () => {
     await renderReviewed();
     acknowledge();
-    const field = screen.getByLabelText('Description');
+    const field = await openRevisionField('Description');
     fireEvent.change(field, { target: { value: 'Unsaved change' } });
     expect(
       screen.getByText('Saved source for account one'),
@@ -1286,9 +1321,9 @@ describe('saved generation rules acknowledgement and authority fences', () => {
     });
     mocks.listBrandOsRevisions.mockResolvedValue([first, second]);
     render(<BrandOsSettingsCard {...cardProps()} />);
-    await screen.findByLabelText('Description');
+    await openRevisionField('Description');
     acknowledge();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Dirty' },
     });
     fireEvent.click(
@@ -1307,7 +1342,7 @@ describe('saved generation rules acknowledgement and authority fences', () => {
     ).not.toBeChecked();
     acknowledge();
     fireEvent.click(screen.getByRole('button', { name: 'Refresh history' }));
-    await screen.findByLabelText('Description');
+    await openRevisionField('Description');
     expect(
       screen.getByRole('checkbox', { name: acknowledgementLabel }),
     ).not.toBeChecked();
@@ -1322,7 +1357,7 @@ describe('saved generation rules acknowledgement and authority fences', () => {
     mocks.updateBrandOsRevision.mockResolvedValueOnce(saved);
     await renderReviewed();
     acknowledge();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited guide' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -1345,7 +1380,7 @@ describe('saved generation rules acknowledgement and authority fences', () => {
       acknowledge();
       fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
       expect(await screen.findByRole('alert')).toHaveTextContent(message);
-      expect(screen.getByLabelText('Description')).toHaveValue(
+      expect(await openRevisionField('Description')).toHaveValue(
         'Original voice',
       );
       expect(
@@ -1424,7 +1459,7 @@ describe('saved generation rules acknowledgement and authority fences', () => {
       reviewedRevision({ updatedAt: '2026-10-02T12:00:00.000Z' }),
     ]);
     view.rerender(<BrandOsSettingsCard {...cardProps()} refreshKey={1} />);
-    await screen.findByLabelText('Description');
+    await openRevisionField('Description');
     await act(async () => gate.resolve(mocks));
     expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
     expect(
@@ -1444,12 +1479,12 @@ describe('saved generation rules acknowledgement and authority fences', () => {
       });
       mocks.updateBrandOsRevision.mockResolvedValueOnce(response);
       await renderReviewed();
-      fireEvent.change(screen.getByLabelText('Description'), {
+      fireEvent.change(await openRevisionField('Description'), {
         target: { value: 'Recoverable edited guide' },
       });
       fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
       await screen.findByRole('alert');
-      expect(screen.getByLabelText('Description')).toHaveValue(
+      expect(await openRevisionField('Description')).toHaveValue(
         'Recoverable edited guide',
       );
       expect(
@@ -1666,7 +1701,7 @@ describe('mounted current approved identity preview', () => {
       expect(mocks.getIdentityPreview).toHaveBeenCalledTimes(1),
     );
     const signal = mocks.getIdentityPreview.mock.calls[0]?.[3] as AbortSignal;
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Unsaved' },
     });
     expect(signal.aborted).toBe(true);
@@ -1701,7 +1736,7 @@ describe('mounted current approved identity preview', () => {
     openPreview();
     await screen.findByText('Saved approved A');
     fireEvent.click(screen.getByRole('button', { name: 'Refresh history' }));
-    await screen.findByLabelText('Description');
+    await openRevisionField('Description');
     expect(screen.queryByText('Saved approved A')).not.toBeInTheDocument();
     expect(mocks.getIdentityPreview).toHaveBeenCalledTimes(2);
   });
@@ -1735,7 +1770,7 @@ describe('opt-in auto-save and guide readiness', () => {
         onRevisionSaved={mocks.saved}
       />,
     );
-    await screen.findByLabelText('Description');
+    await openRevisionField('Description');
   }
   function settle(ms = 1800) {
     return act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
@@ -1754,10 +1789,10 @@ describe('opt-in auto-save and guide readiness', () => {
         }),
     );
     await renderAutoSaving();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited' },
     });
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited voice' },
     });
     await waitFor(
@@ -1786,12 +1821,12 @@ describe('opt-in auto-save and guide readiness', () => {
 
   it('never auto-saves when the card is used without the opt-in', async () => {
     await renderSettings();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited voice' },
     });
     await settle();
     expect(mocks.updateBrandOsRevision).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
+    expect(await openRevisionField('Description')).toHaveValue('Edited voice');
   });
 
   it('keeps edits and does not retry the same content after a rejected auto-save', async () => {
@@ -1799,7 +1834,7 @@ describe('opt-in auto-save and guide readiness', () => {
       new Error('Conflict 409: this draft changed'),
     );
     await renderAutoSaving();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited voice' },
     });
     expect(
@@ -1807,7 +1842,7 @@ describe('opt-in auto-save and guide readiness', () => {
     ).toHaveTextContent('this draft changed');
     await settle();
     expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
+    expect(await openRevisionField('Description')).toHaveValue('Edited voice');
     expect(mocks.saved).not.toHaveBeenCalled();
   });
 
@@ -1823,7 +1858,7 @@ describe('opt-in auto-save and guide readiness', () => {
         isBusy: false,
       }),
     );
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited voice' },
     });
     expect(readiness).toHaveBeenLastCalledWith(
@@ -1875,11 +1910,11 @@ describe('opt-in auto-save and guide readiness', () => {
         }),
     );
     await renderAutoSaving();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'First' },
     });
     await settle(1000);
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Second' },
     });
     await settle(1000);
@@ -1899,7 +1934,7 @@ describe('opt-in auto-save and guide readiness', () => {
     mocks.updateBrandOsRevision.mockReturnValue(pending.promise);
     const readiness = vi.fn();
     await renderAutoSaving(readiness);
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited voice' },
     });
     await waitFor(
@@ -1939,8 +1974,8 @@ describe('opt-in auto-save and guide readiness', () => {
         onRevisionSaved={mocks.saved}
       />,
     );
-    await screen.findByLabelText('Description');
-    fireEvent.change(screen.getByLabelText('Description'), {
+    await openRevisionField('Description');
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Edited voice' },
     });
     const staleHistory = cardDeferred<IBrandOsRevision[]>();
@@ -1982,7 +2017,7 @@ describe('opt-in auto-save and guide readiness', () => {
     );
     await waitFor(() => expect(mocks.saved).toHaveBeenCalledTimes(1));
     await settle(300);
-    expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
+    expect(await openRevisionField('Description')).toHaveValue('Edited voice');
   });
 });
 
@@ -2019,8 +2054,8 @@ describe('mutation fence against stale history reads', () => {
     const save = cardDeferred<IBrandOsRevision>();
     mocks.updateBrandOsRevision.mockReturnValueOnce(save.promise);
     const view = render(<BrandOsSettingsCard {...cardProps()} />);
-    await screen.findByLabelText('Description');
-    fireEvent.change(screen.getByLabelText('Description'), {
+    await openRevisionField('Description');
+    fireEvent.change(await openRevisionField('Description'), {
       target: { value: 'Saved voice' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -2042,9 +2077,7 @@ describe('mutation fence against stale history reads', () => {
     await waitFor(() =>
       expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(3),
     );
-    expect(await screen.findByLabelText('Description')).toHaveValue(
-      'Saved voice',
-    );
+    expect(await openRevisionField('Description')).toHaveValue('Saved voice');
     expect(
       screen.queryByRole('button', { name: 'Discard unsaved edits' }),
     ).not.toBeInTheDocument();

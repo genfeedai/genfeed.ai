@@ -4675,7 +4675,8 @@
     "scanPersistenceFailed": "Website scan succeeded, but the draft could not be saved as a revision. Your scanned fields are still available below.",
     "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below.",
     "chooseFont": "Choose a font",
-    "reviewIdentityFields": "Review identity fields"
+    "reviewIdentityFields": "Review identity fields",
+    "verify": "Verify"
   },
   "brandPublishingSettings": {
     "approvalGate": {

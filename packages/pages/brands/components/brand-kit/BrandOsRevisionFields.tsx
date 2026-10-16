@@ -8,8 +8,15 @@ import type {
   BrandOsRevisionFieldsProps,
   BrandOsValueEditorProps,
 } from '@props/pages/brand-os-settings.props';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
+import { ColorInput } from '@ui/primitives/color-input';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -164,24 +171,12 @@ function ValueEditor({
   ) {
     const color = String(value ?? '');
     return (
-      <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="size-8 shrink-0 rounded border border-border"
-          style={{
-            backgroundColor: /^#[\da-f]{3,8}$/iu.test(color)
-              ? color
-              : 'transparent',
-          }}
-        />
-        <Input
-          aria-label={label}
-          disabled={isDisabled}
-          maxLength={32}
-          value={color}
-          onChange={(event) => onChange(event.target.value)}
-        />
-      </div>
+      <ColorInput
+        aria-label={label}
+        disabled={isDisabled}
+        value={toColorPickerValue(color)}
+        onChange={(event) => onChange(event.target.value)}
+      />
     );
   }
   if (fieldKey === 'label')
@@ -204,6 +199,16 @@ function ValueEditor({
       onChange={(event) => onChange(event.target.value)}
     />
   );
+}
+
+function toColorPickerValue(value: string): string {
+  const trimmed = value.trim();
+  if (/^#[\da-f]{6}$/iu.test(trimmed)) return trimmed.toLowerCase();
+  if (/^#[\da-f]{3}$/iu.test(trimmed)) {
+    const [, red, green, blue] = trimmed;
+    return `#${red}${red}${green}${green}${blue}${blue}`.toLowerCase();
+  }
+  return '#000000';
 }
 
 function hasRevisionDisplayValue(value: unknown): boolean {
@@ -268,9 +273,14 @@ export default function BrandOsRevisionFields({
           (candidate) => candidate.role === role,
         );
         return (
-          <div key={key} className="space-y-2 border-t border-border pt-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium">{label}</span>
+          <Collapsible key={key}>
+            <div className="flex items-center gap-3 border-t border-border">
+              <CollapsibleTrigger className="min-w-0 flex-1 py-3 text-left hover:no-underline">
+                <span className="truncate text-sm font-medium">{label}</span>
+              </CollapsibleTrigger>
+              {field.diagnostics.length > 0 ? (
+                <Badge variant="warning">{t('verify')}</Badge>
+              ) : null}
               <Checkbox
                 aria-label={t('includeLabel', { label })}
                 label={t('include')}
@@ -283,112 +293,121 @@ export default function BrandOsRevisionFields({
                 }
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t(`groups.${group}`)}
-              {valueKind === 'string[]' ? ` · ${t('onePerLine')}` : ''}
-            </p>
-            <ValueEditor
-              label={label}
-              fieldKey={key}
-              value={value}
-              valueKind={valueKind}
-              assetRole={
-                key === 'logo'
-                  ? 'logo'
-                  : key === 'banner'
-                    ? 'banner'
-                    : 'reference'
-              }
-              isDisabled={isDisabled}
-              onChange={(next) =>
-                onFieldChange(key, {
-                  applyActionDefault: 'accept',
-                  proposedValue: next,
-                })
-              }
-            />
-            {candidates.length > 0 && (
-              <div
-                role="group"
-                className="space-y-2"
-                aria-label={t('candidatesLabel', { label })}
-              >
+            <CollapsibleContent>
+              <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  {t('candidateHelp')}
+                  {t(`groups.${group}`)}
+                  {valueKind === 'string[]' ? ` · ${t('onePerLine')}` : ''}
                 </p>
-                {candidates.map((candidate) => {
-                  const values = Array.isArray(value) ? value : [value];
-                  const selected = values.some(
-                    (entry) =>
-                      isRecord(entry) &&
-                      ((candidate.url && entry.url === candidate.url) ||
-                        (candidate.id && entry.id === candidate.id)),
-                  );
-                  return (
-                    <Checkbox
-                      key={candidate.candidateId}
-                      aria-label={t('useCandidate', {
-                        label:
-                          candidate.label ??
-                          candidate.url ??
-                          candidate.candidateId,
-                      })}
-                      label={
-                        candidate.label ?? candidate.url ?? t('assetCandidate')
-                      }
-                      isDisabled={isDisabled}
-                      isChecked={selected}
-                      onCheckedChange={(checked) => {
-                        const remaining = values.filter(
-                          (entry) =>
-                            isRecord(entry) &&
-                            !(
-                              (candidate.url && entry.url === candidate.url) ||
-                              (candidate.id && entry.id === candidate.id)
-                            ),
-                        );
-                        const currentValues = Array.isArray(field.currentValue)
-                          ? field.currentValue
-                          : [field.currentValue];
-                        const restoreCurrent =
-                          checked !== true &&
-                          field.currentValue !== undefined &&
-                          (remaining.length === 0 ||
-                            JSON.stringify(remaining) ===
-                              JSON.stringify(currentValues));
-                        onFieldChange(key, {
-                          applyActionDefault: restoreCurrent
-                            ? 'preserve'
-                            : checked === true
-                              ? 'accept'
-                              : remaining.length
-                                ? 'accept'
-                                : 'reject',
-                          proposedValue: restoreCurrent
-                            ? field.currentValue
-                            : key === 'references'
-                              ? checked === true
-                                ? [...remaining, candidateValue(candidate)]
-                                : remaining
-                              : checked === true
-                                ? candidateValue(candidate)
-                                : undefined,
-                        });
-                      }}
-                    />
-                  );
-                })}
+                <ValueEditor
+                  label={label}
+                  fieldKey={key}
+                  value={value}
+                  valueKind={valueKind}
+                  assetRole={
+                    key === 'logo'
+                      ? 'logo'
+                      : key === 'banner'
+                        ? 'banner'
+                        : 'reference'
+                  }
+                  isDisabled={isDisabled}
+                  onChange={(next) =>
+                    onFieldChange(key, {
+                      applyActionDefault: 'accept',
+                      proposedValue: next,
+                    })
+                  }
+                />
+                {candidates.length > 0 && (
+                  <div
+                    role="group"
+                    className="space-y-2"
+                    aria-label={t('candidatesLabel', { label })}
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      {t('candidateHelp')}
+                    </p>
+                    {candidates.map((candidate) => {
+                      const values = Array.isArray(value) ? value : [value];
+                      const selected = values.some(
+                        (entry) =>
+                          isRecord(entry) &&
+                          ((candidate.url && entry.url === candidate.url) ||
+                            (candidate.id && entry.id === candidate.id)),
+                      );
+                      return (
+                        <Checkbox
+                          key={candidate.candidateId}
+                          aria-label={t('useCandidate', {
+                            label:
+                              candidate.label ??
+                              candidate.url ??
+                              candidate.candidateId,
+                          })}
+                          label={
+                            candidate.label ??
+                            candidate.url ??
+                            t('assetCandidate')
+                          }
+                          isDisabled={isDisabled}
+                          isChecked={selected}
+                          onCheckedChange={(checked) => {
+                            const remaining = values.filter(
+                              (entry) =>
+                                isRecord(entry) &&
+                                !(
+                                  (candidate.url &&
+                                    entry.url === candidate.url) ||
+                                  (candidate.id && entry.id === candidate.id)
+                                ),
+                            );
+                            const currentValues = Array.isArray(
+                              field.currentValue,
+                            )
+                              ? field.currentValue
+                              : [field.currentValue];
+                            const restoreCurrent =
+                              checked !== true &&
+                              field.currentValue !== undefined &&
+                              (remaining.length === 0 ||
+                                JSON.stringify(remaining) ===
+                                  JSON.stringify(currentValues));
+                            onFieldChange(key, {
+                              applyActionDefault: restoreCurrent
+                                ? 'preserve'
+                                : checked === true
+                                  ? 'accept'
+                                  : remaining.length
+                                    ? 'accept'
+                                    : 'reject',
+                              proposedValue: restoreCurrent
+                                ? field.currentValue
+                                : key === 'references'
+                                  ? checked === true
+                                    ? [...remaining, candidateValue(candidate)]
+                                    : remaining
+                                  : checked === true
+                                    ? candidateValue(candidate)
+                                    : undefined,
+                            });
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+                {field.diagnostics.map((diagnostic) => (
+                  <p
+                    key={diagnostic.code}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {diagnostic.message}
+                  </p>
+                ))}
               </div>
-            )}
-            {field.diagnostics.map((diagnostic) => (
-              <p
-                key={diagnostic.code}
-                className="text-xs text-muted-foreground"
-              >
-                {diagnostic.message}
-              </p>
-            ))}
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
         );
       })}
     </div>
