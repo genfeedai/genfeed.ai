@@ -391,8 +391,11 @@ export class ModelCatalogSeedService {
       }
     } else {
       const targetIsDefault = await this.resolveUpdateIsDefault(entry);
+      const isDiscoveredDraft = existingRow.isDiscovered === true;
       const isFirstCuration =
-        asNumber(existingRow.cost) === 0 && entry.cost > 0 && entry.isActive;
+        entry.isActive &&
+        entry.cost > 0 &&
+        (asNumber(existingRow.cost) === 0 || isDiscoveredDraft);
       let hasOperatorFieldWrite = false;
 
       if (targetIsDefault !== undefined) {
@@ -417,9 +420,11 @@ export class ModelCatalogSeedService {
       if (isFirstCuration) {
         const alreadyActivated =
           existingRow.isActive === true &&
-          existingRow.isPublic === (entry.isPublic ?? true);
+          existingRow.isPublic === (entry.isPublic ?? true) &&
+          existingRow.isDiscovered === false;
         if (!alreadyActivated) {
           updateData.isActive = true;
+          updateData.isDiscovered = false;
           updateData.isPublic = entry.isPublic ?? true;
           hasOperatorFieldWrite = true;
         }

@@ -209,8 +209,62 @@ describe('ModelCatalogSeedService', () => {
     const call = callForKey(newlyCurated?.key ?? '');
     expect(call?.update).toMatchObject({
       isActive: true,
+      isDiscovered: false,
       isPublic: true,
     });
+  });
+
+  it('activates a discovered draft that already carries an estimated cost', async () => {
+    const flux3 = UNIFIED_MODEL_CATALOG.find(
+      (entry) =>
+        entry.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    );
+    if (!flux3) throw new Error('Expected FLUX.3 in the catalog');
+
+    prisma.model.findUnique.mockResolvedValueOnce({
+      cost: 12,
+      id: 'discovered-id',
+      isActive: false,
+      isDiscovered: true,
+      isPublic: false,
+    });
+
+    await service.reconcileCatalog([flux3]);
+
+    expect(
+      callForKey(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE)?.update,
+    ).toMatchObject({
+      cost: flux3.cost,
+      isActive: true,
+      isDiscovered: false,
+      isPublic: true,
+      providerCostUsd: 0.024,
+    });
+  });
+
+  it('activates and prices Hailuo Fast and Wan I2V on first curation', async () => {
+    for (const key of [
+      MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    ]) {
+      const entry = UNIFIED_MODEL_CATALOG.find((row) => row.key === key);
+      if (!entry) throw new Error(`Expected ${key} in the catalog`);
+      prisma.model.findUnique.mockResolvedValueOnce({
+        cost: 0,
+        id: `existing-${key}`,
+      });
+
+      await service.reconcileCatalog([entry]);
+
+      expect(callForKey(key)?.update).toMatchObject({
+        cost: entry.cost,
+        isActive: true,
+        isDiscovered: false,
+        isPublic: true,
+        pricingType: PricingType.FLAT,
+        providerCostUsd: entry.providerCostUsd,
+      });
+    }
   });
 
   it('activates and prices the existing unpriced heygen/avatar row per second', async () => {

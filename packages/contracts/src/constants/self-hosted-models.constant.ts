@@ -214,6 +214,51 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.13,
   },
   /**
+   * Legacy MiniMax I2V. Replicate bills per clip: $0.19 at 768p/6s (the
+   * seeded default), $0.32 at 768p/10s, $0.33 at 1080p/6s. The reviewed
+   * sheet prices the selected duration/resolution; this USD is the 6s 768p
+   * band. H3 is the successor.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 64,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
+    description:
+      'MiniMax Hailuo 2.3 Fast — image-to-video from a required first frame. Legacy; MiniMax H3 is the successor.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+    label: 'Hailuo 2.3 Fast',
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'hailuo-2.3-fast', owner: 'minimax' },
+    providerCostUsd: 0.19,
+  },
+  /**
+   * Wan 2.2 image-to-video. Replicate bills per clip: $0.05/$0.065 at 480p
+   * (base/interpolate) and $0.11/$0.145 at 720p. Seed the 720p base band;
+   * the reviewed sheet prices interpolate and 480p.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 37,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
+    description:
+      'Wan 2.2 I2V Fast — image-to-video with optional interpolation at 480p or 720p.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    label: 'Wan 2.2 I2V Fast',
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'wan-2.2-i2v-fast', owner: 'wan-video' },
+    providerCostUsd: 0.11,
+  },
+  /**
    * fal list price after the October 15, 2026 promotion: $0.05/s at 480P,
    * $0.08/s at 768P, $0.16/s at 1080P. Text and image endpoints match.
    * Seed the default 768P band; the resolution quote discounts 480P and

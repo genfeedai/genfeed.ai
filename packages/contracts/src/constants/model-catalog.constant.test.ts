@@ -372,6 +372,84 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(videoDefaults[0]?.providerCostUsd).toBe(0.13);
   });
 
+  it('keeps FLUX.3, Ideogram editing, the sketch model, Hailuo Fast and Wan I2V priced and active', () => {
+    const flux3 = UNIFIED_MODEL_CATALOG.find(
+      (entry) =>
+        entry.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    );
+    const flux3Edit = UNIFIED_MODEL_CATALOG.find(
+      (entry) =>
+        entry.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+    );
+    const ideogram = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+    );
+    const klein = UNIFIED_MODEL_CATALOG.find(
+      (entry) =>
+        entry.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_KLEIN_4B,
+    );
+    const hailuoFast = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+    );
+    const wanI2v = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    );
+    const imageEditDefaults = UNIFIED_MODEL_CATALOG.filter(
+      (entry) => entry.category === ModelCategory.IMAGE_EDIT && entry.isDefault,
+    );
+
+    expect(flux3).toMatchObject({
+      category: ModelCategory.IMAGE,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      label: 'FLUX.3',
+      providerCostUsd: 0.024,
+    });
+    expect(flux3Edit).toMatchObject({
+      category: ModelCategory.IMAGE_EDIT,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      label: 'FLUX.3 Edit',
+      providerCostUsd: 0.024,
+    });
+    expect(ideogram).toMatchObject({
+      category: ModelCategory.IMAGE_EDIT,
+      isActive: true,
+      isDefault: true,
+      isPublic: true,
+      label: 'Ideogram 4.5',
+      providerCostUsd: 0.06,
+    });
+    expect(imageEditDefaults.map((entry) => entry.key)).toEqual([
+      MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+    ]);
+    expect(klein).toMatchObject({
+      category: ModelCategory.IMAGE,
+      isActive: true,
+      isPublic: true,
+      providerCostUsd: 0.01,
+    });
+    expect(hailuoFast).toMatchObject({
+      category: ModelCategory.VIDEO,
+      isActive: true,
+      isPublic: true,
+      lifecycle: ModelLifecycle.LEGACY,
+      pricingType: PricingType.FLAT,
+      providerCostUsd: 0.19,
+      succeededBy: MODEL_KEYS.REPLICATE_MINIMAX_H3,
+    });
+    expect(wanI2v).toMatchObject({
+      category: ModelCategory.VIDEO,
+      isActive: true,
+      isPublic: true,
+      label: 'Wan 2.2 I2V Fast',
+      pricingType: PricingType.FLAT,
+      providerCostUsd: 0.11,
+    });
+  });
+
   it('activates Gemini Omni Flash through the collision-safe fal partner key', () => {
     const row = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
