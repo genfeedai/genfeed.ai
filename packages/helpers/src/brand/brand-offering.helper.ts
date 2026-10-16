@@ -11,7 +11,8 @@ export const BRAND_OFFERING_SUBJECT_LOCK: Record<BrandOfferingKind, string> = {
 };
 
 const SOFTWARE_OFFERING =
-  /\b(?:saas|software|platforms?|apps?|ats|crm|dashboards?|recruit\w*|hiring|candidates?)\b/iu;
+  /\b(?:saas|software|platforms?|apps?|ats|crm|dashboards?)\b/iu;
+const RECRUITING_OFFERING = /\b(?:recruit\w*|hiring|candidates?)\b/iu;
 const PHYSICAL_OFFERING =
   /\b(?:bottles?|devices?|hardware|packaging|earbuds?|skincare)\b/iu;
 const SERVICE_OFFERING =
@@ -26,11 +27,14 @@ export function classifyBrandOffering(text: string): BrandOfferingKind {
   if (SOFTWARE_OFFERING.test(text)) {
     return 'software';
   }
-  if (PHYSICAL_OFFERING.test(text)) {
-    return 'physical';
-  }
   if (SERVICE_OFFERING.test(text)) {
     return 'service';
+  }
+  if (RECRUITING_OFFERING.test(text)) {
+    return 'software';
+  }
+  if (PHYSICAL_OFFERING.test(text)) {
+    return 'physical';
   }
   return 'unknown';
 }

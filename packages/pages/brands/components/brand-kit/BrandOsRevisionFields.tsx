@@ -28,6 +28,10 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import {
+  isBrandKitHexColor,
+  toColorPickerValue,
+} from './brand-kit-color-value';
 
 function ValueEditor({
   label,
@@ -170,6 +174,17 @@ function ValueEditor({
     ['primaryColor', 'secondaryColor', 'backgroundColor'].includes(fieldKey)
   ) {
     const color = String(value ?? '');
+    if (!isBrandKitHexColor(color)) {
+      return (
+        <Input
+          aria-label={label}
+          disabled={isDisabled}
+          maxLength={200}
+          value={color}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      );
+    }
     return (
       <ColorInput
         aria-label={label}
@@ -199,16 +214,6 @@ function ValueEditor({
       onChange={(event) => onChange(event.target.value)}
     />
   );
-}
-
-function toColorPickerValue(value: string): string {
-  const trimmed = value.trim();
-  if (/^#[\da-f]{6}$/iu.test(trimmed)) return trimmed.toLowerCase();
-  if (/^#[\da-f]{3}$/iu.test(trimmed)) {
-    const [, red, green, blue] = trimmed;
-    return `#${red}${red}${green}${green}${blue}${blue}`.toLowerCase();
-  }
-  return '#000000';
 }
 
 function hasRevisionDisplayValue(value: unknown): boolean {

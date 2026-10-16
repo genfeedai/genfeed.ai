@@ -2457,7 +2457,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           <div
             ref={galleryScrollRef}
             tabIndex={-1}
-            className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
+            className={`relative z-0 h-full overflow-auto px-3 py-3 sm:px-4 sm:py-4 ${
+              showDockedStarterIdeas ? 'pb-72' : 'pb-40'
+            }`}
           >
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
               {isFocusedPreview && selectedJob ? (
@@ -2557,22 +2559,24 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
               )}
             </div>
           </div>
-          {showDockedStarterIdeas ? (
-            <StudioPlaygroundStarterIdeas
-              character={pickStarterCharacter(characterMentions)}
-              isDisabled={isGenerating}
-              isDocked
-              offeringKind={starterOffering}
-              onSelect={handleStarterIdea}
-              productReference={pickStarterProductReference(
-                selectedBrand?.references,
-              )}
-            />
-          ) : null}
           <PromptBarContainer
             className="px-5 pb-5"
             layoutMode="surface-fixed"
             maxWidth="4xl"
+            topContent={
+              showDockedStarterIdeas ? (
+                <StudioPlaygroundStarterIdeas
+                  character={pickStarterCharacter(characterMentions)}
+                  isDisabled={isGenerating}
+                  isDocked
+                  offeringKind={starterOffering}
+                  onSelect={handleStarterIdea}
+                  productReference={pickStarterProductReference(
+                    selectedBrand?.references,
+                  )}
+                />
+              ) : null
+            }
             zIndex={40}
           >
             <div {...(capabilities.hasReferences ? dragHandlers : {})}>

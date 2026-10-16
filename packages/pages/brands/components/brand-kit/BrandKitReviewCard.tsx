@@ -42,6 +42,10 @@ import {
   BrandKitReviewApplyControls,
   useBrandKitReviewApplySetter,
 } from './BrandKitReviewApplyBar';
+import {
+  isBrandKitHexColor,
+  toColorPickerValue,
+} from './brand-kit-color-value';
 
 /** Readable field inside the scan strip — light surface, not invisible ghost. */
 const INLINE_INPUT_CLASSNAME =
@@ -155,18 +159,6 @@ function showsScoredKind(
   return Boolean(confidence) && (kind === 'extracted' || kind === 'inferred');
 }
 
-function toColorPickerValue(value: string): string {
-  const trimmed = value.trim();
-  if (/^#[\da-f]{6}$/iu.test(trimmed)) {
-    return trimmed.toLowerCase();
-  }
-  if (/^#[\da-f]{3}$/iu.test(trimmed)) {
-    const [, red, green, blue] = trimmed;
-    return `#${red}${red}${green}${green}${blue}${blue}`.toLowerCase();
-  }
-  return '#000000';
-}
-
 function ReviewProposedValue({
   editableValue,
   isAssetField,
@@ -205,7 +197,7 @@ function ReviewProposedValue({
       <SocialLinkReadout emptyLabel={noProposalLabel} value={socialValue} />
     );
   }
-  if (isEditable && isColorField) {
+  if (isEditable && isColorField && isBrandKitHexColor(editableValue)) {
     return (
       <ColorInput
         aria-label={`${label} proposed value`}

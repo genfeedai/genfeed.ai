@@ -92,7 +92,10 @@ export default function StudioPlaygroundStarterIdeas({
             ? (productReference.label ?? translate('productName'))
             : undefined;
           const attachedProduct =
-            idea.usesProductReference && productReference && productLabel
+            !usesSoftwareCopy &&
+            idea.usesProductReference &&
+            productReference &&
+            productLabel
               ? {
                   id: productReference.id,
                   label: productLabel,
@@ -124,7 +127,9 @@ export default function StudioPlaygroundStarterIdeas({
                     taggedCharacter,
                   ),
                   instrumental: idea.instrumental,
-                  ...(idea.usesProductReference && !attachedProduct
+                  ...(idea.usesProductReference &&
+                  !usesSoftwareCopy &&
+                  !attachedProduct
                     ? {
                         openLibraryRole: starterProductReferenceRole(idea.type),
                       }
@@ -132,10 +137,14 @@ export default function StudioPlaygroundStarterIdeas({
                   ...(attachedProduct
                     ? { productReference: attachedProduct }
                     : {}),
-                  promptTemplate: starterIdeaPromptTemplate(
-                    idea,
-                    taggedCharacter !== undefined,
-                  ),
+                  promptTemplate: usesSoftwareCopy
+                    ? taggedCharacter
+                      ? idea.characterPromptTemplate
+                      : undefined
+                    : starterIdeaPromptTemplate(
+                        idea,
+                        taggedCharacter !== undefined,
+                      ),
                   seedId: `${idea.id}:${taggedCharacter?.id ?? 'plain'}:${attachedProduct?.id ?? 'no-product'}:${Date.now()}`,
                   type: idea.type,
                 });
@@ -152,7 +161,7 @@ export default function StudioPlaygroundStarterIdeas({
                   {taggedCharacter
                     ? ` · ${translate('tagsCharacter', { name: taggedCharacter.label })}`
                     : ''}
-                  {idea.usesProductReference
+                  {idea.usesProductReference && !usesSoftwareCopy
                     ? ` · ${
                         productLabel
                           ? translate('usesProduct', { name: productLabel })

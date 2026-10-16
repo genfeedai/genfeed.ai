@@ -17,7 +17,8 @@ const MAX_IMAGE_CANDIDATES = 12;
 const MAX_FONT_CANDIDATES = 8;
 const THIRD_PARTY_SECTION =
   /\b(?:clients?|customers?|partners?|providers?|trusted|logo-wall|testimonials?|quotes?|case-stud(?:y|ies)|as-seen|press)\b|\blogos\b/iu;
-const THIRD_PARTY_ASSET_PATH = /\/(?:clients|partners|logos|trusted)(?:\/|$)/u;
+const THIRD_PARTY_ASSET_PATH = /\/(?:clients|partners|trusted)(?:\/|$)/u;
+const LOGO_DIRECTORY_PATH = /\/logos(?:\/|$)/u;
 
 function selectedDomNodes(api: cheerio.CheerioAPI, selector: string) {
   return api(selector).toArray();
@@ -50,7 +51,7 @@ export class BrandWebsiteParserService {
       $('meta[property="og:title"]').attr('content')?.trim() || undefined;
     const ogDescription =
       $('meta[property="og:description"]').attr('content')?.trim() || undefined;
-    const ogImage =
+    const ogImageRaw =
       $('meta[property="og:image"]').attr('content')?.trim() ||
       $(
         'meta[name="twitter:image"], meta[property="twitter:image"], meta[name="twitter:image:src"]',
@@ -59,6 +60,10 @@ export class BrandWebsiteParserService {
         .attr('content')
         ?.trim() ||
       undefined;
+    const ogImage =
+      ogImageRaw && !this.isThirdPartyAssetUrl(ogImageRaw)
+        ? ogImageRaw
+        : undefined;
     const ogImageType =
       $('meta[property="og:image:type"]').attr('content')?.trim() || undefined;
     const favicon =
@@ -663,7 +668,11 @@ export class BrandWebsiteParserService {
 
     $('meta[property="og:image"], meta[name="twitter:image"]').each(
       (_i, el) => {
-        addImage($(el).attr('content'), 'Social preview image');
+        const content = $(el).attr('content');
+        if (content && this.isThirdPartyAssetUrl(content)) {
+          return;
+        }
+        addImage(content, 'Social preview image');
       },
     );
 
@@ -742,11 +751,44 @@ export class BrandWebsiteParserService {
     node: ParsedDomNode,
   ): boolean {
     if (node.type !== 'tag') return false;
+    if (
+      [node, ...$(node).parents().toArray()].some((ancestor) =>
+        this.ancestorMarksThirdParty($, ancestor),
+      )
+    ) {
+      return true;
+    }
     const src = $(node).attr('src') ?? $(node).attr('data-src') ?? '';
-    if (src && this.isThirdPartyAssetUrl(src)) return true;
-    return [node, ...$(node).parents().toArray()].some((ancestor) =>
-      this.ancestorMarksThirdParty($, ancestor),
-    );
+    if (!src) return false;
+    if (this.isThirdPartyAssetUrl(src)) return true;
+    return this.isLogoDirectoryUrl(src) && !this.isSiteChromeImage($, node);
+  }
+
+  private isSiteChromeImage(
+    $: cheerio.CheerioAPI,
+    node: ParsedDomNode,
+  ): boolean {
+    return $(node)
+      .parents()
+      .toArray()
+      .some((ancestor) => {
+        if (ancestor.type !== 'tag') return false;
+        return (
+          ancestor.name === 'header' ||
+          ancestor.name === 'nav' ||
+          $(ancestor).attr('role') === 'banner'
+        );
+      });
+  }
+
+  private isLogoDirectoryUrl(url: string): boolean {
+    try {
+      return LOGO_DIRECTORY_PATH.test(
+        new URL(url, 'https://brand.example').pathname.toLowerCase(),
+      );
+    } catch {
+      return false;
+    }
   }
 
   private ancestorMarksThirdParty(
@@ -764,7 +806,13 @@ export class BrandWebsiteParserService {
     ]
       .filter((value): value is string => Boolean(value))
       .join(' ');
-    const heading = element.children('h1, h2, h3').first().text();
+    const heading =
+      [
+        ...element.children('h1, h2, h3').toArray(),
+        ...element.children().children('h1, h2, h3').toArray(),
+      ]
+        .map((headingNode) => $(headingNode).text())
+        .find((text) => THIRD_PARTY_SECTION.test(text)) ?? '';
     if (THIRD_PARTY_SECTION.test(`${descriptor} ${heading}`)) return true;
     return element.find('img').length >= 4 && /\blogos?\b/iu.test(descriptor);
   }

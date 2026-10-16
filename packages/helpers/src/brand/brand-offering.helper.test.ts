@@ -34,6 +34,12 @@ describe('classifyBrandOffering', () => {
     expect(classifyBrandOffering('An independent consulting agency.')).toBe(
       'service',
     );
+    expect(
+      classifyBrandOffering('A recruiting agency for growing teams.'),
+    ).toBe('service');
+    expect(classifyBrandOffering('Hiring consultancy for executives.')).toBe(
+      'service',
+    );
   });
 });
 

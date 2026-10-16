@@ -152,6 +152,52 @@ describe('BrandWebsiteParserService', () => {
     );
   });
 
+  it('keeps a header logo stored under /logos/', () => {
+    const parsed = service.parseHtml(
+      `<body>
+        <header><img class="site-logo" alt="Acme" src="/logos/acme.svg"></header>
+        <img class="hero" src="/hero.png">
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.logoUrl).toBe('https://acme.example/logos/acme.svg');
+  });
+
+  it('drops a social preview that points at a customer logo', () => {
+    const parsed = service.parseHtml(
+      `<head>
+        <meta property="og:image" content="/clients/one.svg">
+      </head>
+      <body><img class="hero" src="/hero.png"></body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.ogImage).toBeUndefined();
+    expect(parsed.images.map((image) => image.src)).not.toContain(
+      'https://acme.example/clients/one.svg',
+    );
+    expect(parsed.bannerUrl).toBe('https://acme.example/hero.png');
+  });
+
+  it('treats a wrapped section heading as a customer logo wall', () => {
+    const parsed = service.parseHtml(
+      `<body>
+        <section>
+          <div><h2>Trusted by</h2></div>
+          <img alt="Partner One" src="/assets/one.svg">
+        </section>
+        <header><img class="site-logo" alt="Acme" src="/logo.svg"></header>
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.logoUrl).toBe('https://acme.example/logo.svg');
+    expect(parsed.images.map((image) => image.src)).not.toContain(
+      'https://acme.example/assets/one.svg',
+    );
+  });
+
   it('uses the site icon when every page logo is a customer mark', () => {
     const parsed = service.parseHtml(
       `<head>

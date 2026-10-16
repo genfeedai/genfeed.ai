@@ -286,8 +286,17 @@ function tree() {
 }
 async function show() {
   const view = render(tree());
-  await screen.findByLabelText('Description');
+  await screen.findByRole('button', { name: /^Description$/ });
   return view;
+}
+async function openDescription() {
+  const trigger = await screen.findByRole('button', {
+    name: /^Description$/,
+  });
+  if (trigger.getAttribute('data-state') !== 'open') {
+    fireEvent.click(trigger);
+  }
+  return screen.findByLabelText('Description');
 }
 function approvedGuide() {
   mocks.listBrandOsRevisions.mockResolvedValue([
@@ -450,7 +459,7 @@ describe('membership-scoped saved guide wizard', () => {
       deferred<IBrandOsRevision>().promise,
     );
     await show();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openDescription(), {
       target: { value: 'Unsaved correction' },
     });
     fireEvent.change(screen.getByLabelText('Website URL'), {
@@ -475,9 +484,7 @@ describe('membership-scoped saved guide wizard', () => {
     await screen.findByText(
       'New revisions are available. Save or discard your edits before refreshing history.',
     );
-    expect(screen.getByLabelText('Description')).toHaveValue(
-      'Unsaved correction',
-    );
+    expect(await openDescription()).toHaveValue('Unsaved correction');
   });
   it('allows manual review without a URL, then real-card save and separate approval notices', async () => {
     await show();
@@ -489,7 +496,7 @@ describe('membership-scoped saved guide wizard', () => {
         name: 'Review and approve your brand guide',
       }),
     ).toHaveFocus();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openDescription(), {
       target: { value: 'Owner correction' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -510,7 +517,7 @@ describe('membership-scoped saved guide wizard', () => {
       new Error('PRIVATE_PROVIDER_ERROR'),
     );
     await show();
-    expect(screen.getByLabelText('Description')).toBeEnabled();
+    expect(await openDescription()).toBeEnabled();
     expect(
       screen.queryByText('PRIVATE_PROVIDER_ERROR'),
     ).not.toBeInTheDocument();
@@ -676,7 +683,7 @@ describe('membership-scoped saved guide wizard', () => {
   it('guards dirty guide navigation without requiring approval', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     await show();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openDescription(), {
       target: { value: 'Unsaved' },
     });
     fireEvent.click(await enabledContinue());
@@ -691,7 +698,7 @@ describe('membership-scoped saved guide wizard', () => {
     await show();
     const button = screen.getByRole('button', { name: 'Continue' });
     expect(button).toBeEnabled();
-    fireEvent.change(screen.getByLabelText('Description'), {
+    fireEvent.change(await openDescription(), {
       target: { value: 'Auto-saved correction' },
     });
     expect(button).toBeEnabled();
@@ -832,7 +839,7 @@ describe('membership-scoped saved guide wizard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       "We couldn't skip onboarding",
     );
-    expect(screen.getByLabelText('Description')).toBeInTheDocument();
+    expect(await openDescription()).toBeInTheDocument();
     expect(mocks.patchMe).not.toHaveBeenCalled();
     expect(mocks.push).not.toHaveBeenCalled();
   });

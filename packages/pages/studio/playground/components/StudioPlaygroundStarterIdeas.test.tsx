@@ -135,9 +135,16 @@ describe('StudioPlaygroundStarterIdeas', () => {
 
     expect(screen.queryByText(/Open on the product/)).not.toBeInTheDocument();
     expect(screen.getByText(/found the right match/)).toBeInTheDocument();
+    expect(screen.queryByText(/Add a product image/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Use Product ad' }));
     expect(onSelect).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        openLibraryRole: expect.anything(),
+      }),
+    );
+    expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({
+        promptTemplate: undefined,
         content: {
           content: [
             {
