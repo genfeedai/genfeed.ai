@@ -117,6 +117,7 @@ import {
 import {
   pickStarterCharacter,
   pickStarterProductReference,
+  starterOfferingKind,
 } from '@pages/studio/playground/utils/studio-playground-starter-ideas';
 import {
   sanitizeStudioPlaygroundSettings,
@@ -128,6 +129,7 @@ import {
   isStudioPlaygroundType,
   listStudioPlaygroundTypeConfigs,
 } from '@pages/studio/playground/utils/studio-playground-types';
+import { resolveStudioReferencePreviewUrl } from '@pages/studio/playground/utils/studio-reference-preview';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -929,11 +931,14 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   }, [galleryJobs, resultSort, resultType, search]);
   const { previewRevisions, recoverPreview, recoveredJobs } =
     useStudioPlaygroundPreviewRecovery(visibleJobs);
-  const showStarterIdeas =
+  const showEmptyStarterIdeas =
     !galleryError &&
     !isLoadingGallery &&
     galleryJobs.length === 0 &&
     prompt.trim().length === 0;
+  const showDockedStarterIdeas =
+    !galleryError && !isLoadingGallery && !showEmptyStarterIdeas;
+  const starterOffering = starterOfferingKind(selectedBrand);
   const revealInspector = useContextSidebar()?.reveal;
   const handleInspectIngredient = useCallback(
     (ingredient: IIngredient) => {
@@ -1270,12 +1275,20 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         },
   );
 
+  const referencePreviewUrlRef = useRef<string | undefined>(undefined);
   const handleSubmit = useCallback(() => {
     if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
       return;
     }
+    const referencePreviewUrl = referencePreviewUrlRef.current;
+    const previewOption = referencePreviewUrl
+      ? { referencePreviewUrl }
+      : undefined;
     if (type === 'image-edit') {
-      void submit(prompt, resolvedReferences).then((accepted) => {
+      const submission = previewOption
+        ? submit(prompt, resolvedReferences, previewOption)
+        : submit(prompt, resolvedReferences);
+      void submission.then((accepted) => {
         if (accepted) setPrompt('');
       });
       return;
@@ -1301,6 +1314,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         imageReferenceIds: prepared.referenceIds,
       },
       {
+        ...(previewOption ?? {}),
         originalText: prompt,
         ...(crunModel
           ? {
@@ -1825,6 +1839,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       settings.editPrimaryId,
     ],
   );
+  referencePreviewUrlRef.current = resolveStudioReferencePreviewUrl({
+    assets: attachedAssets,
+    avatarPreview: settings.avatarRef?.preview,
+    type,
+  });
 
   const handleRemoveAttachedAsset = useCallback<
     StudioPlaygroundComposerProps['onRemoveAttachedAsset']
@@ -2521,10 +2540,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                       {translate('history.retrying')}
                     </p>
                   ) : null}
-                  {showStarterIdeas ? (
+                  {showEmptyStarterIdeas ? (
                     <StudioPlaygroundStarterIdeas
                       character={pickStarterCharacter(characterMentions)}
                       isDisabled={isGenerating}
+                      offeringKind={starterOffering}
                       onSelect={handleStarterIdea}
                       productReference={pickStarterProductReference(
                         selectedBrand?.references,
@@ -2552,6 +2572,18 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
               )}
             </div>
           </div>
+          {showDockedStarterIdeas ? (
+            <StudioPlaygroundStarterIdeas
+              character={pickStarterCharacter(characterMentions)}
+              isDisabled={isGenerating}
+              isDocked
+              offeringKind={starterOffering}
+              onSelect={handleStarterIdea}
+              productReference={pickStarterProductReference(
+                selectedBrand?.references,
+              )}
+            />
+          ) : null}
           <PromptBarContainer
             className="px-5 pb-5"
             layoutMode="surface-fixed"

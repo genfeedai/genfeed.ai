@@ -6,15 +6,33 @@ import {
   buildStarterIdeaDocument,
   STUDIO_PLAYGROUND_STARTER_IDEAS,
   starterIdeaPromptTemplate,
+  starterIdeaUsesSoftwareCopy,
   starterProductReferenceRole,
 } from '@pages/studio/playground/utils/studio-playground-starter-ideas';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
+function starterCopyKey(
+  ideaId: string,
+  part: 'lead' | 'tail',
+  isSoftware: boolean,
+  isTagged: boolean,
+): string {
+  if (part === 'tail') {
+    return `${ideaId}.${isSoftware ? 'softwareCharacterTail' : 'characterTail'}`;
+  }
+  if (isTagged) {
+    return `${ideaId}.${isSoftware ? 'softwareCharacterLead' : 'characterLead'}`;
+  }
+  return `${ideaId}.${isSoftware ? 'softwareLead' : 'lead'}`;
+}
+
 export default function StudioPlaygroundStarterIdeas({
   character,
   isDisabled = false,
+  isDocked = false,
+  offeringKind,
   onSelect,
   productReference,
 }: StudioPlaygroundStarterIdeasProps): ReactElement {
@@ -23,28 +41,49 @@ export default function StudioPlaygroundStarterIdeas({
   return (
     <section
       aria-label={translate('title')}
-      className="mx-auto flex w-full max-w-4xl flex-col gap-4 py-8"
+      className={
+        isDocked
+          ? 'mx-auto flex w-full max-w-4xl flex-col gap-2 pb-2'
+          : 'mx-auto flex w-full max-w-4xl flex-col gap-4 py-8'
+      }
       data-testid="studio-playground-starter-ideas"
     >
-      <div className="flex flex-col gap-1 text-center">
-        <h2 className="text-lg font-medium text-foreground">
-          {translate('title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {translate('description')}
-        </p>
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {isDocked ? null : (
+        <div className="flex flex-col gap-1 text-center">
+          <h2 className="text-lg font-medium text-foreground">
+            {translate('title')}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {translate('description')}
+          </p>
+        </div>
+      )}
+      <div
+        className={
+          isDocked
+            ? 'flex gap-2 overflow-x-auto'
+            : 'grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3'
+        }
+      >
         {STUDIO_PLAYGROUND_STARTER_IDEAS.map((idea) => {
           const taggedCharacter =
             character !== undefined && idea.usesCharacter
               ? character
               : undefined;
+          const usesSoftwareCopy = starterIdeaUsesSoftwareCopy(
+            idea.id,
+            offeringKind,
+          );
           const lead = translate(
-            taggedCharacter ? `${idea.id}.characterLead` : `${idea.id}.lead`,
+            starterCopyKey(
+              idea.id,
+              'lead',
+              usesSoftwareCopy,
+              taggedCharacter !== undefined,
+            ),
           );
           const tail = taggedCharacter
-            ? translate(`${idea.id}.characterTail`)
+            ? translate(starterCopyKey(idea.id, 'tail', usesSoftwareCopy, true))
             : undefined;
           const preview = taggedCharacter
             ? `${lead}${taggedCharacter.label}${tail ?? ''}`

@@ -193,6 +193,8 @@ export interface StudioPlaygroundStarterCharacterCandidate
 export interface StudioPlaygroundStarterIdeasProps {
   character?: StudioPlaygroundStarterCharacter;
   isDisabled?: boolean;
+  isDocked?: boolean;
+  offeringKind?: 'physical' | 'service' | 'software' | 'unknown';
   onSelect: (selection: StudioPlaygroundStarterSelection) => void;
   productReference?: StudioPlaygroundStarterProductReference;
 }

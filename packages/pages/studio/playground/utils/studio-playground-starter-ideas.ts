@@ -3,6 +3,10 @@ import type {
   StudioPlaygroundReferenceRole,
   StudioPlaygroundType,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import {
+  type BrandOfferingKind,
+  classifyBrandOffering,
+} from '@genfeedai/helpers/brand/brand-offering.helper';
 import type {
   StudioPlaygroundStarterCharacter,
   StudioPlaygroundStarterCharacterCandidate,
@@ -65,6 +69,45 @@ export const STUDIO_PLAYGROUND_STARTER_IDEAS: readonly StudioPlaygroundStarterId
       usesProductReference: false,
     },
   ];
+
+const SOFTWARE_STARTER_IDEAS = new Set([
+  'productAd',
+  'productPhoto',
+  'voiceover',
+]);
+
+export function starterOfferingKind(
+  brand:
+    | {
+        agentConfig?: {
+          strategy?: { offers?: readonly string[]; topics?: readonly string[] };
+          voice?: { audience?: readonly string[] };
+        } | null;
+        description?: string | null;
+        text?: string | null;
+      }
+    | null
+    | undefined,
+): BrandOfferingKind {
+  return classifyBrandOffering(
+    [
+      brand?.description,
+      brand?.text,
+      ...(brand?.agentConfig?.strategy?.offers ?? []),
+      ...(brand?.agentConfig?.strategy?.topics ?? []),
+      ...(brand?.agentConfig?.voice?.audience ?? []),
+    ]
+      .filter((value): value is string => typeof value === 'string')
+      .join('\n'),
+  );
+}
+
+export function starterIdeaUsesSoftwareCopy(
+  ideaId: string,
+  offeringKind: BrandOfferingKind | undefined,
+): boolean {
+  return offeringKind === 'software' && SOFTWARE_STARTER_IDEAS.has(ideaId);
+}
 
 /** Prefer a character that can become a reference image on submit. */
 export function pickStarterCharacter(

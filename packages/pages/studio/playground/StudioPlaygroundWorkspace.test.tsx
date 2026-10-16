@@ -961,6 +961,9 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-results')).not.toContainElement(
       screen.getByPlaceholderText('searchPlaceholder'),
     );
+    expect(
+      screen.getByTestId('studio-playground-starter-ideas'),
+    ).toBeInTheDocument();
   });
 
   it('removes a deleted asset from the current-session job queue', () => {

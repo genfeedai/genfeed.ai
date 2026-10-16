@@ -1646,7 +1646,10 @@
         "characterTail": ". Open on the product, say one benefit, end on the brand.",
         "detail": "Video · 9:16",
         "label": "Product ad",
-        "lead": "Short product ad. Open on the product, say one benefit, end on the brand."
+        "lead": "Short product ad. Open on the product, say one benefit, end on the brand.",
+        "softwareCharacterLead": "Short ad featuring ",
+        "softwareCharacterTail": ". Open on that person finding the right match, name the feeling, end on the brand. No device or package.",
+        "softwareLead": "Short ad for the software. Open on the person who just found the right match, name that feeling, end on the brand. No device, bottle, or package."
       },
       "productName": "Product",
       "productPhoto": {
@@ -1654,7 +1657,10 @@
         "characterTail": " with the product, clean studio light, sharp detail.",
         "detail": "Image · square",
         "label": "Product photo",
-        "lead": "Product photo on a clean studio background, soft shadow, sharp detail."
+        "lead": "Product photo on a clean studio background, soft shadow, sharp detail.",
+        "softwareCharacterLead": "Portrait of ",
+        "softwareCharacterTail": " after the outcome changes, clean light, sharp detail. No device or package.",
+        "softwareLead": "Portrait of the person this software helps, clean light, sharp detail. No device, bottle, or package."
       },
       "soundtrack": {
         "detail": "Music",
@@ -1667,7 +1673,8 @@
       "voiceover": {
         "detail": "Voice",
         "label": "Voiceover",
-        "lead": "Meet the product. One line on the problem, one line on the result."
+        "lead": "Meet the product. One line on the problem, one line on the result.",
+        "softwareLead": "One line on the search, one line on being chosen. No product object."
       }
     },
     "filters": {
