@@ -1,5 +1,6 @@
 import { streamRemoteAttachment } from '@api/helpers/utils/stream-attachment/stream-attachment.util';
 import { BadGatewayException, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('streamRemoteAttachment', () => {
@@ -21,7 +22,7 @@ describe('streamRemoteAttachment', () => {
     const result = await streamRemoteAttachment(
       'https://cdn.example/preview.png',
       'image-1-watermarked.png',
-      res as never,
+      res as unknown as Response,
     );
 
     expect(result).toBeInstanceOf(StreamableFile);
@@ -41,7 +42,7 @@ describe('streamRemoteAttachment', () => {
     await expect(
       streamRemoteAttachment('https://cdn.example/preview.png', 'preview.png', {
         set: vi.fn(),
-      } as never),
+      } as unknown as Response),
     ).rejects.toBeInstanceOf(BadGatewayException);
   });
 });

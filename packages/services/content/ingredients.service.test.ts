@@ -3,6 +3,7 @@ import {
   IngredientLineageDirection,
   TagBulkAction,
 } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { GIF } from '@genfeedai/models/ingredients/gif.model';
@@ -89,7 +90,7 @@ describe('IngredientsService', () => {
       metadata: { label: 'Test Image' },
     } as const;
 
-    await service.downloadOriginal(ingredient as never);
+    await service.downloadOriginal(ingredient as IIngredient);
 
     expect(http.get).toHaveBeenCalledWith(
       'https://api.genfeed.ai/v1/ingredients/ing-123/original-download',

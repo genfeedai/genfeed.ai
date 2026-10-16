@@ -228,6 +228,32 @@ describe('media issuer production module HTTP boundary', () => {
       .expect(401);
     expect(ingredientReads).toEqual([]);
   });
+  it('enforces authentication, entitlement and tenant boundaries before downloading an original', async () => {
+    const path = `/ingredients/${ingredientId}/original-download`;
+    await request(app.getHttpServer()).get(path).expect(401);
+    expect(ingredientReads).toEqual([]);
+    for (const token of ['free', 'admin']) {
+      await request(app.getHttpServer())
+        .get(path)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403);
+    }
+    tier = 'scale';
+    await request(app.getHttpServer())
+      .get(path)
+      .set('Authorization', 'Bearer foreign')
+      .expect(404);
+    await request(app.getHttpServer())
+      .get(path)
+      .set('Authorization', 'Bearer paid')
+      .expect(503);
+    expect(ingredientReads).toEqual([
+      organizationId,
+      organizationId,
+      testId('foreignorg'),
+      organizationId,
+    ]);
+  });
   it('denies free API-key and admin clean grants using the current organization entitlement', async () => {
     for (const token of ['free', 'admin']) {
       await request(app.getHttpServer())

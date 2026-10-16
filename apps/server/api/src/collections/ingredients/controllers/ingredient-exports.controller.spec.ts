@@ -16,7 +16,7 @@ import { REQUEST_TIMEOUT_MS } from '@api/helpers/decorators/request-timeout/requ
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 describe('IngredientExportsController', () => {
   it('limits rendering per user and allows its bounded processing time', () => {
@@ -89,7 +89,7 @@ describe('IngredientExportsController', () => {
         },
         'image-1',
         { watermark: true },
-        { set: vi.fn() } as never,
+        { set: vi.fn() } as unknown as Response,
       ),
     ).rejects.toThrow(ForbiddenException);
     expect(exports.export).not.toHaveBeenCalled();
