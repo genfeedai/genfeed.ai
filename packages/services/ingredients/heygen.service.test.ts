@@ -203,6 +203,19 @@ describe('HeygenService', () => {
     );
     expect(result).toBe(response);
   });
+  it('refuses a voice id without a supported provider instead of guessing the catalog', async () => {
+    await expect(
+      service.quote({ text: 'Hi', voiceId: 'voice-1' }),
+    ).rejects.toThrow('Choose a voice with its provider before generating.');
+    await expect(
+      service.generate({
+        text: 'Hi',
+        voiceId: 'voice-1',
+        voiceProvider: 'unknown',
+      }),
+    ).rejects.toThrow('Choose a voice with its provider before generating.');
+    expect(mockPost).not.toHaveBeenCalled();
+  });
   it('quotes the generate body on the avatar quote endpoint with cancellation', async () => {
     const abort = new AbortController();
     mockPost.mockResolvedValueOnce({

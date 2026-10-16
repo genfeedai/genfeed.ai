@@ -596,6 +596,7 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+  brandRelocations BrandRelocation[] @relation("brand_relocation_actor")
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_actor")
   brandedGenerationReceiptEvents BrandedGenerationReceiptEvent[] @relation("branded_generation_receipt_event_actor")
 contentLearningExperiments ContentLearningExperiment[]
@@ -777,6 +778,8 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+  brandRelocations BrandRelocation[] @relation("brand_relocation_source")
+  incomingBrandRelocations BrandRelocation[] @relation("brand_relocation_destination")
   postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[]
 contentLearningScopeStates ContentLearningScopeState[]
@@ -1036,6 +1039,7 @@ model McpApproval {
 }
 
 model Brand {
+  relocations BrandRelocation[]
   postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_brand")
 contentLearningScopeStates ContentLearningScopeState[]
@@ -5324,6 +5328,7 @@ model WorkflowExecution {
   @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
+  @@index([workflowId, organizationId], map: "workflow_executions_workflow_org_idx")
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
   @@map("workflow_executions")
@@ -9591,4 +9596,29 @@ model WorkflowExecutionReadLineage {
   @@id([parentExecutionId, childExecutionId, parentNodeId, itemIndex, organizationId])
   @@index([childExecutionId, organizationId], map: "workflow_execution_read_lineage_child_idx")
   @@map("workflow_execution_read_lineage")
+}
+
+/// Durable command receipt. Source ownership never follows the moved brand.
+model BrandRelocation {
+  id String @id
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  organizationId String
+  organization Organization @relation("brand_relocation_source", fields: [organizationId], references: [id], onDelete: Restrict)
+  destinationOrganizationId String
+  destinationOrganization Organization @relation("brand_relocation_destination", fields: [destinationOrganizationId], references: [id], onDelete: Restrict)
+  userId String
+  user User @relation("brand_relocation_actor", fields: [userId], references: [id], onDelete: Restrict)
+  status String @default("processing")
+  payload Json
+  summary Json?
+  error String?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, userId, createdAt])
+  @@index([brandId, createdAt])
+  @@index([status, isDeleted, createdAt])
+  @@map("brand_relocations")
 }

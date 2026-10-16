@@ -352,7 +352,7 @@ describe('website plan catalogue', () => {
     expect(websitePlans.map((plan) => plan.label)).toEqual([
       'Pay As You Go',
       'Pro',
-      'Scale',
+      'Agencies',
       'Enterprise',
     ]);
     expect(websitePlans.map((plan) => plan.type)).toEqual([
@@ -387,14 +387,13 @@ describe('website plan catalogue', () => {
     expect(pro.outputs).toBeNull();
   });
 
-  it('sells Scale as multi-organization B2B with a shared credit pool', () => {
+  it('sells Agencies with client workspaces and the subscription features', () => {
     const scale = getScalePlan();
 
     expect(scale.includedCredits).toBe(60_000);
-    expect(scale.features).toContain(
-      'Multiple organizations, one shared credit pool',
-    );
-    expect(scale.features).toContain('Unlimited brands and connected channels');
+    expect(scale.features).toContain('Unlimited seats and client workspaces');
+    expect(scale.features).toContain('Brand model training');
+    expect(scale.features).toContain('API and BYOK');
     expect(scale.outputs).toBeNull();
   });
 

@@ -7,16 +7,15 @@ export const serviceOffering = {
   cta: 'Book a call',
   startingMonthlyPrice: STARTING_MONTHLY_PRICE,
   priceLabel: `From ${formatPrice(STARTING_MONTHLY_PRICE)}/month`,
-  priceNote: 'Monthly retainer. Final scope agreed on a call.',
+  priceNote: '+ usage at cost + performance fee per contract',
   description:
-    'You bring the expertise. We handle strategy, production, and publishing. You approve what goes out.',
+    'Our team plans, produces, and publishes your content and tests it against your best ads. You approve what goes out.',
   includes: [
-    'Content strategy and planning',
-    'Video, image, and written content',
-    'Publishing coordination',
-    'Brand kit management',
-    'Review and revision rounds agreed in advance',
-    'Performance reporting',
+    'Everything in Agencies',
+    'Our team runs production and publishing',
+    'Usage billed at cost',
+    'Fee only on winning creatives',
+    'Custom LoRA models quoted separately',
   ],
   process: [
     {

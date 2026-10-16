@@ -20,9 +20,66 @@ function readEnvTemplate(relativePath: string): Map<string, string> {
   return values;
 }
 
+type EnvTag = 'OPTIONAL' | 'REQUIRED';
+
+const ENV_TEMPLATE_PATHS = ['docker/.env.example', '.env.example'];
+
+function readText(relativePath: string): string {
+  return readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
+}
+
+function readEnvTags(relativePath: string): Map<string, EnvTag | null> {
+  const tags = new Map<string, EnvTag | null>();
+  const lines = readText(relativePath).split('\n');
+
+  lines.forEach((line, index) => {
+    const match = /^([A-Z][A-Z0-9_]*)=/.exec(line);
+    if (!match) {
+      return;
+    }
+
+    const tagMatch = /^# (REQUIRED|OPTIONAL): \S/.exec(lines[index - 1] ?? '');
+    tags.set(match[1], tagMatch ? (tagMatch[1] as EnvTag) : null);
+  });
+
+  return tags;
+}
+
+function requiredKeys(tags: Map<string, EnvTag | null>): string[] {
+  return [...tags].filter(([, tag]) => tag === 'REQUIRED').map(([key]) => key);
+}
+
+describe('env template variable tags', () => {
+  it.each(ENV_TEMPLATE_PATHS)(
+    '%s tags every variable as REQUIRED or OPTIONAL on the line above it',
+    (relativePath) => {
+      const untagged = [...readEnvTags(relativePath)]
+        .filter(([, tag]) => tag === null)
+        .map(([key]) => key);
+
+      expect(untagged).toEqual([]);
+    },
+  );
+});
+
 describe('self-hosted release env template (docker/.env.example)', () => {
   const template = readEnvTemplate('docker/.env.example');
-  const raw = readFileSync(path.join(REPO_ROOT, 'docker/.env.example'), 'utf8');
+  const raw = readText('docker/.env.example');
+
+  it('marks OpenRouter as the only REQUIRED variable', () => {
+    expect(requiredKeys(readEnvTags('docker/.env.example'))).toEqual([
+      'OPENROUTER_API_KEY',
+    ]);
+  });
+
+  it('documents that BETTER_AUTH_SECRET may stay empty and is auto-generated', () => {
+    const lines = readText('docker/.env.example').split('\n');
+    const secretLine = lines.indexOf('BETTER_AUTH_SECRET=');
+
+    expect(secretLine).toBeGreaterThan(0);
+    expect(lines[secretLine - 1]).toMatch(/^# OPTIONAL: .*May stay empty/);
+    expect(lines[secretLine - 1]).toMatch(/\/data\/\.better-auth-secret/);
+  });
 
   it('declares OPENROUTER_API_KEY so text generation can be configured', () => {
     expect(template.has('OPENROUTER_API_KEY')).toBe(true);
@@ -41,6 +98,31 @@ describe('self-hosted release env template (docker/.env.example)', () => {
 });
 
 describe('root env template (.env.example)', () => {
+  it('groups every REQUIRED variable in the first section', () => {
+    const raw = readText('.env.example');
+    const requiredSection = raw.slice(0, raw.indexOf('# Shared Runtime'));
+    const requiredInSection = Array.from(
+      requiredSection.matchAll(/^([A-Z][A-Z0-9_]*)=/gm),
+      (match) => match[1],
+    );
+
+    expect([...requiredInSection].sort()).toEqual(
+      requiredKeys(readEnvTags('.env.example')).sort(),
+    );
+    expect(requiredInSection).toContain('DATABASE_URL');
+    expect(requiredInSection).toContain('OPENROUTER_API_KEY');
+  });
+
+  it('leaves optional secrets empty instead of shipping placeholder values', () => {
+    const template = readEnvTemplate('.env.example');
+
+    expect(template.get('SENTRY_AUTH_TOKEN')).toBe('');
+    expect(template.get('GENFEEDAI_WEBHOOKS_URL')).toBe('');
+    expect(readText('.env.example')).not.toMatch(
+      /your_sentry_auth_token|your-ngrok-url/,
+    );
+  });
+
   it('declares OPENROUTER_API_KEY alongside the other provider keys', () => {
     const template = readEnvTemplate('.env.example');
 

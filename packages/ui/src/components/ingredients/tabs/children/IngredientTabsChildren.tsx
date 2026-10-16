@@ -7,7 +7,7 @@ import type { ExtendedIngredientTabsChildrenProps } from '@genfeedai/props/conte
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import Card from '@ui/card/Card';
-import { LazyMasonryGrid } from '@ui/lazy/masonry/LazyMasonry';
+import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import Loading from '@ui/loading/default/Loading';
 import { useEffect, useState } from 'react';
 
@@ -70,10 +70,10 @@ export default function IngredientTabsChildren({
                   media platforms.
                 </div>
 
-                <LazyMasonryGrid
-                  ingredients={captionedChildren}
-                  selectedIngredientId={[]}
-                  isActionsEnabled={true}
+                <IngredientsMediaGrid
+                  isLoading={false}
+                  isTimeGroupingEnabled={false}
+                  items={captionedChildren}
                   onClickIngredient={onViewChild}
                 />
               </Card>

@@ -14,10 +14,27 @@ interface ClientProtectedBootstrapCacheEntry {
 
 const CLIENT_PROTECTED_BOOTSTRAP_TTL_MS = 60_000;
 
+interface ProtectedBootstrapCacheKeyScope {
+  organizationId?: string | null;
+  userId?: string | null;
+}
+
 const clientProtectedBootstrapCache = new Map<
   string,
   ClientProtectedBootstrapCacheEntry
 >();
+
+/**
+ * The one rule every bootstrap consumer uses to scope the client cache. The
+ * request carries no brand or client-side organization hint, so the scope is
+ * the session's user and active organization only.
+ */
+export function buildProtectedBootstrapCacheKey({
+  organizationId,
+  userId,
+}: ProtectedBootstrapCacheKeyScope): string {
+  return `protected-bootstrap:${userId || 'none'}:${organizationId || 'no-org'}`;
+}
 
 export function mapProtectedBootstrapPayload(
   payload: ProtectedAppBootstrapPayload,

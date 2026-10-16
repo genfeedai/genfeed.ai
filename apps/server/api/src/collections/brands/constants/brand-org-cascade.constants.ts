@@ -1010,6 +1010,8 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   // API key never moves orgs, so defaultBrandId cannot share the compound
   // (brandId, organizationId) cascade used by brand-owned content (#5219).
   'ApiKey',
+  // A relocation receipt retains its source tenant and committed outcome.
+  'BrandRelocation',
   // Saved generation receipts and events retain immutable tenant ownership.
   'BrandedGenerationReceipt',
   'BrandedGenerationReceiptEvent',
@@ -1077,6 +1079,7 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'api_keys',
+  'brand_relocations',
   'branded_generation_receipts',
   'branded_generation_receipt_events',
   'crun_generation_tasks',

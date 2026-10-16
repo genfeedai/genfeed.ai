@@ -185,7 +185,7 @@ export function ReleaseRailActions({
         )
         .map((target) => (
           <Link
-            aria-label={translate('open')}
+            aria-label={translate('openVariations')}
             className={buttonVariants({
               size: ButtonSize.ICON,
               variant: ButtonVariant.GHOST,

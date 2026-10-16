@@ -3,7 +3,13 @@ import type { IModel } from '@genfeedai/contracts/interfaces';
 import ModelsList from '@pages/models/list/models-list';
 import type { ModelsListProps } from '@props/admin/models.props';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,6 +60,13 @@ vi.mock('@services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: () => ({
       findOne: mockOrganizationFindOne,
+      getAllOrganizations: async () => [
+        { id: 'org-1', label: 'Alpha Organization' },
+        { id: 'org-2', label: 'Beta Organization' },
+      ],
+      findOrganizationBrands: async () => [
+        { id: 'brand-1', label: 'First Brand' },
+      ],
     }),
   },
 }));
@@ -303,15 +316,69 @@ describe('ModelsList', () => {
     });
   });
 
-  it('replaces the duplicate overview with multi-select filters for superadmins', async () => {
+  it('keeps search and filters in one shared admin topbar without the body toolbar', async () => {
     renderModelsList(PageScope.SUPERADMIN);
+    await screen.findByText('Flux Dev');
+    const toolbar = screen.getByTestId('section-topbar');
+    expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
+    expect(screen.getByTestId('section-topbar-leading')).toContainElement(
+      screen.getByRole('textbox', { name: 'Search models' }),
+    );
+    expect(
+      within(toolbar).getByRole('button', { name: /^Filters/ }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Refresh' })).toHaveLength(1);
+    expect(screen.queryByText('Model catalog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: 'All categories' }),
-      ).toBeInTheDocument();
-    });
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  it('preserves other filters and scope while changing categories from the popover', async () => {
+    mockSearchParams =
+      'organization=org-1&brand=brand-1&provider=fal&status=active&page=3';
+    renderModelsList(PageScope.SUPERADMIN);
+    fireEvent.click(await screen.findByRole('button', { name: /^Filters/ }));
+    const categories = screen.getByRole('group', { name: 'Categories' });
+    fireEvent.click(within(categories).getByRole('button', { name: 'Image' }));
+    const query = new URL(
+      mockReplace.mock.calls.at(-1)?.[0],
+      'https://app.genfeed.ai',
+    ).searchParams;
+    expect(query.getAll('category')).toEqual(['image']);
+    expect(query.getAll('provider')).toEqual(['fal']);
+    expect(query.get('status')).toBe('active');
+    expect(query.get('organization')).toBe('org-1');
+    expect(query.get('brand')).toBe('brand-1');
+    expect(query.has('page')).toBe(false);
+  });
+
+  it('clears category, provider and status filters without clearing organization scope', async () => {
+    mockSearchParams =
+      'organization=org-1&brand=brand-1&category=video&provider=fal&status=active&page=3';
+    renderModelsList(PageScope.SUPERADMIN);
+    fireEvent.click(await screen.findByRole('button', { name: /^Filters/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    const query = new URL(
+      mockReplace.mock.calls.at(-1)?.[0],
+      'https://app.genfeed.ai',
+    ).searchParams;
+    expect(query.has('category')).toBe(false);
+    expect(query.has('provider')).toBe(false);
+    expect(query.get('status')).toBe('all');
+    expect(query.get('organization')).toBe('org-1');
+    expect(query.get('brand')).toBe('brand-1');
+    expect(query.has('page')).toBe(false);
+  });
+
+  it('refreshes the model query and the pricing snapshot from the same action', async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    renderModelsList(PageScope.SUPERADMIN, undefined, { onRefresh });
+    await screen.findByText('Flux Dev');
+    const calls = mockFindAll.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() =>
+      expect(mockFindAll.mock.calls.length).toBeGreaterThan(calls),
+    );
+    expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
   it('searches the complete model catalog through the API', async () => {

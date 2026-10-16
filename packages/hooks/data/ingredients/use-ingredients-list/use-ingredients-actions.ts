@@ -31,6 +31,7 @@ import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { dispatchLibraryAssetsRefresh } from '@hooks/data/library/library-assets-refresh';
+import { useCharacterReferenceDeleteWarning } from '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning';
 import type { VideoUpscaleSelection } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
@@ -96,6 +97,7 @@ export function useIngredientsActions({
   const { openIngredientOverlay: openGlobalIngredientOverlay } =
     useIngredientOverlay();
   const { openUpload } = useUploadModal();
+  const getCharacterReferenceWarning = useCharacterReferenceDeleteWarning();
 
   const getIngredientsService = useAuthedService((token) =>
     IngredientsService.getInstance(type, token),
@@ -159,8 +161,11 @@ export function useIngredientsActions({
   );
 
   const handleDeleteIngredient = useCallback(
-    (ingredient: IIngredient) => {
+    async (ingredient: IIngredient) => {
+      const children = await getCharacterReferenceWarning([ingredient.id]);
+
       openConfirm({
+        children,
         confirmLabel: 'Move to Trash',
         isError: true,
         label: 'Move to Trash',
@@ -168,7 +173,7 @@ export function useIngredientsActions({
         onConfirm: () => confirmDeleteIngredient(ingredient),
       });
     },
-    [confirmDeleteIngredient, openConfirm],
+    [confirmDeleteIngredient, getCharacterReferenceWarning, openConfirm],
   );
 
   const handleRepromptIngredient = useCallback(
@@ -641,21 +646,29 @@ export function useIngredientsActions({
     setSelectedIngredientIds([]);
   }, []);
 
-  const handleBulkDelete = useCallback(() => {
+  const handleBulkDelete = useCallback(async () => {
     if (selectedIngredientIds.length === 0) {
       return;
     }
 
     const count = selectedIngredientIds.length;
     const assets = count === 1 ? 'asset' : 'assets';
+    const children = await getCharacterReferenceWarning(selectedIngredientIds);
+
     openConfirm({
+      children,
       confirmLabel: 'Move to Trash',
       isError: true,
       label: `Move ${count} ${assets} to Trash`,
       message: `Move ${count} selected ${assets} to Trash? You can restore them later.`,
       onConfirm: confirmBulkDelete,
     });
-  }, [confirmBulkDelete, openConfirm, selectedIngredientIds.length]);
+  }, [
+    confirmBulkDelete,
+    getCharacterReferenceWarning,
+    openConfirm,
+    selectedIngredientIds,
+  ]);
 
   const openLightboxForIngredient = useCallback(
     (ingredient: IIngredient, mediaIngredients: IIngredient[]) => {

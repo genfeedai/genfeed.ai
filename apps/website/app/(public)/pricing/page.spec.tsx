@@ -7,14 +7,14 @@ import { describe, expect, it } from 'vitest';
 runPageModuleTests('apps/website/app/(public)/pricing/page', PageModule);
 
 describe('pricing metadata', () => {
-  it('keeps seats unlimited across paid subscriptions', async () => {
+  it('names Agencies and the Done for you price', async () => {
     const parent = Promise.resolve({}) as ResolvingMetadata;
 
     const result = await PageModule.generateMetadata({}, parent);
 
-    expect(result.description).toContain('unlimited team seats');
+    expect(result.description).toContain('Agencies with unlimited seats');
     expect(result.description).toContain('Done for you from $2,500/month');
-    expect(result.description).not.toContain('Scale unlocks unlimited seats');
+    expect(result.description).not.toContain('Pro');
   });
 
   it('keeps the meta description inside the search-snippet budget', async () => {
@@ -31,12 +31,9 @@ describe('pricing metadata', () => {
     const jsonLd = PageModule.buildPricingJsonLd();
 
     expect(jsonLd.description).toContain(
-      'all paid tiers include unlimited seats',
+      'Agencies ($499/month) adds unlimited seats, client workspaces',
     );
-    expect(jsonLd.description).toContain(
-      'adds a shared credit pool and multi-organization workflows',
-    );
-    expect(jsonLd.description).not.toContain('adds unlimited seats');
+    expect(jsonLd.description).toContain('Done for you is from $2,500/month');
   });
   it('describes PAYG per credit and the managed retainer as a separate service', () => {
     const jsonLd = PageModule.buildPricingJsonLd();
@@ -48,9 +45,9 @@ describe('pricing metadata', () => {
       unitText: 'credit',
       price: 0.01,
     });
-    const pro = jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro');
-    expect(pro?.price).toBe('39');
-    expect(pro?.description).toContain('12 months, then $49/mo');
+    expect(
+      jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro'),
+    ).toBeUndefined();
     expect(jsonLd.about).toMatchObject({
       '@type': 'Service',
       name: 'Done for you',

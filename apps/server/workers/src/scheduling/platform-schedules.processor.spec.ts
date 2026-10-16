@@ -1,4 +1,5 @@
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
+import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import {
   PLATFORM_SCHEDULE_CATALOG,
   PLATFORM_SCHEDULED_TASKS,
@@ -31,6 +32,7 @@ describe('PlatformSchedulesProcessor', () => {
   const modelDeprecation = { deprecateSupersededModels: handler() };
   const replicateModels = { discoverNewModels: handler() };
   const notificationRecovery = { recover: handler() };
+  const brandRelocations = { recover: handler() };
   const brandedDispatchRecovery = { recoverExpiredDispatches: handler() };
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
@@ -69,6 +71,10 @@ describe('PlatformSchedulesProcessor', () => {
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
+      [
+        PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY,
+        brandRelocations.recover,
+      ],
       [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE, crun.reconcile],
       [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC, crun.synchronizeContracts],
       [
@@ -244,7 +250,10 @@ describe('PlatformSchedulesProcessor', () => {
       mediaPerception as never,
       modelDeprecation as never,
       replicateModels as never,
-      notificationRecovery as never,
+      new PlatformRecoverySchedulesService(
+        notificationRecovery as never,
+        brandRelocations as never,
+      ),
       patterns as never,
       posts as never,
       queueMetrics as never,

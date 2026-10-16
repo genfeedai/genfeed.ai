@@ -34,9 +34,11 @@ export async function createWorkflowMediaCostIntent(
   // Lip-sync holds its own output credits on the platform key (Replicate or
   // HeyGen); a customer key charges nothing.
   const isSelfFundedLipSync = input.actionId === 'lipSync';
+  // Upscale holds its own output credits on the platform Replicate key.
+  const isSelfFundedUpscale = input.actionId === 'upscale';
   const isDirectPlatformMedia =
     input.provider === 'replicate' &&
-    ['imageGen', 'videoGen', 'reframe', 'upscale'].includes(input.actionId);
+    ['imageGen', 'videoGen', 'reframe'].includes(input.actionId);
   const isByok = input.isByok ?? false;
   const model = modelKey
     ? await transaction.model.findFirst({
@@ -65,7 +67,10 @@ export async function createWorkflowMediaCostIntent(
       vendorCostMicros: 0,
       costEvidence: 'pending',
       pricingSnapshot: {
-        isByok: isDirectPlatformMedia || isSelfFundedLipSync ? isByok : null,
+        isByok:
+          isDirectPlatformMedia || isSelfFundedLipSync || isSelfFundedUpscale
+            ? isByok
+            : null,
         billingDisposition:
           isDirectPlatformMedia || (isSelfFundedLipSync && isByok)
             ? 'not_charged'

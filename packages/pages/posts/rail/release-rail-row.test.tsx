@@ -128,6 +128,21 @@ describe('ReleaseRailRow', () => {
     expect(row).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('labels the variations link apart from the post link', () => {
+    render(
+      <ReleaseRailRow
+        browserTimezone="UTC"
+        isActive={false}
+        onActivate={vi.fn()}
+        release={buildRelease()}
+      />,
+    );
+    expect(screen.getByRole('link', { name: 'Open post' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open post variations' }),
+    ).toBeInTheDocument();
+  });
+
   it('calls onActivate when the row is clicked', () => {
     const onActivate = vi.fn();
     render(

@@ -523,10 +523,16 @@ describe('useStudioGeneration socket tracking', () => {
 });
 
 describe('useStudioGeneration avatar submits', () => {
+  const avatarVoiceRef = {
+    externalVoiceId: 'voice-1',
+    provider: VoiceProvider.ELEVENLABS,
+    source: 'catalog',
+  } as const;
   const avatarSettings = {
     ...getDefaultStudioPlaygroundSettings('avatar'),
     avatarPhotoUrl: 'https://cdn.genfeed.test/portrait.png',
     voiceId: 'voice-1',
+    voiceRef: avatarVoiceRef,
   };
 
   it('posts the portrait url, never an ingredient id as a catalog avatar', async () => {
@@ -545,8 +551,8 @@ describe('useStudioGeneration avatar submits', () => {
       prioritize: avatarSettings.prioritize,
       text: 'Hello from Genfeed',
       voiceId: 'voice-1',
-      voiceRef: undefined,
-      voiceProvider: undefined,
+      voiceRef: avatarVoiceRef,
+      voiceProvider: VoiceProvider.ELEVENLABS,
       avatarRef: undefined,
       useIdentity: true,
     });
@@ -605,7 +611,8 @@ describe('useStudioGeneration avatar submits', () => {
 
   it.each([
     ['avatar', { avatarPhotoUrl: undefined }],
-    ['voice', { voiceId: undefined }],
+    ['voice', { voiceId: undefined, voiceRef: undefined }],
+    ['voice provider', { voiceRef: undefined }],
   ])('refuses an avatar video without a chosen %s', async (_label, patch) => {
     const { result } = renderStudioGeneration({
       settings: { ...avatarSettings, ...patch },

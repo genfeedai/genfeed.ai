@@ -1,4 +1,5 @@
 import type { PersonaAvailabilityMode } from '@genfeedai/contracts';
+import { MAX_CHARACTER_REFERENCE_USAGE_LOOKUP } from '@genfeedai/contracts/constants';
 import type {
   BrandCharacterListItem,
   CharacterAvailabilityInput,
@@ -6,6 +7,7 @@ import type {
   CharacterGrantItem,
   CharacterImageInspection,
   CharacterReferenceItem,
+  CharacterReferenceUsage,
   ComposeCharacterSheetPromptInput,
   ComposeCharacterSheetPromptResult,
   CreatePersonaFromSheetInput,
@@ -177,6 +179,40 @@ export class PersonasService extends BaseService<
       data: CharacterReferenceItem[];
     }>(`/${id}/references/${ingredientId}`);
     return response.data.data;
+  }
+
+  /**
+   * The characters that use each asset as a reference image. The endpoint caps
+   * one lookup, so a larger selection goes out in several requests.
+   */
+  async findReferenceUsage(
+    ingredientIds: string[],
+    signal?: AbortSignal,
+  ): Promise<CharacterReferenceUsage[]> {
+    const ids = [...new Set(ingredientIds)];
+    const usage: CharacterReferenceUsage[] = [];
+
+    for (
+      let start = 0;
+      start < ids.length;
+      start += MAX_CHARACTER_REFERENCE_USAGE_LOOKUP
+    ) {
+      const response = await this.instance.post<{
+        data: CharacterReferenceUsage[];
+      }>(
+        '/reference-usage',
+        {
+          ingredientIds: ids.slice(
+            start,
+            start + MAX_CHARACTER_REFERENCE_USAGE_LOOKUP,
+          ),
+        },
+        { signal },
+      );
+      usage.push(...response.data.data);
+    }
+
+    return usage;
   }
 
   async inspectImage(assetId: string): Promise<CharacterImageInspection> {

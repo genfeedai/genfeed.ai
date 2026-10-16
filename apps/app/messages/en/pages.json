@@ -209,7 +209,6 @@
       "outliersFirst": "Outliers first"
     },
     "outliers": {
-      "actions": "Actions",
       "allPlatforms": "All platforms",
       "allTiers": "All tiers",
       "analyzeHook": "Analyze hook",
@@ -1994,7 +1993,6 @@
     "accountHealthDescription": "Warmup and risk signals.",
     "accountHeldByWarmup": "This account is currently held by warmup state.",
     "accountsTableAccount": "Account",
-    "accountsTableActions": "Actions",
     "accountsTablePlatform": "Platform",
     "accountsTableStatus": "Status",
     "addAnotherDescription": "Add another account, or a new channel, for this brand.",
@@ -2036,7 +2034,6 @@
     },
     "linked": "Linked",
     "manage": "Manage",
-    "moreActionsAria": "More actions for {account}",
     "needsReconnect": "Needs reconnect",
     "noPlatformsFound": "No platforms found.",
     "notReadyReason": "Not available yet",
@@ -2293,6 +2290,7 @@
         "nextAt": "Next at {time}",
         "noMedia": "No media",
         "open": "Open post",
+        "openVariations": "Open post variations",
         "outcome": {
           "failed": "{count, plural, one {# failed} other {# failed}}",
           "pending": "{count, plural, one {# pending} other {# pending}}",
@@ -3908,6 +3906,9 @@
     }
   },
   "models": {
+    "title": "Models",
+    "model": "Model",
+    "newModel": "New model",
     "loadError": "Models could not be loaded.",
     "catalogTitle": "Model catalog",
     "categoryAll": "All",
@@ -3942,6 +3943,12 @@
       "variablePricing": "Variable",
       "variablePricingDescription": "Uses reviewed rates. Final cost depends on the generation settings."
     },
+    "filters": "Filters",
+    "filterCategories": "Categories",
+    "filterProviders": "Providers",
+    "filterStatus": "Status",
+    "clearFilters": "Clear filters",
+    "activeFilterCount": "{count, plural, one {# active filter} other {# active filters}}",
     "allCategories": "All categories",
     "allProviders": "All providers",
     "allStatuses": "All statuses",
@@ -3958,7 +3965,6 @@
     "deleteModel": "Delete Model",
     "deleteConfirmation": "Are you sure you want to delete \"{label}\"? This action cannot be undone.",
     "searchModels": "Search models",
-    "moreOptions": "More options for {label}",
     "editModel": "Edit model",
     "noModelsFound": "No models found",
     "emptySearchHint": "No models match your search. Clear it to see the catalog.",
@@ -5323,7 +5329,6 @@
     "refresh": "Refresh holds",
     "next": "Next holds",
     "first": "First holds",
-    "holdsColumn": "Holds",
     "reviewHolds": "Review holds"
   },
   "adminGenerations": {

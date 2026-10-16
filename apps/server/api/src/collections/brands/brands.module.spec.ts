@@ -8,6 +8,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
+import { BrandRelocationsController } from '@api/collections/brands/controllers/brand-relocations.controller';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('BrandsModule registration', () => {
@@ -15,6 +16,7 @@ describe('BrandsModule registration', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, BrandsModule),
     ).toEqual([
+      BrandRelocationsController,
       BrandOsRevisionsController,
       BrandOsScanController,
       BrandFontAssetsController,

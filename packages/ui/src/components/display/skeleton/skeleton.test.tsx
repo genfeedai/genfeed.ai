@@ -1,9 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import {
-  Skeleton,
-  SkeletonCard,
-  SkeletonMasonryGrid,
-} from '@ui/display/skeleton/skeleton';
+import { Skeleton, SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { describe, expect, it } from 'vitest';
 
 describe('Skeleton', () => {
@@ -21,13 +17,6 @@ describe('Skeleton', () => {
     const { container } = render(<Skeleton />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-  });
-
-  it('should render rounded masonry placeholders', () => {
-    const { container } = render(<SkeletonMasonryGrid count={2} />);
-    const masonryTiles = container.querySelectorAll('.rounded-xl');
-
-    expect(masonryTiles).toHaveLength(2);
   });
 });
 

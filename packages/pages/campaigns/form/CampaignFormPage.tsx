@@ -191,7 +191,11 @@ export default function CampaignFormPage({
               </SelectTrigger>
               <SelectContent>
                 {brands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id}>
+                  <SelectItem
+                    className="normal-case"
+                    key={brand.id}
+                    value={brand.id}
+                  >
                     {brand.label}
                   </SelectItem>
                 ))}

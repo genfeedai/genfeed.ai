@@ -152,8 +152,16 @@ const {
   };
 });
 
+const mockGetCharacterReferenceWarning = vi.fn();
 const mockBulkPatch = vi.fn();
 const mockBulkDelete = vi.fn();
+
+vi.mock(
+  '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning',
+  () => ({
+    useCharacterReferenceDeleteWarning: () => mockGetCharacterReferenceWarning,
+  }),
+);
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(
@@ -261,6 +269,7 @@ describe('useIngredientsActions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetCharacterReferenceWarning.mockResolvedValue(undefined);
     ingredientActionsState.lastOptions = null;
     ingredientActionsState.upscaleConfirmData = null;
     socketManagerState.isReady = true;
@@ -296,6 +305,36 @@ describe('useIngredientsActions', () => {
     expect(result.current.lightboxOpen).toBe(false);
   });
 
+  it('names the characters that use a deleted asset as a reference', async () => {
+    mockGetCharacterReferenceWarning.mockResolvedValue(
+      'Reference for @vincent',
+    );
+    const { result } = renderHook(() => useIngredientsActions(baseProps));
+
+    await act(async () => {
+      await result.current.handleDeleteIngredient(createIngredient());
+    });
+
+    expect(mockGetCharacterReferenceWarning).toHaveBeenCalledWith(['ing-1']);
+    const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
+    expect(confirm.children).toBe('Reference for @vincent');
+    expect(confirm.message).toBe(
+      'Move this asset to Trash? You can restore it later.',
+    );
+  });
+
+  it('keeps the standard confirm when nothing uses the asset', async () => {
+    const { result } = renderHook(() => useIngredientsActions(baseProps));
+
+    await act(async () => {
+      await result.current.handleDeleteIngredient(createIngredient());
+    });
+
+    const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
+    expect(confirm.children).toBeUndefined();
+    expect(confirm.label).toBe('Move to Trash');
+  });
+
   it('confirms and deletes a single ingredient', async () => {
     const refreshEvents: Event[] = [];
     const recordRefresh = (event: Event) => {
@@ -305,8 +344,8 @@ describe('useIngredientsActions', () => {
     const { result } = renderHook(() => useIngredientsActions(baseProps));
     const ingredient = createIngredient();
 
-    act(() => {
-      result.current.handleDeleteIngredient(ingredient);
+    await act(async () => {
+      await result.current.handleDeleteIngredient(ingredient);
     });
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
@@ -337,8 +376,8 @@ describe('useIngredientsActions', () => {
     mockIngredientsServiceDelete.mockRejectedValue(new Error('boom'));
     const { result } = renderHook(() => useIngredientsActions(baseProps));
 
-    act(() => {
-      result.current.handleDeleteIngredient(createIngredient());
+    await act(async () => {
+      await result.current.handleDeleteIngredient(createIngredient());
     });
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
@@ -364,8 +403,8 @@ describe('useIngredientsActions', () => {
     );
     const { result } = renderHook(() => useIngredientsActions(baseProps));
 
-    act(() => {
-      result.current.handleDeleteIngredient(createIngredient());
+    await act(async () => {
+      await result.current.handleDeleteIngredient(createIngredient());
     });
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
@@ -394,8 +433,8 @@ describe('useIngredientsActions', () => {
     mockIngredientsServiceDelete.mockRejectedValueOnce(new Error('boom'));
     const { result } = renderHook(() => useIngredientsActions(baseProps));
 
-    act(() => {
-      result.current.handleDeleteIngredient(createIngredient());
+    await act(async () => {
+      await result.current.handleDeleteIngredient(createIngredient());
     });
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
@@ -502,6 +541,29 @@ describe('useIngredientsActions', () => {
     expect(mockExecuteUpscale).toHaveBeenCalled();
   });
 
+  it('names the characters that use bulk-deleted assets as references', async () => {
+    mockGetCharacterReferenceWarning.mockResolvedValue(
+      'Reference for @vincent',
+    );
+    const { result } = renderHook(() => useIngredientsActions(baseProps));
+
+    act(() => {
+      result.current.setSelectedIngredientIds(['ing-1', 'ing-2']);
+    });
+
+    await act(async () => {
+      await result.current.handleBulkDelete();
+    });
+
+    expect(mockGetCharacterReferenceWarning).toHaveBeenCalledWith([
+      'ing-1',
+      'ing-2',
+    ]);
+    const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
+    expect(confirm.children).toBe('Reference for @vincent');
+    expect(confirm.label).toBe('Move 2 assets to Trash');
+  });
+
   it('bulk deletes the selected ingredients after confirmation', async () => {
     const refreshEvents: Event[] = [];
     const recordRefresh = (event: Event) => {
@@ -514,8 +576,8 @@ describe('useIngredientsActions', () => {
       result.current.setSelectedIngredientIds(['ing-1', 'ing-2']);
     });
 
-    act(() => {
-      result.current.handleBulkDelete();
+    await act(async () => {
+      await result.current.handleBulkDelete();
     });
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
@@ -550,8 +612,8 @@ describe('useIngredientsActions', () => {
     act(() => {
       result.current.setSelectedIngredientIds(['ing-1']);
     });
-    act(() => {
-      result.current.handleBulkDelete();
+    await act(async () => {
+      await result.current.handleBulkDelete();
     });
 
     mockBulkDelete.mockResolvedValue({
@@ -575,8 +637,8 @@ describe('useIngredientsActions', () => {
     act(() => {
       result.current.setSelectedIngredientIds(['ing-1']);
     });
-    act(() => {
-      result.current.handleBulkDelete();
+    await act(async () => {
+      await result.current.handleBulkDelete();
     });
 
     mockBulkDelete.mockRejectedValue(new Error('boom'));
@@ -591,11 +653,11 @@ describe('useIngredientsActions', () => {
     );
   });
 
-  it('does not open the bulk-delete confirm with no selection', () => {
+  it('does not open the bulk-delete confirm with no selection', async () => {
     const { result } = renderHook(() => useIngredientsActions(baseProps));
 
-    act(() => {
-      result.current.handleBulkDelete();
+    await act(async () => {
+      await result.current.handleBulkDelete();
     });
 
     expect(mockOpenConfirm).not.toHaveBeenCalled();
@@ -686,7 +748,7 @@ describe('useIngredientsActions', () => {
     expect(mockFindAll).toHaveBeenCalledWith(true);
   });
 
-  it('routes openIngredientModal by modal id', () => {
+  it('routes openIngredientModal by modal id', async () => {
     const { result } = renderHook(() => useIngredientsActions(baseProps));
     const ingredient = createIngredient();
 
@@ -703,8 +765,8 @@ describe('useIngredientsActions', () => {
     });
     expect(mockOpenPostBatchModal).toHaveBeenCalledWith(ingredient);
 
-    act(() => {
-      result.current.openIngredientModal(ModalEnum.CONFIRM, ingredient);
+    await act(async () => {
+      await result.current.openIngredientModal(ModalEnum.CONFIRM, ingredient);
     });
     expect(mockOpenConfirm).toHaveBeenCalled();
 

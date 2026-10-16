@@ -57,7 +57,7 @@ export const PLAN_LABELS = {
   enterprise: 'Enterprise',
   payg: 'Pay As You Go',
   pro: 'Pro',
-  scale: 'Scale',
+  scale: 'Agencies',
 } as const satisfies Record<PlanTier, string>;
 
 export interface PricingPlanProps {
@@ -391,28 +391,20 @@ export const websitePlans: WebsitePlanProps[] = [
     cta: 'Start Free',
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=payg`,
     description: 'Free account with pay-per-output credits',
-    // The first five bullets are the comparison axis rendered on the pricing
-    // card and are deliberately parallel across every tier: credits, seats,
-    // organizations, brands and channels, API. Tier-specific extras follow.
     features: [
-      'Credits at the standard rate (1 credit = $0.01)',
-      '1 seat',
-      '1 organization',
-      'Unlimited brands and connected channels',
-      'App access only (no API)',
-      'Best model auto-routed for every job',
-      'Multi-platform publishing',
-      'Email support',
+      '1 seat, 1 workspace',
+      'Unlimited brands and channels',
+      'Watermarked exports',
     ],
     interval: 'payg',
     label: PLAN_LABELS.payg,
     outputs: null,
     price: PLAN_PRICES.payg,
-    target: 'Creators testing Genfeed or running bursty campaigns',
+    target: 'Teams trying Genfeed on one brand',
     tier: 'payg',
     type: 'payg',
     valueProposition:
-      'Sign up free. Buy credits. Pay only for the output you actually generate.',
+      'Try Genfeed on one brand. Pay only for what you generate.',
   },
 
   // Pro Tier - $49/month subscription with included credits
@@ -448,19 +440,16 @@ export const websitePlans: WebsitePlanProps[] = [
 
   // Scale Tier - higher-entry team studio
   {
-    cta: 'Start Scale',
+    cta: 'Start Agencies',
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
-      includedCreditsFeature('scale'),
-      'Unlimited seats',
-      'Multiple organizations, one shared credit pool',
-      'Unlimited brands and connected channels',
-      'API access (higher rate limits)',
-      'Bring your own provider keys (BYOK), no usage fee',
-      'Roles, budgets, and shared approvals',
-      'Advanced analytics',
-      'Priority support (24hr)',
+      'Unlimited seats and client workspaces',
+      'Clean exports',
+      'Any model, Ultra quality',
+      'Brand model training',
+      'Automation, Messages, Discovery',
+      'API and BYOK',
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
@@ -468,11 +457,11 @@ export const websitePlans: WebsitePlanProps[] = [
     outputs: null,
     price: PLAN_PRICES.scale,
     stripePriceId: STRIPE_PRICE_IDS.scale,
-    target: 'Agencies and teams managing multiple brands or organizations',
+    target: 'Agencies running content for multiple clients',
     tier: 'scale',
     type: 'subscription',
     valueProposition:
-      'Unlimited seats and a shared credit pool for teams that have outgrown a single workspace. You pay for output, not headcount.',
+      'Run every client from one studio, each with its own brand context and approvals.',
   },
 
   // Enterprise Tier - custom deployment

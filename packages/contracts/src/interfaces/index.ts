@@ -107,6 +107,7 @@ export type {
 } from './billing/topbar-balance.interface';
 export * from './billing/unit-economics.interface';
 export * from './billing/workflow-accounting.interface';
+export * from './brand-relocation.interface';
 export * from './common/content-scope.interface';
 export * from './components/asset-selection.interface';
 export * from './components/background-task.interface';

@@ -30,8 +30,8 @@ import { CronXReplyWatchService } from '@workers/crons/x-replies/cron.x-reply-wa
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { QueueMetricsService } from '@workers/monitoring/queue-metrics.service';
-import { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
+import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import {
   isPlatformScheduledTaskName,
   PLATFORM_SCHEDULE_QUEUE,
@@ -64,7 +64,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly mediaPerception: CronMediaPerceptionService,
     private readonly modelDeprecation: CronModelDeprecationService,
     private readonly modelWatcher: CronModelWatcherService,
-    private readonly notificationRecovery: NotificationDeliveryRecoveryService,
+    private readonly recovery: PlatformRecoverySchedulesService,
     private readonly patternExtraction: CronPatternExtractionService,
     private readonly posts: CronPostsService,
     private readonly queueMetrics: QueueMetricsService,
@@ -91,6 +91,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
   ) {
     super();
     this.handlers = {
+      [PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY]: () =>
+        this.recovery.recoverBrandRelocations(),
       [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE]: () =>
         this.mediaSchedules.reconcileCrunTasks(),
       [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC]: () =>
@@ -145,7 +147,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       [PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION]: () =>
         this.modelDeprecation.deprecateSupersededModels(),
       [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: () =>
-        this.notificationRecovery.recover(),
+        this.recovery.recoverNotifications(),
       [PLATFORM_SCHEDULED_TASKS.BRANDED_DISPATCH_RECOVERY]: () =>
         this.brandedDispatchRecovery.recoverExpiredDispatches(),
       [PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP]: () =>

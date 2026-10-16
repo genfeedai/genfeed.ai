@@ -1,20 +1,23 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
-import type { IBrand } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type {
+  AdminOrgBrandFilterProps,
+  AdminScopeFilterProps,
+} from '@genfeedai/props/ui/forms/admin-org-brand-filter.props';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useQuery } from '@tanstack/react-query';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
+import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
+import {
+  SWITCHER_CHEVRON_CLASSNAME,
+  SWITCHER_TRIGGER_OPEN_CLASSNAME,
+} from '@ui/menus/switchers/switcher-trigger.classes';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
-import { useCallback, useMemo } from 'react';
-
-export interface AdminOrgBrandFilterProps {
-  organization: string;
-  brand: string;
-  onOrganizationChange: (orgId: string) => void;
-  onBrandChange: (brandId: string) => void;
-}
+import { Button } from '@ui/primitives/button';
+import { Building2, ChevronsUpDown } from 'lucide-react';
 
 export default function AdminOrgBrandFilter({
   organization,
@@ -26,18 +29,19 @@ export default function AdminOrgBrandFilter({
     OrganizationsService.getInstance(token),
   );
 
-  const { data: organizations = [] } = useQuery({
-    queryKey: ['admin-organizations'],
-    queryFn: async () => {
-      const service = await getOrganizationsService();
-      // Platform-wide superadmin list. Pages at limit≤100 (BaseQueryDto max)
-      // and returns slim { id, label, slug } rows for the picker.
-      return service.getAllOrganizations();
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: organizations = [], isLoading: isLoadingOrganizations } =
+    useQuery({
+      queryKey: ['admin-organizations'],
+      queryFn: async () => {
+        const service = await getOrganizationsService();
+        // Platform-wide superadmin list. Pages at limit≤100 (BaseQueryDto max)
+        // and returns slim { id, label, slug } rows for the picker.
+        return service.getAllOrganizations();
+      },
+      staleTime: 5 * 60 * 1000,
+    });
 
-  const { data: brands = [] } = useQuery({
+  const { data: brands = [], isLoading: isLoadingBrands } = useQuery({
     queryKey: ['admin-org-brands', organization],
     queryFn: async () => {
       const service = await getOrganizationsService();
@@ -51,73 +55,88 @@ export default function AdminOrgBrandFilter({
     staleTime: 5 * 60 * 1000,
   });
 
-  const orgOptions = useMemo(
-    () => [
-      { label: 'All Organizations', value: '', icon: undefined },
-      ...organizations.map((org) => ({
-        label: org.label || org.id,
-        icon: (
-          <Avatar className="size-5 rounded-sm">
-            <AvatarImage src={org.logoUrl} alt="" />
-            <AvatarFallback className="rounded-sm text-2xs">
-              {(org.label || org.id).charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        ),
-        value: org.id,
-      })),
-    ],
-    [organizations],
-  );
-
-  const brandOptions = useMemo(
-    () => [
-      { label: 'All Brands', value: '' },
-      ...brands.map((b: IBrand) => ({
-        label: b.label || b.id,
-        value: b.id,
-      })),
-    ],
-    [brands],
-  );
-
-  const handleOrgChange = useCallback(
-    (_name: string, value: string) => {
-      onOrganizationChange(value);
-      // Clear brand when org changes
-      if (brand) {
-        onBrandChange('');
-      }
-    },
-    [onOrganizationChange, onBrandChange, brand],
-  );
-
-  const handleBrandChange = useCallback(
-    (_name: string, value: string) => {
-      onBrandChange(value);
-    },
-    [onBrandChange],
-  );
-
   return (
-    <div className="flex items-center gap-2">
-      <ButtonDropdown
-        icon={orgOptions.find((option) => option.value === organization)?.icon}
-        name="organization"
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <AdminScopeFilter
+        label="All organizations"
         value={organization}
-        options={orgOptions}
-        onChange={handleOrgChange}
-        placeholder="All Organizations"
+        isLoading={isLoadingOrganizations}
+        options={organizations.map((org) => ({
+          id: org.id,
+          label: org.label || org.id,
+          logoUrl: org.logoUrl,
+        }))}
+        onChange={onOrganizationChange}
       />
-      {organization && (
-        <ButtonDropdown
-          name="brand"
+      {organization ? (
+        <AdminScopeFilter
+          label="All brands"
           value={brand}
-          options={brandOptions}
-          onChange={handleBrandChange}
-          placeholder="All Brands"
+          isLoading={isLoadingBrands}
+          options={brands.map((item) => ({
+            id: item.id,
+            label: item.label || item.id,
+          }))}
+          onChange={onBrandChange}
         />
-      )}
+      ) : null}
     </div>
+  );
+}
+
+function AdminScopeFilter({
+  label,
+  value,
+  isLoading,
+  options,
+  onChange,
+}: AdminScopeFilterProps) {
+  const selected = options.find((option) => option.id === value);
+  const displayLabel = selected?.label ?? label;
+  return (
+    <SwitcherDropdown
+      hasSearch
+      isLoading={isLoading}
+      minWidth={240}
+      searchPlaceholder={`Search ${label.replace('All ', '')}…`}
+      items={[
+        { id: '__all__', label, isActive: !value },
+        ...options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          imageUrl: option.logoUrl || undefined,
+          isActive: option.id === value,
+        })),
+      ]}
+      onSelect={(id) => onChange(id === '__all__' ? '' : id)}
+      renderTrigger={({ isOpen }) => (
+        <Button
+          ariaLabel={`${label.replace('All ', 'Filter by ')}: ${displayLabel}`}
+          className={cn(
+            'h-8 min-w-0 max-w-48 gap-2 px-2.5 text-xs',
+            isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
+          )}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          withWrapper={false}
+        >
+          {selected ? (
+            <Avatar className="size-5 shrink-0 rounded-sm">
+              <AvatarImage alt="" src={selected.logoUrl || undefined} />
+              <AvatarFallback className="rounded-sm text-2xs">
+                {selected.label.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <Building2 className="size-3.5 shrink-0" />
+          )}
+          <span className="truncate">{displayLabel}</span>
+          <ChevronsUpDown
+            aria-hidden="true"
+            className={SWITCHER_CHEVRON_CLASSNAME}
+          />
+        </Button>
+      )}
+    />
   );
 }

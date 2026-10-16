@@ -2,7 +2,6 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SkeletonCardProps,
   SkeletonListProps,
-  SkeletonMasonryProps,
   SkeletonProps,
   SkeletonTableProps,
 } from '@genfeedai/props/ui/feedback/skeleton.props';
@@ -16,16 +15,6 @@ const VARIANT_CLASSES: Record<SkeletonVariant, string> = {
   rounded: '',
   text: 'rounded',
 };
-
-const MASONRY_SKELETON_HEIGHTS = [
-  'h-48',
-  'h-60',
-  'h-72',
-  'h-56',
-  'h-64',
-  'h-80',
-  'h-52',
-];
 
 function formatDimension(
   value: number | string | undefined,
@@ -193,35 +182,6 @@ export function SkeletonTable({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-export function SkeletonMasonryGrid({
-  count = 12,
-  className,
-}: SkeletonMasonryProps) {
-  return (
-    <div
-      className={cn(
-        'w-full max-w-full overflow-hidden columns-1 gap-2 space-y-1 md:columns-2 lg:columns-3 xl:columns-4',
-        className,
-      )}
-    >
-      {Array.from({ length: count }).map((_, index) => {
-        const height =
-          MASONRY_SKELETON_HEIGHTS[index % MASONRY_SKELETON_HEIGHTS.length];
-        const masonryKey = `masonry-skeleton-${index}`;
-
-        return (
-          <div key={masonryKey} className="break-inside-avoid">
-            <Skeleton
-              variant="rounded"
-              className={cn('w-full rounded-xl', height)}
-            />
-          </div>
-        );
-      })}
     </div>
   );
 }

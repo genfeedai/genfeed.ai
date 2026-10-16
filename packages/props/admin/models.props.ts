@@ -36,6 +36,8 @@ export interface ModelsListProps {
   onPricingDetails?: (model: IModel) => void;
   renderExpandedRow?: (model: IModel) => ReactNode | undefined;
   renderToolbar?: (models: IModel[]) => ReactNode;
+  beforeList?: ReactNode;
+  onRefresh?: () => Promise<unknown>;
   scope?: PageScope;
 }
 
@@ -80,6 +82,14 @@ export function resolveAdminModelFilters(
 
 export interface AdminModelsFiltersProps {
   category?: string;
+}
+export interface AdminModelsToolbarProps extends AdminModelsFiltersProps {
+  children: ReactNode;
+  iconActions?: ReactNode;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  onSearch: (value: string) => void;
+  searchTerm: string;
 }
 export interface ModelPricingDetailsProps {
   modelId: string;

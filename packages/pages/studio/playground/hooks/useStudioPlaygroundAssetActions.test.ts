@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsInfo: vi.fn(),
   notificationsSuccess: vi.fn(),
+  getCharacterReferenceWarning: vi.fn(),
   openConfirm: vi.fn(),
   openIngredientOverlay: vi.fn(),
   openPostBatchModal: vi.fn(),
@@ -25,6 +26,14 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
   useStoryboardEntry: () => ({ createFromAsset: mocks.createFromAsset }),
 }));
+
+vi.mock(
+  '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning',
+  () => ({
+    useCharacterReferenceDeleteWarning: () =>
+      mocks.getCharacterReferenceWarning,
+  }),
+);
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
@@ -99,6 +108,7 @@ const ingredient = {
 describe('useStudioPlaygroundAssetActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getCharacterReferenceWarning.mockResolvedValue(undefined);
     mocks.bulkDelete.mockResolvedValue({
       deleted: [ingredient.id],
       failed: [],
@@ -268,7 +278,7 @@ describe('useStudioPlaygroundAssetActions', () => {
       }),
     );
 
-    act(() => result.current.onDeleteIngredient(ingredient));
+    await act(async () => result.current.onDeleteIngredient(ingredient));
 
     const confirm = mocks.openConfirm.mock.calls.at(-1)?.[0] as {
       confirmLabel: string;
@@ -294,6 +304,60 @@ describe('useStudioPlaygroundAssetActions', () => {
     expect(mocks.notificationsSuccess).toHaveBeenCalledWith('Moved to Trash');
   });
 
+  it('names the characters that use the asset as a reference before deleting', async () => {
+    mocks.getCharacterReferenceWarning.mockResolvedValue(
+      'Reference for @vincent',
+    );
+    const { result } = renderHook(() =>
+      useStudioPlaygroundAssetActions({
+        onInspectIngredient: vi.fn(),
+        onAttachReference: vi.fn(),
+        onRefresh: vi.fn(),
+      }),
+    );
+
+    await act(async () => result.current.onDeleteIngredient(ingredient));
+
+    expect(mocks.getCharacterReferenceWarning).toHaveBeenCalledWith([
+      ingredient.id,
+    ]);
+    expect(mocks.openConfirm.mock.calls.at(-1)?.[0]).toMatchObject({
+      children: 'Reference for @vincent',
+      message: 'Move this asset to Trash? You can restore it later.',
+    });
+  });
+
+  it('names the characters that use a persisted generation as a reference', async () => {
+    mocks.getCharacterReferenceWarning.mockResolvedValue(
+      'Reference for @vincent',
+    );
+    const { result } = renderHook(() =>
+      useStudioPlaygroundAssetActions({
+        onInspectIngredient: vi.fn(),
+        onAttachReference: vi.fn(),
+        onRefresh: vi.fn(),
+      }),
+    );
+
+    await act(async () =>
+      result.current.onRemoveGeneration({
+        createdAt: 1,
+        id: 'live-job-1',
+        ingredientId: 'ingredient-1',
+        prompt: 'A prompt',
+        status: IngredientStatus.GENERATED,
+        type: 'image',
+      }),
+    );
+
+    expect(mocks.getCharacterReferenceWarning).toHaveBeenCalledWith([
+      'ingredient-1',
+    ]);
+    expect(mocks.openConfirm.mock.calls.at(-1)?.[0]).toMatchObject({
+      children: 'Reference for @vincent',
+    });
+  });
+
   it('removes a client-only failed generation without calling the API', async () => {
     const onDeleted = vi.fn();
     const { result } = renderHook(() =>
@@ -312,7 +376,7 @@ describe('useStudioPlaygroundAssetActions', () => {
       type: 'image' as const,
     };
 
-    act(() => result.current.onRemoveGeneration(failedJob));
+    await act(async () => result.current.onRemoveGeneration(failedJob));
     const confirm = mocks.openConfirm.mock.calls.at(-1)?.[0] as {
       onConfirm: () => Promise<void>;
     };
@@ -334,7 +398,7 @@ describe('useStudioPlaygroundAssetActions', () => {
       }),
     );
 
-    act(() =>
+    await act(async () =>
       result.current.onRemoveGeneration({
         createdAt: 1,
         id: 'live-job-1',
@@ -373,7 +437,7 @@ describe('useStudioPlaygroundAssetActions', () => {
       }),
     );
 
-    act(() =>
+    await act(async () =>
       result.current.onRemoveGeneration({
         createdAt: 1,
         id: 'live-job-1',
