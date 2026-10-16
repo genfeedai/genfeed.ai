@@ -41,6 +41,7 @@ export const postAttributes = createEntityAttributes([
   'format',
   'category',
   'scheduledDate',
+  'timezone',
   'publicationDate',
   'uploadedAt',
   'publishedAt',

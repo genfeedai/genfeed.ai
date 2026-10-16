@@ -7,9 +7,7 @@ import {
   CredentialPlatform,
   IngredientCategory,
   ModalEnum,
-  PostCategory,
   PostVisibility,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { CreatePostRequest } from '@genfeedai/contracts/api-types';
 import type {
@@ -20,6 +18,7 @@ import type {
   IPostPlatformConfig,
 } from '@genfeedai/contracts/interfaces';
 import type { PlatformSubmissionStatus } from '@genfeedai/contracts/interfaces/modals/platform-submission-status.interface';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
@@ -45,9 +44,11 @@ import {
 } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import {
-  getAvailablePlatforms,
-  SCHEDULER_ALLOWED_MINUTES_SET,
-} from './batch-post.utils';
+  nextSchedulerInstant,
+  resolvePublishingTimezone,
+  syncPlatformConfigs,
+} from './batch-platform-sync';
+import { getAvailablePlatforms } from './batch-post.utils';
 
 export interface AspectRatioInfo {
   height: number;
@@ -173,7 +174,13 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   const [platformConfigs, setPlatformConfigs] = useState<IPostPlatformConfig[]>(
     [],
   );
+  const platformConfigsRef = useRef(platformConfigs);
+  platformConfigsRef.current = platformConfigs;
   const hasInitializedDate = useRef(false);
+  const hasUserEditedPlatforms = useRef(false);
+  const hasUserEditedSchedule = useRef(false);
+  const platformInitKeyRef = useRef<string | null>(null);
+  const isPublishingRef = useRef(false);
   const [platformStatuses, setPlatformStatuses] = useState<
     PlatformSubmissionStatus[]
   >([]);
@@ -185,22 +192,21 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   const [globalScheduledDate, setGlobalScheduledDate] = useState<Date | null>(
     null,
   );
+  const scheduleTimezone = useMemo(
+    () => resolvePublishingTimezone(settings?.timezone, getBrowserTimezone()),
+    [settings?.timezone],
+  );
 
   const credentialsLoadedRef = useRef(false);
 
-  const getMinDateTime = useCallback(() => {
-    const now = new Date();
-    const nextAllowed = new Date(now);
-    nextAllowed.setSeconds(0, 0);
+  const getMinDateTime = useCallback(
+    () => nextSchedulerInstant(new Date(), scheduleTimezone),
+    [scheduleTimezone],
+  );
 
-    while (
-      nextAllowed <= now ||
-      !SCHEDULER_ALLOWED_MINUTES_SET.has(nextAllowed.getMinutes())
-    ) {
-      nextAllowed.setMinutes(nextAllowed.getMinutes() + 1);
-    }
-
-    return nextAllowed;
+  const setScheduledDate = useCallback((date: Date | null) => {
+    hasUserEditedSchedule.current = true;
+    setGlobalScheduledDate(date);
   }, []);
 
   const findOrganizationSettings = useCallback(
@@ -261,6 +267,10 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     setTimeout(() => {
       form.reset();
       hasInitializedDate.current = false;
+      hasUserEditedPlatforms.current = false;
+      hasUserEditedSchedule.current = false;
+      platformInitKeyRef.current = null;
+      isPublishingRef.current = false;
       credentialsLoadedRef.current = false;
       hasAttemptedRefreshRef.current = false;
 
@@ -280,6 +290,10 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   }, [push]);
 
   const handleSubmit = useCallback(async () => {
+    if (activeTab !== 'platforms' || isPublishingRef.current) {
+      return;
+    }
+
     setError(null);
 
     if (!activeIngredients || activeIngredients.length === 0) {
@@ -369,11 +383,11 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
     setPlatformStatuses(initialStatuses);
     setActiveTab('results');
+    isPublishingRef.current = true;
 
     const url = 'POST /publishing';
     try {
       const service = await getPostsService();
-      const groupId = Math.random().toString(36).substring(2, 12);
 
       let successCount = 0;
       let failureCount = 0;
@@ -399,13 +413,13 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
             category: config.category,
             credentialId: config.credentialId,
             description: config.description,
-            groupId,
             ingredients: activeIngredients.map((ing: IIngredient) => ing.id),
             isRepeat: false,
             isShareToFeedSelected: config.isShareToFeedSelected,
             label: config.label,
             scheduledDate,
             targetExecutionState: config.targetExecutionState,
+            timezone: scheduleTimezone,
             visibility: config.visibility,
           } as CreatePostRequest;
 
@@ -473,15 +487,19 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
       }
 
       setError(errorMessage);
+    } finally {
+      isPublishingRef.current = false;
     }
   }, [
     activeIngredients,
+    activeTab,
     credentials,
     getPostsService,
     globalScheduledDate,
+    isCredentialValid,
     notificationsService,
     platformConfigs,
-    isCredentialValid,
+    scheduleTimezone,
   ]);
 
   const formRef = useFocusFirstInput<HTMLFormElement>();
@@ -490,74 +508,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   }, [form, handleSubmit]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(submitHandler);
-
-  // Initialize platform configs — single ingredient path
-  useEffect(() => {
-    if (!ingredient) {
-      startTransition(() => {
-        setPlatformConfigs([]);
-        setGlobalScheduledDate(null);
-      });
-
-      return;
-    }
-
-    const isImage = ingredient.category === IngredientCategory.IMAGE;
-    const isGif = ingredient.category === IngredientCategory.GIF;
-    const allPlatforms = [
-      CredentialPlatform.YOUTUBE,
-      CredentialPlatform.TIKTOK,
-      CredentialPlatform.INSTAGRAM,
-      CredentialPlatform.TWITTER,
-    ];
-
-    let availablePlatforms: CredentialPlatform[];
-    if (isGif) {
-      availablePlatforms = [CredentialPlatform.TWITTER];
-    } else if (isImage) {
-      availablePlatforms = allPlatforms.filter(
-        (platform) =>
-          platform !== CredentialPlatform.YOUTUBE &&
-          platform !== CredentialPlatform.TIKTOK,
-      );
-    } else {
-      availablePlatforms = allPlatforms;
-    }
-
-    const configs: IPostPlatformConfig[] = availablePlatforms.map(
-      (platform) => {
-        const credential =
-          credentials?.find((c) => c.platform === platform) ?? null;
-        const credentialValid = isCredentialValid(credential ?? undefined);
-
-        return {
-          credentialId: credential?.id ?? '',
-          customScheduledDate: '',
-          description: '',
-          enabled: Boolean(credential && credentialValid),
-          handle: credential?.externalHandle ?? '',
-          isCredentialValid: credential ? credentialValid : undefined,
-          label: '',
-          overrideSchedule: false,
-          platform,
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-          visibility:
-            platform === CredentialPlatform.YOUTUBE
-              ? PostVisibility.UNLISTED
-              : PostVisibility.PUBLIC,
-        };
-      },
-    );
-
-    startTransition(() => {
-      setPlatformConfigs(configs);
-      form.setValue('platforms', configs);
-      if (!hasInitializedDate.current) {
-        setGlobalScheduledDate(getMinDateTime());
-        hasInitializedDate.current = true;
-      }
-    });
-  }, [form, getMinDateTime, ingredient, credentials, isCredentialValid]);
 
   // Fetch org settings when modal has active ingredients
   useEffect(() => {
@@ -574,76 +524,72 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     };
   }, [activeIngredients.length, findOrganizationSettings, organizationId]);
 
-  // Initialize platform configs — multi-ingredient / carousel path
+  useEffect(() => {
+    if (!hasInitializedDate.current || hasUserEditedSchedule.current) {
+      return;
+    }
+
+    setGlobalScheduledDate(getMinDateTime());
+  }, [getMinDateTime]);
+
+  // Initialize platform configs once per ingredient set. Credential refreshes
+  // update validity without rebuilding audience or enabled choices.
   useEffect(() => {
     if (!activeIngredients || activeIngredients.length === 0) {
+      platformInitKeyRef.current = null;
+      hasUserEditedPlatforms.current = false;
       startTransition(() => {
         setPlatformConfigs([]);
         setGlobalScheduledDate(null);
+        hasInitializedDate.current = false;
+        hasUserEditedSchedule.current = false;
       });
       return;
     }
 
     credentialsLoadedRef.current = true;
 
+    const ingredientKey = activeIngredients.map((item) => item.id).join(',');
+    const isNewSession = platformInitKeyRef.current !== ingredientKey;
+    if (isNewSession) {
+      hasUserEditedPlatforms.current = false;
+      platformInitKeyRef.current = ingredientKey;
+    }
+
     const firstIngredient = activeIngredients[0];
     const isImage = firstIngredient.category === IngredientCategory.IMAGE;
-
     const availablePlatforms = getAvailablePlatforms(
       firstIngredient.category,
       isCarousel,
     );
-
-    const configs: IPostPlatformConfig[] = availablePlatforms.map(
-      (platform) => {
-        const credential =
-          credentials?.find((c) => c.platform === platform) ?? null;
-        const credentialValid = isCredentialValid(credential ?? undefined);
-
-        let defaultCategory: PostCategory | undefined;
-        if (platform === CredentialPlatform.INSTAGRAM) {
-          if (isImage) {
-            defaultCategory = PostCategory.IMAGE;
-          } else {
-            defaultCategory = PostCategory.VIDEO;
-          }
-        }
-
-        return {
-          category: defaultCategory,
-          credentialId: credential?.id ?? '',
-          customScheduledDate: '',
-          description: '',
-          enabled: Boolean(credential && credentialValid),
-          handle: credential?.externalHandle ?? '',
-          isCredentialValid: credential ? credentialValid : undefined,
-          isShareToFeedSelected: false,
-          label: '',
-          overrideSchedule: false,
-          platform,
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-          visibility:
-            platform === CredentialPlatform.YOUTUBE
-              ? PostVisibility.UNLISTED
-              : PostVisibility.PUBLIC,
-        };
-      },
-    );
+    const snapshots = (credentials ?? []).map((credential) => ({
+      externalHandle: credential.externalHandle,
+      id: credential.id,
+      isValid: isCredentialValid(credential),
+      platform: credential.platform,
+    }));
+    const configs = syncPlatformConfigs({
+      credentials: snapshots,
+      hasUserEdited: !isNewSession && hasUserEditedPlatforms.current,
+      isImage,
+      platforms: availablePlatforms,
+      previous: platformConfigsRef.current,
+    });
 
     startTransition(() => {
+      platformConfigsRef.current = configs;
       setPlatformConfigs(configs);
       form.setValue('platforms', configs);
-      if (!hasInitializedDate.current && !globalScheduledDate) {
+      if (!hasInitializedDate.current) {
         setGlobalScheduledDate(getMinDateTime());
         hasInitializedDate.current = true;
       }
     });
   }, [
+    activeIngredients,
     credentials,
     form,
     getMinDateTime,
-    globalScheduledDate,
-    activeIngredients,
     isCarousel,
     isCredentialValid,
   ]);
@@ -744,6 +690,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   };
 
   const togglePlatform = (credentialId: string) => {
+    hasUserEditedPlatforms.current = true;
     setPlatformConfigs((prev) =>
       prev.map((config) =>
         config.credentialId === credentialId
@@ -756,6 +703,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   };
 
   const applyEnabledCredentialIds = (credentialIds: string[]) => {
+    hasUserEditedPlatforms.current = true;
     const selected = new Set(credentialIds);
     setPlatformConfigs((prev) =>
       prev.map((config) => ({
@@ -771,6 +719,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     credentialId: string,
     updates: Partial<IPostPlatformConfig>,
   ) => {
+    hasUserEditedPlatforms.current = true;
     setPlatformConfigs((prev) =>
       prev.map((config) =>
         config.credentialId === credentialId
@@ -909,7 +858,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     togglePlatform,
     updatePlatformConfig,
     globalScheduledDate,
-    setGlobalScheduledDate,
+    setGlobalScheduledDate: setScheduledDate,
     getMinDateTime,
     settings,
     activeIngredients,

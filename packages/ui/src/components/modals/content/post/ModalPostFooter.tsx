@@ -22,6 +22,7 @@ export default function ModalPostFooter({
     return (
       <ModalActions>
         <Button
+          type="button"
           label="Cancel"
           variant={ButtonVariant.SECONDARY}
           onClick={onClose}
@@ -29,6 +30,7 @@ export default function ModalPostFooter({
         />
 
         <Button
+          type="button"
           label="Next: Select Platforms"
           variant={ButtonVariant.DEFAULT}
           onClick={onNextStep}
@@ -46,6 +48,7 @@ export default function ModalPostFooter({
   return (
     <ModalActions>
       <Button
+        type="button"
         label="Back"
         variant={ButtonVariant.SECONDARY}
         onClick={onPreviousStep}

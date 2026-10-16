@@ -7,6 +7,7 @@ import {
   IngredientCategory,
   PromptCategory,
 } from '@genfeedai/contracts';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useWebsocketPrompt } from '@genfeedai/hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
@@ -14,6 +15,7 @@ import type { ModalPostSetupTabProps } from '@genfeedai/props/modals/modal.props
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { resolvePublishingTimezone } from '@ui/modals/content/batch/batch-platform-sync';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
@@ -32,6 +34,10 @@ export default function ModalPostSetupTab({
   getMinDateTime,
 }: ModalPostSetupTabProps) {
   const isImage = ingredient?.category === IngredientCategory.IMAGE;
+  const scheduleTimezone = resolvePublishingTimezone(
+    settings?.timezone,
+    getBrowserTimezone(),
+  );
   const { brandId } = useBrand();
   const [isGenerating, setIsGenerating] = useState(false);
   const notificationsService = NotificationsService.getInstance();
@@ -158,7 +164,7 @@ export default function ModalPostSetupTab({
         onChange={setGlobalScheduledDate}
         minDate={getMinDateTime()}
         isRequired={true}
-        timezone={settings?.timezone || 'UTC'}
+        timezone={scheduleTimezone}
         isDisabled={isLoading}
         helpText="Minimum 15 minutes from now. Can be overridden per platform in the next step."
       />

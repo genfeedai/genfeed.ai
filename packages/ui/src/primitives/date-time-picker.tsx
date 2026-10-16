@@ -1,5 +1,5 @@
 import { Clock } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import Datepicker from './datepicker';
 import {
@@ -172,17 +172,32 @@ function createDateFromTimezone(
   return new Date(baseUtcDate.getTime() + dayDiffMs + timeDiffMs);
 }
 
-function getDateTimeSourceKey(
-  value: string | Date | undefined,
-  timezone: string | undefined,
-): string {
-  const displayTimezone = timezone || 'UTC';
-
+function getDateTimeSourceKey(value: string | Date | undefined): string {
   if (value instanceof Date) {
-    return `${displayTimezone}:${Number.isNaN(value.getTime()) ? 'invalid-date' : value.toISOString()}`;
+    return Number.isNaN(value.getTime()) ? 'invalid-date' : value.toISOString();
   }
 
-  return `${displayTimezone}:${typeof value === 'string' ? value : ''}`;
+  return typeof value === 'string' ? value : '';
+}
+
+function padClock(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+function wallClockInTimezone(
+  date: Date,
+  timezone: string | undefined,
+): DateTimeResult {
+  const displayTimezone = timezone || 'UTC';
+  if (displayTimezone === 'UTC') {
+    return extractDateTimeFromUTCDate(date);
+  }
+
+  try {
+    return extractDateTimeFromTimezone(date, displayTimezone);
+  } catch {
+    return extractDateTimeFromUTCDate(date);
+  }
 }
 
 function resolveDateTimeResult(
@@ -240,7 +255,7 @@ export default function DateTimePicker({
   helpText,
   timezone,
 }: DateTimePickerProps) {
-  const sourceKey = getDateTimeSourceKey(value, timezone);
+  const sourceKey = getDateTimeSourceKey(value);
   const derivedDateTime = useMemo(
     () => resolveDateTimeResult(value, timezone),
     [timezone, value],
@@ -254,36 +269,19 @@ export default function DateTimePicker({
   const selectedTime =
     draft.sourceKey === sourceKey ? draft.time : derivedDateTime.time;
 
-  const getMinDateString = () => {
-    const now = minDate || new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const minWallClock = wallClockInTimezone(minDate || new Date(), timezone);
+
+  const getMinDateString = () => minWallClock.date;
 
   const getMinTime = () => {
-    if (!selectedDate) {
+    if (!selectedDate || selectedDate !== minWallClock.date) {
       return '00:00';
     }
 
-    const now = minDate || new Date();
-    const todayString = getMinDateString();
-
-    if (selectedDate !== todayString) {
-      return '00:00';
-    }
-
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    const milliseconds = now.getMilliseconds();
-
-    if (minutes % 15 === 0 && seconds === 0 && milliseconds === 0) {
-      return `${String(now.getHours()).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    }
-
+    const [hourText, minuteText] = minWallClock.time.split(':');
+    const minutes = Number(minuteText);
     const roundedMinutes = Math.ceil(minutes / 15) * 15;
-    let hours = now.getHours();
+    let hours = Number(hourText);
     let finalMinutes = roundedMinutes;
 
     if (roundedMinutes === 60) {
@@ -291,23 +289,20 @@ export default function DateTimePicker({
       finalMinutes = 0;
     }
 
-    return `${String(hours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+    return `${padClock(hours)}:${padClock(finalMinutes)}`;
   };
 
   const timeOptions = useMemo(() => {
     const options: Array<{ label: string; value: string }> = [];
-    const bound = minDate || new Date();
-    const year = bound.getFullYear();
-    const month = String(bound.getMonth() + 1).padStart(2, '0');
-    const day = String(bound.getDate()).padStart(2, '0');
-    const todayString = `${year}-${month}-${day}`;
+    const todayString = minWallClock.date;
     const isToday = selectedDate === todayString;
 
     let minTotalMinutes = 0;
     if (isToday) {
-      const minutes = bound.getMinutes();
+      const [hourText, minuteText] = minWallClock.time.split(':');
+      const minutes = Number(minuteText);
       const roundedMinutes = Math.ceil(minutes / 15) * 15;
-      let hours = bound.getHours();
+      let hours = Number(hourText);
       let finalMinutes = roundedMinutes;
       if (roundedMinutes === 60) {
         hours = (hours + 1) % 24;
@@ -345,29 +340,60 @@ export default function DateTimePicker({
     }
 
     return options;
-  }, [selectedDate, selectedTime, minDate]);
+  }, [minWallClock.date, minWallClock.time, selectedDate, selectedTime]);
 
-  const updateDateTime = (dateString: string, timeString: string) => {
-    if (!dateString || !timeString) {
-      onChange(null);
+  const updateDateTime = useCallback(
+    (dateString: string, timeString: string) => {
+      if (!dateString || !timeString) {
+        onChange(null);
+        return;
+      }
+
+      const [year, month, day] = dateString.split('-').map(Number);
+      const [hours, minutes] = timeString.split(':').map(Number);
+      const displayTimezone = timezone || 'UTC';
+      const requestedDate = `${year}-${padClock(month)}-${padClock(day)}`;
+      const requestedTime = `${padClock(hours)}:${padClock(minutes)}`;
+
+      let utcDate: Date;
+      try {
+        utcDate = createDateFromTimezone(
+          year,
+          month,
+          day,
+          hours,
+          minutes,
+          displayTimezone,
+        );
+      } catch {
+        onChange(null);
+        return;
+      }
+
+      const rendered = wallClockInTimezone(utcDate, displayTimezone);
+      if (rendered.date !== requestedDate || rendered.time !== requestedTime) {
+        onChange(null);
+        return;
+      }
+
+      onChange(utcDate);
+    },
+    [onChange, timezone],
+  );
+
+  const timezoneRef = useRef(timezone);
+  useEffect(() => {
+    if (timezoneRef.current === timezone) {
       return;
     }
 
-    const [year, month, day] = dateString.split('-').map(Number);
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const displayTimezone = timezone || 'UTC';
+    timezoneRef.current = timezone;
+    if (!selectedDate || !selectedTime) {
+      return;
+    }
 
-    const utcDate = createDateFromTimezone(
-      year,
-      month,
-      day,
-      hours,
-      minutes,
-      displayTimezone,
-    );
-
-    onChange(utcDate);
-  };
+    updateDateTime(selectedDate, selectedTime);
+  }, [selectedDate, selectedTime, timezone, updateDateTime]);
 
   const handleDateChange = (next: Date | null) => {
     if (!next) {
@@ -412,6 +438,11 @@ export default function DateTimePicker({
     }
   };
 
+  const zonedMinDate = useMemo(() => {
+    const [year, month, day] = minWallClock.date.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0, 0);
+  }, [minWallClock.date]);
+
   const dateValue = selectedDate ? new Date(`${selectedDate}T12:00:00`) : null;
 
   return (
@@ -432,7 +463,7 @@ export default function DateTimePicker({
           dateFormat="MMM d, yyyy"
           isDisabled={isDisabled}
           isRequired={isRequired}
-          minDate={minDate}
+          minDate={zonedMinDate}
           onChange={handleDateChange}
           placeholderText="Select date"
           value={dateValue}

@@ -3,6 +3,22 @@ import type { RecordFact } from '@genfeedai/props/ui/record-detail/record-fact-l
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 
+function declaredPostTimezone(
+  timezone: string | null | undefined,
+): string | undefined {
+  const declared = timezone?.trim();
+  if (!declared) {
+    return undefined;
+  }
+
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone: declared });
+    return declared;
+  } catch {
+    return undefined;
+  }
+}
+
 function formatPostStatus(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 }
@@ -19,6 +35,7 @@ export function buildPostDetailFacts(
   const scheduledOrPublishedAt = isPublished
     ? post.publicationDate
     : post.scheduledDate;
+  const timeZone = declaredPostTimezone(post.timezone) ?? getBrowserTimezone();
 
   return [
     {
@@ -34,12 +51,9 @@ export function buildPostDetailFacts(
     {
       id: 'when',
       label: isPublished ? 'Published' : 'Scheduled',
-      // Same timezone source as the schedule editor (`getBrowserTimezone`,
-      // via the inspector's When dock) so the fact line and the editor never
-      // disagree about what time is shown.
       value: scheduledOrPublishedAt
         ? new Date(scheduledOrPublishedAt).toLocaleString('en-US', {
-            timeZone: getBrowserTimezone(),
+            timeZone,
           })
         : undefined,
     },

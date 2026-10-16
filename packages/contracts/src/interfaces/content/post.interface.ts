@@ -47,6 +47,7 @@ export interface IPost extends IBaseEntity {
   targetSettings?: Record<string, unknown> | null;
   visibility?: PostVisibility;
   scheduledDate?: string | null;
+  timezone?: string | null;
   uploadedAt: string;
   publicationDate: string;
   publishedAt?: string;

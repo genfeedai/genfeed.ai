@@ -78,6 +78,21 @@ describe('buildPostDetailFacts', () => {
     expect(facts.find((fact) => fact.id === 'seoScore')?.value).toBe(0);
   });
 
+  it('formats a saved schedule in the post timezone', () => {
+    const facts = buildPostDetailFacts(
+      buildPost({
+        scheduledDate: '2026-10-15T21:00:00.000Z',
+        timezone: 'Europe/Malta',
+      }),
+      false,
+    );
+
+    const when = facts.find((fact) => fact.id === 'when')?.value;
+    expect(when).toContain('11:00');
+    expect(when).toContain('PM');
+    expect(when).toContain('15');
+  });
+
   it('formats the schedule time in the browser timezone, matching the schedule editor', () => {
     // Noon UTC on Jan 1 is 7am in America/New_York (UTC-5 in January) — a
     // UTC-only formatter would show a different hour than the editor, which

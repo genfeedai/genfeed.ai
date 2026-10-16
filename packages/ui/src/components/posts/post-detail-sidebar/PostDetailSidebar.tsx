@@ -9,7 +9,10 @@ import {
 } from '@genfeedai/contracts';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
+import {
+  getBrowserTimezone,
+  resolveTimeZone,
+} from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import {
@@ -58,6 +61,7 @@ export default function PostDetailSidebar({
   const translate = useTranslations('ui.postDetailInspector');
   // Get browser timezone for consistent date display
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
+  const scheduleTimezone = resolveTimeZone(post?.timezone, browserTimezone);
   const contentId = post?.id ?? '';
   const [activeTab, setActiveTab] = useState<InspectorTab>('details');
   const [isTikTokReady, setIsTikTokReady] = useState(false);
@@ -320,7 +324,7 @@ export default function PostDetailSidebar({
         isSavingSchedule={isSavingSchedule}
         isScheduleDirty={isScheduleDirty}
         isPublished={isPublished}
-        browserTimezone={browserTimezone}
+        browserTimezone={scheduleTimezone}
         isTikTokReady={isTikTokReady}
         onScheduleChange={onScheduleChange}
         onScheduleSave={onScheduleSave}
