@@ -755,27 +755,25 @@ describe('Membership admin scope', () => {
     return harness;
   }
 
-  it.each([
-    'owner',
-    'admin',
-  ])('adds the admin scope to a full MCP grant for an org %s', async (roleKey) => {
-    const scopes = await mintScopes(ownerHarness(roleKey), {
-      scope: undefined,
-    });
-    expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp, 'admin']);
-  });
+  it.each(['owner', 'admin'])(
+    'adds the admin scope to a full MCP grant for an org %s',
+    async (roleKey) => {
+      const scopes = await mintScopes(ownerHarness(roleKey), {
+        scope: undefined,
+      });
+      expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp, 'admin']);
+    },
+  );
 
-  it.each([
-    'creator',
-    'analytics',
-    'user',
-    'support',
-  ])('keeps a full MCP grant below admin for an org %s', async (roleKey) => {
-    const scopes = await mintScopes(ownerHarness(roleKey), {
-      scope: undefined,
-    });
-    expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp]);
-  });
+  it.each(['creator', 'analytics', 'user', 'support'])(
+    'keeps a full MCP grant below admin for an org %s',
+    async (roleKey) => {
+      const scopes = await mintScopes(ownerHarness(roleKey), {
+        scope: undefined,
+      });
+      expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp]);
+    },
+  );
 
   it('keeps a narrower client-requested scope set below admin even for an owner', async () => {
     const scopes = await mintScopes(ownerHarness('owner'), {
