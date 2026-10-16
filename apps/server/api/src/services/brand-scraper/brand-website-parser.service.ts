@@ -19,6 +19,12 @@ const THIRD_PARTY_SECTION =
   /\b(?:clients?|customers?|partners?|providers?|trusted|logo-wall|testimonials?|quotes?|case-stud(?:y|ies)|as-seen|press)\b|\blogos\b/iu;
 const THIRD_PARTY_ASSET_PATH = /\/(?:clients|partners|logos|trusted)(?:\/|$)/u;
 
+function selectedDomNodes(api: cheerio.CheerioAPI, selector: string) {
+  return api(selector).toArray();
+}
+
+type ParsedDomNode = ReturnType<typeof selectedDomNodes>[number];
+
 @Injectable()
 export class BrandWebsiteParserService {
   parseHtml(
@@ -733,7 +739,7 @@ export class BrandWebsiteParserService {
 
   private isThirdPartyMark(
     $: cheerio.CheerioAPI,
-    node: cheerio.AnyNode,
+    node: ParsedDomNode,
   ): boolean {
     if (node.type !== 'tag') return false;
     const src = $(node).attr('src') ?? $(node).attr('data-src') ?? '';
@@ -745,7 +751,7 @@ export class BrandWebsiteParserService {
 
   private ancestorMarksThirdParty(
     $: cheerio.CheerioAPI,
-    node: cheerio.AnyNode,
+    node: ParsedDomNode,
   ): boolean {
     if (node.type !== 'tag' || node.name === 'body' || node.name === 'html') {
       return false;
