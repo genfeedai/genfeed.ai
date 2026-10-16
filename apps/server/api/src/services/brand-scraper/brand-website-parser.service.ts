@@ -15,6 +15,9 @@ import * as cheerio from 'cheerio';
 
 const MAX_IMAGE_CANDIDATES = 12;
 const MAX_FONT_CANDIDATES = 8;
+const THIRD_PARTY_SECTION =
+  /\b(?:clients?|customers?|partners?|providers?|trusted|logo-wall|testimonials?|quotes?|case-stud(?:y|ies)|as-seen|press)\b|\blogos\b/iu;
+const THIRD_PARTY_ASSET_PATH = /\/(?:clients|partners|logos|trusted)(?:\/|$)/u;
 
 @Injectable()
 export class BrandWebsiteParserService {
@@ -81,16 +84,10 @@ export class BrandWebsiteParserService {
     const valuePropositions = this.extractValuePropositions(bodyText);
     const aboutText = this.extractAboutText(bodyText);
 
-    const logoUrl = this.extractLogoFromDom($, sourceUrl);
     const icons = this.extractIconsFromDom($, sourceUrl);
+    const logoUrl = this.extractLogoFromDom($, sourceUrl) ?? icons[0]?.url;
     const images = this.extractImagesFromDom($, sourceUrl);
-    const bannerUrl = this.extractBannerFromDom(
-      $,
-      sourceUrl,
-      ogImage,
-      images,
-      logoUrl,
-    );
+    const bannerUrl = this.extractBannerFromDom($, sourceUrl, ogImage);
 
     return {
       aboutText,
@@ -540,9 +537,9 @@ export class BrandWebsiteParserService {
     ];
 
     for (const selector of logoSelectors) {
-      const src = $(selector).first().attr('src');
-      if (src) {
-        return this.resolveUrl(src, sourceUrl);
+      const owned = this.firstOwnedImage($, selector, sourceUrl);
+      if (owned) {
+        return owned;
       }
     }
 
@@ -665,6 +662,9 @@ export class BrandWebsiteParserService {
     );
 
     $('img[src], img[data-src], img[srcset]').each((_i, el) => {
+      if (this.isThirdPartyMark($, el)) {
+        return;
+      }
       const direct = $(el).attr('src') ?? $(el).attr('data-src');
       if (direct) {
         addImage(direct, $(el).attr('alt'));
@@ -680,8 +680,6 @@ export class BrandWebsiteParserService {
     $: cheerio.CheerioAPI,
     sourceUrl: string,
     ogImage: string | undefined,
-    images: WebsiteScrapingResult['images'],
-    logoUrl: string | undefined,
   ): string | undefined {
     const bannerSelectors = [
       'img[class*="hero"]',
@@ -693,17 +691,76 @@ export class BrandWebsiteParserService {
     ];
 
     for (const selector of bannerSelectors) {
-      const src = $(selector).first().attr('src');
+      const owned = this.firstOwnedImage($, selector, sourceUrl);
+      if (owned) {
+        return owned;
+      }
+    }
+
+    if (ogImage && !this.isThirdPartyAssetUrl(ogImage)) {
+      return this.resolveUrl(ogImage, sourceUrl);
+    }
+
+    return undefined;
+  }
+
+  private firstOwnedImage(
+    $: cheerio.CheerioAPI,
+    selector: string,
+    sourceUrl: string,
+  ): string | undefined {
+    for (const element of $(selector).toArray()) {
+      if (this.isThirdPartyMark($, element)) {
+        continue;
+      }
+      const src = $(element).attr('src') ?? $(element).attr('data-src');
       if (src) {
         return this.resolveUrl(src, sourceUrl);
       }
     }
+    return undefined;
+  }
 
-    if (ogImage) {
-      return this.resolveUrl(ogImage, sourceUrl);
+  private isThirdPartyAssetUrl(url: string): boolean {
+    try {
+      return THIRD_PARTY_ASSET_PATH.test(
+        new URL(url, 'https://brand.example').pathname.toLowerCase(),
+      );
+    } catch {
+      return false;
     }
+  }
 
-    return images.find((image) => image.src !== logoUrl)?.src;
+  private isThirdPartyMark(
+    $: cheerio.CheerioAPI,
+    node: cheerio.AnyNode,
+  ): boolean {
+    if (node.type !== 'tag') return false;
+    const src = $(node).attr('src') ?? $(node).attr('data-src') ?? '';
+    if (src && this.isThirdPartyAssetUrl(src)) return true;
+    return [node, ...$(node).parents().toArray()].some((ancestor) =>
+      this.ancestorMarksThirdParty($, ancestor),
+    );
+  }
+
+  private ancestorMarksThirdParty(
+    $: cheerio.CheerioAPI,
+    node: cheerio.AnyNode,
+  ): boolean {
+    if (node.type !== 'tag' || node.name === 'body' || node.name === 'html') {
+      return false;
+    }
+    const element = $(node);
+    const descriptor = [
+      element.attr('class'),
+      element.attr('id'),
+      element.attr('aria-label'),
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(' ');
+    const heading = element.children('h1, h2, h3').first().text();
+    if (THIRD_PARTY_SECTION.test(`${descriptor} ${heading}`)) return true;
+    return element.find('img').length >= 4 && /\blogos?\b/iu.test(descriptor);
   }
 
   private extractSrcFromSrcSet(value: string): string {

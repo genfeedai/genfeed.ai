@@ -117,9 +117,9 @@ describe('BrandWebsiteParserService', () => {
     ).toEqual(['Ship the monthly close in one sitting.']);
   });
 
-  it('does not reuse the logo as the fallback banner', () => {
+  it('uses a hero image as the banner and ignores a plain sibling', () => {
     const parsed = service.parseHtml(
-      '<body><img class="logo" src="/logo.png"><img src="/banner.png"></body>',
+      '<body><img class="logo" src="/logo.png"><img class="hero" src="/banner.png"><img src="/quote-card.png"></body>',
       'https://acme.example',
     );
 
@@ -127,6 +127,51 @@ describe('BrandWebsiteParserService', () => {
       bannerUrl: 'https://acme.example/banner.png',
       logoUrl: 'https://acme.example/logo.png',
     });
+    expect(parsed.bannerUrl).not.toBe('https://acme.example/quote-card.png');
+  });
+
+  it('keeps the owned logo and drops a customer logo wall', () => {
+    const parsed = service.parseHtml(
+      `<body>
+        <section class="customer-logos" aria-label="Trusted by">
+          <img class="logo" alt="Partner One" src="/clients/one.svg">
+          <img class="logo" alt="Partner Two" src="/partners/two.svg">
+          <img class="logo" alt="Partner Three" src="/logos/three.svg">
+          <img class="logo" alt="Partner Four" src="/trusted/four.svg">
+        </section>
+        <header><img class="site-logo" alt="Acme" src="/logo.svg"></header>
+        <img class="hero" src="/hero.png">
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.logoUrl).toBe('https://acme.example/logo.svg');
+    expect(parsed.bannerUrl).toBe('https://acme.example/hero.png');
+    expect(parsed.images.map((image) => image.src)).not.toEqual(
+      expect.arrayContaining(['https://acme.example/clients/one.svg']),
+    );
+  });
+
+  it('uses the site icon when every page logo is a customer mark', () => {
+    const parsed = service.parseHtml(
+      `<head>
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+      </head>
+      <body>
+        <div class="logos">
+          <img class="logo" alt="Partner One" src="/wall/one.svg">
+          <img class="logo" alt="Partner Two" src="/wall/two.svg">
+          <img class="logo" alt="Partner Three" src="/wall/three.svg">
+          <img class="logo" alt="Partner Four" src="/wall/four.svg">
+        </div>
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.logoUrl).toBe('https://acme.example/favicon-32.png');
+    expect(parsed.images.map((image) => image.src)).not.toEqual(
+      expect.arrayContaining(['https://acme.example/wall/one.svg']),
+    );
   });
 
   it.each([
