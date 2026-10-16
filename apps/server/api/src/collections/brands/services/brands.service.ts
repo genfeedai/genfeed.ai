@@ -18,7 +18,11 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
-import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import {
+  type BrandKitApplyEffects,
+  type BrandKitApplySocialLink,
+  BrandKitDraftService,
+} from '@api/collections/brands/services/brand-kit-draft.service';
 import { patchBrandWithLearningFenced } from '@api/collections/brands/services/brand-learning-mutation.util';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
@@ -65,14 +69,17 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
+import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import { LinkCategory } from '@genfeedai/contracts';
 import type {
   IBrandKitApplyResult,
+  IBrandKitAssetImportCandidate,
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
@@ -804,8 +811,23 @@ export class BrandsService extends BaseService<
     brandId: string,
     organizationId: string,
     dto: ApplyBrandKitDto,
+    userId?: string,
   ): Promise<IBrandKitApplyResult> {
-    return this.brandKitDraftService.applyBrandKitDraft(
+    const effects: BrandKitApplyEffects = {
+      saveSocialLinks: (links) =>
+        this.saveAppliedBrandKitSocialLinks(brandId, organizationId, links),
+    };
+    if (userId) {
+      effects.importLogo = (candidate) =>
+        this.importAppliedBrandKitLogo(
+          brandId,
+          organizationId,
+          userId,
+          candidate,
+        );
+    }
+
+    const result = await this.brandKitDraftService.applyBrandKitDraft(
       brandId,
       organizationId,
       dto,
@@ -815,7 +837,99 @@ export class BrandsService extends BaseService<
         }) as Promise<BrandDocument | null>,
       (id, orgId, updates, expectedAgentConfig) =>
         this.writeBrandKitDraft(id, orgId, updates, expectedAgentConfig),
+      effects,
     );
+
+    if (
+      result.appliedFields.includes('logo') ||
+      result.appliedFields.includes('socialLinks')
+    ) {
+      await this.invalidateBrandContextCaches(brandId, organizationId);
+    }
+
+    return result;
+  }
+
+  private importAppliedBrandKitLogo(
+    brandId: string,
+    organizationId: string,
+    userId: string,
+    candidate: IBrandKitAssetImportCandidate,
+  ): Promise<IBrandKitAssetImportResponse> {
+    return this.brandKitAssetsService.importBrandKitAssets(
+      brandId,
+      organizationId,
+      userId,
+      { assets: [candidate] },
+      (criteria) => this.findOne(criteria),
+    );
+  }
+
+  private async saveAppliedBrandKitSocialLinks(
+    brandId: string,
+    organizationId: string,
+    links: readonly BrandKitApplySocialLink[],
+  ): Promise<number> {
+    const brand = await this.delegate.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: brandId }),
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    const categories: Record<string, LinkCategory> = {
+      facebook: LinkCategory.FACEBOOK,
+      instagram: LinkCategory.INSTAGRAM,
+      linkedin: LinkCategory.LINKEDIN,
+      tiktok: LinkCategory.TIKTOK,
+      twitter: LinkCategory.TWITTER,
+      x: LinkCategory.TWITTER,
+      youtube: LinkCategory.YOUTUBE,
+    };
+    const labels: Record<string, string> = {
+      facebook: 'Facebook',
+      instagram: 'Instagram',
+      linkedin: 'LinkedIn',
+      tiktok: 'TikTok',
+      twitter: 'Twitter',
+      x: 'Twitter',
+      youtube: 'YouTube',
+    };
+    let saved = 0;
+
+    for (const link of links) {
+      const platform = link.platform.trim().toLowerCase();
+      const category = categories[platform];
+      const url = link.url.trim();
+      if (!category || !/^https?:\/\//iu.test(url)) {
+        continue;
+      }
+
+      try {
+        assertUrlNotPrivate(url);
+      } catch {
+        continue;
+      }
+
+      const existing = await this.prisma.link.findFirst({
+        where: { brandId, category, isDeleted: false },
+      });
+      const label = link.label?.trim() || labels[platform];
+      if (existing) {
+        await this.prisma.link.update({
+          data: { label, url },
+          where: { id: existing.id },
+        });
+      } else {
+        await this.prisma.link.create({
+          data: { brandId, category, label, url },
+        });
+      }
+      saved += 1;
+    }
+
+    return saved;
   }
 
   async buildManualBrandKitDraft(

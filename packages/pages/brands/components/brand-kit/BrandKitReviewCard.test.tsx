@@ -251,6 +251,59 @@ function createDraft(): IBrandKitDraft {
         ownerPath: 'brand.agentConfig.voice.tone',
         proposedValue: 'sharp',
       },
+      voiceStyle: {
+        applyActionDefault: 'preserve',
+        currentValue: '',
+        diagnostics: [],
+        evidence: [],
+        group: 'voice',
+        key: 'voiceStyle',
+        label: 'Voice style',
+        ownerPath: 'brand.agentConfig.voice.style',
+        proposedValue: '   ',
+      },
+      strategyPlatforms: {
+        applyActionDefault: 'preserve',
+        currentValue: [],
+        diagnostics: [],
+        evidence: [],
+        group: 'strategy',
+        key: 'strategyPlatforms',
+        label: 'Platforms',
+        ownerPath: 'brand.agentConfig.strategy.platforms',
+        proposedValue: [],
+      },
+      strategyGoals: {
+        applyActionDefault: 'preserve',
+        diagnostics: [],
+        evidence: [],
+        group: 'strategy',
+        key: 'strategyGoals',
+        label: 'Goals',
+        ownerPath: 'brand.agentConfig.strategy.goals',
+      },
+      socialLinks: {
+        applyActionDefault: 'preserve',
+        currentValue: [],
+        diagnostics: [],
+        evidence: [],
+        group: 'links',
+        key: 'socialLinks',
+        label: 'Social links',
+        ownerPath: 'brand.links',
+        proposedValue: [
+          {
+            platform: 'instagram',
+            sourceType: 'website',
+            url: 'https://instagram.com/acme',
+          },
+          {
+            platform: 'linkedin',
+            sourceType: 'website',
+            url: 'https://linkedin.com/company/acme',
+          },
+        ],
+      },
     },
     id: 'brand-1',
     readiness: {
@@ -413,7 +466,21 @@ describe('BrandKitReviewCard', () => {
     });
 
     expect(screen.getByText('67% readiness')).toBeInTheDocument();
-    expect(screen.getByText('Pick images below')).toBeInTheDocument();
+    expect(screen.queryByText('Pick images below')).not.toBeInTheDocument();
+    expect(screen.queryByText('Voice style')).not.toBeInTheDocument();
+    expect(screen.queryByText('Platforms')).not.toBeInTheDocument();
+    expect(screen.queryByText('Goals')).not.toBeInTheDocument();
+    expect(screen.queryByText('No proposal')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Select Logo')).toBeInTheDocument();
+    const instagram = screen.getByRole('link', {
+      name: 'https://instagram.com/acme',
+    });
+    expect(instagram).toHaveAttribute('href', 'https://instagram.com/acme');
+    expect(instagram.parentElement?.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByText(/^instagram$/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'https://linkedin.com/company/acme' }),
+    ).toHaveAttribute('href', 'https://linkedin.com/company/acme');
     expect(screen.getByAltText('Website logo')).toHaveAttribute(
       'src',
       'https://acme.test/logo.png',
@@ -434,6 +501,29 @@ describe('BrandKitReviewCard', () => {
           description: {
             action: 'accept',
             value: 'Edited description',
+          },
+          logo: {
+            action: 'accept',
+            value: {
+              role: 'logo',
+              sourceType: 'website',
+              url: 'https://acme.test/logo.png',
+            },
+          },
+          socialLinks: {
+            action: 'accept',
+            value: [
+              {
+                platform: 'instagram',
+                sourceType: 'website',
+                url: 'https://instagram.com/acme',
+              },
+              {
+                platform: 'linkedin',
+                sourceType: 'website',
+                url: 'https://linkedin.com/company/acme',
+              },
+            ],
           },
           voiceTone: {
             action: 'accept',
@@ -485,7 +575,10 @@ describe('BrandKitReviewCard', () => {
     expect(
       screen.queryByLabelText('Select Description'),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('New description')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Apply Description' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('New description')).not.toBeInTheDocument();
   });
 
   it('does not keep a dead Refresh brand control', async () => {
@@ -508,7 +601,7 @@ describe('BrandKitReviewCard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not apply deferred asset fields by default', async () => {
+  it('applies the scanned logo and ignores empty proposals', async () => {
     render(
       <BrandKitReviewCard
         brand={brandFixture}
@@ -523,11 +616,9 @@ describe('BrandKitReviewCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
 
     await screen.findAllByText('Logo');
-
-    expect(screen.queryByLabelText('Select Logo')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Apply Logo' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Select Logo')).toBeChecked();
+    expect(screen.queryByLabelText('Select Platforms')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Select Goals')).not.toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Apply Selected Fields' }),
     );
@@ -536,8 +627,20 @@ describe('BrandKitReviewCard', () => {
       expect(mocks.applyBrandKitDraft).toHaveBeenCalled();
     });
 
-    const applyPayload = mocks.applyBrandKitDraft.mock.calls[0]?.[1];
-    expect(applyPayload.fields.logo).toBeUndefined();
+    const applyPayload = mocks.applyBrandKitDraft.mock.calls[0]?.[1] as {
+      fields: Record<string, { value: unknown } | undefined>;
+    };
+    expect(applyPayload.fields.logo).toEqual({
+      action: 'accept',
+      value: {
+        role: 'logo',
+        sourceType: 'website',
+        url: 'https://acme.test/logo.png',
+      },
+    });
+    expect(applyPayload.fields.strategyPlatforms).toBeUndefined();
+    expect(applyPayload.fields.strategyGoals).toBeUndefined();
+    expect(applyPayload.fields.voiceStyle).toBeUndefined();
   });
 
   it('imports the asset candidates picked from the image grid', async () => {
@@ -612,7 +715,7 @@ describe('BrandKitReviewCard', () => {
     await screen.findByText('67% readiness');
 
     expect(screen.getAllByText('extracted').length).toBeGreaterThan(0);
-    expect(screen.getByText('inferred')).toBeInTheDocument();
+    expect(screen.getAllByText('inferred').length).toBeGreaterThan(0);
     expect(screen.getByText('missing')).toBeInTheDocument();
     expect(screen.getByText('Confidence: 91%')).toBeInTheDocument();
     expect(

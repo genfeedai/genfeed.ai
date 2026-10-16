@@ -4,6 +4,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/image', () => ({
+  default: ({ alt, src }: { alt: string; src: string }) => (
+    <img alt={alt} src={src} />
+  ),
+}));
 vi.mock('next/navigation', () => ({
   usePathname: () => '/settings/brand-kit',
   useSearchParams: () => new URLSearchParams(),
@@ -121,6 +126,67 @@ describe('local brand preview', () => {
       />,
     );
     expect(screen.getByText('Snapshot sample')).toBeInTheDocument();
+  });
+  it('shows a preserved scan proposal for the logo, description, and social links', () => {
+    const scanned = draft('Saved live sample');
+    scanned.fields.description = {
+      key: 'description',
+      label: 'Description',
+      group: 'profile',
+      ownerPath: 'brand.description',
+      applyActionDefault: 'preserve',
+      currentValue: 'Old description',
+      proposedValue: 'Close the books on brand.',
+      evidence: [],
+      diagnostics: [],
+    };
+    scanned.fields.logo = {
+      key: 'logo',
+      label: 'Logo',
+      group: 'assets',
+      ownerPath: 'brand.logo',
+      applyActionDefault: 'preserve',
+      proposedValue: {
+        role: 'logo',
+        sourceType: 'website',
+        url: 'https://acme.test/logo.png',
+      },
+      evidence: [],
+      diagnostics: [],
+    };
+    scanned.fields.socialLinks = {
+      key: 'socialLinks',
+      label: 'Social links',
+      group: 'links',
+      ownerPath: 'brand.links',
+      applyActionDefault: 'preserve',
+      proposedValue: [
+        {
+          platform: 'instagram',
+          sourceType: 'website',
+          url: 'https://instagram.com/acme',
+        },
+      ],
+      evidence: [],
+      diagnostics: [],
+    };
+    render(
+      <BrandKitLocalPreview
+        brand={brand}
+        content={scanned}
+        approvedContent={null}
+      />,
+    );
+    expect(screen.getByText('Close the books on brand.')).toBeInTheDocument();
+    expect(screen.queryByText('Old description')).not.toBeInTheDocument();
+    expect(screen.getByRole('presentation')).toHaveAttribute(
+      'src',
+      'https://acme.test/logo.png',
+    );
+    expect(
+      screen.getByRole('link', { name: 'https://instagram.com/acme' }),
+    ).toHaveAttribute('href', 'https://instagram.com/acme');
+    expect(screen.queryByText('A')).not.toBeInTheDocument();
   });
   it('does not offer an approved snapshot when none exists', () => {
     render(

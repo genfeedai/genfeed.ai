@@ -17,6 +17,7 @@ import {
   type IBrandKitDraftField,
   type IBrandKitSourceEvidence,
 } from '@genfeedai/contracts/interfaces';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
@@ -30,6 +31,10 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BrandKitAssetGrid from './BrandKitAssetGrid';
 import BrandKitAssetTile from './BrandKitAssetTile';
+import {
+  BrandKitReviewApplyControls,
+  useBrandKitReviewApplySetter,
+} from './BrandKitReviewApplyBar';
 
 /** Readable field inside the scan strip — light surface, not invisible ghost. */
 const INLINE_INPUT_CLASSNAME =
@@ -55,8 +60,10 @@ const FIELD_GROUP_ORDER: readonly BrandKitFieldGroup[] = [
 
 const DEFERRED_REVIEW_FIELDS = new Set<BrandKitFieldKey>([
   'banner',
-  'logo',
   'references',
+]);
+const STRUCTURED_APPLY_FIELDS = new Set<BrandKitFieldKey>([
+  'logo',
   'socialLinks',
 ]);
 
@@ -222,7 +229,11 @@ function formatSelectedAssetCount(count: number): string {
 }
 
 function formatSelectedFieldSummary(count: number): string {
-  return `${count} supported ${count === 1 ? 'field' : 'fields'} selected. Images are imported from the asset picker above; social links are review only.`;
+  if (count === 0) {
+    return 'No fields selected. Empty proposals stay off the brand kit.';
+  }
+
+  return `${count} ${count === 1 ? 'field' : 'fields'} selected. Applying writes them onto the brand kit.`;
 }
 
 function hasObjectValue(value: unknown): value is Record<string, unknown> {
@@ -293,8 +304,102 @@ function parseSocialUrls(value: string): string[] {
     .filter(Boolean);
 }
 
+interface BrandKitSocialProposal {
+  platform: string;
+  url: string;
+}
+
+function readSocialProposals(value: unknown): BrandKitSocialProposal[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    if (!hasObjectValue(entry)) {
+      return [];
+    }
+    const platform = typeof entry.platform === 'string' ? entry.platform : '';
+    const url = typeof entry.url === 'string' ? entry.url.trim() : '';
+    if (!platform || !url) {
+      return [];
+    }
+    return [{ platform, url }];
+  });
+}
+
+function SocialLinkReadout({
+  emptyLabel,
+  value,
+}: {
+  emptyLabel: string;
+  value: unknown;
+}) {
+  const links = readSocialProposals(value);
+  if (links.length === 0) {
+    return (
+      <p className="min-h-12 rounded-md bg-background-secondary p-2 text-xs text-muted-foreground">
+        {emptyLabel}
+      </p>
+    );
+  }
+
+  return (
+    <ul className="min-h-12 space-y-2 rounded-md bg-background-secondary p-2">
+      {links.map((link) => (
+        <li
+          className="flex min-w-0 items-center gap-2 text-xs"
+          key={`${link.platform}-${link.url}`}
+        >
+          <span aria-hidden="true" className="shrink-0">
+            {getPlatformIcon(link.platform, 'size-4')}
+          </span>
+          <a
+            className="min-w-0 truncate rounded-sm text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            href={link.url}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {link.url}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function hasMeaningfulBrandKitValue(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some(hasMeaningfulBrandKitValue);
+  }
+
+  if (hasObjectValue(value)) {
+    if ('url' in value || 'platform' in value || 'role' in value) {
+      return typeof value.url === 'string' && value.url.trim().length > 0;
+    }
+    return Object.values(value).some(hasMeaningfulBrandKitValue);
+  }
+
+  return false;
+}
+
 function hasProposedValue(field: IBrandKitDraftField): boolean {
-  return field.proposedValue !== undefined && field.proposedValue !== null;
+  return hasMeaningfulBrandKitValue(field.proposedValue);
+}
+
+function readApplyValue(
+  key: BrandKitFieldKey,
+  field: IBrandKitDraftField,
+  fieldValues: BrandKitFieldValues,
+): unknown {
+  if (STRUCTURED_APPLY_FIELDS.has(key)) {
+    return field.proposedValue;
+  }
+
+  return parseEditableValue(key, fieldValues[key] ?? '');
 }
 
 function canApplyField(key: BrandKitFieldKey, field: IBrandKitDraftField) {
@@ -365,7 +470,7 @@ export default function BrandKitReviewCard({
     for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
       const field = draft.fields[owner.key];
 
-      if (field) {
+      if (field && hasProposedValue(field)) {
         groups.get(owner.group)?.push({ field, key: owner.key });
       }
     }
@@ -610,7 +715,7 @@ export default function BrandKitReviewCard({
         if (field && canApplyField(key, field)) {
           acc[key] = {
             action: 'accept',
-            value: parseEditableValue(key, fieldValues[key] ?? ''),
+            value: readApplyValue(key, field, fieldValues),
           };
         }
 
@@ -636,31 +741,24 @@ export default function BrandKitReviewCard({
         if (isBrandOsDraftRef.current && result.appliedFields.length > 0) {
           onBrandOsDraftAccepted?.();
         }
-        setDraft((current) => {
-          if (!current) {
-            return current;
+        const nextFields = { ...draft.fields };
+
+        for (const key of result.appliedFields) {
+          const field = nextFields[key];
+          const sent = fields[key]?.value;
+          if (!field || sent === undefined) {
+            continue;
           }
 
-          const nextFields = { ...current.fields };
+          nextFields[key] = {
+            ...field,
+            currentValue: sent,
+            proposedValue: undefined,
+          };
+        }
 
-          for (const key of result.appliedFields) {
-            const field = nextFields[key];
-            if (!field) {
-              continue;
-            }
-
-            nextFields[key] = {
-              ...field,
-              currentValue: parseEditableValue(
-                key,
-                fieldValues[key] ?? formatBrandKitValue(field.proposedValue),
-              ),
-              proposedValue: undefined,
-            };
-          }
-
-          return { ...current, fields: nextFields };
-        });
+        const nextDraft = { ...draft, fields: nextFields };
+        setDraft(nextDraft);
         setSelectedFields((current) => {
           const next = new Set(current);
           for (const key of result.appliedFields) {
@@ -668,6 +766,16 @@ export default function BrandKitReviewCard({
           }
           return next;
         });
+        if (result.appliedFields.length > 0) {
+          try {
+            await onDraftCreated?.(nextDraft);
+          } catch (persistError) {
+            logger.error(
+              'Failed to persist applied Brand OS revision',
+              persistError,
+            );
+          }
+        }
         await onRefreshBrand();
       } catch (applyError) {
         logger.error('Failed to apply brand kit draft', applyError);
@@ -682,9 +790,52 @@ export default function BrandKitReviewCard({
       fieldValues,
       getBrandsService,
       onBrandOsDraftAccepted,
+      onDraftCreated,
       onRefreshBrand,
     ],
   );
+
+  const setApplyState = useBrandKitReviewApplySetter();
+  const applySummary = formatSelectedFieldSummary(selectedApplyCount);
+  const isApplyDisabled = selectedApplyCount === 0 || isApplying;
+
+  useEffect(() => {
+    if (!setApplyState) {
+      return;
+    }
+
+    if (!draft) {
+      setApplyState(null);
+      return;
+    }
+
+    setApplyState({
+      isApplying,
+      isDisabled: isApplyDisabled,
+      onApply: () => {
+        void handleApplyKeys([...selectedFields]);
+      },
+      summary: applySummary,
+    });
+  }, [
+    applySummary,
+    draft,
+    handleApplyKeys,
+    isApplyDisabled,
+    isApplying,
+    selectedFields,
+    setApplyState,
+  ]);
+
+  useEffect(() => {
+    if (!setApplyState) {
+      return;
+    }
+
+    return () => {
+      setApplyState(null);
+    };
+  }, [setApplyState]);
 
   return (
     <Card
@@ -787,6 +938,18 @@ export default function BrandKitReviewCard({
 
         {draft ? (
           <div className="space-y-5">
+            {setApplyState ? null : (
+              <BrandKitReviewApplyControls
+                state={{
+                  isApplying,
+                  isDisabled: isApplyDisabled,
+                  onApply: () => {
+                    void handleApplyKeys([...selectedFields]);
+                  },
+                  summary: applySummary,
+                }}
+              />
+            )}
             {FIELD_GROUP_ORDER.map((group) => {
               const fields = groupedFields.get(group) ?? [];
 
@@ -804,6 +967,7 @@ export default function BrandKitReviewCard({
                     {fields.map(({ field, key }) => {
                       const isDeferred = DEFERRED_REVIEW_FIELDS.has(key);
                       const isAssetField = ASSET_FIELDS.has(key);
+                      const isSocialField = key === 'socialLinks';
                       const isSelectable = canApplyField(key, field);
                       const proposedValue = formatBrandKitValue(
                         field.proposedValue,
@@ -880,6 +1044,11 @@ export default function BrandKitReviewCard({
                                   assets={currentAssets}
                                   emptyLabel="Empty"
                                 />
+                              ) : isSocialField ? (
+                                <SocialLinkReadout
+                                  emptyLabel="Empty"
+                                  value={field.currentValue}
+                                />
                               ) : (
                                 <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
                                   {currentValue || 'Empty'}
@@ -895,6 +1064,11 @@ export default function BrandKitReviewCard({
                                 <BrandKitAssetGrid
                                   assets={proposedAssets}
                                   emptyLabel="No proposal"
+                                />
+                              ) : isSocialField ? (
+                                <SocialLinkReadout
+                                  emptyLabel="No proposal"
+                                  value={field.proposedValue}
                                 />
                               ) : isSelectable && selectedFields.has(key) ? (
                                 <Textarea
@@ -1055,18 +1229,6 @@ export default function BrandKitReviewCard({
                 {formatAppliedFieldsSummary(applyResult)}
               </div>
             ) : null}
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-              <p className="text-xs text-muted-foreground">
-                {formatSelectedFieldSummary(selectedApplyCount)}
-              </p>
-              <Button
-                isDisabled={selectedApplyCount === 0 || isApplying}
-                isLoading={isApplying}
-                label="Apply Selected Fields"
-                onClick={() => void handleApplyKeys([...selectedFields])}
-              />
-            </div>
           </div>
         ) : (
           <div className="flex flex-col items-start gap-1 rounded-md border border-dashed border-border/60 px-3 py-4">

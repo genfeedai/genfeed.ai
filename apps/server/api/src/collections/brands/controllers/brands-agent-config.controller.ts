@@ -152,6 +152,7 @@ export class BrandsAgentConfigController {
       id,
       organizationId,
       dto,
+      (user.userId ?? user.id)?.toString(),
     );
 
     return serializeSingle(request, BrandKitApplySerializer, result);

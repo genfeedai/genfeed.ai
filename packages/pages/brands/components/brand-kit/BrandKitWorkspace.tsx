@@ -167,7 +167,7 @@ export default function BrandKitWorkspace({
         </div>
       </div>
       <Sheet open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetContent className="w-full overflow-y-auto shadow-ambient-lg outline-none sm:max-w-2xl">
           <SheetHeader>
             <SheetTitle>{t('review')}</SheetTitle>
           </SheetHeader>

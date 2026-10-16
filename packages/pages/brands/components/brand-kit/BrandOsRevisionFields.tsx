@@ -206,6 +206,22 @@ function ValueEditor({
   );
 }
 
+function hasRevisionDisplayValue(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+  if (Array.isArray(value)) {
+    return value.some(hasRevisionDisplayValue);
+  }
+  if (isRecord(value)) {
+    if (typeof value.url === 'string' && value.url.trim().length > 0) {
+      return true;
+    }
+    return Object.values(value).some(hasRevisionDisplayValue);
+  }
+  return false;
+}
+
 function candidateValue(candidate: IBrandKitAssetCandidate) {
   const {
     candidateId: _candidateId,
@@ -242,9 +258,11 @@ export default function BrandOsRevisionFields({
           ? field.applyActionDefault === 'preserve'
             ? field.currentValue
             : (field.proposedValue ?? field.currentValue)
-          : field.applyActionDefault === 'accept'
-            ? (field.proposedValue ?? field.currentValue)
-            : field.currentValue;
+          : field.applyActionDefault === 'reject'
+            ? field.currentValue
+            : hasRevisionDisplayValue(field.proposedValue)
+              ? field.proposedValue
+              : field.currentValue;
         const role = key === 'references' ? 'reference' : key;
         const candidates = content.assetCandidates.filter(
           (candidate) => candidate.role === role,

@@ -2,6 +2,7 @@
 
 import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { BrandKitLocalPreviewProps } from '@props/pages/brand-kit-workspace.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import {
@@ -14,6 +15,42 @@ import {
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+
+interface PreviewSocialLink {
+  platform: string;
+  url: string;
+}
+
+function hasPreviewValue(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.some(hasPreviewValue);
+  if (isRecord(value)) {
+    if (
+      typeof value.url === 'string' &&
+      /^https?:\/\//u.test(value.url.trim())
+    ) {
+      return true;
+    }
+    return Object.values(value).some(hasPreviewValue);
+  }
+  return false;
+}
+
+function readPreviewSocialLinks(value: unknown): PreviewSocialLink[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.url !== 'string') return [];
+    const url = entry.url.trim();
+    if (!/^https?:\/\//u.test(url)) return [];
+    const platform =
+      typeof entry.platform === 'string'
+        ? entry.platform
+        : typeof entry.category === 'string'
+          ? entry.category.toLowerCase()
+          : '';
+    return platform ? [{ platform, url }] : [];
+  });
+}
 
 /** Pure browser rendering. Changing a preview never calls a generation service. */
 export default function BrandKitLocalPreview({
@@ -29,10 +66,20 @@ export default function BrandKitLocalPreview({
   function value(key: BrandKitFieldKey, fallback: unknown) {
     const field = draft?.fields[key];
     if (!field) return fallback;
-    return field.applyActionDefault === 'preserve' ||
-      field.applyActionDefault === 'reject'
-      ? (field.currentValue ?? fallback)
-      : (field.proposedValue ?? field.currentValue ?? fallback);
+    if (source === 'approved') {
+      return field.applyActionDefault === 'preserve' ||
+        field.applyActionDefault === 'reject'
+        ? (field.currentValue ?? fallback)
+        : (field.proposedValue ?? field.currentValue ?? fallback);
+    }
+    if (field.applyActionDefault === 'reject') {
+      return hasPreviewValue(field.currentValue)
+        ? field.currentValue
+        : fallback;
+    }
+    if (hasPreviewValue(field.proposedValue)) return field.proposedValue;
+    if (hasPreviewValue(field.currentValue)) return field.currentValue;
+    return fallback;
   }
   function text(key: BrandKitFieldKey, fallback: string) {
     const result = value(key, fallback);
@@ -55,6 +102,7 @@ export default function BrandKitLocalPreview({
     /^https?:\/\//u.test(logo.url)
       ? logo.url
       : undefined;
+  const socialLinks = readPreviewSocialLinks(value('socialLinks', []));
   const background = color(
     'backgroundColor',
     fallbackBrand?.backgroundColor || '#000000',
@@ -168,6 +216,28 @@ export default function BrandKitLocalPreview({
                 fallbackBrand?.description || t('description'),
               )}
             </p>
+            {socialLinks.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {socialLinks.map((link) => (
+                  <li
+                    className="flex min-w-0 items-center gap-2 text-xs"
+                    key={`${link.platform}-${link.url}`}
+                  >
+                    <span aria-hidden="true" className="shrink-0">
+                      {getPlatformIcon(link.platform, 'size-4')}
+                    </span>
+                    <a
+                      className="min-w-0 truncate underline-offset-2 hover:underline"
+                      href={link.url}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      {link.url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
           <p className="relative text-xs opacity-70">{brand.slug}</p>
         </div>

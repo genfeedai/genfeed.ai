@@ -9,6 +9,7 @@ import type {
   IScrapedBrandData,
   IScrapedImageCandidate,
 } from '@genfeedai/contracts/interfaces';
+import { isBrandKitGuidanceNoise } from '@genfeedai/helpers';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
@@ -745,8 +746,14 @@ export class BrandWebsiteParserService {
     for (const pattern of bulletPatterns) {
       const matches = text.matchAll(pattern);
       for (const match of matches) {
-        if (match[1] && match[1].length > 10 && match[1].length < 200) {
-          propositions.push(match[1].trim());
+        const proposition = match[1]?.trim();
+        if (
+          proposition &&
+          proposition.length > 10 &&
+          proposition.length < 200 &&
+          !isBrandKitGuidanceNoise(proposition)
+        ) {
+          propositions.push(proposition);
         }
       }
     }

@@ -54,6 +54,11 @@ describe('BrandsService', () => {
   let service: BrandsService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let assetDelegate: Record<string, ReturnType<typeof vi.fn>>;
+  let linkDelegate: {
+    create: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
   let queryRaw: ReturnType<typeof vi.fn>;
   let credentialDelegate: { findMany: ReturnType<typeof vi.fn> };
   let brandLifecycleService: {
@@ -113,6 +118,11 @@ describe('BrandsService', () => {
       update: vi.fn(),
       updateMany: vi.fn(),
     };
+    linkDelegate = {
+      create: vi.fn().mockResolvedValue({ id: 'link_1' }),
+      findFirst: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({ id: 'link_1' }),
+    };
     cacheInvalidationService = {
       invalidate: vi.fn(),
       invalidateByTags: vi.fn(),
@@ -154,6 +164,7 @@ describe('BrandsService', () => {
       $queryRaw: queryRaw,
       asset: assetDelegate,
       brand: delegate,
+      link: linkDelegate,
       credential: credentialDelegate,
       organization: organizationDelegate,
     } as unknown as PrismaService;
@@ -1646,50 +1657,93 @@ describe('BrandsService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('preserves links and assets until the safe asset import child ships', async () => {
+    it('applies a scanned logo and social links onto the brand', async () => {
       delegate.findFirst.mockResolvedValue({
         agentConfig: {},
         id: brandId,
         isDeleted: false,
         organizationId,
       });
+      assetDelegate.findFirst.mockResolvedValue(null);
+      assetDelegate.create.mockResolvedValue({ id: 'asset_new' });
+      assetDelegate.update.mockResolvedValue({ id: 'asset_new' });
+      filesClientService.uploadToS3.mockResolvedValue({
+        publicUrl: 'https://cdn.example.com/asset_new',
+        size: 1_200,
+      });
+      linkDelegate.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'link_existing' });
 
-      const result = await service.applyBrandKitDraft(brandId, organizationId, {
-        fields: {
-          logo: {
-            action: 'accept',
-            value: {
-              role: 'logo',
-              sourceType: 'website',
-              url: 'https://acme.test/logo.svg',
+      const result = await service.applyBrandKitDraft(
+        brandId,
+        organizationId,
+        {
+          fields: {
+            logo: {
+              action: 'accept',
+              value: {
+                label: 'Website logo',
+                mimeType: 'image/png',
+                role: 'logo',
+                sourceType: 'website',
+                url: 'https://acme.example/logo.png',
+              },
+            },
+            socialLinks: {
+              action: 'accept',
+              value: [
+                {
+                  platform: 'linkedin',
+                  url: 'https://linkedin.com/company/acme',
+                },
+                {
+                  platform: 'instagram',
+                  url: 'https://instagram.com/acme',
+                },
+              ],
             },
           },
-          socialLinks: {
-            action: 'accept',
-            value: [{ platform: 'linkedin', url: 'https://linkedin.test' }],
-          },
         },
-      });
+        'user_1',
+      );
 
       expect(delegate.update).not.toHaveBeenCalled();
       expect(delegate.updateMany).not.toHaveBeenCalled();
-      expect(result.appliedFields).toEqual([]);
-      expect(result.preservedFields).toEqual(['logo', 'socialLinks']);
-      expect(result.status).toBe('partial');
-      expect(result.diagnostics).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: 'brand_kit_apply_deferred_field',
-            fieldKey: 'logo',
-            severity: 'warning',
-          }),
-          expect.objectContaining({
-            code: 'brand_kit_apply_deferred_field',
-            fieldKey: 'socialLinks',
-            severity: 'warning',
-          }),
-        ]),
+      expect(assetDelegate.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          category: 'LOGO',
+          mimeType: 'image/png',
+          origin: 'https://acme.example/logo.png',
+          parentBrandId: brandId,
+          parentOrgId: organizationId,
+          parentType: 'BRAND',
+          userId: 'user_1',
+        }),
+      });
+      expect(linkDelegate.create).toHaveBeenCalledWith({
+        data: {
+          brandId,
+          category: 'LINKEDIN',
+          label: 'LinkedIn',
+          url: 'https://linkedin.com/company/acme',
+        },
+      });
+      expect(linkDelegate.update).toHaveBeenCalledWith({
+        data: {
+          label: 'Instagram',
+          url: 'https://instagram.com/acme',
+        },
+        where: { id: 'link_existing' },
+      });
+      expect(result.appliedFields).toEqual(
+        expect.arrayContaining(['logo', 'socialLinks']),
       );
+      expect(result.preservedFields).not.toEqual(
+        expect.arrayContaining(['logo', 'socialLinks']),
+      );
+      expect(result.status).toBe('accepted');
+      expect(cacheInvalidationService.invalidate).toHaveBeenCalled();
     });
 
     it('rejects unsupported font candidates without mutating the brand', async () => {

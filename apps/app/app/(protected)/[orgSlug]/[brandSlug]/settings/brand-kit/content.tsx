@@ -9,6 +9,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
+import {
+  BrandKitReviewActionsProvider,
+  BrandKitReviewApplyBar,
+} from '@pages/brands/components/brand-kit/BrandKitReviewApplyBar';
 import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
 import BrandKitWorkspace from '@pages/brands/components/brand-kit/BrandKitWorkspace';
 import BrandOsSettingsCard from '@pages/brands/components/brand-kit/BrandOsSettingsCard';
@@ -207,13 +211,16 @@ export default function BrandKitPage() {
           if (!open) setWorkflow(null);
         }}
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
-          <SheetHeader>
-            <SheetTitle>
-              {workflow === 'scan' ? t('scan') : t('manualImport')}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="pt-4">{workflow === 'scan' ? scan : manual}</div>
+        <SheetContent className="w-full overflow-y-auto shadow-ambient-lg outline-none sm:max-w-2xl">
+          <BrandKitReviewActionsProvider>
+            <SheetHeader className="flex-row flex-wrap items-center gap-3 space-y-0 pr-10 text-left">
+              <SheetTitle className="shrink-0">
+                {workflow === 'scan' ? t('scan') : t('manualImport')}
+              </SheetTitle>
+              {workflow === 'scan' ? <BrandKitReviewApplyBar /> : null}
+            </SheetHeader>
+            <div className="pt-4">{workflow === 'scan' ? scan : manual}</div>
+          </BrandKitReviewActionsProvider>
         </SheetContent>
       </Sheet>
     </Container>

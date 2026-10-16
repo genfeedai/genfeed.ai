@@ -13,7 +13,10 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { FontFamily } from '@genfeedai/contracts';
 import type {
   BrandKitFieldKey,
+  BrandKitSourceType,
   IBrandKitApplyResult,
+  IBrandKitAssetImportCandidate,
+  IBrandKitAssetImportResponse,
   IBrandKitDiagnostic,
   IBrandKitDraft,
   IExtractedSocialLinks,
@@ -55,10 +58,30 @@ const BRAND_KIT_STRATEGY_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
 };
 const BRAND_KIT_DEFERRED_APPLY_FIELDS = new Set<BrandKitFieldKey>([
   'banner',
-  'logo',
   'references',
-  'socialLinks',
 ]);
+const BRAND_KIT_SOURCE_TYPES = new Set<BrandKitSourceType>([
+  'current_brand',
+  'manual',
+  'system',
+  'uploaded_guidance',
+  'website',
+]);
+
+export interface BrandKitApplySocialLink {
+  label?: string;
+  platform: string;
+  url: string;
+}
+
+export interface BrandKitApplyEffects {
+  importLogo?: (
+    candidate: IBrandKitAssetImportCandidate,
+  ) => Promise<IBrandKitAssetImportResponse>;
+  saveSocialLinks?: (
+    links: readonly BrandKitApplySocialLink[],
+  ) => Promise<number>;
+}
 const BRAND_KIT_FIELD_KEYS = new Set<BrandKitFieldKey>(
   BRAND_KIT_FIELD_OWNERSHIP.map((field) => field.key),
 );
@@ -165,6 +188,7 @@ export class BrandKitDraftService {
     dto: ApplyBrandKitDto,
     findBrand: BrandKitDraftBrandFinder,
     writeBrand: BrandKitBrandWriter,
+    effects?: BrandKitApplyEffects,
   ): Promise<IBrandKitApplyResult> {
     const brand = await findBrand(scopedWhere(organizationId, { id: brandId }));
 
@@ -178,6 +202,8 @@ export class BrandKitDraftService {
     const updateData: Record<string, unknown> = {};
     const voiceUpdates: Record<string, unknown> = {};
     const strategyUpdates: Record<string, unknown> = {};
+    let logoCandidate: IBrandKitAssetImportCandidate | undefined;
+    let socialLinks: readonly BrandKitApplySocialLink[] | undefined;
 
     for (const [rawKey, decision] of Object.entries(dto.fields ?? {})) {
       if (!this.isBrandKitFieldKey(rawKey)) {
@@ -191,6 +217,36 @@ export class BrandKitDraftService {
 
       if (decision.action === 'preserve' || decision.action === 'reject') {
         preservedFields.push(rawKey);
+        continue;
+      }
+
+      if (rawKey === 'logo') {
+        const candidate = this.readLogoApplyCandidate(decision.value);
+        if (!candidate) {
+          diagnostics.push({
+            code: 'brand_kit_apply_invalid_value',
+            fieldKey: rawKey,
+            message: `${rawKey} did not include a public logo URL.`,
+            severity: 'error',
+          });
+          continue;
+        }
+        logoCandidate = candidate;
+        continue;
+      }
+
+      if (rawKey === 'socialLinks') {
+        const links = this.readSocialLinkApplyValues(decision.value);
+        if (!links) {
+          diagnostics.push({
+            code: 'brand_kit_apply_invalid_value',
+            fieldKey: rawKey,
+            message: `${rawKey} did not include a supported value.`,
+            severity: 'error',
+          });
+          continue;
+        }
+        socialLinks = links;
         continue;
       }
 
@@ -269,6 +325,26 @@ export class BrandKitDraftService {
       );
     }
 
+    if (logoCandidate) {
+      await this.applyLogoCandidate(
+        logoCandidate,
+        effects,
+        appliedFields,
+        preservedFields,
+        diagnostics,
+      );
+    }
+
+    if (socialLinks) {
+      await this.applySocialLinks(
+        socialLinks,
+        effects,
+        appliedFields,
+        preservedFields,
+        diagnostics,
+      );
+    }
+
     const hasBlockingDiagnostic = diagnostics.some(
       (diagnostic) => diagnostic.severity === 'error',
     );
@@ -286,6 +362,185 @@ export class BrandKitDraftService {
             ? 'partial'
             : 'accepted',
     };
+  }
+
+  private async applyLogoCandidate(
+    candidate: IBrandKitAssetImportCandidate,
+    effects: BrandKitApplyEffects | undefined,
+    appliedFields: BrandKitFieldKey[],
+    preservedFields: BrandKitFieldKey[],
+    diagnostics: IBrandKitDiagnostic[],
+  ): Promise<void> {
+    if (!effects?.importLogo) {
+      preservedFields.push('logo');
+      diagnostics.push({
+        code: 'brand_kit_apply_logo_unavailable',
+        fieldKey: 'logo',
+        message:
+          'The scanned logo was preserved because this apply call has no user to own the imported asset.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    try {
+      const imported = await effects.importLogo(candidate);
+      const result = imported.results?.find((entry) => entry.role === 'logo');
+      if (result?.status === 'imported' || result?.status === 'skipped') {
+        appliedFields.push('logo');
+        diagnostics.push(...result.diagnostics);
+        return;
+      }
+
+      preservedFields.push('logo');
+      diagnostics.push(
+        ...(imported.diagnostics.length > 0
+          ? imported.diagnostics
+          : [
+              {
+                code: 'brand_kit_apply_logo_failed',
+                fieldKey: 'logo' as const,
+                message: 'The scanned logo could not be imported.',
+                severity: 'error' as const,
+              },
+            ]),
+      );
+    } catch (error: unknown) {
+      preservedFields.push('logo');
+      diagnostics.push({
+        code: 'brand_kit_apply_logo_failed',
+        fieldKey: 'logo',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'The scanned logo could not be imported.',
+        severity: 'error',
+      });
+    }
+  }
+
+  private async applySocialLinks(
+    links: readonly BrandKitApplySocialLink[],
+    effects: BrandKitApplyEffects | undefined,
+    appliedFields: BrandKitFieldKey[],
+    preservedFields: BrandKitFieldKey[],
+    diagnostics: IBrandKitDiagnostic[],
+  ): Promise<void> {
+    if (!effects?.saveSocialLinks) {
+      preservedFields.push('socialLinks');
+      diagnostics.push({
+        code: 'brand_kit_apply_social_unavailable',
+        fieldKey: 'socialLinks',
+        message:
+          'Social links were preserved because link saving is unavailable.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    try {
+      const saved = await effects.saveSocialLinks(links);
+      if (saved > 0) {
+        appliedFields.push('socialLinks');
+        return;
+      }
+
+      preservedFields.push('socialLinks');
+      diagnostics.push({
+        code: 'brand_kit_apply_invalid_value',
+        fieldKey: 'socialLinks',
+        message: 'Social links did not include a public profile URL.',
+        severity: 'error',
+      });
+    } catch (error: unknown) {
+      preservedFields.push('socialLinks');
+      diagnostics.push({
+        code: 'brand_kit_apply_social_failed',
+        fieldKey: 'socialLinks',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Social links could not be saved.',
+        severity: 'error',
+      });
+    }
+  }
+
+  private readLogoApplyCandidate(
+    value: unknown,
+  ): IBrandKitAssetImportCandidate | undefined {
+    if (typeof value === 'string') {
+      const url = value.trim();
+      if (!/^https?:\/\//iu.test(url)) {
+        return undefined;
+      }
+      return {
+        replaceExisting: true,
+        role: 'logo',
+        sourceType: 'website',
+        url,
+      };
+    }
+
+    const record = this.toBrandKitRecord(value);
+    const url = typeof record.url === 'string' ? record.url.trim() : '';
+    if (!/^https?:\/\//iu.test(url)) {
+      return undefined;
+    }
+
+    const sourceType = this.readBrandKitSourceType(record.sourceType);
+    const candidate: IBrandKitAssetImportCandidate = {
+      replaceExisting: true,
+      role: 'logo',
+      sourceType: sourceType ?? 'website',
+      url,
+    };
+    const label = typeof record.label === 'string' ? record.label.trim() : '';
+    const mimeType =
+      typeof record.mimeType === 'string' ? record.mimeType.trim() : '';
+    if (label) {
+      candidate.label = label;
+    }
+    if (mimeType) {
+      candidate.mimeType = mimeType;
+    }
+    return candidate;
+  }
+
+  private readSocialLinkApplyValues(
+    value: unknown,
+  ): BrandKitApplySocialLink[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const links: BrandKitApplySocialLink[] = [];
+    for (const entry of value) {
+      const record = this.toBrandKitRecord(entry);
+      const platform =
+        typeof record.platform === 'string' ? record.platform.trim() : '';
+      const url = typeof record.url === 'string' ? record.url.trim() : '';
+      if (!platform || !url) {
+        continue;
+      }
+      const link: BrandKitApplySocialLink = { platform, url };
+      const label = typeof record.label === 'string' ? record.label.trim() : '';
+      if (label) {
+        link.label = label;
+      }
+      links.push(link);
+    }
+
+    return links.length > 0 ? links : undefined;
+  }
+
+  private readBrandKitSourceType(
+    value: unknown,
+  ): BrandKitSourceType | undefined {
+    return typeof value === 'string' &&
+      BRAND_KIT_SOURCE_TYPES.has(value as BrandKitSourceType)
+      ? (value as BrandKitSourceType)
+      : undefined;
   }
 
   private isBrandKitFieldKey(value: string): value is BrandKitFieldKey {

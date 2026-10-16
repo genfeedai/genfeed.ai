@@ -1305,6 +1305,7 @@ describe('BrandsController', () => {
             },
           },
         },
+        mockUser.userId,
       );
       expect(serializeSingle).toHaveBeenCalledWith(
         mockRequest,

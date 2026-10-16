@@ -326,6 +326,34 @@ describe('brand kit contract helpers', () => {
     );
   });
 
+  it('keeps real website sentences and drops media config from prompt guidelines', () => {
+    const draft = buildBrandKitDraftFromWebsiteScrape(createCompleteBrand(), {
+      description: 'Operating system for finance teams.',
+      heroText: 'Close the books without the spreadsheet chase.',
+      scrapedAt: new Date('2026-06-30T10:00:00Z'),
+      sourceUrl: 'https://acme.example',
+      tagline: 'Create on brand.',
+      valuePropositions: [
+        'Ship the monthly close in one sitting.',
+        'RL01.mp4 autoPlay muted loop playsInline {"src":"hero.webp","rect":[0,0,16,9]}',
+        '{"autoPlay":true,"muted":true,"loop":true}',
+      ],
+    });
+
+    const guidance = String(draft.fields.promptGuidelines?.proposedValue);
+    expect(guidance).toContain('Tagline: Create on brand.');
+    expect(guidance).toContain(
+      'Description: Operating system for finance teams.',
+    );
+    expect(guidance).toContain(
+      'Hero: Close the books without the spreadsheet chase.',
+    );
+    expect(guidance).toContain('Ship the monthly close in one sitting.');
+    expect(guidance).not.toContain('mp4');
+    expect(guidance).not.toContain('autoPlay');
+    expect(guidance).not.toContain('webp');
+  });
+
   it('maps manual intake fields and uploaded guidance into proposed draft values', () => {
     const draft = buildBrandKitDraftFromManualInput(createCompleteBrand(), {
       description: 'Manual description',

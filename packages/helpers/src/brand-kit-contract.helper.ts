@@ -520,14 +520,53 @@ function compactTextParts(
   return hasText(text) ? text : undefined;
 }
 
+const GUIDANCE_MEDIA_CONFIG =
+  /\b(?:autoPlay|playsInline|objectFit|currentTime)\b/;
+const GUIDANCE_MEDIA_FILE = /\b[\w.-]+\.(?:mp4|m4v|webm|m3u8|webp|json)\b/i;
+const GUIDANCE_CODE_FRAGMENT = /[{}[\]]|"[^"]+"\s*:/;
+
+/** Value-proposition text that is code, JSON, a media config, or a file name. */
+export function isBrandKitGuidanceNoise(value: string): boolean {
+  const text = value.trim();
+  if (!text) {
+    return true;
+  }
+
+  if (
+    GUIDANCE_MEDIA_CONFIG.test(text) ||
+    GUIDANCE_MEDIA_FILE.test(text) ||
+    GUIDANCE_CODE_FRAGMENT.test(text)
+  ) {
+    return true;
+  }
+
+  const lower = text.toLowerCase();
+  return (
+    /\b(?:autoplay|playsinline)\b/.test(lower) &&
+    /\b(?:muted|loop)\b/.test(lower)
+  );
+}
+
+function readableValuePropositions(
+  values: readonly string[] | undefined,
+): string[] {
+  return (values ?? []).filter(
+    (value) => hasText(value) && !isBrandKitGuidanceNoise(value),
+  );
+}
+
 function buildWebsiteGuidance(scraped: IScrapedBrandData): string | undefined {
+  const valuePropositions = readableValuePropositions(
+    scraped.valuePropositions,
+  );
+
   return compactTextParts([
     scraped.tagline && `Tagline: ${scraped.tagline}`,
     scraped.description && `Description: ${scraped.description}`,
     scraped.heroText && `Hero: ${scraped.heroText}`,
     scraped.aboutText && `About: ${scraped.aboutText}`,
-    scraped.valuePropositions && scraped.valuePropositions.length > 0
-      ? `Value propositions: ${scraped.valuePropositions.join(' | ')}`
+    valuePropositions.length > 0
+      ? `Value propositions: ${valuePropositions.join(' | ')}`
       : undefined,
   ]);
 }
