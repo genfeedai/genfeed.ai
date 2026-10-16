@@ -89,9 +89,11 @@ export default function TemplatesPage() {
       label={t('title')}
       description={t('description')}
       icon={FileText}
+      moduleChrome
+      right={<CollectionToolbar view={view} onViewChange={setView} />}
     >
-      <CollectionToolbar view={view} onViewChange={setView} />
       <WorkspaceSurface
+        framed={hasError || view === ViewType.LIST}
         title={t('catalog')}
         tone="muted"
         data-testid="content-templates-surface"
