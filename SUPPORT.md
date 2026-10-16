@@ -1,44 +1,31 @@
 # Support
 
-Genfeed support runs on GitHub. There is no Discord, Slack, or forum for the
-open-source project; keeping one channel keeps answers searchable and lets
-agents and maintainers work from the same record.
+## Where to get help
 
-## Where to go
+**GitHub Discussions is our only community channel.** We deliberately do not run a Discord, Slack, or forum — Discussions keeps everything searchable and linked to the code.
 
-| I want to…                                        | Go to                                                                                                                  |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Ask how something works, or how to self-host      | [GitHub Discussions → Q&A](https://github.com/genfeedai/genfeed.ai/discussions/categories/q-a)                          |
-| Share an idea before it is concrete enough for an issue | [GitHub Discussions → Ideas](https://github.com/genfeedai/genfeed.ai/discussions/categories/ideas)                |
-| Report a reproducible defect                      | [Bug report](https://github.com/genfeedai/genfeed.ai/issues/new?template=bug.yml)                                      |
-| Request a feature or change                       | [Feature request](https://github.com/genfeedai/genfeed.ai/issues/new?template=feature.yml)                             |
-| Report a security vulnerability                   | [SECURITY.md](SECURITY.md) — private reporting only, never a public issue                                              |
-| Get help with the hosted product (app.genfeed.ai) | [support@genfeed.ai](mailto:support@genfeed.ai) — hosted-account questions are handled outside this repository         |
-| Read product and API documentation                | [docs.genfeed.ai](https://docs.genfeed.ai)                                                                             |
-| Read contributor and self-hosting documentation   | [`docs/`](docs/) in this repository — start with [self-hosting](docs/self-hosting.md) and [contributing](CONTRIBUTING.md) |
+- 💬 [Ask a question](https://github.com/genfeedai/genfeed.ai/discussions/categories/q-a)
+- 💡 [Share an idea](https://github.com/genfeedai/genfeed.ai/discussions/categories/ideas)
+- 🐛 [Report a bug](https://github.com/genfeedai/genfeed.ai/issues/new?template=bug.yml)
+- ✨ [Request a feature](https://github.com/genfeedai/genfeed.ai/issues/new?template=feature.yml)
+- 🤝 [Contributing guide](CONTRIBUTING.md)
 
-Every issue form requires EARS acceptance criteria
-(`WHEN … THE SYSTEM SHALL …`). If you are not sure how to phrase them, write
-your best attempt — triage rewrites weak criteria; it never closes an issue for
-syntax. See [CONTRIBUTING.md → Opening an issue](CONTRIBUTING.md#opening-an-issue).
+## Before you ask
 
-## What to expect
+1. Search [existing Discussions](https://github.com/genfeedai/genfeed.ai/discussions) and [issues](https://github.com/genfeedai/genfeed.ai/issues).
+2. Check the [README](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+3. If you're reporting a bug, include: what you did, what you expected, what happened, and your environment (OS, Bun version, browser).
 
-- **Triage within 7 days** of opening an issue: the maintainer or a triage agent
-  confirms or rewrites the acceptance criteria, labels it, and places it on the
-  [project board](https://github.com/orgs/genfeedai/projects/12).
-- **No SLA on fixes.** Genfeed is maintained by a solo maintainer with an AI
-  review pipeline (see [GOVERNANCE.md](GOVERNANCE.md)). Issues labelled
-  `good first issue` or `help wanted` are the fastest way to get something
-  fixed — open a PR.
-- **Security reports** are acknowledged within 72 hours; see
-  [SECURITY.md](SECURITY.md).
+## Contributing
 
-## Before you post
+Looking for something to work on? Start with issues labelled [`good first issue`](https://github.com/genfeedai/genfeed.ai/labels/good%20first%20issue) — each one is small, self-contained, and reproducible without private infrastructure. Larger work is labelled [`help wanted`](https://github.com/genfeedai/genfeed.ai/labels/help%20wanted).
 
-- Search [open and closed issues](https://github.com/genfeedai/genfeed.ai/issues?q=is%3Aissue)
-  and [discussions](https://github.com/genfeedai/genfeed.ai/discussions).
-- Include the release tag or commit SHA, deployment mode (SaaS, Community, or
-  Desktop — see [CONTEXT.md](CONTEXT.md)), and operating system.
-- Remove credentials, tokens, personal data, and customer data from logs and
-  screenshots.
+Funded issues are labelled [`bounty`](https://github.com/genfeedai/genfeed.ai/labels/bounty) and paid via [Algora](https://algora.io/genfeedai). See [CONTRIBUTING.md](CONTRIBUTING.md#bounties) for the flow.
+
+## Security
+
+Do **not** open a public issue for security vulnerabilities. See [SECURITY.md](SECURITY.md) for the disclosure process.
+
+## Commercial support
+
+For enterprise support, contact the maintainers via the email in [GOVERNANCE.md](GOVERNANCE.md).
