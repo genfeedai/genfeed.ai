@@ -1,5 +1,5 @@
 import { IngredientCategory } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockSaveAs } = vi.hoisted(() => ({
@@ -7,21 +7,6 @@ const { mockSaveAs } = vi.hoisted(() => ({
 }));
 vi.mock('file-saver', () => ({
   saveAs: mockSaveAs,
-}));
-
-vi.mock('@utils/media/ingredient-type.util', () => ({
-  getIngredientExtension: vi.fn((ingredient: IIngredient) => {
-    if (ingredient.category === IngredientCategory.VIDEO) {
-      return 'mp4';
-    }
-    if (ingredient.category === IngredientCategory.IMAGE) {
-      return 'png';
-    }
-    if (ingredient.category === IngredientCategory.MUSIC) {
-      return 'mp3';
-    }
-    return 'bin';
-  }),
 }));
 
 const mockFetch = vi.fn();
@@ -239,12 +224,43 @@ describe('download.helper', () => {
   });
 
   describe('ingredientDownloadFilename', () => {
+    it.each<[Partial<IIngredient>, string]>([
+      [{ metadataExtension: '.WEBP' }, 'webp'],
+      [{ metadata: { extension: 'PNG' } as IMetadata }, 'png'],
+      [{ mimeType: 'image/png; charset=binary' }, 'png'],
+      [{ metadataExtension: '../invalid' }, 'jpg'],
+      [{}, 'jpg'],
+    ])('preserves validated image formats (%j)', (fields, extension) => {
+      expect(
+        ingredientDownloadFilename({
+          category: IngredientCategory.IMAGE,
+          id: 'ing-123',
+          ...fields,
+        } as IIngredient),
+      ).toBe(`genfeed-image-ing-123.${extension}`);
+    });
+
+    it('uses the downloaded bytes MIME type ahead of stale metadata', () => {
+      expect(
+        ingredientDownloadFilename(
+          {
+            category: IngredientCategory.IMAGE,
+            id: 'ing-123',
+            metadataExtension: 'jpg',
+            mimeType: 'image/jpeg',
+          } as IIngredient,
+          'image/png',
+        ),
+      ).toBe('genfeed-image-ing-123.png');
+    });
+
     it('builds a stable download name from the ingredient', () => {
       expect(
         ingredientDownloadFilename({
           category: IngredientCategory.IMAGE,
           id: 'ing-123',
           metadata: { label: 'Test Image' },
+          mimeType: 'image/png',
         } as IIngredient),
       ).toBe('Test Image-image-ing-123.png');
     });

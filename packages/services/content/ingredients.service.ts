@@ -120,7 +120,10 @@ export class IngredientsService<
       `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(ingredient.id)}/original-download`,
       { responseType: 'blob', timeout: 600_000 },
     );
-    saveDownloadBlob(response.data, ingredientDownloadFilename(ingredient));
+    saveDownloadBlob(
+      response.data,
+      ingredientDownloadFilename(ingredient, response.data.type),
+    );
   }
 
   public async preparePreviews(ids: readonly string[]): Promise<void> {

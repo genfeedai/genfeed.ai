@@ -1,6 +1,23 @@
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
-import { getIngredientExtension } from '@utils/media/ingredient-type.util';
+import {
+  getIngredientExtension,
+  isImageIngredient,
+} from '@utils/media/ingredient-type.util';
 import { saveAs } from 'file-saver';
+
+const IMAGE_EXTENSIONS_BY_MIME = new Map([
+  ['image/avif', 'avif'],
+  ['image/gif', 'gif'],
+  ['image/heic', 'heic'],
+  ['image/heif', 'heif'],
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+]);
+const IMAGE_EXTENSIONS = new Set([
+  ...IMAGE_EXTENSIONS_BY_MIME.values(),
+  'jpeg',
+]);
 
 /**
  * `IngredientCategory` was harmonized to SCREAMING_SNAKE to match its Prisma
@@ -17,9 +34,27 @@ export function sanitizeDownloadFilename(filename: string): string {
   return trimmed.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 180);
 }
 
-export function ingredientDownloadFilename(ingredient: IIngredient): string {
-  const extension = getIngredientExtension(ingredient);
+export function ingredientDownloadFilename(
+  ingredient: IIngredient,
+  mimeType?: string,
+): string {
   const metadata = ingredient.metadata as IMetadata | undefined;
+  const rawExtension = ingredient.metadataExtension ?? metadata?.extension;
+  const metadataExtension =
+    typeof rawExtension === 'string'
+      ? rawExtension.trim().toLowerCase().replace(/^\./, '')
+      : '';
+  const mimeExtension = IMAGE_EXTENSIONS_BY_MIME.get(
+    (mimeType || ingredient.mimeType || '')
+      .split(';', 1)[0]
+      .trim()
+      .toLowerCase(),
+  );
+  const extension =
+    mimeExtension ??
+    (isImageIngredient(ingredient) && IMAGE_EXTENSIONS.has(metadataExtension)
+      ? metadataExtension
+      : getIngredientExtension(ingredient));
   return `${metadata?.label || 'genfeed'}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}.${extension}`;
 }
 
@@ -68,10 +103,8 @@ export async function downloadIngredient(
   if (!originalUrl) {
     throw new Error('No download URL available');
   }
-  saveDownloadBlob(
-    await fetchDownloadBlob(originalUrl),
-    ingredientDownloadFilename(ingredient),
-  );
+  const blob = await fetchDownloadBlob(originalUrl);
+  saveDownloadBlob(blob, ingredientDownloadFilename(ingredient, blob.type));
 }
 
 export async function downloadUrl(

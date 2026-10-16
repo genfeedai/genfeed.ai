@@ -96,7 +96,10 @@ describe('IngredientsService', () => {
       'https://api.genfeed.ai/v1/ingredients/ing-123/original-download',
       { responseType: 'blob', timeout: 600_000 },
     );
-    expect(ingredientDownloadFilename).toHaveBeenCalledWith(ingredient);
+    expect(ingredientDownloadFilename).toHaveBeenCalledWith(
+      ingredient,
+      'image/png',
+    );
     expect(saveDownloadBlob).toHaveBeenCalledWith(
       blob,
       'Test Image-image-ing-123.png',
