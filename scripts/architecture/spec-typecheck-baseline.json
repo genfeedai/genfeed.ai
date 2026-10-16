@@ -723,14 +723,6 @@
     {
       "code": 2307,
       "count": 1,
-      "file": "packages/helpers/src/media/download/download.helper.ts",
-      "fingerprint": "70a5975307c16a305e98",
-      "message": "Cannot find module '@utils/media/ingredient-type.util' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
       "file": "packages/hooks/data/elements/use-elements/use-elements.ts",
       "fingerprint": "37a958bba521b8f4904e",
       "message": "Cannot find module '@providers/promptbar/promptbar.context' or its corresponding type declarations.",

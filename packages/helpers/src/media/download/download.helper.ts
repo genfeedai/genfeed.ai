@@ -2,7 +2,7 @@ import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import {
   getIngredientExtension,
   isImageIngredient,
-} from '@utils/media/ingredient-type.util';
+} from '@genfeedai/helpers/media/ingredient-type.helper';
 import { saveAs } from 'file-saver';
 
 const IMAGE_EXTENSIONS_BY_MIME = new Map([
