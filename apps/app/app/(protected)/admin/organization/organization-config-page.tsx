@@ -17,18 +17,15 @@ function OrganizationConfigPageContent() {
   const { settings, isLoading, isRefreshing, error, refresh } =
     useOrganizationSettings(organizationId);
 
-  // This page never uses headerTabs/tabs, so `moduleChrome={false}` here
-  // never changes what renders today — but the loaded branch below is the
-  // only one of these three with `right`, and declaring the mode explicitly
-  // on all three keeps that true if module chrome (tabs, a search `leading`)
-  // is ever added to only one of them later.
+  // Every branch declares the same chrome mode so the topbar never flips
+  // between the missing-id, error and loaded states.
   if (!organizationId) {
     return (
       <Container
         label="Organization Configuration"
         description="Configure organization settings and preferences"
         icon={Settings}
-        moduleChrome={false}
+        moduleChrome
       >
         <Alert type={AlertCategory.WARNING}>
           Organization ID is required. Please provide an organization ID in the
@@ -44,7 +41,7 @@ function OrganizationConfigPageContent() {
         label="Organization Configuration"
         description="Configure organization settings and preferences"
         icon={Settings}
-        moduleChrome={false}
+        moduleChrome
       >
         <Alert type={AlertCategory.ERROR}>
           Failed to load organization settings. Please try again.
@@ -58,7 +55,7 @@ function OrganizationConfigPageContent() {
       label="Organization Configuration"
       description="Configure organization settings and preferences"
       icon={Settings}
-      moduleChrome={false}
+      moduleChrome
       refresh={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
