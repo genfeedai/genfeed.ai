@@ -1,4 +1,5 @@
 import type {
+  SchedulerPostGroup,
   SchedulerPostTarget,
   SchedulerTx,
 } from '@api/collections/post-groups/services/post-group.types';
@@ -9,19 +10,23 @@ import {
   applyReleaseTargetUpdates,
   GROUP_ACTION_STATES,
   type PostGroupTargetOperationDependencies,
+  schedulePostGroupTarget,
 } from '@api/collections/post-groups/services/post-group-target.operations';
 import { replacePostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PostLifecycleService } from '@api/index';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  CredentialPlatform,
   IngredientCategory,
   PostCategory,
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 
 describe('applyReleaseTargetUpdates', () => {
   const contractService = new PostGroupContractService();
@@ -322,6 +327,189 @@ describe('applyReleaseTargetUpdates', () => {
   });
 });
 
+describe('schedulePostGroupTarget legacy group ids', () => {
+  const contractService = new PostGroupContractService();
+  const releaseId = 'release-created';
+  let ensureReleaseForPost: ReturnType<typeof vi.fn>;
+  let enqueueReleaseTargets: ReturnType<typeof vi.fn>;
+  let findGroup: ReturnType<typeof vi.fn>;
+  let getGroupOrThrow: ReturnType<typeof vi.fn>;
+  let getTargetOrThrow: ReturnType<typeof vi.fn>;
+  let transaction: ReturnType<typeof vi.fn>;
+  let dependencies: PostGroupTargetOperationDependencies;
+  let tx: SchedulerTx;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-08T22:25:13.000Z'));
+    ensureReleaseForPost = vi.fn().mockResolvedValue(makeRelease(releaseId));
+    enqueueReleaseTargets = vi.fn().mockResolvedValue(undefined);
+    findGroup = vi.fn().mockResolvedValue(null);
+    getGroupOrThrow = vi.fn().mockResolvedValue(makeGroup(releaseId));
+    getTargetOrThrow = vi.fn().mockResolvedValue(
+      makeTarget({
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    transaction = vi.fn(async (fn: (client: SchedulerTx) => unknown) => fn(tx));
+    tx = {} as SchedulerTx;
+    dependencies = {
+      contractService,
+      ensureReleaseForPost,
+      enqueueReleaseTargets,
+      persistenceService: {
+        getGroupOrThrow,
+        getTargetOrThrow,
+        hydrateWithDerivedStatus: vi
+          .fn()
+          .mockResolvedValue(makeRelease(releaseId)),
+        resolveBrandId: vi.fn().mockResolvedValue('brand-1'),
+        resolveCredentials: vi.fn().mockResolvedValue(
+          new Map([
+            [
+              'cred-x',
+              {
+                brandId: 'brand-1',
+                id: 'cred-x',
+                isConnected: true,
+                organizationId: 'org-1',
+                platform: CredentialPlatform.TWITTER,
+              },
+            ],
+          ]),
+        ),
+      } as unknown as PostGroupPersistenceService,
+      postLifecycleService: {
+        transition: vi.fn().mockResolvedValue({ kind: 'ok' }),
+      } as unknown as PostLifecycleService,
+      prisma: {
+        $transaction: transaction,
+        postGroup: { findFirst: findGroup },
+      } as unknown as PrismaService,
+      publishApprovalsService: {
+        createForCurrentPost: vi.fn().mockResolvedValue({ id: 'approval-1' }),
+      } as unknown as PublishApprovalsService,
+      readinessService: {
+        assertSchedulable: vi.fn(),
+        resolveForCredentials: vi.fn().mockResolvedValue(new Map()),
+      } as unknown as PostGroupReadinessService,
+      scheduledPostWorkflowQueue: {} as ScheduledPostWorkflowQueueService,
+    };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('resolves a legacy id before scheduling and enqueues that release', async () => {
+    await schedulePostGroupTarget(
+      {
+        groupId: 'legacy-batch',
+        organizationId: 'org-1',
+        scheduledDate: new Date('2026-07-08T22:25:13.000Z'),
+        targetId: 'target-1',
+        userId: 'user-1',
+        workflowSource: 'publish_now',
+      },
+      dependencies,
+    );
+    await schedulePostGroupTarget(
+      {
+        groupId: 'legacy-batch',
+        organizationId: 'org-1',
+        scheduledDate: new Date('2026-07-08T22:25:13.000Z'),
+        targetId: 'target-1',
+        userId: 'user-1',
+        workflowSource: 'publish_now',
+      },
+      dependencies,
+    );
+
+    expect(findGroup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'legacy-batch',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(ensureReleaseForPost).toHaveBeenCalledTimes(2);
+    expect(ensureReleaseForPost).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'target-1',
+    );
+    expect(ensureReleaseForPost.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(getGroupOrThrow).toHaveBeenCalledWith(tx, 'org-1', releaseId);
+    expect(enqueueReleaseTargets).toHaveBeenCalledWith(
+      expect.objectContaining({ id: releaseId }),
+      'user-1',
+      ['target-1'],
+      'publish_now',
+    );
+  });
+
+  it('does not resolve a target in another organization', async () => {
+    ensureReleaseForPost.mockRejectedValue(
+      new NotFoundException('Post', 'target-1'),
+    );
+
+    await expect(
+      schedulePostGroupTarget(
+        {
+          groupId: 'legacy-batch',
+          organizationId: 'org-2',
+          scheduledDate: new Date('2026-07-08T22:25:13.000Z'),
+          targetId: 'target-1',
+          userId: 'user-1',
+          workflowSource: 'publish_now',
+        },
+        dependencies,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(findGroup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId: 'org-2',
+        }),
+      }),
+    );
+    expect(transaction).not.toHaveBeenCalled();
+    expect(enqueueReleaseTargets).not.toHaveBeenCalled();
+  });
+
+  it('404s a real release that does not contain the target', async () => {
+    findGroup.mockResolvedValue({ id: 'group-other' });
+    getGroupOrThrow.mockResolvedValue(makeGroup('group-other'));
+    getTargetOrThrow.mockRejectedValue(
+      new NotFoundException('ChannelTarget', 'target-missing'),
+    );
+
+    await expect(
+      schedulePostGroupTarget(
+        {
+          groupId: 'group-other',
+          organizationId: 'org-1',
+          scheduledDate: new Date('2026-07-09T12:00:00.000Z'),
+          targetId: 'target-missing',
+          userId: 'user-1',
+          workflowSource: 'publish_now',
+        },
+        dependencies,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(ensureReleaseForPost).not.toHaveBeenCalled();
+    expect(enqueueReleaseTargets).not.toHaveBeenCalled();
+  });
+});
+
 function makeTarget(
   overrides: Pick<SchedulerPostTarget, 'id' | 'targetExecutionState'> &
     Partial<Pick<SchedulerPostTarget, 'category'>>,
@@ -366,4 +554,44 @@ function makeTarget(
     workflowExecutionId: null,
     ...overrides,
   };
+}
+
+function makeGroup(id: string): SchedulerPostGroup {
+  return {
+    attachments: [],
+    baseContent: 'Base content',
+    brandId: 'brand-1',
+    campaignId: null,
+    createdAt: new Date('2026-07-08T22:25:13.000Z'),
+    id,
+    idempotencyKey: null,
+    isDeleted: false,
+    media: [],
+    organizationId: 'org-1',
+    ownerId: 'user-1',
+    postingSetId: null,
+    publishedAt: null,
+    recurrence: null,
+    rssFeedItemId: null,
+    rssSourceId: null,
+    scheduledAt: null,
+    status: ReleaseStatus.DRAFT,
+    statusTransitions: [],
+    timezone: 'UTC',
+    title: 'Launch note',
+    updatedAt: new Date('2026-07-08T22:25:13.000Z'),
+  };
+}
+
+function makeRelease(id: string): IReleaseGroup {
+  return {
+    id,
+    organizationId: 'org-1',
+    targets: [
+      {
+        executionState: TargetExecutionState.SCHEDULED,
+        id: 'target-1',
+      },
+    ],
+  } as IReleaseGroup;
 }

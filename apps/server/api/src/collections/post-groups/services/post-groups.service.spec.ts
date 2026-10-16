@@ -2353,6 +2353,411 @@ describe('PostGroupsService', () => {
     expect(prisma.postGroup.create).not.toHaveBeenCalled();
   });
 
+  it('schedules a legacy group id onto one release and reuses it', async () => {
+    const legacyId = 'legacy-batch';
+    const releaseId = 'release-created';
+    const scheduledAt = '2026-07-09T12:00:00.000Z';
+    let storedGroupId: string | null = legacyId;
+
+    prisma.postGroup.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeGroup({ ...data, id: releaseId })),
+    );
+    prisma.postGroup.findFirst.mockImplementation(
+      (args: GroupLookup | undefined) => {
+        const where = args?.where;
+        if (where?.organizationId !== 'org-1' || where.id !== releaseId) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve(
+          makeGroup({ id: releaseId, status: ReleaseStatus.DRAFT }),
+        );
+      },
+    );
+    prisma.post.findFirst.mockImplementation((args: PostLookup | undefined) => {
+      const where = args?.where;
+      if (where?.organizationId !== 'org-1' || where.id !== 'target-1') {
+        return Promise.resolve(null);
+      }
+      if (where.groupId !== undefined && where.groupId !== storedGroupId) {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve({
+        ...makeTarget({
+          groupId: storedGroupId,
+          id: 'target-1',
+          scheduledDate: null,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+        ingredientLinks: [],
+        parentId: null,
+      });
+    });
+    prisma.post.findMany.mockImplementation((args: PostLookup | undefined) => {
+      const where = args?.where;
+      if (where?.organizationId !== 'org-1') {
+        return Promise.resolve([]);
+      }
+      if (where.groupId === releaseId || postIds(where)?.includes('target-1')) {
+        return Promise.resolve([
+          makeTarget({
+            groupId: releaseId,
+            id: 'target-1',
+            scheduledDate: new Date(scheduledAt),
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          }),
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    prisma.post.updateMany.mockImplementation(
+      ({ data }: { data: { groupId?: string } }) => {
+        if (typeof data.groupId === 'string') {
+          storedGroupId = data.groupId;
+        }
+        return Promise.resolve({ count: 1 });
+      },
+    );
+
+    await service.scheduleTarget(
+      'org-1',
+      'user-1',
+      legacyId,
+      'target-1',
+      scheduledAt,
+    );
+    await service.scheduleTarget(
+      'org-1',
+      'user-1',
+      legacyId,
+      'target-1',
+      scheduledAt,
+    );
+
+    expect(prisma.postGroup.create).toHaveBeenCalledTimes(1);
+    expect(prisma.postGroup.create.mock.calls[0]?.[0].data).not.toHaveProperty(
+      'id',
+    );
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupId: releaseId,
+        organizationId: 'org-1',
+        postId: 'target-1',
+      }),
+      prisma,
+    );
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { groupId: releaseId },
+        where: expect.objectContaining({
+          id: 'target-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+  });
+
+  it('publishes one legacy target now and reuses the same release', async () => {
+    const legacyId = 'legacy-batch';
+    const releaseId = 'release-created';
+    let storedGroupId: string | null = legacyId;
+
+    prisma.postGroup.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeGroup({ ...data, id: releaseId })),
+    );
+    prisma.postGroup.findFirst.mockImplementation(
+      (args: GroupLookup | undefined) => {
+        const where = args?.where;
+        if (where?.organizationId !== 'org-1' || where.id !== releaseId) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve(
+          makeGroup({ id: releaseId, status: ReleaseStatus.DRAFT }),
+        );
+      },
+    );
+    prisma.post.findFirst.mockImplementation((args: PostLookup | undefined) => {
+      const where = args?.where;
+      if (where?.organizationId !== 'org-1' || where.id !== 'target-1') {
+        return Promise.resolve(null);
+      }
+      if (where.groupId !== undefined && where.groupId !== storedGroupId) {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve({
+        ...makeTarget({
+          groupId: storedGroupId,
+          id: 'target-1',
+          publishApproval: null,
+          publishApprovalId: null,
+          scheduledDate: null,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+        ingredientLinks: [],
+        parentId: null,
+      });
+    });
+    prisma.post.findMany.mockImplementation((args: PostLookup | undefined) => {
+      const where = args?.where;
+      if (where?.organizationId !== 'org-1') {
+        return Promise.resolve([]);
+      }
+      if (where.groupId === releaseId || postIds(where)?.includes('target-1')) {
+        return Promise.resolve([
+          makeTarget({
+            groupId: releaseId,
+            id: 'target-1',
+            scheduledDate: now,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          }),
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    prisma.post.updateMany.mockImplementation(
+      ({ data }: { data: { groupId?: string } }) => {
+        if (typeof data.groupId === 'string') {
+          storedGroupId = data.groupId;
+        }
+        return Promise.resolve({ count: 1 });
+      },
+    );
+
+    await service.publishTargetNow('org-1', 'user-1', legacyId, 'target-1');
+    await service.publishTargetNow('org-1', 'user-1', legacyId, 'target-1');
+
+    expect(prisma.postGroup.create).toHaveBeenCalledTimes(1);
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        postId: 'target-1',
+        source: 'publish_now',
+        userId: 'user-1',
+      }),
+    );
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({ groupId: releaseId, postId: 'target-1' }),
+      prisma,
+    );
+  });
+
+  it('does not resolve a legacy target that belongs to another organization', async () => {
+    prisma.postGroup.findFirst.mockImplementation(
+      (args: GroupLookup | undefined) => {
+        if (args?.where?.organizationId !== 'org-1') {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve(null);
+      },
+    );
+    prisma.post.findFirst.mockImplementation((args: PostLookup | undefined) => {
+      if (args?.where?.organizationId !== 'org-1') {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve({
+        ...makeTarget({ groupId: 'legacy-batch', id: 'target-1' }),
+        ingredientLinks: [],
+        parentId: null,
+      });
+    });
+
+    await expect(
+      service.scheduleTarget(
+        'org-2',
+        'user-1',
+        'legacy-batch',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'target-1',
+          isDeleted: false,
+          organizationId: 'org-2',
+        }),
+      }),
+    );
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+  });
+
+  it('still 404s when a real release does not contain the scheduled target', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-other' }),
+    );
+    prisma.post.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-other',
+        'target-missing',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+  });
+
+  it('publishes a legacy group id when it still matches one root post', async () => {
+    const legacyId = 'legacy-batch';
+    const releaseId = 'release-created';
+    let storedGroupId = legacyId;
+
+    prisma.postGroup.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeGroup({ ...data, id: releaseId })),
+    );
+    prisma.postGroup.findFirst.mockImplementation(
+      (args: GroupLookup | undefined) => {
+        const where = args?.where;
+        if (where?.organizationId !== 'org-1' || where.id !== releaseId) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve(
+          makeGroup({ id: releaseId, status: ReleaseStatus.DRAFT }),
+        );
+      },
+    );
+    prisma.post.findFirst.mockImplementation((args: PostLookup | undefined) => {
+      const where = args?.where;
+      if (where?.organizationId !== 'org-1' || where.id !== 'target-1') {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve({
+        ...makeTarget({
+          groupId: storedGroupId,
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+        ingredientLinks: [],
+        parentId: null,
+      });
+    });
+    prisma.post.findMany.mockImplementation((args: PostLookup | undefined) => {
+      const where = args?.where;
+      if (where?.organizationId !== 'org-1') {
+        return Promise.resolve([]);
+      }
+      if (postIds(where)?.includes('target-1') || where.groupId === releaseId) {
+        return Promise.resolve([
+          makeTarget({
+            groupId: releaseId,
+            id: 'target-1',
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          }),
+        ]);
+      }
+      if (where.groupId !== storedGroupId) {
+        return Promise.resolve([]);
+      }
+      const roots = [
+        { id: 'reply-1', isDeleted: false, parentId: 'target-1' },
+        { id: 'deleted-root', isDeleted: true, parentId: null },
+        { id: 'target-1', isDeleted: false, parentId: null },
+      ].filter(
+        (row) =>
+          (where.isDeleted === undefined ||
+            row.isDeleted === where.isDeleted) &&
+          (where.parentId === undefined || row.parentId === where.parentId),
+      );
+      return Promise.resolve(roots.map((row) => ({ id: row.id })));
+    });
+    prisma.post.updateMany.mockImplementation(
+      ({ data }: { data: { groupId?: string } }) => {
+        if (typeof data.groupId === 'string') {
+          storedGroupId = data.groupId;
+        }
+        return Promise.resolve({ count: 1 });
+      },
+    );
+
+    const result = await service.publishNow('org-1', 'user-1', legacyId);
+
+    expect(result.id).toBe(releaseId);
+    expect(prisma.postGroup.create).toHaveBeenCalledTimes(1);
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupId: releaseId,
+        organizationId: 'org-1',
+        postId: 'target-1',
+      }),
+      prisma,
+    );
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        postId: 'target-1',
+        source: 'publish_now',
+      }),
+    );
+
+    await expect(
+      service.publishNow('org-1', 'user-1', legacyId),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.postGroup.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a legacy group id that matches several root posts', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(null);
+    prisma.post.findMany.mockResolvedValue([
+      { id: 'target-1' },
+      { id: 'target-2' },
+    ]);
+
+    await expect(
+      service.publishNow('org-1', 'user-1', 'legacy-batch'),
+    ).rejects.toThrow(
+      'This grouping has several posts. Publish each target separately.',
+    );
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps a legacy group id with no root post as a missing release', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(null);
+    prisma.post.findMany.mockResolvedValue([]);
+
+    await expect(
+      service.publishNow('org-1', 'user-1', 'legacy-batch'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          groupId: 'legacy-batch',
+          isDeleted: false,
+          organizationId: 'org-1',
+          parentId: null,
+        }),
+      }),
+    );
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+  });
+
+  it('does not publish a legacy group id from another organization', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(null);
+    prisma.post.findMany.mockResolvedValue([]);
+
+    await expect(
+      service.publishNow('org-2', 'user-1', 'legacy-batch'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          groupId: 'legacy-batch',
+          isDeleted: false,
+          organizationId: 'org-2',
+          parentId: null,
+        }),
+      }),
+    );
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+  });
+
   it('writes YouTube privacy from visibility without dropping stored settings', async () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({
@@ -2406,6 +2811,26 @@ describe('PostGroupsService', () => {
     );
   });
 });
+
+type GroupLookup = {
+  where?: { id?: string; organizationId?: string };
+};
+
+type PostLookup = {
+  where?: {
+    credentialId?: unknown;
+    groupId?: string;
+    id?: string | { in?: string[] };
+    isDeleted?: boolean;
+    organizationId?: string;
+    parentId?: string | null;
+  };
+};
+
+function postIds(where: PostLookup['where']): string[] | undefined {
+  const id = where?.id;
+  return id !== undefined && typeof id !== 'string' ? id.in : undefined;
+}
 
 function makeCredential(
   overrides: Partial<MockCredential> = {},

@@ -97,13 +97,16 @@ type SchedulePostGroupTargetParams = {
   workflowSource: ScheduledPostWorkflowSource;
 };
 
-type UpdatePostGroupTargetParams = {
-  apiKeyContext?: ApiKeyPublishingContext;
-  body: unknown;
+type CanonicalReleaseLookup = {
   groupId: string;
   organizationId: string;
   targetId: string;
   userId: string;
+};
+
+type UpdatePostGroupTargetParams = CanonicalReleaseLookup & {
+  apiKeyContext?: ApiKeyPublishingContext;
+  body: unknown;
 };
 
 type ScheduledTargetResult = {
@@ -142,17 +145,27 @@ export async function schedulePostGroupTarget(
   params: SchedulePostGroupTargetParams,
   dependencies: PostGroupTargetOperationDependencies,
 ): Promise<IReleaseGroup> {
-  const isDueNow = params.scheduledDate.getTime() <= Date.now() + 5000;
+  const groupId = await resolveCanonicalReleaseId(
+    {
+      groupId: params.groupId,
+      organizationId: params.organizationId,
+      targetId: params.targetId,
+      userId: params.userId,
+    },
+    dependencies,
+  );
+  const resolvedParams = { ...params, groupId };
+  const isDueNow = resolvedParams.scheduledDate.getTime() <= Date.now() + 5000;
   const scheduled = await dependencies.prisma.$transaction((tx) =>
-    scheduleTargetInTransaction(tx, params, dependencies, isDueNow),
+    scheduleTargetInTransaction(tx, resolvedParams, dependencies, isDueNow),
   );
 
   if (scheduled.isDueNow) {
     await dependencies.enqueueReleaseTargets(
       scheduled.release,
-      params.userId,
-      [params.targetId],
-      params.workflowSource,
+      resolvedParams.userId,
+      [resolvedParams.targetId],
+      resolvedParams.workflowSource,
     );
   }
   return scheduled.release;
@@ -345,8 +358,8 @@ function alignYouTubeVisibilityUpdate(
   };
 }
 
-async function resolveCanonicalReleaseId(
-  params: UpdatePostGroupTargetParams,
+export async function resolveCanonicalReleaseId(
+  params: CanonicalReleaseLookup,
   dependencies: PostGroupTargetOperationDependencies,
 ): Promise<string> {
   const existing = await dependencies.prisma.postGroup.findFirst({
