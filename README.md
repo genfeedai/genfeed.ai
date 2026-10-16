@@ -224,6 +224,9 @@ More: [Architecture](docs/architecture.md) ·
 
 ## Contributing
 
+Contributions are voluntary and unpaid. Genfeed has no paid contribution
+program; see [the contribution policy](CONTRIBUTING.md#voluntary-contributions).
+
 Audience order for this repository is self-hosters, then agent contributors,
 then human contributors. Development is supported on macOS and Linux (Windows
 via WSL2). Prerequisites: Node 24, Bun, Docker with Compose v2, a C/C++

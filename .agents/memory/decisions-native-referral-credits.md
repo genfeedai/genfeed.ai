@@ -17,7 +17,7 @@ and operator audit trail while preserving open-source portability.
 
 ## Approaches Considered
 
-1. **Fixed first-purchase bounty.** Smallest implementation and predictable CAC,
+1. **Fixed first-purchase referral reward.** Smallest implementation and predictable CAC,
    but it does not match the requested recurring incentive and loses motivation
    after the first conversion.
 2. **External affiliate provider with Genfeed fulfillment.** Outsources cookies,

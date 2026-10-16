@@ -36,7 +36,9 @@ for a private handling method.
 | Fix or coordinated disclosure | Within **90 days** of acknowledgement. Critical issues in the hosted product are patched sooner. If a fix needs longer, we say so before day 90 and agree a new date with you.                                                                                 |
 | Credit                     | Reporters are credited in the published advisory and release notes unless they ask not to be.                                                                                                                                                                    |
 
-Genfeed does not run a paid bug-bounty program.
+Security reports are voluntary and unpaid. Genfeed does not offer financial
+rewards for vulnerability reports; see the
+[contribution policy](CONTRIBUTING.md#voluntary-contributions).
 
 ## Supported versions
 

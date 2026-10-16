@@ -11,6 +11,7 @@ lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 ## Contents
 
 - [Before you start](#before-you-start)
+- [Voluntary contributions](#voluntary-contributions)
 - [Toolchain and supported operating systems](#toolchain-and-supported-operating-systems)
 - [Contributor dev path (Portless HTTPS)](#contributor-dev-path-portless-https)
 - [Optional debugging path (fixed ports)](#optional-debugging-path-fixed-ports)
@@ -35,6 +36,16 @@ lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 - Do not include credentials, `.env` files, customer data, or generated build
   artifacts in commits, issues, or screenshots.
 - By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Voluntary contributions
+
+**Genfeed has no paid contribution program.** Contributions, including code,
+documentation, and issue reports, are voluntary and unpaid. An issue, label,
+assignment, or accepted pull request does not offer or promise payment.
+
+Third-party listings and unsolicited payment requests are not authorized by
+Genfeed. Do not post payment solicitations or payout details in issues or pull
+requests.
 
 ## Toolchain and supported operating systems
 

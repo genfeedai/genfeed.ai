@@ -5,6 +5,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 
 ## Rules (permanent — user corrections)
 
+- [Voluntary contributions](feedback_voluntary_contributions.md) — repository contributions are unpaid; never advertise funded contributor work
 - [Website direct booking links](feedback_website_direct_booking_links.md) — Book a call opens the configured booking page; no scheduling iframe
 
 - [product_switches_in_platform_settings](rules/product_switches_in_platform_settings.md) — product feature switches are typed Admin platform settings read through the cached `getFeatureSettings()`; env holds only secrets and infrastructure (#5407)
