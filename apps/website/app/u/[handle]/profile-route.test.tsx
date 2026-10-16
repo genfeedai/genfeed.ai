@@ -9,6 +9,7 @@ const findPublicProfileBySlug = vi.fn<() => Promise<Brand | null>>();
 const findPublicVideos = vi.fn<() => Promise<Video[]>>();
 const findPublicImages = vi.fn<() => Promise<ImageModel[]>>();
 const findPublicArticles = vi.fn<() => Promise<Article[]>>();
+const findPublicReferralCode = vi.fn<() => Promise<string | null>>();
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
@@ -16,6 +17,7 @@ vi.mock('@services/external/public.service', () => ({
       findPublicArticles,
       findPublicImages,
       findPublicProfileBySlug,
+      findPublicReferralCode,
       findPublicVideos,
     }),
   },
@@ -56,11 +58,13 @@ beforeEach(() => {
   findPublicVideos.mockReset();
   findPublicImages.mockReset();
   findPublicArticles.mockReset();
+  findPublicReferralCode.mockReset();
   infoSpy.mockReset();
   findPublicProfileBySlug.mockResolvedValue(brand());
   findPublicVideos.mockResolvedValue(VIDEOS);
   findPublicImages.mockResolvedValue(IMAGES);
   findPublicArticles.mockResolvedValue(ARTICLES);
+  findPublicReferralCode.mockResolvedValue('owner2345xyz');
 });
 
 describe('getPublicBrandBySlug', () => {
@@ -86,6 +90,18 @@ describe('getPublicProfilePageData', () => {
     expect(data.images).toBe(IMAGES);
     expect(data.articles).toBe(ARTICLES);
     expect(data.links).toEqual([{ id: 'l1' }]);
+    expect(data.referralCode).toBe('owner2345xyz');
+    expect(findPublicReferralCode).toHaveBeenCalledWith('brand-1');
+  });
+
+  it('keeps the profile when the referral lookup fails', async () => {
+    findPublicReferralCode.mockRejectedValue(new Error('referral down'));
+
+    const data = await getPublicProfilePageData('page-data-no-referral');
+
+    expect(data.referralCode).toBeNull();
+    expect(data.brand).toMatchObject({ id: 'brand-1' });
+    expect(data.videos).toBe(VIDEOS);
   });
 
   it('returns empty collections when a sub-request rejects', async () => {
@@ -111,6 +127,7 @@ describe('getPublicProfilePageData', () => {
       brand: null,
       images: [],
       links: [],
+      referralCode: null,
       videos: [],
     });
     expect(findPublicVideos).not.toHaveBeenCalled();

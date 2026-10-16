@@ -671,6 +671,72 @@ describe('ReferralsService', () => {
     expect(prisma.referralReward.findMany).not.toHaveBeenCalled();
   });
 
+  describe('findPublicCode', () => {
+    it('prefers the profile owner code and never creates one', async () => {
+      prisma.referralCode.findFirst.mockResolvedValue({ code: 'owner2345xyz' });
+
+      await expect(
+        service.findPublicCode({
+          organizationId: 'org_profile',
+          userId: 'user_owner',
+        }),
+      ).resolves.toBe('owner2345xyz');
+
+      expect(prisma.referralCode.findFirst).toHaveBeenCalledTimes(1);
+      expect(prisma.referralCode.findFirst).toHaveBeenCalledWith({
+        select: { code: true },
+        where: {
+          isActive: true,
+          isDeleted: false,
+          ownerUserId: 'user_owner',
+          rewardOrganizationId: 'org_profile',
+        },
+      });
+      expect(prisma.referralCode.create).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the oldest organization code', async () => {
+      prisma.referralCode.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ code: 'older2345xyz' });
+
+      await expect(
+        service.findPublicCode({
+          organizationId: 'org_profile',
+          userId: 'user_owner',
+        }),
+      ).resolves.toBe('older2345xyz');
+
+      expect(prisma.referralCode.findFirst).toHaveBeenLastCalledWith({
+        orderBy: { createdAt: 'asc' },
+        select: { code: true },
+        where: {
+          isActive: true,
+          isDeleted: false,
+          rewardOrganizationId: 'org_profile',
+        },
+      });
+    });
+
+    it('returns null when no code exists yet', async () => {
+      prisma.referralCode.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.findPublicCode({ organizationId: 'org_profile' }),
+      ).resolves.toBeNull();
+      expect(prisma.referralCode.create).not.toHaveBeenCalled();
+    });
+
+    it('returns null in community mode without querying', async () => {
+      configMock.organizationBilling = false;
+
+      await expect(
+        service.findPublicCode({ organizationId: 'org_profile' }),
+      ).resolves.toBeNull();
+      expect(prisma.referralCode.findFirst).not.toHaveBeenCalled();
+    });
+  });
+
   it('counts failed rewards consistently as converted and pending', async () => {
     prisma.referralCode.findFirst.mockResolvedValue({
       code: 'frend2345xyz',

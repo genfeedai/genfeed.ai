@@ -38,6 +38,10 @@ GET {{apiBaseUrl}}/public/brands/{{testBrandId}}
 GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/links
 
 
+### Get Brand Referral Code (null when the owner has none)
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/referral
+
+
 ### Get Brand Videos
 GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/videos
 

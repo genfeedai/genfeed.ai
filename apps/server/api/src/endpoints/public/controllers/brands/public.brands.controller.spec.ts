@@ -8,6 +8,7 @@ import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
+import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -24,6 +25,7 @@ describe('PublicBrandsController', () => {
   let brandsService: vi.Mocked<BrandsService>;
   let imagesService: vi.Mocked<ImagesService>;
   let linksService: vi.Mocked<LinksService>;
+  let referralsService: vi.Mocked<ReferralsService>;
   let videosService: vi.Mocked<VideosService>;
 
   // Rows come back with the Prisma enum casing ('PUBLIC'), not the TS enum
@@ -95,6 +97,10 @@ describe('PublicBrandsController', () => {
         },
         { provide: ImagesService, useValue: { findAll: vi.fn() } },
         { provide: LinksService, useValue: { findAll: vi.fn() } },
+        {
+          provide: ReferralsService,
+          useValue: { findPublicCode: vi.fn() },
+        },
         { provide: VideosService, useValue: { findAll: vi.fn() } },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
       ],
@@ -108,6 +114,7 @@ describe('PublicBrandsController', () => {
     brandsService = module.get(BrandsService);
     imagesService = module.get(ImagesService);
     linksService = module.get(LinksService);
+    referralsService = module.get(ReferralsService);
     videosService = module.get(VideosService);
   });
 
@@ -194,6 +201,46 @@ describe('PublicBrandsController', () => {
 
       expect(brandsService.findOne).not.toHaveBeenCalled();
       expect(result).toMatchObject({ data: null });
+    });
+  });
+
+  describe('findBrandReferral', () => {
+    it('returns the code of the public brand owner organization', async () => {
+      brandsService.findOne.mockResolvedValue({
+        ...mockBrand,
+        organizationId: 'org_profile',
+        userId: 'user_owner',
+      } as unknown as BrandEntity);
+      referralsService.findPublicCode.mockResolvedValue('owner2345xyz');
+
+      await expect(controller.findBrandReferral(brandId)).resolves.toEqual({
+        data: { code: 'owner2345xyz' },
+      });
+
+      expect(brandsService.findOne).toHaveBeenCalledWith(
+        { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+        'none',
+      );
+      expect(referralsService.findPublicCode).toHaveBeenCalledWith({
+        organizationId: 'org_profile',
+        userId: 'user_owner',
+      });
+    });
+
+    it('returns no code for a brand that is not public', async () => {
+      brandsService.findOne.mockResolvedValue(null);
+
+      await expect(controller.findBrandReferral(brandId)).resolves.toEqual({
+        data: { code: null },
+      });
+      expect(referralsService.findPublicCode).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed brand id before querying', async () => {
+      await expect(controller.findBrandReferral('not an id')).resolves.toEqual({
+        data: { code: null },
+      });
+      expect(brandsService.findOne).not.toHaveBeenCalled();
     });
   });
 

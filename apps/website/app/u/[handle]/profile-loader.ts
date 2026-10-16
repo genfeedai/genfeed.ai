@@ -13,6 +13,7 @@ export interface PublicProfilePageData {
   brand: Brand | null;
   images: ImageModel[];
   links: LinkModel[];
+  referralCode: string | null;
   videos: Video[];
 }
 
@@ -26,6 +27,14 @@ export const getPublicBrandBySlug = cache(
   },
 );
 
+async function getPublicReferralCode(brandId: string): Promise<string | null> {
+  try {
+    return await PublicService.getInstance().findPublicReferralCode(brandId);
+  } catch {
+    return null;
+  }
+}
+
 export const getPublicProfilePageData = cache(
   async (handle: string): Promise<PublicProfilePageData> => {
     const brand = await getPublicBrandBySlug(handle);
@@ -36,6 +45,7 @@ export const getPublicProfilePageData = cache(
         brand: null,
         images: [],
         links: [],
+        referralCode: null,
         videos: [],
       };
     }
@@ -49,11 +59,14 @@ export const getPublicProfilePageData = cache(
     };
 
     const publicService = PublicService.getInstance();
-    const [videosResult, imagesResult, articlesResult] =
-      await Promise.allSettled([
-        publicService.findPublicVideos(query),
-        publicService.findPublicImages(query),
-        publicService.findPublicArticles(query),
+    const [[videosResult, imagesResult, articlesResult], referralCode] =
+      await Promise.all([
+        Promise.allSettled([
+          publicService.findPublicVideos(query),
+          publicService.findPublicImages(query),
+          publicService.findPublicArticles(query),
+        ]),
+        getPublicReferralCode(brand.id),
       ]);
 
     return {
@@ -62,6 +75,7 @@ export const getPublicProfilePageData = cache(
       brand,
       images: imagesResult.status === 'fulfilled' ? imagesResult.value : [],
       links: brand.links ?? [],
+      referralCode,
       videos: videosResult.status === 'fulfilled' ? videosResult.value : [],
     };
   },

@@ -10,6 +10,7 @@ import NotFoundPage from '@pages/not-found/not-found-page';
 import ProfileArticles from '@web-components/profile/ProfileArticles';
 import ProfileFooter from '@web-components/profile/ProfileFooter';
 import ProfileImages from '@web-components/profile/ProfileImages';
+import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
 import '@styles/masonry.css';
@@ -20,6 +21,7 @@ interface ProfileContentProps {
   brand?: Brand;
   handle: string;
   links: LinkModel[];
+  referralCode?: string | null;
   videos: Video[];
   images: ImageModel[];
   articles: Article[];
@@ -29,6 +31,7 @@ function ProfileContent({
   brand,
   handle,
   links,
+  referralCode,
   videos,
   images,
   articles,
@@ -119,6 +122,8 @@ function ProfileContent({
       <ProfileImages images={images} />
       <ProfileArticles articles={articles} />
 
+      <ProfileSignupCta handle={handle} referralCode={referralCode} />
+
       <ProfileFooter />
     </div>
   );
@@ -131,6 +136,7 @@ export default function PublicProfileContent({
   images,
   articles,
   links,
+  referralCode,
 }: PublicProfilePageData & { handle: string }) {
   return (
     <div
@@ -141,6 +147,7 @@ export default function PublicProfileContent({
         brand={brand ?? undefined}
         handle={handle}
         links={links}
+        referralCode={referralCode}
         videos={videos}
         images={images}
         articles={articles}

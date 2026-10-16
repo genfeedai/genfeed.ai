@@ -9,6 +9,7 @@ import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
@@ -70,6 +71,7 @@ import { Module } from '@nestjs/common';
     NewslettersModule,
     PlatformSettingsModule,
     PostsModule,
+    ReferralsModule,
     PublicClipToolStoreModule,
     VideosModule,
     WorkflowsModule,

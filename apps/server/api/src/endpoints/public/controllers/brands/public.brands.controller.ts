@@ -2,6 +2,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
+import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -52,6 +53,7 @@ export class PublicBrandsController {
     private readonly brandsService: BrandsService,
     private readonly imagesService: ImagesService,
     private readonly linksService: LinksService,
+    private readonly referralsService: ReferralsService,
     private readonly videosService: VideosService,
     private readonly logger: LoggerService,
   ) {}
@@ -157,6 +159,41 @@ export class PublicBrandsController {
     }
 
     return serializeSingle(request, BrandSerializer, data);
+  }
+
+  @Get(':brandId/referral')
+  @Cache({
+    keyGenerator: (req) =>
+      `public:brand:${req.params?.brandId ?? 'unknown'}:referral`,
+    tags: ['brands', 'referral'],
+    ttl: 300, // 5 minutes: a newly created code should reach the profile soon
+  })
+  async findBrandReferral(
+    @Param('brandId') brandId: string,
+  ): Promise<{ data: { code: string | null } }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    if (!isEntityId(brandId)) {
+      return { data: { code: null } };
+    }
+
+    this.logger.log(url, { params: { brandId } });
+
+    const brand = await this.brandsService.findOne(
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      'none',
+    );
+
+    if (!brand) {
+      return { data: { code: null } };
+    }
+
+    const code = await this.referralsService.findPublicCode({
+      organizationId: brand.organizationId,
+      userId: brand.userId,
+    });
+
+    return { data: { code } };
   }
 
   @Get(':brandId/links')

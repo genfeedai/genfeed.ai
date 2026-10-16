@@ -171,6 +171,13 @@ export class PublicService extends HTTPBaseService {
       });
   }
 
+  /** The profile owner's referral code, or null when the brand has none. */
+  public async findPublicReferralCode(brandId: string): Promise<string | null> {
+    return await this.instance
+      .get<{ data?: { code?: string | null } }>(`brands/${brandId}/referral`)
+      .then((res) => res.data?.data?.code ?? null);
+  }
+
   public async previewBrandOs(
     data: IBrandOsPreviewRequest,
   ): Promise<IBrandOsPreview> {
