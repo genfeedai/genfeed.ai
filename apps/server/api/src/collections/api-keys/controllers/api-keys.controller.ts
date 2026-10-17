@@ -319,7 +319,25 @@ export class ApiKeysController {
       });
     }
 
-    await this.assertNoKeyPrivilegeEscalation(user, updateApiKeyDto, false);
+    // Scopes written onto a key take on that key's own IP and expiry limits, so
+    // when they change, check the reach the key will end up with.
+    await this.assertNoKeyPrivilegeEscalation(
+      user,
+      updateApiKeyDto.scopes === undefined
+        ? updateApiKeyDto
+        : {
+            ...updateApiKeyDto,
+            allowedIps:
+              updateApiKeyDto.allowedIps === undefined
+                ? existingKey.allowedIps
+                : updateApiKeyDto.allowedIps,
+            expiresAt:
+              updateApiKeyDto.expiresAt === undefined
+                ? existingKey.expiresAt?.toISOString()
+                : updateApiKeyDto.expiresAt,
+          },
+      false,
+    );
 
     if (updateApiKeyDto.defaultBrandId !== undefined) {
       await this.apiKeysService.assertValidDefaultBrandId(

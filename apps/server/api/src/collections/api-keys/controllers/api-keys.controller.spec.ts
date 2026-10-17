@@ -874,6 +874,45 @@ describe('ApiKeysController', () => {
       expect(mockApiKeysService.patch).not.toHaveBeenCalled();
     });
 
+    it("checks the target key's own IP and expiry when scopes change on update", async () => {
+      const siblingId = testId('apikey', 10);
+      const callerKey = {
+        allowedIps: ['203.0.113.7'],
+        expiresAt: new Date(Date.now() + 86400000),
+        id: callerKeyId,
+        scopes: ['images:read', 'videos:read'],
+      };
+      const unrestrictedSibling = {
+        allowedIps: [],
+        expiresAt: null,
+        id: siblingId,
+        scopes: ['images:read'],
+      };
+
+      mockApiKeysService.findOne
+        .mockResolvedValueOnce(unrestrictedSibling)
+        .mockResolvedValueOnce(callerKey);
+      await expect(
+        controller.update(mockRequest, callerUser, siblingId, {
+          scopes: ['videos:read'],
+        } as UpdateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mockApiKeysService.patch).not.toHaveBeenCalled();
+
+      mockApiKeysService.findOne
+        .mockResolvedValueOnce({
+          ...unrestrictedSibling,
+          allowedIps: ['203.0.113.7'],
+          expiresAt: callerKey.expiresAt,
+        })
+        .mockResolvedValueOnce(callerKey);
+      mockApiKeysService.patch.mockResolvedValue(mockApiKey);
+      await controller.update(mockRequest, callerUser, siblingId, {
+        scopes: ['videos:read'],
+      } as UpdateApiKeyDto);
+      expect(mockApiKeysService.patch).toHaveBeenCalled();
+    });
+
     it('does not constrain session-authenticated callers', async () => {
       await controller.create(mockRequest, mockUser, {
         category: ApiKeyCategory.GENFEEDAI,
