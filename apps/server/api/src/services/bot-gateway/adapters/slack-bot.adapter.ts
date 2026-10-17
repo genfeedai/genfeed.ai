@@ -27,6 +27,8 @@ interface SlackSlashCommand {
   team_id: string;
 }
 
+const SLACK_MAX_REQUEST_AGE_SECONDS = 5 * 60;
+
 @Injectable()
 export class SlackBotAdapter implements IBotPlatformAdapter {
   private readonly constructorName: string = String(this.constructor.name);
@@ -57,6 +59,17 @@ export class SlackBotAdapter implements IBotPlatformAdapter {
 
     if (!timestamp) {
       this.loggerService.warn(`${url} missing timestamp`);
+      return false;
+    }
+
+    // Slack recommends rejecting requests older than five minutes so a
+    // captured signed request cannot be replayed later.
+    const ageSeconds = Math.abs(Date.now() / 1000 - Number(timestamp));
+    if (
+      !Number.isFinite(ageSeconds) ||
+      ageSeconds > SLACK_MAX_REQUEST_AGE_SECONDS
+    ) {
+      this.loggerService.warn(`${url} stale or invalid timestamp`);
       return false;
     }
 

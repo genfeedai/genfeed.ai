@@ -725,4 +725,164 @@ describe('ApiKeysController', () => {
       expect(result.valid).toBe(false);
     });
   });
+
+  describe('API-key callers cannot escalate privilege', () => {
+    const callerKeyId = testId('apikey', 9);
+    const callerUser = {
+      apiKeyId: callerKeyId,
+      isApiKey: true,
+      organizationId,
+      scopes: ['images:read', 'videos:read'],
+      userId,
+    } as unknown as User;
+
+    const mockCallerKey = (overrides: Record<string, unknown> = {}) =>
+      mockApiKeysService.findOne.mockResolvedValue({
+        allowedIps: [],
+        expiresAt: null,
+        id: callerKeyId,
+        scopes: ['images:read', 'videos:read'],
+        ...overrides,
+      });
+
+    beforeEach(() => {
+      mockApiKeysService.findAll.mockResolvedValue({ docs: [] });
+      mockApiKeysService.createWithKey.mockResolvedValue({
+        apiKey: { ...mockApiKey, toObject: () => mockApiKey },
+        plainKey: 'gf_new',
+      });
+    });
+
+    it('rejects creating a key with a scope the caller does not hold', async () => {
+      mockCallerKey();
+
+      await expect(
+        controller.create(mockRequest, callerUser, {
+          category: ApiKeyCategory.GENFEEDAI,
+          label: 'Escalated',
+          scopes: ['images:read', 'posts:publish'],
+        } as CreateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mockApiKeysService.createWithKey).not.toHaveBeenCalled();
+    });
+
+    it('caps omitted scopes at what the calling key holds', async () => {
+      mockCallerKey();
+
+      await controller.create(mockRequest, callerUser, {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'Default scopes',
+      } as CreateApiKeyDto);
+
+      expect(mockApiKeysService.createWithKey).toHaveBeenCalledWith(
+        expect.objectContaining({ scopes: ['images:read', 'videos:read'] }),
+      );
+    });
+
+    it('allows a narrower key than the caller', async () => {
+      mockCallerKey();
+
+      await controller.create(mockRequest, callerUser, {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'Narrower',
+        scopes: ['images:read'],
+      } as CreateApiKeyDto);
+
+      expect(mockApiKeysService.createWithKey).toHaveBeenCalled();
+    });
+
+    it('rejects widening scopes or clearing the IP allowlist on update', async () => {
+      mockCallerKey({ allowedIps: ['203.0.113.7'] });
+
+      await expect(
+        controller.update(mockRequest, callerUser, callerKeyId, {
+          scopes: ['posts:publish'],
+        } as UpdateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+      await expect(
+        controller.update(mockRequest, callerUser, callerKeyId, {
+          allowedIps: [],
+        } as UpdateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mockApiKeysService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects creating an unrestricted key from an IP-restricted or expiring key', async () => {
+      mockCallerKey({
+        allowedIps: ['203.0.113.7'],
+        expiresAt: new Date(Date.now() + 86400000),
+      });
+
+      await expect(
+        controller.create(mockRequest, callerUser, {
+          category: ApiKeyCategory.GENFEEDAI,
+          label: 'No limits',
+          scopes: ['images:read'],
+        } as CreateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('treats JSON null like omitted on create instead of skipping the checks', async () => {
+      mockCallerKey({ expiresAt: new Date(Date.now() + 86400000) });
+
+      // null scopes must not fall through to the service default preset.
+      mockApiKeysService.findOne.mockResolvedValueOnce({
+        allowedIps: [],
+        id: callerKeyId,
+        scopes: ['images:read', 'videos:read'],
+      });
+      await controller.create(mockRequest, callerUser, {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'Null scopes',
+        scopes: null,
+      } as unknown as CreateApiKeyDto);
+      expect(mockApiKeysService.createWithKey).toHaveBeenCalledWith(
+        expect.objectContaining({ scopes: ['images:read', 'videos:read'] }),
+      );
+
+      // null expiresAt must not mint a never-expiring key from an expiring one.
+      await expect(
+        controller.create(mockRequest, callerUser, {
+          category: ApiKeyCategory.GENFEEDAI,
+          expiresAt: null,
+          label: 'Null expiry',
+          scopes: ['images:read'],
+        } as unknown as CreateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('rejects JSON null as a way to clear scopes, IPs, or expiry on update', async () => {
+      mockCallerKey({
+        allowedIps: ['203.0.113.7'],
+        expiresAt: new Date(Date.now() + 86400000),
+      });
+
+      for (const patch of [
+        { scopes: null },
+        { allowedIps: null },
+        { expiresAt: null },
+      ]) {
+        await expect(
+          controller.update(
+            mockRequest,
+            callerUser,
+            callerKeyId,
+            patch as unknown as UpdateApiKeyDto,
+          ),
+        ).rejects.toMatchObject({ status: 403 });
+      }
+      expect(mockApiKeysService.patch).not.toHaveBeenCalled();
+    });
+
+    it('does not constrain session-authenticated callers', async () => {
+      await controller.create(mockRequest, mockUser, {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'Session key',
+        scopes: ['posts:publish'],
+      } as CreateApiKeyDto);
+
+      expect(mockApiKeysService.createWithKey).toHaveBeenCalled();
+      expect(mockApiKeysService.findOne).not.toHaveBeenCalled();
+    });
+  });
 });

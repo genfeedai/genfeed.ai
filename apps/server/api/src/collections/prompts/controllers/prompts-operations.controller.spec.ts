@@ -9,6 +9,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
+import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -69,6 +70,15 @@ describe('PromptsOperationsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('keeps paid voice transcription behind authentication', () => {
+    expect(
+      Reflect.getMetadata(
+        IS_PUBLIC_KEY,
+        PromptsOperationsController.prototype.voiceToSpeech,
+      ),
+    ).toBeUndefined();
   });
 
   it('converts an accepted voice file to text', async () => {

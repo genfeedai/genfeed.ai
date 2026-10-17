@@ -5,6 +5,11 @@ import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dt
 import { VerifyMcpConnectionDto } from '@api/collections/api-keys/dto/verify-mcp-connection.dto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { McpConnectionVerificationService } from '@api/collections/api-keys/services/mcp-connection-verification.service';
+import {
+  assertKeyWithinCaller,
+  type RequestedApiKeyReach,
+  scopesWithinCaller,
+} from '@api/collections/api-keys/utils/api-key-escalation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -62,6 +67,26 @@ export class ApiKeysController {
     );
 
     return match ?? ApiKeyCategory.GENFEEDAI;
+  }
+
+  /** Session-authenticated callers are not constrained here. */
+  private async assertNoKeyPrivilegeEscalation(
+    user: User,
+    requested: RequestedApiKeyReach,
+    isCreate: boolean,
+  ): Promise<void> {
+    if (user.isApiKey !== true) {
+      return;
+    }
+
+    const callerKey = user.apiKeyId
+      ? await this.apiKeysService.findOne({
+          id: user.apiKeyId,
+          isRevoked: false,
+          organizationId: user.organizationId,
+        })
+      : null;
+    assertKeyWithinCaller(callerKey, requested, isCreate);
   }
 
   private withoutReservedMetadata(
@@ -175,8 +200,13 @@ export class ApiKeysController {
       );
     }
 
+    await this.assertNoKeyPrivilegeEscalation(user, createApiKeyDto, true);
+
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
       ...createApiKeyDto,
+      ...(user.isApiKey === true && createApiKeyDto.scopes == null
+        ? { scopes: scopesWithinCaller(user.scopes) }
+        : {}),
       metadata: this.withoutReservedMetadata(createApiKeyDto.metadata),
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
@@ -288,6 +318,8 @@ export class ApiKeysController {
           'The specified API key was not found or you do not have permission to modify it.',
       });
     }
+
+    await this.assertNoKeyPrivilegeEscalation(user, updateApiKeyDto, false);
 
     if (updateApiKeyDto.defaultBrandId !== undefined) {
       await this.apiKeysService.assertValidDefaultBrandId(

@@ -445,6 +445,36 @@ describe('WorkflowExecutionQueueService', () => {
       );
     });
 
+    it('stamps the expiry of a run that must start within its cycle', async () => {
+      const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+      try {
+        await service.queueSystemWorkflow(
+          {
+            actionType: 'agent.autopilot.proactive',
+            canonicalId: 'agent.autopilot.proactive',
+            organizationId: 'org-1',
+            source: 'platform-workflow-schedule',
+          },
+          'platform:proactive-agent-strategies:org-1:2',
+          {
+            dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+            expireAfterMs: 600_000,
+            usePlatformQueue: true,
+          },
+        );
+      } finally {
+        now.mockRestore();
+      }
+
+      expect(mockPlatformQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.objectContaining({
+          systemRun: expect.objectContaining({ expiresAt: 1_600_000 }),
+        }),
+        expect.anything(),
+      );
+    });
+
     it('supports durable delayed child workflow dispatch', async () => {
       const input = {
         actionType: 'campaign-reply-target',

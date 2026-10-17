@@ -254,7 +254,6 @@
     "apps/app/src/features/workspace-overview/workspace-overview-surface-adapters.tsx": 4,
     "packages/agent/src/components/AdsAgentCards.tsx": 3,
     "packages/agent/src/components/AgentArchivedComposerBar.tsx": 2,
-    "packages/agent/src/components/AgentChatContainerThreadView.tsx": 1,
     "packages/agent/src/components/AgentChatInput.tsx": 1,
     "packages/agent/src/components/AgentChatInputAttachmentTray.tsx": 1,
     "packages/agent/src/components/AgentChatInputStyles.tsx": 1,

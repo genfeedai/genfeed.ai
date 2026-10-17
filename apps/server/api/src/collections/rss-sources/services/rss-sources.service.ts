@@ -36,6 +36,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/rss-sources.contract';
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { safeFetch } from '@libs/security/destination-guard';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const RSS_SCHEDULE_DELAY_MS = 5 * 60 * 1000;
@@ -66,6 +67,34 @@ export type RssItemClaim = RssItemWorkflowRequest & {
 };
 
 export type RssItemRelease = RssItemClaim & { releaseId: string };
+
+const MAX_FEED_BYTES = 5 * 1024 * 1024;
+
+async function readBoundedText(
+  response: Response,
+  maxBytes: number,
+): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    return '';
+  }
+
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      return text + decoder.decode();
+    }
+    received += value.byteLength;
+    if (received > maxBytes) {
+      await reader.cancel();
+      throw new Error('Feed exceeds the 5 MB size limit.');
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+}
 
 @Injectable()
 export class RssSourcesService {
@@ -522,7 +551,7 @@ export class RssSourcesService {
   }
 
   private async fetchFeedXml(feedUrl: string): Promise<string> {
-    const response = await fetch(feedUrl, {
+    const response = await safeFetch(feedUrl, {
       headers: {
         Accept:
           'application/rss+xml, application/atom+xml, application/xml, text/xml',
@@ -530,9 +559,10 @@ export class RssSourcesService {
       signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) {
+      await response.body?.cancel();
       throw new Error(`Feed request failed with status ${response.status}.`);
     }
-    return response.text();
+    return readBoundedText(response, MAX_FEED_BYTES);
   }
 
   private async requireRow(

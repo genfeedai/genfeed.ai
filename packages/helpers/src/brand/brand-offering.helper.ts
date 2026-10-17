@@ -14,16 +14,33 @@ const SOFTWARE_OFFERING =
   /\b(?:saas|software|platforms?|apps?|ats|crm|dashboards?)\b/iu;
 const RECRUITING_OFFERING = /\b(?:recruit\w*|hiring|candidates?)\b/iu;
 const PHYSICAL_OFFERING =
-  /\b(?:bottles?|devices?|hardware|packaging|earbuds?|skincare)\b/iu;
+  /\b(?:bottles?|devices?|hardware|packaging|earbuds?|skincare|cosmetics|sneakers?|shoes?|apparel|supplements?|jewel(?:ry|lery))\b/iu;
 const SERVICE_OFFERING =
   /\b(?:agenc(?:y|ies)|consultanc(?:y|ies)|consulting)\b/iu;
 const INVENTED_PHYSICAL_PRODUCT = String.raw`\b(?:bottles?|earbuds?|gadgets?|devices?|packages?|packaging|skincare)\b`;
 
+function countMatches(pattern: RegExp, text: string): number {
+  return [...text.matchAll(new RegExp(pattern.source, 'giu'))].length;
+}
+
 /**
  * Software and platform language wins when a page also shows a physical object.
- * The word "product" alone is not a physical offering.
+ * A physical offering wins only when its terms outnumber every other kind, so a
+ * bottle brand with a companion app stays physical. The word "product" alone is
+ * not a physical offering.
  */
 export function classifyBrandOffering(text: string): BrandOfferingKind {
+  const physicalCount = countMatches(PHYSICAL_OFFERING, text);
+  if (
+    physicalCount >
+    Math.max(
+      countMatches(SOFTWARE_OFFERING, text) +
+        countMatches(RECRUITING_OFFERING, text),
+      countMatches(SERVICE_OFFERING, text),
+    )
+  ) {
+    return 'physical';
+  }
   if (SOFTWARE_OFFERING.test(text)) {
     return 'software';
   }

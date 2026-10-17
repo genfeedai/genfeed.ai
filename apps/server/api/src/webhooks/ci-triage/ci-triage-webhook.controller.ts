@@ -1,3 +1,4 @@
+import { isMatchingSecret } from '@api/helpers/utils/secret-compare/secret-compare.util';
 import { ConfigService } from '@libs/config/config.service';
 import {
   Body,
@@ -25,7 +26,7 @@ export class CiTriageWebhookController {
       'CI_TRIAGE_WEBHOOK_SECRET',
     );
 
-    if (!expectedSecret || secret !== expectedSecret) {
+    if (!isMatchingSecret(expectedSecret, secret)) {
       throw new UnauthorizedException('Invalid webhook secret');
     }
 

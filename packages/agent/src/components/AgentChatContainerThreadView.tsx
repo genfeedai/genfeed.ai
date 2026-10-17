@@ -26,6 +26,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { ArrowDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
   type ReactNode,
@@ -147,6 +148,7 @@ export function AgentChatContainerThreadView({
   timeline,
   columnFooter,
 }: AgentChatContainerThreadViewProps): ReactElement {
+  const translate = useTranslations('agent.threadView');
   const inputCardRef = useRef<HTMLDivElement>(null);
   const columnFooterRef = useRef<HTMLDivElement>(null);
   const [hasContentBehindComposer, setHasContentBehindComposer] =
@@ -306,7 +308,7 @@ export function AgentChatContainerThreadView({
             {!isAtBottom ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
                 <Button
-                  ariaLabel="Scroll to latest message"
+                  ariaLabel={translate('scrollToLatest')}
                   className="pointer-events-auto rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                   icon={<ArrowDown className="size-4" />}
                   onClick={scrollToBottom}
@@ -329,7 +331,7 @@ export function AgentChatContainerThreadView({
           {!isAtBottom ? (
             <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
               <Button
-                ariaLabel="Scroll to latest message"
+                ariaLabel={translate('scrollToLatest')}
                 className="pointer-events-auto rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                 icon={<ArrowDown className="size-4" />}
                 onClick={scrollToBottom}
@@ -357,7 +359,7 @@ export function AgentChatContainerThreadView({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
             icon={<ArrowDown className="size-4" />}
-            ariaLabel="Scroll to latest message"
+            ariaLabel={translate('scrollToLatest')}
             className="pointer-events-auto rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
             withWrapper={false}
             onClick={scrollToBottom}

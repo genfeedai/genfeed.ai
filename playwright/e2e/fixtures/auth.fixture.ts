@@ -344,9 +344,21 @@ async function navigateAfterAuth(page: Page, path: string): Promise<void> {
       timeout: 30_000,
     });
   }
-  await page
-    .getByTestId('app-content-shell')
-    .waitFor({ state: 'visible', timeout: 30_000 });
+  try {
+    await page
+      .getByTestId('app-content-shell')
+      .waitFor({ state: 'visible', timeout: 30_000 });
+  } catch (error) {
+    // A bare locator timeout hides where the app actually landed.
+    const bodyText = await page
+      .locator('body')
+      .innerText({ timeout: 2_000 })
+      .catch(() => '<body unreadable>');
+    throw new Error(
+      `app-content-shell never became visible at ${page.url()}: ${bodyText.slice(0, 400)}`,
+      { cause: error },
+    );
+  }
 }
 
 // ----------------------------------------------------------------------------

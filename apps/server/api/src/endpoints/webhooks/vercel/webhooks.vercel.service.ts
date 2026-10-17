@@ -53,9 +53,9 @@ export class VercelWebhookService {
 
       if (!secret) {
         this.loggerService.warn(
-          'VERCEL_WEBHOOK_SECRET not configured, skipping validation',
+          'VERCEL_WEBHOOK_SECRET not configured, rejecting webhook',
         );
-        return true; // Allow webhooks if secret not configured (for dev)
+        return false;
       }
 
       if (!signature) {

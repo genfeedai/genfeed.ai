@@ -27,6 +27,27 @@ describe('classifyBrandOffering', () => {
     ).toBe('software');
   });
 
+  it('keeps a bottle brand physical when it also mentions an app', () => {
+    expect(
+      classifyBrandOffering(
+        'Insulated steel bottle. Every bottle pairs with a companion app.',
+      ),
+    ).toBe('physical');
+  });
+
+  it('keeps a physical brand physical when it is also hiring', () => {
+    expect(
+      classifyBrandOffering(
+        'Handmade leather shoes and sneakers. We are hiring in Lisbon.',
+      ),
+    ).toBe('physical');
+    expect(
+      classifyBrandOffering(
+        'Every leather shoe is handmade. Shop the shoe collection. We are hiring.',
+      ),
+    ).toBe('physical');
+  });
+
   it('recognizes a named physical product and a service firm', () => {
     expect(classifyBrandOffering('Matte skincare bottle and packaging.')).toBe(
       'physical',
