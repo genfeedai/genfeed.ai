@@ -133,6 +133,34 @@ describe('SocketManager', () => {
     });
   });
 
+  describe('token refresh failures', () => {
+    it('reports a refresh failure only after three in a row', async () => {
+      vi.useFakeTimers();
+      const resolveToken = vi
+        .fn()
+        .mockRejectedValue(new TypeError('Failed to fetch'));
+      vi.mocked(logger.warn).mockClear();
+
+      SocketManager.getInstance({ resolveToken, token: 'token-a' });
+
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1_000);
+      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      const reported = vi
+        .mocked(logger.warn)
+        .mock.calls.filter(
+          ([message]) =>
+            message === 'Socket token refresh failed; retry scheduled',
+        )
+        .map(
+          ([, context]) =>
+            (context as { reportToSentry: boolean }).reportToSentry,
+        );
+      expect(reported).toEqual([false, false, true]);
+    });
+  });
+
   describe('subscribe / unsubscribe', () => {
     it('subscribe calls socket.on with the event name and a handler function', () => {
       const manager = SocketManager.getInstance();

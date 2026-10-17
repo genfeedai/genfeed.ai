@@ -24,6 +24,8 @@ export type SocketConnectionState =
 export class SocketManager {
   private static readonly TOKEN_REFRESH_FALLBACK_MS = 10 * 60 * 1_000;
   private static readonly TOKEN_REFRESH_RETRY_MS = 30_000;
+  /** One dropped request is a network blip; this many in a row is an outage. */
+  private static readonly TOKEN_REFRESH_REPORT_AFTER_FAILURES = 3;
   private static readonly TOKEN_REFRESH_SKEW_MS = 60_000;
   private static instance: SocketManager | null = null;
   private static instanceToken: string | undefined = undefined;
@@ -44,6 +46,7 @@ export class SocketManager {
   private currentToken?: string;
   private resolveToken?: () => Promise<string | null>;
   private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private consecutiveTokenRefreshFailures = 0;
 
   constructor(config: ISocketManagerConfig = {}) {
     this.socketService = SocketService.getInstance(config.token);
@@ -145,10 +148,15 @@ export class SocketManager {
         SocketManager.instanceToken = token;
         this.currentToken = token;
       }
+      this.consecutiveTokenRefreshFailures = 0;
       this.scheduleTokenRefresh();
     } catch (error: unknown) {
+      this.consecutiveTokenRefreshFailures += 1;
       logger.warn('Socket token refresh failed; retry scheduled', {
         errorName: error instanceof Error ? error.name : 'UnknownError',
+        reportToSentry:
+          this.consecutiveTokenRefreshFailures >=
+          SocketManager.TOKEN_REFRESH_REPORT_AFTER_FAILURES,
         tags: { component: 'realtime' },
       });
       this.scheduleTokenRefresh(SocketManager.TOKEN_REFRESH_RETRY_MS);
