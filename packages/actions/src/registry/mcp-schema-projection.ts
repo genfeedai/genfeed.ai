@@ -14,7 +14,7 @@ interface McpSchemaProjection {
 const MCP_SCHEMA_PROJECTIONS: Readonly<Record<string, McpSchemaProjection>> = {
   create_post: {
     description:
-      'Create a post draft from supplied text for review. It never publishes. Use create_scheduled_release for release drafts or approval-gated scheduling.',
+      'Create a post draft from supplied text for review. It never publishes. Scheduling and publishing require a scheduled release and approval.',
     hiddenParameters: [
       'confirmed',
       'contentId',
