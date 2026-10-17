@@ -186,7 +186,7 @@
     "symbol": "YoutubeAuthService.refreshToken"
   },
   {
-    "actual": 186,
+    "actual": 184,
     "file": "apps/server/api/src/services/prompt-builder/prompt-builder.service.ts",
     "metric": "method-lines",
     "symbol": "PromptBuilderService.buildPrompt"

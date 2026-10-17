@@ -5,6 +5,11 @@ import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dt
 import { VerifyMcpConnectionDto } from '@api/collections/api-keys/dto/verify-mcp-connection.dto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { McpConnectionVerificationService } from '@api/collections/api-keys/services/mcp-connection-verification.service';
+import {
+  assertKeyWithinCaller,
+  type RequestedApiKeyReach,
+  scopesWithinCaller,
+} from '@api/collections/api-keys/utils/api-key-escalation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -21,10 +26,7 @@ import {
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
 } from '@genfeedai/contracts';
-import {
-  CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
-  SELF_SERVICE_API_KEY_SCOPES,
-} from '@genfeedai/contracts/constants';
+import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -67,19 +69,10 @@ export class ApiKeysController {
     return match ?? ApiKeyCategory.GENFEEDAI;
   }
 
-  /**
-   * A key authenticating this request may manage other keys (the CLI does),
-   * but never with more reach than it has itself: scopes must be a subset of
-   * its own, and an IP allowlist or expiry on the caller must carry over.
-   * Session-authenticated callers are not constrained here.
-   */
+  /** Session-authenticated callers are not constrained here. */
   private async assertNoKeyPrivilegeEscalation(
     user: User,
-    requested: {
-      allowedIps?: readonly string[] | null;
-      expiresAt?: string | null;
-      scopes?: readonly string[] | null;
-    },
+    requested: RequestedApiKeyReach,
     isCreate: boolean,
   ): Promise<void> {
     if (user.isApiKey !== true) {
@@ -93,56 +86,7 @@ export class ApiKeysController {
           organizationId: user.organizationId,
         })
       : null;
-    const deny = (detail: string): never => {
-      throw new HttpException(
-        { detail, title: 'API key privilege escalation' },
-        HttpStatus.FORBIDDEN,
-      );
-    };
-
-    if (!callerKey) {
-      return deny('The calling API key could not be resolved.');
-    }
-
-    // The DTOs are `@IsOptional()`, which lets JSON `null` through. On create
-    // `null` means "omitted" (the service falls back to its defaults); on
-    // update `undefined` is "unchanged" and `null` is an explicit clear.
-    const isOmitted = (value: unknown): boolean =>
-      isCreate ? value == null : value === undefined;
-
-    const callerScopes = new Set<string>(callerKey.scopes ?? []);
-    if (
-      (!isCreate && requested.scopes === null) ||
-      (Array.isArray(requested.scopes) &&
-        requested.scopes.some((scope) => !callerScopes.has(scope)))
-    ) {
-      deny('An API key cannot grant scopes it does not hold itself.');
-    }
-
-    const callerIps = callerKey.allowedIps ?? [];
-    if (callerIps.length > 0) {
-      const isNarrowed =
-        Array.isArray(requested.allowedIps) &&
-        requested.allowedIps.length > 0 &&
-        requested.allowedIps.every((ip) => callerIps.includes(ip));
-      if (isOmitted(requested.allowedIps) ? isCreate : !isNarrowed) {
-        deny(
-          'An IP-restricted API key can only manage keys restricted to a subset of its IPs.',
-        );
-      }
-    }
-
-    if (callerKey.expiresAt) {
-      const callerExpiry = new Date(callerKey.expiresAt).getTime();
-      const isWithinCallerExpiry =
-        typeof requested.expiresAt === 'string' &&
-        new Date(requested.expiresAt).getTime() <= callerExpiry;
-      if (isOmitted(requested.expiresAt) ? isCreate : !isWithinCallerExpiry) {
-        deny(
-          'An expiring API key can only manage keys that expire no later than itself.',
-        );
-      }
-    }
+    assertKeyWithinCaller(callerKey, requested, isCreate);
   }
 
   private withoutReservedMetadata(
@@ -260,16 +204,8 @@ export class ApiKeysController {
 
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
       ...createApiKeyDto,
-      // Omitted scopes mean the service default preset, which a narrower
-      // calling key may not hold; cap it at what the caller holds.
       ...(user.isApiKey === true && createApiKeyDto.scopes == null
-        ? {
-            scopes: (user.scopes ?? []).filter((scope) =>
-              (SELF_SERVICE_API_KEY_SCOPES as readonly string[]).includes(
-                scope,
-              ),
-            ),
-          }
+        ? { scopes: scopesWithinCaller(user.scopes) }
         : {}),
       metadata: this.withoutReservedMetadata(createApiKeyDto.metadata),
       organizationId: user.organizationId,
