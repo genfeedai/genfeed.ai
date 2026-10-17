@@ -1,5 +1,6 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { dispatchFundedSubmission } from '@api/collections/workflows/services/workflow-funded-dispatch.util';
 import {
   type WorkflowLipSyncFunding,
   WorkflowLipSyncFundingService,
@@ -10,6 +11,7 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { isReplicateSubmissionRejected } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { resolveAssetProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -210,12 +212,7 @@ export class WorkflowLipSyncExecutorRegistrarService {
     return { audio, isVideo, media, model, personaId };
   }
 
-  /**
-   * Binds the output to its hold, then submits. Funds go back only when the
-   * provider never saw the job or definitively refused it; an ambiguous
-   * failure keeps the hold for the callback or reconciliation to resolve.
-   */
-  private async dispatchFunded<T>(
+  private dispatchFunded<T>(
     funding: WorkflowLipSyncFunding,
     target: {
       context: ExecutionContext;
@@ -224,27 +221,16 @@ export class WorkflowLipSyncExecutorRegistrarService {
     },
     submit: () => Promise<T>,
   ): Promise<T> {
-    let isSubmissionStarted = false;
-    try {
-      await funding.bind(target.ingredientId);
-      isSubmissionStarted = true;
-      return await submit();
-    } catch (error: unknown) {
-      const isRejected =
+    return dispatchFundedSubmission({
+      failContinuation: (input) =>
+        this.helper.failProviderContinuationSubmission(input),
+      funding,
+      isRejected: (error) =>
         error instanceof HeyGenSubmissionRejectedError ||
-        isReplicateSubmissionRejected(error);
-      if (!isSubmissionStarted) {
-        // The helper fails the continuation only for a provider rejection.
-        await this.helper.failProviderContinuationSubmission({
-          continuationId: target.continuationId,
-          error: error instanceof Error ? error.message : String(error),
-          organizationId: target.context.organizationId,
-        });
-      }
-      if (!isSubmissionStarted || isRejected)
-        await funding.reject(target.ingredientId);
-      throw error;
-    }
+        isReplicateSubmissionRejected(error),
+      submit,
+      target,
+    });
   }
 
   private requireHeyGen(): HeyGenService {
@@ -252,7 +238,7 @@ export class WorkflowLipSyncExecutorRegistrarService {
     return this.heyGenService;
   }
 
-  private async processingMediaUrl(
+  private processingMediaUrl(
     organizationId: string,
     asset: {
       id: string;
@@ -261,26 +247,14 @@ export class WorkflowLipSyncExecutorRegistrarService {
       storageType: string;
     },
   ): Promise<string> {
-    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
-      if (!this.authorizedMediaUrls)
-        throw new Error('Authorized media issuer is unavailable');
-      const urls = await this.authorizedMediaUrls.issueServerPublish(
-        organizationId,
-        [asset.id],
-      );
-      const url = urls.get(asset.id);
-      if (!url) throw new Error('The source asset has no authorized media URL');
-      return url;
-    }
-    if (!this.filesClientService)
-      throw new Error('File storage service is unavailable');
-    return asset.objectKey
-      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(
-          asset.objectKey,
-        )
-      : this.filesClientService.getPresignedDownloadUrl(
-          asset.storageKey,
-          asset.storageType,
-        );
+    return resolveAssetProcessingUrl(
+      {
+        authorizedMediaUrls: this.authorizedMediaUrls,
+        configService: this.configService,
+        filesClientService: this.filesClientService,
+      },
+      organizationId,
+      asset,
+    );
   }
 }

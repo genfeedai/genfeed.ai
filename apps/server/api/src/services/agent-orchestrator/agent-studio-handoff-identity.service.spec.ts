@@ -102,7 +102,7 @@ describe('AgentStudioHandoffIdentityService', () => {
     });
   });
 
-  it('resolves a portrait ingredient and voice row when the brand stores ids', async () => {
+  it('resolves a portrait ingredient but leaves out a voice row without a provider ref', async () => {
     brandsService.findOne.mockResolvedValue({
       agentConfig: {
         defaultAvatarIngredientId: 'avatar-ingredient-1',
@@ -139,7 +139,8 @@ describe('AgentStudioHandoffIdentityService', () => {
     expect(result.avatarPhotoUrl).toBe(
       'https://cdn.test/ingredient-portrait.png',
     );
-    expect(result.voiceId).toBe('eleven-rachel');
+    // A voice row carries no provider ref, which Studio requires to use it.
+    expect(result.voiceId).toBeUndefined();
     expect(result.useIdentity).toBe(true);
   });
 

@@ -2,6 +2,7 @@ import { GenerationBillingService } from '@api/collections/credits/services/gene
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { resolveAssetProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -196,31 +197,19 @@ export class WorkflowUpscaleFundingService {
     return { duration, height, width };
   }
 
-  private async processingMediaUrl(
+  private processingMediaUrl(
     organizationId: string,
     asset: WorkflowUpscaleSourceAsset,
   ): Promise<string> {
-    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
-      if (!this.authorizedMediaUrls)
-        throw new Error('Authorized media issuer is unavailable');
-      const urls = await this.authorizedMediaUrls.issueServerPublish(
-        organizationId,
-        [asset.id],
-      );
-      const url = urls.get(asset.id);
-      if (!url) throw new Error('The source asset has no authorized media URL');
-      return url;
-    }
-    if (!this.filesClientService)
-      throw new Error('File storage service is unavailable');
-    return asset.objectKey
-      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(
-          asset.objectKey,
-        )
-      : this.filesClientService.getPresignedDownloadUrl(
-          asset.storageKey,
-          asset.storageType,
-        );
+    return resolveAssetProcessingUrl(
+      {
+        authorizedMediaUrls: this.authorizedMediaUrls,
+        configService: this.configService,
+        filesClientService: this.filesClientService,
+      },
+      organizationId,
+      asset,
+    );
   }
 
   private async releaseOutput(

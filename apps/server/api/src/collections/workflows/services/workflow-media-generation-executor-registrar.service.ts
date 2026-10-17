@@ -6,6 +6,7 @@ import {
 } from '@api/collections/workflow-executions/services/workflow-generation-dispatch.context';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
+import { dispatchFundedSubmission } from '@api/collections/workflows/services/workflow-funded-dispatch.util';
 import type { ValidatedWorkflowMediaDispatch } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
 import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
@@ -530,7 +531,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           pending.ingredientId,
           asset.category,
         ),
-        model: params.model,
+        model: funding.model,
         scale: params.scale,
         status: IngredientStatus.PROCESSING,
       };
@@ -539,12 +540,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     }
   }
 
-  /**
-   * Binds the output to its hold, then submits. Funds go back only when the
-   * provider never saw the job or definitively refused it; an ambiguous
-   * failure keeps the hold for the callback or reconciliation to resolve.
-   */
-  private async dispatchFundedUpscale<T>(
+  private dispatchFundedUpscale<T>(
     funding: WorkflowUpscaleFunding,
     target: {
       context: ExecutionContext;
@@ -553,23 +549,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     },
     submit: () => Promise<T>,
   ): Promise<T> {
-    let isSubmissionStarted = false;
-    try {
-      await funding.bind(target.ingredientId);
-      isSubmissionStarted = true;
-      return await submit();
-    } catch (error: unknown) {
-      if (!isSubmissionStarted) {
-        await this.helper.failProviderContinuationSubmission({
-          continuationId: target.continuationId,
-          error: error instanceof Error ? error.message : String(error),
-          organizationId: target.context.organizationId,
-        });
-      }
-      if (!isSubmissionStarted || isReplicateSubmissionRejected(error))
-        await funding.reject(target.ingredientId);
-      throw error;
-    }
+    return dispatchFundedSubmission({
+      failContinuation: (input) =>
+        this.helper.failProviderContinuationSubmission(input),
+      funding,
+      isRejected: isReplicateSubmissionRejected,
+      submit,
+      target,
+    });
   }
 
   private async runReplicateMediaTransform<TOutput>(params: {

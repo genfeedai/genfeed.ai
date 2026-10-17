@@ -13,6 +13,7 @@ function renderHold(pathname: string | null) {
       </a>
       <a href="/onboarding/positioning">Positioning</a>
       <a href="/test-org/brand-1/library">Library</a>
+      <a href="/logout">Sign out</a>
       <a href="#top">Anchor</a>
       <a href="https://docs.genfeed.ai" rel="noreferrer" target="_blank">
         Docs
@@ -39,6 +40,12 @@ describe('OnboardingNavigationHold', () => {
     expect(clickWasPrevented('Thread')).toBe(false);
     expect(clickWasPrevented('Positioning')).toBe(false);
     expect(clickWasPrevented('Anchor')).toBe(false);
+  });
+
+  it('keeps sign-out working so a user can always leave', () => {
+    renderHold(ONBOARDING_PATHNAME);
+
+    expect(clickWasPrevented('Sign out')).toBe(false);
   });
 
   it('lets a link that opens its own tab through', () => {

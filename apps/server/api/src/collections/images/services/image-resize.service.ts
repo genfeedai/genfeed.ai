@@ -7,6 +7,7 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { resolveIngredientProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
@@ -37,22 +38,20 @@ export class ImageResizeService {
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
 
-  private async processingMediaUrl(
+  private processingMediaUrl(
     organizationId: string,
     ingredientId: string,
     category: string,
   ): Promise<string> {
-    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
-      return `${this.configService.ingredientsEndpoint}/${category}/${ingredientId}`;
-    if (!this.authorizedMediaUrls)
-      throw new Error('Authorized media issuer is unavailable');
-    const urls = await this.authorizedMediaUrls.issueServerPublish(
+    return resolveIngredientProcessingUrl(
+      {
+        authorizedMediaUrls: this.authorizedMediaUrls,
+        configService: this.configService,
+      },
       organizationId,
-      [ingredientId],
+      ingredientId,
+      category,
     );
-    const url = urls.get(ingredientId);
-    if (!url) throw new Error('The source has no authorized media URL');
-    return url;
   }
 
   async resizeImage(

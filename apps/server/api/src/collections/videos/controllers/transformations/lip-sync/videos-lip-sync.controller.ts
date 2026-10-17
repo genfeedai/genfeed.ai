@@ -18,6 +18,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { resolveIngredientProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -70,22 +71,20 @@ export class VideosLipSyncController {
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
 
-  private async processingMediaUrl(
+  private processingMediaUrl(
     organizationId: string,
     ingredientId: string,
     category: string,
   ): Promise<string> {
-    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
-      return `${this.configService.ingredientsEndpoint}/${category}/${ingredientId}`;
-    if (!this.authorizedMediaUrls)
-      throw new Error('Authorized media issuer is unavailable');
-    const urls = await this.authorizedMediaUrls.issueServerPublish(
+    return resolveIngredientProcessingUrl(
+      {
+        authorizedMediaUrls: this.authorizedMediaUrls,
+        configService: this.configService,
+      },
       organizationId,
-      [ingredientId],
+      ingredientId,
+      category,
     );
-    const url = urls.get(ingredientId);
-    if (!url) throw new Error('The source has no authorized media URL');
-    return url;
   }
 
   @Post('lip-sync')

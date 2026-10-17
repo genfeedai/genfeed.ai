@@ -71,6 +71,7 @@ export default function IngredientTabsChildren({
                 </div>
 
                 <IngredientsMediaGrid
+                  isActionsEnabled={false}
                   isLoading={false}
                   isTimeGroupingEnabled={false}
                   items={captionedChildren}

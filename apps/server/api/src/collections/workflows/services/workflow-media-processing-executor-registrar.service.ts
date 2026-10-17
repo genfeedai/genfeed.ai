@@ -10,6 +10,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { resolveAssetProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
 import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -82,7 +83,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
 
-  private async processingMediaUrl(
+  private processingMediaUrl(
     organizationId: string,
     asset: {
       id: string;
@@ -91,27 +92,15 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       storageType: string;
     },
   ): Promise<string> {
-    if (this.configService.isAuthorizedMediaDeliveryEnabled) {
-      if (!this.authorizedMediaUrls)
-        throw new Error('Authorized media issuer is unavailable');
-      const urls = await this.authorizedMediaUrls.issueServerPublish(
-        organizationId,
-        [asset.id],
-      );
-      const url = urls.get(asset.id);
-      if (!url) throw new Error('The source asset has no authorized media URL');
-      return url;
-    }
-    if (!this.filesClientService)
-      throw new Error('File storage service is unavailable');
-    return asset.objectKey
-      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(
-          asset.objectKey,
-        )
-      : this.filesClientService.getPresignedDownloadUrl(
-          asset.storageKey,
-          asset.storageType,
-        );
+    return resolveAssetProcessingUrl(
+      {
+        authorizedMediaUrls: this.authorizedMediaUrls,
+        configService: this.configService,
+        filesClientService: this.filesClientService,
+      },
+      organizationId,
+      asset,
+    );
   }
 
   register(engine: WorkflowEngine): void {

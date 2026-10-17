@@ -52,6 +52,7 @@ export default function TrainingSourcesTab() {
     </div>
   ) : (
     <IngredientsMediaGrid
+      isActionsEnabled={false}
       isLoading={false}
       isTimeGroupingEnabled={false}
       items={sourceImages}

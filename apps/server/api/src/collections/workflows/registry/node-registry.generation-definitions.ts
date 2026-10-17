@@ -656,9 +656,9 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     category: 'ai',
     configSchema: {
       model: {
-        default: 'real-esrgan',
+        default: 'topaz',
         label: 'Model',
-        options: ['real-esrgan', 'topaz'],
+        options: ['topaz'],
         type: 'select',
       },
       scale: {

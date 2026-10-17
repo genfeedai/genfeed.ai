@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useEffect } from 'react';
 import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 
@@ -21,12 +22,17 @@ function isLeavingAnchor(anchor: HTMLAnchorElement): boolean {
   ) {
     return false;
   }
+  // Sign-out is the one way out: a user on the wrong account or stuck mid-flow
+  // must be able to leave.
+  if (href === APP_ROUTES.LOGOUT) {
+    return false;
+  }
   return !ONBOARDING_HREF_PATTERN.test(href);
 }
 
 /**
- * While agent onboarding is the route, links and the palette / new-task
- * shortcuts cannot leave it. Chrome controls are also disabled at their
+ * While agent onboarding is the route, links (sign-out aside) and the palette /
+ * new-task shortcuts cannot leave it. Chrome controls are also disabled at their
  * source; this catches the logo and any link a control still renders.
  */
 export default function OnboardingNavigationHold({

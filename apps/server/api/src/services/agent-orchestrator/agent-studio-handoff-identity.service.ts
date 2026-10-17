@@ -113,7 +113,10 @@ export class AgentStudioHandoffIdentityService {
     return {
       ...pickStudioHandoffIdentityFields({
         avatarPhotoUrl: avatarRef ? undefined : avatarPhotoUrl,
-        voiceId,
+        // Studio counts a voice as picked only with its provider ref, so a
+        // bare id would be set and then cleared; leave it out and let the
+        // handoff report the voice as not carried.
+        voiceId: scopedVoice ? voiceId : undefined,
       }),
       ...(avatarRef ? { avatarRef } : {}),
       ...(scopedVoice ? { voiceRef: scopedVoice } : {}),
