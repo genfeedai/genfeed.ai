@@ -5,7 +5,10 @@ import { moveRailAppBefore } from './app-rail.order';
 interface UseRailDragReorderOptions {
   ids: readonly string[];
   isEnabled: boolean;
-  onReorder: (ids: readonly string[]) => void;
+  onReorder: (
+    ids: readonly string[],
+    moved: { id: string; position: number },
+  ) => void;
 }
 
 interface RailDragItemProps {
@@ -56,7 +59,12 @@ export function useRailDragReorder({
           event.preventDefault();
           if (draggingId) {
             const next = moveRailAppBefore(ids, draggingId, id);
-            if (next !== ids) onReorder(next);
+            if (next !== ids) {
+              onReorder(next, {
+                id: draggingId,
+                position: next.indexOf(draggingId) + 1,
+              });
+            }
           }
           reset();
         },

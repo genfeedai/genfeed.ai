@@ -1954,6 +1954,33 @@ describe('AppRail', () => {
       });
     });
 
+    it('reports a dragged app to analytics', () => {
+      const onReorderEvent = vi.fn();
+      render(
+        <AppRail
+          onRailAppOrderChange={vi.fn()}
+          onReorderEvent={onReorderEvent}
+          orgSlug="acme"
+          surface="desktop"
+        />,
+      );
+      const dataTransfer = { setData: vi.fn() };
+
+      fireEvent.dragStart(screen.getByTestId('app-rail-slot-analytics'), {
+        dataTransfer,
+      });
+      fireEvent.drop(screen.getByTestId('app-rail-slot-workspace'), {
+        dataTransfer,
+      });
+
+      expect(onReorderEvent).toHaveBeenCalledWith({
+        app: 'analytics',
+        from_index: 4,
+        surface: 'desktop',
+        to_index: 0,
+      });
+    });
+
     it('offers the home picker in the customize dialog only with a handler', () => {
       const { unmount } = render(
         <AppRail
