@@ -6,7 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { readPinnedAppRuntime } from './request-serializer-bundle';
 
 type PinnedAppRuntime = ReturnType<typeof readPinnedAppRuntime>;
-type BuildMode = 'production-default' | 'verification-trial';
+type BuildMode =
+  | 'production-default'
+  | 'verification-trial'
+  | 'verification-max-chunks-trial';
+type BuildTrial = 'request-cost' | 'max-chunks';
 
 export function createRequestSerializerBuildReceipt(
   config: Uint8Array,
@@ -14,21 +18,41 @@ export function createRequestSerializerBuildReceipt(
   mode: BuildMode = 'production-default',
 ) {
   const source = Buffer.from(config).toString('utf8');
-  if (mode === 'production-default' && /\brequestCost\b/.test(source))
+  const requestCostOverride = /\brequestCost\b/.test(source);
+  const chunkCountOverride = /\bmaxChunkCountPerGroup\b/.test(source);
+  const mergeSizeOverride = /\bmaxMergeChunkSize\b/.test(source);
+  if (
+    mode === 'production-default' &&
+    (requestCostOverride || chunkCountOverride || mergeSizeOverride)
+  )
     throw new Error(
-      'Cannot label explicit requestCost as the production default',
+      'Cannot label explicit chunking override as the production default',
     );
   if (
     mode === 'verification-trial' &&
-    !/\brequestCost:\s*400000\b/.test(source)
+    (chunkCountOverride ||
+      mergeSizeOverride ||
+      !/\brequestCost:\s*400000\s*[,}]/.test(source))
   )
     throw new Error(
-      'Verification trial requires the fixed requestCost: 400000',
+      'Verification request-cost trial requires only requestCost: 400000',
+    );
+  if (
+    mode === 'verification-max-chunks-trial' &&
+    (requestCostOverride ||
+      mergeSizeOverride ||
+      !/\bmaxChunkCountPerGroup:\s*1\s*[,}]/.test(source))
+  )
+    throw new Error(
+      'Verification chunk-count trial requires only maxChunkCountPerGroup: 1',
     );
   return {
     schemaVersion: 1,
     mode,
     effectiveRequestCost: mode === 'verification-trial' ? 400000 : 200000,
+    effectiveMaxChunkCountPerGroup:
+      mode === 'verification-max-chunks-trial' ? 1 : 40,
+    effectiveMaxMergeChunkSize: 200000,
     runtime,
     nextConfigSha256: createHash('sha256').update(config).digest('hex'),
   };
@@ -47,6 +71,7 @@ export function runRequestSerializerBuildTrial(
   out: string,
   runtime: PinnedAppRuntime,
   compile: () => void,
+  trial: BuildTrial = 'request-cost',
 ): void {
   const original = readFileSync(configPath);
   let failure: { cause: unknown } | undefined;
@@ -59,20 +84,30 @@ export function runRequestSerializerBuildTrial(
       source.indexOf(needle) !== source.lastIndexOf(needle)
     )
       throw new Error('Trial requires a unique final config export');
+    const setting =
+      trial === 'max-chunks'
+        ? 'maxChunkCountPerGroup: 1'
+        : 'requestCost: 400000';
     const patch = `config.experimental = {
   ...(config.experimental ?? {}),
   turbopackChunking: {
     ...(config.experimental?.turbopackChunking ?? {}),
-    requestCost: 400000,
+    ${setting},
   },
 };
 
 `;
-    const trial = Buffer.from(source.replace(needle, patch + needle));
-    writeFileSync(configPath, trial);
+    const temporary = Buffer.from(source.replace(needle, patch + needle));
+    writeFileSync(configPath, temporary);
     writeReceipt(
       out,
-      createRequestSerializerBuildReceipt(trial, runtime, 'verification-trial'),
+      createRequestSerializerBuildReceipt(
+        temporary,
+        runtime,
+        trial === 'max-chunks'
+          ? 'verification-max-chunks-trial'
+          : 'verification-trial',
+      ),
     );
     compile();
   } catch (cause: unknown) {
@@ -92,15 +127,26 @@ if (
   const out = process.argv[2];
   if (!out)
     throw new Error(
-      'Usage: request-serializer-build-receipt.ts <report.json> [--trial 400000]',
+      'Usage: request-serializer-build-receipt.ts <report.json> [--trial 400000 | --trial-max-chunks 1]',
     );
   if (process.argv.length > 3) {
+    let trial: BuildTrial;
     if (
-      process.argv.length !== 5 ||
-      process.argv[3] !== '--trial' ||
-      process.argv[4] !== '400000'
+      process.argv.length === 5 &&
+      process.argv[3] === '--trial' &&
+      process.argv[4] === '400000'
     )
-      throw new Error('Only --trial 400000 is supported');
+      trial = 'request-cost';
+    else if (
+      process.argv.length === 5 &&
+      process.argv[3] === '--trial-max-chunks' &&
+      process.argv[4] === '1'
+    )
+      trial = 'max-chunks';
+    else
+      throw new Error(
+        'Only --trial 400000 or --trial-max-chunks 1 is supported',
+      );
     runRequestSerializerBuildTrial(
       'apps/app/next.config.ts',
       out,
@@ -110,6 +156,7 @@ if (
           stdio: 'inherit',
         });
       },
+      trial,
     );
   } else {
     writeReceipt(

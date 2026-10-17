@@ -57,7 +57,7 @@ if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^
 if (process.env.FAIL_RECEIPT === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) process.exit(19);
 if (process.env.ISOLATED === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) {
   fs.mkdirSync(path.dirname(args[2]), { recursive: true });
-  fs.writeFileSync(args[2], JSON.stringify({ mode: 'verification-trial', effectiveRequestCost: 400000 }));
+  fs.writeFileSync(args[2], JSON.stringify({ mode: 'verification-max-chunks-trial', effectiveRequestCost: 200000, effectiveMaxChunkCountPerGroup: 1, effectiveMaxMergeChunkSize: 200000 }));
 }
 if (args.includes('scripts/collect-bundle-manifest.ts')) {
   const out = args[args.indexOf('--out') + 1];
@@ -128,8 +128,8 @@ describe('pinned serializer bundle workflow', () => {
             'run',
             'packages/services/scripts/request-serializer-build-receipt.ts',
             '.bundle-size/request-serializers-build.json',
-            '--trial',
-            '400000',
+            '--trial-max-chunks',
+            '1',
           ],
         },
       ],
