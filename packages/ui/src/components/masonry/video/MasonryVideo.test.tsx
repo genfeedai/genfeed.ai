@@ -132,6 +132,35 @@ const mockVideo: IVideo = {
 } as unknown as IVideo;
 
 describe('MasonryVideo', () => {
+  it.each([false, true])(
+    'binds controlled pending indicators to this source (matching: %s)',
+    (isMatchingSource) => {
+      const sourceId = isMatchingSource ? mockVideo.id : 'another-source';
+      render(
+        <MasonryVideo
+          video={mockVideo}
+          isSelected
+          transformActions={{
+            getAvailability: () => ({ isAvailable: true }),
+            onUpscale: vi.fn(),
+            onExtend: vi.fn(),
+            isUpscaling: true,
+            isExtending: true,
+            upscalingSourceId: sourceId,
+            extendingSourceId: sourceId,
+          }}
+        />,
+      );
+      const quickActions = vi
+        .mocked(IngredientQuickActions)
+        .mock.calls.at(-1)?.[0];
+      expect(quickActions).toMatchObject({
+        isUpscaling: isMatchingSource,
+        isExtending: isMatchingSource,
+      });
+    },
+  );
+
   it('forwards controlled transforms to the workspace owner and suppresses its leaf confirmation', () => {
     const factory = vi.mocked(useIngredientActions).getMockImplementation();
     if (!factory) throw new Error('Missing leaf action fixture');

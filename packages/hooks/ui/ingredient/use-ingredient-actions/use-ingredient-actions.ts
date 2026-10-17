@@ -154,6 +154,9 @@ export function useIngredientActions({
   };
   const activeExtendConfirmation = useRef<VideoExtendConfirmData | null>(null);
   const isSubmittingExtension = useRef(false);
+  const pendingExtendSource = useRef<{ id: string; epoch: number } | null>(
+    null,
+  );
   const confirmedExtendScope = useRef({
     brandId,
     organizationId,
@@ -212,6 +215,7 @@ export function useIngredientActions({
   const {
     handleUpscale,
     getUpscaleAvailability,
+    upscalingSourceId,
     handleEnhance,
     upscaleConfirmData,
     upscaleConfirmMessage,
@@ -373,6 +377,10 @@ export function useIngredientActions({
         );
       }
       isSubmittingExtension.current = true;
+      pendingExtendSource.current = {
+        id: ingredient.id,
+        epoch: confirmedScope.epoch,
+      };
       activeExtendConfirmation.current = null;
       setExtendConfirmData(null);
       try {
@@ -403,6 +411,7 @@ export function useIngredientActions({
         });
       } finally {
         isSubmittingExtension.current = false;
+        pendingExtendSource.current = null;
       }
     },
     [extendConfirmData, getVideosService, notificationsService, onRefresh],
@@ -1137,7 +1146,14 @@ export function useIngredientActions({
     [onRefresh, onUpdateParent, getIngredientsService],
   );
 
+  const extendingSourceId =
+    pendingExtendSource.current?.epoch === transformOwner.current.epoch
+      ? pendingExtendSource.current.id
+      : undefined;
+
   return {
+    ...(upscalingSourceId ? { upscalingSourceId } : {}),
+    ...(extendingSourceId ? { extendingSourceId } : {}),
     getUpscaleAvailability,
     getExtendAvailability,
     actionStates,

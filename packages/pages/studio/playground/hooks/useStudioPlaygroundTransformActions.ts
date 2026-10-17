@@ -102,6 +102,8 @@ export function useStudioPlaygroundTransformActions({
       onExtend,
       isUpscaling: controller.actionStates.isUpscaling,
       isExtending: controller.actionStates.isExtending,
+      upscalingSourceId: controller.upscalingSourceId,
+      extendingSourceId: controller.extendingSourceId,
     }),
     [
       getAvailability,
@@ -109,6 +111,8 @@ export function useStudioPlaygroundTransformActions({
       onExtend,
       controller.actionStates.isUpscaling,
       controller.actionStates.isExtending,
+      controller.upscalingSourceId,
+      controller.extendingSourceId,
     ],
   );
   return {

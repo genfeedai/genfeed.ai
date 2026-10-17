@@ -32,6 +32,8 @@ export interface MasonryTransformActions {
   ) => IngredientActionAvailability;
   isExtending: boolean;
   isUpscaling: boolean;
+  upscalingSourceId?: string;
+  extendingSourceId?: string;
   onExtend: (ingredient: IIngredient) => void | Promise<void>;
   onUpscale: (ingredient: IIngredient) => void | Promise<void>;
 }

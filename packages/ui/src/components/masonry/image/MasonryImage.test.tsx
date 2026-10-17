@@ -123,6 +123,35 @@ const mockImage: IImage = {
 } as IImage;
 
 describe('MasonryImage', () => {
+  it.each([false, true])(
+    'binds controlled pending indicators to this source (matching: %s)',
+    (isMatchingSource) => {
+      const sourceId = isMatchingSource ? mockImage.id : 'another-source';
+      render(
+        <MasonryImage
+          image={mockImage}
+          isSelected
+          transformActions={{
+            getAvailability: () => ({ isAvailable: true }),
+            onUpscale: vi.fn(),
+            onExtend: vi.fn(),
+            isUpscaling: true,
+            isExtending: true,
+            upscalingSourceId: sourceId,
+            extendingSourceId: sourceId,
+          }}
+        />,
+      );
+      const quickActions = vi
+        .mocked(IngredientQuickActions)
+        .mock.calls.at(-1)?.[0];
+      expect(quickActions).toMatchObject({
+        isUpscaling: isMatchingSource,
+        isExtending: false,
+      });
+    },
+  );
+
   it('forwards controlled transforms to the workspace owner and suppresses its leaf confirmation', () => {
     const factory = vi.mocked(useIngredientActions).getMockImplementation();
     if (!factory) throw new Error('Missing leaf action fixture');

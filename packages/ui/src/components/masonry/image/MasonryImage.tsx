@@ -282,8 +282,10 @@ function MasonryImageTile({
             transformActions
               ? {
                   ...actions.actionStates,
-                  isUpscaling: transformActions.isUpscaling,
-                  isExtending: transformActions.isExtending,
+                  isUpscaling:
+                    transformActions.isUpscaling &&
+                    transformActions.upscalingSourceId === image.id,
+                  isExtending: false,
                 }
               : actions.actionStates
           }

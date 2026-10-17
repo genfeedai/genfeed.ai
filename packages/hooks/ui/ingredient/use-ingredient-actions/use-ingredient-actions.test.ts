@@ -412,7 +412,9 @@ describe('useIngredientActions', () => {
         pending = result.current.executeExtend(selection);
       });
       expect(mockVideosService.postExtend).toHaveBeenCalledTimes(1);
+      expect(result.current.extendingSourceId).toBe(mockVideoIngredient.id);
       rerender({ scopeKey: 'org:brand:actor:session-2' });
+      expect(result.current.extendingSourceId).toBeUndefined();
       await act(async () => {
         resolveOutput?.({ id: 'separate-child' });
         await pending;
@@ -476,11 +478,13 @@ describe('useIngredientActions', () => {
           id: 'other-source',
         });
       });
+      expect(result.current.extendingSourceId).toBe(mockVideoIngredient.id);
       selected.duration = 5;
       await act(async () => {
         resolve?.(mockVideosService);
         await request;
       });
+      expect(result.current.extendingSourceId).toBeUndefined();
       await act(async () => {
         await execute(selection);
       });

@@ -27,6 +27,8 @@ vi.mock(
       mocks.useController(options);
       return {
         actionStates: { isUpscaling: false, isExtending: false },
+        upscalingSourceId: 'pending-upscale-source',
+        extendingSourceId: 'pending-extend-source',
         handlers: { handleUpscale: mocks.upscale, handleExtend: mocks.extend },
         getUpscaleAvailability: mocks.upscaleAvailability,
         getExtendAvailability: mocks.extendAvailability,
@@ -100,6 +102,12 @@ describe('workspace canonical transform adapter', () => {
     });
     expect(result.current.confirmation.upscaleConfirmData).toBeNull();
     expect(result.current.confirmation.extendConfirmData).toBeNull();
+    expect(result.current.transformActions.upscalingSourceId).toBe(
+      'pending-upscale-source',
+    );
+    expect(result.current.transformActions.extendingSourceId).toBe(
+      'pending-extend-source',
+    );
   });
   it('prepares supported image continuations without executing a transform', () => {
     const { result } = renderHook(() =>

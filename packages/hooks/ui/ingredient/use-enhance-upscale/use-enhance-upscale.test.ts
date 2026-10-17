@@ -125,7 +125,9 @@ describe('useEnhanceUpscale', () => {
       pending = result.current.executeUpscale();
     });
     expect(mockPostUpscale).toHaveBeenCalledTimes(1);
+    expect(result.current.upscalingSourceId).toBe('original-source');
     rerender({ scopeKey: 'org:brand:actor:session-2' });
+    expect(result.current.upscalingSourceId).toBeUndefined();
     await act(async () => {
       resolveOutput?.({ id: 'separate-child' });
       await pending;
@@ -762,6 +764,7 @@ describe('useEnhanceUpscale', () => {
       expect(mockPostUpscale).not.toHaveBeenCalled();
       mockUseElements.mockReturnValue(defaultElements);
       rerender();
+      expect(result.current.upscalingSourceId).toBeUndefined();
       await act(async () => {
         await result.current.handleUpscale(image);
       });

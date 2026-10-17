@@ -198,8 +198,12 @@ function MasonryVideoTile({
             transformActions
               ? {
                   ...actions.actionStates,
-                  isUpscaling: transformActions.isUpscaling,
-                  isExtending: transformActions.isExtending,
+                  isUpscaling:
+                    transformActions.isUpscaling &&
+                    transformActions.upscalingSourceId === video.id,
+                  isExtending:
+                    transformActions.isExtending &&
+                    transformActions.extendingSourceId === video.id,
                 }
               : actions.actionStates
           }

@@ -84,6 +84,9 @@ export function useEnhanceUpscale({
   // Get models for cost lookup
   const { imageEditModels, videoEditModels } = useElements();
   const pendingTransformation = useRef(false);
+  const pendingUpscaleSource = useRef<{ id: string; epoch: number } | null>(
+    null,
+  );
   const isMounted = useRef(true);
   const activeUpscaleConfirmation = useRef<UpscaleConfirmData | null>(null);
   const activeEnhanceConfirmation = useRef<UpscaleConfirmData | null>(null);
@@ -248,6 +251,10 @@ export function useEnhanceUpscale({
         );
       }
       pendingTransformation.current = true;
+      pendingUpscaleSource.current = {
+        id: ingredient.id,
+        epoch: confirmedEpoch,
+      };
       activeUpscaleConfirmation.current = null;
       setUpscaleConfirmData(null);
       try {
@@ -285,6 +292,7 @@ export function useEnhanceUpscale({
         });
       } finally {
         pendingTransformation.current = false;
+        pendingUpscaleSource.current = null;
       }
     },
     [
@@ -473,7 +481,13 @@ export function useEnhanceUpscale({
     [upscaleConfirmData, formatConfirmMessage],
   );
 
+  const upscalingSourceId =
+    pendingUpscaleSource.current?.epoch === owner.current.epoch
+      ? pendingUpscaleSource.current.id
+      : undefined;
+
   return {
+    ...(upscalingSourceId ? { upscalingSourceId } : {}),
     getUpscaleAvailability,
     clearEnhanceConfirm,
     // Cancel helpers
