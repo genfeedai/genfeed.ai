@@ -42,18 +42,20 @@ describe('ReplicateWebhookController', () => {
     resolveTrustedPayload: vi.Mock;
   };
 
-  const mockRequest = {
-    body: {},
-    headers: { 'webhook-id': 'msg_abc' },
-    ip: '127.0.0.1',
-    rawBody: Buffer.from('{}'),
-  } as unknown as Request;
+  let mockRequest: Request;
 
   /** Lets the `setImmediate` async-processing callback run before asserting. */
   const flushAsyncProcessing = () =>
     new Promise((resolve) => setImmediate(resolve));
 
   beforeEach(async () => {
+    mockRequest = {
+      body: {},
+      headers: { 'webhook-id': 'msg_abc' },
+      ip: '127.0.0.1',
+      rawBody: Buffer.from('{}'),
+    } as unknown as Request;
+
     vi.mocked(validateWebhook).mockResolvedValue(true);
     verificationService = {
       deferUntrustedDelivery: vi.fn().mockResolvedValue(undefined),
@@ -271,8 +273,7 @@ describe('ReplicateWebhookController', () => {
         const signature = createHmac('sha256', key)
           .update(`msg_raw.${timestamp}.${rawBody}`)
           .digest('base64');
-        const request = {
-          ...mockRequest,
+        const request = Object.assign(mockRequest, {
           body,
           headers: {
             'webhook-id': 'msg_raw',
@@ -280,7 +281,7 @@ describe('ReplicateWebhookController', () => {
             'webhook-timestamp': timestamp,
           },
           rawBody: Buffer.from(rawBody),
-        };
+        });
 
         await expect(controller.handleCallback(request, body)).resolves.toEqual(
           {
@@ -306,8 +307,7 @@ describe('ReplicateWebhookController', () => {
         .update(`msg_raw.${timestamp}.${rawBody}`)
         .digest('base64');
       const body = { id: 'pred_raw', status: 'succeeded' };
-      const request = {
-        ...mockRequest,
+      const request = Object.assign(mockRequest, {
         body,
         headers: {
           'webhook-id': 'msg_raw',
@@ -315,7 +315,7 @@ describe('ReplicateWebhookController', () => {
           'webhook-timestamp': timestamp,
         },
         rawBody: Buffer.from(`${rawBody} `),
-      };
+      });
 
       await expect(
         controller.handleCallback(request, body),
@@ -328,10 +328,8 @@ describe('ReplicateWebhookController', () => {
     });
 
     it('fails closed when original body bytes were not captured', async () => {
-      const { rawBody: _rawBody, ...request } = {
-        ...mockRequest,
-        rawBody: Buffer.from('{}'),
-      };
+      const request = mockRequest;
+      Reflect.deleteProperty(request, 'rawBody');
 
       await expect(
         controller.handleCallback(request, {
