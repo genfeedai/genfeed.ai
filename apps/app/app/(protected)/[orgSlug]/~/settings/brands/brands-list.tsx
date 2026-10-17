@@ -44,6 +44,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { readBlockedCharacters } from './blocked-characters.util';
 import BrandDeleteBlockedDialog from './brand-delete-blocked-dialog';
+import { describeBrandDeleteFailure } from './brand-delete-failure.util';
 import BrandMoveDialog from './brand-move-dialog';
 import { useBrandMoveDestinations } from './use-brand-move-destinations';
 
@@ -191,13 +192,17 @@ function BrandsListContent() {
         notificationsService.success('Brand deleted successfully');
         await refresh();
       } catch (error) {
-        logger.error('Failed to delete brand', error);
         const characters = readBlockedCharacters(error);
+        const failure = describeBrandDeleteFailure(error);
+        logger.error('Failed to delete brand', {
+          error,
+          reportToSentry: !failure.isExpected && characters.length === 0,
+        });
         if (characters.length > 0) {
           setBlocked({ brand, characters });
           return;
         }
-        notificationsService.error('Failed to delete brand');
+        notificationsService.error(failure.message);
       }
     },
     [getBrandsService, notificationsService, refresh],
