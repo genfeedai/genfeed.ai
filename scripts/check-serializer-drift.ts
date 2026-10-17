@@ -324,6 +324,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'model:Model': [
     // Computed: whether the model has reviewed, approved provider pricing.
     'hasReviewedPricing',
+    // Computed: clip lengths per resolution, read from the reviewed provider rates.
+    'durationsByResolution',
     'inputControls',
   ],
   'monitored-account:MonitoredAccount': ['lastPostId'],

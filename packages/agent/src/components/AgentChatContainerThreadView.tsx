@@ -201,7 +201,13 @@ export function AgentChatContainerThreadView({
           {!isLegacySkipConfirmation ? (
             <OnboardingSkipCard
               isSubmitting={isSubmittingInputRequest}
-              onSkip={() => onSubmitInputRequest('Skip', ['skip'])}
+              onSkip={async () => {
+                try {
+                  await onSubmitInputRequest('Skip', ['skip']);
+                } catch {
+                  // The container already surfaced the failed submission.
+                }
+              }}
             />
           ) : null}
         </div>

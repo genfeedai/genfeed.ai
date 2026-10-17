@@ -10,8 +10,6 @@ import {
 import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
-  createBrandAppRoute,
-  createOrganizationAppRoute,
   hasCompletedBrandOnboardingStep,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
@@ -24,6 +22,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { useHomeApp } from '@/components/shell/use-home-app';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 import { resolveOperationalHomeScope } from './home/operational-home.helpers';
 
@@ -45,6 +44,8 @@ export default function ProtectedRootResolver() {
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
   const { replace } = useRouter();
   const searchParams = useSearchParams();
+  const { isResolved: isHomeAppResolved, resolveHref: resolveHomeHref } =
+    useHomeApp();
   const hasNoBrandAccess =
     isCloudDeployment() &&
     isBrandScopeResolved &&
@@ -95,11 +96,18 @@ export default function ProtectedRootResolver() {
       return;
     }
 
-    hasStartedRef.current = true;
     const completedSteps = currentUser.onboardingStepsCompleted ?? [];
     const hasCompletedOnboarding =
       currentUser.isOnboardingCompleted === true ||
       ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+
+    // Onboarding does not depend on the home app; landing does, so wait for
+    // the member's choice before sending anyone there.
+    if (hasCompletedOnboarding && !isHomeAppResolved) {
+      return;
+    }
+
+    hasStartedRef.current = true;
 
     if (!hasCompletedOnboarding) {
       const agentOrgSlug = resolveOperationalHomeScope({
@@ -146,17 +154,12 @@ export default function ProtectedRootResolver() {
       nextSearchParams.delete('overlay');
       nextSearchParams.delete('overlayRef');
       nextSearchParams.delete('thread');
-      const workspaceHref = scope.brandSlug
-        ? createBrandAppRoute(
-            scope.orgSlug,
-            scope.brandSlug,
-            APP_ROUTES.WORKSPACE.OVERVIEW,
-          )
-        : createOrganizationAppRoute(
-            scope.orgSlug,
-            APP_ROUTES.WORKSPACE.OVERVIEW,
-          );
-      replace(appendSearchParamsToHref(workspaceHref, nextSearchParams));
+      replace(
+        appendSearchParamsToHref(
+          resolveHomeHref(scope.orgSlug, scope.brandSlug ?? undefined),
+          nextSearchParams,
+        ),
+      );
       return;
     }
 
@@ -169,8 +172,10 @@ export default function ProtectedRootResolver() {
     isCurrentUserLoading,
     isAccessStateLoading,
     isReady,
+    isHomeAppResolved,
     organizationId,
     replace,
+    resolveHomeHref,
     searchParams,
     selectedBrand,
     isAgentModuleEnabled,

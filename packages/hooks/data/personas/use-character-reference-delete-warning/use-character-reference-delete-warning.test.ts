@@ -75,6 +75,28 @@ describe('useCharacterReferenceDeleteWarning', () => {
     expect(mockLoggerWarn).toHaveBeenCalled();
   });
 
+  it('drops a second call while the first lookup is still running', async () => {
+    let finishLookup: (value: unknown[]) => void = () => {};
+    mockFindReferenceUsage.mockReturnValue(
+      new Promise<unknown[]>((resolve) => {
+        finishLookup = resolve;
+      }),
+    );
+    const { result } = renderHook(() => useCharacterReferenceDeleteWarning());
+
+    let first: Promise<unknown> = Promise.resolve();
+    let second: unknown;
+    await act(async () => {
+      first = result.current(['img-1']);
+      second = await result.current(['img-1']);
+      finishLookup([]);
+      await first;
+    });
+
+    expect(second).toBeNull();
+    expect(mockFindReferenceUsage).toHaveBeenCalledTimes(1);
+  });
+
   it('skips the lookup for an empty selection', async () => {
     const { result } = renderHook(() => useCharacterReferenceDeleteWarning());
 

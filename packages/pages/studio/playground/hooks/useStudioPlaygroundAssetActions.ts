@@ -163,6 +163,9 @@ export function useStudioPlaygroundAssetActions({
   const onDeleteIngredient = useCallback(
     async (ingredient: IIngredient) => {
       const children = await getCharacterReferenceWarning([ingredient.id]);
+      if (children === null) {
+        return;
+      }
 
       openConfirm({
         children,
@@ -182,6 +185,9 @@ export function useStudioPlaygroundAssetActions({
       const children = job.ingredientId
         ? await getCharacterReferenceWarning([job.ingredientId])
         : undefined;
+      if (children === null) {
+        return;
+      }
 
       openConfirm({
         children,

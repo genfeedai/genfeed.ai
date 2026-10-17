@@ -2,13 +2,10 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
-  isNativeAppLaunchable,
-  isNativeSecondaryAppId,
-  NATIVE_SECONDARY_APP_IDS,
-  resolveNativeAppAvailability,
+  applyRailAppOrder,
+  DEFAULT_HOME_APP_ID,
 } from '@genfeedai/contracts/constants';
 import type {
-  AppRailItemConfig,
   AppRailNavigationItem,
   AppRailNavigationVia,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
@@ -34,6 +31,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { AppRailCustomize } from './AppRailCustomize';
+import { AppRailMore } from './AppRailMore';
+import { resolveAvailableRailApps } from './app-rail.availability';
+import { moveRailAppBy } from './app-rail.order';
 import {
   ADMIN_RAIL_APP,
   ADMIN_RAIL_BACK_APP,
@@ -42,10 +43,10 @@ import {
   getActiveAppId,
   getAppRailHref,
   getAppRailShortcut,
-  isAppRailItemEnabled,
   isAppRailItemLocked,
 } from './app-rail.registry';
 import { useAppRailNavigation } from './use-app-rail-navigation';
+import { useRailDragReorder } from './use-rail-drag-reorder';
 
 // Only the desktop chord is shown: the browser owns ⌘1–9 for tab switching,
 // so the web "G then N" sequence stays a palette-only shortcut.
@@ -137,6 +138,9 @@ function AppRailItem({
           <Link
             href={href}
             prefetch={false}
+            // The slot around the link is the drag source, so the browser's
+            // own link drag never competes with reordering.
+            draggable={false}
             aria-current={isActive ? 'page' : undefined}
             aria-describedby={`app-rail-desc-${app.id}`}
             aria-label={accessibleLabel}
@@ -186,33 +190,6 @@ function AppRailItem({
   );
 }
 
-/**
- * A launcher app shows only while its platform switches are on and the member
- * has it installed with organization, subscription and release access. An
- * absent `installedAppIds` or `moduleAccess` is a neutral surface with no
- * member or organization to consult.
- */
-function isLauncherAppAvailable(
-  app: AppRailItemConfig,
-  {
-    installedAppIds,
-    moduleAccess,
-  }: Pick<AppRailProps, 'installedAppIds' | 'moduleAccess'>,
-): boolean {
-  if (!isNativeSecondaryAppId(app.id)) return false;
-  return isNativeAppLaunchable(
-    resolveNativeAppAvailability({
-      appId: app.id,
-      installedAppIds: installedAppIds ?? NATIVE_SECONDARY_APP_IDS,
-      organizationAccess:
-        moduleAccess === undefined || !app.organizationModule
-          ? { isAllowed: true, reason: null }
-          : (moduleAccess?.[app.organizationModule] ?? null),
-      pinnedAppIds: [],
-    }),
-  );
-}
-
 export function AppRail({
   badges,
   brandAwareSlug,
@@ -228,8 +205,15 @@ export function AppRail({
   onNavigate,
   onNavigationEvent,
   orgSlug,
+  homeAppId,
+  onHomeAppChange,
+  onRailAppOrderChange,
+  onReorderEvent,
+  onTogglePin,
+  organizationHomeAppId,
   pinnedAppIds = [],
   preservedSearch,
+  railAppOrder = [],
   isAdminChrome = false,
   resolveNavigation,
   showAdmin = false,
@@ -240,26 +224,18 @@ export function AppRail({
   const router = useRouter();
   const t = useTranslations('common.appRail');
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const apps = useMemo(() => {
     if (isAdminChrome) {
       // The back button is the way out of admin; the categories are the admin nav.
       return [ADMIN_RAIL_BACK_APP, ...ADMIN_RAIL_CATEGORIES];
     }
-    const visible = APP_RAIL_REGISTRY.filter((app) => {
-      if (!isAppRailItemEnabled(app, flags, isConfigured)) {
-        return false;
-      }
-      if (app.group === 'app') {
-        return isLauncherAppAvailable(app, {
-          installedAppIds,
-          moduleAccess,
-        });
-      }
-      return (
-        !app.organizationModule ||
-        modulePreferences === undefined ||
-        modulePreferences?.[app.organizationModule] === true
-      );
+    const visible = resolveAvailableRailApps({
+      flags,
+      installedAppIds,
+      isConfigured,
+      moduleAccess,
+      modulePreferences,
     });
     return showAdmin ? [...visible, ADMIN_RAIL_APP] : visible;
   }, [
@@ -313,15 +289,88 @@ export function AppRail({
     t,
     isDesktop,
   ]);
-  const dailyItems = items.filter((item) => item.app.group === 'daily');
   const launcherItems = items.filter((item) => item.app.group === 'app');
   const adminExitItem = items.find((item) => item.app.group === 'admin-exit');
   const adminCategoryItems = items.filter(
     (item) => item.app.group === 'admin-category',
   );
-  const pinnedItems = pinnedAppIds.flatMap((appId) => {
-    const item = launcherItems.find((candidate) => candidate.app.id === appId);
-    return item ? [item] : [];
+  // The rail is the core loop then the pins, in the member's saved order.
+  // Apps the saved order does not list (a new pin) keep their default place
+  // at the end. Daily shortcuts follow the order the member sees.
+  const railItems = useMemo(() => {
+    const pinnedItems = pinnedAppIds.flatMap((appId) => {
+      const item = items.find(
+        (candidate) =>
+          candidate.app.group === 'app' && candidate.app.id === appId,
+      );
+      return item ? [item] : [];
+    });
+    let dailyIndex = 0;
+    return applyRailAppOrder(
+      [
+        ...items.filter((item) => item.app.group === 'daily'),
+        ...pinnedItems,
+      ].map((item) => ({ id: item.app.id, item })),
+      railAppOrder,
+    ).map(({ item }) =>
+      item.app.group === 'daily'
+        ? { ...item, shortcut: getAppRailShortcut(dailyIndex++, isDesktop) }
+        : item,
+    );
+  }, [isDesktop, items, pinnedAppIds, railAppOrder]);
+  const railItemIds = useMemo(
+    () => railItems.map((item) => item.app.id),
+    [railItems],
+  );
+  const moreItems = launcherItems.filter(
+    (item) => !railItemIds.includes(item.app.id),
+  );
+  // The home picker draws from the same list the rail does, so it never offers
+  // an app the member cannot open.
+  const homeOptions = useMemo(
+    () => [...railItems, ...moreItems],
+    [moreItems, railItems],
+  );
+  const defaultHomeLabel = (
+    homeOptions.find((item) => item.app.id === organizationHomeAppId) ??
+    homeOptions.find((item) => item.app.id === DEFAULT_HOME_APP_ID)
+  )?.label;
+  const navigationItems = useMemo(() => {
+    const byId = new Map(railItems.map((item) => [item.app.id, item]));
+    return items.map((item) => byId.get(item.app.id) ?? item);
+  }, [items, railItems]);
+  const isReorderable =
+    onRailAppOrderChange !== undefined &&
+    !isAdminChrome &&
+    !isNavigationSuspended;
+  const reorder = useCallback(
+    (order: readonly string[], moved?: { id: string; position: number }) => {
+      onRailAppOrderChange?.(order);
+      const item = railItems.find(
+        (candidate) => candidate.app.id === moved?.id,
+      );
+      if (moved && item) {
+        onReorderEvent?.({
+          app: item.app.id,
+          from_index: railItemIds.indexOf(item.app.id),
+          surface,
+          to_index: moved.position - 1,
+        });
+        setNavigationAnnouncement(
+          t('reordered', {
+            app: item.label,
+            position: moved.position,
+            total: railItems.length,
+          }),
+        );
+      }
+    },
+    [onRailAppOrderChange, onReorderEvent, railItemIds, railItems, surface, t],
+  );
+  const { draggingId, getItemProps, overId } = useRailDragReorder({
+    ids: railItemIds,
+    isEnabled: isReorderable,
+    onReorder: reorder,
   });
   const handleNavigate = useCallback(
     (item: AppRailNavigationItem, via: AppRailNavigationVia) => {
@@ -351,7 +400,7 @@ export function AppRail({
     [t],
   );
   useAppRailNavigation({
-    items,
+    items: navigationItems,
     surface,
     isDesktop,
     isSuspended: isNavigationSuspended,
@@ -371,6 +420,42 @@ export function AppRail({
       />
     );
   }
+  function renderRailItem(item: AppRailNavigationItem) {
+    const slotProps = getItemProps(item.app.id);
+    const isDragTarget =
+      draggingId !== null &&
+      overId === item.app.id &&
+      draggingId !== item.app.id;
+    return (
+      <div
+        {...slotProps}
+        className={cn(
+          'rounded-lg',
+          draggingId === item.app.id && 'opacity-40',
+          isDragTarget && 'ring-2 ring-ring/60',
+        )}
+        data-testid={`app-rail-slot-${item.app.id}`}
+        key={item.app.id}
+        onKeyDown={(event) => {
+          if (!isReorderable || !event.altKey) return;
+          const delta =
+            event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+          if (delta === 0) return;
+          event.preventDefault();
+          const from = railItemIds.indexOf(item.app.id);
+          const next = moveRailAppBy(railItemIds, item.app.id, delta);
+          if (next !== railItemIds) {
+            reorder(next, { id: item.app.id, position: from + delta + 1 });
+          }
+        }}
+      >
+        {renderItem(item)}
+      </div>
+    );
+  }
+  const showMore =
+    !isAdminChrome &&
+    (moreItems.length > 0 || onRailAppOrderChange !== undefined);
   const admin = items.find((item) => item.app.group === 'admin');
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
@@ -399,16 +484,22 @@ export function AppRail({
             {renderItem(adminExitItem)}
           </div>
         ) : null}
-        {dailyItems.length > 0 || pinnedItems.length > 0 ? (
+        {railItems.length > 0 || showMore ? (
           <div className="flex flex-col items-center gap-1">
-            {dailyItems.map(renderItem)}
-            {pinnedItems.length > 0 ? (
-              <Separator
-                className="my-1 w-5"
-                data-testid="app-rail-pins-separator"
+            {railItems.map(renderRailItem)}
+            {showMore ? (
+              <AppRailMore
+                isSuspended={isNavigationSuspended}
+                items={moreItems}
+                onCustomize={
+                  onRailAppOrderChange
+                    ? () => setIsCustomizeOpen(true)
+                    : undefined
+                }
+                onOpen={(item) => handleNavigate(item, 'click')}
+                onTogglePin={onTogglePin}
               />
             ) : null}
-            {pinnedItems.map(renderItem)}
           </div>
         ) : null}
         {adminCategoryItems.length > 0 ? (
@@ -439,6 +530,20 @@ export function AppRail({
           </div>
         ) : null}
       </nav>
+      {onRailAppOrderChange ? (
+        <AppRailCustomize
+          defaultHomeLabel={defaultHomeLabel}
+          homeAppId={homeAppId}
+          homeOptions={homeOptions}
+          isOpen={isCustomizeOpen}
+          items={railItems}
+          onHomeAppChange={onHomeAppChange}
+          onOpenChange={setIsCustomizeOpen}
+          onReorder={reorder}
+          onReset={() => onRailAppOrderChange([])}
+          onTogglePin={onTogglePin}
+        />
+      ) : null}
       <span aria-live="polite" className="sr-only" role="status">
         {navigationAnnouncement}
       </span>

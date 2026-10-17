@@ -60,6 +60,14 @@ export interface AppRailNavigationEvent {
   surface: AppRailSurface;
 }
 
+/** A member moved an app to a new place on the rail. Positions are 0-based. */
+export interface AppRailReorderEvent {
+  app: AppRailItemId;
+  from_index: number;
+  to_index: number;
+  surface: AppRailSurface;
+}
+
 /** Localized, resolved entries shared by links, commands, and shortcuts. */
 export interface AppRailNavigationItem {
   app: AppRailItemConfig;

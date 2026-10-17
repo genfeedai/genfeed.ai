@@ -46,6 +46,50 @@ describe('UpdateOrganizationSettingDto', () => {
       expect(errors[0]?.constraints).toHaveProperty('max');
     });
 
+    describe('rail defaults', () => {
+      async function errorsFor(payload: Record<string, unknown>) {
+        const dto = plainToInstance(UpdateOrganizationSettingDto, payload);
+        return (await validate(dto, { whitelist: true })).map(
+          (error) => error.property,
+        );
+      }
+
+      it('accepts a rail order and a home app made of known rail apps', async () => {
+        expect(
+          await errorsFor({
+            defaultHomeAppId: 'agent',
+            defaultRailOrder: ['library', 'workspace', 'turbo'],
+          }),
+        ).toEqual([]);
+      });
+
+      it('lets an organization clear its home app and rail order', async () => {
+        expect(
+          await errorsFor({ defaultHomeAppId: null, defaultRailOrder: [] }),
+        ).toEqual([]);
+      });
+
+      it('rejects unknown, duplicate and oversized rail orders', async () => {
+        expect(await errorsFor({ defaultRailOrder: ['nope'] })).toEqual([
+          'defaultRailOrder',
+        ]);
+        expect(
+          await errorsFor({ defaultRailOrder: ['agent', 'agent'] }),
+        ).toEqual(['defaultRailOrder']);
+        expect(
+          await errorsFor({
+            defaultRailOrder: Array.from({ length: 40 }, (_, i) => `app-${i}`),
+          }),
+        ).toEqual(['defaultRailOrder']);
+      });
+
+      it('rejects a home app that is not a rail app', async () => {
+        expect(await errorsFor({ defaultHomeAppId: 'admin' })).toEqual([
+          'defaultHomeAppId',
+        ]);
+      });
+    });
+
     it('keeps the daily publishing caps after whitelist validation', async () => {
       const dto = plainToInstance(UpdateOrganizationSettingDto, {
         quotaTwitter: 48,

@@ -16,6 +16,7 @@ export function findReviewedRateSheetEntry(
   );
 }
 
+export * from './derived-duration-limits';
 export * from './replicate-variant-selectors';
 export * from './reviewed-rate-sheet-hash';
 export * from './variant-rule-validation';

@@ -860,6 +860,7 @@ describe('event taxonomy', () => {
       new Set([
         'agent_thread_created',
         'app_rail_navigated',
+        'app_rail_reordered',
         'brand_os_draft_accepted',
         'brand_os_draft_saved',
         'brand_os_first_generation',

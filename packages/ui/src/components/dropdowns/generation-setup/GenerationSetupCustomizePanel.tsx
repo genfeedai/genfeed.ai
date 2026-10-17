@@ -157,6 +157,7 @@ export default function GenerationSetupCustomizePanel({
           <GenerationSetupOutputSection
             controls={outputControls}
             inputControls={inputControls}
+            models={models}
             referenceCount={referenceCount}
             capabilities={capabilities}
             onResetField={onResetField}

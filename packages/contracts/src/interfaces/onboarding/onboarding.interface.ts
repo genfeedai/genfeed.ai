@@ -42,6 +42,8 @@ export interface IScrapedBrandData {
 
   // Visual
   logoUrl?: string;
+  /** `icon` when `logoUrl` is a touch icon or favicon rather than a page logo. */
+  logoSource?: 'page' | 'icon';
   /** Ordered logo fallbacks: page logo, touch/fav icons, then Logo.dev. */
   logoCandidates?: IScrapedImageCandidate[];
   bannerUrl?: string;

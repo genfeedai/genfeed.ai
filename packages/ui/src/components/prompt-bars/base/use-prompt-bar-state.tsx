@@ -14,11 +14,9 @@ import {
   type QualityTier,
   type SubscriptionTier,
 } from '@genfeedai/contracts';
-import {
-  getModelDefaultDuration,
-  getModelDurations,
-} from '@genfeedai/contracts/constants';
+import { getModelDefaultDuration } from '@genfeedai/contracts/constants';
 import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
+import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
@@ -261,6 +259,10 @@ export function usePromptBarState({
   const watchedWidth = useWatch({ control: form.control, name: 'width' });
   const watchedHeight = useWatch({ control: form.control, name: 'height' });
   const watchedDuration = useWatch({ control: form.control, name: 'duration' });
+  const watchedResolution = useWatch({
+    control: form.control,
+    name: 'resolution',
+  });
   const watchedOutputs = useWatch({ control: form.control, name: 'outputs' });
   const watchedQuality = useWatch({
     control: form.control,
@@ -949,20 +951,62 @@ export function usePromptBarState({
     ],
   );
 
-  const videoDurations = useMemo(() => {
-    if (isCrunVideo) return [];
-    if (normalizedWatchedModels.length === 0) {
-      return [...getModelDurations(watchedModel as string)];
+  // A provider can cap the clip length at some resolutions, so each model
+  // offers only the lengths the selected resolution can run.
+  const getVideoDurations = useCallback(
+    (resolution?: string | null): number[] => {
+      if (isCrunVideo) return [];
+      const getModelVideoDurations = (modelKey: string): number[] =>
+        resolveModelDurationOptions(
+          selectedModels.find((candidate) => candidate.key === modelKey) ?? {
+            key: modelKey,
+          },
+          resolution,
+        );
+      if (normalizedWatchedModels.length === 0) {
+        return getModelVideoDurations(watchedModel as string);
+      }
+      return getUnionFromAllModels<number>(getModelVideoDurations);
+    },
+    [
+      isCrunVideo,
+      normalizedWatchedModels,
+      selectedModels,
+      watchedModel,
+      getUnionFromAllModels,
+    ],
+  );
+  const videoDurations = useMemo(
+    () => getVideoDurations(watchedResolution),
+    [getVideoDurations, watchedResolution],
+  );
+
+  useEffect(() => {
+    if (
+      isCrunVideo ||
+      videoDurations.length === 0 ||
+      !watchedDuration ||
+      videoDurations.includes(watchedDuration) ||
+      !getVideoDurations().includes(watchedDuration)
+    ) {
+      return;
     }
-    return getUnionFromAllModels<number>(((modelKey) => {
-      const durations = getModelDurations(modelKey);
-      return Array.from(durations);
-    }) as (modelKey: string) => number[]);
+    // The resolution changed to one that cannot run the chosen length: keep
+    // the closest length it can run instead of submitting a clip it rejects.
+    const closest = videoDurations.reduce((best, candidate) =>
+      Math.abs(candidate - watchedDuration) < Math.abs(best - watchedDuration)
+        ? candidate
+        : best,
+    );
+    form.setValue('duration', closest, { shouldValidate: true });
+    triggerConfigChange();
   }, [
     isCrunVideo,
-    normalizedWatchedModels,
-    watchedModel,
-    getUnionFromAllModels,
+    videoDurations,
+    getVideoDurations,
+    watchedDuration,
+    form,
+    triggerConfigChange,
   ]);
 
   const formatIcon = useMemo(() => {

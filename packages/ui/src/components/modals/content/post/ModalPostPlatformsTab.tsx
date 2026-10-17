@@ -63,6 +63,7 @@ export default function ModalPostPlatformsTab({
   togglePlatform,
   updatePlatformConfig,
   getMinDateTime,
+  scheduleTimezone,
 }: ModalPostPlatformsTabProps) {
   const translate = useTranslations('ui.postPlatforms');
   const { brandId, organizationId, selectedBrand, credentials } = useBrand();
@@ -358,6 +359,7 @@ export default function ModalPostPlatformsTab({
                     generatingDescFor={generatingDescFor}
                     updatePlatformConfig={updatePlatformConfig}
                     getMinDateTime={getMinDateTime}
+                    scheduleTimezone={scheduleTimezone}
                     handleGenerateContent={handleGenerateContent}
                   />
                   <PostingSignaturePicker

@@ -464,6 +464,25 @@ export function getPlanLabel(tier: PlanTier): string {
 }
 
 /**
+ * Display name for a stored tier string. A tier with a plan label uses it; any
+ * other value is capitalised, and a missing tier reads as `fallback`.
+ */
+export function formatTierLabel(
+  tier: string | null | undefined,
+  fallback: string,
+): string {
+  if (!tier) {
+    return fallback;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
+    return PLAN_LABELS[tier as PlanTier];
+  }
+
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+/**
  * Marketing price label for a tier, e.g. "$49/mo", "Free", "Custom".
  */
 export function formatPlanPriceLabel(tier: PlanTier): string {

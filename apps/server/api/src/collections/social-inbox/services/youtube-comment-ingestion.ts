@@ -91,6 +91,55 @@ export type OwnedYoutubeCommentIngestPorts = {
   ) => void;
 };
 
+const CREDENTIAL_FAILURE_REASONS = new Set([
+  'authError',
+  'dailyLimitExceeded',
+  'invalid_grant',
+  'quotaExceeded',
+  'rateLimitExceeded',
+  'userRateLimitExceeded',
+]);
+
+type YoutubeApiErrorShape = {
+  code?: unknown;
+  errors?: Array<{ reason?: unknown }>;
+  message?: unknown;
+  response?: {
+    data?: { error?: { errors?: Array<{ reason?: unknown }> } | string };
+    status?: unknown;
+  };
+  status?: unknown;
+};
+
+/**
+ * Quota and sign-in failures hit every remaining post of the credential the
+ * same way, so retrying them only burns more quota. A per-video failure such as
+ * disabled comments is not one of these.
+ */
+function isCredentialLevelFailure(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+  const failure = error as YoutubeApiErrorShape;
+  const status = Number(failure.response?.status ?? failure.status ?? 0);
+  if (status === 401 || status === 429) {
+    return true;
+  }
+  const nested = failure.response?.data?.error;
+  const reasons = [
+    ...(failure.errors ?? []),
+    ...(typeof nested === 'object' ? (nested.errors ?? []) : []),
+  ].map((entry) => entry.reason);
+  return (
+    reasons.some(
+      (reason) =>
+        typeof reason === 'string' && CREDENTIAL_FAILURE_REASONS.has(reason),
+    ) ||
+    (typeof failure.message === 'string' &&
+      failure.message.includes('invalid_grant'))
+  );
+}
+
 function diagnoseYoutubePostFailure(
   error: unknown,
   secrets: readonly string[],
@@ -219,6 +268,9 @@ export async function ingestOwnedYoutubeComments(
           errorName: failure.errorName,
           postFailureCount: postFailures.length,
         });
+        if (isCredentialLevelFailure(error)) {
+          break;
+        }
       }
     }
   }

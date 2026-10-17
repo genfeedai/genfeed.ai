@@ -16,6 +16,7 @@ import {
   formatPlanMonthlyPrice,
   formatPlanPriceLabel,
   formatPrice,
+  formatTierLabel,
   getEnterprisePlan,
   getPlanByLabel,
   getPlanByTier,
@@ -364,5 +365,18 @@ describe('website plan catalogue', () => {
 
   it('leaves Enterprise outputs open for custom terms', () => {
     expect(getEnterprisePlan().outputs).toBeNull();
+  });
+});
+
+describe('formatTierLabel', () => {
+  it('names a plan tier by its display label', () => {
+    expect(formatTierLabel('scale', 'a higher plan')).toBe('Agencies');
+    expect(formatTierLabel('enterprise', 'a higher plan')).toBe('Enterprise');
+  });
+
+  it('capitalises an unknown tier and falls back when there is none', () => {
+    expect(formatTierLabel('free', 'a higher plan')).toBe('Free');
+    expect(formatTierLabel('constructor', 'a higher plan')).toBe('Constructor');
+    expect(formatTierLabel(null, 'a paid plan')).toBe('a paid plan');
   });
 });

@@ -1,8 +1,9 @@
 import { IngredientFormat, type ModelCategory } from '@genfeedai/contracts';
 import {
   getModelDefaultDuration,
+  getModelDurationLimits,
   getModelDurations,
-  getModelDurationsForResolution,
+  narrowDurationsByResolution,
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 
@@ -81,6 +82,29 @@ export function filterModelsByAspectRatio(
   });
 }
 
+/**
+ * The clip lengths a model offers, narrowed to what the provider runs at
+ * `resolution`. Lengths and caps come from the model's own record (read from
+ * its reviewed provider rates) before the static capability table, so a new or
+ * updated provider contract reaches every picker without a code change. Empty
+ * when nothing declares a length for the model.
+ */
+export function resolveModelDurationOptions(
+  model: Pick<IModel, 'durations' | 'durationsByResolution' | 'key'>,
+  resolution?: string | null,
+): number[] {
+  const durations = model.durations?.length
+    ? model.durations
+    : getModelDurations(model.key);
+  return [
+    ...narrowDurationsByResolution(
+      durations,
+      getModelDurationLimits(model.key, model.durationsByResolution),
+      resolution,
+    ),
+  ];
+}
+
 export function resolveGenerationModelControls(
   model: IModel | null,
   generationType: 'image' | 'video',
@@ -113,23 +137,14 @@ export function resolveGenerationModelControls(
   }
 
   const capability = model ? getModelCapability(model) : null;
-  const durationOptionsFromModel =
-    model?.durations && model.durations.length > 0
-      ? [...model.durations]
-      : model
-        ? [...getModelDurations(model.key as string)]
-        : [];
+  const durationOptionsFromModel = model
+    ? resolveModelDurationOptions(model)
+    : [];
   // The provider caps some resolutions below the model's lengths, so the
   // picker only offers lengths the selected resolution can run.
-  const resolutionDurations = model
-    ? getModelDurationsForResolution(model.key as string, resolution)
+  const resolvedDurationOptions = model
+    ? resolveModelDurationOptions(model, resolution)
     : [];
-  const resolvedDurationOptions =
-    resolution && resolutionDurations.length > 0
-      ? durationOptionsFromModel.filter((duration) =>
-          resolutionDurations.includes(duration),
-        )
-      : durationOptionsFromModel;
   const durationOptions =
     resolvedDurationOptions.length > 0
       ? resolvedDurationOptions

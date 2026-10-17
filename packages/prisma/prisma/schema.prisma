@@ -1721,6 +1721,12 @@ model Setting {
   // #5502 native secondary apps pinned onto the rail, in pin order. User-wide;
   // a pin shows only where the app is installed and available.
   pinnedAppIds                     String[]                   @default([])
+  // Rail order the member arranged, over every rail app (core and secondary).
+  // Empty means the default order. Unlisted apps follow in default order.
+  railAppOrder                     String[]                   @default([])
+  // The app the member lands on after login. Null falls back to the
+  // organization default, then Workspace.
+  homeAppId                        String?
   isAgentAssetsPanelOpen          Boolean                    @default(false)
   generationPriority               GenerationPriority         @default(QUALITY)
   // #4672 saved default agent mode ('auto' | 'manual' | 'plan') applied to
@@ -1801,6 +1807,10 @@ model OrganizationSetting {
   // Release items a platform admin opened for this one organization, on top of
   // what Admin → Flags released for everyone. Empty until an admin grants one.
   releasedItemIds                String[]          @default([])
+  // The rail order and home app new members start from. A member's own choice
+  // (Setting.railAppOrder / Setting.homeAppId) wins; owners and admins set these.
+  defaultRailOrder               String[]          @default([])
+  defaultHomeAppId               String?
   // #6526 / #6727. Owner/admin opt-ins, off until an organization chooses them.
   // Breakout responses spend credits on a detected own-account breakout; auto-publish
   // lets a response that passed every check schedule itself; vision checks pay a

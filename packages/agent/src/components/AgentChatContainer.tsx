@@ -265,7 +265,9 @@ export function AgentChatContainer({
         request.allowFreeText !== false &&
         content.trim()
       ) {
-        void container.handleSubmitInputRequest(content);
+        // A failed submission is already shown through the container's error
+        // state; the rejection only exists for form callers that await it.
+        container.handleSubmitInputRequest(content).catch(() => undefined);
         return true;
       }
       composerShell?.onSendMessage?.();

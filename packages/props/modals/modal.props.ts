@@ -133,6 +133,7 @@ export interface ModalGalleryProps {
   title?: string;
   selectedId?: string;
   format?: string;
+  isFormatFilterEnabled?: boolean;
   isNoneAllowed?: boolean;
   maxSelectableItems?: number;
 
@@ -286,6 +287,7 @@ export interface ModalPostContentProps {
     updates: Partial<IPostPlatformConfig>,
   ) => void;
   getMinDateTime: () => Date;
+  scheduleTimezone: string;
 }
 
 export interface ModalPostPlatformsTabProps {
@@ -301,6 +303,7 @@ export interface ModalPostPlatformsTabProps {
     updates: Partial<IPostPlatformConfig>,
   ) => void;
   getMinDateTime: () => Date;
+  scheduleTimezone: string;
 }
 
 export interface ModalPostSetupTabProps {

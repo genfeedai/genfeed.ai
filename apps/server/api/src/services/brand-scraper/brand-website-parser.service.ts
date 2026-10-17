@@ -17,6 +17,14 @@ const MAX_IMAGE_CANDIDATES = 12;
 const MAX_FONT_CANDIDATES = 8;
 const THIRD_PARTY_SECTION =
   /\b(?:clients?|customers?|partners?|providers?|trusted|logo-wall|testimonials?|quotes?|case-stud(?:y|ies)|as-seen|press)\b|\blogos\b/iu;
+// A heading is prose, so it needs a phrase that names someone else's mark. A
+// bare word such as "quotes", "providers" or "press" also appears in a brand's
+// own hero copy ("Get quotes in minutes").
+const THIRD_PARTY_HEADING =
+  /\b(?:trusted by|loved by|used by|our (?:clients|customers|partners)|as seen (?:in|on)|featured (?:in|on)|in the press|testimonials?|case stud(?:y|ies)|what (?:our )?(?:clients|customers) say)\b/iu;
+// A wrapper that holds this many headings spans several sections, so one
+// section's heading says nothing about the image under another.
+const MAX_SECTION_HEADINGS = 2;
 const THIRD_PARTY_ASSET_PATH =
   /\/(?:(?:[a-z0-9]+[-_])*(?:clients?|customers?|partners?)(?:[-_]logos?)?|trusted)(?:\/|$)/u;
 const LOGO_DIRECTORY_PATH = /\/(?:[a-z0-9]+[-_])*logos(?:\/|$)/u;
@@ -97,7 +105,8 @@ export class BrandWebsiteParserService {
     const aboutText = this.extractAboutText(bodyText);
 
     const icons = this.extractIconsFromDom($, sourceUrl);
-    const logoUrl = this.extractLogoFromDom($, sourceUrl) ?? icons[0]?.url;
+    const pageLogoUrl = this.extractLogoFromDom($, sourceUrl);
+    const logoUrl = pageLogoUrl ?? icons[0]?.url;
     const images = this.extractImagesFromDom($, sourceUrl);
     const bannerUrl = this.extractBannerFromDom($, sourceUrl, ogImage);
 
@@ -116,6 +125,7 @@ export class BrandWebsiteParserService {
       heroText: headings[0],
       icons,
       images,
+      isLogoFromIcon: !pageLogoUrl && Boolean(logoUrl),
       logoUrl,
       ogDescription,
       ogImage,
@@ -161,6 +171,7 @@ export class BrandWebsiteParserService {
         ...(scrapedContent.logoUrl ? [{ url: scrapedContent.logoUrl }] : []),
         ...scrapedContent.icons,
       ]),
+      logoSource: scrapedContent.isLogoFromIcon ? 'icon' : 'page',
       logoUrl: scrapedContent.logoUrl,
       metaDescription: scrapedContent.description,
       ogImage: scrapedContent.ogImage,
@@ -807,14 +818,14 @@ export class BrandWebsiteParserService {
     ]
       .filter((value): value is string => Boolean(value))
       .join(' ');
+    const headings = element.find('h1, h2, h3').toArray();
     const heading =
-      [
-        ...element.children('h1, h2, h3').toArray(),
-        ...element.children().children('h1, h2, h3').toArray(),
-      ]
-        .map((headingNode) => $(headingNode).text())
-        .find((text) => THIRD_PARTY_SECTION.test(text)) ?? '';
-    if (THIRD_PARTY_SECTION.test(`${descriptor} ${heading}`)) return true;
+      headings.length <= MAX_SECTION_HEADINGS
+        ? (headings
+            .map((headingNode) => $(headingNode).text())
+            .find((text) => THIRD_PARTY_HEADING.test(text)) ?? '')
+        : '';
+    if (THIRD_PARTY_SECTION.test(descriptor) || heading) return true;
     return element.find('img').length >= 4 && /\blogos?\b/iu.test(descriptor);
   }
 

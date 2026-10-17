@@ -11,6 +11,7 @@ import {
   filterPricingRows,
   findPendingVersion,
   type PriceSyncProvider,
+  readOrganizationAppsReport,
   readPricingReport,
   readSystemBrand,
   seedArticles,
@@ -242,6 +243,37 @@ async function runSeedWorkflows(options: {
   if (summary.dryRun) print(chalk.dim('\nRe-run with --yes to apply.'));
 }
 
+async function runOrganizationApps(isJson: boolean): Promise<void> {
+  const report = await readOrganizationAppsReport();
+  if (isJson) {
+    printJson(report);
+    return;
+  }
+
+  const releasedFlags = Object.entries(report.releaseFlags)
+    .filter(([, isReleased]) => isReleased)
+    .map(([flag]) => flag);
+  print(formatHeader(`${report.organizations.length} organizations\n`));
+  print(
+    `${formatLabel(
+      'Released for everyone',
+      releasedFlags.length > 0 ? releasedFlags.join(', ') : chalk.dim('none')
+    )}\n`
+  );
+
+  for (const organization of report.organizations) {
+    const visibleApps = Object.entries(organization.apps)
+      .filter(([, app]) => app.isVisible)
+      .map(([appId]) => appId);
+    const tier = organization.subscriptionTier ?? 'no tier';
+    const preview = organization.isReleasePreviewEnabled ? ' (release preview)' : '';
+    print(
+      `${chalk.bold(organization.label)} ${chalk.dim(`${organization.slug} · ${tier}${preview}`)}`
+    );
+    print(`  ${visibleApps.length > 0 ? visibleApps.join(', ') : chalk.dim('no apps')}`);
+  }
+}
+
 async function readJsonFile(filePath: string): Promise<unknown> {
   try {
     return JSON.parse(await readFile(filePath, 'utf8')) as unknown;
@@ -399,7 +431,9 @@ function createBrandCommand(): Command {
 }
 
 export const adminCommand = new Command('admin')
-  .description('Super admin one-offs over the API: pricing, seeds and the system brand')
+  .description(
+    'Super admin one-offs over the API: organization apps, pricing, seeds and the system brand'
+  )
   .addCommand(
     new Command('login')
       .description('Sign in as a super admin in your browser (no API key is created)')
@@ -417,6 +451,18 @@ export const adminCommand = new Command('admin')
       .action(async (_options, command: Command) => {
         try {
           await runAdminStatus(wantsJson(command));
+        } catch (error) {
+          handleError(error);
+        }
+      })
+  )
+  .addCommand(
+    new Command('org-apps')
+      .description('List the apps each organization sees, with release flags')
+      .option('--json', 'Output as JSON')
+      .action(async (_options, command: Command) => {
+        try {
+          await runOrganizationApps(wantsJson(command));
         } catch (error) {
           handleError(error);
         }

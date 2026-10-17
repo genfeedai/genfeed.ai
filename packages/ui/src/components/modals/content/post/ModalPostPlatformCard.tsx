@@ -8,6 +8,7 @@ import {
 import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
+import { toDateTimeLocalInput } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
@@ -38,6 +39,7 @@ type Props = {
     updates: Partial<IPostPlatformConfig>,
   ) => void;
   getMinDateTime: () => Date;
+  scheduleTimezone: string;
   handleGenerateContent: (
     credentialId: string,
     platform: string,
@@ -60,6 +62,7 @@ export default function ModalPostPlatformCard({
   generatingDescFor,
   updatePlatformConfig,
   getMinDateTime,
+  scheduleTimezone,
   handleGenerateContent,
 }: Props) {
   const Icon = platformIcons[config.platform];
@@ -234,7 +237,7 @@ export default function ModalPostPlatformCard({
               customScheduledDate: event.target.value,
             });
           }}
-          min={getMinDateTime().toISOString().slice(0, 16)}
+          min={toDateTimeLocalInput(getMinDateTime(), scheduleTimezone)}
           disabled={!isEnabled || isLoading}
         />
       )}

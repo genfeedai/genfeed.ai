@@ -46,7 +46,7 @@ export function createAppRailShortcutHandler(
       reset();
       return;
     }
-    if (event.code === 'KeyG' || event.key.toLowerCase() === 'g') {
+    if (event.code === 'KeyG' || event.key?.toLowerCase() === 'g') {
       sequenceStartedAt = now();
       return;
     }

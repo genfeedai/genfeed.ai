@@ -1,6 +1,7 @@
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
+  IOrganizationAppsReport,
   ModelPricingAttentionLevel,
 } from '@genfeedai/contracts/interfaces';
 import { adminGet, adminPatch, adminPost } from '@/api/admin-client';
@@ -56,6 +57,12 @@ export interface PricingReportFilter {
   isAttentionOnly?: boolean;
   level?: ModelPricingAttentionLevel;
   provider?: string;
+}
+
+export async function readOrganizationAppsReport(): Promise<IOrganizationAppsReport> {
+  return flattenSingle<IOrganizationAppsReport>(
+    await adminGet<JsonApiDocument>('/admin/organization-apps')
+  );
 }
 
 export async function readPricingReport(): Promise<AdminModelPricingReport> {

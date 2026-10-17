@@ -16,6 +16,7 @@ export class Model extends BaseEntity implements IModel {
   declare public provider: ModelProvider;
   declare public cost: number;
   declare public hasReviewedPricing?: boolean;
+  declare public durationsByResolution?: IModel['durationsByResolution'];
   declare public isDefault: boolean;
   declare public isActive: boolean;
   declare public lifecycle: ModelLifecycle;

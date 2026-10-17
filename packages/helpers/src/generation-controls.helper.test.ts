@@ -8,6 +8,7 @@ import {
   getAspectRatioForFormat,
   getFormatForAspectRatio,
   resolveGenerationModelControls,
+  resolveModelDurationOptions,
 } from '@helpers/generation-controls.helper';
 
 function createMockModel(overrides: Partial<IModel> = {}): IModel {
@@ -126,6 +127,43 @@ describe('generation-controls.helper', () => {
       ).toEqual([6, 10]);
     });
 
+    it('follows the limits the provider contract publishes over the static table', () => {
+      const hailuo = createMockModel({
+        category: ModelCategory.VIDEO,
+        durations: [6, 10],
+        durationsByResolution: { '1080p': [6, 10], '768p': [6] },
+        id: 'hailuo',
+        key: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      });
+
+      expect(
+        resolveGenerationModelControls(hailuo, 'video', '1080P')
+          .durationOptions,
+      ).toEqual([6, 10]);
+      expect(
+        resolveGenerationModelControls(hailuo, 'video', '768p').durationOptions,
+      ).toEqual([6]);
+    });
+
+    it('narrows a model the static table does not know from its published limits', () => {
+      const discovered = createMockModel({
+        category: ModelCategory.VIDEO,
+        durations: [5, 8, 10],
+        durationsByResolution: { '1080p': [5] },
+        id: 'discovered',
+        key: 'acme/discovered-video',
+      });
+
+      expect(
+        resolveGenerationModelControls(discovered, 'video', '1080p')
+          .durationOptions,
+      ).toEqual([5]);
+      expect(
+        resolveGenerationModelControls(discovered, 'video', '720p')
+          .durationOptions,
+      ).toEqual([5, 8, 10]);
+    });
+
     it('falls back cleanly when no model is selected', () => {
       expect(resolveGenerationModelControls(null, 'video')).toEqual({
         availableAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
@@ -134,6 +172,27 @@ describe('generation-controls.helper', () => {
         durationOptions: [...DEFAULT_VIDEO_DURATION_OPTIONS],
         showDuration: true,
       });
+    });
+  });
+
+  describe('resolveModelDurationOptions', () => {
+    it('is empty for a model that declares no lengths', () => {
+      expect(
+        resolveModelDurationOptions({ key: 'acme/none' }, '1080p'),
+      ).toEqual([]);
+    });
+
+    it('offers a model its own lengths, narrowed by its published limits', () => {
+      expect(
+        resolveModelDurationOptions(
+          {
+            durations: [4, 8],
+            durationsByResolution: { '4k': [4] },
+            key: 'acme/clip',
+          },
+          '4K',
+        ),
+      ).toEqual([4]);
     });
   });
 });

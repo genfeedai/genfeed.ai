@@ -138,6 +138,10 @@ export interface IOrganizationSetting extends IBaseEntity {
   isReleasePreviewEnabled?: boolean;
   /** Release items opened for this organization alone; only platform admins change it. */
   releasedItemIds?: ReleaseItemId[];
+  /** Rail order members start from; empty keeps the standard order. */
+  defaultRailOrder?: string[];
+  /** App members land on unless they pick their own; null means Workspace. */
+  defaultHomeAppId?: string | null;
   /**
    * Own-account breakout responses (#6526). Off: a detected breakout enqueues and spends
    * nothing, and a response already in flight holds. Owners and admins change it.

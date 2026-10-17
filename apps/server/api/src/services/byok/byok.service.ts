@@ -331,7 +331,7 @@ export class ByokService {
   async assertByokEntitled(orgId: string): Promise<void> {
     if (await this.organizationPaidAccessService.isSubscriptionGated(orgId)) {
       throw new ForbiddenException(
-        'Bring-your-own-key requires a Pro subscription. Upgrade your plan to connect provider keys.',
+        'Bring-your-own-key requires a paid subscription. Upgrade your plan to connect provider keys.',
       );
     }
   }

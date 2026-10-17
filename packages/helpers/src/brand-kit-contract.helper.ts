@@ -645,7 +645,9 @@ function createWebsiteAssetCandidates(
       candidateId: `${role}:${candidates.length + 1}:${url}`,
       label:
         role === 'logo'
-          ? 'Website logo'
+          ? scraped.logoSource === 'icon'
+            ? 'Website icon'
+            : 'Website logo'
           : role === 'banner'
             ? 'Website banner'
             : 'Website reference image',
@@ -956,10 +958,21 @@ export function buildBrandKitDraftFromWebsiteScrape(
     scraped.fontFamily ?? scraped.fontCandidates?.[0],
   );
   setProposedValue('label', scraped.companyName);
-  setProposedValue(
-    'logo',
-    createWebsiteAssetValue('logo', scraped.logoUrl, 'Website logo'),
-  );
+  // A touch icon or favicon is a fallback, not a logo: it fills an empty slot
+  // but must never be proposed over a logo the brand already has.
+  const isIconFallback = scraped.logoSource === 'icon';
+  const currentLogo =
+    baseline?.fields.logo?.currentValue ?? readCurrentValue(brand, 'logo');
+  if (!isIconFallback || !currentLogo) {
+    setProposedValue(
+      'logo',
+      createWebsiteAssetValue(
+        'logo',
+        scraped.logoUrl,
+        isIconFallback ? 'Website icon' : 'Website logo',
+      ),
+    );
+  }
   setProposedValue('primaryColor', scraped.primaryColor);
   setProposedValue('promptGuidelines', buildWebsiteGuidance(scraped));
   if (referenceValues.length > 0) {

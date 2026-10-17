@@ -219,6 +219,41 @@ describe('BrandWebsiteParserService', () => {
     );
   });
 
+  it('keeps hero images whose sibling section talks about customers or quotes', () => {
+    const parsed = service.parseHtml(
+      `<body>
+        <header><img class="site-logo" alt="Acme" src="/logo.svg"></header>
+        <main>
+          <section class="intro">
+            <h1>Get quotes from providers in minutes</h1>
+            <img alt="Product" src="/product.png">
+          </section>
+          <section><h2>Why Acme</h2><p>Fast.</p></section>
+          <section><h2>Our customers</h2><p>Many.</p></section>
+        </main>
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.images.map((image) => image.src)).toContain(
+      'https://acme.example/product.png',
+    );
+  });
+
+  it('flags a logo that fell back to the site icon', () => {
+    const parsed = service.parseHtml(
+      `<head>
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+      </head>
+      <body><p>Acme</p></body>`,
+      'https://acme.example',
+    );
+    const data = service.extractBrandData(parsed, 'https://acme.example');
+
+    expect(data.logoUrl).toBe('https://acme.example/favicon-32.png');
+    expect(data.logoSource).toBe('icon');
+  });
+
   it('uses the site icon when every page logo is a customer mark', () => {
     const parsed = service.parseHtml(
       `<head>

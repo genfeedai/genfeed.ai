@@ -42,6 +42,7 @@ export interface GlobalModalGalleryConfig {
   title?: string;
   selectedId?: string;
   format?: string;
+  isFormatFilterEnabled?: boolean;
   isNoneAllowed?: boolean;
   maxSelectableItems?: number;
   accountReference?: IAsset | null;

@@ -35,7 +35,18 @@ const mocks = vi.hoisted(() => ({
     },
     isLoading: false,
   },
+  homeApp: { appId: 'workspace', isResolved: true },
   replace: vi.fn(),
+}));
+
+// The home app's own resolution is covered in use-home-app.test.tsx; here it
+// decides where a brand opens.
+vi.mock('@/components/shell/use-home-app', () => ({
+  useHomeApp: () => ({
+    ...mocks.homeApp,
+    resolveHref: (orgSlug: string, brandSlug?: string) =>
+      `/${orgSlug}/${brandSlug ?? '~'}/${mocks.homeApp.appId}`,
+  }),
 }));
 
 vi.mock('@providers/access-state/access-state.provider', () => ({
@@ -101,6 +112,7 @@ function createBrands(count: number) {
 describe('OrgLandingContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.homeApp = { appId: 'workspace', isResolved: true };
     window.localStorage.clear();
     mocks.brandState.isReady = true;
     mocks.brandState.isBrandScopeResolved = true;
@@ -166,6 +178,68 @@ describe('OrgLandingContent', () => {
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/acme/moonrise/workspace');
     });
+  });
+
+  it("redirects into the only project's home app when the member chose one", async () => {
+    mocks.homeApp = { appId: 'agent', isResolved: true };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Moonrise',
+        slug: 'moonrise',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/moonrise/agent');
+    });
+  });
+
+  it('holds the only-project redirect until the home app is known', async () => {
+    mocks.homeApp = { appId: 'workspace', isResolved: false };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Moonrise',
+        slug: 'moonrise',
+        totalCredentials: 0,
+      },
+    ];
+
+    const { rerender } = render(<OrgLandingContent />);
+    await waitFor(() => {
+      expect(screen.getByTestId('org-landing-redirecting')).toBeInTheDocument();
+    });
+    expect(mocks.replace).not.toHaveBeenCalled();
+
+    mocks.homeApp = { appId: 'library', isResolved: true };
+    rerender(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/moonrise/library');
+    });
+  });
+
+  it('opens a picked project in the home app', () => {
+    mocks.homeApp = { appId: 'agent', isResolved: true };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Moonrise',
+        slug: 'moonrise',
+        totalCredentials: 0,
+      },
+      { id: 'brand_2', label: 'Sunset', slug: 'sunset', totalCredentials: 0 },
+    ];
+
+    render(<OrgLandingContent />);
+
+    expect(
+      within(screen.getByTestId('org-brands')).getAllByRole('link')[0],
+    ).toHaveAttribute('href', '/acme/moonrise/agent');
   });
 
   it('routes incomplete Community users to the agent onboarding surface before a seeded project', async () => {

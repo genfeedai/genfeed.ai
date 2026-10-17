@@ -1,6 +1,7 @@
 'use client';
 
 import { resolveMusicSettings } from '@genfeedai/contracts/constants';
+import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
 import type { GenerationSetupOutputSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
@@ -20,6 +21,7 @@ export default function GenerationSetupOutputSection({
   capabilities,
   controls,
   inputControls,
+  models = [],
   referenceCount = 0,
   onResetField,
   onSetField,
@@ -31,9 +33,20 @@ export default function GenerationSetupOutputSection({
   const musicDurationState = isMusic
     ? resolveMusicSettings(setup.values.modelKey)
     : null;
+  // A video model offers the clip lengths its provider runs at the chosen
+  // resolution; the shared list only covers a model that declares none.
+  const selectedModel = models.find(
+    (model) => model.key === setup.values.modelKey,
+  );
+  const modelDurations =
+    !isMusic && selectedModel
+      ? resolveModelDurationOptions(selectedModel, setup.values.resolution)
+      : [];
   const durationOptions = musicDurationState
     ? musicDurationState.durations
-    : GENERATION_SETUP_DURATION_OPTIONS_SECONDS;
+    : modelDurations.length > 0
+      ? modelDurations
+      : GENERATION_SETUP_DURATION_OPTIONS_SECONDS;
   const hasDurationEditing = musicDurationState
     ? musicDurationState.hasDurationEditing
     : true;

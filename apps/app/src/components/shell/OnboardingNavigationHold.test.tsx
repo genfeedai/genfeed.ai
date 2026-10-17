@@ -14,6 +14,9 @@ function renderHold(pathname: string | null) {
       <a href="/onboarding/positioning">Positioning</a>
       <a href="/test-org/brand-1/library">Library</a>
       <a href="#top">Anchor</a>
+      <a href="https://docs.genfeed.ai" rel="noreferrer" target="_blank">
+        Docs
+      </a>
     </>,
   );
 }
@@ -36,6 +39,21 @@ describe('OnboardingNavigationHold', () => {
     expect(clickWasPrevented('Thread')).toBe(false);
     expect(clickWasPrevented('Positioning')).toBe(false);
     expect(clickWasPrevented('Anchor')).toBe(false);
+  });
+
+  it('lets a link that opens its own tab through', () => {
+    renderHold(ONBOARDING_PATHNAME);
+
+    expect(clickWasPrevented('Docs')).toBe(false);
+  });
+
+  it('ignores key events that carry no key, such as autofill', () => {
+    renderHold(ONBOARDING_PATHNAME);
+
+    const event = new KeyboardEvent('keydown');
+    Object.defineProperty(event, 'key', { value: undefined });
+
+    expect(() => window.dispatchEvent(event)).not.toThrow();
   });
 
   it('does nothing outside agent onboarding', () => {

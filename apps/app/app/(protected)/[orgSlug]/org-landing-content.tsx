@@ -11,6 +11,7 @@ import { ButtonVariant, MemberRole, ViewType } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
+  DEFAULT_HOME_APP_ID,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
@@ -38,7 +39,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Fragment, useEffect } from 'react';
+import { Fragment, useCallback, useEffect } from 'react';
+import { useHomeApp } from '@/components/shell/use-home-app';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 /** Up to this many brands the picker leads with logo cards; above it, a list. */
@@ -177,6 +179,20 @@ export default function OrgLandingContent() {
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { orgSlug, orgHref } = useOrgUrl();
   const { replace } = useRouter();
+  const {
+    appId: homeAppId,
+    isResolved: isHomeAppResolved,
+    resolveHref: resolveHomeHref,
+  } = useHomeApp();
+  // Picking a brand opens the member's home app in it. Workspace keeps its
+  // established brand entry path.
+  const getBrandHomeHref = useCallback(
+    (brandSlug: string) =>
+      homeAppId === DEFAULT_HOME_APP_ID
+        ? createBrandAppRoute(orgSlug, brandSlug, '/workspace')
+        : resolveHomeHref(orgSlug, brandSlug),
+    [homeAppId, orgSlug, resolveHomeHref],
+  );
   const primaryBrandSlug = brands[0]?.slug ?? '';
   const accountType = getBrandOrganizationAccountType(brands[0]);
   const { view, setView } = useCollectionViewPreference({
@@ -210,15 +226,17 @@ export default function OrgLandingContent() {
       return;
     }
 
-    if (brands.length <= 1 && primaryBrandSlug) {
-      replace(createBrandAppRoute(orgSlug, primaryBrandSlug, '/workspace'));
+    if (brands.length <= 1 && primaryBrandSlug && isHomeAppResolved) {
+      replace(getBrandHomeHref(primaryBrandSlug));
     }
   }, [
     accountType,
+    getBrandHomeHref,
     hasNoBrandAccess,
     brands.length,
     currentUser,
     isCurrentUserLoading,
+    isHomeAppResolved,
     isReady,
     orgSlug,
     primaryBrandSlug,
@@ -293,16 +311,10 @@ export default function OrgLandingContent() {
         items={brands}
         maxColumns={3}
         renderGridItem={(brand) => (
-          <BrandCard
-            brand={brand}
-            href={createBrandAppRoute(orgSlug, brand.slug, '/workspace')}
-          />
+          <BrandCard brand={brand} href={getBrandHomeHref(brand.slug)} />
         )}
         renderListItem={(brand) => (
-          <BrandRow
-            brand={brand}
-            href={createBrandAppRoute(orgSlug, brand.slug, '/workspace')}
-          />
+          <BrandRow brand={brand} href={getBrandHomeHref(brand.slug)} />
         )}
         view={view}
       />

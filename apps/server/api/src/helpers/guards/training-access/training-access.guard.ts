@@ -5,7 +5,7 @@ import {
 } from '@api/helpers/utils/auth/auth.util';
 import { isCloudDeployment } from '@genfeedai/config';
 import { SubscriptionTier } from '@genfeedai/contracts';
-import { hasTrainingAccess } from '@genfeedai/pricing';
+import { hasTrainingAccess, PLAN_LABELS } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,
@@ -68,8 +68,7 @@ export class TrainingAccessGuard implements CanActivate {
 
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
-        detail:
-          'Custom model training is available on paid plans. Upgrade to Agencies to train brand models.',
+        detail: `Custom model training is available on paid plans. Upgrade to ${PLAN_LABELS.scale} to train brand models.`,
         meta: {
           resource: 'training',
           upgradeTier: SubscriptionTier.SCALE,

@@ -34,6 +34,7 @@ export const modelAttributes = createEntityAttributes([
   'maxReferences',
   'isBatchSupported',
   'durations',
+  'durationsByResolution',
   'defaultDuration',
   'hasEndFrame',
   'hasInterpolation',

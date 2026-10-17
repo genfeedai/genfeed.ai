@@ -28,6 +28,7 @@ describe('ModalPostContent', () => {
     activeTab: 'setup' as const,
     form,
     getMinDateTime: () => new Date(),
+    scheduleTimezone: 'UTC',
     globalScheduledDate: null,
     ingredient: null,
     isLoading: false,

@@ -4,6 +4,7 @@ import { PRICING_ATTENTION_SELECT } from '@api/collections/models/services/publi
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { classifyModelRowPricingAttention } from '@api/collections/models/utils/model-pricing-attention.util';
 import {
+  deriveDurationsByResolution,
   getRuntimeMarginMultiplier,
   MODEL_PRICING_REFRESH_STALE_DAYS,
   withLiveModelCreditPricing,
@@ -61,6 +62,23 @@ export function hasReviewedModelPricing(
   );
 }
 
+/**
+ * The clip lengths each resolution can run, read from the reviewed provider
+ * rates, so a model's pickers follow its provider contract instead of a list
+ * someone keeps in step by hand.
+ */
+export function projectModelDurationsByResolution(
+  document: ModelWithPricingContracts,
+): Record<string, number[]> | undefined {
+  const contracts = document.providerContracts ?? [];
+  if (contracts.length === 0) return undefined;
+  const profile = projectModelBillablePricingProfile(
+    { ...document, isActive: true },
+    contracts,
+  );
+  return deriveDurationsByResolution(profile.reviewedPricing?.rates);
+}
+
 export function getModelProviderConfig(
   document: unknown,
 ): Record<string, unknown> {
@@ -87,6 +105,7 @@ export function projectRegistryModelDocument(
     providerConfig: getModelProviderConfig(document),
     inputControls: projectReviewedCrunModelInputControls(document),
     hasReviewedPricing: hasReviewedModelPricing(document),
+    durationsByResolution: projectModelDurationsByResolution(document),
   };
   return withLiveModelCreditPricing(
     withProviderConfig,

@@ -606,6 +606,10 @@ export function useIngredientActions({
           ? await getCharacterReferenceWarning([ingredient.id])
           : undefined;
 
+        if (characterReferenceWarning === null) {
+          return;
+        }
+
         if (!confirmModal || !characterReferenceWarning) {
           await deleteIngredient();
           return;

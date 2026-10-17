@@ -24,6 +24,8 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly favoriteModelKeys: Setting['favoriteModelKeys'];
   declare readonly favoriteWorkflowIds: Setting['favoriteWorkflowIds'];
   declare readonly pinnedAppIds: Setting['pinnedAppIds'];
+  declare readonly railAppOrder: Setting['railAppOrder'];
+  declare readonly homeAppId: Setting['homeAppId'];
   declare readonly isAgentAssetsPanelOpen: Setting['isAgentAssetsPanelOpen'];
   declare readonly generationPriority: Setting['generationPriority'];
   declare readonly dashboardPreferences: Setting['dashboardPreferences'];

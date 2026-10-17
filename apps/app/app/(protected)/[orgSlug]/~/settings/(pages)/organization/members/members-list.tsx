@@ -1,12 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonVariant,
-  MemberRole,
-  ModalEnum,
-  SubscriptionTier,
-} from '@genfeedai/contracts';
+import { ButtonVariant, MemberRole, ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   EMPTY_STATES,
@@ -17,6 +12,7 @@ import type {
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import {
+  formatTierLabel,
   getSeatLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
@@ -43,18 +39,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useState } from 'react';
-
-function formatTierLabel(tier: string | null): string {
-  if (!tier) {
-    return 'a paid plan';
-  }
-
-  if (tier === SubscriptionTier.SCALE) {
-    return 'Agencies';
-  }
-
-  return tier.charAt(0).toUpperCase() + tier.slice(1);
-}
 
 function formatInvitationStatus(status: IMemberInvitation['status']): string {
   if (!status) {
@@ -306,7 +290,7 @@ function MembersListContent() {
     findAllMembers();
   }, [findAllMembers]);
 
-  const upgradeTierLabel = formatTierLabel(upgradeTier);
+  const upgradeTierLabel = formatTierLabel(upgradeTier, 'a paid plan');
 
   return (
     <div className="space-y-4">

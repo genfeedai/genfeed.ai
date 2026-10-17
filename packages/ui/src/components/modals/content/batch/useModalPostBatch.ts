@@ -18,7 +18,10 @@ import type {
   IPostPlatformConfig,
 } from '@genfeedai/contracts/interfaces';
 import type { PlatformSubmissionStatus } from '@genfeedai/contracts/interfaces/modals/platform-submission-status.interface';
-import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
+import {
+  fromDateTimeLocalInput,
+  getBrowserTimezone,
+} from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
@@ -78,6 +81,7 @@ export interface UseModalPostBatchReturn {
   globalScheduledDate: Date | null;
   setGlobalScheduledDate: (date: Date | null) => void;
   getMinDateTime: () => Date;
+  scheduleTimezone: string;
   // org settings
   settings: IOrganizationSetting | undefined;
   // derived / flags
@@ -402,12 +406,21 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
         );
 
         try {
-          const localDate =
+          const customScheduledDate =
             config.overrideSchedule && config.customScheduledDate
-              ? new Date(config.customScheduledDate)
-              : (globalScheduledDate ?? new Date());
+              ? fromDateTimeLocalInput(
+                  config.customScheduledDate,
+                  scheduleTimezone,
+                )
+              : undefined;
 
-          const scheduledDate = localDate.toISOString();
+          if (customScheduledDate === null) {
+            throw new Error('Choose a valid schedule time');
+          }
+
+          const scheduledDate =
+            customScheduledDate ??
+            (globalScheduledDate ?? new Date()).toISOString();
 
           const body = {
             category: config.category,
@@ -860,6 +873,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     globalScheduledDate,
     setGlobalScheduledDate: setScheduledDate,
     getMinDateTime,
+    scheduleTimezone,
     settings,
     activeIngredients,
     isCarousel,

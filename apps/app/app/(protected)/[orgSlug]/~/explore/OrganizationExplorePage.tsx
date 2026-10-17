@@ -44,7 +44,7 @@ import {
   STORE_CATEGORY_IDS,
 } from '@/components/explore/explore-app-catalog';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
-import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.provider';
+import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
 
 const ALL_FILTER = 'all';
 
@@ -72,7 +72,7 @@ export default function OrganizationExplorePage() {
   const { flags, isConfigured } = useFeatureFlagContext();
   const { orgSlug } = useOrgUrl();
   const installedApps = useInstalledApps();
-  const { pinnedAppIds, togglePin } = usePinnedRailAppsContext();
+  const { pinnedAppIds, togglePin } = useRailPreferencesContext();
   const [failedActions, setFailedActions] = useState<
     Partial<Record<NativeSecondaryAppId, 'install' | 'uninstall'>>
   >({});

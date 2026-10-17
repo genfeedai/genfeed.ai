@@ -9,6 +9,7 @@ import {
   DEFAULT_LOCALE,
   DEFAULT_THEME,
   NATIVE_SECONDARY_APP_IDS,
+  RAIL_APP_IDS,
   SUPPORTED_LOCALES,
   THEME_PREFERENCES,
   type ThemePreference,
@@ -241,6 +242,35 @@ export class CreateSettingDto {
     type: [String],
   })
   readonly pinnedAppIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(RAIL_APP_IDS.length)
+  @ArrayUnique()
+  @IsIn(RAIL_APP_IDS, { each: true })
+  @ApiProperty({
+    default: [],
+    description:
+      'Rail order over every rail app (core and secondary), left to right. Empty keeps the default order; apps not listed follow in default order.',
+    enum: RAIL_APP_IDS,
+    isArray: true,
+    maxItems: RAIL_APP_IDS.length,
+    required: false,
+    type: [String],
+  })
+  readonly railAppOrder?: string[];
+
+  @IsOptional()
+  @IsIn(RAIL_APP_IDS)
+  @ApiProperty({
+    description:
+      'The app the member lands on after login. Null clears it, falling back to the organization default, then Workspace. An app that is unavailable to the member at login time is skipped.',
+    enum: RAIL_APP_IDS,
+    nullable: true,
+    required: false,
+    type: String,
+  })
+  readonly homeAppId?: string | null;
 
   @IsBoolean()
   @IsOptional()

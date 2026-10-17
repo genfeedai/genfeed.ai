@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { captureAppRailNavigation } from './app-rail-analytics';
+import {
+  captureAppRailNavigation,
+  captureAppRailReorder,
+} from './app-rail-analytics';
 import { captureAnalyticsEvent } from './posthog-client';
 
 vi.mock('./posthog-client', () => ({ captureAnalyticsEvent: vi.fn() }));
@@ -34,6 +37,19 @@ describe('rail analytics', () => {
     expect(captureAnalyticsEvent).toHaveBeenLastCalledWith(
       'app_rail_navigated',
       { from_app: null, to_app: 'publishing', via: 'click', surface: 'drawer' },
+    );
+  });
+  it('captures a reorder with only the app, positions and surface', () => {
+    captureAppRailReorder({
+      app: 'analytics',
+      from_index: 4,
+      to_index: 0,
+      surface: 'desktop',
+      orgSlug: 'private-org',
+    } as Parameters<typeof captureAppRailReorder>[0]);
+    expect(captureAnalyticsEvent).toHaveBeenLastCalledWith(
+      'app_rail_reordered',
+      { app: 'analytics', from_index: 4, to_index: 0, surface: 'desktop' },
     );
   });
 });

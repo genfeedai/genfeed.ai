@@ -99,6 +99,7 @@ describe('ModalPostPlatformsTab', () => {
         togglePlatform={togglePlatform}
         updatePlatformConfig={vi.fn()}
         getMinDateTime={() => TEST_MIN_DATE}
+        scheduleTimezone="UTC"
       />,
     );
 
@@ -128,6 +129,7 @@ describe('ModalPostPlatformsTab', () => {
         togglePlatform={vi.fn()}
         updatePlatformConfig={vi.fn()}
         getMinDateTime={() => TEST_MIN_DATE}
+        scheduleTimezone="UTC"
       />,
     );
 
@@ -156,6 +158,7 @@ describe('ModalPostPlatformsTab', () => {
         togglePlatform={vi.fn()}
         updatePlatformConfig={vi.fn()}
         getMinDateTime={() => TEST_MIN_DATE}
+        scheduleTimezone="UTC"
       />,
     );
 
@@ -263,6 +266,7 @@ describe('ModalPostPlatformsTab', () => {
         togglePlatform={vi.fn()}
         updatePlatformConfig={vi.fn()}
         getMinDateTime={() => TEST_MIN_DATE}
+        scheduleTimezone="UTC"
       />,
     );
 
