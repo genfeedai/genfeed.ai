@@ -44,6 +44,48 @@ type Group = Extract<AnalyzeRecord, { type: 'group' }>;
 type Output = Extract<AnalyzeRecord, { type: 'output' }>;
 type Part = Extract<AnalyzeRecord, { type: 'part' }>;
 
+type SourceEvidence = {
+  modules: number;
+  sourceParts: number;
+  paths: string[];
+};
+
+type OutputEvidence = {
+  filename: string;
+  rawSourceContributionBytes: number;
+  compressedSourceContributionBytes: number;
+  actualEmittedGzipBytes: null;
+  sources: {
+    canonical: SourceEvidence;
+    runtime: SourceEvidence;
+    tsJsonapi: SourceEvidence;
+    lodash: SourceEvidence;
+  };
+  otherSourcePaths: string[];
+};
+
+type DeferredEvidence = {
+  javaScriptChunks: number;
+  javaScriptOutputs: string[];
+  alreadyInitialJavaScriptChunks: number;
+  alreadyInitialJavaScriptOutputs: string[];
+  newOutputEvidence: OutputEvidence[];
+  alreadyInitialOutputEvidence: OutputEvidence[];
+};
+
+export type BundleFailureDiagnostic = {
+  status: 'failed';
+  route: string;
+  reason: string;
+  initialJavaScriptChunks: number;
+  forbiddenInitialSources: number;
+  deferred: DeferredEvidence | null;
+};
+
+type VerificationOptions = {
+  onFailure?: (diagnostic: BundleFailureDiagnostic) => void;
+};
+
 export const REQUEST_SERIALIZER_BUNDLE_ROUTES = [
   '/login',
   '/[orgSlug]/[brandSlug]/workspace/overview',
@@ -65,6 +107,7 @@ function forbiddenSource(source: string): boolean {
 export function verifyRequestSerializerBundle(
   input: Iterable<unknown>,
   routes: readonly string[] = REQUEST_SERIALIZER_BUNDLE_ROUTES,
+  options: VerificationOptions = {},
 ) {
   const records = [...input].map((record) => recordSchema.parse(record));
   if (records.filter((record) => record.type === 'meta').length !== 1) {
@@ -138,8 +181,76 @@ export function verifyRequestSerializerBundle(
     if (!initial.length)
       throw new Error(`Missing initial client outputs: ${route}`);
     const leaked = sourcesFor(initial).filter(forbiddenSource);
+    function fail(
+      reason: string,
+      deferred: DeferredEvidence | null = null,
+    ): never {
+      const diagnostic: BundleFailureDiagnostic = {
+        status: 'failed',
+        route,
+        reason,
+        initialJavaScriptChunks: initial.length,
+        forbiddenInitialSources: leaked.length,
+        deferred,
+      };
+      options.onFailure?.(diagnostic);
+      throw new Error(`${reason}; ${JSON.stringify(diagnostic)}`);
+    }
+    function outputEvidence(filename: string): OutputEvidence {
+      const sources = sourcesFor([filename]);
+      const output = outputs.get(filename);
+      if (!output) throw new Error(`Missing analyzer output: ${filename}`);
+      const modulePaths = output.modules.map(
+        (ident) => modules.get(ident) ?? '',
+      );
+      const contributions = parts.filter((part) => part.filename === filename);
+      const sourcePaths = [
+        ...new Set(contributions.map((part) => part.source_path)),
+      ];
+      function evidence(match: RegExp): SourceEvidence {
+        return {
+          modules: modulePaths.filter((source) => match.test(source)).length,
+          sourceParts: sourcePaths.filter((source) => match.test(source))
+            .length,
+          paths: sources
+            .filter((source) => match.test(source))
+            .slice(0, 5)
+            .map((source) => source.replace(/^\[[^\]]+\]\//, '')),
+        };
+      }
+      return {
+        filename,
+        rawSourceContributionBytes: contributions.reduce(
+          (sum, part) => sum + part.size,
+          0,
+        ),
+        compressedSourceContributionBytes: contributions.reduce(
+          (sum, part) => sum + part.compressed_size,
+          0,
+        ),
+        actualEmittedGzipBytes: null,
+        sources: {
+          canonical: evidence(/\/packages\/serializers\//),
+          runtime: evidence(
+            /\/packages\/services\/core\/request-serializers\.runtime\.ts/,
+          ),
+          tsJsonapi: evidence(/\/node_modules\/ts-jsonapi\//),
+          lodash: evidence(/\/node_modules\/lodash\//),
+        },
+        otherSourcePaths: sources
+          .filter(
+            (source) =>
+              !forbiddenSource(source) &&
+              !source.includes(
+                '/packages/services/core/request-serializers.runtime.ts',
+              ),
+          )
+          .slice(0, 10)
+          .map((source) => source.replace(/^\[[^\]]+\]\//, '')),
+      };
+    }
     if (leaked.length)
-      throw new Error(
+      fail(
         `Request serializer code in initial outputs for ${route}: ${leaked.join(', ')}`,
       );
     const deferred = groups.filter(
@@ -158,21 +269,24 @@ export function verifyRequestSerializerBundle(
         deferred: null,
       };
     if (deferred.length !== 1)
-      throw new Error(`Expected one request serializer async group: ${route}`);
+      fail(`Expected one request serializer async group: ${route}`);
     const groupFiles = [
       ...new Set(deferred[0].outputs.filter(isClientJavaScript)),
     ];
     const files = groupFiles.filter((file) => !initial.includes(file));
     const alreadyInitial = groupFiles.filter((file) => initial.includes(file));
-    const chunkEvidence = {
+    const chunkEvidence: DeferredEvidence = {
       javaScriptChunks: files.length,
       javaScriptOutputs: files,
       alreadyInitialJavaScriptChunks: alreadyInitial.length,
       alreadyInitialJavaScriptOutputs: alreadyInitial,
+      newOutputEvidence: files.map(outputEvidence),
+      alreadyInitialOutputEvidence: alreadyInitial.map(outputEvidence),
     };
     if (files.length !== 1) {
-      throw new Error(
-        `Expected exactly one deferred serializer JavaScript chunk: ${route}; ${JSON.stringify(chunkEvidence)}`,
+      fail(
+        `Expected exactly one deferred serializer JavaScript chunk: ${route}`,
+        chunkEvidence,
       );
     }
     const sources = sourcesFor(files);
@@ -183,9 +297,7 @@ export function verifyRequestSerializerBundle(
       '/node_modules/lodash/',
     ]) {
       if (!sources.some((source) => source.includes(required)))
-        throw new Error(
-          `Missing deferred ${required}: ${route}; ${JSON.stringify(chunkEvidence)}`,
-        );
+        fail(`Missing deferred ${required}: ${route}`, chunkEvidence);
     }
     const contributions = parts.filter((part) => files.includes(part.filename));
     return {
@@ -216,6 +328,8 @@ export function verifyRequestSerializerBundle(
   return {
     schemaVersion: 1,
     membership: 'exact modules and concatenated source parts',
+    byteAccounting:
+      'Analyzer source contribution sums; actual emitted gzip is unavailable without a validated asset mapping.',
     routes: reports,
   };
 }
@@ -234,10 +348,6 @@ if (
     .split('\n')
     .filter(Boolean)
     .map((line) => JSON.parse(line));
-  const report = verifyRequestSerializerBundle(
-    records,
-    process.argv[4] ? [process.argv[4]] : undefined,
-  );
   const appDirectory = path.resolve('apps/app');
   const appManifest = z
     .object({ dependencies: z.object({ next: z.string() }) })
@@ -257,6 +367,18 @@ if (
       encoding: 'utf8',
     }).trim(),
   };
+  const report = verifyRequestSerializerBundle(
+    records,
+    process.argv[4] ? [process.argv[4]] : undefined,
+    {
+      onFailure: (diagnostic) => {
+        writeFileSync(
+          out,
+          `${JSON.stringify({ schemaVersion: 1, ...diagnostic, runtime }, null, 2)}\n`,
+        );
+      },
+    },
+  );
   writeFileSync(out, `${JSON.stringify({ ...report, runtime }, null, 2)}\n`);
   console.info(
     'Request serializers absent from initial JS; one deferred chunk per write route.',

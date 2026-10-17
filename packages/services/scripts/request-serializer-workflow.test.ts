@@ -3,6 +3,7 @@ import {
   chmodSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -36,6 +37,7 @@ function runScript(
   app: string,
   failUpstream = false,
   isolated = false,
+  failProof = false,
 ) {
   if (!command) throw new Error('Missing workflow shell');
   const directory = mkdtempSync(
@@ -51,6 +53,10 @@ const path = require('node:path');
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.CALL_LOG, JSON.stringify({ bin: path.basename(process.argv[1]), args }) + '\\n');
 if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^...')) process.exit(17);
+if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/request-serializer-bundle.ts')) {
+  fs.writeFileSync(args[3], JSON.stringify({ status: 'failed' }));
+  process.exit(23);
+}
 `;
   for (const executable of ['bun', 'bunx']) {
     const file = path.join(directory, executable);
@@ -66,13 +72,24 @@ if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^
       CALL_LOG: log,
       BUNDLE_APP: app,
       FAIL_UPSTREAM: failUpstream ? '1' : '0',
+      FAIL_PROOF: failProof ? '1' : '0',
     },
   });
   const calls: unknown[] = readFileSync(log, 'utf8')
     .trim()
     .split('\n')
     .map((line) => JSON.parse(line));
-  return { status: result.status, calls };
+  return {
+    status: result.status,
+    calls,
+    ...(failProof
+      ? {
+          proofFiles: readdirSync(path.join(directory, '.bundle-size')).filter(
+            (file) => file.endsWith('.json'),
+          ),
+        }
+      : {}),
+  };
 }
 
 describe('pinned serializer bundle workflow', () => {
@@ -154,6 +171,24 @@ describe('pinned serializer bundle workflow', () => {
     });
   });
 
+  it('retains a failure report while rejecting the proof and uploading its diagnostic artifact', () => {
+    const proofStep = workflow
+      .split('      - name: Verify deferred request serializers\n')[1]
+      ?.split('\n      - name:')[0];
+    const proofScript = proofStep
+      ?.match(/ {8}run: \|\n((?: {10}[^\n]*(?:\n|$))+)/)?.[1]
+      .replace(/^ {10}/gm, '');
+    const result = runScript(proofScript, 'app', false, true, true);
+    expect(result.status).toBe(23);
+    expect(result.calls).toHaveLength(2);
+    expect(result.proofFiles).toEqual(['request-serializers-0.json']);
+    expect(proofStep).toContain('id: serializer_proof');
+    expect(proofStep).not.toContain('continue-on-error');
+    expect(workflow).toContain(
+      "!cancelled() && (steps.serializer_proof.outcome == 'success' || steps.serializer_proof.outcome == 'failure')",
+    );
+  });
+
   it('selects app validation when only this workflow changes', () => {
     const result = execFileSync(
       process.execPath,
@@ -170,7 +205,8 @@ describe('pinned serializer bundle workflow', () => {
   it('keeps advisory policy and restricts compact proof upload to the app and same-repo pull requests', () => {
     expect(workflow).toContain('    continue-on-error: true');
     expect(workflow).toContain(
-      "        if: matrix.app == 'app' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository",
+      '        if: $' +
+        "{{ !cancelled() && (steps.serializer_proof.outcome == 'success' || steps.serializer_proof.outcome == 'failure') && matrix.app == 'app' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}",
     );
     expect(workflow).toContain(
       '          path: .bundle-size/request-serializers-*.json',

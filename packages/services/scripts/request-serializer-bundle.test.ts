@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   REQUEST_SERIALIZER_BUNDLE_ROUTES,
   verifyRequestSerializerBundle,
@@ -44,6 +47,13 @@ function graph() {
         coverage: 'exact',
       },
       {
+        type: 'output',
+        route,
+        filename: '[client-fs]/vendor.js',
+        modules: ['read'],
+        coverage: 'exact',
+      },
+      {
         type: 'part',
         route,
         filename: '[client-fs]/write.js',
@@ -77,7 +87,7 @@ describe('serializer bundle evidence', () => {
   it('proves initial absence and a single deferred group including concatenated canonical code', () => {
     const report = verifyRequestSerializerBundle(graph());
     expect(report.routes).toHaveLength(4);
-    expect(report.routes[1].deferred).toEqual({
+    expect(report.routes[1].deferred).toMatchObject({
       javaScriptChunks: 1,
       javaScriptOutputs: ['[client-fs]/write.js'],
       alreadyInitialJavaScriptChunks: 0,
@@ -107,6 +117,110 @@ describe('serializer bundle evidence', () => {
       alreadyInitialJavaScriptOutputs: ['[client-fs]/initial.js'],
       requiredSources: { canonical: 1, tsJsonapi: 1, lodash: 1 },
     });
+  });
+
+  it('reports exact source membership and labels contribution bytes without claiming emitted gzip', () => {
+    const report = verifyRequestSerializerBundle(graph());
+    expect(report.byteAccounting).toContain('source contribution sums');
+    expect(report.routes[1].deferred?.newOutputEvidence).toEqual([
+      {
+        filename: '[client-fs]/write.js',
+        rawSourceContributionBytes: 1000,
+        compressedSourceContributionBytes: 400,
+        actualEmittedGzipBytes: null,
+        sources: {
+          canonical: {
+            modules: 0,
+            sourceParts: 1,
+            paths: [
+              'packages/serializers/src/server/ingredients/image.serializer.ts',
+            ],
+          },
+          runtime: {
+            modules: 1,
+            sourceParts: 0,
+            paths: ['packages/services/core/request-serializers.runtime.ts'],
+          },
+          tsJsonapi: {
+            modules: 1,
+            sourceParts: 0,
+            paths: ['node_modules/ts-jsonapi/lib/index.js'],
+          },
+          lodash: {
+            modules: 1,
+            sourceParts: 0,
+            paths: ['node_modules/lodash/lodash.js'],
+          },
+        },
+        otherSourcePaths: [],
+      },
+    ]);
+  });
+
+  it('writes compact new/cached output diagnostics before rejecting a genuine two-request split', () => {
+    const directory = mkdtempSync(
+      path.join(os.tmpdir(), 'serializer-diagnostic-'),
+    );
+    const file = path.join(directory, 'failure.json');
+    try {
+      expect(() =>
+        verifyRequestSerializerBundle(
+          graph().map((record) =>
+            record.type === 'group' &&
+            'kind' in record &&
+            record.kind === 'async'
+              ? {
+                  ...record,
+                  outputs: [
+                    '[client-fs]/initial.js',
+                    '[client-fs]/write.js',
+                    '[client-fs]/vendor.js',
+                  ],
+                }
+              : record,
+          ),
+          undefined,
+          {
+            onFailure: (diagnostic) =>
+              writeFileSync(file, JSON.stringify(diagnostic)),
+          },
+        ),
+      ).toThrow('Expected exactly one deferred serializer JavaScript chunk');
+      expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({
+        status: 'failed',
+        route: '/login',
+        forbiddenInitialSources: 0,
+        deferred: {
+          javaScriptChunks: 2,
+          javaScriptOutputs: ['[client-fs]/write.js', '[client-fs]/vendor.js'],
+          alreadyInitialJavaScriptChunks: 1,
+          alreadyInitialJavaScriptOutputs: ['[client-fs]/initial.js'],
+          newOutputEvidence: [
+            {
+              filename: '[client-fs]/write.js',
+              sources: {
+                canonical: { modules: 0, sourceParts: 1 },
+                runtime: { modules: 1 },
+                tsJsonapi: { modules: 1 },
+                lodash: { modules: 1 },
+              },
+            },
+            {
+              filename: '[client-fs]/vendor.js',
+              otherSourcePaths: ['packages/services/core/base.service.ts'],
+            },
+          ],
+          alreadyInitialOutputEvidence: [
+            {
+              filename: '[client-fs]/initial.js',
+              actualEmittedGzipBytes: null,
+            },
+          ],
+        },
+      });
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it('fails closed on unsupported schema and coverage', () => {
