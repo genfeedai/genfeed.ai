@@ -23,6 +23,7 @@ import {
   downloadUrl,
   filenameFromContentDisposition,
   ingredientDownloadFilename,
+  sanitizeDownloadFilename,
 } from '@helpers/media/download/download.helper';
 
 describe('download.helper', () => {
@@ -259,6 +260,18 @@ describe('download.helper', () => {
           ...fields,
         } as IIngredient),
       ).toBe(`genfeed-image-ing-123.${extension}`);
+    });
+
+    it('keeps the id and extension when the label is a long prompt', () => {
+      const filename = sanitizeDownloadFilename(
+        ingredientDownloadFilename({
+          category: IngredientCategory.IMAGE,
+          id: 'ing-123',
+          metadata: { extension: 'png', label: 'a'.repeat(400) } as IMetadata,
+        } as IIngredient),
+      );
+
+      expect(filename.endsWith('-image-ing-123.png')).toBe(true);
     });
 
     it('saves PNG bytes with a png suffix when the declared type is jpeg', () => {

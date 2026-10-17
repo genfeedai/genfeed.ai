@@ -60,6 +60,33 @@ describe('env template variable tags', () => {
       expect(untagged).toEqual([]);
     },
   );
+
+  it.each(ENV_TEMPLATE_PATHS)(
+    '%s repeats no comment line and tags each variable once',
+    (relativePath) => {
+      const lines = readText(relativePath).split('\n');
+      const repeatedComments = lines.filter(
+        (line, index) => /^# [A-Za-z]/.test(line) && line === lines[index - 1],
+      );
+      const multiplyTagged = lines.flatMap((line, index) => {
+        const match = /^([A-Z][A-Z0-9_]*)=/.exec(line);
+        if (!match) {
+          return [];
+        }
+
+        let tagCount = 0;
+        for (let cursor = index - 1; lines[cursor]?.startsWith('#'); cursor--) {
+          if (/^# (REQUIRED|OPTIONAL): /.test(lines[cursor])) {
+            tagCount++;
+          }
+        }
+        return tagCount > 1 ? [match[1]] : [];
+      });
+
+      expect(repeatedComments).toEqual([]);
+      expect(multiplyTagged).toEqual([]);
+    },
+  );
 });
 
 describe('self-hosted release env template (docker/.env.example)', () => {

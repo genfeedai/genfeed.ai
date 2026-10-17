@@ -133,7 +133,9 @@ export async function saveAppliedBrandKitSocialLinks(
 
   for (const link of links) {
     const platform = link.platform.trim().toLowerCase();
-    const category = SOCIAL_LINK_CATEGORIES[platform];
+    const category = Object.hasOwn(SOCIAL_LINK_CATEGORIES, platform)
+      ? SOCIAL_LINK_CATEGORIES[platform]
+      : undefined;
     const url = link.url.trim();
     if (!category || !/^https?:\/\//iu.test(url)) {
       continue;
