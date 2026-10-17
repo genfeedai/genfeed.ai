@@ -49,6 +49,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'agentPolicy',
   'moduleOverrides',
   'isReleasePreviewEnabled',
+  'releasedItemIds',
   'isBreakoutResponsesEnabled',
   'isBreakoutAutoPublishEnabled',
   'isBrandVisionChecksEnabled',

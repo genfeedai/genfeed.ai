@@ -2,6 +2,8 @@
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { AlertCategory } from '@genfeedai/contracts';
+import { isReleaseItemId } from '@genfeedai/contracts/constants';
+import OrganizationReleaseGrants from '@protected/organization/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organization/components/organization-settings-table';
 import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
 import Alert from '@ui/feedback/alert/Alert';
@@ -14,7 +16,7 @@ function OrganizationConfigPageContent() {
   const searchParams = useSearchParams();
   const organizationId = searchParams.get('id');
 
-  const { settings, isLoading, isRefreshing, error, refresh } =
+  const { settings, isLoading, isRefreshing, error, refresh, updateSettings } =
     useOrganizationSettings(organizationId);
 
   // Every branch declares the same chrome mode so the topbar never flips
@@ -60,6 +62,15 @@ function OrganizationConfigPageContent() {
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
     >
+      {settings ? (
+        <OrganizationReleaseGrants
+          isReleasePreviewEnabled={settings.isReleasePreviewEnabled === true}
+          releasedItemIds={(settings.releasedItemIds ?? []).filter(
+            isReleaseItemId,
+          )}
+          onChange={(releasedItemIds) => updateSettings({ releasedItemIds })}
+        />
+      ) : null}
       <OrganizationSettingsTable
         settings={settings}
         isLoading={isLoading}

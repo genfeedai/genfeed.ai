@@ -41,6 +41,21 @@ describe('assertOrganizationSettingsPatchAllowed', () => {
     ).not.toThrow();
   });
 
+  it('lets only superadmins grant release items to an organization', () => {
+    expect(() =>
+      assertOrganizationSettingsPatchAllowed(
+        dto({ releasedItemIds: ['turbo'] }),
+        false,
+      ),
+    ).toThrow(ForbiddenException);
+    expect(() =>
+      assertOrganizationSettingsPatchAllowed(
+        dto({ releasedItemIds: ['turbo'] }),
+        true,
+      ),
+    ).not.toThrow();
+  });
+
   it('allows ordinary settings for owners and admins', () => {
     expect(() =>
       assertOrganizationSettingsPatchAllowed(

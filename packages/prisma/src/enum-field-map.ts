@@ -5471,7 +5471,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'webhookEndpoint',
       'webhookSecret',
     ],
-    listFields: ['enabledModelIds', 'webhookEventTypes'],
+    listFields: ['enabledModelIds', 'releasedItemIds', 'webhookEventTypes'],
     enumFields: {
       agentReplyStyle: { enumType: 'AgentReplyStyle', isRequired: true },
     },
