@@ -5,7 +5,7 @@ import {
 } from '@api/helpers/utils/auth/auth.util';
 import { isCloudDeployment } from '@genfeedai/config';
 import { SubscriptionTier } from '@genfeedai/contracts';
-import { hasApiAccess } from '@genfeedai/pricing';
+import { hasApiAccess, PLAN_LABELS } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,
@@ -81,8 +81,7 @@ export class ApiAccessGuard implements CanActivate {
 
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
-        detail:
-          'API access is available on paid plans. Upgrade to Agencies to create and use API keys.',
+        detail: `API access is available on paid plans. Upgrade to ${PLAN_LABELS.scale} to create and use API keys.`,
         meta: {
           resource: 'api',
           upgradeTier: SubscriptionTier.SCALE,

@@ -1,4 +1,4 @@
-import { SubscriptionTier } from '@genfeedai/contracts';
+import { formatTierLabel } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type BusinessErrorDetails = Record<string, unknown>;
@@ -26,18 +26,6 @@ const PLAN_LIMIT_RESOURCE_LABELS: Record<
   },
   seats: { plural: 'team seats', singular: 'team seat' },
 };
-
-function formatTierLabel(tier: string | null): string {
-  if (!tier) {
-    return 'a higher plan';
-  }
-
-  if (tier === SubscriptionTier.SCALE) {
-    return 'Agencies';
-  }
-
-  return tier.charAt(0).toUpperCase() + tier.slice(1);
-}
 
 export class BusinessLogicException extends HttpException {
   constructor(
@@ -128,7 +116,7 @@ export class PlanLimitExceededException extends HttpException {
     const resourceLabel = PLAN_LIMIT_RESOURCE_LABELS[options.resource];
     const label =
       options.limit === 1 ? resourceLabel.singular : resourceLabel.plural;
-    const tierLabel = formatTierLabel(options.upgradeTier);
+    const tierLabel = formatTierLabel(options.upgradeTier, 'a higher plan');
 
     super(
       {

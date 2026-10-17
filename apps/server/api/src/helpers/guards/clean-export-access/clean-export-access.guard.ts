@@ -6,7 +6,7 @@ import {
 import { isCloudDeployment } from '@genfeedai/config';
 import { SubscriptionTier } from '@genfeedai/contracts';
 import { getDeserializer, type JsonApiDocument } from '@genfeedai/helpers';
-import { hasCleanExportAccess } from '@genfeedai/pricing';
+import { hasCleanExportAccess, PLAN_LABELS } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -105,8 +105,7 @@ export class CleanExportAccessGuard implements CanActivate {
 
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
-        detail:
-          'Clean, unwatermarked exports are available on paid plans. Upgrade to Agencies to download originals.',
+        detail: `Clean, unwatermarked exports are available on paid plans. Upgrade to ${PLAN_LABELS.scale} to download originals.`,
         meta: {
           resource: 'clean-export',
           upgradeTier: SubscriptionTier.SCALE,

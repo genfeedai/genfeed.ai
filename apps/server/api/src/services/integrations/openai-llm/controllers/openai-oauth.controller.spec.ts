@@ -102,7 +102,7 @@ describe('OpenAiOAuthController', () => {
 
     it('does not start the OAuth flow without a BYOK entitlement', async () => {
       byokService.assertByokEntitled.mockRejectedValueOnce(
-        new ForbiddenException('BYOK requires a Pro subscription'),
+        new ForbiddenException('BYOK requires a paid subscription'),
       );
 
       await expect(controller.connect(mockUser)).rejects.toBeInstanceOf(

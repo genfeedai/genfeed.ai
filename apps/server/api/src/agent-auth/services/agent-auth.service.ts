@@ -6,7 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import { ApiKeyCategory, PlatformRole } from '@genfeedai/contracts';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
-import { hasApiAccess } from '@genfeedai/pricing';
+import { hasApiAccess, PLAN_LABELS } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import {
   BadRequestException,
@@ -413,8 +413,7 @@ export class AgentAuthService {
     ) {
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_EXCEEDED',
-        detail:
-          'API access is available on paid plans. Upgrade to Agencies before authorizing an agent.',
+        detail: `API access is available on paid plans. Upgrade to ${PLAN_LABELS.scale} before authorizing an agent.`,
         title: 'API access requires a paid plan',
       });
     }

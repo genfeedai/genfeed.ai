@@ -152,7 +152,7 @@ export function useModalGallery({
       setReferences(data);
       logger.info('GET /assets (references)', {
         data: data.length,
-        format: localFormat,
+        format: formatFilter,
       });
     } catch (error) {
       logger.error('Failed to load brand references', error);
@@ -196,7 +196,7 @@ export function useModalGallery({
         setCreations(data);
         logger.info('GET /images (creations)', {
           data: data.length,
-          format: localFormat,
+          format: formatFilter,
         });
       } catch (error) {
         logger.error('Failed to load creations', error);
@@ -238,7 +238,7 @@ export function useModalGallery({
         setUploads(data);
         logger.info('GET /images (uploads)', {
           data: data.length,
-          format: localFormat,
+          format: formatFilter,
         });
       } catch (error) {
         logger.error('Failed to load uploads', error);
@@ -332,7 +332,7 @@ export function useModalGallery({
               query as Record<string, unknown>,
             );
             setItems(data);
-            logger.info('GET /images', { data, format: localFormat });
+            logger.info('GET /images', { data, format: formatFilter });
             break;
           }
         }
