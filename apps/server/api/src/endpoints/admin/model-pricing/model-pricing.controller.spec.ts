@@ -19,7 +19,10 @@ describe('private operator pricing boundary', () => {
       marginMultiplierGeneration: null,
       rows: [],
     });
-    const controller = new AdminModelPricingController({ getReport } as never);
+    const controller = new AdminModelPricingController(
+      { getReport } as never,
+      {} as never,
+    );
     const response = await controller.getReport({
       protocol: 'https',
       get: () => 'api.example',
@@ -47,10 +50,13 @@ describe('private operator pricing boundary', () => {
     };
     const approveRates = vi.fn().mockResolvedValue({});
     const getReport = vi.fn().mockResolvedValue(report);
-    const controller = new AdminModelPricingController({
-      approveRates,
-      getReport,
-    } as never);
+    const controller = new AdminModelPricingController(
+      {
+        approveRates,
+        getReport,
+      } as never,
+      {} as never,
+    );
     const request = {
       context: { userId: 'operator-1' },
       get: () => 'api.example',
@@ -76,9 +82,12 @@ describe('private operator pricing boundary', () => {
   });
   it('refuses an approval without an authenticated operator', async () => {
     const approveRates = vi.fn();
-    const controller = new AdminModelPricingController({
-      approveRates,
-    } as never);
+    const controller = new AdminModelPricingController(
+      {
+        approveRates,
+      } as never,
+      {} as never,
+    );
 
     await expect(
       controller.approveRates({ context: {} } as never, 'model-1', {
@@ -89,9 +98,12 @@ describe('private operator pricing boundary', () => {
   });
   it('requires the pending version the operator reviewed', async () => {
     const approveRates = vi.fn();
-    const controller = new AdminModelPricingController({
-      approveRates,
-    } as never);
+    const controller = new AdminModelPricingController(
+      {
+        approveRates,
+      } as never,
+      {} as never,
+    );
 
     await expect(
       controller.approveRates(
