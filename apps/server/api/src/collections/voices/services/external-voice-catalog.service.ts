@@ -206,6 +206,19 @@ export class ExternalVoiceCatalogService {
             updated++;
           }
         }
+
+        // An empty fetch is indistinguishable from a provider outage, so only
+        // retire voices HeyGen dropped when it returned a catalog.
+        if (voices.length > 0) {
+          await this.prisma.externalVoice.updateMany({
+            data: { isActive: false },
+            where: {
+              externalId: { notIn: voices.map((voice) => voice.voiceId) },
+              externalProvider: VoiceProvider.HEYGEN,
+              isActive: true,
+            },
+          });
+        }
       }
     }
 
