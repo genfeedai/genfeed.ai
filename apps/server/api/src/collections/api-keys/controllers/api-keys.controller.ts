@@ -76,9 +76,9 @@ export class ApiKeysController {
   private async assertNoKeyPrivilegeEscalation(
     user: User,
     requested: {
-      allowedIps?: readonly string[];
-      expiresAt?: string;
-      scopes?: readonly string[];
+      allowedIps?: readonly string[] | null;
+      expiresAt?: string | null;
+      scopes?: readonly string[] | null;
     },
     isCreate: boolean,
   ): Promise<void> {
@@ -104,19 +104,28 @@ export class ApiKeysController {
       return deny('The calling API key could not be resolved.');
     }
 
+    // The DTOs are `@IsOptional()`, which lets JSON `null` through. On create
+    // `null` means "omitted" (the service falls back to its defaults); on
+    // update `undefined` is "unchanged" and `null` is an explicit clear.
+    const isOmitted = (value: unknown): boolean =>
+      isCreate ? value == null : value === undefined;
+
     const callerScopes = new Set<string>(callerKey.scopes ?? []);
-    if (requested.scopes?.some((scope) => !callerScopes.has(scope))) {
+    if (
+      (!isCreate && requested.scopes === null) ||
+      (Array.isArray(requested.scopes) &&
+        requested.scopes.some((scope) => !callerScopes.has(scope)))
+    ) {
       deny('An API key cannot grant scopes it does not hold itself.');
     }
 
     const callerIps = callerKey.allowedIps ?? [];
     if (callerIps.length > 0) {
-      const isIpsOmitted = requested.allowedIps === undefined;
       const isNarrowed =
-        requested.allowedIps !== undefined &&
+        Array.isArray(requested.allowedIps) &&
         requested.allowedIps.length > 0 &&
         requested.allowedIps.every((ip) => callerIps.includes(ip));
-      if (isIpsOmitted ? isCreate : !isNarrowed) {
+      if (isOmitted(requested.allowedIps) ? isCreate : !isNarrowed) {
         deny(
           'An IP-restricted API key can only manage keys restricted to a subset of its IPs.',
         );
@@ -125,11 +134,10 @@ export class ApiKeysController {
 
     if (callerKey.expiresAt) {
       const callerExpiry = new Date(callerKey.expiresAt).getTime();
-      const isExpiryOmitted = requested.expiresAt === undefined;
       const isWithinCallerExpiry =
-        requested.expiresAt !== undefined &&
+        typeof requested.expiresAt === 'string' &&
         new Date(requested.expiresAt).getTime() <= callerExpiry;
-      if (isExpiryOmitted ? isCreate : !isWithinCallerExpiry) {
+      if (isOmitted(requested.expiresAt) ? isCreate : !isWithinCallerExpiry) {
         deny(
           'An expiring API key can only manage keys that expire no later than itself.',
         );
@@ -254,7 +262,7 @@ export class ApiKeysController {
       ...createApiKeyDto,
       // Omitted scopes mean the service default preset, which a narrower
       // calling key may not hold; cap it at what the caller holds.
-      ...(user.isApiKey === true && createApiKeyDto.scopes === undefined
+      ...(user.isApiKey === true && createApiKeyDto.scopes == null
         ? {
             scopes: (user.scopes ?? []).filter((scope) =>
               (SELF_SERVICE_API_KEY_SCOPES as readonly string[]).includes(

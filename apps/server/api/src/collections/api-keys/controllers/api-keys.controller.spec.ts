@@ -822,6 +822,58 @@ describe('ApiKeysController', () => {
       ).rejects.toMatchObject({ status: 403 });
     });
 
+    it('treats JSON null like omitted on create instead of skipping the checks', async () => {
+      mockCallerKey({ expiresAt: new Date(Date.now() + 86400000) });
+
+      // null scopes must not fall through to the service default preset.
+      mockApiKeysService.findOne.mockResolvedValueOnce({
+        allowedIps: [],
+        id: callerKeyId,
+        scopes: ['images:read', 'videos:read'],
+      });
+      await controller.create(mockRequest, callerUser, {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'Null scopes',
+        scopes: null,
+      } as unknown as CreateApiKeyDto);
+      expect(mockApiKeysService.createWithKey).toHaveBeenCalledWith(
+        expect.objectContaining({ scopes: ['images:read', 'videos:read'] }),
+      );
+
+      // null expiresAt must not mint a never-expiring key from an expiring one.
+      await expect(
+        controller.create(mockRequest, callerUser, {
+          category: ApiKeyCategory.GENFEEDAI,
+          expiresAt: null,
+          label: 'Null expiry',
+          scopes: ['images:read'],
+        } as unknown as CreateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('rejects JSON null as a way to clear scopes, IPs, or expiry on update', async () => {
+      mockCallerKey({
+        allowedIps: ['203.0.113.7'],
+        expiresAt: new Date(Date.now() + 86400000),
+      });
+
+      for (const patch of [
+        { scopes: null },
+        { allowedIps: null },
+        { expiresAt: null },
+      ]) {
+        await expect(
+          controller.update(
+            mockRequest,
+            callerUser,
+            callerKeyId,
+            patch as unknown as UpdateApiKeyDto,
+          ),
+        ).rejects.toMatchObject({ status: 403 });
+      }
+      expect(mockApiKeysService.patch).not.toHaveBeenCalled();
+    });
+
     it('does not constrain session-authenticated callers', async () => {
       await controller.create(mockRequest, mockUser, {
         category: ApiKeyCategory.GENFEEDAI,
