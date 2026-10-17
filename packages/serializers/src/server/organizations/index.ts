@@ -12,6 +12,7 @@ export * from '@serializers/server/organizations/ingredient-export.serializer';
 export * from '@serializers/server/organizations/member.serializer';
 export * from '@serializers/server/organizations/member-invitation.serializer';
 export * from '@serializers/server/organizations/organization.serializer';
+export * from '@serializers/server/organizations/organization-apps-report.serializer';
 export * from '@serializers/server/organizations/organization-settings.serializer';
 export * from '@serializers/server/organizations/profile.serializer';
 export * from './brand-font-asset.serializer';

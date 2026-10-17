@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { adminCommand } from '@/commands/admin';
 import { authCommand } from '@/commands/auth';
 import { balanceCommand } from '@/commands/balance';
 import { brandsCommand } from '@/commands/brands';
@@ -52,6 +53,7 @@ export function createProgram(): Command {
     .description('The Genfeed terminal content workspace')
     .version('0.6.0')
     .addCommand(authCommand)
+    .addCommand(adminCommand)
     .addCommand(loginCommand)
     .addCommand(signupCommand)
     .addCommand(logoutCommand)
