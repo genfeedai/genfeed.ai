@@ -10,6 +10,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
+import { LEGACY_SWEEP_CANONICAL_IDS } from '@workers/scheduling/legacy-sweep-canonical-ids.constant';
 import {
   PLATFORM_SCHEDULE_CATALOG,
   PLATFORM_SCHEDULE_QUEUE,
@@ -37,6 +38,19 @@ const DRAINED_JOB_SOURCES = new Set<string>([
  * is the only way to re-arm it.
  */
 const DRAIN_MARKER_KEY = 'genfeed:platform-schedules:5162-job-drain';
+
+/**
+ * Same once-ever guard for the #5634 drain of the pre-expiry sweep backlog.
+ */
+const LEGACY_SWEEP_DRAIN_MARKER_KEY =
+  'genfeed:platform-schedules:5634-legacy-sweep-drain';
+
+/**
+ * A queued sweep this old has outlived every cycle it could belong to (the
+ * longest is hourly), so a newer tick already covers it. The legacy backlog
+ * was 104 h old when measured.
+ */
+const LEGACY_SWEEP_MIN_AGE_MS = 24 * 60 * 60 * 1000;
 
 const DRAIN_PAGE_SIZE = 100;
 
@@ -80,7 +94,9 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
     // must not delay the worker coming up and starting to process real jobs.
     // Every failure mode inside is caught internally, so this can never
     // reject and can never surface an unhandled rejection either.
-    void this.drainStalePlatformSourcedJobs();
+    void this.drainStalePlatformSourcedJobs().then(() =>
+      this.drainLegacyUnexpiredSweepJobs(),
+    );
   }
 
   /**
@@ -168,6 +184,117 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
     }
   }
 
+  /**
+   * One-time deploy migration (#5634): sweep jobs queued before they carried an
+   * expiry (`systemRun.expiresAt`) still sit on `WORKFLOW_EXECUTION_QUEUE`, some
+   * of them days old, and each runs as if it were current. Removes the ones
+   * that are provably dead work: a `system-run` of a known sweep workflow, no
+   * expiry, queued more than a day ago. Anything else is left alone and only
+   * counted by workflow id in the log so the allowlist can be extended on
+   * evidence.
+   *
+   * Same guard as the #5162 drain: an NX Redis key makes it run once
+   * fleet-wide, only `waiting`/`delayed` jobs are touched, and a job a worker
+   * claimed between the page fetch and the removal is left untouched. A job
+   * with an execution row gets the intent, removal, silent cancel sequence; a
+   * cron-queued sweep has no row until it runs, so removing the job is the
+   * whole cleanup. Never rejects.
+   */
+  async drainLegacyUnexpiredSweepJobs(): Promise<void> {
+    try {
+      const client = await this.workflowExecutionQueue.getBackend().client;
+      const claimed = await (
+        client as unknown as {
+          set(key: string, value: string, mode: 'NX'): Promise<string | null>;
+        }
+      ).set(LEGACY_SWEEP_DRAIN_MARKER_KEY, new Date().toISOString(), 'NX');
+      if (claimed !== 'OK') {
+        return;
+      }
+
+      const removedByCanonicalId: Record<string, number> = {};
+      const keptOldByCanonicalId: Record<string, number> = {};
+      let removed = 0;
+      let start = 0;
+      while (true) {
+        const page = await this.workflowExecutionQueue.getJobs(
+          ['waiting', 'delayed'],
+          start,
+          start + DRAIN_PAGE_SIZE - 1,
+        );
+        if (page.length === 0) break;
+
+        let removedInPage = 0;
+        for (const job of page) {
+          const canonicalId = job.data.systemRun?.input.canonicalId;
+          if (!this.isLegacyUnexpiredSweep(job)) {
+            if (this.isOldUnexpiredSystemRun(job) && canonicalId) {
+              keptOldByCanonicalId[canonicalId] =
+                (keptOldByCanonicalId[canonicalId] ?? 0) + 1;
+            }
+            continue;
+          }
+          if (await this.removeLegacySweepJob(job)) {
+            removedInPage += 1;
+            removedByCanonicalId[canonicalId ?? 'unknown'] =
+              (removedByCanonicalId[canonicalId ?? 'unknown'] ?? 0) + 1;
+          }
+        }
+        removed += removedInPage;
+
+        if (page.length < DRAIN_PAGE_SIZE) break;
+        // Removed jobs leave the list, so only the kept ones move the offset.
+        start += page.length - removedInPage;
+      }
+      this.logger.log(
+        `${this.context} drained ${removed} legacy unexpired sweep job(s) from ${WORKFLOW_EXECUTION_QUEUE}: ${JSON.stringify(removedByCanonicalId)}; old unexpired system runs left in place: ${JSON.stringify(keptOldByCanonicalId)}`,
+        this.context,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${this.context} legacy sweep job drain failed`, {
+        error,
+      });
+    }
+  }
+
+  private isOldUnexpiredSystemRun(job: Job<WorkflowExecutionJobData>): boolean {
+    return (
+      job.data.type === 'system-run' &&
+      job.data.systemRun !== undefined &&
+      job.data.systemRun.expiresAt === undefined &&
+      Date.now() - job.timestamp > LEGACY_SWEEP_MIN_AGE_MS
+    );
+  }
+
+  private isLegacyUnexpiredSweep(job: Job<WorkflowExecutionJobData>): boolean {
+    const canonicalId = job.data.systemRun?.input.canonicalId;
+    return (
+      this.isOldUnexpiredSystemRun(job) &&
+      canonicalId !== undefined &&
+      LEGACY_SWEEP_CANONICAL_IDS.has(canonicalId)
+    );
+  }
+
+  private async removeLegacySweepJob(
+    job: Job<WorkflowExecutionJobData>,
+  ): Promise<boolean> {
+    const executionId = job.data.systemRun?.priorExecution?.executionId;
+    const organizationId = job.data.systemRun?.input.organizationId;
+    if (executionId && organizationId) {
+      return this.removeQueuedJobAndCancel(job, executionId, organizationId);
+    }
+    try {
+      await job.remove();
+      return true;
+    } catch (error: unknown) {
+      this.logger.debug(
+        `${this.context} legacy sweep job was already active or gone when draining`,
+        { error, jobId: job.id },
+      );
+      return false;
+    }
+  }
+
   private async drainJobIfPlatformSourced(
     job: Job<WorkflowExecutionJobData>,
   ): Promise<boolean> {
@@ -192,6 +319,19 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       return false;
     }
 
+    return this.removeQueuedJobAndCancel(job, executionId, organizationId);
+  }
+
+  /**
+   * Removes a still-queued job and silently cancels the execution behind it.
+   * The intent is persisted first and the removal runs before the cancel, so a
+   * job a worker already claimed is left untouched (see the drain doc above).
+   */
+  private async removeQueuedJobAndCancel(
+    job: Job<WorkflowExecutionJobData>,
+    executionId: string,
+    organizationId: string,
+  ): Promise<boolean> {
     // Persist the cancellation intent BEFORE the job disappears (#5450). The
     // reconciler honours it with a silent cancel, so a database outage that
     // outlasts the bounded retries below can never turn this drained run into

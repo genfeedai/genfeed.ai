@@ -530,4 +530,169 @@ describe('PlatformScheduleRegistryService', () => {
       await flushMicrotasks();
     });
   });
+
+  describe('drainLegacyUnexpiredSweepJobs (#5634)', () => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    function sweepJob(
+      id: string,
+      overrides: {
+        ageMs?: number;
+        canonicalId?: string;
+        executionId?: string;
+        expiresAt?: number;
+        type?: string;
+      } = {},
+    ) {
+      return {
+        data: {
+          systemRun: {
+            ...(overrides.expiresAt !== undefined
+              ? { expiresAt: overrides.expiresAt }
+              : {}),
+            input: {
+              canonicalId: overrides.canonicalId ?? 'tiktok.status.sweep',
+              organizationId: 'org-sweep',
+            },
+            ...(overrides.executionId
+              ? { priorExecution: { executionId: overrides.executionId } }
+              : {}),
+          },
+          type: overrides.type ?? 'system-run',
+        },
+        id,
+        remove: vi.fn().mockResolvedValue(undefined),
+        timestamp: Date.now() - (overrides.ageMs ?? 3 * DAY_MS),
+      };
+    }
+
+    it('removes an old unexpired sweep job; a cron-queued one has no execution row to cancel', async () => {
+      const old = sweepJob('cron-sweep-old');
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([old])
+        .mockResolvedValue([]);
+
+      await service.drainLegacyUnexpiredSweepJobs();
+
+      expect(old.remove).toHaveBeenCalledOnce();
+      expect(cancellationIntent.requestCancellation).not.toHaveBeenCalled();
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('drained 1 legacy unexpired sweep job(s)'),
+        'PlatformScheduleRegistryService',
+      );
+    });
+
+    it('cancels the execution row behind a sweep job that has one', async () => {
+      const old = sweepJob('runner-sweep-old', {
+        canonicalId: 'lifecycle-email.organization',
+        executionId: 'execution-lifecycle',
+      });
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([old])
+        .mockResolvedValue([]);
+
+      await service.drainLegacyUnexpiredSweepJobs();
+
+      expect(old.remove).toHaveBeenCalledOnce();
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+        'execution-lifecycle',
+        'org-sweep',
+      );
+    });
+
+    it.each([
+      ['a sweep younger than a day', { ageMs: DAY_MS / 2 }],
+      ['a job that already carries an expiry', { expiresAt: Date.now() }],
+      ['a workflow that is not on the sweep list', { canonicalId: 'user.run' }],
+      ['a non-system-run job', { type: 'trigger' }],
+    ])('leaves %s in place', async (_name, overrides) => {
+      const kept = sweepJob('kept', overrides);
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([kept])
+        .mockResolvedValue([]);
+
+      await service.drainLegacyUnexpiredSweepJobs();
+
+      expect(kept.remove).not.toHaveBeenCalled();
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+    });
+
+    it('reports old unexpired system runs it left alone, by workflow id', async () => {
+      const unknown = sweepJob('unknown-old', { canonicalId: 'user.run' });
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([unknown])
+        .mockResolvedValue([]);
+
+      await service.drainLegacyUnexpiredSweepJobs();
+
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('{"user.run":1}'),
+        'PlatformScheduleRegistryService',
+      );
+    });
+
+    it('leaves a job a worker claimed in between untouched', async () => {
+      const claimed = sweepJob('claimed');
+      claimed.remove.mockRejectedValue(new Error('locked by another worker'));
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([claimed])
+        .mockResolvedValue([]);
+
+      await service.drainLegacyUnexpiredSweepJobs();
+
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('does not skip jobs while paging through a backlog it is removing', async () => {
+      const firstPage = Array.from({ length: 100 }, (_, index) =>
+        sweepJob(`page1-${index}`),
+      );
+      const secondPage = [sweepJob('page2-0')];
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce(firstPage)
+        .mockResolvedValueOnce(secondPage)
+        .mockResolvedValue([]);
+
+      await service.drainLegacyUnexpiredSweepJobs();
+
+      // Every job of page one was removed, so the list shifted left: page two
+      // must be read from offset 0 again, not 100.
+      expect(workflowExecutionQueue.getJobs).toHaveBeenNthCalledWith(
+        2,
+        ['waiting', 'delayed'],
+        0,
+        99,
+      );
+      expect(secondPage[0].remove).toHaveBeenCalledOnce();
+    });
+
+    it('runs once fleet-wide behind its own NX marker', async () => {
+      redisClient.set.mockResolvedValue(null);
+
+      await service.drainLegacyUnexpiredSweepJobs();
+
+      expect(redisClient.set).toHaveBeenCalledWith(
+        'genfeed:platform-schedules:5634-legacy-sweep-drain',
+        expect.any(String),
+        'NX',
+      );
+      expect(workflowExecutionQueue.getJobs).not.toHaveBeenCalled();
+    });
+
+    it('never rejects when the drain itself throws', async () => {
+      const rejected = Promise.reject(new Error('redis unreachable'));
+      rejected.catch(() => {});
+      workflowExecutionQueue.getBackend.mockReturnValue({ client: rejected });
+
+      await expect(
+        service.drainLegacyUnexpiredSweepJobs(),
+      ).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('legacy sweep job drain failed'),
+        expect.objectContaining({ error: expect.any(Error) }),
+      );
+    });
+  });
 });
