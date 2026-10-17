@@ -242,6 +242,32 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
+  it('leaves a discovered model a superadmin rejected inactive and unrouted', async () => {
+    const flux3 = UNIFIED_MODEL_CATALOG.find(
+      (entry) =>
+        entry.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    );
+    if (!flux3) throw new Error('Expected FLUX.3 in the catalog');
+
+    prisma.model.findUnique.mockResolvedValueOnce({
+      cost: 12,
+      id: 'rejected-id',
+      isActive: false,
+      isDiscovered: true,
+      isPublic: false,
+      reviewStatus: 'rejected',
+    });
+
+    await service.reconcileCatalog([flux3]);
+
+    const update = callForKey(
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    )?.update;
+    expect(update).not.toHaveProperty('isActive');
+    expect(update).not.toHaveProperty('isDiscovered');
+    expect(update).not.toHaveProperty('isPublic');
+  });
+
   it('activates and prices Hailuo Fast and Wan I2V on first curation', async () => {
     for (const key of [
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
