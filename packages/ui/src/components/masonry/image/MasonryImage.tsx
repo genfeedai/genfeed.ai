@@ -64,6 +64,7 @@ function MasonryImageWithActions(props: MasonryImageProps): React.ReactElement {
 
 function MasonryImageTile({
   actions,
+  transformActions,
   accessibleLabel,
   image,
   isSelected = false,
@@ -277,8 +278,25 @@ function MasonryImageTile({
           isActionsEnabled={isActionsEnabled}
           isSelected={isSelected}
           showActions={showActions}
-          actionStates={actions.actionStates}
-          handlers={actions.handlers}
+          actionStates={
+            transformActions
+              ? {
+                  ...actions.actionStates,
+                  isUpscaling: transformActions.isUpscaling,
+                  isExtending: transformActions.isExtending,
+                }
+              : actions.actionStates
+          }
+          handlers={
+            transformActions
+              ? {
+                  ...actions.handlers,
+                  handleUpscale: async (ingredient: IIngredient) => {
+                    await transformActions.onUpscale(ingredient);
+                  },
+                }
+              : actions.handlers
+          }
           availableTags={availableTags}
           isLoadingTags={isLoadingTags}
           handleDownload={handleDownload}
@@ -308,7 +326,7 @@ function MasonryImageTile({
 
   const confirmBridge = isActionsEnabled && actions && (
     <MasonryConfirmBridge
-      upscaleConfirmData={actions.upscaleConfirmData}
+      upscaleConfirmData={transformActions ? null : actions.upscaleConfirmData}
       executeUpscale={actions.executeUpscale}
       clearUpscaleConfirm={actions.clearUpscaleConfirm}
       enhanceConfirmData={actions.enhanceConfirmData}

@@ -7,6 +7,35 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
+export type IngredientContinuationOperation =
+  | 'edit'
+  | 'variation'
+  | 'animate'
+  | 'upscale'
+  | 'extend'
+  | 'editor';
+
+export interface IngredientActionAvailability {
+  isAvailable: boolean;
+  reason?:
+    | 'sourceUnavailable'
+    | 'modelUnavailable'
+    | 'priceUnavailable'
+    | 'catalogLoading'
+    | 'pending';
+}
+
+export interface MasonryTransformActions {
+  getAvailability: (
+    ingredient: IIngredient,
+    operation: IngredientContinuationOperation,
+  ) => IngredientActionAvailability;
+  isExtending: boolean;
+  isUpscaling: boolean;
+  onExtend: (ingredient: IIngredient) => void | Promise<void>;
+  onUpscale: (ingredient: IIngredient) => void | Promise<void>;
+}
+
 /**
  * Base masonry props shared between image and video components
  */
@@ -16,6 +45,7 @@ export interface BaseMasonryProps<T extends IIngredient = IIngredient> {
   isSelected?: boolean;
   isScrollFocused?: boolean;
   isActionsEnabled?: boolean;
+  transformActions?: MasonryTransformActions;
   isSquare?: boolean;
   isFormatCompatible?: boolean;
   isPublicGallery?: boolean;

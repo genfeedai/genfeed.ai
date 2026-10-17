@@ -76,6 +76,7 @@ import { useStudioPlaygroundHandoff } from '@pages/studio/playground/hooks/useSt
 import { useStudioPlaygroundModels } from '@pages/studio/playground/hooks/useStudioPlaygroundModels';
 import { useStudioPlaygroundPreviewRecovery } from '@pages/studio/playground/hooks/useStudioPlaygroundPreviewRecovery';
 import { useStudioPlaygroundSettings } from '@pages/studio/playground/hooks/useStudioPlaygroundSettings';
+import { useStudioPlaygroundTransformActions } from '@pages/studio/playground/hooks/useStudioPlaygroundTransformActions';
 import { useStudioPromptEnhancement } from '@pages/studio/playground/hooks/useStudioPromptEnhancement';
 import {
   buildRepromptData,
@@ -143,6 +144,7 @@ import {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -956,7 +958,15 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     },
     [revealInspector, selectedJobId, visibleJobs],
   );
+  const { transformActions, confirmation: transformConfirmation } =
+    useStudioPlaygroundTransformActions({
+      brandId,
+      organizationId,
+      onRefresh: refresh,
+      scopeKey: crunRestoreScope,
+    });
   const assetActions = useStudioPlaygroundAssetActions({
+    transformActions,
     failedRecovery: {
       onRetryFailedIngredient: (ingredient) =>
         failedRecovery.handleRetryFailedIngredients([ingredient]),
@@ -2382,6 +2392,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      <MasonryConfirmBridge key={crunRestoreScope} {...transformConfirmation} />
       <SectionTopbar
         actions={
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
@@ -2496,6 +2507,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                     job={selectedJob}
                     onRemix={handleRemixJob}
                     onEdit={handleEditJob}
+                    onAnimate={assetActions.onConvertToVideo}
+                    onOpenInEditor={assetActions.onOpenInEditor}
+                    transformActions={transformActions}
                     onPreviewRecovered={recoverPreview}
                     isUseAsReferenceEnabled={canUseGeneratedReference(
                       selectedJob,
@@ -2733,6 +2747,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             onPreviewRecovered={recoverPreview}
             onRemix={handleRemixJob}
             onEdit={handleEditJob}
+            onAnimate={assetActions.onConvertToVideo}
+            onOpenInEditor={assetActions.onOpenInEditor}
+            transformActions={transformActions}
             isUseAsReferenceEnabled={canUseGeneratedReference(selectedJob)}
             onSelect={handleSelectJob}
             onUseAsReference={handleUseGeneratedReference}

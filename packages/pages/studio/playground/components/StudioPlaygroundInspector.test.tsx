@@ -311,10 +311,10 @@ describe('StudioPlaygroundInspector', () => {
     );
     expect(screen.getByRole('button', { name: 'Upscale' })).toBeDisabled();
     expect(
-      screen.getByText(
-        'A current price is unavailable. Refresh models before continuing.',
-      ),
-    ).toBeVisible();
+      screen.getByRole('button', { name: 'Upscale' }),
+    ).toHaveAccessibleDescription(
+      'A current price is unavailable. Refresh models before continuing.',
+    );
     expect(onUpscale).not.toHaveBeenCalled();
   });
 
@@ -492,7 +492,9 @@ describe('StudioPlaygroundInspector', () => {
       ).toBeEnabled(),
     );
     expect(screen.queryByRole('img', { name: 'Image preview' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Vary' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Generate again' }),
+    ).toBeEnabled();
     expect(onPreviewRecovered).not.toHaveBeenCalled();
   });
 
@@ -761,7 +763,9 @@ describe('StudioPlaygroundInspector', () => {
     expect(facts).toHaveTextContent('BrandNorthstar');
     expect(facts).toHaveTextContent('Created');
     // Video references do not survive the Auto model, so videos get no Remix.
-    expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Create variation' }),
+    ).toBeNull();
     expect(facts.textContent ?? '').not.toMatch(/credit/i);
   });
 
@@ -798,7 +802,9 @@ describe('StudioPlaygroundInspector', () => {
     );
     expect(onUseInPost).toHaveBeenCalledWith(ingredient);
 
-    fireEvent.click(within(actions).getByRole('button', { name: 'Remix' }));
+    fireEvent.click(
+      within(actions).getByRole('button', { name: 'Create variation' }),
+    );
     expect(onRemix).toHaveBeenCalledWith(job);
 
     fireEvent.click(
@@ -858,7 +864,7 @@ describe('StudioPlaygroundInspector', () => {
     }
   });
 
-  it('offers only Vary while the asset has no persisted ingredient', () => {
+  it('offers only Generate again while the asset has no persisted ingredient', () => {
     render(
       <StudioPlaygroundInspector
         job={recipeJob}
@@ -875,7 +881,7 @@ describe('StudioPlaygroundInspector', () => {
       within(actions)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Vary']);
+    ).toEqual(['Generate again']);
   });
 
   it('carries use as reference, make clips and source for a finished video', () => {
@@ -1053,7 +1059,7 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
     expect(
-      screen.queryByRole('button', { name: 'Vary' }),
+      screen.queryByRole('button', { name: 'Generate again' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(
@@ -1075,7 +1081,7 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate again' }));
     expect(onVary).toHaveBeenCalledWith(recipeJob);
   });
 

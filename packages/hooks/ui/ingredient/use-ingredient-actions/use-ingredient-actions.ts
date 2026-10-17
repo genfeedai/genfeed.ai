@@ -34,7 +34,9 @@ import { useCharacterReferenceDeleteWarning } from '@hooks/data/personas/use-cha
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import {
+  getVideoExtendAvailability,
   getVideoExtendDurationOptions,
+  getVideoExtendModelOptions,
   getVideoExtendQuote,
 } from '@hooks/ui/ingredient/use-ingredient-actions/video-extend-admission.util';
 import {
@@ -55,6 +57,7 @@ type AssetStatusSocketPayload = {
  * Options for the useIngredientActions hook
  */
 export interface UseIngredientActionsOptions {
+  scopeKey?: string;
   onDeleteIngredient?: (ingredient: IIngredient) => void | Promise<void>;
   onPublishIngredient?: (ingredient: IIngredient) => void;
   onRefresh?: () => void | Promise<void>;
@@ -106,6 +109,7 @@ export interface VideoExtendConfirmData {
 }
 
 export function useIngredientActions({
+  scopeKey,
   onDeleteIngredient,
   onPublishIngredient,
   onRefresh,
@@ -128,6 +132,14 @@ export function useIngredientActions({
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const { brandId, organizationId } = useBrand();
   const { videoModels } = useElements();
+  const transformScopeKey =
+    scopeKey ?? JSON.stringify([brandId, organizationId]);
+  const transformOwner = useRef({ key: transformScopeKey, epoch: 0 });
+  if (transformOwner.current.key !== transformScopeKey)
+    transformOwner.current = {
+      key: transformScopeKey,
+      epoch: transformOwner.current.epoch + 1,
+    };
   const extendOwner = useRef({
     brandId,
     organizationId,
@@ -142,7 +154,11 @@ export function useIngredientActions({
   };
   const activeExtendConfirmation = useRef<VideoExtendConfirmData | null>(null);
   const isSubmittingExtension = useRef(false);
-  const confirmedExtendScope = useRef({ brandId, organizationId });
+  const confirmedExtendScope = useRef({
+    brandId,
+    organizationId,
+    epoch: transformOwner.current.epoch,
+  });
   const { href } = useOrgUrl();
   const { subscribe } = useSocketManager();
 
@@ -195,6 +211,7 @@ export function useIngredientActions({
   // Extracted enhance/upscale concern into dedicated hook
   const {
     handleUpscale,
+    getUpscaleAvailability,
     handleEnhance,
     upscaleConfirmData,
     upscaleConfirmMessage,
@@ -205,6 +222,7 @@ export function useIngredientActions({
     clearUpscaleConfirm,
     clearEnhanceConfirm,
   } = useEnhanceUpscale({
+    scopeKey: transformScopeKey,
     getImagesService,
     getVideosService,
     onRefresh,
@@ -242,53 +260,59 @@ export function useIngredientActions({
           'Only completed videos can be extended',
         );
       }
-      if (!extendOwner.current.isMounted || isSubmittingExtension.current)
+      if (
+        !extendOwner.current.isMounted ||
+        isSubmittingExtension.current ||
+        transformOwner.current.key !== transformScopeKey
+      )
         return;
       activeExtendConfirmation.current = null;
       setExtendConfirmData(null);
-      const modelOptions = [...videoModels]
-        .sort((left, right) => {
-          if (left.key === ingredient.model) return -1;
-          if (right.key === ingredient.model) return 1;
-          return 0;
-        })
-        .flatMap((model) => {
-          const capability = getModelCapability(model);
-          if (
-            capability?.category !== ModelCategory.VIDEO ||
-            (!hasNativeExtend(model.key, capability) &&
-              capability.maxReferences < 1)
-          )
-            return [];
-          const option: VideoExtendModelOption = {
-            cost: model.cost,
-            costPerUnit: model.costPerUnit,
-            defaultDuration: capability.defaultDuration,
-            durations: capability.durations
-              ? [...capability.durations]
-              : undefined,
-            key: model.key,
-            label: model.label,
-            minCost: model.minCost,
-            pricingType: model.pricingType,
-          };
-          const duration = getVideoExtendDurationOptions(option)[0];
-          return duration !== undefined &&
-            getVideoExtendQuote(option, duration) !== null
-            ? [option]
-            : [];
-        });
+      const modelOptions = getVideoExtendModelOptions(ingredient, videoModels);
       if (modelOptions.length === 0) {
         return notificationsService.error(
           'Video extension support or pricing unavailable. Refresh models before continuing.',
         );
       }
       const confirmation = { ingredient: { ...ingredient }, modelOptions };
-      confirmedExtendScope.current = { brandId, organizationId };
+      confirmedExtendScope.current = {
+        brandId,
+        organizationId,
+        epoch: transformOwner.current.epoch,
+      };
       activeExtendConfirmation.current = confirmation;
       setExtendConfirmData(confirmation);
     },
-    [brandId, organizationId, notificationsService, videoModels],
+    [
+      brandId,
+      organizationId,
+      notificationsService,
+      videoModels,
+      transformScopeKey,
+    ],
+  );
+
+  const lastCommittedScope = useRef(transformScopeKey);
+  useEffect(() => {
+    if (lastCommittedScope.current === transformScopeKey) return;
+    lastCommittedScope.current = transformScopeKey;
+    activeExtendConfirmation.current = null;
+    setExtendConfirmData(null);
+  }, [transformScopeKey]);
+
+  const getExtendAvailability = useCallback(
+    (ingredient: IIngredient) => {
+      if (
+        !isVideoIngredient(ingredient) ||
+        (ingredient.status !== IngredientStatus.GENERATED &&
+          ingredient.status !== IngredientStatus.VALIDATED)
+      )
+        return { isAvailable: false, reason: 'sourceUnavailable' as const };
+      if (isSubmittingExtension.current)
+        return { isAvailable: false, reason: 'pending' as const };
+      return getVideoExtendAvailability(ingredient, videoModels);
+    },
+    [videoModels],
   );
 
   const clearExtendConfirm = useCallback(() => {
@@ -305,6 +329,7 @@ export function useIngredientActions({
       )
         return;
       const ingredient = extendConfirmData.ingredient;
+      const confirmedScope = confirmedExtendScope.current;
       const { model, duration, prompt, cost } = selection;
       const option = extendConfirmData.modelOptions.find(
         (candidate) => candidate.key === model,
@@ -320,9 +345,9 @@ export function useIngredientActions({
         const capability = current ? getModelCapability(current) : null;
         if (
           !owner.isMounted ||
-          owner.brandId !== confirmedExtendScope.current.brandId ||
-          owner.organizationId !==
-            confirmedExtendScope.current.organizationId ||
+          transformOwner.current.epoch !== confirmedScope.epoch ||
+          owner.brandId !== confirmedScope.brandId ||
+          owner.organizationId !== confirmedScope.organizationId ||
           !current ||
           !option ||
           capability?.category !== ModelCategory.VIDEO ||
@@ -353,7 +378,13 @@ export function useIngredientActions({
       try {
         await executeSilentWithActionState({
           errorMessage: 'Failed to extend video',
-          onSuccess: onRefresh,
+          onSuccess: async () => {
+            if (
+              extendOwner.current.isMounted &&
+              transformOwner.current.epoch === confirmedScope.epoch
+            )
+              await onRefresh?.();
+          },
           operation: async () => {
             const service = (await getVideosService()) as VideosService;
             if (!isStillConfirmed())
@@ -1107,6 +1138,8 @@ export function useIngredientActions({
   );
 
   return {
+    getUpscaleAvailability,
+    getExtendAvailability,
     actionStates,
     clearEnhanceConfirm,
     clearExtendConfirm,
@@ -1176,7 +1209,10 @@ export function useIngredientActions({
     setActionStates,
     setShowActions,
     showActions,
-    extendConfirmData,
+    extendConfirmData:
+      confirmedExtendScope.current.epoch === transformOwner.current.epoch
+        ? extendConfirmData
+        : null,
     // Upscale confirm modal data
     upscaleConfirmData,
     upscaleConfirmMessage,

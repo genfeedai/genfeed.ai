@@ -13,6 +13,7 @@ import type {
   StudioPlaygroundType,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import type { CharacterMentionSubmitResult } from '@genfeedai/helpers/content/character-mention.util';
+import type { MasonryTransformActions } from '@genfeedai/props/content/masonry.props';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type {
   PromptBarAttachedAsset,
@@ -95,6 +96,7 @@ export interface StudioFailedIngredientRecoveryActions {
 }
 
 export interface StudioPlaygroundAssetActions {
+  transformActions?: MasonryTransformActions;
   failedRecovery?: StudioFailedIngredientRecoveryActions;
   onCancelGeneration?: (job: StudioPlaygroundJob) => void | Promise<void>;
   onClickIngredient: (ingredient: IIngredient) => void;
@@ -243,6 +245,9 @@ export interface StudioPlaygroundCardProps {
 }
 
 export interface StudioPlaygroundInspectorProps {
+  onAnimate?: (ingredient: IIngredient) => void;
+  onOpenInEditor?: (ingredient: IIngredient) => void;
+  transformActions?: MasonryTransformActions;
   isFocused?: boolean;
   job: StudioPlaygroundJob;
   onOpenPreview?: () => void;

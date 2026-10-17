@@ -55,6 +55,7 @@ function MasonryVideoWithActions(props: MasonryVideoProps): React.ReactElement {
 
 function MasonryVideoTile({
   actions,
+  transformActions,
   accessibleLabel,
   video,
   isSelected = false,
@@ -193,8 +194,28 @@ function MasonryVideoTile({
           isGeneratingCaptions={isGeneratingCaptions}
           isMirroring={isMirroring}
           isReversing={isReversing}
-          actionStates={actions.actionStates}
-          handlers={actions.handlers}
+          actionStates={
+            transformActions
+              ? {
+                  ...actions.actionStates,
+                  isUpscaling: transformActions.isUpscaling,
+                  isExtending: transformActions.isExtending,
+                }
+              : actions.actionStates
+          }
+          handlers={
+            transformActions
+              ? {
+                  ...actions.handlers,
+                  handleUpscale: async (ingredient: IIngredient) => {
+                    await transformActions.onUpscale(ingredient);
+                  },
+                  handleExtend: (ingredient: IIngredient) => {
+                    void transformActions.onExtend(ingredient);
+                  },
+                }
+              : actions.handlers
+          }
           availableTags={availableTags}
           isLoadingTags={isLoadingTags}
           handleDownload={handleDownload}
@@ -240,13 +261,17 @@ function MasonryVideoTile({
       {content}
       {isActionsEnabled && actions && (
         <MasonryConfirmBridge
-          upscaleConfirmData={actions.upscaleConfirmData}
+          upscaleConfirmData={
+            transformActions ? null : actions.upscaleConfirmData
+          }
           executeUpscale={actions.executeUpscale}
           clearUpscaleConfirm={actions.clearUpscaleConfirm}
           enhanceConfirmData={actions.enhanceConfirmData}
           executeEnhance={actions.executeEnhance}
           clearEnhanceConfirm={actions.clearEnhanceConfirm}
-          extendConfirmData={actions.extendConfirmData}
+          extendConfirmData={
+            transformActions ? null : actions.extendConfirmData
+          }
           executeExtend={actions.executeExtend}
           clearExtendConfirm={actions.clearExtendConfirm}
         />
