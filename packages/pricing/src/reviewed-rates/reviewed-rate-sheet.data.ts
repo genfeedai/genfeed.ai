@@ -2226,6 +2226,39 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:38.303Z',
   },
   {
+    // Replicate's model page lists no price. sync.so, the model's maker, lists
+    // $0.04-$0.05 per second at 25 fps; the top of the range is used.
+    endpoint: 'sync/lipsync-2',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://sync.so/docs/billing',
+    verifiedAt: '2026-10-17T00:00:00.000Z',
+  },
+  {
+    // sync.so lists $0.067-$0.083 per second at 25 fps; the top is used.
+    endpoint: 'sync/lipsync-2-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.083,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://sync.so/docs/billing',
+    verifiedAt: '2026-10-17T00:00:00.000Z',
+  },
+  {
     // Billed $0.08 per Topaz "unit"; the model readme maps units to output
     // megapixels (1 unit up to 24 MP, 2 up to 48, 4 at 96, 17 at 512), and
     // Topaz on fal states the same ($0.08 to 24 MP, $0.32 to 96 MP, $1.36 at

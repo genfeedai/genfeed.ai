@@ -64,6 +64,8 @@ export const MODEL_KEYS = {
   REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL: 'black-forest-labs/flux-schnell',
   REPLICATE_LUMA_REFRAME_IMAGE: 'luma/reframe-image',
   REPLICATE_LUMA_REFRAME_VIDEO: 'luma/reframe-video',
+  REPLICATE_SYNC_LIPSYNC_2: 'sync/lipsync-2',
+  REPLICATE_SYNC_LIPSYNC_2_PRO: 'sync/lipsync-2-pro',
   REPLICATE_TOPAZ_IMAGE_UPSCALE: 'topazlabs/image-upscale',
   REPLICATE_TOPAZ_VIDEO_UPSCALE: 'topazlabs/video-upscale',
   REPLICATE_KWAIVGI_KLING_V1_6_PRO: 'kwaivgi/kling-v1.6-pro',
