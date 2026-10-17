@@ -23,7 +23,11 @@ for (const name of ['appData', 'userData', 'sessionData']) {
 }
 // No protocol registration or Keychain entry is created by this fixture.
 app.setAsDefaultProtocolClient = () => false;
-safeStorage.isEncryptionAvailable = () => false;
+// Stand in for the OS keychain with an in-process codec so Desktop takes its
+// normal encrypted-storage path (#7154) without touching the real Keychain.
+safeStorage.isEncryptionAvailable = () => true;
+safeStorage.encryptString = (value) => Buffer.from(value, 'utf8');
+safeStorage.decryptString = (value) => value.toString('utf8');
 const statePath = path.join(app.getPath('userData'), 'desktop-state.json');
 const audit = {
   dialogCalls: 0,
@@ -117,6 +121,8 @@ globalThis.__genfeedRuntimeAcceptance = {
     return { ...audit, savedMode: values['desktop.runtime.mode'] || 'cloud' };
   },
 };
+const encodeFixtureSession = (session) =>
+  safeStorage.encryptString(JSON.stringify(session)).toString('base64');
 void (async () => {
   await whenElectronReady();
   session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
@@ -134,8 +140,8 @@ void (async () => {
   fs.writeFileSync(
     statePath,
     JSON.stringify({
-      'desktop.server.selection': JSON.stringify({ kind: 'cloud' }),
-      'desktop.session': JSON.stringify({
+      'desktop.server.selection': encodeFixtureSession({ kind: 'cloud' }),
+      'desktop.session': encodeFixtureSession({
         issuedAt: new Date().toISOString(),
         token: 'gf_runtime_fixture',
         userId: 'mock-user-id-e2e-test',
