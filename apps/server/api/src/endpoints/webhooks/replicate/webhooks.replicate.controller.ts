@@ -21,6 +21,7 @@ import {
   HttpStatus,
   Post,
   Query,
+  type RawBodyRequest,
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -48,7 +49,7 @@ export class ReplicateWebhookController {
    * public endpoint must not accept callbacks it cannot authenticate.
    */
   private async validateWebhookSignature(
-    request: Request,
+    request: RawBodyRequest<Request>,
     payload: ReplicateWebhookPayload,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -66,8 +67,13 @@ export class ReplicateWebhookController {
       throw new HttpException('Webhook is invalid', HttpStatus.UNAUTHORIZED);
     }
 
+    if (!Buffer.isBuffer(request.rawBody) || request.rawBody.length === 0) {
+      throw new HttpException('Webhook is invalid', HttpStatus.UNAUTHORIZED);
+    }
+
     const requestData = {
-      body: request.body,
+      // The SDK reserializes objects and strips a BOM from typed arrays.
+      body: request.rawBody.toString('utf8'),
       id: request.headers['webhook-id'] as string,
       secret,
       signature: request.headers['webhook-signature'] as string,
@@ -97,18 +103,18 @@ export class ReplicateWebhookController {
       // A valid signature is not proof of origin here: Replicate's signing key
       // is account-scoped and cannot be rotated, so status and output are
       // re-derived from Replicate's own record before anything acts on them.
-      const payload =
-        await this.verificationService.resolveTrustedPayload(signedPayload);
+      const existingTraining = await this.trainingsService.findOne({
+        externalId: signedPayload.id,
+      });
+      const payload = await this.verificationService.resolveTrustedPayload(
+        signedPayload,
+        existingTraining ? 'training' : 'prediction',
+      );
 
       if (!payload) {
         await this.verificationService.deferUntrustedDelivery(signedPayload);
         return;
       }
-
-      // Prefer checking by externalId first: if a training exists for this id, handle training flow
-      const existingTraining = await this.trainingsService.findOne({
-        externalId: payload.id,
-      });
 
       if (existingTraining) {
         await this.handleTrainingWebhook(existingTraining, payload);
@@ -291,7 +297,7 @@ export class ReplicateWebhookController {
   @HttpCode(200)
   @Post('callback')
   async handleCallback(
-    @Req() request: Request,
+    @Req() request: RawBodyRequest<Request>,
     @Body() payload: ReplicateWebhookPayloadDto,
     @Query('workflowContinuationId') workflowContinuationId?: string,
   ) {
