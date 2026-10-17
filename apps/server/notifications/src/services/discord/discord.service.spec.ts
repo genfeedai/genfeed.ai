@@ -158,7 +158,7 @@ describe('DiscordService', () => {
       );
 
       expect(mockSend).not.toHaveBeenCalled();
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('skipped - webhook not available'),
       );
     });

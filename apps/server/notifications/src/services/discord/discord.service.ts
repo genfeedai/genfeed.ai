@@ -205,7 +205,9 @@ export class DiscordService {
     send: (client: WebhookClient) => Promise<void>,
   ): Promise<boolean> {
     if (!webhookClient) {
-      this.loggerService.log(`${context} skipped - webhook not available`);
+      this.loggerService.warn(
+        `${context} skipped - webhook not available. Check DISCORD_BOT_TOKEN and the Discord channel setting in Admin > Platform settings.`,
+      );
       return false;
     }
 
