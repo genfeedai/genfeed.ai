@@ -47,6 +47,7 @@ interface RouteSummary {
   chunkCount: number;
   firstLoadGzipBytes: number;
   route: string;
+  chunks?: string[];
 }
 
 interface BundleManifest {
@@ -54,12 +55,18 @@ interface BundleManifest {
   generatedAt: string;
   routes: RouteSummary[];
   sharedGzipBytes: number;
+  initialJavaScriptAssets?: {
+    filename: string;
+    rawBytes: number;
+    gzipBytes: number;
+  }[];
 }
 
 interface CliArgs {
   app: string;
   dist: string;
   out: string;
+  includeChunks?: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -68,6 +75,11 @@ function parseArgs(argv: string[]): CliArgs {
   for (let index = 0; index < argv.length; index += 1) {
     const current = argv[index];
     const next = argv[index + 1];
+
+    if (current === '--include-chunks') {
+      args.includeChunks = true;
+      continue;
+    }
 
     if (current === '--app' && next) {
       args.app = next;
@@ -99,7 +111,12 @@ function parseArgs(argv: string[]): CliArgs {
     throw new Error('Missing required argument: --out <path>');
   }
 
-  return { app: args.app, dist: args.dist, out: args.out };
+  return {
+    app: args.app,
+    dist: args.dist,
+    out: args.out,
+    includeChunks: args.includeChunks,
+  };
 }
 
 async function readJson<T>(filePath: string): Promise<T | null> {
@@ -266,17 +283,20 @@ async function main(): Promise<void> {
   const sharedGzipBytes = await sumGzip(args.dist, shared);
 
   const routes: RouteSummary[] = [];
+  const initialFiles = new Set<string>();
 
   for (const [route, chunks] of await collectRouteChunks(
     args.dist,
     buildManifest,
   )) {
     const unique = [...new Set([...shared, ...chunks])];
+    if (args.includeChunks) for (const file of unique) initialFiles.add(file);
 
     routes.push({
       chunkCount: unique.length,
       firstLoadGzipBytes: await sumGzip(args.dist, unique),
       route,
+      ...(args.includeChunks ? { chunks: [...unique].sort() } : {}),
     });
   }
 
@@ -288,6 +308,20 @@ async function main(): Promise<void> {
     routes,
     sharedGzipBytes,
   };
+
+  if (args.includeChunks) {
+    manifest.initialJavaScriptAssets = [];
+    for (const filename of [...initialFiles].sort()) {
+      const info = await stat(path.join(args.dist, filename));
+      if (!info.isFile())
+        throw new Error(`Initial JavaScript asset is not a file: ${filename}`);
+      manifest.initialJavaScriptAssets.push({
+        filename,
+        rawBytes: info.size,
+        gzipBytes: await gzipBytes(args.dist, filename),
+      });
+    }
+  }
 
   await mkdir(path.dirname(args.out), { recursive: true });
   await writeFile(args.out, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');

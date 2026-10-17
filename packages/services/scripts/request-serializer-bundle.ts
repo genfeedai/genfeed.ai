@@ -334,6 +334,27 @@ export function verifyRequestSerializerBundle(
   };
 }
 
+export function readPinnedAppRuntime(appDirectory = path.resolve('apps/app')) {
+  const appManifest = z
+    .object({ dependencies: z.object({ next: z.string() }) })
+    .parse(
+      JSON.parse(readFileSync(path.join(appDirectory, 'package.json'), 'utf8')),
+    );
+  const appRequire = createRequire(path.join(appDirectory, 'package.json'));
+  const nextManifest = z
+    .object({ version: z.string() })
+    .parse(appRequire('next/package.json'));
+  if (nextManifest.version !== appManifest.dependencies.next)
+    throw new Error('Bundle proof requires the pinned Next.js runtime');
+  return {
+    nextVersion: nextManifest.version,
+    pinnedNextVersion: appManifest.dependencies.next,
+    sourceSha: execFileSync('git', ['rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+    }).trim(),
+  };
+}
+
 if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
@@ -348,25 +369,7 @@ if (
     .split('\n')
     .filter(Boolean)
     .map((line) => JSON.parse(line));
-  const appDirectory = path.resolve('apps/app');
-  const appManifest = z
-    .object({ dependencies: z.object({ next: z.string() }) })
-    .parse(
-      JSON.parse(readFileSync(path.join(appDirectory, 'package.json'), 'utf8')),
-    );
-  const appRequire = createRequire(path.join(appDirectory, 'package.json'));
-  const nextManifest = z
-    .object({ version: z.string() })
-    .parse(appRequire('next/package.json'));
-  if (nextManifest.version !== appManifest.dependencies.next)
-    throw new Error('Bundle proof requires the pinned Next.js runtime');
-  const runtime = {
-    nextVersion: nextManifest.version,
-    pinnedNextVersion: appManifest.dependencies.next,
-    sourceSha: execFileSync('git', ['rev-parse', 'HEAD'], {
-      encoding: 'utf8',
-    }).trim(),
-  };
+  const runtime = readPinnedAppRuntime();
   const report = verifyRequestSerializerBundle(
     records,
     process.argv[4] ? [process.argv[4]] : undefined,

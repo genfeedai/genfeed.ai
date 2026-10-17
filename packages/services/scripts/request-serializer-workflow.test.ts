@@ -38,6 +38,7 @@ function runScript(
   failUpstream = false,
   isolated = false,
   failProof = false,
+  failReceipt = false,
 ) {
   if (!command) throw new Error('Missing workflow shell');
   const directory = mkdtempSync(
@@ -53,6 +54,16 @@ const path = require('node:path');
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.CALL_LOG, JSON.stringify({ bin: path.basename(process.argv[1]), args }) + '\\n');
 if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^...')) process.exit(17);
+if (process.env.FAIL_RECEIPT === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) process.exit(19);
+if (process.env.ISOLATED === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) {
+  fs.mkdirSync(path.dirname(args[2]), { recursive: true });
+  fs.writeFileSync(args[2], JSON.stringify({ mode: 'production-default' }));
+}
+if (args.includes('scripts/collect-bundle-manifest.ts')) {
+  const out = args[args.indexOf('--out') + 1];
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, JSON.stringify({ routes: [] }));
+}
 if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/request-serializer-bundle.ts')) {
   fs.writeFileSync(args[3], JSON.stringify({ status: 'failed' }));
   process.exit(23);
@@ -73,6 +84,8 @@ if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/r
       BUNDLE_APP: app,
       FAIL_UPSTREAM: failUpstream ? '1' : '0',
       FAIL_PROOF: failProof ? '1' : '0',
+      FAIL_RECEIPT: failReceipt ? '1' : '0',
+      ISOLATED: isolated ? '1' : '0',
     },
   });
   const calls: unknown[] = readFileSync(log, 'utf8')
@@ -85,7 +98,8 @@ if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/r
     ...(failProof
       ? {
           proofFiles: readdirSync(path.join(directory, '.bundle-size')).filter(
-            (file) => file.endsWith('.json'),
+            (file) =>
+              file.startsWith('request-serializers-') && file.endsWith('.json'),
           ),
         }
       : {}),
@@ -106,6 +120,14 @@ describe('pinned serializer bundle workflow', () => {
             'build',
             '--filter=@genfeedai/app^...',
             '--concurrency=1',
+          ],
+        },
+        {
+          bin: 'bun',
+          args: [
+            'run',
+            'packages/services/scripts/request-serializer-build-receipt.ts',
+            '.bundle-size/request-serializers-build.json',
           ],
         },
         { bin: 'bun', args: ['run', '--cwd', 'apps/app', 'analyze'] },
@@ -178,14 +200,110 @@ describe('pinned serializer bundle workflow', () => {
     const proofScript = proofStep
       ?.match(/ {8}run: \|\n((?: {10}[^\n]*(?:\n|$))+)/)?.[1]
       .replace(/^ {10}/gm, '');
-    const result = runScript(proofScript, 'app', false, true, true);
+    const collectStep = workflow
+      .split('      - name: Collect first-load JS manifest\n')[1]
+      ?.split('\n      - name:')[0];
+    const collectScript = collectStep
+      ?.match(/ {8}run: \|\n((?: {10}[^\n]*(?:\n|$))+)/)?.[1]
+      .replace(/^ {10}/gm, '');
+    const result = runScript(
+      [script, collectScript, proofScript].join('\n'),
+      'app',
+      false,
+      true,
+      true,
+    );
     expect(result.status).toBe(23);
-    expect(result.calls).toHaveLength(2);
-    expect(result.proofFiles).toEqual(['request-serializers-0.json']);
+    expect(result.calls).toHaveLength(12);
+    expect(result.proofFiles).toEqual([
+      'request-serializers-0.json',
+      'request-serializers-1.json',
+      'request-serializers-2.json',
+      'request-serializers-3.json',
+      'request-serializers-build.json',
+      'request-serializers-initial.json',
+    ]);
     expect(proofStep).toContain('id: serializer_proof');
     expect(proofStep).not.toContain('continue-on-error');
     expect(workflow).toContain(
       "!cancelled() && (steps.serializer_proof.outcome == 'success' || steps.serializer_proof.outcome == 'failure')",
+    );
+  });
+
+  it('uploads only the known proof JSON glob from its hidden evidence directory', () => {
+    const uploadStep = workflow
+      .split('      - name: Upload request serializer proof\n')[1]
+      ?.split('\n      - name:')[0];
+    expect(uploadStep).toContain(
+      'path: .bundle-size/request-serializers-*.json',
+    );
+    expect(uploadStep).toContain('include-hidden-files: true');
+    expect(uploadStep).toContain('if-no-files-found: error');
+    expect(uploadStep).toContain('retention-days: 1');
+  });
+
+  it('captures exact build identity before compilation and aborts when provenance cannot be captured', () => {
+    const result = runScript(script, 'app', false, false, false, true);
+    expect(result.status).toBe(19);
+    expect(result.calls).toHaveLength(2);
+    expect(result.calls).not.toContainEqual({
+      bin: 'bun',
+      args: ['run', '--cwd', 'apps/app', 'analyze'],
+    });
+  });
+
+  it('collects all-route actual filename evidence before strict proof while preserving the website collector', () => {
+    const collectStep = workflow
+      .split('      - name: Collect first-load JS manifest\n')[1]
+      ?.split('\n      - name:')[0];
+    const collectScript = collectStep
+      ?.match(/ {8}run: \|\n((?: {10}[^\n]*(?:\n|$))+)/)?.[1]
+      .replace(/^ {10}/gm, '');
+    expect(
+      workflow.indexOf('      - name: Collect first-load JS manifest\n'),
+    ).toBeLessThan(
+      workflow.indexOf('      - name: Verify deferred request serializers\n'),
+    );
+    expect(collectStep).toContain(`BUNDLE_APP: ${matrixApp}`);
+    expect(runScript(collectScript, 'app', false, true)).toEqual({
+      status: 0,
+      calls: [
+        {
+          bin: 'bun',
+          args: [
+            'run',
+            'scripts/collect-bundle-manifest.ts',
+            '--app',
+            'app',
+            '--dist',
+            'apps/app/.next',
+            '--out',
+            '.bundle-size/head.json',
+            '--include-chunks',
+          ],
+        },
+      ],
+    });
+    expect(runScript(collectScript, 'website', false, true)).toEqual({
+      status: 0,
+      calls: [
+        {
+          bin: 'bun',
+          args: [
+            'run',
+            'scripts/collect-bundle-manifest.ts',
+            '--app',
+            'website',
+            '--dist',
+            'apps/website/.next',
+            '--out',
+            '.bundle-size/head.json',
+          ],
+        },
+      ],
+    });
+    expect(collectStep).toContain(
+      'cp .bundle-size/head.json .bundle-size/request-serializers-initial.json',
     );
   });
 
