@@ -161,6 +161,57 @@ describe('login command', () => {
       vi.unstubAllGlobals();
     });
 
+    it('asks for the session only and accepts a response without an API key', async () => {
+      const session = { cookieName: 'better-auth.session_token', cookieValue: 'v', expiresAt: 'x' };
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(JSON.stringify({ issuedAt: 'now', session, token: '', userId: 'user-1' }), {
+            status: 200,
+          })
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      const data = await exchangeAuthCode(SELF_HOSTED_ENDPOINTS.apiBaseUrl, {
+        code: 'code-123',
+        codeVerifier: 'verifier-123',
+        sessionOnly: true,
+        state: 'state-123',
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.selfhost.dev/v1/auth/desktop/exchange',
+        expect.objectContaining({
+          body: JSON.stringify({
+            code: 'code-123',
+            codeVerifier: 'verifier-123',
+            sessionOnly: true,
+            state: 'state-123',
+          }),
+        })
+      );
+      expect(data.session).toEqual(session);
+
+      vi.unstubAllGlobals();
+    });
+
+    it('rejects a session-only response that carries no session', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(JSON.stringify({ token: '' }), { status: 200 }))
+      );
+
+      await expect(
+        exchangeAuthCode(SELF_HOSTED_ENDPOINTS.apiBaseUrl, {
+          code: 'c',
+          codeVerifier: 'v',
+          sessionOnly: true,
+          state: 's',
+        })
+      ).rejects.toThrow('No session returned by server');
+
+      vi.unstubAllGlobals();
+    });
+
     it('raises a Genfeed error when the exchange fails', async () => {
       vi.stubGlobal(
         'fetch',

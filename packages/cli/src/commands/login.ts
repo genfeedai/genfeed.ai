@@ -27,8 +27,16 @@ interface PkceParams {
   verifier: string;
 }
 
-interface ExchangeResponse {
+/** Better Auth session cookie the API returns alongside the exchange. */
+export interface ExchangeSessionCookie {
+  cookieName: string;
+  cookieValue: string;
+  expiresAt: string;
+}
+
+export interface ExchangeResponse {
   issuedAt: string;
+  session?: ExchangeSessionCookie;
   token: string;
   userEmail?: string;
   userId: string;
@@ -53,6 +61,8 @@ interface AuthorizeUrlParams {
 interface ExchangeAuthCodeParams {
   code: string;
   codeVerifier: string;
+  /** Super admin login: ask for the session only, no API key. */
+  sessionOnly?: boolean;
   state: string;
 }
 
@@ -87,6 +97,7 @@ export async function exchangeAuthCode(
     body: JSON.stringify({
       code: params.code,
       codeVerifier: params.codeVerifier,
+      ...(params.sessionOnly ? { sessionOnly: true } : {}),
       state: params.state,
     }),
     headers: { 'Content-Type': 'application/json' },
@@ -99,6 +110,13 @@ export async function exchangeAuthCode(
   }
 
   const data = (await response.json()) as ExchangeResponse;
+
+  if (params.sessionOnly) {
+    if (!data.session?.cookieValue) {
+      throw new GenfeedError('No session returned by server');
+    }
+    return data;
+  }
 
   if (!data.token) {
     throw new GenfeedError('No token returned by server');
@@ -121,10 +139,11 @@ function generateState(): string {
  * Start a temporary localhost HTTP server to receive the PKCE OAuth callback.
  * Validates state, exchanges the code for a token, and returns the token.
  */
-function waitForOAuthCallback(
+function waitForOAuthExchange(
   endpoints: LoginEndpoints,
-  intent: 'login' | 'signup' = 'login'
-): Promise<string> {
+  intent: 'login' | 'signup' = 'login',
+  sessionOnly = false
+): Promise<ExchangeResponse> {
   return new Promise((resolve, reject) => {
     const pkce = generatePkce();
     const expectedState = generateState();
@@ -163,6 +182,7 @@ function waitForOAuthCallback(
           const data = await exchangeAuthCode(endpoints.apiBaseUrl, {
             code,
             codeVerifier: pkce.verifier,
+            sessionOnly,
             state: expectedState,
           });
 
@@ -175,7 +195,7 @@ function waitForOAuthCallback(
             )
           );
           cleanup();
-          resolve(data.token);
+          resolve(data);
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Token exchange failed';
           res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -240,6 +260,26 @@ function waitForOAuthCallback(
       reject(new GenfeedError(`Failed to start auth server: ${err.message}`));
     });
   });
+}
+
+async function waitForOAuthCallback(
+  endpoints: LoginEndpoints,
+  intent: 'login' | 'signup' = 'login'
+): Promise<string> {
+  return (await waitForOAuthExchange(endpoints, intent)).token;
+}
+
+/**
+ * Browser sign-in for `genfeed admin login`. Resolves with the revocable Better
+ * Auth session cookie only; the API refuses it unless the account is a super
+ * admin and issues no API key.
+ */
+export async function waitForAdminSession(
+  endpoints: LoginEndpoints
+): Promise<ExchangeSessionCookie> {
+  const exchange = await waitForOAuthExchange(endpoints, 'login', true);
+  if (!exchange.session) throw new GenfeedError('No session returned by server');
+  return exchange.session;
 }
 
 function escapeHtml(str: string): string {

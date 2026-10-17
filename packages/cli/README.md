@@ -416,6 +416,26 @@ genfeed credits usage
 genfeed posts list --platform twitter --status published
 ```
 
+### Admin (super admins)
+
+One-off admin work over the API, with no deploy and no direct database access.
+`genfeed admin login` signs you in as a super admin in your browser and stores a
+revocable session (no API key is created). Each call swaps that session for a
+short-lived token. Admin routes also require your IP in the API's
+`ADMIN_ALLOWED_IPS`.
+
+```bash
+genfeed admin login
+genfeed admin status
+genfeed admin pricing report --attention          # models whose provider price needs review
+genfeed admin pricing approve <model>             # preview the pending rates
+genfeed admin pricing approve <model> --yes       # approve them
+genfeed admin brand show                          # system brand kit
+genfeed admin brand update <revision> --file draft.json --updated-at <iso>
+genfeed admin brand approve <revision> --updated-at <iso>
+genfeed admin logout                              # revoke the session
+```
+
 ### Local AI bridge for the browser extension
 
 ```bash

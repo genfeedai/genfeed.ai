@@ -2,7 +2,14 @@ import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { type LoginEndpoints, resolveLoginEndpoints } from './endpoints';
-import { type Config, configSchema, defaultConfig, defaultProfile, type Profile } from './schema';
+import {
+  type AdminSession,
+  type Config,
+  configSchema,
+  defaultConfig,
+  defaultProfile,
+  type Profile,
+} from './schema';
 
 const CONFIG_DIR = path.join(os.homedir(), '.gf');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
@@ -148,6 +155,18 @@ export async function getAppUrl(): Promise<string> {
 export async function getLoginEndpoints(): Promise<LoginEndpoints> {
   const { profile } = await getActiveProfile();
   return resolveLoginEndpoints(profile.apiUrl, profile.appUrl);
+}
+
+export async function getAdminSession(): Promise<AdminSession | undefined> {
+  const { profile } = await getActiveProfile();
+  return profile.adminSession;
+}
+
+export async function setAdminSession(
+  session: AdminSession | undefined,
+  profileName?: string
+): Promise<void> {
+  await setProfileField('adminSession', session, profileName);
 }
 
 export async function getActiveBrand(): Promise<string | undefined> {

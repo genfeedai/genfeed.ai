@@ -1,8 +1,18 @@
 import { z } from 'zod';
 import { SAAS_API_URL } from './endpoints';
 
+/** Revocable Better Auth session from `genfeed admin login` (super admins only). */
+export const adminSessionSchema = z.object({
+  cookieName: z.string(),
+  cookieValue: z.string(),
+  expiresAt: z.string(),
+});
+
+export type AdminSession = z.infer<typeof adminSessionSchema>;
+
 export const profileSchema = z.object({
   activeBrand: z.string().optional(),
+  adminSession: adminSessionSchema.optional(),
   agent: z
     .object({
       lastThreadIdByOrganization: z.record(z.string(), z.string()).default({}),

@@ -402,6 +402,43 @@ describe('AuthDesktopService', () => {
     );
   });
 
+  it('returns only the session, with no API key, for a super admin session-only exchange', async () => {
+    mockGetIsSuperAdmin.mockReturnValue(true);
+    const { apiKeysService, betterAuthService, service } = buildService();
+    const authorization = await createAuthorization(service);
+
+    const result = await service.exchangeCode({
+      code: authorization.code,
+      codeVerifier,
+      sessionOnly: true,
+      state,
+    });
+
+    expect(result.token).toBe('');
+    expect(result.session).toEqual(desktopCookie);
+    expect(betterAuthService.createDesktopSessionCookie).toHaveBeenCalledWith(
+      userId,
+    );
+    expect(apiKeysService.createWithKey).not.toHaveBeenCalled();
+  });
+
+  it('refuses a session-only exchange for a code issued to a non-admin', async () => {
+    const { apiKeysService, betterAuthService, service } = buildService();
+    const authorization = await createAuthorization(service);
+
+    await expect(
+      service.exchangeCode({
+        code: authorization.code,
+        codeVerifier,
+        sessionOnly: true,
+        state,
+      }),
+    ).rejects.toThrow('Super admin access required');
+
+    expect(betterAuthService.createDesktopSessionCookie).not.toHaveBeenCalled();
+    expect(apiKeysService.createWithKey).not.toHaveBeenCalled();
+  });
+
   it('fails cleanly when Better Auth is disabled', async () => {
     const { apiKeysService, betterAuthService, service } = buildService({
       isBetterAuthDisabled: true,

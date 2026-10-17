@@ -24,6 +24,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   ServiceUnavailableException,
   UnauthorizedException,
@@ -239,6 +240,12 @@ export class AuthDesktopService {
       throw new BadRequestException('Invalid desktop authorization verifier');
     }
 
+    // The admin CLI keeps only the revocable session, so it never receives an
+    // API key. `createCode` grants ADMIN to super admins alone.
+    if (dto.sessionOnly && !record.scopes.includes(ApiKeyScope.ADMIN)) {
+      throw new ForbiddenException('Super admin access required');
+    }
+
     const consumeResult = await this.prisma.desktopAuthCode.updateMany({
       data: { usedAt: new Date() },
       where: {
@@ -259,6 +266,17 @@ export class AuthDesktopService {
       throw new ServiceUnavailableException(
         'Better Auth is required to create a desktop session',
       );
+    }
+
+    if (dto.sessionOnly) {
+      return {
+        issuedAt: new Date().toISOString(),
+        session: desktopSession.cookie,
+        token: '',
+        userEmail: record.userEmail,
+        userId: record.userId,
+        userName: record.userName,
+      };
     }
 
     let plainKey: string;
