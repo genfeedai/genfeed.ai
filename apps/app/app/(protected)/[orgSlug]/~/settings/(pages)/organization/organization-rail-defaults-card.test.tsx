@@ -155,7 +155,7 @@ describe('OrganizationRailDefaultsCard', () => {
     ).toBeInTheDocument();
     unmount();
 
-    mocks.role = MemberRole.MEMBER;
+    mocks.role = MemberRole.USER;
     render(<OrganizationRailDefaultsCard />);
     expect(
       screen.queryByTestId('organization-rail-defaults'),
