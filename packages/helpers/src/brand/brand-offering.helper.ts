@@ -14,7 +14,7 @@ const SOFTWARE_OFFERING =
   /\b(?:saas|software|platforms?|apps?|ats|crm|dashboards?)\b/iu;
 const RECRUITING_OFFERING = /\b(?:recruit\w*|hiring|candidates?)\b/iu;
 const PHYSICAL_OFFERING =
-  /\b(?:bottles?|devices?|hardware|packaging|earbuds?|skincare|cosmetics|sneakers?|shoes|apparel|supplements?|jewel(?:ry|lery))\b/iu;
+  /\b(?:bottles?|devices?|hardware|packaging|earbuds?|skincare|cosmetics|sneakers?|shoes?|apparel|supplements?|jewel(?:ry|lery))\b/iu;
 const SERVICE_OFFERING =
   /\b(?:agenc(?:y|ies)|consultanc(?:y|ies)|consulting)\b/iu;
 const INVENTED_PHYSICAL_PRODUCT = String.raw`\b(?:bottles?|earbuds?|gadgets?|devices?|packages?|packaging|skincare)\b`;

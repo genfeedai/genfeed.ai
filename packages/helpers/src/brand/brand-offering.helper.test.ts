@@ -41,6 +41,11 @@ describe('classifyBrandOffering', () => {
         'Handmade leather shoes and sneakers. We are hiring in Lisbon.',
       ),
     ).toBe('physical');
+    expect(
+      classifyBrandOffering(
+        'Every leather shoe is handmade. Shop the shoe collection. We are hiring.',
+      ),
+    ).toBe('physical');
   });
 
   it('recognizes a named physical product and a service firm', () => {
