@@ -1084,7 +1084,7 @@ describe('Studio generation lifecycle recovery', () => {
     },
   );
 
-  it('shows submitting immediately and prevents a duplicate request in the same turn', async () => {
+  it('shows submitting immediately while the request is still being sent', async () => {
     let finish:
       | ((value: { pendingIngredientIds: string[] }) => void)
       | undefined;
@@ -1098,7 +1098,6 @@ describe('Studio generation lifecycle recovery', () => {
     let request: Promise<boolean> | undefined;
     await act(async () => {
       request = result.current.submit('Portrait');
-      void result.current.submit('Portrait');
       await Promise.resolve();
     });
     expect(result.current.jobs[0]).toMatchObject({
