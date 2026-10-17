@@ -527,5 +527,8 @@
     "rewardEarned": "+{credits} earned",
     "rewardPending": "+{credits}",
     "rowSkipped": "{label} (skipped)"
+  },
+  "threadView": {
+    "scrollToLatest": "Scroll to latest message"
   }
 }

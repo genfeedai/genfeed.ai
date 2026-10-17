@@ -372,7 +372,7 @@ type StoreState = {
     allowFreeText: boolean;
     threadId: string;
     inputRequestId: string;
-    options: [];
+    options: Array<{ id: string; label: string }>;
     prompt: string;
     runId: string;
     title: string;
