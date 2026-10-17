@@ -26,6 +26,12 @@ const bunVersion = readFileSync(
   fileURLToPath(new URL('../../.bun-version', import.meta.url)),
   'utf8',
 ).trim();
+const pinnedBunVersion = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL('../../package.json', import.meta.url)),
+    'utf8',
+  ),
+).packageManager.replace(/^bun@/, '');
 const workflowsDirectory = fileURLToPath(
   new URL('../../.github/workflows/', import.meta.url),
 );
@@ -80,7 +86,13 @@ test('centralizes the rolling Bun version without workflow overrides', () => {
 
 test('keeps Docker Bun resolution aligned with the rolling policy', () => {
   assert.equal(bunVersion, 'latest');
-  assert.match(dockerPolicies[0].source, /^FROM oven\/bun:latest AS base$/m);
+  assert.match(
+    dockerPolicies[0].source,
+    new RegExp(
+      `^FROM oven/bun:${pinnedBunVersion.replaceAll('.', '\\.')} AS base$`,
+      'm',
+    ),
+  );
 
   for (const { file, source } of dockerPolicies.slice(1)) {
     assert.match(source, /https:\/\/bun\.sh\/install \| bash/);
@@ -89,6 +101,27 @@ test('keeps Docker Bun resolution aligned with the rolling policy', () => {
       /bun\.sh\/install \| bash -s ["']?bun-v/,
       `${file} must follow the rolling Bun installer policy`,
     );
+  }
+});
+
+test('runs the multi-service Docker image as an unprivileged user', () => {
+  const [{ source }] = dockerPolicies;
+  assert.doesNotMatch(source, /oven\/bun:latest/);
+  assert.match(source, /^USER bun$/m);
+
+  const lines = source.split('\n');
+  let user = 'root';
+  for (const line of lines) {
+    if (/^FROM\s/.test(line)) {
+      user = /^FROM\s+oven\/bun:/.test(line) ? 'root' : 'bun';
+    }
+    const match = line.match(/^USER\s+(\S+)$/);
+    if (match) {
+      user = match[1];
+    }
+    if (/^CMD\b/.test(line)) {
+      assert.equal(user, 'bun', `${line} must run as the bun user`);
+    }
   }
 });
 
