@@ -10,6 +10,7 @@ import {
   type BrandProofTranslate,
   summarizeBrandProof,
 } from '@ui/components/generation-receipts/brand-proof-summary.util';
+import GenerationFeedback from '@ui/components/generation-receipts/GenerationFeedback';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
@@ -352,6 +353,14 @@ export default function BrandedGenerationReceiptInspector(
       {receipt ? (
         <>
           <SavedMetadata receipt={receipt} />
+          {isRequestedReceipt &&
+          props.revision === undefined &&
+          receipt.artifact ? (
+            <GenerationFeedback
+              brandId={props.brandId}
+              receiptId={props.receiptId}
+            />
+          ) : null}
           <BrandIdentitySnapshotView
             snapshot={isRequestedReceipt ? receipt.snapshot : null}
             organizationId={props.organizationId}

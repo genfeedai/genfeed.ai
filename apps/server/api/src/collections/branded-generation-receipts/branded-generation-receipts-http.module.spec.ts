@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { BrandedGenerationReceiptsHttpModule } from '@api/collections/branded-generation-receipts/branded-generation-receipts-http.module';
+import { BrandedGenerationFeedbackController } from '@api/collections/branded-generation-receipts/controllers/branded-generation-feedback.controller';
 import { BrandedGenerationReceiptsController } from '@api/collections/branded-generation-receipts/controllers/branded-generation-receipts.controller';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
@@ -26,7 +27,10 @@ describe('receipt HTTP module boundary', () => {
         MODULE_METADATA.CONTROLLERS,
         BrandedGenerationReceiptsHttpModule,
       ),
-    ).toEqual([BrandedGenerationReceiptsController]);
+    ).toEqual([
+      BrandedGenerationFeedbackController,
+      BrandedGenerationReceiptsController,
+    ]);
     expect(
       Reflect.getMetadata(
         MODULE_METADATA.PROVIDERS,
@@ -54,6 +58,24 @@ describe('receipt HTTP module boundary', () => {
         BrandedGenerationReceiptsController.prototype[method],
       );
       expect(headers).toEqual(
+        expect.arrayContaining([
+          { name: 'Cache-Control', value: 'private,no-store' },
+          { name: 'Vary', value: 'Cookie,Authorization' },
+        ]),
+      );
+    }
+  });
+  it('keeps the feedback reads private and no-store behind the same guard', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, BrandedGenerationFeedbackController),
+    ).toHaveLength(1);
+    for (const method of ['summary', 'get'] as const) {
+      expect(
+        Reflect.getMetadata(
+          HEADERS_METADATA,
+          BrandedGenerationFeedbackController.prototype[method],
+        ),
+      ).toEqual(
         expect.arrayContaining([
           { name: 'Cache-Control', value: 'private,no-store' },
           { name: 'Vary', value: 'Cookie,Authorization' },

@@ -19,6 +19,7 @@ export * from './brand-remix-run-summary.contract';
 export * from './brand-remix-scene.contract';
 export * from './brand-render-evidence.contract';
 export * from './branded-generation.contract';
+export * from './branded-generation-feedback.contract';
 export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
 export * from './channel-capabilities.contract';

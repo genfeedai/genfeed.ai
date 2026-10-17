@@ -1500,6 +1500,27 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
+  BrandedGenerationFeedback: {
+    allFields: [
+      'actor',
+      'actorId',
+      'brandId',
+      'createdAt',
+      'id',
+      'isDeleted',
+      'organizationId',
+      'rating',
+      'receipt',
+      'receiptId',
+      'updatedAt',
+    ],
+    listFields: ['reasons'],
+    enumFields: {},
+    relationIdFields: {
+      actor: 'actorId',
+      receipt: 'receiptId',
+    },
+  },
   BrandedGenerationReceipt: {
     allFields: [
       'actor',
@@ -1522,7 +1543,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'surface',
       'updatedAt',
     ],
-    listFields: ['events', 'promptSnapshots'],
+    listFields: ['events', 'feedback', 'promptSnapshots'],
     enumFields: {},
     relationIdFields: {
       actor: 'actorId',
@@ -8311,6 +8332,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'bots',
       'brandInterviews',
       'brandRelocations',
+      'brandedGenerationFeedback',
       'brandedGenerationReceiptEvents',
       'brandedGenerationReceipts',
       'brands',

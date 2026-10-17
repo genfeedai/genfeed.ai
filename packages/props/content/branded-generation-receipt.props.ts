@@ -1,3 +1,7 @@
+import type {
+  BrandedGenerationFeedbackInputV1,
+  BrandedGenerationFeedbackReadV1,
+} from '@genfeedai/contracts/api-types/contracts/branded-generation-feedback.contract';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type {
@@ -84,4 +88,17 @@ export interface GenerationReceiptListItemProps {
 export interface GenerationReceiptMediaPreviewProps {
   ingredient: IIngredient;
   label: string;
+}
+export interface GenerationFeedbackProps {
+  brandId: string;
+  receiptId: string;
+}
+export interface GenerationFeedbackState {
+  feedback: BrandedGenerationFeedbackReadV1 | null;
+  hasError: boolean;
+  isSaving: boolean;
+  rate: (rating: BrandedGenerationFeedbackInputV1['rating']) => void;
+  toggleReason: (
+    reason: BrandedGenerationFeedbackInputV1['reasons'][number],
+  ) => void;
 }

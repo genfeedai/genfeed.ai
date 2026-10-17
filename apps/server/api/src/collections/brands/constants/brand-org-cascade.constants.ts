@@ -1012,7 +1012,8 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'ApiKey',
   // A relocation receipt retains its source tenant and committed outcome.
   'BrandRelocation',
-  // Saved generation receipts and events retain immutable tenant ownership.
+  // Saved generation receipts, events and member ratings retain immutable tenant ownership.
+  'BrandedGenerationFeedback',
   'BrandedGenerationReceipt',
   'BrandedGenerationReceiptEvent',
   // Crun financial history blocks relocation and retains its funding tenant.
@@ -1080,6 +1081,7 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'api_keys',
   'brand_relocations',
+  'branded_generation_feedback',
   'branded_generation_receipts',
   'branded_generation_receipt_events',
   'crun_generation_tasks',

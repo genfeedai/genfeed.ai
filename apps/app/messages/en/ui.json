@@ -654,5 +654,19 @@
       "requestChanges": "Changes requested",
       "unset": "Not reviewed"
     }
+  },
+  "generationFeedback": {
+    "prompt": "Was this on brand?",
+    "thumbsUp": "Good, this fits the brand",
+    "thumbsDown": "Not good, this misses the brand",
+    "saved": "Thanks, saved.",
+    "failed": "Could not save your rating. Try again.",
+    "reasonsLabel": "What was wrong",
+    "reasonsPrompt": "What was off?",
+    "reasonOffVoice": "Off voice",
+    "reasonWrongFacts": "Wrong facts",
+    "reasonTooLong": "Too long",
+    "reasonTooGeneric": "Too generic",
+    "reasonOther": "Something else"
   }
 }

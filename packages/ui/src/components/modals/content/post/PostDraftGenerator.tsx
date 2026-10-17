@@ -6,6 +6,7 @@ import type { PostDraftGeneratorProps } from '@genfeedai/props/modals/modal.prop
 import { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import GenerationFeedback from '@ui/generation-receipts/GenerationFeedback';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
@@ -112,6 +113,9 @@ export default function PostDraftGenerator({
             {translate('viewReceipt')}
           </Link>
         </p>
+      ) : null}
+      {receipt ? (
+        <GenerationFeedback brandId={brandId} receiptId={receipt.id} />
       ) : null}
     </div>
   );

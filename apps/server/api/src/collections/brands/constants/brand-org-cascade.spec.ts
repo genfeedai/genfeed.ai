@@ -102,6 +102,11 @@ describe('brand-org-cascade config', () => {
       'branded_generation_receipts',
     ],
     [
+      'BrandedGenerationFeedback',
+      'brandedGenerationFeedback',
+      'branded_generation_feedback',
+    ],
+    [
       'BrandedGenerationReceiptEvent',
       'brandedGenerationReceiptEvent',
       'branded_generation_receipt_events',

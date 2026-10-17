@@ -154,6 +154,26 @@ member-scoped Brand OS routes cannot reach it):
 
 Approving switches the next system generation to `approved_brand`.
 
+## Thumbs on a generation
+
+A member rates a generated output with a thumbs up or down; a thumbs down takes
+reason chips (`off_voice`, `wrong_facts`, `too_long`, `too_generic`, `other`).
+The rating is keyed by the receipt id and lives beside the receipt in
+`branded_generation_feedback`, because the receipt is immutable evidence. One
+live rating per member and receipt: rating again replaces it, tapping the same
+thumb withdraws it. API keys cannot rate.
+
+- `GET|PUT|DELETE /brands/:brandId/generation-receipts/:receiptId/feedback`
+  read, set and withdraw the caller's own rating. The read also returns the
+  implicit signals, derived live from the receipt's saved post and never stored:
+  `isEdited` (the post text no longer hashes to the receipt's artifact version),
+  `isDiscarded` (the post was deleted), `postStatus` and `reviewDecision`.
+- `GET /brands/:brandId/generation-feedback/summary` counts the last 30 days of
+  ratings by thumb, reason and receipt mode, so approved-brand output can be
+  compared with provisional and raw output.
+- The thumbs show under agent text results, the post draft generator and the
+  receipt view.
+
 ## Not wired yet
 
 

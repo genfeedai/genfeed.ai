@@ -5,6 +5,7 @@ export * from '@serializers/server/content/batch-interpolation.serializer';
 export * from '@serializers/server/content/bookmark.serializer';
 export * from '@serializers/server/content/brand-identity-preview.serializer';
 export * from '@serializers/server/content/brand-remix-run-summary.serializer';
+export * from '@serializers/server/content/branded-generation-feedback.serializer';
 export * from '@serializers/server/content/branded-generation-prompt-inspection.serializer';
 export * from '@serializers/server/content/branded-generation-receipt-revision.serializer';
 export * from '@serializers/server/content/calendar-slot.serializer';

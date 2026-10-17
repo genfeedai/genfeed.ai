@@ -3,6 +3,8 @@ export * from '@serializers/attributes/content/article.attributes';
 export * from '@serializers/attributes/content/batch-interpolation.attributes';
 export * from '@serializers/attributes/content/bookmark.attributes';
 export * from '@serializers/attributes/content/brand-remix-run-summary.attributes';
+export * from '@serializers/attributes/content/branded-generation-feedback.attributes';
+export * from '@serializers/attributes/content/branded-generation-feedback-summary.attributes';
 export * from '@serializers/attributes/content/branded-generation-prompt-inspection.attributes';
 export * from '@serializers/attributes/content/branded-generation-receipt-revision.attributes';
 export * from '@serializers/attributes/content/calendar-slot.attributes';

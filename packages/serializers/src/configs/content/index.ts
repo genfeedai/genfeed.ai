@@ -3,6 +3,8 @@ export * from '@serializers/configs/content/article.config';
 export * from '@serializers/configs/content/batch-interpolation.config';
 export * from '@serializers/configs/content/bookmark.config';
 export * from '@serializers/configs/content/brand-remix-run-summary.config';
+export * from '@serializers/configs/content/branded-generation-feedback.config';
+export * from '@serializers/configs/content/branded-generation-feedback-summary.config';
 export * from '@serializers/configs/content/branded-generation-prompt-inspection.config';
 export * from '@serializers/configs/content/branded-generation-receipt-revision.config';
 export * from '@serializers/configs/content/calendar-slot.config';

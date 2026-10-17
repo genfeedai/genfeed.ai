@@ -1,5 +1,12 @@
 import { brandIdentitySnapshotV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import {
+  type BrandedGenerationFeedbackInputV1,
+  type BrandedGenerationFeedbackReadV1,
+  type BrandedGenerationFeedbackSummaryV1,
+  brandedGenerationFeedbackReadV1Schema,
+  brandedGenerationFeedbackSummaryV1Schema,
+} from '@genfeedai/contracts/api-types/contracts/branded-generation-feedback.contract';
+import {
   brandedGenerationPromptInspectionV1Schema,
   brandedGenerationReceiptReadV1Schema,
   brandedGenerationReceiptRevisionReadV1Schema,
@@ -226,6 +233,74 @@ export class BrandedGenerationReceiptsService extends HTTPBaseService {
         value.stage !== stage
       )
         throw new Error();
+      return value;
+    });
+  }
+  private feedbackRoute(brandId: string, receiptId: string) {
+    return `${this.route(brandId, receiptId)}/feedback`;
+  }
+  private readFeedback(
+    data: JsonApiResponseDocument,
+    receiptId: string,
+  ): BrandedGenerationFeedbackReadV1 {
+    return validated(() => {
+      resourceTypes(data, 'branded-generation-feedback', false);
+      const value = brandedGenerationFeedbackReadV1Schema.parse(
+        deserializeResource<unknown>(data),
+      );
+      if (value.receiptId !== receiptId || value.id !== receiptId)
+        throw new Error();
+      return value;
+    });
+  }
+  /** The caller's own rating of a generation, with the post-derived signals. */
+  async getFeedback(
+    brandId: string,
+    receiptId: string,
+    signal?: AbortSignal,
+  ): Promise<BrandedGenerationFeedbackReadV1> {
+    const { data } = await this.instance.get<JsonApiResponseDocument>(
+      this.feedbackRoute(brandId, receiptId),
+      { signal },
+    );
+    return this.readFeedback(data, receiptId);
+  }
+  async rateFeedback(
+    brandId: string,
+    receiptId: string,
+    input: BrandedGenerationFeedbackInputV1,
+    signal?: AbortSignal,
+  ): Promise<BrandedGenerationFeedbackReadV1> {
+    const { data } = await this.instance.put<JsonApiResponseDocument>(
+      this.feedbackRoute(brandId, receiptId),
+      input,
+      { signal },
+    );
+    return this.readFeedback(data, receiptId);
+  }
+  async withdrawFeedback(
+    brandId: string,
+    receiptId: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    await this.instance.delete(this.feedbackRoute(brandId, receiptId), {
+      signal,
+    });
+  }
+  async getFeedbackSummary(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<BrandedGenerationFeedbackSummaryV1> {
+    const { data } = await this.instance.get<JsonApiResponseDocument>(
+      `${encodeURIComponent(brandId)}/generation-feedback/summary`,
+      { signal },
+    );
+    return validated(() => {
+      resourceTypes(data, 'branded-generation-feedback-summary', false);
+      const value = brandedGenerationFeedbackSummaryV1Schema.parse(
+        deserializeResource<unknown>(data),
+      );
+      if (value.id !== brandId) throw new Error();
       return value;
     });
   }

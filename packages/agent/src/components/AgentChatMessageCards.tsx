@@ -13,6 +13,7 @@ import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import GenerationFeedback from '@ui/generation-receipts/GenerationFeedback';
 import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
@@ -340,6 +341,12 @@ export function ContentPreviewCard({
             {translate('viewReceipt')}
           </a>
         </p>
+      ) : null}
+      {action.brandedReceipt && action.brandId ? (
+        <GenerationFeedback
+          brandId={action.brandId}
+          receiptId={action.brandedReceipt.id}
+        />
       ) : null}
       {resolvedImages && resolvedImages.length > 0 && (
         <AgentMediaArtifactPreview

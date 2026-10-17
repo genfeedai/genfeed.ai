@@ -599,6 +599,7 @@ model User {
   brandRelocations BrandRelocation[] @relation("brand_relocation_actor")
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_actor")
   brandedGenerationReceiptEvents BrandedGenerationReceiptEvent[] @relation("branded_generation_receipt_event_actor")
+  brandedGenerationFeedback BrandedGenerationFeedback[] @relation("branded_generation_feedback_actor")
 contentLearningExperiments ContentLearningExperiment[]
 
 contentLearningConsents ContentLearningConsent[]
@@ -9401,6 +9402,7 @@ model BrandedGenerationReceipt {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   events BrandedGenerationReceiptEvent[]
+  feedback BrandedGenerationFeedback[]
   promptSnapshots GenerationPromptSnapshot[]
   @@unique([id, organizationId, brandId])
   @@unique([organizationId, brandId, requestKey, candidateIndex], map: "branded_generation_receipts_request_key")
@@ -9427,6 +9429,27 @@ model BrandedGenerationReceiptEvent {
   @@unique([receiptId, operationKey])
   @@index([organizationId, brandId, receiptId, revision], map: "branded_generation_receipt_events_scope_idx")
   @@map("branded_generation_receipt_events")
+}
+
+/// A member's thumbs rating on one branded generation (#5786). Receipts are immutable evidence, so the rating lives beside the receipt: one row per (receipt, member), re-rated in place and withdrawn by soft delete.
+model BrandedGenerationFeedback {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  receiptId String
+  receipt BrandedGenerationReceipt @relation(fields: [receiptId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Restrict, map: "branded_generation_feedback_receipt_scope_fkey")
+  actorId String
+  actor User @relation("branded_generation_feedback_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  /// "up" or "down".
+  rating String
+  /// Why a "down" rating was given: off_voice, wrong_facts, too_long, off_brand_visual, other.
+  reasons String[] @default([])
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([receiptId, actorId], map: "branded_generation_feedback_receipt_actor_key")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "branded_generation_feedback_scope_idx")
+  @@map("branded_generation_feedback")
 }
 
 /// Operator routes for signup and billing events. Webhook credentials are GCM encrypted.
