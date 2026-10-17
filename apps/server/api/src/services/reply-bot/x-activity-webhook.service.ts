@@ -5,13 +5,21 @@
 
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
-import { buildXActivityCrcResponseBody } from '@api/services/reply-bot/x-activity-crc.util';
+import {
+  buildXActivityCrcResponseBody,
+  verifyXActivitySignature,
+} from '@api/services/reply-bot/x-activity-crc.util';
 import { extractInboundCandidatesFromXActivityPayload } from '@api/services/reply-bot/x-activity-event.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaCredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 export type XActivityIntakeResult = {
   enqueued: number;
@@ -64,6 +72,45 @@ export class XActivityWebhookService {
       );
     }
     return buildXActivityCrcResponseBody(crcToken, secret);
+  }
+
+  /**
+   * Authenticate an event delivery against its signature, then process it.
+   * Disabled intake stays a no-op; enabled intake fails closed when the
+   * consumer secret is missing or the signature does not match.
+   */
+  async receiveEvent(
+    rawBody: unknown,
+    signature: string | undefined,
+  ): Promise<XActivityIntakeResult> {
+    if (!this.isEnabled()) {
+      return await this.handleEventPayload(undefined);
+    }
+
+    const secret = this.getConsumerSecret();
+    if (!secret) {
+      throw new ServiceUnavailableException(
+        'X webhook consumer secret is not configured',
+      );
+    }
+
+    if (!Buffer.isBuffer(rawBody)) {
+      throw new BadRequestException('Raw webhook body is required');
+    }
+
+    if (!verifyXActivitySignature(rawBody, signature, secret)) {
+      this.logger.warn(`${this.constructorName} rejected invalid signature`);
+      throw new UnauthorizedException('Invalid webhook signature');
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      throw new BadRequestException('Webhook body is not valid JSON');
+    }
+
+    return await this.handleEventPayload(payload);
   }
 
   /**

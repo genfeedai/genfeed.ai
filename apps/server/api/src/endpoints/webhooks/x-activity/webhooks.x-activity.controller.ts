@@ -5,17 +5,19 @@ import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
-  Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Optional,
   Post,
   Query,
+  Req,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 
 /**
  * X Activity / Account Activity webhook pipe.
@@ -61,17 +63,25 @@ export class XActivityWebhookController {
 
   /**
    * Event delivery. When X_ACTIVITY_WEBHOOK_ENABLED is off, accepts and no-ops.
+   * `main.ts` mounts `express.raw` on this path so the signature is checked
+   * against the exact bytes X signed.
    */
   @Post()
   @HttpCode(200)
   @ApiOperation({ summary: 'X Activity / Account Activity event intake' })
-  async handleEvent(@Body() body: unknown): Promise<{
+  async handleEvent(
+    @Req() request: Request,
+    @Headers('x-twitter-webhooks-signature') signature?: string,
+  ): Promise<{
     enqueued: number;
     ignored: number;
     mode: string;
     status: string;
   }> {
-    const result = await this.resolveService().handleEventPayload(body);
+    const result = await this.resolveService().receiveEvent(
+      request.body,
+      signature,
+    );
     return {
       enqueued: result.enqueued,
       ignored: result.ignored,
