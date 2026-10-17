@@ -16,11 +16,24 @@ export const SCHEDULED_POST_WORKFLOW_ID = 'scheduled-post.publish';
 export const SCHEDULED_POST_FAILURE_WORKFLOW_ID =
   'scheduled-post.publish.failure';
 
+// Mirrored by the closed `source` enum in
+// `packages/actions/.../scheduled-post-action-contracts.ts`, which cannot import
+// from the API.
+export const SCHEDULED_POST_WORKFLOW_SOURCES = [
+  'manual_retry',
+  'publish_now',
+  'scheduled_sweep',
+  'tiktok_app',
+] as const;
+
 export type ScheduledPostWorkflowSource =
-  | 'manual_retry'
-  | 'publish_now'
-  | 'scheduled_sweep'
-  | 'tiktok_app';
+  (typeof SCHEDULED_POST_WORKFLOW_SOURCES)[number];
+
+export function isScheduledPostWorkflowSource(
+  value: string,
+): value is ScheduledPostWorkflowSource {
+  return (SCHEDULED_POST_WORKFLOW_SOURCES as readonly string[]).includes(value);
+}
 
 export type ScheduledPostWorkflowInput = {
   approvalId?: string;

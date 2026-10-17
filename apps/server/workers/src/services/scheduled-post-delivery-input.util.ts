@@ -1,4 +1,7 @@
-import type { ScheduledPostWorkflowInput } from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import {
+  isScheduledPostWorkflowSource,
+  type ScheduledPostWorkflowInput,
+} from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import type { PublishResult } from '@api/index';
 import { TargetExecutionState } from '@genfeedai/contracts';
 
@@ -7,11 +10,7 @@ export function readScheduledDeliveryRequest(
 ): ScheduledPostWorkflowInput {
   const request = readScheduledDeliveryRecord(value);
   const source = String(request.source ?? '');
-  if (
-    !['manual_retry', 'publish_now', 'scheduled_sweep', 'tiktok_app'].includes(
-      source,
-    )
-  ) {
+  if (!isScheduledPostWorkflowSource(source)) {
     throw new Error(
       `Scheduled post delivery received invalid source ${source}`,
     );
@@ -26,7 +25,7 @@ export function readScheduledDeliveryRequest(
   return {
     organizationId,
     postId,
-    source: source as ScheduledPostWorkflowInput['source'],
+    source,
   };
 }
 

@@ -9,7 +9,7 @@ export function buildDoneForYouJsonLd() {
     name: serviceOffering.name,
     offers: {
       '@type': 'Offer',
-      description: serviceOffering.priceNote,
+      description: serviceOffering.offerDescription,
       priceSpecification: {
         '@type': 'UnitPriceSpecification',
         billingDuration: 'P1M',

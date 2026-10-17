@@ -385,8 +385,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
 
   const refreshOrganizations = useCallback(async () => {
     const service = await getOrganizationsService({ forceRefresh: true });
-    const organizations =
-      (await service.getMyOrganizations()) as RoutedOrganizationSummary[];
+    const organizations = (await service.getMyOrganizations({
+      fresh: true,
+    })) as RoutedOrganizationSummary[];
     setState((current) => ({ ...current, organizations }));
   }, [getOrganizationsService]);
 
@@ -421,8 +422,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         .then(async () => {
           try {
             const service = await getOrganizationsService();
-            const authorizedOrganizations =
-              (await service.getMyOrganizations()) as RoutedOrganizationSummary[];
+            const authorizedOrganizations = (await service.getMyOrganizations({
+              fresh: true,
+            })) as RoutedOrganizationSummary[];
             const authorizedTarget = authorizedOrganizations.find(
               (organization) => organization.id === organizationId,
             );

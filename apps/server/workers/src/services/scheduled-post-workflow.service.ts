@@ -3,6 +3,7 @@ import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import {
   buildScheduledPostFailureWorkflowDefinition,
   buildScheduledPostWorkflowDefinition,
+  isScheduledPostWorkflowSource,
   SCHEDULED_POST_ACTION_IDS,
   SCHEDULED_POST_WORKFLOW_ID,
   type ScheduledPostWorkflowInput,
@@ -436,14 +437,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     const source = this.readRecord(input.request);
     const record = Object.keys(source).length > 0 ? source : input;
     const rawSource = this.requiredString(record.source, 'source');
-    if (
-      ![
-        'manual_retry',
-        'publish_now',
-        'scheduled_sweep',
-        'tiktok_app',
-      ].includes(rawSource)
-    ) {
+    if (!isScheduledPostWorkflowSource(rawSource)) {
       throw new Error(`Scheduled publish received invalid source ${rawSource}`);
     }
     return {
@@ -458,7 +452,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
         'organizationId',
       ),
       postId: this.requiredString(record.postId, 'postId'),
-      source: rawSource as ScheduledPostWorkflowInput['source'],
+      source: rawSource,
       ...(typeof record.userId === 'string' ? { userId: record.userId } : {}),
       ...(typeof record.versionPinId === 'string'
         ? { versionPinId: record.versionPinId }

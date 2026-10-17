@@ -391,6 +391,41 @@ describe('Studio identity catalog recovery', () => {
 
       expect(loadMoreAvatars).toHaveBeenCalled();
     });
+
+    it('stops paging for a filter once its page budget is spent', async () => {
+      const loadMoreAvatars = vi.fn().mockResolvedValue(undefined);
+      mocks.identities.mockImplementation(() => ({
+        ...identities,
+        error: null,
+        hasMoreAvatars: true,
+        // A fresh identity per render re-runs the paging effect, as each
+        // loaded page does in the real hook.
+        loadMoreAvatars: (...args: unknown[]) => loadMoreAvatars(...args),
+        avatarOptions: [catalogAvatar('Dante', 'male')],
+      }));
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <StudioIdentityFields
+          settings={settings}
+          type="avatar"
+          onChange={vi.fn()}
+        />,
+      );
+      await openPicker(user);
+      await user.click(screen.getByRole('button', { name: 'Female' }));
+
+      for (let index = 0; index < 10; index += 1) {
+        rerender(
+          <StudioIdentityFields
+            settings={settings}
+            type="avatar"
+            onChange={vi.fn()}
+          />,
+        );
+      }
+
+      expect(loadMoreAvatars).toHaveBeenCalledTimes(5);
+    });
   });
 
   it('starts from the brand saved avatar and voice when nothing is chosen', () => {

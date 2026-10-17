@@ -123,4 +123,25 @@ describe('SELF_HOSTED_MODELS', () => {
       });
     },
   );
+
+  it.each([
+    // $0.05 per second at 3.33x is 16.65, ceiled to 17 credits a second.
+    [MODEL_KEYS.REPLICATE_SYNC_LIPSYNC_2, 0.05, 17, 85],
+    // $0.083 per second at 3.33x is 27.639, ceiled to 28 credits a second.
+    [MODEL_KEYS.REPLICATE_SYNC_LIPSYNC_2_PRO, 0.083, 28, 140],
+  ])(
+    'prices %s per output second so platform-key lip-sync can be held',
+    (key, providerCostUsd, costPerUnit, cost) => {
+      expect(
+        SELF_HOSTED_MODELS.find((model) => model.key === key),
+      ).toMatchObject({
+        category: ModelCategory.VIDEO_EDIT,
+        cost,
+        costPerUnit,
+        pricingType: PricingType.PER_SECOND,
+        provider: ModelProvider.REPLICATE,
+        providerCostUsd,
+      });
+    },
+  );
 });
