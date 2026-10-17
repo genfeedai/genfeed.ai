@@ -14,7 +14,12 @@ import type {
   StudioPlaygroundStarterProductReference,
 } from '@genfeedai/props/studio/studio-playground.props';
 import { isObjectLike } from '@genfeedai/utils/data/extract.util';
+import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { JSONContent } from '@tiptap/core';
+
+function starterThumbnail(id: StudioPlaygroundStarterIdea['id']): string {
+  return cdnAsset(`/assets/studio/playground-starters/${id}.webp`);
+}
 
 /**
  * One known-good first generation per content job Studio can run.
@@ -28,6 +33,7 @@ export const STUDIO_PLAYGROUND_STARTER_IDEAS: readonly StudioPlaygroundStarterId
       characterPromptTemplate: 'influencer-photo',
       id: 'productPhoto',
       promptTemplate: 'product-photo',
+      thumbnailUrl: starterThumbnail('productPhoto'),
       type: 'image',
       usesCharacter: true,
       usesProductReference: true,
@@ -37,6 +43,7 @@ export const STUDIO_PLAYGROUND_STARTER_IDEAS: readonly StudioPlaygroundStarterId
       characterPromptTemplate: 'influencer-video',
       id: 'productAd',
       promptTemplate: 'product-ad-video',
+      thumbnailUrl: starterThumbnail('productAd'),
       type: 'video',
       usesCharacter: true,
       usesProductReference: true,
@@ -45,6 +52,7 @@ export const STUDIO_PLAYGROUND_STARTER_IDEAS: readonly StudioPlaygroundStarterId
       aspectRatio: '16:9',
       id: 'cinematicVideo',
       promptTemplate: 'cinematic-video',
+      thumbnailUrl: starterThumbnail('cinematicVideo'),
       type: 'video',
       usesCharacter: true,
       usesProductReference: false,
@@ -52,18 +60,21 @@ export const STUDIO_PLAYGROUND_STARTER_IDEAS: readonly StudioPlaygroundStarterId
     {
       id: 'soundtrack',
       instrumental: true,
+      thumbnailUrl: starterThumbnail('soundtrack'),
       type: 'music',
       usesCharacter: false,
       usesProductReference: false,
     },
     {
       id: 'avatarIntro',
+      thumbnailUrl: starterThumbnail('avatarIntro'),
       type: 'avatar',
       usesCharacter: false,
       usesProductReference: false,
     },
     {
       id: 'voiceover',
+      thumbnailUrl: starterThumbnail('voiceover'),
       type: 'voice',
       usesCharacter: false,
       usesProductReference: false,

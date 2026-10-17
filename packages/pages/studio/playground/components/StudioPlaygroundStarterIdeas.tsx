@@ -10,6 +10,7 @@ import {
   starterProductReferenceRole,
 } from '@pages/studio/playground/utils/studio-playground-starter-ideas';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -152,6 +153,18 @@ export default function StudioPlaygroundStarterIdeas({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
             >
+              {isDocked ? null : (
+                <span className="relative aspect-[3/2] w-full overflow-hidden rounded-xl bg-muted/40">
+                  <Image
+                    alt=""
+                    className="object-cover"
+                    fill
+                    loading="lazy"
+                    sizes="(min-width: 1024px) 14rem, (min-width: 640px) 50vw, 100vw"
+                    src={idea.thumbnailUrl}
+                  />
+                </span>
+              )}
               <span className="flex w-full flex-col items-start gap-1">
                 <span className="break-words text-left text-sm font-medium leading-snug text-foreground/88">
                   {translate(`${idea.id}.label`)}

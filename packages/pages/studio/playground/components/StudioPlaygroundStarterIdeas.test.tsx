@@ -19,6 +19,7 @@ describe('StudioPlaygroundStarterIdeas', () => {
       screen.getByRole('region', { name: 'Start with an idea' }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('button')).toHaveLength(6);
+    expect(document.querySelectorAll('img')).toHaveLength(6);
 
     fireEvent.click(screen.getByRole('button', { name: 'Use Product photo' }));
 

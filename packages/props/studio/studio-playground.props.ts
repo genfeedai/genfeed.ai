@@ -141,6 +141,8 @@ export interface StudioPlaygroundStarterIdea {
     | 'voiceover';
   instrumental?: boolean;
   promptTemplate?: string;
+  /** Decorative CDN thumbnail shown on the card. */
+  thumbnailUrl: string;
   type: StudioPlaygroundType;
   /** Image and video ideas can insert a real `@character` chip. */
   usesCharacter: boolean;
