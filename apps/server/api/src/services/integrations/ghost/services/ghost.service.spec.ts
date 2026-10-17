@@ -1,8 +1,13 @@
+vi.mock('@api/shared/utils/webhook-validator/webhook-validator.util', () => ({
+  createSafeWebhookHttpsAgent: vi.fn(async () => ({ destroy: vi.fn() })),
+}));
+
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((v: string) => `dec:${v}`) },
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { createSafeWebhookHttpsAgent } from '@api/shared/utils/webhook-validator/webhook-validator.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -300,6 +305,44 @@ describe('GhostService', () => {
         expect.any(Object),
         expect.any(Object),
       );
+    });
+  });
+
+  describe('destination guard', () => {
+    const apiKey = 'keyid:keysecret0123456789abcdef';
+
+    it('pins requests to the checked address and refuses redirects', async () => {
+      httpService.get.mockReturnValue(
+        of(makeAxiosResponse({ site: { title: 'Blog' } })),
+      );
+
+      await service.getSiteInfo('https://myblog.ghost.io', apiKey);
+
+      expect(createSafeWebhookHttpsAgent).toHaveBeenCalledWith(
+        'https://myblog.ghost.io/ghost/api/admin/site/',
+      );
+      expect(httpService.get).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          httpsAgent: expect.anything(),
+          maxRedirects: 0,
+        }),
+      );
+    });
+
+    it('sends nothing when the destination is rejected', async () => {
+      vi.mocked(createSafeWebhookHttpsAgent)
+        .mockRejectedValueOnce(new Error('blocked'))
+        .mockRejectedValueOnce(new Error('blocked'));
+
+      await expect(
+        service.createPost('http://169.254.169.254', apiKey, 'T', '<p>x</p>'),
+      ).rejects.toThrow('blocked');
+      await expect(
+        service.getSiteInfo('http://169.254.169.254', apiKey),
+      ).rejects.toThrow('blocked');
+      expect(httpService.get).not.toHaveBeenCalled();
+      expect(httpService.post).not.toHaveBeenCalled();
     });
   });
 
