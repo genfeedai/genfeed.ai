@@ -15,7 +15,6 @@ import {
   Credential,
   CredentialInstagram,
 } from '@genfeedai/models/auth/credential.model';
-import { CredentialSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -23,7 +22,7 @@ import {
 
 export class CredentialsService extends BaseService<Credential> {
   constructor(token: string) {
-    super(API_ENDPOINTS.CREDENTIALS, token, Credential, CredentialSerializer);
+    super(API_ENDPOINTS.CREDENTIALS, token, Credential);
   }
 
   public static getInstance(token: string): CredentialsService {

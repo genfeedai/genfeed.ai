@@ -1,16 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { MonitoredAccount } from '@genfeedai/models/automation/monitored-account.model';
-import { MonitoredAccountSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class MonitoredAccountsService extends BaseService<MonitoredAccount> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.MONITORED_ACCOUNTS,
-      token,
-      MonitoredAccount,
-      MonitoredAccountSerializer,
-    );
+    super(API_ENDPOINTS.MONITORED_ACCOUNTS, token, MonitoredAccount);
   }
 
   public static getInstance(token: string): MonitoredAccountsService {

@@ -9,10 +9,6 @@ import type {
   KnowledgeSourceUpdateRequest,
   KnowledgeSourceUploadRequest,
 } from '@genfeedai/contracts/interfaces';
-import {
-  KnowledgeSourceSerializer,
-  KnowledgeSourceVersionSerializer,
-} from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
@@ -36,12 +32,7 @@ export class KnowledgeSourcesService extends BaseService<
   KnowledgeSourceUpdateRequest
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.KNOWLEDGE_SOURCES,
-      token,
-      KnowledgeSource,
-      KnowledgeSourceSerializer,
-    );
+    super(API_ENDPOINTS.KNOWLEDGE_SOURCES, token, KnowledgeSource);
   }
 
   public static getInstance(token: string): KnowledgeSourcesService {
@@ -240,5 +231,3 @@ export class KnowledgeSourcesService extends BaseService<
     );
   }
 }
-
-export { KnowledgeSourceVersionSerializer };

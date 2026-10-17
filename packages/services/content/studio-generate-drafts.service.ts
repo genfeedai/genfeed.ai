@@ -1,7 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { StudioGenerateDraftPayload } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { StudioGenerateDraft } from '@genfeedai/models/content/studio-generate-draft.model';
-import { StudioGenerateDraftSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -18,12 +17,7 @@ export class StudioGenerateDraftsService extends BaseService<
   StudioGenerateDraftPayload
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.STUDIO_GENERATE_DRAFTS,
-      token,
-      StudioGenerateDraft,
-      StudioGenerateDraftSerializer,
-    );
+    super(API_ENDPOINTS.STUDIO_GENERATE_DRAFTS, token, StudioGenerateDraft);
   }
 
   public static getInstance(token: string): StudioGenerateDraftsService {

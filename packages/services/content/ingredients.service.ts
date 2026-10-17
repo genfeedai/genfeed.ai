@@ -27,15 +27,6 @@ import { Image } from '@genfeedai/models/ingredients/image.model';
 import { Music } from '@genfeedai/models/ingredients/music.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { Voice } from '@genfeedai/models/ingredients/voice.model';
-import {
-  AvatarSerializer,
-  ImageSerializer,
-  IngredientBulkDeleteSerializer,
-  IngredientSerializer,
-  MetadataSerializer,
-  MusicSerializer,
-  VideoSerializer,
-} from '@genfeedai/serializers';
 import { MediaPreviewBatchService } from '@services/content/media-preview-batch.service';
 import { PagesService } from '@services/content/pages.service';
 import {
@@ -44,6 +35,7 @@ import {
 } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeResource } from '@services/core/json-api';
+import { serializeRequest } from '@services/core/request-serializers';
 import axios from 'axios';
 
 // Local type for model constructors (IngredientModelMap expects instances, but we need constructors)
@@ -154,14 +146,7 @@ export class IngredientsService<
       modelMap[category as keyof IngredientModelConstructorMap] || Ingredient;
 
     // Pass category as the endpoint (e.g., '/videos', '/images', etc.)
-    super(
-      `/${category}`,
-      token,
-      model as new (
-        partial: Partial<T>,
-      ) => T,
-      IngredientSerializer,
-    );
+    super(`/${category}`, token, model as new (partial: Partial<T>) => T);
   }
 
   /**
@@ -239,19 +224,19 @@ export class IngredientsService<
       let data: unknown;
       switch (type) {
         case IngredientCategory.VIDEO:
-          data = VideoSerializer.serialize(body);
+          data = await serializeRequest('VideoSerializer', body);
           break;
         case IngredientCategory.IMAGE:
-          data = ImageSerializer.serialize(body);
+          data = await serializeRequest('ImageSerializer', body);
           break;
         case IngredientCategory.MUSIC:
-          data = MusicSerializer.serialize(body);
+          data = await serializeRequest('MusicSerializer', body);
           break;
         case IngredientCategory.AVATAR:
-          data = AvatarSerializer.serialize(body);
+          data = await serializeRequest('AvatarSerializer', body);
           break;
         default:
-          data = IngredientSerializer.serialize(body);
+          data = await serializeRequest('IngredientSerializer', body);
           break;
       }
 
@@ -469,7 +454,7 @@ export class IngredientsService<
   }
 
   public async patchMetadata(id: string, data: Partial<T>): Promise<T> {
-    const body = MetadataSerializer.serialize(data);
+    const body = await serializeRequest('MetadataSerializer', data);
 
     return await this.instance
       .patch<JsonApiResponseDocument>(`${id}/metadata`, body)
@@ -516,7 +501,7 @@ export class IngredientsService<
   public async bulkDelete(
     data: IBulkDeleteRequest,
   ): Promise<IBulkDeleteResult> {
-    const body = IngredientBulkDeleteSerializer.serialize(data);
+    const body = await serializeRequest('IngredientBulkDeleteSerializer', data);
     return await this.instance
       .delete<IBulkDeleteResult | JsonApiResponseDocument>(``, { data: body })
       .then((res) =>

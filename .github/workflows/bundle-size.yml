@@ -78,7 +78,38 @@ jobs:
       - name: Build ${{ matrix.app }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: bunx turbo run build --filter=@genfeedai/${{ matrix.app }}
+          BUNDLE_APP: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          if [ "$BUNDLE_APP" = "app" ]; then
+            bunx turbo run build --filter='@genfeedai/app^...' --concurrency=1
+            NODE_OPTIONS=--max-old-space-size=6144 bun run --cwd apps/app analyze
+          else
+            bunx turbo run build --filter="@genfeedai/$BUNDLE_APP"
+          fi
+
+      - name: Verify deferred request serializers
+        if: matrix.app == 'app'
+        run: |
+          set -euo pipefail
+          mkdir -p .bundle-size
+          BUNDLE_INDEX=0
+          for BUNDLE_ROUTE in '/login' '/[orgSlug]/[brandSlug]/workspace/overview' '/[orgSlug]/[brandSlug]/library/assets' '/[orgSlug]/[brandSlug]/publishing/posts'; do
+            (cd apps/app && bunx next analyze export --route "$BUNDLE_ROUTE") > .bundle-size/request-serializers.graph.jsonl
+            bun run packages/services/scripts/request-serializer-bundle.ts \
+              .bundle-size/request-serializers.graph.jsonl \
+              ".bundle-size/request-serializers-$BUNDLE_INDEX.json" "$BUNDLE_ROUTE"
+            BUNDLE_INDEX=$((BUNDLE_INDEX + 1))
+          done
+
+      - name: Upload request serializer proof
+        if: matrix.app == 'app' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: request-serializer-proof-app
+          path: .bundle-size/request-serializers-*.json
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Collect first-load JS manifest
         run: |

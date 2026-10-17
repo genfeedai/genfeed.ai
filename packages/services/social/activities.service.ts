@@ -4,15 +4,12 @@ import type {
   IBulkPatchData,
 } from '@genfeedai/contracts/interfaces';
 import { Activity } from '@genfeedai/models/analytics/activity.model';
-import {
-  ActivityBulkPatchSerializer,
-  ActivitySerializer,
-} from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
+import { serializeRequest } from '@services/core/request-serializers';
 
 export class ActivitiesService extends BaseService<Activity> {
   constructor(token: string) {
-    super(API_ENDPOINTS.ACTIVITIES, token, Activity, ActivitySerializer);
+    super(API_ENDPOINTS.ACTIVITIES, token, Activity);
   }
 
   public static getInstance(token: string): ActivitiesService {
@@ -21,7 +18,10 @@ export class ActivitiesService extends BaseService<Activity> {
 
   async bulkPatch(data: IBulkPatchData): Promise<IBulkOperationResult> {
     // Serialize the data before sending
-    const serializedData = ActivityBulkPatchSerializer.serialize(data);
+    const serializedData = await serializeRequest(
+      'ActivityBulkPatchSerializer',
+      data,
+    );
     return await this.instance
       .patch('/', serializedData)
       .then((res) => res.data);

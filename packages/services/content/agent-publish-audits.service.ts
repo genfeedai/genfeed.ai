@@ -4,7 +4,6 @@ import type {
   UpdateAgentPublishAuditInput,
 } from '@genfeedai/contracts/interfaces';
 import { AgentPublishAudit } from '@genfeedai/models/content/agent-publish-audit.model';
-import { AgentPublishAuditSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class AgentPublishAuditsService extends BaseService<
@@ -13,12 +12,7 @@ export class AgentPublishAuditsService extends BaseService<
   UpdateAgentPublishAuditInput
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.AGENT_PUBLISH_AUDITS,
-      token,
-      AgentPublishAudit,
-      AgentPublishAuditSerializer,
-    );
+    super(API_ENDPOINTS.AGENT_PUBLISH_AUDITS, token, AgentPublishAudit);
   }
 
   public static getInstance(token: string): AgentPublishAuditsService {
