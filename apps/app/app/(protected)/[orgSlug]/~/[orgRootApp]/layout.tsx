@@ -4,12 +4,10 @@ import library from '@app-i18n/page-scopes/library';
 import messages from '@app-i18n/page-scopes/messages';
 import publishing from '@app-i18n/page-scopes/publishing';
 import studio from '@app-i18n/page-scopes/studio';
-import type { IntlMessageTree } from '@genfeedai/props/providers/intl-provider.props';
-import type { LayoutProps } from '@props/layout/layout.props';
-
-interface OrganizationAppIntlLayoutProps extends LayoutProps {
-  params: Promise<{ orgRootApp: string }>;
-}
+import type {
+  IntlMessageTree,
+  OrganizationAppIntlLayoutProps,
+} from '@genfeedai/props/providers/intl-provider.props';
 
 const SCOPES: Readonly<Record<string, IntlMessageTree>> = {
   automation,

@@ -11,12 +11,14 @@ import { ProtectedAuthGate } from '@providers/protected-providers/protected-prov
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import { ErrorBoundary } from '@ui/error';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
+  const translate = useTranslations('common.onboarding.error');
   const pathname = usePathname();
   const isDesktop = useIsDesktopClient();
   const isDesktopLocalOnboarding =
@@ -38,8 +40,8 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
           <BrandProvider>
             <ThemePreferenceSync />
             <ErrorBoundary
-              title="Onboarding Error"
-              description="Something went wrong during setup. Please try again."
+              title={translate('title')}
+              description={translate('description')}
             >
               <Suspense fallback={null}>
                 <AnalyticsOrganizationSync />

@@ -67,8 +67,22 @@ vi.mock('@providers/theme-sync/theme-preference-sync', () => ({
 }));
 
 vi.mock('@ui/error', () => ({
-  ErrorBoundary: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="error-boundary">{children}</div>
+  ErrorBoundary: ({
+    children,
+    title,
+    description,
+  }: {
+    children: React.ReactNode;
+    title: string;
+    description: string;
+  }) => (
+    <div
+      data-testid="error-boundary"
+      data-title={title}
+      data-description={description}
+    >
+      {children}
+    </div>
   ),
 }));
 
@@ -124,6 +138,14 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(screen.getByTestId('theme-preference-sync')).toBeInTheDocument();
     expect(screen.getByTestId('brand-provider')).toBeInTheDocument();
     expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+    expect(screen.getByTestId('error-boundary')).toHaveAttribute(
+      'data-title',
+      'Onboarding Error',
+    );
+    expect(screen.getByTestId('error-boundary')).toHaveAttribute(
+      'data-description',
+      'Something went wrong during setup. Please try again.',
+    );
     expect(
       screen.getByTestId('onboarding-funnel-analytics'),
     ).toBeInTheDocument();

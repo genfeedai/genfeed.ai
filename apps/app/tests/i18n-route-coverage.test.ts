@@ -48,6 +48,9 @@ interface Consumption {
   modals: boolean;
   modules: Set<string>;
 }
+interface ExportConsumption extends Consumption {
+  dependencies: Set<string>;
+}
 
 const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = path.resolve(APP, '../..');
@@ -89,10 +92,16 @@ function delivered(catalog: Catalog, key: string): boolean {
   return value !== undefined;
 }
 function deliveredTo(catalog: Catalog, use: TranslationUse): boolean {
-  return delivered(
-    use.pages ? merge(catalog, { pages: use.pages }) : catalog,
-    use.key,
-  );
+  if (!use.pages || !use.key.startsWith('pages.'))
+    return delivered(catalog, use.key);
+  let inherited: Catalog | string | undefined = catalog.pages;
+  let local: Catalog | string | undefined = use.pages;
+  for (const segment of use.key.slice('pages.'.length).split('.')) {
+    if (typeof local === 'string') return false;
+    inherited = typeof inherited === 'object' ? inherited[segment] : undefined;
+    local = local?.[segment];
+  }
+  return local !== undefined || inherited !== undefined;
 }
 function merge(left: Catalog, right: Catalog): Catalog {
   const result = { ...left };
@@ -109,6 +118,10 @@ function merge(left: Catalog, right: Catalog): Catalog {
 class NamespaceCoverage {
   private readonly cache = new Map<string, ModuleIndex>();
   private readonly consumptionCache = new Map<string, Consumption>();
+  private readonly exportGraph = new Map<string, ExportConsumption>();
+  private readonly catalogs = new Map<string, Catalog>();
+  private readonly layoutCache = new Map<string, Catalog>();
+  private readonly modalCatalogs = new Map<string, Catalog>();
   private readonly resolution = ts.createModuleResolutionCache(
     APP,
     (name) => name,
@@ -259,8 +272,16 @@ class NamespaceCoverage {
       if (node.text === 'orgRootApp') return variant;
       const imported = info.imports.get(node.text);
       if (imported) {
-        if (imported.file.endsWith('.json'))
-          return JSON.parse(readFileSync(imported.file, 'utf8')) as Catalog;
+        if (imported.file.endsWith('.json')) {
+          let catalog = this.catalogs.get(imported.file);
+          if (!catalog) {
+            catalog = JSON.parse(
+              readFileSync(imported.file, 'utf8'),
+            ) as Catalog;
+            this.catalogs.set(imported.file, catalog);
+          }
+          return catalog;
+        }
         const exported = this.index(imported.file).exports.get(imported.name);
         return exported && !isReference(exported)
           ? this.evaluate(imported.file, exported, variant, nextSeen)
@@ -332,6 +353,9 @@ class NamespaceCoverage {
   }
 
   layoutPages(file: string, variant?: string): Catalog {
+    const key = `${file}:${variant ?? ''}`;
+    const cached = this.layoutCache.get(key);
+    if (cached) return cached;
     const info = this.index(file);
     let pages: Catalog = {};
     const visit = (node: ts.Node) => {
@@ -374,12 +398,15 @@ class NamespaceCoverage {
       target.file.startsWith(path.join(APP, 'app'))
     )
       pages = merge(pages, this.layoutPages(target.file, variant));
+    this.layoutCache.set(key, pages);
     return pages;
   }
 
   modalCatalog(kind: GlobalModalKind, route: string): Catalog {
     const scope = resolveModalCatalogScope(kind, route);
     if (!scope) return {};
+    const cached = this.modalCatalogs.get(scope);
+    if (cached) return cached;
     const host = path.join(APP, 'i18n/AppGlobalModalIntlBoundary.tsx');
     const registry = this.index(host).locals.get('CATALOGS');
     if (
@@ -416,6 +443,7 @@ class NamespaceCoverage {
         : undefined;
     if (typeof value !== 'object')
       throw new Error(`Unresolved modal catalog value ${scope}`);
+    this.modalCatalogs.set(scope, value);
     return value;
   }
 
@@ -480,13 +508,15 @@ class NamespaceCoverage {
     };
     let localPages: Catalog | undefined;
     let localScope = '';
-    const visited = new Set<string>();
-    const visitedNodes = new Set<string>();
+    const roots = new Set<string>();
+    let current: ExportConsumption | undefined;
+    let visitedNodes = new Set<string>();
     const record = (file: string, node: ts.Node, key: string) => {
       const line =
         this.index(file).source.getLineAndCharacterOfPosition(node.getStart())
           .line + 1;
-      result.uses.set(`${file}:${line}:${key}:${localScope}`, {
+      if (!current) throw new Error('Translation outside selected export');
+      current.uses.set(`${file}:${line}:${key}:${localScope}`, {
         file,
         line,
         key,
@@ -515,25 +545,39 @@ class NamespaceCoverage {
         return;
       }
       if (file === MODALS) {
-        result.modals = true;
+        if (!current) throw new Error('Modal outside selected export');
+        current.modals = true;
         return;
       }
       const info = this.index(file);
       const client = inheritedClient || info.client;
-      const key = `${file}:${name}:${client}:${localScope}`;
-      if (visited.has(key)) return;
-      visited.add(key);
-      result.modules.add(file);
+      const key = JSON.stringify([file, name, client, localScope, variant]);
+      if (current) current.dependencies.add(key);
+      else roots.add(key);
+      if (this.exportGraph.has(key)) return;
+      const exported: ExportConsumption = {
+        uses: new Map(),
+        modules: new Set([file]),
+        modals: false,
+        dependencies: new Set(),
+      };
+      this.exportGraph.set(key, exported);
+      const previous = current;
+      const previousNodes = visitedNodes;
+      current = exported;
+      visitedNodes = new Set();
       if (name === '*') {
         for (const symbol of info.exports.keys()) walk(file, symbol, client);
         for (const star of info.stars) walk(star, '*', client);
-        return;
+      } else {
+        const target = info.exports.get(name);
+        if (target) {
+          if (isReference(target)) walk(target.file, target.name, client);
+          else visit(file, target, client);
+        } else for (const star of info.stars) walk(star, name, client);
       }
-      const target = info.exports.get(name);
-      if (target) {
-        if (isReference(target)) walk(target.file, target.name, client);
-        else visit(file, target, client);
-      } else for (const star of info.stars) walk(star, name, client);
+      current = previous;
+      visitedNodes = previousNodes;
     };
     const decision = (
       file: string,
@@ -807,6 +851,18 @@ class NamespaceCoverage {
         typeof entry === 'string' ? 'default' : entry.name,
         typeof entry === 'string' ? false : (entry.client ?? false),
       );
+    const reached = new Set<string>();
+    const collect = (key: string) => {
+      if (reached.has(key)) return;
+      reached.add(key);
+      const exported = this.exportGraph.get(key);
+      if (!exported) throw new Error(`Missing selected export ${key}`);
+      for (const [id, use] of exported.uses) result.uses.set(id, use);
+      for (const file of exported.modules) result.modules.add(file);
+      result.modals ||= exported.modals;
+      for (const dependency of exported.dependencies) collect(dependency);
+    };
+    for (const root of roots) collect(root);
     this.consumptionCache.set(cacheKey, result);
     return result;
   }
@@ -906,6 +962,40 @@ describe('namespace coverage negative controls', () => {
         expect(uses.some((key) => key.startsWith('pages.adminFlags'))).toBe(
           false,
         );
+      },
+    );
+  });
+
+  it('retains every requirement when cached selected exports form a cycle', () => {
+    withSourceFixture(
+      {
+        'first.tsx':
+          "'use client'; import { Second } from './second'; import { useTranslations } from 'next-intl'; export function First() { const t = useTranslations('pages.library'); return <>{t('emptyOpenPlayground')}<Second /></>; }",
+        'second.tsx':
+          "import { First } from './first'; import { Unused } from './unused'; export function Second() { return <><First /><Unused /></>; }",
+        'unused.tsx': UNUSED_WIDGET,
+      },
+      (directory) => {
+        const guard = new NamespaceCoverage();
+        const first = guard.consume([
+          {
+            file: path.join(directory, 'first.tsx'),
+            name: 'First',
+            client: true,
+          },
+        ]);
+        const second = guard.consume([
+          {
+            file: path.join(directory, 'second.tsx'),
+            name: 'Second',
+            client: true,
+          },
+        ]);
+        for (const consumption of [first, second]) {
+          const keys = [...consumption.uses.values()].map((use) => use.key);
+          expect(keys).toContain('pages.library.emptyOpenPlayground');
+          expect(keys).toContain('pages.adminFlags.title');
+        }
       },
     );
   });
@@ -1033,6 +1123,7 @@ describe('all current route namespace delivery', () => {
     const uses = new Set<string>();
     const modules = new Set<string>();
     const checkedModals = new Set<string>();
+    const routeCatalogs = new Map<string, Catalog>();
     const modalEntries = coverage.modalEntries();
     expect(new Set(modalEntries.map((entry) => entry.kind)).size).toBe(14);
     let routes = 0;
@@ -1043,11 +1134,16 @@ describe('all current route namespace delivery', () => {
         : [undefined];
       for (const variant of variants) {
         routes += 1;
-        let catalog = shared;
-        for (const layout of layouts)
-          catalog = merge(catalog, {
-            pages: coverage.layoutPages(layout, variant),
-          });
+        const catalogKey = JSON.stringify([layouts, variant]);
+        let catalog = routeCatalogs.get(catalogKey);
+        if (!catalog) {
+          catalog = shared;
+          for (const layout of layouts)
+            catalog = merge(catalog, {
+              pages: coverage.layoutPages(layout, variant),
+            });
+          routeCatalogs.set(catalogKey, catalog);
+        }
         const consumption = coverage.consume([...layouts, page], variant);
         for (const module of consumption.modules) modules.add(module);
         if (consumption.modals) {
@@ -1074,7 +1170,7 @@ describe('all current route namespace delivery', () => {
             const catalog = merge(inherited, {
               pages: coverage.modalCatalog(entry.kind, pathname),
             });
-            const key = `${entry.kind}:${JSON.stringify(catalog.pages)}`;
+            const key = `${entry.kind}:${resolveModalCatalogScope(entry.kind, pathname) ?? ''}`;
             if (checkedModals.has(key)) continue;
             checkedModals.add(key);
             const modal = coverage.consume([entry.reference]);
