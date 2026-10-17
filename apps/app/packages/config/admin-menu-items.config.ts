@@ -18,6 +18,7 @@ import {
   CreditCard,
   FilePenLine,
   FileStack,
+  FolderOpen,
   Gauge,
   GraduationCap,
   HandCoins,
@@ -118,6 +119,15 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     ],
     outline: LibraryBig,
     solid: LibraryBig,
+  },
+  {
+    group: 'Content',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.FOLDERS,
+    label: 'Folders',
+    matchPaths: [APP_ROUTES.ADMIN.FOLDERS],
+    outline: FolderOpen,
+    solid: FolderOpen,
   },
   {
     group: 'AI & Automation',
