@@ -69,7 +69,6 @@ function createMockSchedulerService() {
 
 function createMockSystemWorkflowRunner() {
   return {
-    cancelExpiredRun: vi.fn().mockResolvedValue(undefined),
     getRegisteredFailureWorkflow: vi.fn().mockReturnValue(undefined),
     terminalFailures: { settle: vi.fn().mockResolvedValue(false) },
     runWithStoredWorkflowModule: vi.fn(
@@ -105,6 +104,12 @@ function createMockSystemWorkflowRunner() {
   };
 }
 
+function createMockWorkflowExecutions() {
+  return {
+    cancelExecution: vi.fn().mockResolvedValue(true),
+  };
+}
+
 function createMockJob(
   data: WorkflowExecutionJobData,
   overrides: Record<string, unknown> = {},
@@ -130,6 +135,7 @@ describe('WorkflowExecutionProcessor', () => {
   let mockSystemWorkflowRunner: ReturnType<
     typeof createMockSystemWorkflowRunner
   >;
+  let mockWorkflowExecutions: ReturnType<typeof createMockWorkflowExecutions>;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
@@ -137,6 +143,7 @@ describe('WorkflowExecutionProcessor', () => {
     mockQueue = createMockQueueService();
     mockScheduler = createMockSchedulerService();
     mockSystemWorkflowRunner = createMockSystemWorkflowRunner();
+    mockWorkflowExecutions = createMockWorkflowExecutions();
 
     processor = new (
       WorkflowExecutionProcessor as unknown as new (
@@ -148,6 +155,7 @@ describe('WorkflowExecutionProcessor', () => {
       mockQueue,
       mockScheduler,
       mockSystemWorkflowRunner,
+      mockWorkflowExecutions,
     );
   });
 
@@ -371,7 +379,7 @@ describe('WorkflowExecutionProcessor', () => {
           executionId: 'exec-pending',
           status: WorkflowExecutionStatus.CANCELLED,
         });
-        expect(mockSystemWorkflowRunner.cancelExpiredRun).toHaveBeenCalledWith(
+        expect(mockWorkflowExecutions.cancelExecution).toHaveBeenCalledWith(
           'exec-pending',
           'org-1',
         );
@@ -390,9 +398,7 @@ describe('WorkflowExecutionProcessor', () => {
           }) as never,
         );
 
-        expect(
-          mockSystemWorkflowRunner.cancelExpiredRun,
-        ).not.toHaveBeenCalled();
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
       });
 
       it('never drops a retry, whatever its age', async () => {
@@ -406,9 +412,7 @@ describe('WorkflowExecutionProcessor', () => {
           ) as never,
         );
 
-        expect(
-          mockSystemWorkflowRunner.cancelExpiredRun,
-        ).not.toHaveBeenCalled();
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
       });
 
       it('never drops a run that already started', async () => {
@@ -426,9 +430,7 @@ describe('WorkflowExecutionProcessor', () => {
           }) as never,
         );
 
-        expect(
-          mockSystemWorkflowRunner.cancelExpiredRun,
-        ).not.toHaveBeenCalled();
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
       });
     });
 

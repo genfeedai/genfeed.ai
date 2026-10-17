@@ -1,3 +1,4 @@
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import {
   WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
@@ -57,6 +58,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     private readonly queueService: WorkflowExecutionQueueService,
     private readonly schedulerService: WorkflowSchedulerService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowExecutions: WorkflowExecutionsService,
   ) {
     super();
   }
@@ -208,7 +210,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     ) {
       return null;
     }
-    await this.systemWorkflowRunner.cancelExpiredRun(
+    await this.workflowExecutions.cancelExecution(
       priorExecution.executionId,
       systemRun.input.organizationId,
     );

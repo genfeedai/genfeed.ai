@@ -28,6 +28,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import type { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import type { EnqueueSystemWorkflowOptions } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import type {
@@ -69,7 +70,6 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { ORGANIZATION_MODULES } from '@genfeedai/contracts/constants';
-import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
 import { buildActionExecutionInput } from '@genfeedai/workflows/engine';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -321,10 +321,7 @@ export class SystemWorkflowRunnerService
 
   async enqueueWorkflow(
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
-    options: {
-      dispatchClass: SystemWorkflowDispatchClass;
-      expireAfterMs?: number;
-    },
+    options: EnqueueSystemWorkflowOptions,
   ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
     const definition = this.workflowDefinitions.get(input.canonicalId);
     if (!definition) {
@@ -467,10 +464,7 @@ export class SystemWorkflowRunnerService
   private async enqueueAdmittedWorkflow(
     definition: SystemWorkflowGraphDefinition,
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
-    options: {
-      dispatchClass: SystemWorkflowDispatchClass;
-      expireAfterMs?: number;
-    },
+    options: EnqueueSystemWorkflowOptions,
   ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
     const failureWorkflow = this.getRegisteredFailureWorkflow(input);
     const userId = await this.resolveUserId(input.organizationId, input.userId);
@@ -532,9 +526,7 @@ export class SystemWorkflowRunnerService
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
           ...(isAgentConversation ? { attempts: 1 } : {}),
           dispatchClass: options.dispatchClass,
-          ...(options.expireAfterMs !== undefined
-            ? { expireAfterMs: options.expireAfterMs }
-            : {}),
+          expireAfterMs: options.expireAfterMs,
           ...(failureWorkflow ? { failureWorkflow } : {}),
           ...(isPlatformOriginatedSource(input.source)
             ? { usePlatformQueue: true }
@@ -980,17 +972,6 @@ export class SystemWorkflowRunnerService
     return this.moduleRef.get(OrganizationModuleAccessService, {
       strict: false,
     });
-  }
-
-  /** Closes the pending row of a run dropped at pickup because it waited past its expiry. */
-  async cancelExpiredRun(
-    executionId: string,
-    organizationId: string,
-  ): Promise<void> {
-    await this.getWorkflowExecutions().cancelExecution(
-      executionId,
-      organizationId,
-    );
   }
 
   private getWorkflowExecutions(): WorkflowExecutionsService {

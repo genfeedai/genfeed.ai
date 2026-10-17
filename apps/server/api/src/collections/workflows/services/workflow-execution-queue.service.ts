@@ -77,6 +77,12 @@ export interface SystemWorkflowFailureReference {
   inputValues?: Record<string, unknown>;
 }
 
+/** The dispatch choices a producer makes; the runner derives the rest. */
+export type EnqueueSystemWorkflowOptions = Pick<
+  QueueSystemWorkflowOptions,
+  'dispatchClass' | 'expireAfterMs'
+>;
+
 export interface QueueSystemWorkflowOptions {
   attempts?: number;
   /**
