@@ -17,8 +17,22 @@ import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { JSONContent } from '@tiptap/core';
 
+const STARTER_THUMBNAIL_FILES: Record<
+  StudioPlaygroundStarterIdea['id'],
+  string
+> = {
+  avatarIntro: 'avatar-intro',
+  cinematicVideo: 'cinematic-video',
+  productAd: 'product-ad',
+  productPhoto: 'product-photo',
+  soundtrack: 'soundtrack',
+  voiceover: 'voiceover',
+};
+
 function starterThumbnail(id: StudioPlaygroundStarterIdea['id']): string {
-  return cdnAsset(`/assets/studio/playground-starters/${id}.webp`);
+  return cdnAsset(
+    `/assets/starters/playground/${STARTER_THUMBNAIL_FILES[id]}.webp`,
+  );
 }
 
 /**
