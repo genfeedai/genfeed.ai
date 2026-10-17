@@ -54,7 +54,6 @@ export async function pollBrandRelocation(
   options: BrandRelocationPollOptions = {},
 ): Promise<BrandRelocationPollResponse> {
   let isAccepted = false;
-  let hasUncertainSubmission = false;
   while (true) {
     options.signal?.throwIfAborted();
     let response: BrandRelocationPollResponse;
@@ -63,9 +62,9 @@ export async function pollBrandRelocation(
       isAccepted = true;
     } catch (error) {
       options.signal?.throwIfAborted();
-      if (!isAccepted && !hasUncertainSubmission && isDefiniteRejection(error))
-        throw error;
-      if (!isAccepted) hasUncertainSubmission = true;
+      // A resubmitted request carries the same idempotency key, so a 4xx on a
+      // retry is as final as one on the first attempt.
+      if (isDefiniteRejection(error)) throw error;
       options.onProcessing?.(true);
       await pause(options.signal);
       continue;

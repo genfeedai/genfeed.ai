@@ -47,6 +47,31 @@ describe('brand move polling', () => {
     expect(onProcessing).toHaveBeenCalledWith(true);
   });
 
+  it('stops on a definite rejection even after an earlier lost response', async () => {
+    vi.useFakeTimers();
+    const rejection = { response: { status: 409 } };
+    const submit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('request timed out'))
+      .mockRejectedValueOnce(rejection);
+    const promise = pollBrandRelocation(submit, vi.fn());
+    const assertion = expect(promise).rejects.toBe(rejection);
+    await vi.advanceTimersByTimeAsync(2000);
+    await assertion;
+    expect(submit).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops when an accepted move can no longer be read', async () => {
+    vi.useFakeTimers();
+    const rejection = { response: { status: 404 } };
+    const read = vi.fn().mockRejectedValue(rejection);
+    const promise = pollBrandRelocation(async () => processing, read);
+    const assertion = expect(promise).rejects.toBe(rejection);
+    await vi.advanceTimersByTimeAsync(2000);
+    await assertion;
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
   it('only rejects an accepted move after the server confirms rollback', async () => {
     const response = {
       operation: {
