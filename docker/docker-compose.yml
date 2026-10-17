@@ -16,7 +16,7 @@ services:
 
   workers:
     build: { context: .., dockerfile: docker/Dockerfile, target: workers }
-    ports: ["${WORKERS_PORT:-3013}:${WORKERS_PORT:-3013}"]
+    ports: ["127.0.0.1:${WORKERS_PORT:-3013}:${WORKERS_PORT:-3013}"]
     env_file: .env
     environment:
       - PORT=${WORKERS_PORT:-3013}
@@ -24,7 +24,7 @@ services:
 
   files:
     build: { context: .., dockerfile: docker/Dockerfile, target: files }
-    ports: ["${FILES_PORT:-3012}:${FILES_PORT:-3012}"]
+    ports: ["127.0.0.1:${FILES_PORT:-3012}:${FILES_PORT:-3012}"]
     env_file: .env
     environment:
       - PORT=${FILES_PORT:-3012}
@@ -32,7 +32,7 @@ services:
 
   notifications:
     build: { context: .., dockerfile: docker/Dockerfile, target: notifications }
-    ports: ["${NOTIFICATIONS_PORT:-3011}:${NOTIFICATIONS_PORT:-3011}"]
+    ports: ["127.0.0.1:${NOTIFICATIONS_PORT:-3011}:${NOTIFICATIONS_PORT:-3011}"]
     env_file: .env
     environment:
       - PORT=${NOTIFICATIONS_PORT:-3011}
@@ -41,7 +41,7 @@ services:
   # Bot services (opt-in: docker compose --profile bots up)
   discord:
     build: { context: .., dockerfile: docker/Dockerfile, target: discord }
-    ports: ["${DISCORD_PORT:-3016}:${DISCORD_PORT:-3016}"]
+    ports: ["127.0.0.1:${DISCORD_PORT:-3016}:${DISCORD_PORT:-3016}"]
     env_file: .env
     environment:
       - PORT=${DISCORD_PORT:-3016}
@@ -50,7 +50,7 @@ services:
 
   slack:
     build: { context: .., dockerfile: docker/Dockerfile, target: slack }
-    ports: ["${SLACK_PORT:-3018}:${SLACK_PORT:-3018}"]
+    ports: ["127.0.0.1:${SLACK_PORT:-3018}:${SLACK_PORT:-3018}"]
     env_file: .env
     environment:
       - PORT=${SLACK_PORT:-3018}
@@ -59,7 +59,7 @@ services:
 
   telegram:
     build: { context: .., dockerfile: docker/Dockerfile, target: telegram }
-    ports: ["${TELEGRAM_PORT:-3019}:${TELEGRAM_PORT:-3019}"]
+    ports: ["127.0.0.1:${TELEGRAM_PORT:-3019}:${TELEGRAM_PORT:-3019}"]
     env_file: .env
     environment:
       - PORT=${TELEGRAM_PORT:-3019}
@@ -74,12 +74,12 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-genfeed}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-genfeed_local}
     volumes: ["postgres_data:/var/lib/postgresql/data"]
-    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    ports: ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]
 
   redis:
     image: redis:7-alpine
     volumes: ["redis_data:/data"]
-    ports: ["${REDIS_PORT:-6379}:6379"]
+    ports: ["127.0.0.1:${REDIS_PORT:-6379}:6379"]
 
 volumes:
   postgres_data:
