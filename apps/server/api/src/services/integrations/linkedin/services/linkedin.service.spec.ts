@@ -145,7 +145,6 @@ describe('LinkedInService', () => {
         lastName: 'Member',
         email: 'test@example.com',
       });
-      mockHttpService.get.mockReturnValue(of({ data: Buffer.from([1, 2]) }));
       mockHttpService.post.mockImplementation((endpoint: string) =>
         of({
           data: endpoint.includes('registerUpload')
