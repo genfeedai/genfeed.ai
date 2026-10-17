@@ -135,6 +135,7 @@ describe('YtDlpService', () => {
           'mp3',
           '-o',
           expect.stringContaining('public/tmp/clips/'),
+          '--',
           url,
         ],
         {
@@ -319,6 +320,7 @@ describe('YtDlpService', () => {
           'mp4',
           '-o',
           outputPath,
+          '--',
           url,
         ],
         {
@@ -425,6 +427,7 @@ describe('YtDlpService', () => {
           '9',
           '-o',
           outputPath,
+          '--',
           url,
         ],
         {

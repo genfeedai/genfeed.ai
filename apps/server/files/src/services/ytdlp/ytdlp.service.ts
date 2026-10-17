@@ -27,7 +27,15 @@ export class YtDlpService {
     const outputTemplate = path.join(outputDir, `${timestamp}.%(ext)s`);
     const outputFile = path.join(outputDir, `${timestamp}.mp3`);
 
-    const args = ['-x', '--audio-format', 'mp3', '-o', outputTemplate, url];
+    const args = [
+      '-x',
+      '--audio-format',
+      'mp3',
+      '-o',
+      outputTemplate,
+      '--',
+      url,
+    ];
 
     return this.runYtDlp(args, outputFile);
   }
@@ -59,6 +67,7 @@ export class YtDlpService {
       'mp4',
       '-o',
       outputTemplate,
+      '--',
       url,
     ];
 
@@ -85,6 +94,7 @@ export class YtDlpService {
       '9',
       '-o',
       containedOutputPath,
+      '--',
       url,
     ];
 
