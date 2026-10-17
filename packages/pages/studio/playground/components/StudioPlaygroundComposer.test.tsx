@@ -1325,7 +1325,7 @@ describe('StudioPlaygroundComposer', () => {
       durationsByResolution: { '1080p': [6] },
       defaultDuration: 6,
       hasDurationEditing: true,
-    } as IModel;
+    } as unknown as IModel;
     render(
       <StudioPlaygroundComposer
         {...baseProps}
