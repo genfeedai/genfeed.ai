@@ -51,6 +51,12 @@ export interface VideoModelCapability extends BaseModelCapability {
   defaultAspectRatio?: string;
   usesOrientation?: boolean;
   durations?: readonly number[];
+  /**
+   * Clip lengths a resolution is limited to when the provider caps it below
+   * `durations` (Hailuo 1080p runs 6 s only). Keys are provider resolution
+   * values; a resolution without an entry accepts every duration.
+   */
+  durationsByResolution?: Readonly<Record<string, readonly number[]>>;
   defaultDuration?: number;
 }
 
@@ -894,7 +900,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       defaultDuration: 6,
+      // Replicate: "1080p videos are limited to 6-second duration".
       durations: [6, 10],
+      durationsByResolution: { '1080p': [6] },
       hasDurationEditing: true,
       hasResolutionOptions: true,
       hasSpeech: true,
@@ -907,7 +915,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       defaultDuration: 6,
+      // Replicate: "1080p videos are limited to 6-second duration".
       durations: [6, 10],
+      durationsByResolution: { '1080p': [6] },
       hasDurationEditing: true,
       hasResolutionOptions: true,
       isBatchSupported: false,

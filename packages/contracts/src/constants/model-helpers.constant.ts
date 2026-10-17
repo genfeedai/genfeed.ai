@@ -248,6 +248,32 @@ export function getModelDurations(
   return (cap as VideoModelCapability).durations ?? [];
 }
 
+/**
+ * The clip lengths a model offers at a resolution: its `durations`, narrowed
+ * to the provider's cap for that resolution when one is declared. Without a
+ * resolution, or for a resolution with no cap, every duration applies.
+ */
+export function getModelDurationsForResolution(
+  modelKey: string,
+  resolution?: string | null,
+  capability?: ModelOutputCapability | null,
+): readonly number[] {
+  const durations = getModelDurations(modelKey, capability);
+  const cap = resolveCapability(modelKey, capability);
+  if (
+    !resolution ||
+    !cap ||
+    !DURATION_WITH_OPTIONS_CATEGORIES.has(cap.category)
+  )
+    return durations;
+  const capped = (cap as VideoModelCapability).durationsByResolution?.[
+    resolution
+  ];
+  if (!capped) return durations;
+  const allowed = durations.filter((duration) => capped.includes(duration));
+  return allowed.length > 0 ? allowed : capped;
+}
+
 export function getModelDefaultDuration(
   modelKey: string,
   capability?: ModelOutputCapability | null,

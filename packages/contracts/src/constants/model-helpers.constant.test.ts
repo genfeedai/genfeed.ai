@@ -3,6 +3,7 @@ import { MODEL_KEYS } from '.';
 import {
   getModelDefaultDuration,
   getModelDurations,
+  getModelDurationsForResolution,
   getModelMaxOutputs,
   getModelMaxReferences,
   getModelMaxVideoReferences,
@@ -267,6 +268,41 @@ describe('model-helpers.constant', () => {
   describe('getModelMinDuration', () => {
     it('returns undefined for unknown model', () => {
       expect(getModelMinDuration(UNKNOWN)).toBeUndefined();
+    });
+  });
+
+  describe('getModelDurationsForResolution', () => {
+    it('caps Hailuo 1080p at the 6 s Replicate allows', () => {
+      expect(
+        getModelDurationsForResolution(
+          MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+          '1080p',
+        ),
+      ).toEqual([6]);
+      expect(
+        getModelDurationsForResolution(
+          MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+          '1080p',
+        ),
+      ).toEqual([6]);
+    });
+
+    it('offers every duration at an uncapped or unspecified resolution', () => {
+      expect(
+        getModelDurationsForResolution(
+          MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+          '768p',
+        ),
+      ).toEqual([6, 10]);
+      expect(
+        getModelDurationsForResolution(
+          MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+        ),
+      ).toEqual([6, 10]);
+    });
+
+    it('returns empty for unknown model', () => {
+      expect(getModelDurationsForResolution(UNKNOWN, '1080p')).toEqual([]);
     });
   });
 });

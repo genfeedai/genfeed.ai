@@ -194,4 +194,42 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
       modelKey: KEY,
     });
   });
+
+  it('charges applyMargin(0.33) for a 10 s request at 1080p, which Replicate caps at 6 s', async () => {
+    const providerInput = builder.buildPrompt(
+      KEY,
+      {
+        duration: 10,
+        height: 1080,
+        modelCategory: ModelCategory.VIDEO,
+        prompt: 'A cinematic product reveal',
+        references: [FIRST_FRAME],
+        resolution: '1080p',
+        width: 1920,
+      },
+      'A cinematic product reveal',
+    );
+    const request = { creditsConfig: { deferred: true } };
+
+    await (await service()).ensureDeferredCredits(
+      {
+        duration: 10,
+        height: 1080,
+        outputs: 1,
+        resolution: '1080p',
+        width: 1920,
+      },
+      KEY,
+      'org-1',
+      request as never,
+      providerInput as unknown as Record<string, unknown>,
+    );
+
+    expect(providerInput).toMatchObject({ duration: 6, resolution: '1080p' });
+    expect(request.creditsConfig).toMatchObject({
+      amount: applyMargin(0.33, MARGIN),
+      deferred: false,
+      modelKey: KEY,
+    });
+  });
 });

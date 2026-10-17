@@ -412,8 +412,13 @@ export function useGenerationActionCard({
   );
 
   const modelControls = useMemo(
-    () => resolveGenerationModelControls(selectedModel, generationType),
-    [generationType, selectedModel],
+    () =>
+      resolveGenerationModelControls(
+        selectedModel,
+        generationType,
+        resolution || null,
+      ),
+    [generationType, resolution, selectedModel],
   );
   const {
     availableAspectRatios,

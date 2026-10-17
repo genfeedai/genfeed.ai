@@ -133,6 +133,38 @@ describe('compileRemainingVideoGenerationBrief', () => {
     },
   );
 
+  it.each([
+    [undefined, 6],
+    [5, 6],
+    [10, 6],
+    [15, 6],
+  ])(
+    'caps Hailuo 2.3 Fast at 6 s on 1080p for a requested %s s',
+    (durationSeconds, expected) => {
+      const brief = videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'off',
+        intent: { objective: 'the product turns to camera' },
+        mediaKind: 'video',
+        output:
+          durationSeconds === undefined
+            ? { resolution: '1080p' }
+            : { durationSeconds, resolution: '1080p' },
+        references: [{ assetId: 'frame-1', role: 'first_frame' }],
+        version: 1,
+      });
+
+      const result = compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST),
+        modelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      });
+
+      expect(result.dispatch.duration).toBe(expected);
+      expect(result.dispatch.resolution).toBe('1080p');
+    },
+  );
+
   it('requires a first frame for Kling v2.1', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],

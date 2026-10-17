@@ -105,6 +105,27 @@ describe('generation-controls.helper', () => {
       });
     });
 
+    it('narrows video durations to what the selected resolution can run', () => {
+      const hailuo = createMockModel({
+        category: ModelCategory.VIDEO,
+        defaultDuration: 6,
+        durations: [6, 10],
+        id: 'hailuo',
+        key: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      });
+
+      expect(
+        resolveGenerationModelControls(hailuo, 'video', '1080p')
+          .durationOptions,
+      ).toEqual([6]);
+      expect(
+        resolveGenerationModelControls(hailuo, 'video', '768p').durationOptions,
+      ).toEqual([6, 10]);
+      expect(
+        resolveGenerationModelControls(hailuo, 'video').durationOptions,
+      ).toEqual([6, 10]);
+    });
+
     it('falls back cleanly when no model is selected', () => {
       expect(resolveGenerationModelControls(null, 'video')).toEqual({
         availableAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4'],

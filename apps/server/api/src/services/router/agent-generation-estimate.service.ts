@@ -454,7 +454,11 @@ export class AgentGenerationEstimateService {
     // needing the references the full builder would validate.
     if (hasProviderVideoDurationRule(modelKey))
       return {
-        duration: normalizeProviderVideoDuration(modelKey, params.duration),
+        duration: normalizeProviderVideoDuration(
+          modelKey,
+          params.duration,
+          params.resolution,
+        ),
       };
     try {
       const built = await this.promptBuilderService.buildPrompt(modelKey, {

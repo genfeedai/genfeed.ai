@@ -41,6 +41,7 @@ function profileForModelKey(
 function resolveDuration(
   brief: VideoGenerationBrief,
   profile: RemainingVideoCapabilityProfile,
+  resolution: string | undefined,
 ): number {
   const { defaultSeconds, maxSeconds, minSeconds } = profile.duration;
   const requested = brief.output.durationSeconds ?? defaultSeconds;
@@ -49,7 +50,10 @@ function resolveDuration(
   );
   // Models with fixed clip lengths dispatch the length the provider runs, so
   // the quoted duration is the executed one (Hailuo 5 s runs as 6 s).
-  return normalizeProviderVideoDuration(profile.modelKey, clamped) ?? clamped;
+  return (
+    normalizeProviderVideoDuration(profile.modelKey, clamped, resolution) ??
+    clamped
+  );
 }
 
 function requiresFirstFrame(
@@ -311,13 +315,13 @@ export function compileRemainingVideoGenerationBrief(
         brief.output.aspectRatio ?? profile.defaultAspectRatio,
       )
     : undefined;
-  const duration = profile.duration.supported
-    ? resolveDuration(brief, profile)
-    : undefined;
-  const hasSeed = seed !== undefined && profile.seed.supported;
   const resolutionOptions = getVideoResolutionsByModel(modelKey);
   const requestedResolution = brief.output.resolution;
   const resolution = requestedResolution ?? profile.defaults.resolution;
+  const duration = profile.duration.supported
+    ? resolveDuration(brief, profile, resolution)
+    : undefined;
+  const hasSeed = seed !== undefined && profile.seed.supported;
   if (
     requestedResolution &&
     !resolutionOptions.some((option) => option.value === requestedResolution)

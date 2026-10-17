@@ -648,7 +648,11 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
     const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
     const duration =
-      normalizeProviderVideoDuration(model, params.duration) ?? 6;
+      normalizeProviderVideoDuration(
+        model,
+        params.duration,
+        params.resolution,
+      ) ?? 6;
 
     const input: Hailuo23Input = {
       aspect_ratio: normalizedRatio,
@@ -677,7 +681,11 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     promptText: string,
   ): Hailuo23FastInput {
     const duration =
-      normalizeProviderVideoDuration(model, params.duration) ?? 6;
+      normalizeProviderVideoDuration(
+        model,
+        params.duration,
+        params.resolution || HAILUO_23_FAST_DEFAULT_RESOLUTION,
+      ) ?? 6;
     const firstFrameImage = params.references?.[0]?.trim() ?? '';
     // The reviewed rates are priced per resolution, so a request that omits it
     // must dispatch Replicate's own default (768p) explicitly, otherwise the

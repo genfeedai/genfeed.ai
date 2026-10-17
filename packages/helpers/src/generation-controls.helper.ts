@@ -2,6 +2,7 @@ import { IngredientFormat, type ModelCategory } from '@genfeedai/contracts';
 import {
   getModelDefaultDuration,
   getModelDurations,
+  getModelDurationsForResolution,
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 
@@ -83,6 +84,7 @@ export function filterModelsByAspectRatio(
 export function resolveGenerationModelControls(
   model: IModel | null,
   generationType: 'image' | 'video',
+  resolution?: string | null,
 ): GenerationModelControls {
   const availableAspectRatios = model
     ? [...getAspectRatiosFromModel(model)]
@@ -117,10 +119,23 @@ export function resolveGenerationModelControls(
       : model
         ? [...getModelDurations(model.key as string)]
         : [];
+  // The provider caps some resolutions below the model's lengths, so the
+  // picker only offers lengths the selected resolution can run.
+  const resolutionDurations = model
+    ? getModelDurationsForResolution(model.key as string, resolution)
+    : [];
+  const resolvedDurationOptions =
+    resolution && resolutionDurations.length > 0
+      ? durationOptionsFromModel.filter((duration) =>
+          resolutionDurations.includes(duration),
+        )
+      : durationOptionsFromModel;
   const durationOptions =
-    durationOptionsFromModel.length > 0
-      ? durationOptionsFromModel
-      : [...DEFAULT_VIDEO_DURATION_OPTIONS];
+    resolvedDurationOptions.length > 0
+      ? resolvedDurationOptions
+      : durationOptionsFromModel.length > 0
+        ? durationOptionsFromModel
+        : [...DEFAULT_VIDEO_DURATION_OPTIONS];
 
   const capabilityHasDurationEditing =
     capability &&
