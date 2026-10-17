@@ -3,6 +3,7 @@
 import { type ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
+import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
 import {
   groupOAuthConnectPlatforms,
   type ResolvedOAuthConnectPlatform,
@@ -36,6 +37,8 @@ interface AgentOAuthConnectMenuProps {
 
 const CONNECT_ERROR_MESSAGE =
   'Could not start the connection. Please try again.';
+const BRAND_REQUIRED_MESSAGE =
+  'Select a brand first, then connect your account.';
 
 export function AgentOAuthConnectMenu({
   onOAuthConnect,
@@ -84,8 +87,12 @@ export function AgentOAuthConnectMenu({
         // A successful handoff normally replaces the current document. Closing
         // also restores the control when auth cancellation leaves us in place.
         setOpen(false);
-      } catch {
-        setError(CONNECT_ERROR_MESSAGE);
+      } catch (connectError) {
+        setError(
+          connectError instanceof OAuthBrandRequiredError
+            ? BRAND_REQUIRED_MESSAGE
+            : CONNECT_ERROR_MESSAGE,
+        );
       } finally {
         setConnectingPlatform(null);
       }

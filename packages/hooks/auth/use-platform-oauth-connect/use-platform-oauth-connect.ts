@@ -9,6 +9,7 @@ import { ServicesService } from '@services/external/services.service';
 import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { OAuthBrandRequiredError } from './oauth-brand-required.error';
 import { rememberOAuthConnectContext } from './oauth-connect-context';
 
 /** sessionStorage key read by `/oauth/[platform]` after provider redirect. */
@@ -57,7 +58,7 @@ export function usePlatformOAuthConnect(
             : (options.brandId ??
               (selectedBrand ? getBrandEntityId(selectedBrand) : undefined));
         if (!brandId) {
-          throw new Error('Select a brand before connecting an account');
+          throw new OAuthBrandRequiredError();
         }
         const returnTo = options.returnTo ?? defaultReturnTo;
 
@@ -82,6 +83,9 @@ export function usePlatformOAuthConnect(
           '_self',
         );
       } catch (error) {
+        if (error instanceof OAuthBrandRequiredError) {
+          throw error;
+        }
         logger.error('OAuth connect failed', error);
         throw error;
       }

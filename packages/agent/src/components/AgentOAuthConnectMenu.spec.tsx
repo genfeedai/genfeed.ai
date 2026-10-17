@@ -1,4 +1,5 @@
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
+import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
@@ -131,6 +132,25 @@ describe('AgentOAuthConnectMenu', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not start the connection. Please try again.',
+    );
+    expect(twitterButton).toBeEnabled();
+  });
+
+  it('asks for a brand when the connect is rejected for a missing brand', async () => {
+    const user = userEvent.setup();
+    const onOAuthConnect = vi
+      .fn()
+      .mockRejectedValue(new OAuthBrandRequiredError());
+    render(<AgentOAuthConnectMenu onOAuthConnect={onOAuthConnect} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
+    );
+    const twitterButton = screen.getByRole('button', { name: 'Twitter' });
+    await user.click(twitterButton);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Select a brand first, then connect your account.',
     );
     expect(twitterButton).toBeEnabled();
   });

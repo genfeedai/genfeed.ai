@@ -5,6 +5,7 @@ import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-con
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
 import { rememberOAuthConnectContext } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
@@ -69,7 +70,7 @@ export function useAgentOAuthConnect(
         }
 
         if (!connectionBrand) {
-          throw new Error('Select a brand before connecting an account');
+          throw new OAuthBrandRequiredError();
         }
 
         const servicePath = resolveOAuthServicePath(platform);
@@ -99,6 +100,9 @@ export function useAgentOAuthConnect(
           '_self',
         );
       } catch (error) {
+        if (error instanceof OAuthBrandRequiredError) {
+          throw error;
+        }
         logger.error('OAuth connect failed', error);
         // Let the invoking surface restore an actionable error state instead
         // of leaving a connect control looking successful after a failed API

@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { OAuthBrandRequiredError } from './oauth-brand-required.error';
 
 const mockPostConnect = vi.fn();
 const mockResolveAuthToken = vi.fn();
@@ -146,15 +147,16 @@ describe('usePlatformOAuthConnect', () => {
     expect(openSpy).not.toHaveBeenCalled();
   });
 
-  it('rejects when no brand is available', async () => {
+  it('rejects when no brand is available without logging an exception', async () => {
     selectedBrand = undefined;
     const { result } = renderHook(() => usePlatformOAuthConnect());
 
-    await expect(result.current('twitter')).rejects.toThrow(
-      'Select a brand before connecting an account',
+    await expect(result.current('twitter')).rejects.toBeInstanceOf(
+      OAuthBrandRequiredError,
     );
 
     expect(mockPostConnect).not.toHaveBeenCalled();
+    expect(mockLoggerError).not.toHaveBeenCalled();
   });
 
   it('does not fall back to the selected brand when brandId is explicitly null', async () => {

@@ -1,4 +1,5 @@
 import { useAgentOAuthConnect } from '@hooks/agent/use-agent-oauth-connect/use-agent-oauth-connect';
+import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -185,10 +186,11 @@ describe('useAgentOAuthConnect', () => {
   it('rejects before the API call when no brand is selected', async () => {
     const { result } = renderHook(() => useAgentOAuthConnect());
 
-    await expect(result.current('twitter')).rejects.toThrow(
-      'Select a brand before connecting an account',
+    await expect(result.current('twitter')).rejects.toBeInstanceOf(
+      OAuthBrandRequiredError,
     );
 
     expect(mockPostConnect).not.toHaveBeenCalled();
+    expect(mockLoggerError).not.toHaveBeenCalled();
   });
 });
