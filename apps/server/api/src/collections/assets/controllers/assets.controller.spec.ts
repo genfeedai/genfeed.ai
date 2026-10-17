@@ -285,7 +285,6 @@ describe('AssetsController', () => {
           isDeleted: false,
           parentId: foreignBrandId,
           parentType: AssetParent.BRAND,
-          isDeleted: false,
         }),
       ).rejects.toThrow(NotFoundException);
 
@@ -305,7 +304,6 @@ describe('AssetsController', () => {
           isDeleted: false,
           parentId: 'cmorganization000000000000999',
           parentType: AssetParent.ORGANIZATION,
-          isDeleted: false,
         }),
       ).rejects.toThrow(NotFoundException);
 
@@ -319,7 +317,6 @@ describe('AssetsController', () => {
         isDeleted: false,
         parentId: mockOrgId,
         parentType: AssetParent.ORGANIZATION,
-        isDeleted: false,
       });
 
       expect(mockAssetsService.patch).toHaveBeenCalled();
