@@ -133,6 +133,20 @@ export class WorkflowCrudController {
       query.includeSystem === true,
     );
 
+    if (query.ids !== undefined) {
+      const workflows = await this.workflowsService.findVisibleByIds(
+        query.ids,
+        {
+          brandId: tenant.brandId,
+          organizationId: tenant.organizationId,
+          userId: user.userId ?? user.id,
+        },
+      );
+      return serializeCollection(request, WorkflowSerializer, {
+        docs: workflows.map(withNextRunAt),
+      });
+    }
+
     // Code-owned system catalog (not persisted rows). Same collection resource
     // as workflows; filter via query instead of a parallel /system-catalog path.
     if (query.source === 'system-catalog') {
