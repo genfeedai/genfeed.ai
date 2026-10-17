@@ -44,7 +44,7 @@ export class CronYoutubeMessagesService implements OnModuleInit {
    * tick never persists a workflow execution row (#5634).
    */
   async syncYoutubeMessages(): Promise<void> {
-    if ((await this.findConnectedCredentials()).length === 0) {
+    if ((await this.findConnectedCredentials(1)).length === 0) {
       return;
     }
     const now = new Date();
@@ -68,10 +68,11 @@ export class CronYoutubeMessagesService implements OnModuleInit {
     );
   }
 
-  private async findConnectedCredentials(): Promise<
-    YoutubeCommentSweepRequest[]
-  > {
+  private async findConnectedCredentials(
+    take?: number,
+  ): Promise<YoutubeCommentSweepRequest[]> {
     const credentials = await this.prisma.credential.findMany({
+      ...(take ? { take } : {}),
       select: { brandId: true, id: true, organizationId: true },
       where: {
         brandId: { not: null },
