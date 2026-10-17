@@ -4,7 +4,12 @@ import type {
   IDesktopSession as IDesktopContractSession,
   IDesktopEnvironment,
 } from '@genfeedai/contracts/desktop';
-import { safeStorage } from 'electron';
+import {
+  assertCredentialStorageAvailable,
+  decryptCredential,
+  encryptCredential,
+  isCredentialStorageAvailable,
+} from './secure-storage.util';
 import type { DesktopKeyValueStore } from './store.service';
 
 const SESSION_STORAGE_KEY = 'desktop.session';
@@ -381,12 +386,14 @@ export class DesktopSessionService {
       return null;
     }
 
+    // Without a keychain (or the plaintext opt-in) the stored value cannot be
+    // read; keep it so it works again once the keychain is available.
+    if (!isCredentialStorageAvailable()) {
+      return null;
+    }
+
     try {
-      const session = safeStorage.isEncryptionAvailable()
-        ? deserializeSession(
-            safeStorage.decryptString(Buffer.from(stored, 'base64')),
-          )
-        : deserializeSession(stored);
+      const session = deserializeSession(decryptCredential(stored));
 
       if (!session) {
         void this.store.deleteValue(this.sessionStorageKey);
@@ -401,11 +408,10 @@ export class DesktopSessionService {
 
   private async persistSession(session: IDesktopSession): Promise<void> {
     const payload = serializeSession(session);
-    const encryptedPayload = safeStorage.isEncryptionAvailable()
-      ? safeStorage.encryptString(payload).toString('base64')
-      : payload;
-
-    await this.store.setValue(this.sessionStorageKey, encryptedPayload);
+    await this.store.setValue(
+      this.sessionStorageKey,
+      encryptCredential(payload),
+    );
   }
 
   private async applySessionCookie(
@@ -473,6 +479,8 @@ export class DesktopSessionService {
   }
 
   async setSession(session: IDesktopSession): Promise<IDesktopSession> {
+    assertCredentialStorageAvailable();
+
     const previousSession = this.getSession();
 
     if (Date.parse(session.sessionCookie.expiresAt) <= Date.now()) {
@@ -552,6 +560,8 @@ export class DesktopSessionService {
   }
 
   getLoginUrl(continuation?: string): string {
+    assertCredentialStorageAvailable();
+
     const codeVerifier = createCodeVerifier();
     const state = createState();
     const validContinuation = readContinuation(continuation);
@@ -574,23 +584,21 @@ export class DesktopSessionService {
   private persistPendingAuth(pending: PendingDesktopAuth): void {
     this.pendingAuth = pending;
     const payload = JSON.stringify(pending);
-    const stored = safeStorage.isEncryptionAvailable()
-      ? safeStorage.encryptString(payload).toString('base64')
-      : payload;
-    this.store.setValueSync(this.pendingAuthStorageKey, stored);
+    this.store.setValueSync(
+      this.pendingAuthStorageKey,
+      encryptCredential(payload),
+    );
   }
 
   private readStoredPendingAuth(): PendingDesktopAuth | null {
     const stored = this.store.getValueSync(this.pendingAuthStorageKey);
 
-    if (!stored) {
+    if (!stored || !isCredentialStorageAvailable()) {
       return null;
     }
 
     try {
-      const raw = safeStorage.isEncryptionAvailable()
-        ? safeStorage.decryptString(Buffer.from(stored, 'base64'))
-        : stored;
+      const raw = decryptCredential(stored);
       const parsed = JSON.parse(raw) as unknown;
 
       if (

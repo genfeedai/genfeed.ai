@@ -44,7 +44,7 @@ export const electronMockState = {
   safeStorage: {
     decryptString: (buffer: Buffer) => buffer.toString('utf8'),
     encryptString: (value: string) => Buffer.from(value, 'utf8'),
-    isEncryptionAvailable: () => false,
+    isEncryptionAvailable: () => true,
   },
   shell: {
     externalUrls: [] as string[],
@@ -68,6 +68,7 @@ export const electronMockState = {
 };
 
 export const resetElectronMockState = (): void => {
+  electronMockState.safeStorage.isEncryptionAvailable = () => true;
   electronMockState.app.defaultProtocols = [];
   electronMockState.app.quitCalls = 0;
   electronMockState.dialog.openResult = {

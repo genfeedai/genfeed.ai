@@ -2,9 +2,21 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import type { IDesktopEnvironment } from '@genfeedai/contracts/desktop';
 import type { DesktopCookieStore } from './session.service';
 import type { DesktopKeyValueStore } from './store.service';
-import './test-support/electron.mock';
+import {
+  electronMockState,
+  resetElectronMockState,
+} from './test-support/electron.mock';
 
 const { DesktopSessionService } = await import('./session.service');
+const { ALLOW_PLAINTEXT_STORAGE_ENV } = await import('./secure-storage.util');
+
+const encryptForTest = (value: string): string =>
+  Buffer.from(value, 'utf8').toString('base64');
+const decryptForTest = (value: string | undefined): string =>
+  Buffer.from(value ?? '', 'base64').toString('utf8');
+const setKeychainAvailable = (isAvailable: boolean): void => {
+  electronMockState.safeStorage.isEncryptionAvailable = () => isAvailable;
+};
 
 const APP_ORIGIN = 'http://127.0.0.1:3230';
 const SESSION_STORAGE_KEY = 'desktop.session';
@@ -141,6 +153,8 @@ describe('DesktopSessionService', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    delete process.env[ALLOW_PLAINTEXT_STORAGE_ENV];
+    resetElectronMockState();
   });
 
   it('builds a desktop-specific PKCE OAuth URL', () => {
@@ -160,7 +174,10 @@ describe('DesktopSessionService', () => {
     const firstService = createSessionService(kvService, cookieMock);
     await firstService.setSession(createSession());
 
-    expect(kvService.values.get(SESSION_STORAGE_KEY)).toContain(
+    expect(kvService.values.get(SESSION_STORAGE_KEY)).not.toContain(
+      'better-auth.session_token',
+    );
+    expect(decryptForTest(kvService.values.get(SESSION_STORAGE_KEY))).toContain(
       'better-auth.session_token',
     );
     expect(cookieMock.setCalls[0]).toMatchObject({
@@ -230,7 +247,10 @@ describe('DesktopSessionService', () => {
         expiresAt: '2020-01-01T00:00:00.000Z',
       },
     };
-    kvService.values.set(SESSION_STORAGE_KEY, JSON.stringify(expiredSession));
+    kvService.values.set(
+      SESSION_STORAGE_KEY,
+      encryptForTest(JSON.stringify(expiredSession)),
+    );
     globalThis.fetch = (async () => {
       throw new Error('Expired sessions must not reach the API.');
     }) as typeof fetch;
@@ -563,6 +583,60 @@ describe('DesktopSessionService', () => {
       },
       isOk: false,
     });
+  });
+});
+
+describe('DesktopSessionService without an OS keychain', () => {
+  let cookieMock: CookieMock;
+  let kvService: KvMock;
+
+  beforeEach(() => {
+    cookieMock = createCookieMock();
+    kvService = createKvMock();
+    delete process.env[ALLOW_PLAINTEXT_STORAGE_ENV];
+    setKeychainAvailable(false);
+  });
+
+  afterEach(() => {
+    delete process.env[ALLOW_PLAINTEXT_STORAGE_ENV];
+    resetElectronMockState();
+  });
+
+  it('refuses to store a session and leaves the cookie jar untouched', async () => {
+    const service = createSessionService(kvService, cookieMock);
+
+    await expect(service.setSession(createSession())).rejects.toThrow(
+      'no OS keychain',
+    );
+    expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(false);
+    expect(cookieMock.setCalls).toEqual([]);
+  });
+
+  it('refuses to start sign-in so no PKCE verifier is written in plaintext', () => {
+    const service = createSessionService(kvService, cookieMock);
+
+    expect(() => service.getLoginUrl()).toThrow('no OS keychain');
+    expect(kvService.values.size).toBe(0);
+  });
+
+  it('does not read or delete a stored session it cannot decrypt', () => {
+    kvService.values.set(SESSION_STORAGE_KEY, encryptForTest('{}'));
+    const service = createSessionService(kvService, cookieMock);
+
+    expect(service.getSession()).toBeNull();
+    expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(true);
+  });
+
+  it('stores the session in plaintext only with the explicit opt-in', async () => {
+    process.env[ALLOW_PLAINTEXT_STORAGE_ENV] = '1';
+    const service = createSessionService(kvService, cookieMock);
+
+    await service.setSession(createSession());
+
+    expect(kvService.values.get(SESSION_STORAGE_KEY)).toContain(
+      'better-auth.session_token',
+    );
+    expect(service.getSession()?.token).toBe('gf_desktop_key');
   });
 });
 

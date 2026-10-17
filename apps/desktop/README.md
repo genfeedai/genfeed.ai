@@ -165,6 +165,11 @@ notifications socket (injected through the preload as
 system-browser sign-in URL. The choice is stored encrypted (Electron
 `safeStorage`) in `desktop-state.json`.
 
+Sign-in credentials are stored only when the OS keychain can encrypt them.
+Where there is none (for example Linux without a keyring), Desktop refuses to
+sign in instead of writing them in plaintext; set
+`GENFEED_DESKTOP_ALLOW_PLAINTEXT_STORAGE=1` to opt back in.
+
 Each server keeps its **own** encrypted session and `gf_` key
 (`desktop.session` for Cloud, `desktop.session.<server-id>` for self-hosted),
 so switching never signs you out of the other server; only the shell cookie
