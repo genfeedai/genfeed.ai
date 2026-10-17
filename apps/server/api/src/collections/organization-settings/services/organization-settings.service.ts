@@ -322,7 +322,7 @@ export class OrganizationSettingsService extends BaseService<
         isWhitelabelEnabled: false,
         // Cloud launches app by app: a new organization starts without
         // Storyboard and an operator opens it per organization.
-        ...(hasOrganizationBilling()
+        ...(isCloudDeployment()
           ? { moduleOverrides: { storyboard: false } }
           : {}),
         organizationId,
