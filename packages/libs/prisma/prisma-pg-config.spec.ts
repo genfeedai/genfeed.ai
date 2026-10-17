@@ -74,12 +74,16 @@ describe('createPrismaPgConfig', () => {
     ).toThrow(/sslmode=no-verify is not supported/);
   });
 
-  it('rejects sslmode=no-verify even when a CA is available', () => {
-    expect(() =>
+  it('verifies against an available CA when the URL still says sslmode=no-verify', () => {
+    expect(
       createPrismaPgConfig(pgUrl('db.example.com', '?sslmode=no-verify'), {
-        caFilePaths: [writeCaFile()],
+        caFilePaths: [writeCaFile('no-verify-ca')],
       }),
-    ).toThrow(/sslmode=no-verify is not supported/);
+    ).toEqual({
+      connectionString: pgUrl('db.example.com'),
+      ssl: { ca: 'no-verify-ca', rejectUnauthorized: true },
+      ...defaultPool,
+    });
   });
 
   it('maps sslmode=require to verified TLS against the system trust store', () => {

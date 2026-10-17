@@ -170,12 +170,6 @@ export function createPrismaPgConfig(
     };
   }
 
-  if (sslMode === 'no-verify') {
-    throw new Error(
-      'Postgres sslmode=no-verify is not supported. Set PRISMA_POSTGRES_CA_FILE or PGSSLROOTCERT to the provider CA bundle, or use sslmode=disable for a local database.',
-    );
-  }
-
   const ca =
     readConfiguredPostgresCa(options.caFilePaths) ??
     readBundledRdsCa(databaseUrl);
@@ -188,6 +182,12 @@ export function createPrismaPgConfig(
       ssl: { ca, rejectUnauthorized: true },
       ...poolConfig,
     };
+  }
+
+  if (sslMode === 'no-verify') {
+    throw new Error(
+      'Postgres sslmode=no-verify is not supported. Set PRISMA_POSTGRES_CA_FILE or PGSSLROOTCERT to the provider CA bundle, or use sslmode=disable for a local database.',
+    );
   }
 
   if (sslMode === 'verify-ca' || sslMode === 'verify-full') {
