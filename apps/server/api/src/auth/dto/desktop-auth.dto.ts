@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsIn,
   IsOptional,
   IsString,
@@ -37,6 +38,14 @@ export class ExchangeDesktopAuthCodeDto {
   @IsString()
   @MinLength(16)
   state!: string;
+
+  /**
+   * Admin CLI login: return the Better Auth session only and mint no API key.
+   * Accepted only for a code issued to a super admin.
+   */
+  @IsBoolean()
+  @IsOptional()
+  sessionOnly?: boolean;
 }
 
 export class DesktopAuthCodeStatusDto {

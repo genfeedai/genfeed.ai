@@ -7,6 +7,7 @@ describe('terminal program', () => {
 
     expect(commandNames).toEqual(
       expect.arrayContaining([
+        'admin',
         'asset',
         'balance',
         'brand',
