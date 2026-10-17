@@ -40,6 +40,7 @@ function IngredientsMediaGridSkeleton() {
 export default function IngredientsMediaGrid({
   emptyLabel = '',
   emptyDescription,
+  emptyActions,
   items,
   isLoading,
   isActionsEnabled = false,
@@ -77,6 +78,7 @@ export default function IngredientsMediaGrid({
       <CardEmptyContent
         label={emptyLabel}
         description={emptyDescription}
+        actions={emptyActions}
         className="w-full"
       />
     );

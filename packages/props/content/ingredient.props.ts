@@ -28,6 +28,8 @@ export interface IngredientsMediaGridProps {
   /** Shown when `items` is empty. Omit when the caller renders its own empty state. */
   emptyLabel?: string;
   emptyDescription?: string;
+  /** Optional call to action rendered under the empty-state description. */
+  emptyActions?: ReactNode;
   items: IIngredient[];
   isLoading: boolean;
   /** Tile action menus and the review overlay. Off for read-only grids. */
