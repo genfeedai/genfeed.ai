@@ -1,4 +1,4 @@
-import type { BrowserContext, Page, Route } from '@playwright/test';
+import type { BrowserContext, Page, Request, Route } from '@playwright/test';
 import {
   generateMockOrganization,
   generateMockUser,
@@ -332,19 +332,26 @@ async function setupBetterAuthMocks(
  * Server readiness is handled by Playwright webServer, not by this helper.
  */
 async function navigateAfterAuth(page: Page, path: string): Promise<void> {
-  await page.goto(path, {
-    timeout: 120_000,
-    waitUntil: 'domcontentloaded',
-  });
-
-  // /workspace canonicalizes in the client after hydration. Yielding on the
-  // initial non-login URL lets that redirect abort the test's next navigation.
-  if (path === APP_AUTH_BOOTSTRAP_PATH) {
-    await page.waitForURL(`**${E2E_BRAND_BASE}/workspace/overview`, {
-      timeout: 30_000,
-    });
-  }
+  const failedRequests: string[] = [];
+  const recordFailure = (request: Request): void => {
+    failedRequests.push(
+      `${request.url()} ${request.failure()?.errorText ?? ''}`,
+    );
+  };
+  page.on('requestfailed', recordFailure);
   try {
+    await page.goto(path, {
+      timeout: 120_000,
+      waitUntil: 'domcontentloaded',
+    });
+
+    // /workspace canonicalizes in the client after hydration. Yielding on the
+    // initial non-login URL lets that redirect abort the test's next navigation.
+    if (path === APP_AUTH_BOOTSTRAP_PATH) {
+      await page.waitForURL(`**${E2E_BRAND_BASE}/workspace/overview`, {
+        timeout: 30_000,
+      });
+    }
     await page
       .getByTestId('app-content-shell')
       .waitFor({ state: 'visible', timeout: 30_000 });
@@ -355,9 +362,11 @@ async function navigateAfterAuth(page: Page, path: string): Promise<void> {
       .innerText({ timeout: 2_000 })
       .catch(() => '<body unreadable>');
     throw new Error(
-      `app-content-shell never became visible at ${page.url()}: ${bodyText.slice(0, 400)}`,
+      `Authenticated navigation to ${path} did not show app-content-shell; page is at ${page.url()}: ${bodyText.slice(0, 400)}\nFailed requests: ${failedRequests.slice(0, 10).join(' | ') || 'none'}`,
       { cause: error },
     );
+  } finally {
+    page.off('requestfailed', recordFailure);
   }
 }
 
