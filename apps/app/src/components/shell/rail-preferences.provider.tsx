@@ -1,5 +1,7 @@
 'use client';
 
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { useTranslations } from 'next-intl';
 import { createContext, type ReactNode, use } from 'react';
 import { useRailPreferences } from '@/components/shell/use-rail-preferences';
 
@@ -30,7 +32,11 @@ const RailPreferencesContext = createContext<RailPreferencesContextValue>({
  * made in either shows in the other without a reload.
  */
 export function RailPreferencesProvider({ children }: { children: ReactNode }) {
-  const value = useRailPreferences();
+  const translate = useTranslations('common.appRail');
+  const value = useRailPreferences({
+    onSaveError: () =>
+      NotificationsService.getInstance().error(translate('saveFailed')),
+  });
 
   return (
     <RailPreferencesContext value={value}>{children}</RailPreferencesContext>

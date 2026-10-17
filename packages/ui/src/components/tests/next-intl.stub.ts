@@ -127,6 +127,8 @@ const UI_TEST_MESSAGES = {
       homeTitle: 'Home app',
       homeDescription: 'The app you land on after signing in.',
       homeDefault: 'Default ({app})',
+      saveFailed:
+        'Could not save your rail changes. They will be sent again on your next change.',
       reordered: '{app} moved to position {position} of {total}.',
       navigation: 'App navigation',
       goTo: 'Go to {app}',

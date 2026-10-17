@@ -62,8 +62,15 @@ function toggledIds(ids: readonly string[], appId: string): string[] {
  * order of the rail, and the home app. They live on their settings row and
  * share one read. `isLoaded` turns true once the read settles, failed or not,
  * so callers can wait for saved preferences before acting on defaults.
+ * `onSaveError` fires when a save fails, so the caller can tell the member.
  */
-export function useRailPreferences() {
+export function useRailPreferences({
+  onSaveError,
+}: {
+  onSaveError?: (field: RailPreferenceField) => void;
+} = {}) {
+  const onSaveErrorRef = useRef(onSaveError);
+  onSaveErrorRef.current = onSaveError;
   const getUsers = useAuthedService((token) => UsersService.getInstance(token));
   const [values, setValues] = useState<RailPreferenceValues>(emptyValues);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -115,10 +122,15 @@ export function useRailPreferences() {
           } catch {
             if (controller.signal.aborted) return;
             if (submittedRevision === revision[field]) {
-              desired = { ...desired, [field]: confirmed[field] };
+              // A failed order stays on screen; the next change sends the whole
+              // order again. Pins and the home app return to the saved value.
+              if (field !== 'railAppOrder') {
+                desired = { ...desired, [field]: confirmed[field] };
+              }
               dirty.delete(field);
               publish();
             }
+            onSaveErrorRef.current?.(field);
           }
         }
       } finally {

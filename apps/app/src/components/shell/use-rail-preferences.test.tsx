@@ -116,6 +116,36 @@ describe('rail pin persistence', () => {
     );
   });
 
+  it('keeps a failed rail order, reports the failure and resends it on the next change', async () => {
+    const onSaveError = vi.fn();
+    mocks.patchMeSettings.mockRejectedValueOnce(new Error('offline'));
+    const { result } = renderHook(() => useRailPreferences({ onSaveError }));
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+    act(() => result.current.setRailAppOrder(['analytics', 'agent']));
+    await waitFor(() =>
+      expect(onSaveError).toHaveBeenCalledWith('railAppOrder'),
+    );
+    expect(result.current.railAppOrder).toEqual(['analytics', 'agent']);
+    act(() =>
+      result.current.setRailAppOrder(['analytics', 'agent', 'library']),
+    );
+    await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(2));
+    expect(mocks.patchMeSettings.mock.calls[1][0]).toEqual({
+      railAppOrder: ['analytics', 'agent', 'library'],
+    });
+  });
+
+  it('reports a failed pin save too', async () => {
+    const onSaveError = vi.fn();
+    mocks.patchMeSettings.mockRejectedValueOnce(new Error('offline'));
+    const { result } = renderHook(() => useRailPreferences({ onSaveError }));
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+    act(() => result.current.togglePin('discovery'));
+    await waitFor(() =>
+      expect(onSaveError).toHaveBeenCalledWith('pinnedAppIds'),
+    );
+  });
+
   it('does not write unknown preferences after an initial read failure', async () => {
     mocks.findMeSettings.mockRejectedValueOnce(new Error('offline'));
     const { result } = renderHook(useRailPreferences);
