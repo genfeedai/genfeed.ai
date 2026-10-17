@@ -4,6 +4,7 @@ import { AdminFeaturedWorkflowsModule } from '@api/endpoints/admin/featured-work
 import { AdminModelPricingModule } from '@api/endpoints/admin/model-pricing/model-pricing.module';
 import { AdminOrganizationAppsReportModule } from '@api/endpoints/admin/organization-apps-report/organization-apps-report.module';
 import { AdminPlatformSettingsModule } from '@api/endpoints/admin/platform-settings/platform-settings.module';
+import { AdminSeedsModule } from '@api/endpoints/admin/seeds/seeds.module';
 import { AdminSystemBrandModule } from '@api/endpoints/admin/system-brand/system-brand.module';
 import { AdminSystemEmailsModule } from '@api/endpoints/admin/system-emails/system-emails.module';
 import { AdminSystemNotificationsModule } from '@api/endpoints/admin/system-notifications/system-notifications.module';
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
     AdminPlatformSettingsModule,
     AdminFeaturedWorkflowsModule,
     AdminSystemEmailsModule,
+    AdminSeedsModule,
     AdminSystemBrandModule,
     AdminOrganizationAppsReportModule,
     AdminUnitEconomicsModule,

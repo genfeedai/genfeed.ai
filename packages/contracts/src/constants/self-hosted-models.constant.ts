@@ -214,6 +214,52 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.13,
   },
   /**
+   * sync lipsync-2, billed per output second. Replicate's model page lists no
+   * price, so this is sync.so's own list rate: $0.04-$0.05/s at 25 fps
+   * (docs/billing, 2026-10-17). Seeded at the top of the range so a platform
+   * key never under-bills; the reviewed sheet carries the same rate.
+   */
+  {
+    category: ModelCategory.VIDEO_EDIT,
+    cost: 85,
+    costPerUnit: 17,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'sync lipsync-2 — re-times the mouth of an existing video to supplied audio. 17 credits per second, 85 for a 5 s clip.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_SYNC_LIPSYNC_2,
+    label: 'Lipsync 2',
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'lipsync-2', owner: 'sync' },
+    providerCostUsd: 0.05,
+  },
+  /**
+   * sync lipsync-2-pro, billed per output second. sync.so lists
+   * $0.067-$0.083/s at 25 fps (docs/billing, 2026-10-17); seeded at the top.
+   */
+  {
+    category: ModelCategory.VIDEO_EDIT,
+    cost: 140,
+    costPerUnit: 28,
+    costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'sync lipsync-2-pro — higher-fidelity lip-sync for an existing video, including teeth and facial detail. 28 credits per second, 140 for a 5 s clip.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_SYNC_LIPSYNC_2_PRO,
+    label: 'Lipsync 2 Pro',
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'lipsync-2-pro', owner: 'sync' },
+    providerCostUsd: 0.083,
+  },
+  /**
    * Legacy MiniMax I2V. Replicate bills per clip: $0.19 at 768p/6s (the
    * seeded default), $0.32 at 768p/10s, $0.33 at 1080p/6s. The reviewed
    * sheet prices the selected duration/resolution; this USD is the 6s 768p

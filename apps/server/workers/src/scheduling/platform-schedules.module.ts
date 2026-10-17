@@ -11,7 +11,10 @@ import { CrunModule } from '@api/services/integrations/crun/crun.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/workspace-task-rollup.module';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+import {
+  PLATFORM_SCHEDULE_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
@@ -49,7 +52,6 @@ import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pe
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
-import { PLATFORM_SCHEDULE_QUEUE } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';

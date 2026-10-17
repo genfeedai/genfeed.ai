@@ -145,6 +145,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../workers/src'),
       },
       {
+        find: '@api-scripts',
+        replacement: path.resolve(serviceDir, './scripts'),
+      },
+      {
         find: '@api',
         replacement: path.resolve(serviceDir, './src'),
       },

@@ -10,9 +10,13 @@ import {
   approveSystemBrand,
   filterPricingRows,
   findPendingVersion,
+  type PriceSyncProvider,
   readOrganizationAppsReport,
   readPricingReport,
   readSystemBrand,
+  seedArticles,
+  seedWorkflows,
+  syncProviderPrices,
   updateSystemBrand,
 } from '@/operations/admin';
 import {
@@ -175,6 +179,70 @@ async function runPricingApprove(
   print(formatSuccess(`Approved pending rates for ${row?.key ?? modelId}`));
 }
 
+const PRICE_SYNC_PROVIDERS: readonly PriceSyncProvider[] = ['all', 'fal', 'replicate'];
+
+async function runPricingSync(options: { provider?: string }): Promise<void> {
+  const provider = options.provider ?? 'all';
+  if (!PRICE_SYNC_PROVIDERS.includes(provider as PriceSyncProvider)) {
+    throw new GenfeedError(
+      `Unknown provider ${provider}`,
+      `Use one of: ${PRICE_SYNC_PROVIDERS.join(', ')}`
+    );
+  }
+
+  const queued = await syncProviderPrices(provider as PriceSyncProvider);
+  for (const job of queued)
+    print(formatSuccess(`Queued ${job.provider} price import (${job.jobId})`));
+  print(chalk.dim('\nThe import lands pending rates. In a few minutes, review them with:'));
+  print(chalk.dim('  genfeed admin pricing report --attention'));
+}
+
+async function runSeedArticles(options: {
+  brandId?: string;
+  brandSlug?: string;
+  organization?: string;
+  organizationLabel?: string;
+  ownerEmail?: string;
+  yes?: boolean;
+}): Promise<void> {
+  const isDryRun = !options.yes;
+  const summary = await seedArticles({
+    brandId: options.brandId,
+    brandSlug: options.brandSlug,
+    dryRun: isDryRun,
+    organizationId: options.organization,
+    organizationLabel: options.organizationLabel,
+    ownerEmail: options.ownerEmail,
+  });
+
+  print(formatHeader(`Articles seed${summary.dryRun ? ' (dry run)' : ''}\n`));
+  print(formatLabel('Organization', summary.organizationId));
+  print(formatLabel('Brand', summary.brandId));
+  print(formatLabel(summary.dryRun ? 'Would create' : 'Created', String(summary.created)));
+  print(formatLabel(summary.dryRun ? 'Would refresh' : 'Refreshed', String(summary.refreshed)));
+  if (summary.dryRun) print(chalk.dim('\nRe-run with --yes to apply.'));
+}
+
+async function runSeedWorkflows(options: {
+  allBrands?: boolean;
+  brandId?: string;
+  organization?: string;
+  yes?: boolean;
+}): Promise<void> {
+  const summary = await seedWorkflows({
+    allBrands: options.allBrands,
+    brandId: options.brandId,
+    dryRun: !options.yes,
+    organizationId: options.organization,
+  });
+
+  print(formatHeader(`Workflows seed${summary.dryRun ? ' (dry run)' : ''}\n`));
+  print(formatLabel(summary.dryRun ? 'Would update' : 'Updated', String(summary.updated)));
+  print(formatLabel('Unchanged', String(summary.unchanged)));
+  print(formatLabel('Skipped', String(summary.skipped)));
+  if (summary.dryRun) print(chalk.dim('\nRe-run with --yes to apply.'));
+}
+
 async function runOrganizationApps(isJson: boolean): Promise<void> {
   const report = await readOrganizationAppsReport();
   if (isJson) {
@@ -243,6 +311,18 @@ function createPricingCommand(): Command {
         })
     )
     .addCommand(
+      new Command('sync')
+        .description('Queue the provider price import now (fal, replicate, or all)')
+        .option('--provider <provider>', 'fal, replicate or all (default all)')
+        .action(async (options: { provider?: string }) => {
+          try {
+            await runPricingSync(options);
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
+    .addCommand(
       new Command('approve')
         .description('Approve a model’s pending provider rates (dry run unless --yes)')
         .argument('<model>', 'Model id or key')
@@ -251,6 +331,43 @@ function createPricingCommand(): Command {
         .action(async (modelId: string, options) => {
           try {
             await runPricingApprove(modelId, options);
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    );
+}
+
+function createSeedCommand(): Command {
+  return new Command('seed')
+    .description('Run idempotent data seeds without a deploy (dry run unless --yes)')
+    .addCommand(
+      new Command('articles')
+        .description('Publish the launch and help articles')
+        .option('--owner-email <email>', 'Email of the user who owns the publishing org')
+        .option('--organization <id>', 'Organization id (instead of --owner-email)')
+        .option('--organization-label <label>', 'Organization label')
+        .option('--brand-id <id>', 'Review brand id')
+        .option('--brand-slug <slug>', 'Review brand slug (instead of --brand-id)')
+        .option('--yes', 'Apply instead of previewing')
+        .action(async (options) => {
+          try {
+            await runSeedArticles(options);
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
+    .addCommand(
+      new Command('workflows')
+        .description('Ensure the default recurring workflows per brand')
+        .option('--brand-id <id>', 'Only this brand')
+        .option('--organization <id>', 'Only this organization')
+        .option('--all-brands', 'Every brand (required for a live run without a filter)')
+        .option('--yes', 'Apply instead of previewing')
+        .action(async (options) => {
+          try {
+            await runSeedWorkflows(options);
           } catch (error) {
             handleError(error);
           }
@@ -314,7 +431,9 @@ function createBrandCommand(): Command {
 }
 
 export const adminCommand = new Command('admin')
-  .description('Super admin one-offs over the API: organization apps, pricing and the system brand')
+  .description(
+    'Super admin one-offs over the API: organization apps, pricing, seeds and the system brand'
+  )
   .addCommand(
     new Command('login')
       .description('Sign in as a super admin in your browser (no API key is created)')
@@ -350,4 +469,5 @@ export const adminCommand = new Command('admin')
       })
   )
   .addCommand(createPricingCommand())
+  .addCommand(createSeedCommand())
   .addCommand(createBrandCommand());

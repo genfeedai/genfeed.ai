@@ -1,3 +1,4 @@
+import { PLATFORM_SCHEDULE_QUEUE } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -34,7 +35,6 @@ import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-medi
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import {
   isPlatformScheduledTaskName,
-  PLATFORM_SCHEDULE_QUEUE,
   PLATFORM_SCHEDULED_TASKS,
   type PlatformScheduledTaskName,
 } from '@workers/scheduling/platform-schedules.constants';

@@ -1,10 +1,10 @@
+import { PLATFORM_SCHEDULE_QUEUE } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ConfigService } from '@workers/config/config.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import {
   PLATFORM_SCHEDULE_CATALOG,
-  PLATFORM_SCHEDULE_QUEUE,
   platformSchedulerId,
 } from '@workers/scheduling/platform-schedules.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

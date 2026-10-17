@@ -427,9 +427,13 @@ short-lived token. Admin routes also require your IP in the API's
 ```bash
 genfeed admin login
 genfeed admin status
+genfeed admin pricing sync [--provider fal]       # queue the provider price import now
 genfeed admin pricing report --attention          # models whose provider price needs review
 genfeed admin pricing approve <model>             # preview the pending rates
 genfeed admin pricing approve <model> --yes       # approve them
+genfeed admin seed articles --owner-email you@x.com --brand-slug genfeed   # dry run
+genfeed admin seed articles --owner-email you@x.com --brand-slug genfeed --yes
+genfeed admin seed workflows --brand-id <id> [--yes]                      # --all-brands for every brand
 genfeed admin brand show                          # system brand kit
 genfeed admin brand update <revision> --file draft.json --updated-at <iso>
 genfeed admin brand approve <revision> --updated-at <iso>

@@ -76,7 +76,7 @@ type SeedArgs = {
   validateRuntime: boolean;
 };
 
-type SeedOwner = {
+export type SeedOwner = {
   brandId: string;
   brandLabel: string;
   organizationId: string;
@@ -189,7 +189,7 @@ function runAllClusters(): void {
   }
 }
 
-function parseOptionalId(value?: string): string | null {
+function parseOptionalId(value?: string | null): string | null {
   if (!value) {
     return null;
   }
@@ -677,6 +677,193 @@ function describeDatabaseTarget(): void {
   }
 }
 
+export interface ArticlesSeedOptions {
+  brandId?: string | null;
+  brandSlug?: string | null;
+  dryRun: boolean;
+  /** Only shown in the log line, e.g. `production`. */
+  environmentLabel?: string;
+  organizationId?: string | null;
+  organizationLabel?: string | null;
+  ownerEmail?: string | null;
+  userId?: string | null;
+}
+
+export interface ArticlesSeedHooks {
+  /** Drops the cached public article responses after a live write. */
+  invalidateCache: () => Promise<void>;
+}
+
+export interface ArticlesSeedResult {
+  created: number;
+  dryRun: boolean;
+  owner: SeedOwner;
+  refreshed: number;
+}
+
+/**
+ * Publishes the launch articles for one owner. Shared by the CLI/ECS runner
+ * below and the super-admin `POST /admin/seeds/articles` endpoint, so both
+ * apply exactly the same rows and the same dry-run semantics.
+ */
+export async function seedArticles(
+  prisma: PrismaClient,
+  options: ArticlesSeedOptions,
+  hooks: ArticlesSeedHooks,
+): Promise<ArticlesSeedResult> {
+  const owner = await resolveOwner({
+    brandId: parseOptionalId(options.brandId),
+    brandSlug: options.brandSlug ?? null,
+    organizationId: parseOptionalId(options.organizationId),
+    organizationLabel: options.organizationLabel ?? null,
+    ownerEmail: options.ownerEmail ?? null,
+    prisma,
+    userId: parseOptionalId(options.userId),
+  });
+
+  logger.log(
+    `${options.dryRun ? 'DRY RUN' : 'LIVE'} publishing ${SEEDED_ARTICLES.length} article(s) into ${owner.organizationLabel} / ${owner.brandLabel} (${owner.organizationId}/${owner.brandId})${options.environmentLabel ? ` for ${options.environmentLabel}` : ''}`,
+  );
+
+  let created = 0;
+  let updated = 0;
+  const originalLaunchBatchPublishedAt = new Date(
+    ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT,
+  );
+
+  for (const article of SEEDED_ARTICLES) {
+    // Platform slugs win: a published article from another organization that
+    // holds this slug would shadow the canonical page and block the unique
+    // index (#5904), so archive it before publishing ours.
+    const shadowWhere = {
+      isDeleted: false,
+      organizationId: { not: owner.organizationId },
+      slug: article.slug,
+      status: ArticleStatus.PUBLISHED,
+    };
+    if (options.dryRun) {
+      const shadows = await prisma.article.count({ where: shadowWhere });
+      if (shadows > 0) {
+        logger.warn(
+          `[DRY RUN] would archive ${shadows} foreign published article(s) shadowing ${article.slug}`,
+        );
+      }
+    } else {
+      const { count } = await prisma.article.updateMany({
+        data: { status: ArticleStatus.ARCHIVED },
+        where: shadowWhere,
+      });
+      if (count > 0) {
+        logger.warn(
+          `Archived ${count} foreign published article(s) shadowing ${article.slug}`,
+        );
+      }
+    }
+
+    const existing = await prisma.article.findFirst({
+      select: { brandId: true, id: true, publishedAt: true },
+      where: {
+        isDeleted: false,
+        organizationId: owner.organizationId,
+        slug: article.slug,
+      },
+    });
+
+    if (existing) {
+      const intendedPublishedAt = new Date(article.publishedAt);
+      const publishedAt = resolveSeedPublishedAt({
+        existingPublishedAt: existing.publishedAt,
+        intendedPublishedAt,
+        migrateFrom: originalLaunchBatchPublishedAt,
+      });
+      if (options.dryRun) {
+        logger.log(
+          `[DRY RUN] would refresh article ${article.slug} at ${publishedAt.toISOString()}${existing.brandId === owner.brandId ? '' : ` and assign brand ${owner.brandLabel}`}`,
+        );
+      } else {
+        await prisma.article.update({
+          data: {
+            brandId: owner.brandId,
+            category: article.category,
+            content: article.content,
+            coverImageUrl: article.coverImageUrl,
+            label: article.label,
+            publishedAt,
+            scope: ArticleScope.PUBLIC,
+            status: ArticleStatus.PUBLISHED,
+            summary: article.summary,
+          },
+          where: { id: existing.id },
+        });
+        logger.log(`Refreshed article ${article.slug}`);
+      }
+      updated += 1;
+      continue;
+    }
+
+    if (options.dryRun) {
+      logger.log(`[DRY RUN] would publish article ${article.slug}`);
+      created += 1;
+      continue;
+    }
+
+    await prisma.article.create({
+      data: {
+        brandId: owner.brandId,
+        category: article.category,
+        content: article.content,
+        coverImageUrl: article.coverImageUrl,
+        isDeleted: false,
+        label: article.label,
+        organizationId: owner.organizationId,
+        publishedAt: new Date(article.publishedAt),
+        scope: ArticleScope.PUBLIC,
+        slug: article.slug,
+        status: ArticleStatus.PUBLISHED,
+        summary: article.summary,
+        userId: owner.userId,
+      },
+    });
+    logger.log(`Published article ${article.slug}`);
+    created += 1;
+  }
+
+  for (const slug of RETIRED_ARTICLE_SLUGS) {
+    const retired = await prisma.article.findFirst({
+      select: { id: true, status: true },
+      where: {
+        isDeleted: false,
+        organizationId: owner.organizationId,
+        slug,
+      },
+    });
+
+    if (!retired) {
+      continue;
+    }
+
+    if (options.dryRun) {
+      logger.log(`[DRY RUN] would archive retired article ${slug}`);
+    } else if (retired.status !== ArticleStatus.ARCHIVED) {
+      await prisma.article.update({
+        data: { brandId: owner.brandId, status: ArticleStatus.ARCHIVED },
+        where: { id: retired.id },
+      });
+      logger.log(`Archived retired article ${slug}`);
+    }
+  }
+
+  logger.log(`Articles seed summary: created=${created}, refreshed=${updated}`);
+
+  if (!options.dryRun && created + updated > 0) {
+    await hooks.invalidateCache();
+  }
+
+  await reportSeededRows(prisma, owner);
+
+  return { created, dryRun: options.dryRun, owner, refreshed: updated };
+}
+
 export async function runArticlesSeed(): Promise<void> {
   const args = parseArticlesSeedArgs(process.argv.slice(2));
   loadEnvFile(args.env);
@@ -741,157 +928,20 @@ export async function runArticlesSeed(): Promise<void> {
       migrateDeploy: runMigrateDeploy,
     });
 
-    const owner = await resolveOwner({
-      brandId: parseOptionalId(args.brandId),
-      brandSlug: args.brandSlug ?? null,
-      organizationId: parseOptionalId(args.organizationId),
-      organizationLabel: args.organizationLabel ?? null,
-      ownerEmail: args.ownerEmail ?? null,
+    await seedArticles(
       prisma,
-      userId: parseOptionalId(args.userId),
-    });
-
-    logger.log(
-      `${args.dryRun ? 'DRY RUN' : 'LIVE'} publishing ${SEEDED_ARTICLES.length} article(s) into ${owner.organizationLabel} / ${owner.brandLabel} (${owner.organizationId}/${owner.brandId})${args.env ? ` for ${args.env}` : ''}`,
+      {
+        brandId: args.brandId,
+        brandSlug: args.brandSlug,
+        dryRun: args.dryRun,
+        environmentLabel: args.env,
+        organizationId: args.organizationId,
+        organizationLabel: args.organizationLabel,
+        ownerEmail: args.ownerEmail,
+        userId: args.userId,
+      },
+      { invalidateCache: invalidatePublicArticleCache },
     );
-
-    let created = 0;
-    let updated = 0;
-    const originalLaunchBatchPublishedAt = new Date(
-      ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT,
-    );
-
-    for (const article of SEEDED_ARTICLES) {
-      // Platform slugs win: a published article from another organization that
-      // holds this slug would shadow the canonical page and block the unique
-      // index (#5904), so archive it before publishing ours.
-      const shadowWhere = {
-        isDeleted: false,
-        organizationId: { not: owner.organizationId },
-        slug: article.slug,
-        status: ArticleStatus.PUBLISHED,
-      };
-      if (args.dryRun) {
-        const shadows = await prisma.article.count({ where: shadowWhere });
-        if (shadows > 0) {
-          logger.warn(
-            `[DRY RUN] would archive ${shadows} foreign published article(s) shadowing ${article.slug}`,
-          );
-        }
-      } else {
-        const { count } = await prisma.article.updateMany({
-          data: { status: ArticleStatus.ARCHIVED },
-          where: shadowWhere,
-        });
-        if (count > 0) {
-          logger.warn(
-            `Archived ${count} foreign published article(s) shadowing ${article.slug}`,
-          );
-        }
-      }
-
-      const existing = await prisma.article.findFirst({
-        select: { brandId: true, id: true, publishedAt: true },
-        where: {
-          isDeleted: false,
-          organizationId: owner.organizationId,
-          slug: article.slug,
-        },
-      });
-
-      if (existing) {
-        const intendedPublishedAt = new Date(article.publishedAt);
-        const publishedAt = resolveSeedPublishedAt({
-          existingPublishedAt: existing.publishedAt,
-          intendedPublishedAt,
-          migrateFrom: originalLaunchBatchPublishedAt,
-        });
-        if (args.dryRun) {
-          logger.log(
-            `[DRY RUN] would refresh article ${article.slug} at ${publishedAt.toISOString()}${existing.brandId === owner.brandId ? '' : ` and assign brand ${owner.brandLabel}`}`,
-          );
-        } else {
-          await prisma.article.update({
-            data: {
-              brandId: owner.brandId,
-              category: article.category,
-              content: article.content,
-              coverImageUrl: article.coverImageUrl,
-              label: article.label,
-              publishedAt,
-              scope: ArticleScope.PUBLIC,
-              status: ArticleStatus.PUBLISHED,
-              summary: article.summary,
-            },
-            where: { id: existing.id },
-          });
-          logger.log(`Refreshed article ${article.slug}`);
-        }
-        updated += 1;
-        continue;
-      }
-
-      if (args.dryRun) {
-        logger.log(`[DRY RUN] would publish article ${article.slug}`);
-        created += 1;
-        continue;
-      }
-
-      await prisma.article.create({
-        data: {
-          brandId: owner.brandId,
-          category: article.category,
-          content: article.content,
-          coverImageUrl: article.coverImageUrl,
-          isDeleted: false,
-          label: article.label,
-          organizationId: owner.organizationId,
-          publishedAt: new Date(article.publishedAt),
-          scope: ArticleScope.PUBLIC,
-          slug: article.slug,
-          status: ArticleStatus.PUBLISHED,
-          summary: article.summary,
-          userId: owner.userId,
-        },
-      });
-      logger.log(`Published article ${article.slug}`);
-      created += 1;
-    }
-
-    for (const slug of RETIRED_ARTICLE_SLUGS) {
-      const retired = await prisma.article.findFirst({
-        select: { id: true, status: true },
-        where: {
-          isDeleted: false,
-          organizationId: owner.organizationId,
-          slug,
-        },
-      });
-
-      if (!retired) {
-        continue;
-      }
-
-      if (args.dryRun) {
-        logger.log(`[DRY RUN] would archive retired article ${slug}`);
-      } else if (retired.status !== ArticleStatus.ARCHIVED) {
-        await prisma.article.update({
-          data: { brandId: owner.brandId, status: ArticleStatus.ARCHIVED },
-          where: { id: retired.id },
-        });
-        logger.log(`Archived retired article ${slug}`);
-      }
-    }
-
-    logger.log(
-      `Articles seed summary: created=${created}, refreshed=${updated}`,
-    );
-
-    if (!args.dryRun && created + updated > 0) {
-      await invalidatePublicArticleCache();
-    }
-
-    await reportSeededRows(prisma, owner);
   } finally {
     await prisma.$disconnect();
   }

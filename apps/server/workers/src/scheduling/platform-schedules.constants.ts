@@ -1,3 +1,4 @@
+import { PROVIDER_PRICE_SYNC_TASKS } from '@genfeedai/contracts/queue';
 import { BRANDED_DISPATCH_RECOVERY_SCHEDULE } from '@workers/crons/branded-dispatch-recovery/branded-dispatch-recovery.constants';
 import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
@@ -13,12 +14,9 @@ import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.c
  * on this dedicated queue. Both domains use BullMQ Job Schedulers; neither may
  * use process-local Nest timers.
  *
- * The Redis queue name is retained as a wire-level compatibility contract so
- * the bootstrap reconciliation can remove only the explicitly known scheduler
- * ids created by the retired system-sweep manifest.
+ * The queue name (`PLATFORM_SCHEDULE_QUEUE`) lives in `@genfeedai/contracts/queue`
+ * as a wire-level contract shared with the API.
  */
-export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
-
 export const PLATFORM_SCHEDULED_TASKS = {
   BRAND_RELOCATION_RECOVERY: 'brand-relocation-recovery',
   PROACTIVE_AGENT_STRATEGIES: 'proactive-agent-strategies',
@@ -36,7 +34,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   CRUN_CONTRACT_SYNC: 'crun-contract-sync',
   EDITOR_RENDER_RECONCILE: 'editor-render-reconcile',
   ENGAGEMENT_TRIGGERS: 'engagement-triggers',
-  FAL_MODEL_DISCOVERY: 'fal-model-discovery',
+  FAL_MODEL_DISCOVERY: PROVIDER_PRICE_SYNC_TASKS.fal,
   FREE_TRIAL_EXPIRY: 'free-trial-expiry',
   GLOBAL_TRENDS_REFRESH: 'global-trends-refresh',
   INGREDIENT_METADATA_REFRESH: 'ingredient-metadata-refresh',
@@ -54,7 +52,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   QUEUE_METRICS_PUBLISH: 'queue-metrics-publish',
   RAW_CUT_CLIP_RECONCILE: 'raw-cut-clip-reconcile',
   REFERRAL_REWARD_SETTLEMENT: 'referral-reward-settlement',
-  REPLICATE_MODEL_DISCOVERY: 'replicate-model-discovery',
+  REPLICATE_MODEL_DISCOVERY: PROVIDER_PRICE_SYNC_TASKS.replicate,
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
   RSS_AUTOPOST: 'rss-autopost',
   SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC: 'social-source-own-account-resync',

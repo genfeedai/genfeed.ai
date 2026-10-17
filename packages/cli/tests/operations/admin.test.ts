@@ -7,14 +7,20 @@ import {
   filterPricingRows,
   findPendingVersion,
   readOrganizationAppsReport,
+  seedArticles,
+  seedWorkflows,
+  syncProviderPrices,
 } from '../../src/operations/admin';
 
-const { mockAdminGet } = vi.hoisted(() => ({ mockAdminGet: vi.fn() }));
+const { adminPost, mockAdminGet } = vi.hoisted(() => ({
+  adminPost: vi.fn(),
+  mockAdminGet: vi.fn(),
+}));
 
 vi.mock('../../src/api/admin-client', () => ({
   adminGet: (path: string) => mockAdminGet(path),
   adminPatch: vi.fn(),
-  adminPost: vi.fn(),
+  adminPost,
 }));
 
 vi.mock('../../src/api/json-api', () => ({
@@ -89,5 +95,42 @@ describe('operations/admin', () => {
     expect(findPendingVersion(data, 'x/model')).toBe('sha256:abc');
     expect(findPendingVersion(data, 'y')).toBeUndefined();
     expect(findPendingVersion(data, 'missing')).toBeUndefined();
+  });
+
+  describe('one-off triggers', () => {
+    beforeEach(() => {
+      adminPost.mockReset();
+    });
+
+    it('queues the provider price import and returns the queued jobs', async () => {
+      adminPost.mockResolvedValue({ queued: [{ jobId: 'job-1', provider: 'fal' }] });
+
+      await expect(syncProviderPrices('fal')).resolves.toEqual([
+        { jobId: 'job-1', provider: 'fal' },
+      ]);
+      expect(adminPost).toHaveBeenCalledWith('/admin/model-pricing/sync', { provider: 'fal' });
+    });
+
+    it('posts the article seed input as given', async () => {
+      const summary = { brandId: 'b', created: 3, dryRun: true, organizationId: 'o', refreshed: 0 };
+      adminPost.mockResolvedValue(summary);
+
+      await expect(seedArticles({ dryRun: true, ownerEmail: 'a@b.co' })).resolves.toBe(summary);
+      expect(adminPost).toHaveBeenCalledWith('/admin/seeds/articles', {
+        dryRun: true,
+        ownerEmail: 'a@b.co',
+      });
+    });
+
+    it('posts the workflow seed input as given', async () => {
+      const summary = { dryRun: false, skipped: 0, unchanged: 4, updated: 2 };
+      adminPost.mockResolvedValue(summary);
+
+      await expect(seedWorkflows({ allBrands: true, dryRun: false })).resolves.toBe(summary);
+      expect(adminPost).toHaveBeenCalledWith('/admin/seeds/workflows', {
+        allBrands: true,
+        dryRun: false,
+      });
+    });
   });
 });

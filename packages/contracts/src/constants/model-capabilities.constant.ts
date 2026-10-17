@@ -668,6 +668,21 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
 
+    // Lip-sync re-times an existing clip to supplied audio; the clip length
+    // sets the billed seconds, so it has no duration of its own to choose.
+    [MODEL_KEYS.REPLICATE_SYNC_LIPSYNC_2]: {
+      category: ModelCategory.VIDEO_EDIT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+    },
+    [MODEL_KEYS.REPLICATE_SYNC_LIPSYNC_2_PRO]: {
+      category: ModelCategory.VIDEO_EDIT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+    },
+
     [MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE]: {
       category: ModelCategory.IMAGE_UPSCALE,
       isBatchSupported: false,
