@@ -802,7 +802,8 @@ describe('ApiKeysController', () => {
       await expect(
         controller.update(mockRequest, callerUser, callerKeyId, {
           allowedIps: [],
-        } as unknown as UpdateApiKeyDto),
+          isDeleted: false,
+        } as UpdateApiKeyDto),
       ).rejects.toMatchObject({ status: 403 });
       expect(mockApiKeysService.patch).not.toHaveBeenCalled();
     });
