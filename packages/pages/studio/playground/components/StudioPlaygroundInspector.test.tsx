@@ -166,6 +166,158 @@ describe('StudioPlaygroundInspector', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
+  it.each(['image', 'image-edit'] as const)(
+    'prepares each %s continuation from the selected source without generating',
+    async (type) => {
+      const user = userEvent.setup();
+      const ingredient = {
+        id: 'image-source',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      const job = {
+        ...recipeJob,
+        id: 'image-job',
+        ingredientId: ingredient.id,
+        ingredient,
+        type,
+      };
+      const onAnimate = vi.fn();
+      const onEdit = vi.fn();
+      const onRemix = vi.fn();
+      const onVary = vi.fn();
+      const onUpscale = vi.fn();
+      const transformActions = {
+        getAvailability: vi.fn(() => ({ isAvailable: true })),
+        isExtending: false,
+        isUpscaling: false,
+        onExtend: vi.fn(),
+        onUpscale,
+      };
+      render(
+        <StudioPlaygroundInspector
+          job={job}
+          onAnimate={onAnimate}
+          onEdit={onEdit}
+          onRemix={onRemix}
+          onVary={onVary}
+          onUseInPost={vi.fn()}
+          onSelect={vi.fn()}
+          transformActions={transformActions}
+          runJobs={[job]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'Edit image' }));
+      await user.click(
+        screen.getByRole('button', { name: 'Create variation' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Animate' }));
+      await user.click(screen.getByRole('button', { name: 'Upscale' }));
+      expect(onEdit).toHaveBeenCalledWith(job);
+      expect(onRemix).toHaveBeenCalledWith(job);
+      expect(onAnimate).toHaveBeenCalledWith(ingredient);
+      expect(onUpscale).toHaveBeenCalledWith(ingredient);
+      expect(onVary).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('button', { name: 'Generate again' }),
+      ).toBeVisible();
+    },
+  );
+
+  it('routes video extension, upscale and Editor through the existing source-bound actions', async () => {
+    const user = userEvent.setup();
+    const ingredient = {
+      id: 'video-source',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      category: IngredientCategory.VIDEO,
+      status: IngredientStatus.GENERATED,
+      cdnUrl: 'https://cdn.example/source.mp4',
+    } as IIngredient;
+    const job = {
+      ...recipeJob,
+      id: 'video-job',
+      ingredientId: ingredient.id,
+      ingredient,
+      type: 'video' as const,
+    };
+    const onExtend = vi.fn();
+    const onUpscale = vi.fn();
+    const onOpenInEditor = vi.fn();
+    const transformActions = {
+      getAvailability: vi.fn(() => ({ isAvailable: true })),
+      isExtending: false,
+      isUpscaling: false,
+      onExtend,
+      onUpscale,
+    };
+    render(
+      <StudioPlaygroundInspector
+        job={job}
+        onRemix={vi.fn()}
+        onVary={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onOpenInEditor={onOpenInEditor}
+        transformActions={transformActions}
+        runJobs={[job]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Extend video' }));
+    await user.click(screen.getByRole('button', { name: 'Upscale' }));
+    await user.click(screen.getByRole('button', { name: 'Open in editor' }));
+    expect(onExtend).toHaveBeenCalledWith(ingredient);
+    expect(onUpscale).toHaveBeenCalledWith(ingredient);
+    expect(onOpenInEditor).toHaveBeenCalledWith(ingredient);
+    expect(
+      screen.queryByRole('button', { name: 'Animate' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('explains an unavailable transform quote without allowing preparation', () => {
+    const ingredient = {
+      id: 'image-source',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      category: IngredientCategory.IMAGE,
+      status: IngredientStatus.GENERATED,
+      cdnUrl: 'https://cdn.example/source.png',
+    } as IIngredient;
+    const job = { ...recipeJob, ingredientId: ingredient.id, ingredient };
+    const onUpscale = vi.fn();
+    const transformActions = {
+      getAvailability: vi.fn(() => ({
+        isAvailable: false,
+        reason: 'priceUnavailable' as const,
+      })),
+      isExtending: false,
+      isUpscaling: false,
+      onExtend: vi.fn(),
+      onUpscale,
+    };
+    render(
+      <StudioPlaygroundInspector
+        job={job}
+        onRemix={vi.fn()}
+        onVary={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        transformActions={transformActions}
+        runJobs={[job]}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Upscale' })).toBeDisabled();
+    expect(
+      screen.getByText(
+        'A current price is unavailable. Refresh models before continuing.',
+      ),
+    ).toBeVisible();
+    expect(onUpscale).not.toHaveBeenCalled();
+  });
+
   it('opens the selected asset in the focused viewer through the shared preview control', async () => {
     const onOpenPreview = vi.fn();
     render(

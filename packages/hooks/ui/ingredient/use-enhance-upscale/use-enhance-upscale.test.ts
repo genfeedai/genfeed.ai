@@ -100,6 +100,55 @@ describe('useEnhanceUpscale', () => {
     mockPostUpscale.mockResolvedValue({ id: 'new-ingredient' });
   });
 
+  it('hides a confirmation after the actor scope changes', async () => {
+    const { result, rerender } = renderHook(
+      ({ scopeKey }) => useEnhanceUpscale({ ...defaultParams, scopeKey }),
+      { initialProps: { scopeKey: 'org:brand:actor:session-1' } },
+    );
+    await act(async () => {
+      await result.current.handleUpscale({
+        id: 'source',
+        category: IngredientCategory.IMAGE,
+      } as IIngredient);
+    });
+    expect(result.current.upscaleConfirmData?.ingredient?.id).toBe('source');
+    rerender({ scopeKey: 'org:brand:actor:session-2' });
+    expect(result.current.upscaleConfirmData).toBeNull();
+  });
+
+  it('rejects upscale dispatch after the actor scope changes during service acquisition', async () => {
+    let resolveService:
+      | ((service: { postUpscale: typeof mockPostUpscale }) => void)
+      | undefined;
+    mockGetImagesService.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveService = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ scopeKey }) => useEnhanceUpscale({ ...defaultParams, scopeKey }),
+      { initialProps: { scopeKey: 'org:brand:actor:session-1' } },
+    );
+    await act(async () => {
+      await result.current.handleUpscale({
+        id: 'source',
+        category: IngredientCategory.IMAGE,
+      } as IIngredient);
+    });
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.executeUpscale();
+    });
+    rerender({ scopeKey: 'org:brand:actor:session-2' });
+    await act(async () => {
+      resolveService?.({ postUpscale: mockPostUpscale });
+      await expect(pending).rejects.toThrow('model or price changed');
+    });
+    expect(mockPostUpscale).not.toHaveBeenCalled();
+    expect(mockOnRefresh).not.toHaveBeenCalled();
+  });
+
   describe('Initial State', () => {
     it('returns all expected functions and state', () => {
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
