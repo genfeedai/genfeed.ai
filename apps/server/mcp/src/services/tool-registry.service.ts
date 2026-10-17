@@ -33,6 +33,10 @@ import {
 import { getPublicAppUrl, getPublicMcpUrl } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import {
+  collectBrandIds,
+  withBrandNames,
+} from '@mcp/services/mcp-brand-names.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
@@ -145,6 +149,12 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
   'list_orgs',
+]);
+
+/** Results that already list brands by name, so they need no extra lookup. */
+const BRAND_NAMED_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'get_account',
+  'get_brands',
 ]);
 
 const isMetaAdsTool = (name: string): boolean =>
@@ -430,19 +440,35 @@ export class ToolRegistryService implements OnModuleInit {
 
   private async brandRequiredResult() {
     const brands = await this.listCallerBrands();
+    if (!brands) {
+      return mcpToolErrorResult({
+        brands: [],
+        code: 'brand_required',
+        message:
+          'Choose a brand for this generation. Your brands could not be loaded right now: call get_brands, then retry with its brandId.',
+      });
+    }
+    if (brands.length === 0) {
+      return mcpToolErrorResult({
+        brands,
+        code: 'brand_required',
+        message:
+          'You have no brand to generate for yet. Create a brand in Genfeed (Settings > Brands), or ask an organization admin to create one and give you access, then retry.',
+        nextStepUrl: `${getPublicAppUrl()}${APP_ROUTES.SETTINGS.BRANDS}`,
+      });
+    }
     return mcpToolErrorResult({
       brands,
       code: 'brand_required',
-      message: brands.length
-        ? `Choose a brand for this generation. Available brands: ${brands.map((brand) => (brand.label === brand.id ? 'Unnamed brand' : brand.label)).join(', ')}.`
-        : 'Create a brand in Genfeed before starting this generation.',
+      message: `Choose a brand for this generation. Available brands: ${brands.map((brand) => (brand.label === brand.id ? 'Unnamed brand' : brand.label)).join(', ')}.`,
     });
   }
 
-  private async listCallerBrands(): Promise<McpBrandOption[]> {
+  /** The caller's brands, or `undefined` when they could not be loaded. */
+  private async listCallerBrands(): Promise<McpBrandOption[] | undefined> {
     const result = await this.clientService.executeAgentTool('get_brands', {});
     const brands = isRecord(result.data) ? result.data.brands : undefined;
-    if (!result.success || !Array.isArray(brands)) return [];
+    if (!result.success || !Array.isArray(brands)) return undefined;
     return brands.flatMap((brand): McpBrandOption[] => {
       if (!isRecord(brand) || typeof brand.id !== 'string') return [];
       const label =
@@ -540,7 +566,7 @@ export class ToolRegistryService implements OnModuleInit {
           args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
         );
-        return this.toMcpResult(result, name);
+        return this.toMcpResult(await this.nameBrands(result, name), name);
       }
       case 'onboarding': {
         const { agentToolName, parameters, timeoutMs } =
@@ -786,6 +812,31 @@ export class ToolRegistryService implements OnModuleInit {
     ];
   }
 
+  /**
+   * Adds the brand name next to every `brandId` in a result (#7138). A failed
+   * lookup leaves the result as the tool returned it.
+   */
+  private async nameBrands(
+    result: AgentToolResult,
+    name: string,
+  ): Promise<AgentToolResult> {
+    if (!result.success || BRAND_NAMED_TOOL_NAMES.has(name)) return result;
+    const ids = collectBrandIds(result.data);
+    if (ids.length === 0) return result;
+    try {
+      const brands = await this.listCallerBrands();
+      const names = new Map(
+        (brands ?? [])
+          .filter((brand) => ids.includes(brand.id) && brand.label !== brand.id)
+          .map((brand) => [brand.id, brand.label]),
+      );
+      return { ...result, data: withBrandNames(result.data, names) };
+    } catch (error: unknown) {
+      this.logger.warn('Could not name brands in a tool result', error);
+      return result;
+    }
+  }
+
   private toMcpResult(result: AgentToolResult, name: string) {
     if (!result.success) {
       const gated = toMcpToolErrorResult(
@@ -819,7 +870,9 @@ export class ToolRegistryService implements OnModuleInit {
       name === 'get_account' ? undefined : getToolByName(name)?.title,
     );
     if (name === 'get_account')
-      response.content[0].text = accountToolText(payload);
+      response.content[0].text = accountToolText(payload, {
+        brandsUrl: `${getPublicAppUrl()}${APP_ROUTES.SETTINGS.BRANDS}`,
+      });
     return this.stampCreditsDebited(response, result.creditsUsed);
   }
 

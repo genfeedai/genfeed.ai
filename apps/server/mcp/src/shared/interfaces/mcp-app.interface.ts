@@ -5,6 +5,7 @@ export type McpCardKind =
   | 'video'
   | 'audio'
   | 'media'
+  | 'summary'
   | 'usage';
 
 export type McpMediaKind = 'audio' | 'image' | 'video';
@@ -25,6 +26,12 @@ export interface McpCardMedia {
   thumbnailUrl?: string;
 }
 
+/** One labelled value on a summary card (organization, role, credits…). */
+export interface McpCardFact {
+  label: string;
+  value: string;
+}
+
 export interface McpCard {
   id: string;
   title: string;
@@ -35,6 +42,8 @@ export interface McpCard {
   date: string;
   url?: string;
   thumbnailUrl?: string;
+  /** Labelled values of a summary card, in display order. */
+  facts?: McpCardFact[];
   /** Media kinds attached to a post (image, video, audio), in order. */
   attachments?: McpMediaKind[];
   author?: McpCardAuthor;

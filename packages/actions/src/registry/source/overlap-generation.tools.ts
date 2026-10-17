@@ -245,7 +245,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     // dynamically in the handler (isBillingDelegated).
     creditCost: TURBO_RUN_CAPTION_BASE_CREDITS,
     description:
-      'Generate a Turbo run of content (images, videos, carousels) for a brand. Specify count, platforms, and date range. Use handle param to resolve @username to a credential. Returns a Turbo run ID for tracking. Credits scale by item format and caption model tier — not a flat fee.',
+      'Generate a Turbo run of content (images, videos, carousels) for a brand. Specify count, platforms, and date range. Use handle param to resolve @username to a credential. Requires approval: the first call returns a credit estimate and nothing is spent until the run is approved. Returns a Turbo run ID for tracking. Credits scale by item format and caption model tier — not a flat fee.',
     name: 'generate_turbo_content',
     parameters: {
       properties: {

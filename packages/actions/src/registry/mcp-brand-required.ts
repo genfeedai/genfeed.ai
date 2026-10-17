@@ -66,6 +66,6 @@ export function describeMissingMcpBrand(
   const listing =
     brands.length > 0
       ? `Your brands: ${brands.map((brand) => `${brand.label} (${brand.id})`).join('; ')}.`
-      : 'You have no brands yet; create one with onboard_brand first.';
+      : 'You have no brands yet. Create one in the Genfeed app (Settings > Brands) or ask an organization admin to; admins can also use onboard_brand.';
   return `${toolName} requires brandId. Pass the id of the brand this generation is for. ${listing}`;
 }

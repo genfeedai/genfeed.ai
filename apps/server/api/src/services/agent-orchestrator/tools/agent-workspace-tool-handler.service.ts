@@ -9,6 +9,7 @@ import {
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -35,6 +36,7 @@ import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/con
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
+  type AgentBrandSerializedData,
   serializeAgentBrand,
   serializeAgentBrands,
   serializeAgentPost,
@@ -126,6 +128,8 @@ export class AgentWorkspaceToolHandler {
     private readonly characterFilter?: IngredientCharacterFilterService,
     @Optional()
     private readonly usersService?: UsersService,
+    @Optional()
+    private readonly organizationsService?: OrganizationsService,
   ) {}
 
   /**
@@ -175,14 +179,90 @@ export class AgentWorkspaceToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown>> {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
-    const isOnboardingCompleted = await this.resolveOnboardingCompleted(ctx);
+    const [isOnboardingCompleted, organization, brands] = await Promise.all([
+      this.resolveOnboardingCompleted(ctx),
+      this.resolveOrganizationIdentity(ctx),
+      this.resolveAccountBrands(ctx),
+    ]);
+    const brandName = brandId
+      ? brands?.find((brand) => brand.id === brandId)?.name
+      : undefined;
     return {
       ...(brandId ? { brandId } : {}),
+      ...(brandName ? { brandName } : {}),
+      ...(brands
+        ? {
+            brandCount: brands.length,
+            brands: brands
+              .slice(0, ACCOUNT_BRAND_LIMIT)
+              .map(({ id, name }) => ({ id, name })),
+          }
+        : {}),
       ...(isOnboardingCompleted === undefined ? {} : { isOnboardingCompleted }),
+      ...(organization?.name ? { organizationName: organization.name } : {}),
       organizationId: ctx.organizationId,
+      ...(organization?.slug ? { organizationSlug: organization.slug } : {}),
       role: await this.resolveOrganizationRole(ctx),
       userId: ctx.userId,
     };
+  }
+
+  /** The organization's display name and slug. Omitted when unresolved. */
+  private async resolveOrganizationIdentity(
+    ctx: ToolExecutionContext,
+  ): Promise<{ name?: string; slug?: string } | undefined> {
+    if (!this.organizationsService) {
+      return undefined;
+    }
+    try {
+      const organization = await this.organizationsService.findOne({
+        id: ctx.organizationId,
+        isDeleted: false,
+      });
+      const name = organization?.label?.trim();
+      const slug = organization?.slug?.trim();
+      return {
+        ...(name ? { name } : {}),
+        ...(slug ? { slug } : {}),
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * The brands this caller can use. `undefined` when the lookup fails, so a
+   * transient error is never reported as "no brands".
+   */
+  private async resolveAccountBrands(
+    ctx: ToolExecutionContext,
+  ): Promise<AgentBrandSerializedData[] | undefined> {
+    try {
+      return await this.listAccessibleBrands(ctx);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async listAccessibleBrands(
+    ctx: ToolExecutionContext,
+  ): Promise<AgentBrandSerializedData[]> {
+    const brandWhere = isCloudDeployment()
+      ? await this.brandAccessService.predicate({
+          userId: ctx.userId,
+          organizationId: ctx.organizationId,
+          ...ctx.apiKeyContext,
+        })
+      : { isDeleted: false, organizationId: ctx.organizationId };
+    const brands = await this.brandsService.findAll(
+      {
+        where: brandWhere,
+      },
+      {},
+    );
+    return serializeAgentBrands(
+      (brands.docs as Record<string, unknown>[] | undefined) ?? [],
+    );
   }
 
   /**
@@ -240,22 +320,7 @@ export class AgentWorkspaceToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const brandWhere = isCloudDeployment()
-      ? await this.brandAccessService.predicate({
-          userId: ctx.userId,
-          organizationId: ctx.organizationId,
-          ...ctx.apiKeyContext,
-        })
-      : { isDeleted: false, organizationId: ctx.organizationId };
-    const brands = await this.brandsService.findAll(
-      {
-        where: brandWhere,
-      },
-      {},
-    );
-    const serialized = serializeAgentBrands(
-      (brands.docs as Record<string, unknown>[] | undefined) ?? [],
-    );
+    const serialized = await this.listAccessibleBrands(ctx);
 
     const requested = readRequiredString(params.brand);
     if (!requested) {
@@ -729,6 +794,9 @@ export class AgentWorkspaceToolHandler {
 }
 
 const ACCOUNT_SECTIONS = ['profile', 'credits', 'usage'] as const;
+
+/** Brands listed in the account profile; `brandCount` carries the total. */
+const ACCOUNT_BRAND_LIMIT = 25;
 
 type AccountSection = (typeof ACCOUNT_SECTIONS)[number];
 

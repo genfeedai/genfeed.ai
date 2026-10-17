@@ -8,6 +8,7 @@ import type {
   McpAppResult,
   McpCalendarDay,
   McpCard,
+  McpCardFact,
   McpCardKind,
   McpCardLayout,
   McpCardView,
@@ -40,16 +41,22 @@ const PENDING_STATUSES = new Set([
 const CALENDAR_MAX_DAYS = 31;
 
 const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
+  control_scheduled_release: 'summary',
   create_post: 'post',
+  create_scheduled_release: 'summary',
   generate: 'media',
   // Social copy renders as a post; an article result switches to the article
   // card in buildCardView via its articleId.
   generate_content: 'post',
+  get_account: 'summary',
   get_articles: 'article',
+  get_brands: 'summary',
   get_job_status: 'media',
   get_posts: 'post',
+  get_scheduled_release: 'summary',
   list_assets: 'media',
   transform_media: 'media',
+  update_scheduled_release: 'summary',
 };
 
 /** Short host status lines shown while a tool runs and once it returns. */
@@ -61,6 +68,7 @@ const INVOCATION_STATUS: Readonly<
   image: { invoked: 'Image ready', invoking: 'Preparing image…' },
   media: { invoked: 'Media ready', invoking: 'Working on media…' },
   post: { invoked: 'Posts ready', invoking: 'Loading posts…' },
+  summary: { invoked: 'Summary ready', invoking: 'Loading summary…' },
   usage: { invoked: 'Usage ready', invoking: 'Checking usage…' },
   video: { invoked: 'Video ready', invoking: 'Preparing video…' },
 };
@@ -288,8 +296,162 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
 
 function layoutFor(kind: McpCardKind): McpCardLayout {
   if (kind === 'post') return 'posts';
-  if (kind === 'article' || kind === 'usage') return 'cards';
+  if (kind === 'article' || kind === 'summary' || kind === 'usage')
+    return 'cards';
   return 'media';
+}
+
+function fact(label: string, value: unknown): McpCardFact[] {
+  const shown =
+    typeof value === 'number' && Number.isFinite(value)
+      ? String(value)
+      : typeof value === 'string'
+        ? value.trim()
+        : '';
+  return shown ? [{ label, value: shown }] : [];
+}
+
+function words(value: string): string {
+  const spaced = value.replace(/[_-]/g, ' ').toLowerCase();
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
+}
+
+function summaryCard(
+  title: string,
+  facts: McpCardFact[],
+  extra: Partial<McpCard> = {},
+): McpCard {
+  return {
+    date: '',
+    description: '',
+    id: '',
+    kind: 'summary',
+    platform: '',
+    status: '',
+    title,
+    ...extra,
+    facts,
+  };
+}
+
+/**
+ * `get_account`: who is connected and what is left to spend, as people name
+ * things. Identifiers stay in the structured data for the agent.
+ */
+function buildAccountView(data: Record<string, unknown>): McpCardView {
+  const profile = record(data.profile);
+  const credits = record(data.credits);
+  const usage = record(data.usage);
+  const cards: McpCard[] = [];
+  if (Object.keys(profile).length) {
+    const brandCount =
+      typeof profile.brandCount === 'number' ? profile.brandCount : undefined;
+    const brandNames = (Array.isArray(profile.brands) ? profile.brands : [])
+      .map((brand) => text(record(brand), 'name'))
+      .filter(Boolean);
+    cards.push(
+      summaryCard(
+        text(profile, 'organizationName') || 'Genfeed account',
+        [
+          ...fact('Role', words(text(profile, 'role'))),
+          ...fact('Active brand', text(profile, 'brandName')),
+          ...(brandCount === 0
+            ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
+            : brandCount !== undefined
+              ? fact('Brands', brandNames.join(', '))
+              : []),
+          ...(typeof profile.isOnboardingCompleted === 'boolean'
+            ? fact(
+                'Account setup',
+                profile.isOnboardingCompleted ? 'Complete' : 'Incomplete',
+              )
+            : []),
+        ],
+        { id: text(profile, 'organizationId') },
+      ),
+    );
+  }
+  const balance = credits.balance ?? usage.currentBalance;
+  if (typeof balance === 'number' || Object.keys(usage).length) {
+    cards.push(
+      summaryCard('Credits', [
+        ...fact('Available', balance),
+        ...fact('Used in 7 days', usage.usage7Days),
+        ...fact('Used in 30 days', usage.usage30Days),
+        ...(typeof usage.trendPercentage === 'number'
+          ? fact('Trend', `${usage.trendPercentage}%`)
+          : []),
+      ]),
+    );
+  }
+  return {
+    cards,
+    layout: 'cards',
+    title: 'Genfeed account',
+    total: cards.length,
+  };
+}
+
+/** `get_brands`: one card per brand, named, with the brand's own description. */
+function buildBrandsView(data: Record<string, unknown>): McpCardView {
+  const rows = Array.isArray(data.brands)
+    ? data.brands
+    : data.brand
+      ? [data.brand]
+      : [];
+  const cards = rows.slice(0, 24).map((value) => {
+    const row = record(value);
+    return summaryCard(
+      text(row, 'label', 'name') || 'Brand',
+      [...fact('Handle', text(row, 'slug'))],
+      {
+        description: text(row, 'description', 'text').slice(0, 400),
+        id: text(row, 'id'),
+        status: row.isActive === true ? 'Active' : '',
+      },
+    );
+  });
+  return {
+    cards,
+    layout: 'cards',
+    title: 'Brands',
+    total: rows.length,
+  };
+}
+
+/** Scheduled release tools: the release, its status and where it goes. */
+function buildReleaseView(data: Record<string, unknown>): McpCardView {
+  const targets = (Array.isArray(data.targets) ? data.targets : []).map(record);
+  const channels = targets
+    .map((target) => {
+      const platform = text(target, 'platform');
+      const state = text(target, 'executionState', 'status');
+      return platform && state
+        ? `${platform} (${words(state)})`
+        : platform || '';
+    })
+    .filter(Boolean)
+    .join(', ');
+  const card = summaryCard(
+    text(data, 'title') || 'Scheduled release',
+    [
+      ...fact('Channels', channels),
+      ...fact('Brand', text(data, 'brandName')),
+      ...fact('Timezone', text(data, 'timezone')),
+    ],
+    {
+      date: text(data, 'scheduledAt', 'publishedAt'),
+      description: text(data, 'baseContent').slice(0, 4000),
+      id: text(data, 'id'),
+      status: words(text(data, 'status')),
+    },
+  );
+  return {
+    cards: [card],
+    layout: 'cards',
+    title: 'Scheduled release',
+    total: 1,
+  };
 }
 
 export function buildCardView(
@@ -299,6 +461,9 @@ export function buildCardView(
   const baseKind = TOOL_KINDS[name];
   if (!baseKind) return undefined;
   const data = record(payload);
+  if (name === 'get_account') return buildAccountView(data);
+  if (name === 'get_brands') return buildBrandsView(data);
+  if (baseKind === 'summary') return buildReleaseView(data);
   if (name === 'get_posts' && Array.isArray(data.gapDays)) {
     return buildCalendarView(data);
   }

@@ -93,7 +93,7 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: GENERATE_CONTENT_TEXT_CREDITS,
     description:
-      'Generate content for a topic or brief. Social types (caption, post, thread, script, article_outline) return ready-to-publish text written in the brand voice, with a brand receipt (receiptId) and hashtags, and are not scheduled or published; the exact text is kept on that receipt; use platform linkedin for LinkedIn posts and variationsCount for alternatives. type newsletter creates a saved newsletter draft. type article (or x-article) generates and saves an article draft with an id, ready for get_article_preview and publish_article; to import an already written article without regeneration use create_article_draft. Each field lists the types it applies to.',
+      'Generate content for a topic or brief. Social types (caption, post, thread, script, article_outline) return ready-to-publish text written in the brand voice, with a brand receipt (receiptId) and hashtags, and are not scheduled or published; the exact text is kept on that receipt; use platform linkedin for LinkedIn posts and variationsCount for alternatives. type newsletter creates a saved newsletter draft. type article (or x-article) generates and saves an article draft with an id, ready to review and publish. Each field lists the types it applies to.',
     name: 'generate_content',
     parameters: {
       properties: {

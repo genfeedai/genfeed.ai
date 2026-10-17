@@ -135,6 +135,28 @@ it('renders image, video and audio controls using allowed origins', () => {
   expect(document.querySelector('button[aria-label^="Play "]')).not.toBeNull();
 });
 
+it('renders the account as named facts without exposing identifiers (#7179)', () => {
+  result('get_account', {
+    credits: { balance: 88 },
+    profile: {
+      brandCount: 1,
+      brands: [{ id: 'brand-private', name: 'Acme' }],
+      organizationId: 'org-private',
+      organizationName: 'Acme Studio',
+      role: 'admin',
+    },
+  });
+
+  const text = document.body.textContent ?? '';
+  expect(document.querySelector('h2')?.textContent).toContain('Acme Studio');
+  expect(text).toContain('Role');
+  expect(text).toContain('Admin');
+  expect(text).toContain('Available');
+  expect(text).toContain('88');
+  expect(text).not.toMatch(/private/);
+  expect(document.querySelectorAll('dl')).toHaveLength(2);
+});
+
 it('shows every generated caption in the existing post grid as safe text', () => {
   result('generate_content', {
     content: 'First caption',

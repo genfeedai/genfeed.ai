@@ -10,7 +10,7 @@ export const MCP_ONBOARDING_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Set up a brand inside this conversation. Organization owners and admins can use create_from_url to create a new brand from a website for one credit on success; this queues create_brand_from_url for approval. For an existing brand, scan_url prefills its guide, save_answers stores goals, audience, offer, competitors, platforms, cadence and tone, and complete finishes account onboarding.',
+      'Set up a brand inside this conversation. Organization owners and admins can use create_from_url to create a new brand from a website for one credit on success; this queues the brand creation for approval. For an existing brand, scan_url prefills its guide, save_answers stores goals, audience, offer, competitors, platforms, cadence and tone, and complete finishes account onboarding.',
     name: 'onboard_brand',
     parameters: {
       properties: {

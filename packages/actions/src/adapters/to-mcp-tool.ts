@@ -8,6 +8,10 @@ import {
   MCP_BRAND_REQUIRED_NOTE,
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
+import {
+  projectMcpDescription,
+  projectMcpParameters,
+} from '../registry/mcp-schema-projection';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
 import {
   appendCreditPricingDescription,
@@ -54,9 +58,11 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
       const creditPricing =
         tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
       const requiresBrand = isMcpBrandRequiredTool(tool.name);
+      const projected = projectMcpParameters(tool.name, tool.parameters);
       const parameters = requiresBrand
-        ? withRequiredMcpBrandId(tool.parameters)
-        : tool.parameters;
+        ? withRequiredMcpBrandId(projected)
+        : projected;
+      const description = projectMcpDescription(tool.name, tool.description);
       return {
         _meta: {
           [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
@@ -69,8 +75,8 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
         annotations: presentation.annotations,
         description: appendCreditPricingDescription(
           requiresBrand
-            ? `${tool.description} ${MCP_BRAND_REQUIRED_NOTE}`
-            : tool.description,
+            ? `${description} ${MCP_BRAND_REQUIRED_NOTE}`
+            : description,
           creditPricing,
         ),
         inputSchema: {

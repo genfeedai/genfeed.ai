@@ -210,7 +210,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         selectedContext: {
           description:
-            'Image or video only. Transient task context for this generation. Not saved as Knowledge unless capture_knowledge is used.',
+            'Image or video only. Transient task context for this generation. Not saved as Knowledge.',
           properties: {
             persist: {
               description:

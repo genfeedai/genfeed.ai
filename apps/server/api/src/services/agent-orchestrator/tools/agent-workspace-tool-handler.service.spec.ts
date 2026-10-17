@@ -226,6 +226,7 @@ function buildHandler(overrides: {
   credits?: unknown;
   ingredients?: unknown;
   members?: unknown;
+  organizations?: unknown;
   personas?: unknown;
   transactions?: unknown;
   users?: unknown;
@@ -252,6 +253,7 @@ function buildHandler(overrides: {
       (overrides.ingredients ?? {}) as HandlerArgs[7],
       overrides.characterFilter as HandlerArgs[8],
       overrides.users as HandlerArgs[9],
+      overrides.organizations as HandlerArgs[10],
     ),
   );
 }
@@ -772,6 +774,70 @@ describe('AgentWorkspaceToolHandler.getAccount', () => {
         userId: 'user-1',
       },
     });
+  });
+
+  it('names the organization and brands next to their ids (#7138)', async () => {
+    const organizations = {
+      findOne: vi
+        .fn()
+        .mockResolvedValue({ label: 'Acme Studio', slug: 'acme-studio' }),
+    };
+    const brands = {
+      findAll: vi.fn().mockResolvedValue({
+        docs: [
+          { id: 'brand-a', label: 'Acme', name: 'Acme', slug: 'acme' },
+          { id: 'brand-b', label: 'Beta Co', name: 'Beta', slug: 'beta' },
+        ],
+      }),
+    };
+    const handler = buildHandler({ brands, organizations });
+    const result = await handler.getAccount({ include: ['profile'] }, baseCtx);
+
+    expect(organizations.findOne).toHaveBeenCalledWith({
+      id: 'org-1',
+      isDeleted: false,
+    });
+    expect(result.data).toEqual({
+      profile: {
+        brandCount: 2,
+        brandId: 'brand-b',
+        brandName: 'Beta',
+        brands: [
+          { id: 'brand-a', name: 'Acme' },
+          { id: 'brand-b', name: 'Beta' },
+        ],
+        organizationId: 'org-1',
+        organizationName: 'Acme Studio',
+        organizationSlug: 'acme-studio',
+        role: '',
+        userId: 'user-1',
+      },
+    });
+  });
+
+  it('reports a zero-brand account instead of omitting the brands (#7176)', async () => {
+    const brands = { findAll: vi.fn().mockResolvedValue({ docs: [] }) };
+    const handler = buildHandler({ brands });
+    const result = await handler.getAccount({ include: ['profile'] }, baseCtx);
+
+    expect(
+      (result.data as { profile: Record<string, unknown> }).profile,
+    ).toMatchObject({ brandCount: 0, brands: [] });
+  });
+
+  it('omits identity names when their lookups fail', async () => {
+    const organizations = {
+      findOne: vi.fn().mockRejectedValue(new Error('down')),
+    };
+    const brands = { findAll: vi.fn().mockRejectedValue(new Error('down')) };
+    const handler = buildHandler({ brands, organizations });
+    const result = await handler.getAccount({ include: ['profile'] }, baseCtx);
+    const profile = (result.data as { profile: Record<string, unknown> })
+      .profile;
+
+    expect(profile).not.toHaveProperty('organizationName');
+    expect(profile).not.toHaveProperty('brandCount');
+    expect(profile).not.toHaveProperty('brandName');
   });
 
   it('fails closed to an empty role and rejects unknown sections', async () => {

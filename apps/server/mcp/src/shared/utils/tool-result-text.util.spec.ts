@@ -18,6 +18,46 @@ describe('MCP readable tool results', () => {
     ).toBe('Connected to Genfeed.\nRole: User\nAccount setup: Complete');
   });
 
+  it('names the organization, active brand and brands next to the ids it hides (#7138)', () => {
+    const text = accountToolText({
+      profile: {
+        brandCount: 2,
+        brandId: 'brand-private',
+        brandName: 'Beta',
+        brands: [
+          { id: 'brand-private', name: 'Beta' },
+          { id: 'brand-other', name: 'Acme' },
+        ],
+        organizationId: 'org-private',
+        organizationName: 'Acme Studio',
+        role: 'admin',
+        userId: 'user-private',
+      },
+    });
+
+    expect(text).toBe(
+      [
+        'Connected to Genfeed.',
+        'Organization: Acme Studio',
+        'Role: Admin',
+        'Active brand: Beta',
+        'Brands (2): Beta, Acme',
+      ].join('\n'),
+    );
+    expect(text).not.toMatch(/private|brand-other/);
+  });
+
+  it('points a caller with no brands at the app and an admin (#7176)', () => {
+    const text = accountToolText(
+      { profile: { brandCount: 0, brands: [], role: 'user' } },
+      { brandsUrl: 'https://app.genfeed.ai/settings/brands' },
+    );
+
+    expect(text).toContain('Brands: none yet');
+    expect(text).toContain('https://app.genfeed.ai/settings/brands');
+    expect(text).toContain('organization admin');
+  });
+
   it('distinguishes zero balances from unavailable balances and reports usage', () => {
     expect(
       accountToolText({

@@ -393,6 +393,69 @@ describe('ToolRegistryService', () => {
     );
   });
 
+  describe('brand names beside brand ids (#7138)', () => {
+    it('adds the brand name to a result that carries a brandId', async () => {
+      clientService.executeAgentTool
+        .mockResolvedValueOnce({
+          creditsUsed: 0,
+          data: { brandId: 'brand-1', trends: [] },
+          success: true,
+        })
+        .mockResolvedValueOnce({
+          creditsUsed: 0,
+          data: { brands: [{ id: 'brand-1', label: 'Acme', name: 'acme' }] },
+          success: true,
+        });
+
+      const result = await service.handleToolCall({
+        arguments: {},
+        name: 'get_trends',
+      });
+
+      expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
+        'get_brands',
+        {},
+      );
+      expect(result).toMatchObject({
+        structuredContent: {
+          data: { brandId: 'brand-1', brandName: 'Acme' },
+        },
+      });
+    });
+
+    it('does not look up brands for a result without a brandId', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        data: { trends: [] },
+        success: true,
+      });
+
+      await service.handleToolCall({ arguments: {}, name: 'get_trends' });
+
+      expect(clientService.executeAgentTool).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns the result unchanged when the brand lookup fails', async () => {
+      clientService.executeAgentTool
+        .mockResolvedValueOnce({
+          creditsUsed: 0,
+          data: { brandId: 'brand-1' },
+          success: true,
+        })
+        .mockRejectedValueOnce(new Error('down'));
+
+      const result = await service.handleToolCall({
+        arguments: {},
+        name: 'get_trends',
+      });
+
+      expect(result).toMatchObject({
+        structuredContent: { data: { brandId: 'brand-1' } },
+      });
+      expect(JSON.stringify(result)).not.toContain('brandName');
+    });
+  });
+
   describe('generation brand requirement (#5786)', () => {
     const brandListing = {
       creditsUsed: 0,
@@ -473,7 +536,33 @@ describe('ToolRegistryService', () => {
         isError: true,
         structuredContent: { brands: [], code: 'brand_required' },
       });
-      expect(JSON.stringify(result)).toContain('Create a brand');
+      expect(JSON.stringify(result)).toContain('could not be loaded');
+      expect(JSON.stringify(result)).not.toContain('no brand');
+    });
+
+    it('sends a zero-brand caller to the app and an admin instead of a dead end (#7176)', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        data: { brands: [] },
+        success: true,
+      });
+
+      const result = await service.handleToolCall({
+        arguments: { prompt: 'x' },
+        name: 'generate_content',
+      });
+
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          brands: [],
+          code: 'brand_required',
+          nextStepUrl: expect.stringContaining('/settings/brands'),
+        },
+      });
+      expect(JSON.stringify(result)).toContain('Create a brand in Genfeed');
+      expect(JSON.stringify(result)).toContain('organization admin');
+      expect(JSON.stringify(result)).toContain('Continue in Genfeed');
     });
 
     it('does not ask for a brand on tools outside the generation set', async () => {
@@ -1000,7 +1089,7 @@ describe('ToolRegistryService', () => {
       ],
       structuredContent: { data },
     });
-    expect(result).not.toHaveProperty('structuredContent.genfeedCards');
+    expect(result).toHaveProperty('structuredContent.genfeedCards');
   });
 
   it('handleToolCall get_account proxies through executeAgentTool', async () => {
@@ -1040,7 +1129,7 @@ describe('ToolRegistryService', () => {
       name: 'get_account',
     });
 
-    expect(result).not.toHaveProperty('structuredContent.genfeedCards');
+    expect(result).toHaveProperty('structuredContent.genfeedCards');
     const text = (result as { content: { text: string }[] }).content[0].text;
     expect(text).toContain('Credits available: 88');
     expect(text).toContain('Credits used in the last 7 days: 12');

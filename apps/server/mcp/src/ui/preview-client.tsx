@@ -72,9 +72,16 @@ function mediaUrl(
 function card(value: unknown): McpCard | undefined {
   const row = record(value);
   if (
-    !['post', 'article', 'image', 'video', 'audio', 'media', 'usage'].includes(
-      text(row.kind),
-    )
+    ![
+      'post',
+      'article',
+      'image',
+      'video',
+      'audio',
+      'media',
+      'summary',
+      'usage',
+    ].includes(text(row.kind))
   )
     return undefined;
   return {
@@ -115,6 +122,14 @@ function card(value: unknown): McpCard | undefined {
       ? row.attachments.filter((kind): kind is 'image' | 'video' | 'audio' =>
           ['image', 'video', 'audio'].includes(text(kind)),
         )
+      : undefined,
+    facts: Array.isArray(row.facts)
+      ? row.facts.slice(0, 12).flatMap((value) => {
+          const item = record(value);
+          return text(item.label) && text(item.value)
+            ? [{ label: text(item.label), value: text(item.value) }]
+            : [];
+        })
       : undefined,
     isPending: row.isPending === true,
     progress:
@@ -505,7 +520,7 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
         isLabelWrapped
         bodyClassName="gap-3"
         headerAction={
-          isPost && current.status ? (
+          (isPost || current.kind === 'summary') && current.status ? (
             <Badge variant="outline" className="status">
               {current.status}
             </Badge>
@@ -564,10 +579,33 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
           <Heading as="p" size="2xl" className="metric">
             {current.description}
           </Heading>
+        ) : current.kind === 'summary' ? (
+          <>
+            <Description content={current.description} bridge={bridge} />
+            {current.facts?.length ? (
+              <dl className="facts grid gap-1">
+                {current.facts.map((item) => (
+                  <div key={item.label} className="flex flex-wrap gap-x-2">
+                    <Text as="dt" size="sm" color="muted">
+                      {item.label}
+                    </Text>
+                    <Text as="dd" size="sm" className="break-words">
+                      {item.value}
+                    </Text>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {when && (
+              <Text size="xs" color="muted">
+                {when}
+              </Text>
+            )}
+          </>
         ) : (
           <Description content={current.description} bridge={bridge} />
         )}
-        {!isPost && !isMedia && (
+        {!isPost && !isMedia && current.kind !== 'summary' && (
           <Text size="xs" color="muted">
             {[current.kind, current.platform, current.status, current.id, when]
               .filter(Boolean)

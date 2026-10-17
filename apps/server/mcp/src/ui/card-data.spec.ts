@@ -20,6 +20,9 @@ describe('MCP Apps card contract', () => {
       'generate',
       'transform_media',
       'get_articles',
+      'get_account',
+      'get_brands',
+      'get_scheduled_release',
     ]) {
       const tool = tools.find((item) => item.name === name);
       expect(tool, name).toBeDefined();
@@ -29,8 +32,8 @@ describe('MCP Apps card contract', () => {
         _meta: { ...tool._meta, ui: { resourceUri: MCP_CARD_RESOURCE_URI } },
       });
     }
-    const unrelated = tools.find((item) => item.name === 'get_brands');
-    if (!unrelated) throw new Error('Missing get_brands');
+    const unrelated = tools.find((item) => item.name === 'get_trends');
+    if (!unrelated) throw new Error('Missing get_trends');
     expect(withCardMetadata(unrelated)).toBe(unrelated);
     const resource = cardResource();
     expect(resource.mimeType).toBe(MCP_APP_MIME_TYPE);
@@ -248,24 +251,11 @@ describe('MCP Apps card contract', () => {
     },
   );
 
-  it('maps job categories, leaves account lookups as messages, and bounds lists', () => {
+  it('maps job categories and bounds lists', () => {
     expect(
       buildCardView('get_job_status', { id: 'job', category: 'VIDEO' })
         ?.cards[0].kind,
     ).toBe('video');
-    expect(
-      buildCardView('get_account', { usage: { currentBalance: 0 } }),
-    ).toBeUndefined();
-    const account = toMcpTools(getToolsForSurface('mcp')).find(
-      (tool) => tool.name === 'get_account',
-    );
-    if (!account) throw new Error('Missing get_account');
-    expect(withCardMetadata(account)._meta).not.toHaveProperty(
-      'openai/outputTemplate',
-    );
-    expect(buildCardView('get_account', { profile: { role: 'admin' } })).toBe(
-      undefined,
-    );
     expect(buildCardView('list_assets', [])?.cards).toEqual([]);
     const view = buildCardView(
       'list_assets',
@@ -274,6 +264,103 @@ describe('MCP Apps card contract', () => {
     expect(view?.cards).toHaveLength(24);
     expect(view?.total).toBe(30);
     expect(view?.cards[0].description).toHaveLength(4000);
+  });
+
+  it('shows the account as an organization card and a credits card (#7179)', () => {
+    const view = buildCardView('get_account', {
+      credits: { balance: 88 },
+      profile: {
+        brandCount: 2,
+        brandName: 'Beta',
+        brands: [
+          { id: 'brand-1', name: 'Acme' },
+          { id: 'brand-2', name: 'Beta' },
+        ],
+        isOnboardingCompleted: true,
+        organizationId: 'org-private',
+        organizationName: 'Acme Studio',
+        role: 'admin',
+      },
+      usage: { currentBalance: 88, usage30Days: 40, usage7Days: 12 },
+    });
+
+    expect(view?.layout).toBe('cards');
+    expect(view?.cards.map((card) => card.title)).toEqual([
+      'Acme Studio',
+      'Credits',
+    ]);
+    expect(view?.cards[0].facts).toEqual([
+      { label: 'Role', value: 'Admin' },
+      { label: 'Active brand', value: 'Beta' },
+      { label: 'Brands', value: 'Acme, Beta' },
+      { label: 'Account setup', value: 'Complete' },
+    ]);
+    expect(view?.cards[1].facts).toEqual([
+      { label: 'Available', value: '88' },
+      { label: 'Used in 7 days', value: '12' },
+      { label: 'Used in 30 days', value: '40' },
+    ]);
+  });
+
+  it('tells an account with no brands what to do next (#7176)', () => {
+    const view = buildCardView('get_account', {
+      profile: { brandCount: 0, brands: [], role: 'user' },
+    });
+
+    expect(view?.cards[0].title).toBe('Genfeed account');
+    expect(view?.cards[0].facts).toContainEqual({
+      label: 'Brands',
+      value: 'None yet. Create one in Genfeed to generate.',
+    });
+  });
+
+  it('lists brands by name and renders a single brand lookup', () => {
+    const list = buildCardView('get_brands', {
+      brands: [
+        { id: 'b1', isActive: true, label: 'Acme', name: 'acme', slug: 'acme' },
+        { id: 'b2', label: '', name: 'Beta', slug: 'beta' },
+      ],
+    });
+    expect(list?.cards.map((card) => card.title)).toEqual(['Acme', 'Beta']);
+    expect(list?.cards[0]).toMatchObject({
+      facts: [{ label: 'Handle', value: 'acme' }],
+      status: 'Active',
+    });
+    expect(list?.total).toBe(2);
+
+    const one = buildCardView('get_brands', {
+      brand: { id: 'b1', label: 'Acme', slug: 'acme' },
+    });
+    expect(one?.cards).toHaveLength(1);
+  });
+
+  it('summarizes a scheduled release with its channels and state', () => {
+    const view = buildCardView('get_scheduled_release', {
+      baseContent: 'Launch day',
+      brandName: 'Acme',
+      id: 'release-1',
+      scheduledAt: '2026-10-20T09:00:00.000Z',
+      status: 'SCHEDULED',
+      targets: [
+        { executionState: 'queued', platform: 'linkedin' },
+        { platform: 'x' },
+      ],
+      timezone: 'Europe/Amsterdam',
+      title: 'Launch',
+    });
+
+    expect(view?.cards).toHaveLength(1);
+    expect(view?.cards[0]).toMatchObject({
+      date: '2026-10-20T09:00:00.000Z',
+      description: 'Launch day',
+      status: 'Scheduled',
+      title: 'Launch',
+    });
+    expect(view?.cards[0].facts).toEqual([
+      { label: 'Channels', value: 'linkedin (Queued), x' },
+      { label: 'Brand', value: 'Acme' },
+      { label: 'Timezone', value: 'Europe/Amsterdam' },
+    ]);
   });
 
   it('retains text, resource links, and original structured data', () => {

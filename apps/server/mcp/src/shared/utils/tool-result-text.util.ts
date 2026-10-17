@@ -107,7 +107,39 @@ export function dataToolResult(data: unknown, label?: string) {
   };
 }
 
-export function accountToolText(value: unknown): string {
+const BRAND_NAMES_SHOWN = 8;
+
+/** Which brands the caller can use, or how to get one when there are none. */
+function brandLines(
+  profile: Record<string, unknown>,
+  brandsUrl: string | undefined,
+): string[] {
+  if (typeof profile.brandCount !== 'number') return [];
+  if (profile.brandCount === 0)
+    return [
+      `Brands: none yet. Generation needs a brand: create one in Genfeed${
+        brandsUrl ? ` (${brandsUrl})` : ''
+      } or ask an organization admin.`,
+    ];
+  const names = (Array.isArray(profile.brands) ? profile.brands : [])
+    .flatMap((brand) =>
+      isRecord(brand) && typeof brand.name === 'string' && brand.name
+        ? [brand.name]
+        : [],
+    )
+    .slice(0, BRAND_NAMES_SHOWN);
+  const remaining = profile.brandCount - names.length;
+  return [
+    `Brands (${profile.brandCount}): ${names.join(', ')}${
+      remaining > 0 ? `, and ${remaining} more` : ''
+    }`,
+  ];
+}
+
+export function accountToolText(
+  value: unknown,
+  options: { brandsUrl?: string } = {},
+): string {
   const data = isRecord(value) ? value : {};
   const profile = isRecord(data.profile) ? data.profile : undefined;
   const credits = isRecord(data.credits) ? data.credits : undefined;
@@ -115,8 +147,16 @@ export function accountToolText(value: unknown): string {
   const lines: string[] = [];
   if (profile) {
     lines.push('Connected to Genfeed.');
+    if (
+      typeof profile.organizationName === 'string' &&
+      profile.organizationName
+    )
+      lines.push(`Organization: ${profile.organizationName}`);
     if (typeof profile.role === 'string')
       lines.push(`Role: ${readableLabel(profile.role)}`);
+    if (typeof profile.brandName === 'string' && profile.brandName)
+      lines.push(`Active brand: ${profile.brandName}`);
+    lines.push(...brandLines(profile, options.brandsUrl));
     if (typeof profile.isOnboardingCompleted === 'boolean')
       lines.push(
         `Account setup: ${profile.isOnboardingCompleted ? 'Complete' : 'Incomplete'}`,

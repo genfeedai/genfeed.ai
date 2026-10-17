@@ -4,7 +4,7 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Check the status and result of any generation (image, video, voice, music) by the id generate returned. Auto-detects content type.',
+      'Check the status and result of any generation (image, video, voice, music) by the job id returned when the generation started. Auto-detects content type.',
     name: 'get_job_status',
     parameters: {
       properties: {
