@@ -283,6 +283,15 @@ for (const { model, editing } of [
     if (editing)
       expect(JSON.stringify(bodies[0])).not.toContain('brandingMode');
     await expect(page.getByTestId('studio-playground-results')).toBeVisible();
+    if (editing) {
+      // A sent edit empties the composer and its draft. Type the next prompt
+      // and wait for it to be saved, so the reload below restores a draft
+      // instead of racing the autosave of the emptied one.
+      await composer.fill('Change only the sign to OPEN');
+      await expect
+        .poll(() => savedDraft?.prompt, { timeout: 10_000 })
+        .toBe('Change only the sign to OPEN');
+    }
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('studio-playground-results')).toBeVisible();
     if (editing) {
