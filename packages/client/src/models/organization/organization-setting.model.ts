@@ -48,6 +48,7 @@ export class OrganizationSetting
   declare public quotaInstagram?: number;
 
   declare public moduleOverrides?: IOrganizationSetting['moduleOverrides'];
+  declare public releasedItemIds?: IOrganizationSetting['releasedItemIds'];
   declare public readonly hasOrganizationBilling?: boolean;
   declare public readonly hasPaidModuleSubscription?: boolean | null;
   declare public enabledModelIds?: string[];

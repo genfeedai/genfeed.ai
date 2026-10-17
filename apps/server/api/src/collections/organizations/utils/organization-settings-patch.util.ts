@@ -38,7 +38,11 @@ export function assertOrganizationSettingsPatchAllowed(
       'Plan limits and subscription tier are managed by billing',
     );
   }
-  if (!isSuperAdmin && Object.hasOwn(settingsDto, 'isReleasePreviewEnabled')) {
-    throw new ForbiddenException('Release preview is managed by Genfeed');
+  if (
+    !isSuperAdmin &&
+    (Object.hasOwn(settingsDto, 'isReleasePreviewEnabled') ||
+      Object.hasOwn(settingsDto, 'releasedItemIds'))
+  ) {
+    throw new ForbiddenException('Release access is managed by Genfeed');
   }
 }

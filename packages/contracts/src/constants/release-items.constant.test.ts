@@ -43,6 +43,15 @@ describe('release items', () => {
     ).toBe(false);
   });
 
+  it('opens only the items granted to one organization', () => {
+    const granted = { ...CLOUD, releasedItemIds: ['motion'] };
+    expect(isReleaseItemVisible('motion', granted, {})).toBe(true);
+    expect(isReleaseItemVisible('clips', granted, {})).toBe(false);
+    expect(
+      isReleaseItemVisible('clips', { ...CLOUD, releasedItemIds: 'clips' }, {}),
+    ).toBe(false);
+  });
+
   it('shows everything on release preview and self-hosted', () => {
     expect(
       isReleaseItemVisible(

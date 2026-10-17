@@ -4876,7 +4876,10 @@
   },
   "adminOrganizationReleases": {
     "title": "Releases",
-    "previewLabel": "Release Preview (sees unreleased modules)"
+    "previewLabel": "Release Preview (sees unreleased modules)",
+    "grantsTitle": "Release access",
+    "grantsHelp": "Open individual apps for this organization only. Everything not switched on here follows Admin → Flags.",
+    "grantsPreviewHelp": "Release preview is on, so this organization already sees every app. These switches take effect once preview is turned off."
   },
   "adminFlags": {
     "title": "Flags",

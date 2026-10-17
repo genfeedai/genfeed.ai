@@ -47,7 +47,7 @@ export class OrganizationModuleAccessService {
     const [settings, { flags }] = await Promise.all([
       this.prisma.organizationSetting.findUnique({
         where: { organizationId },
-        select: { isReleasePreviewEnabled: true },
+        select: { isReleasePreviewEnabled: true, releasedItemIds: true },
       }),
       this.platformSettings.getFeatureSettings(),
     ]);
@@ -56,6 +56,7 @@ export class OrganizationModuleAccessService {
       {
         hasOrganizationBilling: true,
         isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
+        releasedItemIds: settings?.releasedItemIds,
       },
       flags,
     );
@@ -80,7 +81,7 @@ export class OrganizationModuleAccessService {
       const [settings, platformState] = await Promise.all([
         this.prisma.organizationSetting.findUnique({
           where: { organizationId },
-          select: { isReleasePreviewEnabled: true },
+          select: { isReleasePreviewEnabled: true, releasedItemIds: true },
         }),
         this.platformSettings.getFeatureSettingsState(),
       ]);
@@ -99,6 +100,7 @@ export class OrganizationModuleAccessService {
           {
             hasOrganizationBilling: isBilling,
             isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
+            releasedItemIds: settings?.releasedItemIds,
           },
           flags,
         ),

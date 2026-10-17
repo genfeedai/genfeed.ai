@@ -32,11 +32,12 @@ test.describe('Expert Path Onboarding', () => {
         exact: true,
       }),
     ).toBeVisible();
+    // Free-text answers go through the pinned composer (#7089).
     await expertOnboardingPage
-      .getByRole('textbox', { name: 'Other', exact: true })
+      .getByRole('textbox', { name: 'Conversation prompt' })
       .fill('https://genfeed.ai');
     await expertOnboardingPage
-      .getByRole('button', { name: 'Use this answer', exact: true })
+      .getByRole('button', { name: 'Send message', exact: true })
       .click();
     for (const title of ['goals', 'platforms', 'cadence', 'tone']) {
       await expect(
@@ -47,7 +48,10 @@ test.describe('Expert Path Onboarding', () => {
         }),
       ).toBeVisible();
       await expertOnboardingPage
-        .getByRole('button', { name: 'Skip', exact: true })
+        .getByRole('button', { name: 'Skip for now', exact: true })
+        .click();
+      await expertOnboardingPage
+        .getByRole('button', { name: 'Skip anyway', exact: true })
         .click();
     }
     await expect(

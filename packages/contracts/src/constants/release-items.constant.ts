@@ -51,12 +51,15 @@ export interface ReleaseAudienceInput {
   hasOrganizationBilling?: unknown;
   /** Platform-admin release preview for one cloud organization. */
   isReleasePreviewEnabled?: unknown;
+  /** Items a platform admin opened for this one organization. */
+  releasedItemIds?: unknown;
 }
 
 /**
  * Whether the organization may see and start work in `itemId`: everything on
- * self-hosted, everything for a cloud organization on release preview, and
- * otherwise only what an operator released. Unknown settings hide it.
+ * self-hosted, everything for a cloud organization on release preview, the
+ * items an operator opened for that organization, and otherwise only what an
+ * operator released for everyone. Unknown settings hide it.
  */
 export function isReleaseItemVisible(
   itemId: string,
@@ -67,5 +70,10 @@ export function isReleaseItemVisible(
   if (!isReleaseItemId(itemId)) return true;
   if (!audience.hasOrganizationBilling) return true;
   if (audience.isReleasePreviewEnabled === true) return true;
+  if (
+    Array.isArray(audience.releasedItemIds) &&
+    audience.releasedItemIds.includes(itemId)
+  )
+    return true;
   return flags[getReleaseFlagKey(itemId)] === true;
 }

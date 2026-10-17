@@ -1,3 +1,4 @@
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
@@ -47,6 +48,7 @@ export class ScheduledPublishWorkflowProcessor extends WorkflowExecutionProcesso
     queueService: WorkflowExecutionQueueService,
     schedulerService: WorkflowSchedulerService,
     systemWorkflowRunner: SystemWorkflowRunnerService,
+    workflowExecutions: WorkflowExecutionsService,
   ) {
     super(
       logger,
@@ -54,6 +56,7 @@ export class ScheduledPublishWorkflowProcessor extends WorkflowExecutionProcesso
       queueService,
       schedulerService,
       systemWorkflowRunner,
+      workflowExecutions,
     );
   }
 }

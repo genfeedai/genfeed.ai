@@ -11,13 +11,18 @@ async function assertButtonOnly(page: Page, title: string) {
     page.getByRole('heading', { name: title, exact: true, level: 3 }),
   ).toBeVisible();
   await expect(page.locator('form')).toHaveCount(0);
-  await expect(page.getByRole('textbox')).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Other' })).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: 'Skip to workspace' }),
   ).toHaveCount(0);
 }
 async function click(page: Page, label: string) {
   await page.getByRole('button', { name: label, exact: true }).click();
+}
+// Free-text answers go through the pinned composer (#7089), not an inline field.
+async function answerInComposer(page: Page, answer: string) {
+  await page.getByRole('textbox', { name: 'Conversation prompt' }).fill(answer);
+  await page.getByRole('button', { name: 'Send message', exact: true }).click();
 }
 
 test.describe('Conversational onboarding', () => {
@@ -36,8 +41,7 @@ test.describe('Conversational onboarding', () => {
     await expect(
       page.getByRole('button', { name: 'Skip to workspace' }),
     ).toHaveCount(0);
-    await page.getByRole('textbox').fill('https://genfeed.ai');
-    await click(page, 'Use this answer');
+    await answerInComposer(page, 'https://genfeed.ai');
     await expect(page.getByText('Tone: Friendly')).toBeVisible();
     await assertButtonOnly(page, 'goals');
     await click(page, 'Grow audience');
@@ -46,16 +50,18 @@ test.describe('Conversational onboarding', () => {
       (request) =>
         request.url().includes('/responses') && request.method() === 'POST',
     );
-    await click(page, 'Submit answers');
+    await click(page, 'Continue');
     expect((await goals).postDataJSON()).toMatchObject({
       optionIds: ['grow_audience', 'build_authority'],
     });
     await assertButtonOnly(page, 'platforms');
     await click(page, 'X');
     await click(page, 'LinkedIn');
-    await click(page, 'Submit answers');
+    await click(page, 'Continue');
     await assertButtonOnly(page, 'cadence');
-    await click(page, 'Skip');
+    // Skip is no longer a choice card: it is its own card with a confirmation.
+    await click(page, 'Skip for now');
+    await click(page, 'Skip anyway');
     await assertButtonOnly(page, 'tone');
     await click(page, 'More casual');
     await assertButtonOnly(page, 'Your brand is ready');
@@ -93,8 +99,7 @@ test.describe('Conversational onboarding', () => {
       await expect(
         page.getByRole('heading', { name: 'Your brand link', level: 3 }),
       ).toBeVisible();
-      await page.getByRole('textbox').fill('https://blocked.example');
-      await click(page, 'Use this answer');
+      await answerInComposer(page, 'https://blocked.example');
       await assertButtonOnly(page, 'Could not read that link');
       await expect(
         page.getByRole('button', { name: 'Try another link', exact: true }),
@@ -110,9 +115,7 @@ test.describe('Conversational onboarding', () => {
         await expect(
           page.getByRole('heading', { name: 'Your brand link', level: 3 }),
         ).toBeVisible();
-        await expect(page.getByRole('textbox')).toBeVisible();
-        await page.getByRole('textbox').fill('https://example.com');
-        await click(page, 'Use this answer');
+        await answerInComposer(page, 'https://example.com');
         await assertButtonOnly(page, 'goals');
       }
       await assertButtonOnly(page, 'goals');
