@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import type { ReadableStreamDefaultReader } from 'node:stream/web';
 import { inferFirstPartySkillTaxonomy } from '@api/collections/skills/catalog/first-party-skill-taxonomy';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
@@ -479,21 +480,46 @@ export class SkillDownloadService {
 
   private async downloadPack(downloadUrl: string): Promise<Buffer> {
     const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download Skills Pro pack: ${response.status}`);
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let complete = false;
+    try {
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download Skills Pro pack: ${response.status}`,
+        );
+      }
+      const contentLength = Number(response.headers.get('content-length'));
+      if (contentLength > MAX_PACK_DOWNLOAD_BYTES) {
+        throw new ForbiddenException(
+          'Skills Pro pack exceeds the allowed size',
+        );
+      }
+      if (!response.body) return Buffer.alloc(0);
+      reader = response.body.getReader();
+      const chunks: Buffer[] = [];
+      let bytes = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          complete = true;
+          return Buffer.concat(chunks, bytes);
+        }
+        bytes += value.byteLength;
+        if (bytes > MAX_PACK_DOWNLOAD_BYTES) {
+          throw new ForbiddenException(
+            'Skills Pro pack exceeds the allowed size',
+          );
+        }
+        chunks.push(Buffer.from(value));
+      }
+    } finally {
+      if (reader) {
+        if (!complete) void reader.cancel().catch(() => undefined);
+        reader.releaseLock();
+      } else {
+        void response.body?.cancel().catch(() => undefined);
+      }
     }
-
-    const contentLength = Number(response.headers.get('content-length'));
-    if (contentLength > MAX_PACK_DOWNLOAD_BYTES) {
-      throw new ForbiddenException('Skills Pro pack exceeds the allowed size');
-    }
-
-    const archive = Buffer.from(await response.arrayBuffer());
-    if (archive.length > MAX_PACK_DOWNLOAD_BYTES) {
-      throw new ForbiddenException('Skills Pro pack exceeds the allowed size');
-    }
-
-    return archive;
   }
 
   private requireChecksum(checksum: string | undefined): string {
