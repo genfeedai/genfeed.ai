@@ -1,6 +1,7 @@
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import {
   type AgentChatMessage as AgentChatMessageType,
+  type AgentInputOption,
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
@@ -372,7 +373,7 @@ type StoreState = {
     allowFreeText: boolean;
     threadId: string;
     inputRequestId: string;
-    options: [];
+    options: AgentInputOption[];
     prompt: string;
     runId: string;
     title: string;
