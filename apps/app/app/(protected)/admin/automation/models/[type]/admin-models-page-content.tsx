@@ -1,6 +1,5 @@
 'use client';
 
-import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { PageScope } from '@genfeedai/contracts';
 import ModelsList from '@pages/models/list/models-list';
 import type { AdminModelsPageContentProps } from '@props/admin/models.props';
@@ -16,7 +15,6 @@ export default function AdminModelsPageContent({
   type,
 }: AdminModelsPageContentProps) {
   const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
-  const { setRefreshModels } = useModelsContext();
   const queryClient = useQueryClient();
   const refreshPricing = useCallback(
     () =>
@@ -30,7 +28,6 @@ export default function AdminModelsPageContent({
       beforeList={<ModelPricingAttentionPanel />}
       category={type}
       scope={PageScope.SUPERADMIN}
-      onRefreshRegister={setRefreshModels}
       onRefresh={refreshPricing}
       onPricingDetails={(model) =>
         setExpandedModelId((id) => (id === model.id ? null : model.id))

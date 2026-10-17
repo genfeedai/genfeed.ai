@@ -289,10 +289,6 @@ export function useModelsList({
     };
   }, []);
 
-  const handleRefresh = useCallback(async () => {
-    await refresh();
-  }, [refresh]);
-
   // Register refresh function with context
   useEffect(() => {
     if (!onRefreshRegister) {
@@ -441,7 +437,7 @@ export function useModelsList({
         setModels(updatedModels);
 
         // Refresh to get updated default models
-        await handleRefresh();
+        await refresh();
 
         notificationsService.success('Model default status updated');
       } catch (error: unknown) {
@@ -451,14 +447,14 @@ export function useModelsList({
           errorDetails.message || 'Failed to update model',
         );
         // Refresh on error to revert optimistic update
-        await handleRefresh();
+        await refresh();
       } finally {
         setTogglingModelId(null);
       }
     },
     [
       getModelsService,
-      handleRefresh,
+      refresh,
       notificationsService,
       togglingModelId,
       setModels,
@@ -473,7 +469,7 @@ export function useModelsList({
       try {
         const service = await getModelsService();
         await service.patch(model.id, { lifecycle, succeededBy });
-        await handleRefresh();
+        await refresh();
         notificationsService.success('Model lifecycle updated');
       } catch (error: unknown) {
         logger.error(`PATCH /models/${model.id} lifecycle failed`, error);
@@ -481,12 +477,12 @@ export function useModelsList({
           ErrorHandler.extractErrorDetails(error).message ||
             'Failed to update model lifecycle',
         );
-        await handleRefresh();
+        await refresh();
       } finally {
         setTogglingModelId(null);
       }
     },
-    [getModelsService, handleRefresh, notificationsService, togglingModelId],
+    [getModelsService, refresh, notificationsService, togglingModelId],
   );
 
   // Organization toggle handler (enabled/disabled for org)
@@ -511,7 +507,7 @@ export function useModelsList({
         );
 
         // Refresh both settings and models list to ensure UI is in sync
-        await Promise.all([refreshSettings(), handleRefresh()]);
+        await Promise.all([refreshSettings(), refresh()]);
       } catch (error: unknown) {
         logger.error(
           `PATCH /organizations/${organizationId}/settings/models/${model.id} failed`,
@@ -529,7 +525,7 @@ export function useModelsList({
       organizationId,
       getOrganizationsService,
       refreshSettings,
-      handleRefresh,
+      refresh,
       notificationsService,
       togglingModelId,
       isAdminScope,
@@ -545,14 +541,14 @@ export function useModelsList({
     try {
       const service = await getModelsService();
       await service.delete(selectedModel.id);
-      await handleRefresh();
+      await refresh();
       notificationsService.success('Model deleted successfully');
       setSelectedModel(undefined);
     } catch (error) {
       logger.error(`${url} failed`, error);
       notificationsService.error('Failed to delete model');
     }
-  }, [selectedModel, getModelsService, handleRefresh, notificationsService]);
+  }, [selectedModel, getModelsService, refresh, notificationsService]);
 
   const handleApproveRegistryModel = useCallback(
     async (model: IModel) => {
@@ -566,7 +562,7 @@ export function useModelsList({
         await service.approveRegistryModel(model.id, {
           label: model.label,
         });
-        await handleRefresh();
+        await refresh();
         notificationsService.success('Model approved');
       } catch (error) {
         logger.error(`${url} failed`, error);
@@ -576,7 +572,7 @@ export function useModelsList({
         );
       }
     },
-    [getModelsService, handleRefresh, notificationsService],
+    [getModelsService, refresh, notificationsService],
   );
 
   const handleRejectRegistryModel = useCallback(
@@ -592,7 +588,7 @@ export function useModelsList({
           model.id,
           'Rejected from model registry review',
         );
-        await handleRefresh();
+        await refresh();
         notificationsService.success('Model rejected');
       } catch (error) {
         logger.error(`${url} failed`, error);
@@ -602,7 +598,7 @@ export function useModelsList({
         );
       }
     },
-    [getModelsService, handleRefresh, notificationsService],
+    [getModelsService, refresh, notificationsService],
   );
 
   const handleViewDetails = useCallback((model: IModel) => {

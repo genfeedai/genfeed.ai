@@ -10,11 +10,16 @@ const SCAN_ROOTS = [
   join(process.cwd(), 'src'),
   join(REPO_ROOT, 'packages/pages'),
   join(REPO_ROOT, 'packages/ui/src'),
+  join(REPO_ROOT, 'apps/website/app'),
+  join(REPO_ROOT, 'apps/website/packages'),
 ];
 
 const SKIP_DIRECTORIES = new Set(['.next', 'coverage', 'dist', 'node_modules']);
 
-const MOTION_IMPORT = /from ['"](?:motion(?:\/[^'"]+)?|framer-motion)['"]/u;
+// Static (`from 'motion/react'`, `import 'motion/react'`) and dynamic
+// (`import('motion/react')`) loads, and `require`.
+const MOTION_IMPORT =
+  /(?:from\s*|import\s*\(?\s*|require\s*\(\s*)['"](?:motion(?:\/[^'"]+)?|framer-motion)['"]/u;
 
 const HOOK_MODULE = 'use-hover-animated-icon';
 

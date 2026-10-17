@@ -40,6 +40,7 @@ const HEYGEN_VOICE_NOT_CONNECTED_MESSAGE =
 const HEYGEN_VOICE_NO_CLONES_MESSAGE =
   'No active HeyGen Voice clones yet. Create one in HeyGen, then reopen this picker.';
 const PAGE_SIZE = 12;
+const MAX_GENDER_FILTER_AUTO_PAGES = 5;
 
 type IdentityTab = 'avatar' | 'voice';
 type GenderFilter = 'all' | HeyGenGender;
@@ -205,10 +206,17 @@ export default function StudioIdentityFields({
     Boolean(avatarGender) && compatibleVoices.length < voiceOptions.length;
 
   // HeyGen cannot filter by gender, so a filtered view keeps paging until it
-  // has a full page of matches or the catalogue is exhausted.
+  // has a full page of matches, the catalogue is exhausted, or the page budget
+  // for this filter is spent (a rare gender must not walk the whole catalogue).
+  const autoPageCount = useRef(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the budget restarts only when the filter changes
+  useEffect(() => {
+    autoPageCount.current = 0;
+  }, [genderFilter]);
   useEffect(() => {
     if (
       genderFilter === 'all' ||
+      autoPageCount.current >= MAX_GENDER_FILTER_AUTO_PAGES ||
       activeTab !== 'avatar' ||
       !hasMoreAvatars ||
       isLoadingIdentities ||
@@ -217,6 +225,7 @@ export default function StudioIdentityFields({
       matchingAvatars.length >= avatarLimit
     )
       return;
+    autoPageCount.current += 1;
     void loadMoreAvatars();
   }, [
     activeTab,

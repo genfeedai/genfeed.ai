@@ -19,7 +19,6 @@ global.window = {
 } as unknown as Window & typeof globalThis;
 
 import {
-  downloadIngredient,
   downloadUrl,
   filenameFromContentDisposition,
   ingredientDownloadFilename,
@@ -33,156 +32,6 @@ describe('download.helper', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe('downloadIngredient', () => {
-    const createMockIngredient = (
-      overrides: Partial<IIngredient> = {},
-    ): IIngredient =>
-      ({
-        category: IngredientCategory.IMAGE,
-        id: 'ing-123',
-        ingredientUrl: 'https://example.com/image.png',
-        metadata: { label: 'Test Image' },
-        ...overrides,
-      }) as IIngredient;
-
-    it('should throw error when no download URL', async () => {
-      const ingredient = createMockIngredient({ ingredientUrl: undefined });
-
-      await expect(
-        downloadIngredient(ingredient, ingredient.ingredientUrl ?? ''),
-      ).rejects.toThrow('No download URL available');
-    });
-
-    it('throws instead of opening a tab when fetch response is not ok', async () => {
-      mockFetch.mockResolvedValue({ ok: false, status: 404 });
-
-      const ingredient = createMockIngredient();
-
-      await expect(
-        downloadIngredient(ingredient, ingredient.ingredientUrl ?? ''),
-      ).rejects.toThrow('Failed to download file (status 404)');
-      expect(mockWindowOpen).not.toHaveBeenCalled();
-      expect(mockSaveAs).not.toHaveBeenCalled();
-    });
-
-    it('should download and save image ingredient', async () => {
-      const mockBlob = new Blob(['test'], { type: 'image/png' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient();
-
-      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
-
-      expect(mockFetch).toHaveBeenCalledWith('https://example.com/image.png', {
-        cache: 'no-store',
-        credentials: 'omit',
-        mode: 'cors',
-      });
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'Test Image-image-ing-123.png',
-      );
-    });
-
-    it('should download video ingredient', async () => {
-      const mockBlob = new Blob(['test'], { type: 'video/mp4' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient({
-        category: IngredientCategory.VIDEO,
-        metadata: { label: 'My Video' },
-      });
-
-      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
-
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'My Video-video-ing-123.mp4',
-      );
-    });
-
-    it('should use default label when metadata label is missing', async () => {
-      const mockBlob = new Blob(['test'], { type: 'image/png' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient({ metadata: {} });
-
-      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
-
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'genfeed-image-ing-123.png',
-      );
-    });
-
-    it('should use default label when no metadata', async () => {
-      const mockBlob = new Blob(['test'], { type: 'image/png' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient({ metadata: undefined });
-
-      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
-
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'genfeed-image-ing-123.png',
-      );
-    });
-
-    it('should download music ingredient', async () => {
-      const mockBlob = new Blob(['test'], { type: 'audio/mp3' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient({
-        category: IngredientCategory.MUSIC,
-        metadata: { label: 'Track' },
-      });
-
-      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
-
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'Track-music-ing-123.mp3',
-      );
-    });
-
-    it('saves original PNG bytes with a png suffix', async () => {
-      const pngBytes = new Uint8Array([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-      ]);
-      const mockBlob = new Blob([pngBytes], {
-        type: 'application/octet-stream',
-      });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient();
-
-      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
-
-      const filename = mockSaveAs.mock.calls[0]?.[1] as string;
-      expect(filename.endsWith('.jpg')).toBe(false);
-      expect(filename).toBe('Test Image-image-ing-123.png');
-    });
   });
 
   describe('downloadUrl', () => {
@@ -199,6 +48,7 @@ describe('download.helper', () => {
         cache: 'no-store',
         credentials: 'omit',
         mode: 'cors',
+        signal: expect.any(AbortSignal),
       });
       expect(mockSaveAs).toHaveBeenCalledWith(mockBlob, 'my-document.pdf');
     });
@@ -246,6 +96,28 @@ describe('download.helper', () => {
   });
 
   describe('ingredientDownloadFilename', () => {
+    it.each<[IngredientCategory, Partial<IIngredient>, string]>([
+      [
+        IngredientCategory.VIDEO,
+        { metadata: { label: 'My Video' } as IMetadata },
+        'My Video-video-ing-123.mp4',
+      ],
+      [
+        IngredientCategory.MUSIC,
+        { metadata: { label: 'Track' } as IMetadata },
+        'Track-music-ing-123.mp3',
+      ],
+      [IngredientCategory.IMAGE, { metadata: {} }, 'genfeed-image-ing-123.jpg'],
+    ])('names %s downloads (%j)', (category, fields, expected) => {
+      expect(
+        ingredientDownloadFilename({
+          category,
+          id: 'ing-123',
+          ...fields,
+        } as IIngredient),
+      ).toBe(expected);
+    });
+
     it.each<[Partial<IIngredient>, string]>([
       [{ metadataExtension: '.WEBP' }, 'webp'],
       [{ metadata: { extension: 'PNG' } as IMetadata }, 'png'],

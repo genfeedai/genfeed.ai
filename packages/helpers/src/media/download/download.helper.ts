@@ -115,30 +115,20 @@ export function saveDownloadBlob(blob: Blob, filename: string): void {
   saveAs(blob, sanitizeDownloadFilename(filename));
 }
 
+// Large originals can take minutes; this only stops a stalled connection.
+const DOWNLOAD_TIMEOUT_MS = 600_000;
+
 async function fetchDownloadBlob(url: string): Promise<Blob> {
   const response = await fetch(url, {
     cache: 'no-store',
     credentials: 'omit',
     mode: 'cors',
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
   });
   if (!response.ok) {
     throw new Error(`Failed to download file (status ${response.status})`);
   }
   return response.blob();
-}
-
-export async function downloadIngredient(
-  ingredient: IIngredient,
-  originalUrl: string,
-): Promise<void> {
-  if (!originalUrl) {
-    throw new Error('No download URL available');
-  }
-  const blob = await fetchDownloadBlob(originalUrl);
-  saveDownloadBlob(
-    blob,
-    await ingredientDownloadFilenameForBlob(ingredient, blob),
-  );
 }
 
 export async function downloadUrl(

@@ -126,7 +126,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       {
         answer:
           'It covers strategy, content planning, production, revision handling, and publishing coordination. The exact scope is shaped around your channel mix and monthly content volume.',
-        question: 'What does the retainer actually cover?',
+        question: 'What does the service actually cover?',
       },
       {
         answer:
@@ -161,7 +161,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     includes: COMMON_SERVICE_INCLUDES,
     intro:
       'You bring the expertise, raw ideas, customer context, and final approvals. We handle strategy, production, and publishing so your brand shows up consistently without creating another layer of internal coordination.',
-    metaDescription: `${serviceOffering.name} content ${serviceOffering.priceLabel.toLowerCase()}. We handle strategy, production, and publishing. Book a call to scope your monthly retainer.`,
+    metaDescription: `${serviceOffering.name} content ${serviceOffering.priceLabel.toLowerCase()}. We handle strategy, production, and publishing. Book a call to scope your monthly plan.`,
     metaTitle: 'Done-For-You Content | Genfeed.ai',
     outcomes: [
       {

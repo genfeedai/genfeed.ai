@@ -10,7 +10,6 @@ import type {
   IBulkDeleteResult,
   IBulkTagResult,
   IIngredient,
-  IIngredientExportResult,
   IIngredientLineagePage,
   IPost,
   MediaDeliveryGrant,
@@ -105,16 +104,6 @@ export class IngredientsService<
     return this.previewBatch.request(id, signal);
   }
 
-  public async originalGrant(id: string): Promise<MediaDeliveryGrant> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/original-grant`,
-    );
-    const grant = deserializeResource<MediaDeliveryGrant>(response.data);
-    if (grant.state !== 'READY' || !grant.url)
-      throw new Error('Original media is unavailable');
-    return grant;
-  }
-
   public async downloadOriginal(ingredient: IIngredient): Promise<void> {
     const response = await this.instance.get<Blob>(
       `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(ingredient.id)}/original-download`,
@@ -131,15 +120,6 @@ export class IngredientsService<
       `${EnvironmentService.apiEndpoint}/ingredients/media-previews`,
       { ids: [...ids].slice(0, 50) },
     );
-  }
-
-  public async exportMedia(id: string, watermark: boolean) {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/export`,
-      { watermark },
-      { timeout: 600_000 },
-    );
-    return deserializeResource<IIngredientExportResult>(response.data);
   }
 
   public async downloadWatermarked(id: string): Promise<void> {

@@ -8,6 +8,8 @@ export const serviceOffering = {
   startingMonthlyPrice: STARTING_MONTHLY_PRICE,
   priceLabel: `From ${formatPrice(STARTING_MONTHLY_PRICE)}/month`,
   priceNote: '+ usage at cost + performance fee per contract',
+  offerDescription:
+    'Usage billed at cost, plus a performance fee per contract on winning creatives.',
   description:
     'Our team plans, produces, and publishes your content and tests it against your best ads. You approve what goes out.',
   includes: [
