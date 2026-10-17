@@ -58,6 +58,35 @@ import type {
   IBrandRelocationResult,
 } from '@services/social/brand-relocation.types';
 
+/**
+ * A move that was interrupted resumes under its request id, but only briefly:
+ * an old finished receipt must not stand in for a new move to the same place.
+ */
+const RELOCATION_REQUEST_TTL_MS = 10 * 60 * 1000;
+
+function readRememberedRelocationRequest(
+  stored: string | null | undefined,
+): string | null {
+  if (!stored) {
+    return null;
+  }
+  try {
+    const { at, id } = JSON.parse(stored) as Partial<
+      Record<'at' | 'id', unknown>
+    >;
+    if (
+      typeof id === 'string' &&
+      typeof at === 'number' &&
+      Date.now() - at < RELOCATION_REQUEST_TTL_MS
+    ) {
+      return id;
+    }
+  } catch {
+    /* An unreadable entry is a stale one. */
+  }
+  return null;
+}
+
 export class BrandsService extends BaseService<Brand> {
   constructor(token: string) {
     super(API_ENDPOINTS.BRANDS, token, Brand, BrandSerializer);
@@ -705,13 +734,19 @@ export class BrandsService extends BaseService<Brand> {
     const key = `brand-relocation:${id}:${body.organizationId}`;
     let requestId = globalThis.crypto.randomUUID();
     try {
-      requestId = globalThis.localStorage?.getItem(key) ?? requestId;
+      requestId =
+        readRememberedRelocationRequest(
+          globalThis.localStorage?.getItem(key),
+        ) ?? requestId;
     } catch {
       /* Storage can be unavailable in private browsing. */
     }
     const remember = () => {
       try {
-        globalThis.localStorage?.setItem(key, requestId);
+        globalThis.localStorage?.setItem(
+          key,
+          JSON.stringify({ at: Date.now(), id: requestId }),
+        );
       } catch {
         /* The in-memory request id still deduplicates retries. */
       }

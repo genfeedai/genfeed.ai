@@ -16,7 +16,7 @@ import {
 import { PagesService } from '@services/content/pages.service';
 import { BrandsService } from '@services/social/brands.service';
 import axios from 'axios';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BrandsService HTTP methods', () => {
   const brandId = 'brand_1';
@@ -627,5 +627,93 @@ describe('BrandsService HTTP methods', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe('remembered move request', () => {
+    const storageKey = `brand-relocation:${brandId}:org_2`;
+    const doneDocument = {
+      data: {
+        id: 'operation-1',
+        type: 'brand-relocation',
+        attributes: {
+          brandId,
+          destinationOrganizationId: 'org_2',
+          organizationId: 'org_1',
+          status: 'done',
+          summary: { membersSevered: 0, workflowsMoved: 0 },
+        },
+      },
+      meta: { brand: resourceDocument({ label: 'Acme' }, { id: brandId }) },
+    };
+    let store: Map<string, string>;
+
+    beforeEach(() => {
+      store = new Map();
+      vi.stubGlobal('localStorage', {
+        getItem: (key: string) => store.get(key) ?? null,
+        removeItem: (key: string) => store.delete(key),
+        setItem: (key: string, value: string) => store.set(key, value),
+      });
+      http.patch.mockResolvedValue(axiosResponse(doneDocument));
+      http.get.mockResolvedValue(axiosResponse(doneDocument));
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('resumes an interrupted move under the same request id', async () => {
+      store.set(
+        storageKey,
+        JSON.stringify({ at: Date.now() - 60_000, id: 'interrupted-request' }),
+      );
+
+      await service.relocateBrand(brandId, { organizationId: 'org_2' });
+
+      expect(http.patch).toHaveBeenCalledWith(
+        `/${brandId}`,
+        { organizationId: 'org_2' },
+        expect.objectContaining({
+          headers: { 'Idempotency-Key': 'interrupted-request' },
+        }),
+      );
+    });
+
+    it('starts a new request instead of replaying an old finished one', async () => {
+      store.set(
+        storageKey,
+        JSON.stringify({ at: Date.now() - 60 * 60_000, id: 'old-request' }),
+      );
+
+      await service.relocateBrand(brandId, { organizationId: 'org_2' });
+
+      expect(http.patch).toHaveBeenCalledWith(
+        `/${brandId}`,
+        { organizationId: 'org_2' },
+        expect.objectContaining({
+          headers: {
+            'Idempotency-Key': expect.not.stringMatching('old-request'),
+          },
+        }),
+      );
+    });
+
+    it('ignores an entry that is not a remembered request', async () => {
+      store.set(storageKey, 'a-bare-uuid-from-before');
+
+      await service.relocateBrand(brandId, { organizationId: 'org_2' });
+
+      expect(http.patch).toHaveBeenCalledWith(
+        `/${brandId}`,
+        { organizationId: 'org_2' },
+        expect.objectContaining({
+          headers: {
+            'Idempotency-Key': expect.not.stringMatching(
+              'a-bare-uuid-from-before',
+            ),
+          },
+        }),
+      );
+    });
   });
 });
