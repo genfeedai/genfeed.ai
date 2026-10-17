@@ -53,6 +53,12 @@ export interface WorkflowExecutionJobData {
    */
   priorExecutionIds?: string[];
   systemRun?: {
+    /**
+     * Epoch ms after which an unstarted run is dropped at pickup. Set for
+     * slot-keyed platform sweeps, where a run that waited longer than its
+     * cycle is worthless and the next tick supersedes it (#5634).
+     */
+    expiresAt?: number;
     failureWorkflow?: SystemWorkflowFailureReference;
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>;
     priorExecution?: {
@@ -87,6 +93,8 @@ export interface QueueSystemWorkflowOptions {
    */
   dispatchClass: SystemWorkflowDispatchClass;
   delayMs?: number;
+  /** Drop the run at pickup if it has not started within this many ms of queueing. */
+  expireAfterMs?: number;
   failureWorkflow?: SystemWorkflowFailureReference;
   priorExecution?: NonNullable<
     NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
@@ -389,6 +397,9 @@ export class WorkflowExecutionQueueService {
       {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),
         systemRun: {
+          ...(options.expireAfterMs !== undefined
+            ? { expiresAt: Date.now() + options.expireAfterMs }
+            : {}),
           ...(options.failureWorkflow
             ? { failureWorkflow: options.failureWorkflow }
             : {}),

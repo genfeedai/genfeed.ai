@@ -69,6 +69,7 @@ function createMockSchedulerService() {
 
 function createMockSystemWorkflowRunner() {
   return {
+    cancelExpiredRun: vi.fn().mockResolvedValue(undefined),
     getRegisteredFailureWorkflow: vi.fn().mockReturnValue(undefined),
     terminalFailures: { settle: vi.fn().mockResolvedValue(false) },
     runWithStoredWorkflowModule: vi.fn(
@@ -343,6 +344,94 @@ describe('WorkflowExecutionProcessor', () => {
   });
 
   describe('process - system workflow jobs', () => {
+    describe('expiry before pickup (#5634)', () => {
+      const input = {
+        actionType: 'agent.autopilot.proactive',
+        canonicalId: 'agent.autopilot.proactive',
+        organizationId: 'org-1',
+        source: 'platform-workflow-schedule',
+      };
+      const priorExecution = {
+        executionId: 'exec-pending',
+        status: WorkflowExecutionStatus.PENDING,
+        userId: 'user-1',
+        workflowId: 'wf-1',
+        workflowLabel: 'Proactive',
+      };
+
+      it('cancels a run that waited past its expiry without executing it', async () => {
+        const result = await processor.process(
+          createMockJob({
+            systemRun: { expiresAt: Date.now() - 1, input, priorExecution },
+            type: 'system-run',
+          }) as never,
+        );
+
+        expect(result).toEqual({
+          executionId: 'exec-pending',
+          status: WorkflowExecutionStatus.CANCELLED,
+        });
+        expect(mockSystemWorkflowRunner.cancelExpiredRun).toHaveBeenCalledWith(
+          'exec-pending',
+          'org-1',
+        );
+        expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+      });
+
+      it('runs a job that is still within its expiry', async () => {
+        await processor.process(
+          createMockJob({
+            systemRun: {
+              expiresAt: Date.now() + 60_000,
+              input,
+              priorExecution,
+            },
+            type: 'system-run',
+          }) as never,
+        );
+
+        expect(
+          mockSystemWorkflowRunner.cancelExpiredRun,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('never drops a retry, whatever its age', async () => {
+        await processor.process(
+          createMockJob(
+            {
+              systemRun: { expiresAt: Date.now() - 1, input, priorExecution },
+              type: 'system-run',
+            },
+            { attemptsMade: 1 },
+          ) as never,
+        );
+
+        expect(
+          mockSystemWorkflowRunner.cancelExpiredRun,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('never drops a run that already started', async () => {
+        await processor.process(
+          createMockJob({
+            systemRun: {
+              expiresAt: Date.now() - 1,
+              input,
+              priorExecution: {
+                ...priorExecution,
+                status: WorkflowExecutionStatus.RUNNING,
+              },
+            },
+            type: 'system-run',
+          }) as never,
+        );
+
+        expect(
+          mockSystemWorkflowRunner.cancelExpiredRun,
+        ).not.toHaveBeenCalled();
+      });
+    });
+
     it.each([
       WORKFLOW_EXECUTION_QUEUE,
       WORKFLOW_BACKGROUND_QUEUE,

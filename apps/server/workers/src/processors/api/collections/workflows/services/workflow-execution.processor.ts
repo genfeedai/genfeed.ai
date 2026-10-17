@@ -121,6 +121,8 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     if (!systemRun) {
       throw new Error('System workflow job missing registered workflow input');
     }
+    const expired = await this.dropIfExpiredBeforePickup(job, systemRun);
+    if (expired) return expired;
     try {
       return await this.queueService.runWithQueuedOrganizationModule(
         job.data,
@@ -186,6 +188,40 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       }
       throw error;
     }
+  }
+
+  /**
+   * A sweep run that waited in the queue past its expiry is superseded by the
+   * next tick, so it is cancelled instead of executed (#5634). Only a run that
+   * never started is dropped: a retry or a resumed run keeps going.
+   */
+  private async dropIfExpiredBeforePickup(
+    job: Job<WorkflowExecutionJobData>,
+    systemRun: NonNullable<WorkflowExecutionJobData['systemRun']>,
+  ): Promise<{ executionId: string; status: WorkflowExecutionStatus } | null> {
+    const { expiresAt, priorExecution } = systemRun;
+    if (
+      expiresAt === undefined ||
+      Date.now() <= expiresAt ||
+      (job.attemptsMade ?? 0) > 0 ||
+      priorExecution?.status !== WorkflowExecutionStatus.PENDING
+    ) {
+      return null;
+    }
+    await this.systemWorkflowRunner.cancelExpiredRun(
+      priorExecution.executionId,
+      systemRun.input.organizationId,
+    );
+    this.logger.warn(`${this.logContext} dropped expired system workflow`, {
+      canonicalId: systemRun.input.canonicalId,
+      executionId: priorExecution.executionId,
+      jobId: job.id,
+      organizationId: systemRun.input.organizationId,
+    });
+    return {
+      executionId: priorExecution.executionId,
+      status: WorkflowExecutionStatus.CANCELLED,
+    };
   }
 
   /**

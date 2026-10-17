@@ -321,7 +321,10 @@ export class SystemWorkflowRunnerService
 
   async enqueueWorkflow(
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
-    options: { dispatchClass: SystemWorkflowDispatchClass },
+    options: {
+      dispatchClass: SystemWorkflowDispatchClass;
+      expireAfterMs?: number;
+    },
   ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
     const definition = this.workflowDefinitions.get(input.canonicalId);
     if (!definition) {
@@ -464,7 +467,10 @@ export class SystemWorkflowRunnerService
   private async enqueueAdmittedWorkflow(
     definition: SystemWorkflowGraphDefinition,
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
-    options: { dispatchClass: SystemWorkflowDispatchClass },
+    options: {
+      dispatchClass: SystemWorkflowDispatchClass;
+      expireAfterMs?: number;
+    },
   ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
     const failureWorkflow = this.getRegisteredFailureWorkflow(input);
     const userId = await this.resolveUserId(input.organizationId, input.userId);
@@ -526,6 +532,9 @@ export class SystemWorkflowRunnerService
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
           ...(isAgentConversation ? { attempts: 1 } : {}),
           dispatchClass: options.dispatchClass,
+          ...(options.expireAfterMs !== undefined
+            ? { expireAfterMs: options.expireAfterMs }
+            : {}),
           ...(failureWorkflow ? { failureWorkflow } : {}),
           ...(isPlatformOriginatedSource(input.source)
             ? { usePlatformQueue: true }
@@ -971,6 +980,17 @@ export class SystemWorkflowRunnerService
     return this.moduleRef.get(OrganizationModuleAccessService, {
       strict: false,
     });
+  }
+
+  /** Closes the pending row of a run dropped at pickup because it waited past its expiry. */
+  async cancelExpiredRun(
+    executionId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.getWorkflowExecutions().cancelExecution(
+      executionId,
+      organizationId,
+    );
   }
 
   private getWorkflowExecutions(): WorkflowExecutionsService {
