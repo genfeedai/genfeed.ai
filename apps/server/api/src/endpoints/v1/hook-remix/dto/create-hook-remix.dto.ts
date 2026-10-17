@@ -13,9 +13,21 @@ import {
   Min,
 } from 'class-validator';
 
+/** Hosts yt-dlp may be pointed at; it would fetch any other host it is given. */
+const YOUTUBE_HOSTS = [
+  'youtu.be',
+  'youtube.com',
+  'm.youtube.com',
+  'www.youtube.com',
+];
+
 export class CreateHookRemixDto {
   @ApiProperty({ description: 'YouTube video URL' })
-  @IsUrl()
+  @IsUrl({
+    host_whitelist: YOUTUBE_HOSTS,
+    protocols: ['https'],
+    require_protocol: true,
+  })
   @IsNotEmpty()
   youtubeUrl!: string;
 

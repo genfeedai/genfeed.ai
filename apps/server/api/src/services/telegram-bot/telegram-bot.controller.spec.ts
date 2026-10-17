@@ -1,5 +1,7 @@
 import { TelegramBotController } from '@api/services/telegram-bot/telegram-bot.controller';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
+import { ConfigService } from '@libs/config/config.service';
+import { UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('TelegramBotController', () => {
@@ -9,8 +11,14 @@ describe('TelegramBotController', () => {
     getStatus: ReturnType<typeof vi.fn>;
   };
 
+  const WEBHOOK_SECRET = 'telegram-webhook-secret';
+  const configGetMock = vi.fn();
+
   beforeEach(async () => {
     vi.clearAllMocks();
+    configGetMock.mockImplementation((key: string) =>
+      key === 'TELEGRAM_WEBHOOK_SECRET' ? WEBHOOK_SECRET : undefined,
+    );
 
     telegramBotServiceMock = {
       getStatus: vi.fn(),
@@ -20,6 +28,7 @@ describe('TelegramBotController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TelegramBotController],
       providers: [
+        { provide: ConfigService, useValue: { get: configGetMock } },
         { provide: TelegramBotService, useValue: telegramBotServiceMock },
       ],
     }).compile();
@@ -32,11 +41,30 @@ describe('TelegramBotController', () => {
   });
 
   describe('webhook', () => {
+    it('rejects a missing or wrong secret before touching the bot', async () => {
+      await expect(controller.webhook({ update_id: 1 })).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(
+        controller.webhook({ update_id: 1 }, 'wrong'),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(telegramBotServiceMock.handleWebhookUpdate).not.toHaveBeenCalled();
+    });
+
+    it('rejects every request when no secret is configured', async () => {
+      configGetMock.mockReturnValue(undefined);
+
+      await expect(
+        controller.webhook({ update_id: 1 }, 'anything'),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(telegramBotServiceMock.handleWebhookUpdate).not.toHaveBeenCalled();
+    });
+
     it('should call handleWebhookUpdate with the update payload', async () => {
       telegramBotServiceMock.handleWebhookUpdate.mockResolvedValue(undefined);
 
       const update = { message: { text: 'hello' }, update_id: 123 };
-      const result = await controller.webhook(update);
+      const result = await controller.webhook(update, WEBHOOK_SECRET);
 
       expect(telegramBotServiceMock.handleWebhookUpdate).toHaveBeenCalledWith(
         update,
@@ -47,7 +75,7 @@ describe('TelegramBotController', () => {
     it('should return ok: true even for empty updates', async () => {
       telegramBotServiceMock.handleWebhookUpdate.mockResolvedValue(undefined);
 
-      const result = await controller.webhook({});
+      const result = await controller.webhook({}, WEBHOOK_SECRET);
       expect(result).toEqual({ ok: true });
     });
 
@@ -56,15 +84,15 @@ describe('TelegramBotController', () => {
         new Error('Bot processing error'),
       );
 
-      await expect(controller.webhook({ update_id: 999 })).rejects.toThrow(
-        'Bot processing error',
-      );
+      await expect(
+        controller.webhook({ update_id: 999 }, WEBHOOK_SECRET),
+      ).rejects.toThrow('Bot processing error');
     });
 
     it('should handle null/undefined updates without crashing', async () => {
       telegramBotServiceMock.handleWebhookUpdate.mockResolvedValue(undefined);
 
-      const result = await controller.webhook(null);
+      const result = await controller.webhook(null, WEBHOOK_SECRET);
       expect(result).toEqual({ ok: true });
       expect(telegramBotServiceMock.handleWebhookUpdate).toHaveBeenCalledWith(
         null,
@@ -83,7 +111,7 @@ describe('TelegramBotController', () => {
         update_id: 456,
       };
 
-      await controller.webhook(complexUpdate);
+      await controller.webhook(complexUpdate, WEBHOOK_SECRET);
       expect(telegramBotServiceMock.handleWebhookUpdate).toHaveBeenCalledWith(
         complexUpdate,
       );

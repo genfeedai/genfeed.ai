@@ -1,3 +1,9 @@
+const { safeFetchMock } = vi.hoisted(() => ({ safeFetchMock: vi.fn() }));
+
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: safeFetchMock,
+}));
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -150,13 +156,7 @@ describe('RssSourcesService', () => {
     ]);
     postGroupsService.create.mockResolvedValue({ id: 'release-1' });
     postGroupsService.publishNow.mockResolvedValue({ id: 'release-1' });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        text: async () => feedXml,
-      }),
-    );
+    safeFetchMock.mockImplementation(async () => new Response(feedXml));
     service = new RssSourcesService(
       prisma as unknown as PrismaService,
       postGroupsService as unknown as PostGroupsService,
@@ -307,18 +307,31 @@ describe('RssSourcesService', () => {
   });
 
   it('records fetch failures without throwing', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 502,
-        text: async () => '',
-      }),
-    );
+    safeFetchMock.mockResolvedValue(new Response('', { status: 502 }));
 
     const result = await executeWorkflow();
 
     expect(result.lastError).toContain('502');
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses feed URLs the destination guard rejects', async () => {
+    safeFetchMock.mockRejectedValue(new Error('Destination is not allowed'));
+
+    const result = await executeWorkflow();
+
+    expect(result.lastError).toContain('not allowed');
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+  });
+
+  it('stops reading a feed larger than the size limit', async () => {
+    safeFetchMock.mockResolvedValue(
+      new Response('x'.repeat(5 * 1024 * 1024 + 1)),
+    );
+
+    const result = await executeWorkflow();
+
+    expect(result.lastError).toContain('size limit');
     expect(postGroupsService.create).not.toHaveBeenCalled();
   });
 });

@@ -57,7 +57,7 @@ describe('SlackBotAdapter', () => {
   // ── validateSignature ─────────────────────────────────────────────────────
 
   describe('validateSignature', () => {
-    const timestamp = '1531420618';
+    const timestamp = String(Math.floor(Date.now() / 1000));
     const body = 'token=xyzz0WbapA4vBCDEFasx0q6G&...';
 
     function buildExpectedSig(secret: string, ts: string, b: string) {
@@ -93,6 +93,17 @@ describe('SlackBotAdapter', () => {
         false,
       );
       expect(loggerService.error).toHaveBeenCalled();
+    });
+
+    it('rejects a correctly signed request older than five minutes', () => {
+      const staleTimestamp = String(Math.floor(Date.now() / 1000) - 6 * 60);
+      const sig = buildExpectedSig(SIGNING_SECRET, staleTimestamp, body);
+      expect(adapter.validateSignature(body, sig, staleTimestamp)).toBe(false);
+    });
+
+    it('rejects a non-numeric timestamp', () => {
+      const sig = buildExpectedSig(SIGNING_SECRET, 'soon', body);
+      expect(adapter.validateSignature(body, sig, 'soon')).toBe(false);
     });
 
     it('returns false when timestamp is missing', () => {

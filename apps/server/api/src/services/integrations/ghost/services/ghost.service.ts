@@ -1,3 +1,4 @@
+import type { Agent as HttpsAgent } from 'node:https';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -124,10 +125,12 @@ export class GhostService {
     tags?: string[],
   ): Promise<GhostPostResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let agent: HttpsAgent | undefined;
 
     try {
       const token = this.generateToken(apiKey);
       const apiUrl = `${this.normalizeUrl(ghostUrl)}/ghost/api/admin/posts/`;
+      agent = await createSafeWebhookHttpsAgent(apiUrl);
 
       const ghostTags: GhostTag[] | undefined = tags?.map((tag) => ({
         name: tag,
@@ -152,6 +155,8 @@ export class GhostService {
               Authorization: `Ghost ${token}`,
               'Content-Type': 'application/json',
             },
+            httpsAgent: agent,
+            maxRedirects: 0,
             // Ghost ignores `html` on create unless the request names HTML as
             // the content source; without it the post body is empty.
             params: { source: 'html' },
@@ -168,6 +173,8 @@ export class GhostService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      agent?.destroy();
     }
   }
 
@@ -181,10 +188,12 @@ export class GhostService {
     fileName: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let agent: HttpsAgent | undefined;
 
     try {
       const token = this.generateToken(apiKey);
       const apiUrl = `${this.normalizeUrl(ghostUrl)}/ghost/api/admin/images/upload/`;
+      agent = await createSafeWebhookHttpsAgent(apiUrl);
 
       const FormData = (await import('form-data')).default;
       const formData = new FormData();
@@ -199,6 +208,8 @@ export class GhostService {
             Authorization: `Ghost ${token}`,
             ...formData.getHeaders(),
           },
+          httpsAgent: agent,
+          maxRedirects: 0,
         }),
       );
 
@@ -210,6 +221,8 @@ export class GhostService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      agent?.destroy();
     }
   }
 
@@ -221,16 +234,20 @@ export class GhostService {
     apiKey: string,
   ): Promise<GhostSiteInfo> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let agent: HttpsAgent | undefined;
 
     try {
       const token = this.generateToken(apiKey);
       const apiUrl = `${this.normalizeUrl(ghostUrl)}/ghost/api/admin/site/`;
+      agent = await createSafeWebhookHttpsAgent(apiUrl);
 
       const response = await firstValueFrom(
         this.httpService.get<GhostSiteApiResponse>(apiUrl, {
           headers: {
             Authorization: `Ghost ${token}`,
           },
+          httpsAgent: agent,
+          maxRedirects: 0,
         }),
       );
 
@@ -242,6 +259,8 @@ export class GhostService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      agent?.destroy();
     }
   }
 

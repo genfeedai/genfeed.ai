@@ -1,5 +1,6 @@
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
+import { toExternalHttpUrl } from '@views/external-url.util';
 import { getWebviewNonce } from '@views/webview.util';
 import * as vscode from 'vscode';
 import { getWebviewStyles } from '@/styles';
@@ -47,9 +48,13 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
           await vscode.env.clipboard.writeText(message.url);
           vscode.window.showInformationMessage('URL copied to clipboard');
           break;
-        case 'openInBrowser':
-          await vscode.env.openExternal(vscode.Uri.parse(message.url));
+        case 'openInBrowser': {
+          const url = toExternalHttpUrl(message.url);
+          if (url) {
+            await vscode.env.openExternal(vscode.Uri.parse(url));
+          }
           break;
+        }
         case 'authenticate':
           await vscode.commands.executeCommand('genfeed.authenticate');
           break;

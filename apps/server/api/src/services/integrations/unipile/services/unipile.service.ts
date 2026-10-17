@@ -29,10 +29,12 @@ import {
 } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpService } from '@nestjs/axios';
+import {
+  DestinationGuardError,
+  resolveSafeDestination,
+  safeFetch,
+} from '@libs/security/destination-guard';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 const UNIPILE_PROVIDER = getIntegrationProviderDefinition('unipile');
 const PRISMA_UNIPILE_PLATFORM =
@@ -43,18 +45,19 @@ const DEFAULT_TIMEOUT_MS = 30000;
 
 @Injectable()
 export class UnipileService {
-  private readonly constructorName = String(this.constructor.name);
   private readonly integrationHttpClient: IntegrationHttpClient;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
     private readonly cryptoService: CredentialCryptoService,
   ) {
     this.integrationHttpClient = new IntegrationHttpClient({
-      fetch: (input, init) => this.fetchViaHttpService(input, init),
+      // The base URL is org-supplied, so every request is resolved, policy
+      // checked, and pinned to the checked address; redirects are re-checked.
+      fetch: (input, init) =>
+        safeFetch(input, init, { allowedSchemes: ['https:'] }),
       logger: this.loggerService,
     });
   }
@@ -69,6 +72,7 @@ export class UnipileService {
     },
   ): Promise<UnipileIntegrationStatus> {
     const apiBaseUrl = this.normalizeApiBaseUrl(input.apiBaseUrl);
+    await this.assertSafeApiBaseUrl(apiBaseUrl);
     const defaultAccountId = this.toOptionalString(input.defaultAccountId);
     const config: UnipileProviderConfig = {
       allowedAccountIds: this.normalizeAccountIds(input.allowedAccountIds),
@@ -373,36 +377,15 @@ export class UnipileService {
     });
   }
 
-  private async fetchViaHttpService(
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ): Promise<Response> {
-    const parsedUrl = new URL(String(input));
-    const url = `${parsedUrl.origin}${parsedUrl.pathname}`;
-    const options = {
-      headers: init?.headers as Record<string, string> | undefined,
-      params: Object.fromEntries(parsedUrl.searchParams.entries()),
-      timeout: DEFAULT_TIMEOUT_MS,
-      ...(init?.signal ? { signal: init.signal } : {}),
-    };
-    const method = init?.method ?? 'GET';
-
+  private async assertSafeApiBaseUrl(apiBaseUrl: string): Promise<void> {
     try {
-      const response = await firstValueFrom(
-        method === 'POST'
-          ? this.httpService.post(url, init?.body ?? null, options)
-          : this.httpService.get(url, options),
-      );
-
-      return new Response(JSON.stringify(response.data), {
-        headers: { 'content-type': 'application/json' },
-        status: response.status ?? 200,
-      });
+      await resolveSafeDestination(apiBaseUrl, { allowedSchemes: ['https:'] });
     } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} ${CallerUtil.getCallerName()} failed`,
-        error,
-      );
+      if (error instanceof DestinationGuardError) {
+        throw new BadRequestException(
+          `Unipile API base URL is not allowed: ${error.message}`,
+        );
+      }
       throw error;
     }
   }

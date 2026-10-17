@@ -34,7 +34,6 @@ import {
   ReplyTone,
   SystemPromptKey,
 } from '@genfeedai/contracts';
-import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -72,7 +71,6 @@ export class PromptsOperationsController {
   ) {}
 
   @Post('voice-to-speech')
-  @Public()
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {

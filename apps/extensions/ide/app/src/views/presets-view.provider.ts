@@ -1,5 +1,6 @@
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
+import { toExternalHttpUrl } from '@views/external-url.util';
 import { getWebviewNonce } from '@views/webview.util';
 import * as vscode from 'vscode';
 import { getWebviewStyles } from '@/styles';
@@ -114,8 +115,9 @@ export class PresetsViewProvider implements vscode.WebviewViewProvider {
               'Open in Browser',
             )
             .then((selection) => {
-              if (selection === 'Open in Browser') {
-                vscode.env.openExternal(vscode.Uri.parse(result.url));
+              const url = toExternalHttpUrl(result.url);
+              if (selection === 'Open in Browser' && url) {
+                vscode.env.openExternal(vscode.Uri.parse(url));
               }
             });
         },

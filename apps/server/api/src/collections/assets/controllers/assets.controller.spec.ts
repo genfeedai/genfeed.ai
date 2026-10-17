@@ -4,6 +4,8 @@ import { AssetsController } from '@api/collections/assets/controllers/assets.con
 import type { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
 import type { Asset } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -51,6 +53,10 @@ describe('AssetsController', () => {
     remove: vi.fn(),
   };
 
+  const mockBrandsService = {
+    findOne: vi.fn(),
+  };
+
   const mockCacheService = {
     del: vi.fn().mockResolvedValue(true),
     invalidateByTags: vi.fn().mockResolvedValue(0),
@@ -67,6 +73,10 @@ describe('AssetsController', () => {
         {
           provide: AssetsService,
           useValue: mockAssetsService,
+        },
+        {
+          provide: BrandsService,
+          useValue: mockBrandsService,
         },
         {
           provide: CacheService,
@@ -239,6 +249,7 @@ describe('AssetsController', () => {
       };
 
       mockAssetsService.findOne.mockResolvedValue(mockAsset);
+      mockBrandsService.findOne.mockResolvedValue({ id: mockBrandId });
       mockAssetsService.patchAll.mockResolvedValue({ modifiedCount: 1 });
       mockAssetsService.patch.mockResolvedValue(updatedAsset);
 
@@ -255,6 +266,57 @@ describe('AssetsController', () => {
         'assets',
         'public',
       ]);
+    });
+  });
+
+  describe('update parent ownership', () => {
+    const foreignBrandId = 'cmbrand000000000000000999';
+
+    beforeEach(() => {
+      mockAssetsService.findOne.mockResolvedValue(mockAsset);
+    });
+
+    it('does not retire any asset for a brand outside the caller org', async () => {
+      mockBrandsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.update(mockRequest, mockAssetId, mockUser, {
+          category: AssetCategory.LOGO,
+          parentId: foreignBrandId,
+          parentType: AssetParent.BRAND,
+        }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(mockBrandsService.findOne).toHaveBeenCalledWith({
+        id: foreignBrandId,
+        isDeleted: false,
+        organizationId: mockOrgId,
+      });
+      expect(mockAssetsService.patchAll).not.toHaveBeenCalled();
+      expect(mockAssetsService.patch).not.toHaveBeenCalled();
+      expect(mockCacheService.invalidateByTags).not.toHaveBeenCalled();
+    });
+
+    it('rejects reparenting under another organization', async () => {
+      await expect(
+        controller.update(mockRequest, mockAssetId, mockUser, {
+          parentId: 'cmorganization000000000000999',
+          parentType: AssetParent.ORGANIZATION,
+        }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(mockAssetsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('allows the caller own organization as parent', async () => {
+      mockAssetsService.patch.mockResolvedValue(mockAsset);
+
+      await controller.update(mockRequest, mockAssetId, mockUser, {
+        parentId: mockOrgId,
+        parentType: AssetParent.ORGANIZATION,
+      });
+
+      expect(mockAssetsService.patch).toHaveBeenCalled();
     });
   });
 
