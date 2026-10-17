@@ -4,10 +4,28 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IntegrationStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
+import { DestinationGuardError } from '@libs/security/destination-guard';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+
+const { resolveSafeDestinationMock, safeFetchMock } = vi.hoisted(() => ({
+  resolveSafeDestinationMock: vi.fn(),
+  safeFetchMock: vi.fn(),
+}));
+
+vi.mock('@libs/security/destination-guard', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@libs/security/destination-guard')
+  >()),
+  resolveSafeDestination: resolveSafeDestinationMock,
+  safeFetch: safeFetchMock,
+}));
+
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    headers: { 'content-type': 'application/json' },
+    status,
+  });
 
 describe('UnipileService', () => {
   let service: UnipileService;
@@ -20,11 +38,6 @@ describe('UnipileService', () => {
 
   const mockPrisma = {
     orgIntegration: mockOrgIntegration,
-  };
-
-  const mockHttpService = {
-    get: vi.fn(),
-    post: vi.fn(),
   };
 
   const mockConfigService = {
@@ -45,12 +58,12 @@ describe('UnipileService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resolveSafeDestinationMock.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UnipileService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: CredentialCryptoService, useValue: mockCryptoService },
@@ -127,32 +140,30 @@ describe('UnipileService', () => {
       encryptedToken: 'encrypted:secret-key',
       status: 'ACTIVE',
     });
-    mockHttpService.get.mockReturnValue(
-      of({
-        data: {
-          accounts: [
-            {
-              email: 'owner@example.com',
-              id: 'acct_1',
-              provider: 'GOOGLE',
-              status: 'OK',
-              token: 'never-return-this',
-            },
-            { id: 'acct_2', provider: 'LINKEDIN' },
-          ],
-          cursor: null,
-        },
-        status: 200,
+    safeFetchMock.mockResolvedValue(
+      jsonResponse({
+        accounts: [
+          {
+            email: 'owner@example.com',
+            id: 'acct_1',
+            provider: 'GOOGLE',
+            status: 'OK',
+            token: 'never-return-this',
+          },
+          { id: 'acct_2', provider: 'LINKEDIN' },
+        ],
+        cursor: null,
       }),
     );
 
     const result = await service.listAccounts('org_1');
 
-    expect(mockHttpService.get).toHaveBeenCalledWith(
+    expect(safeFetchMock).toHaveBeenCalledWith(
       'https://api1.unipile.com:13111/api/v1/accounts',
       expect.objectContaining({
         headers: expect.objectContaining({ 'X-API-KEY': 'secret-key' }),
       }),
+      { allowedSchemes: ['https:'] },
     );
     expect(result).toEqual({
       cursor: null,
@@ -176,8 +187,8 @@ describe('UnipileService', () => {
       encryptedToken: 'encrypted:secret-key',
       status: 'ACTIVE',
     });
-    mockHttpService.post.mockReturnValue(
-      of({ data: { id: 'email_1', status: 'queued' }, status: 201 }),
+    safeFetchMock.mockResolvedValue(
+      jsonResponse({ id: 'email_1', status: 'queued' }, 201),
     );
 
     const result = await service.sendEmail('org_1', {
@@ -187,12 +198,14 @@ describe('UnipileService', () => {
       to: [{ displayName: 'Ada', identifier: 'ada@example.com' }],
     });
 
-    expect(mockHttpService.post).toHaveBeenCalledWith(
+    expect(safeFetchMock).toHaveBeenCalledWith(
       'https://api1.unipile.com:13111/api/v1/emails',
-      expect.stringContaining('"account_id":"acct_1"'),
       expect.objectContaining({
+        body: expect.stringContaining('"account_id":"acct_1"'),
         headers: expect.objectContaining({ 'X-API-KEY': 'secret-key' }),
+        method: 'POST',
       }),
+      { allowedSchemes: ['https:'] },
     );
     expect(result).toEqual({ id: 'email_1', status: 'queued' });
   });
@@ -215,6 +228,21 @@ describe('UnipileService', () => {
         to: [{ identifier: 'ada@example.com' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(mockHttpService.post).not.toHaveBeenCalled();
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an API base URL the destination guard refuses', async () => {
+    resolveSafeDestinationMock.mockRejectedValue(
+      new DestinationGuardError('Destination resolves to a blocked address'),
+    );
+
+    await expect(
+      service.configure('org_1', {
+        apiBaseUrl: 'https://internal.example.com',
+        apiKey: 'secret-key',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(mockOrgIntegration.create).not.toHaveBeenCalled();
+    expect(mockOrgIntegration.update).not.toHaveBeenCalled();
   });
 });

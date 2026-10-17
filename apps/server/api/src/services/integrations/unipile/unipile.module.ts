@@ -3,11 +3,10 @@ import { UnipileController } from '@api/services/integrations/unipile/controller
 import { UnipileService } from '@api/services/integrations/unipile/services/unipile.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(UnipileService, {
-  additionalImports: [CredentialsCoreModule, HttpModule, PrismaModule],
+  additionalImports: [CredentialsCoreModule, PrismaModule],
 });
 
 @Module({
