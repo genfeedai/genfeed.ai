@@ -52,6 +52,13 @@ function formatCategoryForFilename(category: string): string {
   return category.toLowerCase().replace(/_/g, '-');
 }
 
+/**
+ * Long labels (AI prompts) are cut before the id and extension are appended, so
+ * `sanitizeDownloadFilename`'s overall cap never trims the part that identifies
+ * the file and keeps it openable.
+ */
+const MAX_FILENAME_LABEL_LENGTH = 80;
+
 export function sanitizeDownloadFilename(filename: string): string {
   const trimmed = filename.trim() || 'download';
   return trimmed.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 180);
@@ -67,7 +74,11 @@ export function ingredientDownloadFilename(
     (bytes ? extensionFromTrustedImageBytes(bytes) : undefined) ??
     extensionForImageContentType(mimeType) ??
     getIngredientExtension(ingredient);
-  return `${metadata?.label || 'genfeed'}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}.${extension}`;
+  const label = (metadata?.label || 'genfeed').slice(
+    0,
+    MAX_FILENAME_LABEL_LENGTH,
+  );
+  return `${label}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}.${extension}`;
 }
 
 export async function ingredientDownloadFilenameForBlob(
