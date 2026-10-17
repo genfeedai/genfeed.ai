@@ -29,8 +29,9 @@ export class SystemNotificationsController {
   ) {}
 
   @Get()
-  status() {
-    return { isAvailable: true };
+  async status() {
+    const discord = await this.discord.status().catch(() => null);
+    return { discord, isAvailable: true };
   }
 
   @Post()

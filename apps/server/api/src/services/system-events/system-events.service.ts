@@ -82,6 +82,7 @@ export class SystemEventsService {
     ] = await Promise.all([
       this.settings(),
       this.notifications.systemNotificationStatus().catch(() => ({
+        discord: null,
         transportConfigured: false,
       })),
       // tenant-scope-ignore: super-admin delivery history; payloads excluded from the response

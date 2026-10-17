@@ -20,6 +20,14 @@ export interface ISystemNotificationDestinationInput {
   address?: string;
 }
 
+/** Whether the operator Discord bot can deliver signup, studio and revenue alerts. */
+export interface IDiscordTransportStatus {
+  isBotConfigured: boolean;
+  isBotReady: boolean;
+  /** Platform-settings channels (users, studio, posts, deployments) with no channel ID. */
+  missingChannels: string[];
+}
+
 export interface ISystemNotificationOverview {
   id: string;
   configuration: {
@@ -27,6 +35,7 @@ export interface ISystemNotificationOverview {
     eventTypes: string[];
     recordingEnabled: boolean;
     transportConfigured: boolean;
+    discord: IDiscordTransportStatus | null;
   };
   destinations: ISystemNotificationDestination[];
   observedSignups: number;

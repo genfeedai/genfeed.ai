@@ -3,6 +3,7 @@ import {
   Injectable,
   type OnModuleDestroy,
   type OnModuleInit,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
 import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
@@ -167,8 +168,20 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * `false` when no bot is configured (the alert is skipped). A configured bot
+   * that has not connected yet, or lost its login, throws so the durable
+   * delivery retries instead of dropping the alert.
+   */
+  private hasWebhookAccess(): boolean {
+    if (!this.client) return false;
+    if (!this.isReady)
+      throw new ServiceUnavailableException('Discord bot is not connected');
+    return true;
+  }
+
   async getPostsWebhook(): Promise<WebhookClient | null> {
-    if (!this.client || !this.isReady) return null;
+    if (!this.hasWebhookAccess()) return null;
     return this.getOrCreateWebhook(
       (await this.runtimeSettings.get()).discordChannelIdPosts ?? undefined,
       await this.getWebhookName('Posts'),
@@ -176,7 +189,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getDeploymentsWebhook(): Promise<WebhookClient | null> {
-    if (!this.client || !this.isReady) return null;
+    if (!this.hasWebhookAccess()) return null;
     return this.getOrCreateWebhook(
       (await this.runtimeSettings.get()).discordChannelIdDeployments ??
         undefined,
@@ -185,7 +198,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getIngredientsWebhook(): Promise<WebhookClient | null> {
-    if (!this.client || !this.isReady) return null;
+    if (!this.hasWebhookAccess()) return null;
     return this.getOrCreateWebhook(
       (await this.runtimeSettings.get()).discordChannelIdStudio ?? undefined,
       await this.getWebhookName('Studio'),
@@ -193,7 +206,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getUsersWebhook(): Promise<WebhookClient | null> {
-    if (!this.client || !this.isReady) return null;
+    if (!this.hasWebhookAccess()) return null;
     return this.getOrCreateWebhook(
       (await this.runtimeSettings.get()).discordChannelIdUsers ?? undefined,
       await this.getWebhookName('Users'),
@@ -201,7 +214,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getModelsWebhook(): Promise<WebhookClient | null> {
-    if (!this.client || !this.isReady) return null;
+    if (!this.hasWebhookAccess()) return null;
     const channelId =
       ((await this.runtimeSettings.get()).discordChannelIdModels ||
         (await this.runtimeSettings.get()).discordChannelIdStudio) ??

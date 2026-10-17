@@ -36,6 +36,7 @@ describe('DiscordService', () => {
   };
 
   const mockDiscordBotService = {
+    botReady: false,
     getDeploymentsWebhook: vi.fn(),
     getIngredientsWebhook: vi.fn(),
     getModelsWebhook: vi.fn(),
@@ -145,6 +146,19 @@ describe('DiscordService', () => {
 
       expect(mockSend).not.toHaveBeenCalled();
       expect(mockLoggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('reports the missing channels and bot readiness', async () => {
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === 'DISCORD_CHANNEL_ID_USERS' ? '123' : undefined,
+      );
+      const { service } = await createService();
+
+      await expect(service.status()).resolves.toEqual({
+        isBotConfigured: true,
+        isBotReady: false,
+        missingChannels: ['deployments', 'posts', 'studio'],
+      });
     });
 
     it('should skip when webhook is unavailable', async () => {

@@ -39,6 +39,7 @@ const overview: ISystemNotificationOverview = {
     eventTypes: ['user.created'],
     recordingEnabled: true,
     transportConfigured: true,
+    discord: null,
   },
   observedSignups: 1,
   signupObservationStart: null,
@@ -82,6 +83,23 @@ beforeEach(() => {
   mocks.test.mockResolvedValue(overview);
 });
 describe('admin notification destinations', () => {
+  it('warns when Discord channels are not set', async () => {
+    mocks.overview.mockResolvedValue({
+      ...overview,
+      configuration: {
+        ...overview.configuration,
+        discord: {
+          isBotConfigured: true,
+          isBotReady: true,
+          missingChannels: ['users', 'studio'],
+        },
+      },
+    });
+    render(<SystemNotificationsPanel />);
+    expect(
+      await screen.findByText(/channel ID is set.*users, studio/),
+    ).toBeTruthy();
+  });
   it('preserves the encrypted webhook when changing only a destination name', async () => {
     render(<SystemNotificationsPanel />);
     fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));

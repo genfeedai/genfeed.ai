@@ -5213,6 +5213,8 @@
       "recordingDisabled": "Recording is disabled. Turn on Record system events in the Accounts tab to receive new events.",
       "deliveryDisabled": "Delivery is disabled in system notification settings.",
       "transportUnavailable": "The notification service is unavailable.",
+      "discordBotUnavailable": "The Discord bot is not connected, so signup, studio and revenue alerts are not delivered. Check DISCORD_BOT_TOKEN on the notifications service.",
+      "discordChannelsMissing": "Discord alerts for these channels are skipped until a channel ID is set in the Discord settings: {channels}.",
       "ready": "Recording is enabled. Destinations receive the selected events.",
       "webhookSaved": "Webhook saved securely",
       "enabled": "Enabled",

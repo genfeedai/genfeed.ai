@@ -56,6 +56,7 @@ export default function SystemNotificationsPanel() {
   const [editingId, setEditingId] = useState<string>();
   const [isBusy, setIsBusy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const discordStatus = overview?.configuration.discord;
   const load = useCallback(
     async (signal: AbortSignal) => {
       try {
@@ -132,6 +133,18 @@ export default function SystemNotificationsPanel() {
                   ? t('transportUnavailable')
                   : t('ready')}
           </p>
+          {discordStatus && !discordStatus.isBotReady ? (
+            <p className="text-sm text-destructive" role="alert">
+              {t('discordBotUnavailable')}
+            </p>
+          ) : null}
+          {discordStatus && discordStatus.missingChannels.length > 0 ? (
+            <p className="text-sm text-destructive" role="alert">
+              {t('discordChannelsMissing', {
+                channels: discordStatus.missingChannels.join(', '),
+              })}
+            </p>
+          ) : null}
           <Switch
             aria-label={t('deliveryEnabled')}
             label={t('deliveryEnabled')}

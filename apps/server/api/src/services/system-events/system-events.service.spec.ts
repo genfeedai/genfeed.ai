@@ -362,6 +362,7 @@ describe('system event outbox', () => {
         return 'delivered';
       });
       notifications.systemNotificationStatus.mockResolvedValue({
+        discord: null,
         transportConfigured: true,
       });
       Object.assign(service, {
@@ -406,6 +407,7 @@ describe('system event outbox', () => {
       const { service, prisma, event } = harness();
       event.failedAt = new Date();
       notifications.systemNotificationStatus.mockResolvedValue({
+        discord: null,
         transportConfigured: true,
       });
       Object.assign(service, { destinations: { list: async () => [] } });

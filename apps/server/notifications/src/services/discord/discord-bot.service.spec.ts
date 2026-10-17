@@ -222,6 +222,20 @@ describe('DiscordBotService', () => {
     });
   });
 
+  describe('webhook access', () => {
+    it('returns null when no bot is configured', async () => {
+      await expect(service.getUsersWebhook()).resolves.toBeNull();
+    });
+
+    it('throws so the delivery retries when the bot has not connected', async () => {
+      await service.onModuleInit();
+
+      await expect(service.getUsersWebhook()).rejects.toThrow(
+        'Discord bot is not connected',
+      );
+    });
+  });
+
   describe('getOrCreateWebhook', () => {
     beforeEach(async () => {
       await service.onModuleInit();

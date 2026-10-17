@@ -5,6 +5,7 @@ import {
 import type {
   IChannelDeliveryRequest,
   IChannelDeliveryResponse,
+  IDiscordTransportStatus,
   IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
   IEmailDeliveryResponse,
@@ -63,6 +64,28 @@ function readChannelDeliveryResponse(
   return null;
 }
 
+function readDiscordTransportStatus(
+  value: unknown,
+): IDiscordTransportStatus | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const isBotConfigured = Reflect.get(value, 'isBotConfigured');
+  const isBotReady = Reflect.get(value, 'isBotReady');
+  const missingChannels = Reflect.get(value, 'missingChannels');
+  if (
+    typeof isBotConfigured !== 'boolean' ||
+    typeof isBotReady !== 'boolean' ||
+    !Array.isArray(missingChannels)
+  )
+    return null;
+  return {
+    isBotConfigured,
+    isBotReady,
+    missingChannels: missingChannels
+      .filter((name): name is string => typeof name === 'string')
+      .slice(0, 10),
+  };
+}
+
 function isRetryableEmailDeliveryStatus(
   statusCode: number | undefined,
 ): boolean {
@@ -102,7 +125,10 @@ export class NotificationsService {
   ) {}
 
   /** Request-time provider acceptance for durable and authentication email. */
-  async systemNotificationStatus(): Promise<{ transportConfigured: boolean }> {
+  async systemNotificationStatus(): Promise<{
+    discord: IDiscordTransportStatus | null;
+    transportConfigured: boolean;
+  }> {
     const result = await this.requestSystemNotifications();
     if (
       !result ||
@@ -111,7 +137,10 @@ export class NotificationsService {
       result.isAvailable !== true
     )
       throw new Error('Invalid notifications status');
-    return { transportConfigured: true };
+    return {
+      discord: readDiscordTransportStatus(Reflect.get(result, 'discord')),
+      transportConfigured: true,
+    };
   }
 
   async deliverSystemNotification(

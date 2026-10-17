@@ -2,6 +2,7 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IDiscordEmbed,
   IDiscordEmbedField,
+  IDiscordTransportStatus,
   IIngredientNotificationData,
   IRevenueNotificationPayload,
   IUserCreatedPayload,
@@ -39,6 +40,23 @@ export class DiscordService {
     if (this.configService.isDiscordEnabled()) {
       this.loggerService.log('Discord service initialized with bot webhooks');
     }
+  }
+
+  async status(): Promise<IDiscordTransportStatus> {
+    const settings = await this.runtimeSettings.get();
+    const channels = {
+      deployments: settings.discordChannelIdDeployments,
+      posts: settings.discordChannelIdPosts,
+      studio: settings.discordChannelIdStudio,
+      users: settings.discordChannelIdUsers,
+    };
+    return {
+      isBotConfigured: this.configService.isDiscordEnabled(),
+      isBotReady: this.discordBotService.botReady,
+      missingChannels: Object.entries(channels)
+        .filter(([, channelId]) => !channelId)
+        .map(([name]) => name),
+    };
   }
 
   async sendSystemNotification(
