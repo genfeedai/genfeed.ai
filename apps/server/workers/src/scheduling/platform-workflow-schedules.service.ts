@@ -257,13 +257,19 @@ export class PlatformWorkflowSchedulesService {
         id: { in: organizations.map((organization) => organization.id) },
         isDeleted: false,
         OR: [
-          { user: { sessions: { some: { updatedAt: { gte: activeSince } } } } },
+          {
+            user: {
+              is: { sessions: { some: { updatedAt: { gte: activeSince } } } },
+            },
+          },
           {
             members: {
               some: {
                 isDeleted: false,
                 user: {
-                  sessions: { some: { updatedAt: { gte: activeSince } } },
+                  is: {
+                    sessions: { some: { updatedAt: { gte: activeSince } } },
+                  },
                 },
               },
             },

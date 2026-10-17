@@ -66,9 +66,11 @@ describe('PlatformWorkflowSchedulesService', () => {
             OR: [
               {
                 user: {
-                  sessions: {
-                    some: {
-                      updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+                  is: {
+                    sessions: {
+                      some: {
+                        updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+                      },
                     },
                   },
                 },
@@ -78,9 +80,11 @@ describe('PlatformWorkflowSchedulesService', () => {
                   some: {
                     isDeleted: false,
                     user: {
-                      sessions: {
-                        some: {
-                          updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+                      is: {
+                        sessions: {
+                          some: {
+                            updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+                          },
                         },
                       },
                     },
