@@ -333,7 +333,9 @@ export class ApiKeysController {
                 : updateApiKeyDto.allowedIps,
             expiresAt:
               updateApiKeyDto.expiresAt === undefined
-                ? existingKey.expiresAt?.toISOString()
+                ? existingKey.expiresAt
+                  ? existingKey.expiresAt.toISOString()
+                  : null
                 : updateApiKeyDto.expiresAt,
           },
       false,
@@ -410,7 +412,9 @@ export class ApiKeysController {
       allowedIps: existingKey.allowedIps,
       category: this.toApiKeyCategory(existingKey.category),
       description: existingKey.description ?? undefined,
-      expiresAt: existingKey.expiresAt?.toISOString(),
+      expiresAt: existingKey.expiresAt
+        ? existingKey.expiresAt.toISOString()
+        : null,
       label: existingKey.label,
       metadata,
       organizationId: user.organizationId,

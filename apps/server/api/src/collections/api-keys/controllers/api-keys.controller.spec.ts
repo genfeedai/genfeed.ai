@@ -899,6 +899,20 @@ describe('ApiKeysController', () => {
       ).rejects.toMatchObject({ status: 403 });
       expect(mockApiKeysService.patch).not.toHaveBeenCalled();
 
+      // IPs already match the caller's; only the missing expiry is wrong.
+      mockApiKeysService.findOne
+        .mockResolvedValueOnce({
+          ...unrestrictedSibling,
+          allowedIps: ['203.0.113.7'],
+        })
+        .mockResolvedValueOnce(callerKey);
+      await expect(
+        controller.update(mockRequest, callerUser, siblingId, {
+          scopes: ['videos:read'],
+        } as UpdateApiKeyDto),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mockApiKeysService.patch).not.toHaveBeenCalled();
+
       mockApiKeysService.findOne
         .mockResolvedValueOnce({
           ...unrestrictedSibling,
