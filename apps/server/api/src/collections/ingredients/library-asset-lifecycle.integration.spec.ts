@@ -81,7 +81,6 @@ import {
 } from '@genfeedai/serializers';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
@@ -619,7 +618,6 @@ describe('Library asset lifecycle', () => {
     );
     imagesUploadsController = new ImagesUploadsController(
       filesClientService as unknown as FilesClientService,
-      { get: vi.fn() } as unknown as HttpService,
       logger,
       {
         confirmUpload: vi.fn(),
