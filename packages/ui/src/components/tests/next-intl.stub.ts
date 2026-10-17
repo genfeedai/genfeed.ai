@@ -797,6 +797,7 @@ const UI_TEST_MESSAGES = {
       },
     },
     library: {
+      emptyOpenPlayground: 'Open Playground',
       scrollTable: 'Scroll table horizontally',
       recovery: {
         actions: {
