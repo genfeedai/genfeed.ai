@@ -286,6 +286,7 @@ export interface ModalPostContentProps {
     updates: Partial<IPostPlatformConfig>,
   ) => void;
   getMinDateTime: () => Date;
+  scheduleTimezone: string;
 }
 
 export interface ModalPostPlatformsTabProps {
@@ -301,6 +302,7 @@ export interface ModalPostPlatformsTabProps {
     updates: Partial<IPostPlatformConfig>,
   ) => void;
   getMinDateTime: () => Date;
+  scheduleTimezone: string;
 }
 
 export interface ModalPostSetupTabProps {

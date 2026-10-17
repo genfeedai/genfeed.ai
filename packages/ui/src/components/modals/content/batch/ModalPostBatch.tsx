@@ -33,6 +33,7 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
     globalScheduledDate,
     setGlobalScheduledDate,
     getMinDateTime,
+    scheduleTimezone,
     settings,
     activeIngredients,
     enabledCount,
@@ -123,6 +124,7 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
                       togglePlatform={togglePlatform}
                       updatePlatformConfig={updatePlatformConfig}
                       getMinDateTime={getMinDateTime}
+                      scheduleTimezone={scheduleTimezone}
                     />
                   </div>
 

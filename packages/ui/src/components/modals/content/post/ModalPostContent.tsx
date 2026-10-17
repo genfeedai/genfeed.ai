@@ -18,6 +18,7 @@ export default function ModalPostContent({
   togglePlatform,
   updatePlatformConfig,
   getMinDateTime,
+  scheduleTimezone,
 }: ModalPostContentProps) {
   if (activeTab === 'setup') {
     return (
@@ -44,6 +45,7 @@ export default function ModalPostContent({
       togglePlatform={togglePlatform}
       updatePlatformConfig={updatePlatformConfig}
       getMinDateTime={getMinDateTime}
+      scheduleTimezone={scheduleTimezone}
     />
   );
 }
