@@ -284,6 +284,7 @@ describe('AssetsController', () => {
           category: AssetCategory.LOGO,
           parentId: foreignBrandId,
           parentType: AssetParent.BRAND,
+          isDeleted: false,
         }),
       ).rejects.toThrow(NotFoundException);
 
@@ -302,6 +303,7 @@ describe('AssetsController', () => {
         controller.update(mockRequest, mockAssetId, mockUser, {
           parentId: 'cmorganization000000000000999',
           parentType: AssetParent.ORGANIZATION,
+          isDeleted: false,
         }),
       ).rejects.toThrow(NotFoundException);
 
@@ -314,6 +316,7 @@ describe('AssetsController', () => {
       await controller.update(mockRequest, mockAssetId, mockUser, {
         parentId: mockOrgId,
         parentType: AssetParent.ORGANIZATION,
+        isDeleted: false,
       });
 
       expect(mockAssetsService.patch).toHaveBeenCalled();

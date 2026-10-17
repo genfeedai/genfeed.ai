@@ -57,7 +57,9 @@ export class UnipileService {
       // The base URL is org-supplied, so every request is resolved, policy
       // checked, and pinned to the checked address; redirects are re-checked.
       fetch: (input, init) =>
-        safeFetch(input, init, { allowedSchemes: ['https:'] }),
+        safeFetch(input instanceof Request ? input.url : input, init, {
+          allowedSchemes: ['https:'],
+        }),
       logger: this.loggerService,
     });
   }
