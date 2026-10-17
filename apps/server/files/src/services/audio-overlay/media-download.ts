@@ -41,7 +41,7 @@ export async function downloadPublicMedia(
       : {},
   );
   if (!response.ok || !response.body) {
-    await response.body?.cancel().catch(() => undefined);
+    void response.body?.cancel().catch(() => undefined);
     throw new Error('Media download failed');
   }
   const reader = response.body.getReader();
@@ -62,7 +62,7 @@ export async function downloadPublicMedia(
     }
   } finally {
     try {
-      if (!complete) await reader.cancel().catch(() => undefined);
+      if (!complete) void reader.cancel().catch(() => undefined);
     } finally {
       reader.releaseLock();
     }

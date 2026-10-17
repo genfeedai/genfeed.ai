@@ -144,6 +144,17 @@ describe('downloadPublicMedia', () => {
       downloadPublicMedia('https://cdn.example.com/audio.wav', 10),
     ).rejects.toThrow('Media download failed');
   });
+
+  it('does not wait for a failed response cancellation to settle', async () => {
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    const body = new ReadableStream<Uint8Array>({ cancel });
+    guardedFetch.mockResolvedValue(new Response(body, { status: 503 }));
+
+    await expect(
+      downloadPublicMedia('https://cdn.example.com/audio.wav', 10),
+    ).rejects.toThrow('Media download failed');
+    expect(cancel).toHaveBeenCalledOnce();
+  }, 500);
 });
 
 describe('configured private storage downloads', () => {
