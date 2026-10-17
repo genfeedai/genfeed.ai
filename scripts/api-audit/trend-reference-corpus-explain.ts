@@ -22,7 +22,6 @@ interface PgModule {
   Client: new (options: {
     connectionString: string;
     connectionTimeoutMillis: number;
-    ssl?: { rejectUnauthorized: boolean };
   }) => PgClient;
 }
 
@@ -273,11 +272,8 @@ export async function runTrendReferenceCorpusExplain(
   }
 
   const client = new pg.Client({
-    connectionString: normalizeDatabaseUrl(databaseUrl),
+    connectionString: databaseUrl,
     connectionTimeoutMillis: 10_000,
-    ssl: shouldUseRelaxedSsl(databaseUrl)
-      ? { rejectUnauthorized: false }
-      : undefined,
   });
 
   await client.connect();
@@ -563,30 +559,6 @@ async function loadPgModule(): Promise<PgModule | null> {
   } catch {
     return null;
   }
-}
-
-function normalizeDatabaseUrl(databaseUrl: string): string {
-  const url = new URL(databaseUrl);
-  if (
-    !isLocalHost(url.hostname) &&
-    url.searchParams.get('sslmode') !== 'disable'
-  ) {
-    url.searchParams.set('sslmode', 'no-verify');
-  }
-  return url.toString();
-}
-
-function shouldUseRelaxedSsl(databaseUrl: string): boolean {
-  const url = new URL(databaseUrl);
-  return (
-    !isLocalHost(url.hostname) && url.searchParams.get('sslmode') !== 'disable'
-  );
-}
-
-function isLocalHost(hostname: string): boolean {
-  return (
-    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
-  );
 }
 
 function parseCliOptions(argv: string[]): CliOptions {
