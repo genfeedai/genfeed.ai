@@ -34,6 +34,7 @@ import type {
   StudioPlaygroundReferenceRole,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
 import {
   getDefaultVideoResolution,
   getVideoResolutionLabel,
@@ -276,6 +277,37 @@ export default function StudioPlaygroundComposer({
   const isPromptEmpty = prompt.trim().length === 0;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
   const selectedModel = models.find((model) => model.key === settings.modelKey);
+  // A provider can cap the clip length at some resolutions. When the model or
+  // resolution changes, keep the closest length the pair can run instead of
+  // submitting a clip the provider rejects.
+  useEffect(() => {
+    if (
+      type !== 'video' ||
+      !selectedModel ||
+      selectedModel.provider === 'crun' ||
+      !settings.duration
+    )
+      return;
+    const options = resolveModelDurationOptions(
+      selectedModel,
+      settings.resolution,
+    );
+    const requested = settings.duration;
+    if (options.length === 0 || options.includes(requested)) return;
+    onSettingsChange({
+      duration: options.reduce((best, candidate) =>
+        Math.abs(candidate - requested) < Math.abs(best - requested)
+          ? candidate
+          : best,
+      ),
+    });
+  }, [
+    type,
+    selectedModel,
+    settings.duration,
+    settings.resolution,
+    onSettingsChange,
+  ]);
   const displaySettings = settings;
   const isFirstFrameMissing =
     type === 'video' &&

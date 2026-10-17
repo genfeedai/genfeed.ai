@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MODEL_KEYS } from '.';
 import {
   getModelDefaultDuration,
+  getModelDurationLimits,
   getModelDurations,
   getModelDurationsForResolution,
   getModelMaxOutputs,
@@ -26,6 +27,7 @@ import {
   isImagenModel,
   isOnlyImagenModels,
   isReferencesMandatory,
+  narrowDurationsByResolution,
   requiresFirstFrame,
   supportsMultipleOutputs,
   supportsMultipleReferences,
@@ -303,6 +305,52 @@ describe('model-helpers.constant', () => {
 
     it('returns empty for unknown model', () => {
       expect(getModelDurationsForResolution(UNKNOWN, '1080p')).toEqual([]);
+    });
+
+    it('lets limits read from the provider contract replace the static cap', () => {
+      expect(
+        getModelDurationsForResolution(
+          MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+          '1080p',
+          null,
+          { '1080P': [6, 10] },
+        ),
+      ).toEqual([6, 10]);
+    });
+  });
+
+  describe('getModelDurationLimits', () => {
+    it('merges live limits over the static capability, lowercasing keys', () => {
+      expect(
+        getModelDurationLimits(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST, {
+          '768P': [6],
+        }),
+      ).toEqual({ '1080p': [6], '768p': [6] });
+    });
+
+    it('keeps live limits for a model the static table does not know', () => {
+      expect(getModelDurationLimits(UNKNOWN, { '720p': [5] })).toEqual({
+        '720p': [5],
+      });
+    });
+  });
+
+  describe('narrowDurationsByResolution', () => {
+    it('applies a cap case-insensitively and ignores an uncapped resolution', () => {
+      const limits = { '1080p': [6] };
+      expect(narrowDurationsByResolution([6, 10], limits, '1080P')).toEqual([
+        6,
+      ]);
+      expect(narrowDurationsByResolution([6, 10], limits, '768p')).toEqual([
+        6, 10,
+      ]);
+      expect(narrowDurationsByResolution([6, 10], limits)).toEqual([6, 10]);
+    });
+
+    it('answers with the cap when no offered length survives it', () => {
+      expect(
+        narrowDurationsByResolution([5, 10], { '1080p': [6] }, '1080p'),
+      ).toEqual([6]);
     });
   });
 });

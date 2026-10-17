@@ -258,6 +258,8 @@ export interface GenerationSetupOutputSectionProps {
   /** Surface-owned model controls rendered after the shared output fields. */
   controls?: ReactNode;
   inputControls?: CrunInputControls;
+  /** Catalog models, read for the selected model's clip lengths per resolution. */
+  models?: readonly IModel[];
   referenceCount?: number;
   capabilities: StudioPlaygroundCapabilities;
   onResetField: (key: GenerationSetupFieldKey) => void;

@@ -55,6 +55,8 @@ export interface IModel extends IBaseEntity {
   maxReferences?: number;
   isBatchSupported?: boolean;
   durations?: number[];
+  /** Lengths the provider runs per resolution (lowercase keys), from its reviewed rates. */
+  durationsByResolution?: Record<string, number[]>;
   defaultDuration?: number;
   hasEndFrame?: boolean;
   hasInterpolation?: boolean;
