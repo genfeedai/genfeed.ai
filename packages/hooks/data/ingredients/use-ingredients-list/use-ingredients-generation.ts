@@ -61,6 +61,7 @@ export function useIngredientsGeneration({
   >({ isValid: false, text: '' });
   const [isImageToVideoGenerating, setIsImageToVideoGenerating] =
     useState(false);
+  const isImageToVideoSubmittingRef = useRef(false);
 
   const preparedCrunRequestRef = useRef<CrunVideoQuoteRequest | null>(null);
   const imageToVideoCrunBinding = useMemo<CrunVideoPromptBinding>(() => {
@@ -270,7 +271,8 @@ export function useIngredientsGeneration({
 
   const handleImageToVideoSubmit = useCallback(
     async (data: PromptTextareaSchema & { isValid: boolean }) => {
-      if (!imageToVideoTarget) {
+      // This modal converts one ingredient, so a second click must not start a duplicate.
+      if (!imageToVideoTarget || isImageToVideoSubmittingRef.current) {
         return;
       }
 
@@ -302,6 +304,7 @@ export function useIngredientsGeneration({
         );
         return;
       }
+      isImageToVideoSubmittingRef.current = true;
       setIsImageToVideoGenerating(true);
 
       try {
@@ -388,6 +391,7 @@ export function useIngredientsGeneration({
             : 'Failed to generate video from image';
         notificationsService.error(errorMessage);
       } finally {
+        isImageToVideoSubmittingRef.current = false;
         setIsImageToVideoGenerating(false);
       }
     },

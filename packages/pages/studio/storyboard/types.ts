@@ -32,7 +32,6 @@ export interface UseStoryboardGenerationReturn {
   frames: IImage[];
   handleGenerateStoryboard: () => Promise<void>;
   hasInterpolationModel: boolean;
-  isStoryboardGenerating: boolean;
   setCameraMovementPreset: (preset: CameraMovementPreset) => void;
   setCustomCameraPrompt: (prompt: string) => void;
   setFrames: React.Dispatch<React.SetStateAction<IImage[]>>;

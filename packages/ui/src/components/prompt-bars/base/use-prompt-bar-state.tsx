@@ -858,7 +858,6 @@ export function usePromptBarState({
         if (
           isGenerateBlocked ||
           isGenerateDisabled ||
-          isGenerating ||
           crunSubmittingRef.current ||
           !(isCrunVideo ? crunVideoBinding : crunBinding)
         )
@@ -910,12 +909,7 @@ export function usePromptBarState({
           });
         return;
       }
-      if (
-        onSubmit &&
-        !isGenerateBlocked &&
-        !isGenerateDisabled &&
-        !isGenerating
-      ) {
+      if (onSubmit && !isGenerateBlocked && !isGenerateDisabled) {
         if (onPrepareSubmit) {
           const currentReferences = form.getValues('references') ?? [];
           const prepared = onPrepareSubmit({
@@ -948,7 +942,6 @@ export function usePromptBarState({
       form,
       isGenerateBlocked,
       isGenerateDisabled,
-      isGenerating,
       notificationsService,
       onPrepareSubmit,
       onSubmit,

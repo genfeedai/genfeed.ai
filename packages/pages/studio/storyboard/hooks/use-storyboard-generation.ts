@@ -61,7 +61,6 @@ export function useStoryboardGeneration({
   const [cameraMovementPreset, setCameraMovementPreset] =
     useState<CameraMovementPreset>(DEFAULT_STORYBOARD_PRESET);
   const [customCameraPrompt, setCustomCameraPrompt] = useState('');
-  const [isStoryboardGenerating, setIsStoryboardGenerating] = useState(false);
   const storyboardModels = useMemo(
     () => getStoryboardInterpolationModels(currentModels),
     [currentModels],
@@ -131,8 +130,6 @@ export function useStoryboardGeneration({
       notificationsService.error('Storyboard frames must have valid image IDs');
       return;
     }
-
-    setIsStoryboardGenerating(true);
 
     try {
       const service = await getVideosService();
@@ -266,8 +263,6 @@ export function useStoryboardGeneration({
     } catch (error) {
       logger.error('Failed to generate storyboard transitions', error);
       notificationsService.error('Failed to generate storyboard');
-    } finally {
-      setIsStoryboardGenerating(false);
     }
   }, [
     addToGenerationQueue,
@@ -300,7 +295,6 @@ export function useStoryboardGeneration({
     frames,
     handleGenerateStoryboard,
     hasInterpolationModel: storyboardModels.length > 0,
-    isStoryboardGenerating,
     setCameraMovementPreset,
     setCustomCameraPrompt,
     setFrames,

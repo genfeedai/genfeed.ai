@@ -599,6 +599,31 @@ describe('PromptBar', () => {
     }
   });
 
+  it('still submits while an earlier generation is running', () => {
+    const mockOnSubmit = vi.fn();
+    mockUseWatch.mockImplementation(({ name }) => {
+      if (name === 'models') {
+        return ['test-model'];
+      }
+      if (name === 'format') {
+        return IngredientFormat.PORTRAIT;
+      }
+      if (name === 'outputs') {
+        return 1;
+      }
+      return null;
+    });
+
+    render(
+      <PromptBar {...defaultProps} isGenerating onSubmit={mockOnSubmit} />,
+    );
+    const submitButton = screen.queryByTestId('submit-button');
+    if (submitButton) {
+      fireEvent.click(submitButton);
+      expect(mockOnSubmit).toHaveBeenCalled();
+    }
+  });
+
   describe('effects and handlers', () => {
     it('passes attached prompt assets to the expanded view', async () => {
       mockUsePromptBarReferences.mockReturnValue({

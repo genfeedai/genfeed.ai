@@ -296,7 +296,6 @@ const settings = {
 
 const baseProps = {
   attachedAssets: [],
-  isGenerating: false,
   isListening: false,
   isLoadingModels: false,
   isTranscribing: false,

@@ -362,7 +362,7 @@ describe('PromptBarEssentials', () => {
     expect(onTextChange).toHaveBeenCalledWith('Use plan mode for this task');
   });
 
-  it('replaces Generate with Stop when generating and onCancel is provided', () => {
+  it('keeps Generate next to Stop while generating so another prompt can be sent', () => {
     const onCancel = vi.fn();
     render(
       <PromptBarEssentials
@@ -372,7 +372,7 @@ describe('PromptBarEssentials', () => {
       />,
     );
 
-    expect(screen.queryByTestId('generate-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('generate-button')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('stop-generation-button'));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });

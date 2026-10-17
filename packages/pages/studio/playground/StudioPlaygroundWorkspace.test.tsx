@@ -474,7 +474,6 @@ vi.mock('@pages/studio/playground/hooks/useStudioPlaygroundSettings', () => ({
 
 vi.mock('@pages/studio/playground/hooks/useStudioGeneration', () => ({
   useStudioGeneration: () => ({
-    isGenerating: false,
     jobs: [],
     rehydratePending: mocks.rehydratePending,
     removeJob: mocks.removeJob,
@@ -733,7 +732,6 @@ describe('StudioPlaygroundWorkspace', () => {
     fireEvent.click(action);
     expect(mocks.createFromUploadAssetId).toHaveBeenCalledWith('owned-upload');
     expect(mocks.clearAttachments).not.toHaveBeenCalled();
-    expect(mocks.composer.mock.calls.at(-1)?.[0].isGenerating).toBe(false);
   });
 
   it('announces load failure, hides false empty results and keeps the composer enabled', () => {
@@ -756,7 +754,6 @@ describe('StudioPlaygroundWorkspace', () => {
     retry.focus();
     fireEvent.click(retry);
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(mocks.composer.mock.calls.at(-1)?.[0].isGenerating).toBe(false);
     mocks.gallery.mockReturnValue({
       galleryError: 'load',
       isLoadingGallery: true,

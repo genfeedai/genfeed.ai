@@ -14,7 +14,6 @@ export function StoryboardPanel({
   format,
   frames,
   hasInterpolationModel,
-  isGenerating,
   onCameraMovementPresetChange,
   onClear,
   onCustomCameraPromptChange,
@@ -58,7 +57,7 @@ export function StoryboardPanel({
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             onClick={onClear}
-            isDisabled={isGenerating || frames.length === 0}
+            isDisabled={frames.length === 0}
             icon={<X />}
             label={translate('clear')}
           />
@@ -66,10 +65,7 @@ export function StoryboardPanel({
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             onClick={onGenerate}
-            isDisabled={
-              isGenerating || transitionCount === 0 || !hasInterpolationModel
-            }
-            isLoading={isGenerating}
+            isDisabled={transitionCount === 0 || !hasInterpolationModel}
             icon={<Sparkles />}
             label={translate('generate')}
             tooltip={generateTooltip}

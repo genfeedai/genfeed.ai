@@ -80,7 +80,6 @@ export interface StoryboardPanelProps {
   format: IngredientFormat;
   frames: IImage[];
   hasInterpolationModel: boolean;
-  isGenerating: boolean;
   onCameraMovementPresetChange: (preset: CameraMovementPreset) => void;
   onClear: () => void;
   onCustomCameraPromptChange: (prompt: string) => void;

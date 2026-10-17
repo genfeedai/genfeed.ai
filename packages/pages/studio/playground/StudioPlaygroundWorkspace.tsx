@@ -329,6 +329,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     setCrunRestoreStatus(null);
   }, []);
   const [prompt, setPrompt] = useState('');
+  // Submits overlap, so an accepted one must not wipe what was typed since.
+  const latestPromptRef = useRef(prompt);
+  latestPromptRef.current = prompt;
   const [documentSeed, setDocumentSeed] =
     useState<PromptEditorDocumentSeed | null>(null);
   const {
@@ -598,7 +601,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const {
     cancelJob,
     generateWithoutBrand,
-    isGenerating,
     jobs,
     rehydratePending,
     removeJob,
@@ -1288,8 +1290,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       const submission = previewOption
         ? submit(prompt, resolvedReferences, previewOption)
         : submit(prompt, resolvedReferences);
+      const submittedPrompt = prompt;
       void submission.then((accepted) => {
-        if (accepted) setPrompt('');
+        if (accepted && latestPromptRef.current === submittedPrompt) {
+          setPrompt('');
+        }
       });
       return;
     }
@@ -1307,6 +1312,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     for (const notice of prepared.notices) {
       notificationsService.warning(notice);
     }
+    const submittedPrompt = prompt;
     void submit(
       prepared.text,
       {
@@ -1344,8 +1350,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       },
     ).then((isAccepted) => {
       // A sent generation leaves an empty composer (and draft) behind; the
-      // model settings stay for the next one.
-      if (isAccepted) {
+      // model settings stay for the next one. Skipped when the user already
+      // moved on to the next prompt while this one was being sent.
+      if (isAccepted && latestPromptRef.current === submittedPrompt) {
         setPrompt('');
         setContentReferences([]);
         restoredRolesRef.current.clear();
@@ -2545,7 +2552,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                   {showEmptyStarterIdeas ? (
                     <StudioPlaygroundStarterIdeas
                       character={pickStarterCharacter(characterMentions)}
-                      isDisabled={isGenerating}
                       offeringKind={starterOffering}
                       onSelect={handleStarterIdea}
                       productReference={pickStarterProductReference(
@@ -2582,7 +2588,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
               showDockedStarterIdeas ? (
                 <StudioPlaygroundStarterIdeas
                   character={pickStarterCharacter(characterMentions)}
-                  isDisabled={isGenerating}
                   isDocked
                   offeringKind={starterOffering}
                   onSelect={handleStarterIdea}
@@ -2656,7 +2661,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 extraExtensions={extraExtensions}
                 isDragActive={capabilities.hasReferences && dragState.isActive}
                 isEnhancingPrompt={isEnhancingPrompt}
-                isGenerating={isGenerating}
                 isListening={isListening}
                 isLoadingModels={isLoadingModels}
                 isTranscribing={isTranscribing}

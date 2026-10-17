@@ -104,10 +104,9 @@ export interface UseStudioGenerationReturn {
   /**
    * Re-sends a generation that stopped on a brand enhancement failure with the
    * prompt exactly as typed and no brand applied. No-op once the failure is
-   * gone (reload, removal) or while another request is in flight.
+   * gone (reload, removal).
    */
   generateWithoutBrand: (job: StudioPlaygroundJob) => Promise<void>;
-  isGenerating: boolean;
   jobs: readonly StudioPlaygroundJob[];
   rehydratePending: (jobs: readonly StudioPlaygroundJob[]) => void;
   removeJob: (id: string) => void;
@@ -174,14 +173,12 @@ export function useStudioGeneration({
   const { subscribe, connectionState } = useSocketManager();
   const activeBrandRef = useRef(brandId);
   activeBrandRef.current = brandId;
-  const submittingRef = useRef(false);
   const consumedCrunQuoteRef = useRef<string | null>(null);
   const cancellingIds = useRef(new Set<string>());
   /** Per failed run: re-sends the exact request, raw, with the settings it had. */
   const brandRetriesRef = useRef(new Map<string, () => Promise<boolean>>());
   const failedHydrationIdsRef = useRef(new Set<string>());
   const [jobs, setJobs] = useState<readonly StudioPlaygroundJob[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [jobsBrandId, setJobsBrandId] = useState(brandId);
 
   const subscriptionsRef = useRef<Array<() => void>>([]);
@@ -688,10 +685,6 @@ export function useStudioGeneration({
       references: StudioGenerationReferences = {},
       options?: StudioGenerationOptions,
     ): Promise<boolean> {
-      if (submittingRef.current) {
-        return false;
-      }
-
       const referencePreviewUrl = readStudioReferencePreviewUrl(
         options?.referencePreviewUrl,
       );
@@ -877,8 +870,6 @@ export function useStudioGeneration({
       };
 
       let isAccepted = false;
-      submittingRef.current = true;
-      setIsGenerating(true);
       setJobs((previous) => [
         ...Array.from(
           {
@@ -1248,9 +1239,6 @@ export function useStudioGeneration({
         onGeneratedRef.current?.();
         window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
         notificationsService.error(message);
-      } finally {
-        submittingRef.current = false;
-        setIsGenerating(false);
       }
 
       return isAccepted;
@@ -1278,7 +1266,7 @@ export function useStudioGeneration({
       const retry = job.runId
         ? brandRetriesRef.current.get(job.runId)
         : undefined;
-      if (!job.runId || !retry || submittingRef.current) {
+      if (!job.runId || !retry) {
         return;
       }
       brandRetriesRef.current.delete(job.runId);
@@ -1292,7 +1280,6 @@ export function useStudioGeneration({
     cancelJob,
     clearJobs,
     generateWithoutBrand,
-    isGenerating,
     jobs: jobsBrandId === brandId ? jobs : [],
     rehydratePending,
     removeJob,

@@ -69,7 +69,6 @@ export function LegacyStoryboardWorkspace() {
     interpolateFrames,
     isGeneratingScenes,
     isMerging,
-    isStoryboardGenerating,
     mergeProgress,
     mergeSelectedVideos,
     mergeSettings,
@@ -202,7 +201,6 @@ export function LegacyStoryboardWorkspace() {
               format={format}
               frames={interpolateFrames}
               hasInterpolationModel={hasInterpolationModel}
-              isGenerating={isStoryboardGenerating}
               onCameraMovementPresetChange={setCameraMovementPreset}
               onClear={clearInterpolate}
               onCustomCameraPromptChange={setCustomCameraPrompt}
@@ -214,7 +212,6 @@ export function LegacyStoryboardWorkspace() {
           {mode === 'interpolate' ? (
             <Card label={translate('autoMerge.label')}>
               <MergeSettingsPanel
-                isDisabled={isStoryboardGenerating}
                 settings={mergeSettings}
                 onChange={updateMergeSettings}
               />

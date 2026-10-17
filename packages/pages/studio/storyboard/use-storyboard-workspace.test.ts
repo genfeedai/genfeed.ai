@@ -98,7 +98,6 @@ vi.mock('@pages/studio/storyboard/hooks/use-storyboard-generation', () => ({
     frames: [],
     handleGenerateStoryboard: vi.fn(),
     hasInterpolationModel: true,
-    isStoryboardGenerating: false,
     setCameraMovementPreset: vi.fn(),
     setCustomCameraPrompt: vi.fn(),
     setFrames: vi.fn(),

@@ -176,40 +176,38 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               tooltipPosition="top"
               ariaLabel="Stop generation"
               className={cn(
-                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-colors duration-300',
+                'absolute right-11 top-1/2 -translate-y-1/2 size-8 p-0 transition-colors duration-300',
               )}
               data-testid="stop-generation-button"
             />
-          ) : (
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              icon={<ArrowUp />}
-              isDisabled={
-                isGenerateBlocked ||
-                isGenerateDisabled ||
-                !isFormValid ||
-                !watchedTextTrimmed
-              }
-              isLoading={isGenerating}
-              onClick={() => onSubmit()}
-              tooltip={
-                activeGenerationsCount > 0
-                  ? `${generateLabel} (Queue)`
-                  : generateLabel
-              }
-              tooltipPosition="top"
-              ariaLabel={
-                activeGenerationsCount > 0
-                  ? `${generateLabel} (Queue)`
-                  : generateLabel
-              }
-              className={cn(
-                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-colors duration-300',
-                activeGenerationsCount > 0 && 'bg-warning hover:bg-warning/90',
-              )}
-              data-testid="generate-button"
-            />
-          )}
+          ) : null}
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            icon={<ArrowUp />}
+            isDisabled={
+              isGenerateBlocked ||
+              isGenerateDisabled ||
+              !isFormValid ||
+              !watchedTextTrimmed
+            }
+            onClick={() => onSubmit()}
+            tooltip={
+              activeGenerationsCount > 0
+                ? `${generateLabel} (Queue)`
+                : generateLabel
+            }
+            tooltipPosition="top"
+            ariaLabel={
+              activeGenerationsCount > 0
+                ? `${generateLabel} (Queue)`
+                : generateLabel
+            }
+            className={cn(
+              'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-colors duration-300',
+              activeGenerationsCount > 0 && 'bg-warning hover:bg-warning/90',
+            )}
+            data-testid="generate-button"
+          />
         </div>
 
         {formatIcon &&

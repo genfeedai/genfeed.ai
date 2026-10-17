@@ -136,6 +136,19 @@ describe('PromptBarCollapsedView', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('keeps Generate next to Stop while generating', () => {
+    render(
+      <PromptBarCollapsedView
+        {...defaultProps}
+        isGenerating
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('generate-button')).toBeInTheDocument();
+    expect(screen.getByTestId('stop-generation-button')).toBeInTheDocument();
+  });
+
   it('should render while generating', () => {
     const { container } = render(
       <PromptBarCollapsedView {...defaultProps} isGenerating={true} />,

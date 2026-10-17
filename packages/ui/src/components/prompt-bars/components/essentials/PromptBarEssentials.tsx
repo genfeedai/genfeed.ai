@@ -518,33 +518,32 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 className={cn('transition-colors duration-300', 'size-9 p-0')}
                 data-testid="stop-generation-button"
               />
-            ) : (
-              <Button
-                variant={ButtonVariant.DEFAULT}
-                icon={<ArrowUp />}
-                isDisabled={
-                  isGenerateBlocked ||
-                  isGenerateDisabled ||
-                  !form.formState.isValid ||
-                  !watchedTextTrimmed
-                }
-                isLoading={isGenerating}
-                onClick={() => handleSubmitForm()}
-                tooltip={
-                  activeGenerations.length > 0
-                    ? `${generateLabel} (Queue)`
-                    : generateLabel
-                }
-                tooltipPosition="top"
-                ariaLabel={
-                  activeGenerations.length > 0
-                    ? `${generateLabel} (Queue)`
-                    : generateLabel
-                }
-                className={cn('transition-colors duration-300', 'size-9 p-0')}
-                data-testid="generate-button"
-              />
-            )}
+            ) : null}
+
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              icon={<ArrowUp />}
+              isDisabled={
+                isGenerateBlocked ||
+                isGenerateDisabled ||
+                !form.formState.isValid ||
+                !watchedTextTrimmed
+              }
+              onClick={() => handleSubmitForm()}
+              tooltip={
+                activeGenerations.length > 0
+                  ? `${generateLabel} (Queue)`
+                  : generateLabel
+              }
+              tooltipPosition="top"
+              ariaLabel={
+                activeGenerations.length > 0
+                  ? `${generateLabel} (Queue)`
+                  : generateLabel
+              }
+              className={cn('transition-colors duration-300', 'size-9 p-0')}
+              data-testid="generate-button"
+            />
           </div>
         </div>
       </div>

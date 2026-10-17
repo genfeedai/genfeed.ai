@@ -52,7 +52,6 @@ export interface StudioPlaygroundComposerProps {
   extraExtensions?: readonly AnyExtension[];
   isDragActive?: boolean;
   isEnhancingPrompt?: boolean;
-  isGenerating: boolean;
   isListening: boolean;
   isLoadingModels: boolean;
   isTranscribing: boolean;

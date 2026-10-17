@@ -145,7 +145,6 @@ export default function StudioPlaygroundComposer({
   extraExtensions,
   isDragActive = false,
   isEnhancingPrompt = false,
-  isGenerating,
   isListening,
   isLoadingModels,
   isTranscribing,
@@ -432,7 +431,6 @@ export default function StudioPlaygroundComposer({
     isEditSourceMissing ||
     isEditingModelUnavailable ||
     isRuntimeBlocked ||
-    isGenerating ||
     isPromptEmpty ||
     isIdentityMissing ||
     isFirstFrameMissing ||
@@ -652,7 +650,6 @@ export default function StudioPlaygroundComposer({
       ? setupParts.join(' · ')
       : typeOptions.find((option) => option.value === type)?.label;
 
-  const isAttachmentBusy = isGenerating || isUploading;
   const referenceSources: PromptBarReferenceSource[] = [];
   const addReferenceSource = (
     role: StudioPlaygroundReferenceRole,
@@ -663,8 +660,8 @@ export default function StudioPlaygroundComposer({
     referenceSources.push({
       accept,
       id: role,
-      isAttachmentDisabled: isAttachmentBusy || isFull,
-      isLibraryDisabled: isGenerating || isFull,
+      isAttachmentDisabled: isUploading || isFull,
+      isLibraryDisabled: isFull,
       label,
       onAddFiles: (files) => onAddFiles(files, role),
       onOpenLibrary: () => onOpenLibrary(role),
@@ -725,7 +722,6 @@ export default function StudioPlaygroundComposer({
           <PromptBarCrunControls
             controls={inputControls}
             value={settings.crunControls?.outputFormat}
-            isDisabled={isGenerating}
             onChange={(outputFormat) =>
               onSettingsChange({
                 crunControls: {
@@ -762,7 +758,7 @@ export default function StudioPlaygroundComposer({
                 startFrameId: crunStartFrameId,
                 endFrameId: crunEndFrameId,
               }}
-              isDisabled={isGenerating || isUploading || isEnhancingPrompt}
+              isDisabled={isUploading || isEnhancingPrompt}
               labels={{
                 duration: translate('crun.duration'),
                 aspectRatio: translate('crun.aspectRatio'),
@@ -826,7 +822,6 @@ export default function StudioPlaygroundComposer({
             <PromptBarAttachedAssetsTray
               assets={attachedAssets}
               translate={translateAssets}
-              isDisabled={isGenerating}
               onRemoveAttachedAsset={onRemoveAttachedAsset}
             />
           </div>
@@ -843,7 +838,6 @@ export default function StudioPlaygroundComposer({
         editorClassName="py-0.5"
         documentSeed={documentSeed}
         extraExtensions={type === 'image-edit' ? undefined : extraExtensions}
-        isDisabled={isGenerating}
         onDocumentChange={onPromptDocumentChange}
         onSubmit={() => {
           if (!isSubmitBlocked) {
@@ -868,7 +862,6 @@ export default function StudioPlaygroundComposer({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Select
             value={settings.resolution}
-            disabled={isGenerating}
             onValueChange={(resolution) => onSettingsChange({ resolution })}
           >
             <SelectTrigger
@@ -887,7 +880,6 @@ export default function StudioPlaygroundComposer({
           </Select>
           <Select
             value={settings.aspectRatio}
-            disabled={isGenerating}
             onValueChange={(aspectRatio) => onSettingsChange({ aspectRatio })}
           >
             <SelectTrigger
@@ -924,7 +916,6 @@ export default function StudioPlaygroundComposer({
                 editSources[0].ingredientId ??
                 editSources[0].id
               }
-              disabled={isGenerating}
               onValueChange={(editPrimaryId) =>
                 onSettingsChange({ editPrimaryId })
               }
@@ -958,7 +949,7 @@ export default function StudioPlaygroundComposer({
           {!isFlux ? (
             <>
               <Select
-                disabled={isGenerating || hasEditMask}
+                disabled={hasEditMask}
                 value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
                 onValueChange={(value) => {
                   if (isImageEditSize(value))
@@ -990,7 +981,6 @@ export default function StudioPlaygroundComposer({
                 step={1}
                 placeholder={translate('editImage.seedPlaceholder')}
                 value={settings.editSeed ?? ''}
-                isDisabled={isGenerating}
                 onChange={(event) =>
                   onSettingsChange({
                     editSeed:
@@ -1067,7 +1057,6 @@ export default function StudioPlaygroundComposer({
               }}
               capabilities={capabilities}
               favoriteModelKeys={favoriteModelKeys}
-              isDisabled={isGenerating}
               isPresetsLoading={isPresetsLoading}
               isTypeCommitted
               lookOptions={lookOptions}
@@ -1104,7 +1093,6 @@ export default function StudioPlaygroundComposer({
               <GenerationSetupPresetsPopover
                 systemPresets={systemPresets}
                 onApplySystemPreset={handleApplySystemPreset}
-                isDisabled={isGenerating}
                 isPresetsLoading={isPresetsLoading}
                 onApplyPreset={handleApplyPreset}
                 onClearPreset={handleClearPreset}
@@ -1116,7 +1104,6 @@ export default function StudioPlaygroundComposer({
             ) : null}
             {capabilities.hasIdentity ? (
               <StudioIdentityFields
-                isDisabled={isGenerating}
                 onChange={onSettingsChange}
                 settings={settings}
                 type={type}
@@ -1127,7 +1114,6 @@ export default function StudioPlaygroundComposer({
               <Button
                 ariaLabel={translate('undoPromptEnhancement')}
                 className="h-8 shrink-0 px-2 text-xs"
-                isDisabled={isGenerating}
                 label={translate('undo')}
                 onClick={onUndoEnhancePrompt}
                 size={ButtonSize.XS}
@@ -1156,9 +1142,7 @@ export default function StudioPlaygroundComposer({
                 }
                 // The composer stays usable during enhancement: while pending,
                 // the button switches to Cancel instead of disabling (#4676).
-                isDisabled={
-                  isGenerating || (!isEnhancingPrompt && isPromptEmpty)
-                }
+                isDisabled={!isEnhancingPrompt && isPromptEmpty}
                 onClick={
                   isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
                 }
@@ -1177,8 +1161,7 @@ export default function StudioPlaygroundComposer({
 
             <PromptBarSubmitSlot
               density="compact"
-              isDisabled={isGenerating}
-              isEmpty={isPromptEmpty && !isGenerating}
+              isEmpty={isPromptEmpty}
               isListening={isListening}
               isTranscribing={isTranscribing}
               isVoiceAvailable={isVoiceInputAvailable}
@@ -1196,7 +1179,6 @@ export default function StudioPlaygroundComposer({
                   }
                   model={selectedModel}
                   type={type}
-                  isDisabled={isGenerating}
                   label={translate('generate')}
                 >
                   <PromptBarSendButton
@@ -1208,8 +1190,6 @@ export default function StudioPlaygroundComposer({
                     }
                     density="compact"
                     isAriaDisabled={Boolean(isSubmitBlocked)}
-                    isDisabled={isGenerating}
-                    isLoading={isGenerating}
                     onClick={guardedSubmit}
                   />
                 </StudioGenerationSummary>
