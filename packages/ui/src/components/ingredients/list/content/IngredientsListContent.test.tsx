@@ -17,10 +17,28 @@ import {
 import type DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import { format } from 'date-fns';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const previewVisibility = vi.hoisted(() => ({ visible: false }));
+const library = vi.hoisted(() => ({
+  settings: { hasOrganizationBilling: false, moduleOverrides: {} } as Record<
+    string,
+    unknown
+  > | null,
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ settings: library.settings, settingsLoading: false }),
+}));
+
+vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+  useFeatureFlagContext: () => ({
+    flags: {},
+    isConfigured: true,
+    isReady: true,
+  }),
+}));
 
 vi.mock(
   '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer',
@@ -37,6 +55,7 @@ vi.mock(
 
 beforeEach(() => {
   previewVisibility.visible = false;
+  library.settings = { hasOrganizationBilling: false, moduleOverrides: {} };
 });
 
 const { assetSelection, setSelectedAsset, revealSidebar } = vi.hoisted(() => ({
@@ -144,17 +163,27 @@ vi.mock('next/dynamic', async () => {
 
 vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
   default: ({
+    emptyActions,
+    emptyDescription,
     items,
     onClickIngredient,
     onSeeDetails,
     onReviewUpdated,
   }: {
+    emptyActions?: ReactNode;
+    emptyDescription?: string;
     items: IIngredient[];
     onClickIngredient: (ingredient: IIngredient) => void;
     onSeeDetails: (ingredient: IIngredient) => void;
     onReviewUpdated: (ingredient: IIngredient) => void;
   }) => (
     <>
+      {items.length === 0 ? (
+        <div data-testid="media-grid-empty">
+          <p>{emptyDescription}</p>
+          {emptyActions}
+        </div>
+      ) : null}
       <button
         data-testid="media-grid-item"
         onClick={() => onClickIngredient(items[0])}
@@ -530,6 +559,41 @@ describe('IngredientsListContent', () => {
     });
 
     expect(screen.getByText('No music yet')).toBeInTheDocument();
+  });
+
+  it('points an empty media library at the Playground when the organization has it', () => {
+    renderContent({
+      filteredIngredients: [],
+      singularType: IngredientCategory.IMAGE,
+      type: 'images',
+    });
+
+    expect(
+      screen.getByText(
+        'Prompt something in the Playground and your images will show up here.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open Playground' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not send an organization without the Playground there', () => {
+    library.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { playground: false },
+    };
+
+    renderContent({
+      filteredIngredients: [],
+      singularType: IngredientCategory.IMAGE,
+      type: 'images',
+    });
+
+    expect(
+      screen.getByText('Generate or upload images to fill this list.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Open Playground' })).toBeNull();
   });
 
   it('still lists audio ingredients when the library has some', () => {

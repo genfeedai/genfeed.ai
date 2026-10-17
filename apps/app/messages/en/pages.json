@@ -2823,6 +2823,7 @@
     }
   },
   "library": {
+    "emptyOpenPlayground": "Open Playground",
     "browser": {
       "columns": {
         "asset": "Asset",

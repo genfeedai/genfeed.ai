@@ -2,6 +2,7 @@
 
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
   ComponentSize,
@@ -13,8 +14,13 @@ import {
   ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
-import { APP_ROUTES, EMPTY_STATES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_STATES,
+  resolveOrganizationModulePresentationAccess,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import { useIntersectionObserver } from '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer';
 import type { IngredientTimeGroupHeadingProps } from '@genfeedai/props/content/ingredient.props';
@@ -364,6 +370,15 @@ export default function IngredientsListContent({
   const translateActions = useTranslations('ui.quickActions');
   const storyboardEntry = useStoryboardEntry();
   const { href } = useOrgUrl();
+  const { settings, settingsLoading } = useBrand();
+  const { flags: platformFlags } = useFeatureFlagContext();
+  // Cloud organizations start without Playground; only point at it when the
+  // organization can open it.
+  const isPlaygroundAvailable = resolveOrganizationModulePresentationAccess(
+    settingsLoading ? null : settings,
+    'playground',
+    platformFlags,
+  ).isAllowed;
   const translateRetry = useTranslations('common.libraryRetry');
   // This full-card layout is reserved for a route whose *type* is dedicated
   // to audio (the legacy per-category admin pages) — every Library route's
@@ -839,13 +854,19 @@ export default function IngredientsListContent({
           {mediaItems.length > 0 || nonVisualIngredients.length === 0 ? (
             <IngredientsMediaGrid
               emptyLabel={`No ${mediaNoun} yet`}
-              emptyDescription={`Prompt something in the Playground and your ${mediaNoun} will show up here.`}
+              emptyDescription={
+                isPlaygroundAvailable
+                  ? `Prompt something in the Playground and your ${mediaNoun} will show up here.`
+                  : `Generate or upload ${mediaNoun} to fill this list.`
+              }
               emptyActions={
-                <Button asChild variant={ButtonVariant.SECONDARY}>
-                  <Link href={href(APP_ROUTES.STUDIO.PLAYGROUND)}>
-                    Open Playground
-                  </Link>
-                </Button>
+                isPlaygroundAvailable ? (
+                  <Button asChild variant={ButtonVariant.SECONDARY}>
+                    <Link href={href(APP_ROUTES.STUDIO.PLAYGROUND)}>
+                      {translate('emptyOpenPlayground')}
+                    </Link>
+                  </Button>
+                ) : undefined
               }
               items={mediaItems}
               onDeleteIngredient={onDeleteIngredient}
@@ -937,6 +958,7 @@ export default function IngredientsListContent({
     isLoading,
     isMediaCategory,
     isMirroring,
+    isPlaygroundAvailable,
     isPortraiting,
     isReversing,
     onArchiveIngredient,
