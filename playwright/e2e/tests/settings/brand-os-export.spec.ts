@@ -192,6 +192,10 @@ test('Brand OS settings downloads privately, publishes, explicitly updates a new
   await settings
     .getByRole('button', { name: 'Review identity fields', exact: true })
     .click();
+  // Each revision field is a collapsed row until its label is opened (#7084).
+  await settings
+    .getByRole('button', { name: 'Description', exact: true })
+    .click();
   await settings
     .getByRole('textbox', { name: 'Description', exact: true })
     .fill('New approved brand voice');
