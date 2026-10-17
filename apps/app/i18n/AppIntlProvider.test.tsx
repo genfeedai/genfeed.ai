@@ -1,4 +1,8 @@
-import { DEFAULT_LOCALE, PSEUDO_LOCALE } from '@genfeedai/contracts/constants';
+import {
+  type AppLocale,
+  DEFAULT_LOCALE,
+  PSEUDO_LOCALE,
+} from '@genfeedai/contracts/constants';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { act, render, screen } from '@testing-library/react';
 import {
@@ -53,6 +57,11 @@ function mockBrowserTimeZone(timeZone: string | undefined) {
     .mockImplementation(function (this: Intl.DateTimeFormat) {
       return Object.assign(resolvedOptions.call(this), { timeZone });
     });
+}
+
+function sharedMessages(locale: AppLocale) {
+  const { agent, common, ui } = loadMessages(locale);
+  return { agent, common, ui };
 }
 
 function LocaleProbe({ onMessages }: LocaleProbeProps) {
@@ -116,7 +125,7 @@ describe('AppIntlProvider', () => {
     { locale: DEFAULT_LOCALE, save: 'Save' },
     { locale: PSEUDO_LOCALE, save: pseudoLocalizeMessage('Save') },
   ])(
-    'preserves the complete $locale catalog and uses the viewer time zone',
+    'serves only the shared $locale catalog and uses the viewer time zone',
     ({ locale, save }) => {
       mockBrowserTimeZone(VIEWER_TIME_ZONE);
       const onMessages = vi.fn();
@@ -128,7 +137,8 @@ describe('AppIntlProvider', () => {
 
       expect(screen.getByText(save)).toBeTruthy();
       expect(screen.getByText(VIEWER_TIME_ZONE)).toBeTruthy();
-      expect(onMessages).toHaveBeenCalledWith(loadMessages(locale));
+      expect(onMessages).toHaveBeenCalledWith(sharedMessages(locale));
+      expect(onMessages.mock.calls.at(-1)?.[0]).not.toHaveProperty('pages');
     },
   );
 
@@ -227,7 +237,7 @@ describe('AppIntlProvider', () => {
     );
     expect(onMessages.mock.calls.at(-1)?.[0]).not.toBe(firstMessages);
     expect(onMessages.mock.calls.at(-1)?.[0]).toEqual(
-      loadMessages(PSEUDO_LOCALE),
+      sharedMessages(PSEUDO_LOCALE),
     );
     expect(screen.getByText(pseudoLocalizeMessage('Save'))).toBeTruthy();
   });
