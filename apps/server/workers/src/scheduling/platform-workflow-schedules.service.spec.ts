@@ -139,6 +139,7 @@ describe('PlatformWorkflowSchedulesService', () => {
       }),
       expect.objectContaining({
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        expireAfterMs: 10 * 60 * 1000,
       }),
     );
     expect(runner.enqueueWorkflow.mock.calls[0]).toEqual(

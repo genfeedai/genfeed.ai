@@ -11,10 +11,14 @@ import {
   ORGANIZATION_WEBHOOK_EVENT_TYPES,
   type OrganizationWebhookEventType,
 } from '@genfeedai/contracts/api-types/contracts/webhook-events.contract';
-import type { OrganizationModuleOverrides } from '@genfeedai/contracts/constants';
+import type {
+  OrganizationModuleOverrides,
+  ReleaseItemId,
+} from '@genfeedai/contracts/constants';
 import {
   DEFAULT_LOCALE,
   PUBLISHING_QUOTA_MAX,
+  RELEASE_ITEM_IDS,
   SUPPORTED_LOCALES,
 } from '@genfeedai/contracts/constants';
 import {
@@ -201,6 +205,18 @@ export class CreateOrganizationSettingDto {
       'Release preview. Only platform admins may change it; on cloud it lets modules not yet released in Admin → Flags admit new work.',
   })
   readonly isReleasePreviewEnabled?: boolean;
+
+  @IsArray()
+  @ArrayUnique()
+  @IsIn(RELEASE_ITEM_IDS, { each: true })
+  @IsOptional()
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description:
+      'Release items opened for this organization alone. Only platform admins may change it; on cloud each listed item admits new work without a platform-wide release in Admin → Flags.',
+  })
+  readonly releasedItemIds?: ReleaseItemId[];
 
   @IsBoolean()
   @IsOptional()

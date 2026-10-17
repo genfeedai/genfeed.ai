@@ -559,8 +559,12 @@ test.describe('Agent Onboarding', () => {
       // The run's reply — resolved by its runId once the completion watchdog
       // fires (`STREAM_COMPLETION_POLL_INTERVAL_MS`, 10s) — and the card its
       // settled run marks saved.
+      // The thread list also previews the latest reply, so scope the reply
+      // assertion to the conversation column.
       await expect(
-        authenticatedPage.getByText('Brand voice saved to the selected brand.'),
+        authenticatedPage
+          .getByTestId('agent-conversation-column')
+          .getByText('Brand voice saved to the selected brand.'),
       ).toBeVisible({ timeout: 20_000 });
       await expect(
         authenticatedPage.getByText('Brand voice saved to this brand.'),

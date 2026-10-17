@@ -57,12 +57,26 @@ describe('OrganizationModuleAccessService', () => {
     expect(customer.prisma.organizationSetting.findUnique).toHaveBeenCalledWith(
       {
         where: { organizationId: 'org-1' },
-        select: { isReleasePreviewEnabled: true },
+        select: { isReleasePreviewEnabled: true, releasedItemIds: true },
       },
     );
     await expect(customer.service.isReleased('org-1', 'clips')).resolves.toBe(
       false,
     );
+  });
+
+  it('opens only the items granted to one organization', async () => {
+    const { service, prisma } = createService(false, {});
+    prisma.organizationSetting.findUnique.mockResolvedValue({
+      isReleasePreviewEnabled: false,
+      releasedItemIds: ['turbo'],
+    });
+    await expect(service.isReleased('org-1', 'turbo')).resolves.toBe(true);
+    await expect(service.isReleased('org-1', 'motion')).resolves.toBe(false);
+    await expect(
+      service.assertAccess('org-1', 'turbo'),
+    ).resolves.toBeUndefined();
+    await expect(service.assertAccess('org-1', 'motion')).rejects.toThrow();
   });
 
   it('releases everything to an organization on release preview', async () => {
@@ -115,7 +129,7 @@ describe('OrganizationModuleAccessService', () => {
     });
     expect(prisma.organizationSetting.findUnique).toHaveBeenCalledWith({
       where: { organizationId: 'org-1' },
-      select: { isReleasePreviewEnabled: true },
+      select: { isReleasePreviewEnabled: true, releasedItemIds: true },
     });
     expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
   });

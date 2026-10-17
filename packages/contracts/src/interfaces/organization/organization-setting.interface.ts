@@ -1,6 +1,7 @@
 import type { AgentAutonomyMode } from '../..';
 import type { AppLocale } from '../../constants';
 import type { OrganizationModuleOverrides } from '../../constants/organization-modules.constant';
+import type { ReleaseItemId } from '../../constants/release-items.constant';
 import type { IFleetEvaluationPolicy } from '../analytics/fleet-evaluation-policy.interface';
 import type { IBaseEntity } from '../index';
 import type {
@@ -135,6 +136,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   moduleOverrides?: OrganizationModuleOverrides;
   /** Founder release preview; only platform admins change it (#5502). */
   isReleasePreviewEnabled?: boolean;
+  /** Release items opened for this organization alone; only platform admins change it. */
+  releasedItemIds?: ReleaseItemId[];
   /**
    * Own-account breakout responses (#6526). Off: a detected breakout enqueues and spends
    * nothing, and a response already in flight holds. Owners and admins change it.

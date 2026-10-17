@@ -98,16 +98,12 @@ test.describe('Workflow templates & executions interactions', () => {
       authenticatedPage.getByText(testWorkflowTemplates[0].name).first(),
     ).toBeVisible();
 
-    const useLink = authenticatedPage
-      .getByRole('link', { name: 'Use template', exact: true })
-      .first();
-    await expect(useLink).toHaveAttribute(
-      'href',
-      brandPath(
-        `${WORKFLOW_TEMPLATES_ROUTE}&template=${testWorkflowTemplates[0].id}`,
-      ),
-    );
-    await useLink.click({ force: true });
+    // A template that is also in the system catalog is one installable row
+    // (#7065), so "Use template" is a button that installs and opens it.
+    await authenticatedPage
+      .getByRole('button', { name: 'Use template', exact: true })
+      .first()
+      .click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
       .toBe(brandPath(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/workflow-new`));

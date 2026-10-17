@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
@@ -6,11 +7,7 @@ const DESTINATIONS = [
   { anchor: 'language', label: 'Language' },
 ];
 
-const HOSTS = [
-  '/settings/help',
-  '/admin/overview/dashboard',
-  '/agent/onboarding',
-];
+const HOSTS = ['/settings/help', '/admin/overview/dashboard'];
 
 test.describe('Settings command navigation', () => {
   for (const host of HOSTS) {
@@ -43,4 +40,24 @@ test.describe('Settings command navigation', () => {
       });
     }
   }
+
+  // Agent onboarding holds the user in the flow (#7089), so the command
+  // palette is not a way out of it.
+  test('/agent/onboarding keeps the command palette closed', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.goto(APP_ROUTES.AGENT.ONBOARDING, {
+      waitUntil: 'domcontentloaded',
+    });
+    await expectNoErrorOverlay(page);
+
+    await page.keyboard.press('Control+k');
+    // Give a palette that wrongly opens time to mount before asserting.
+    await page.waitForTimeout(500);
+
+    await expect(
+      page.getByPlaceholder('Type a command or search…'),
+    ).toBeHidden();
+    await expect(page).toHaveURL(/\/agent\/onboarding/);
+  });
 });

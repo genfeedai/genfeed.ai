@@ -148,7 +148,7 @@ export function AgentChatContainerThreadView({
   timeline,
   columnFooter,
 }: AgentChatContainerThreadViewProps): ReactElement {
-  const translate = useTranslations('agent.chrome');
+  const translate = useTranslations('agent.threadView');
   const inputCardRef = useRef<HTMLDivElement>(null);
   const columnFooterRef = useRef<HTMLDivElement>(null);
   const [hasContentBehindComposer, setHasContentBehindComposer] =
