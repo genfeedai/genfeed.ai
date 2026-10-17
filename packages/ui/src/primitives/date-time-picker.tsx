@@ -1,3 +1,4 @@
+import { createDateFromTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { Clock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -31,19 +32,8 @@ export interface DateTimePickerProps {
   timezone?: string;
 }
 
-const DATETIME_PARTS_FORMAT: Intl.DateTimeFormatOptions = {
-  day: '2-digit',
-  hour: '2-digit',
-  hour12: false,
-  minute: '2-digit',
-  month: '2-digit',
-  second: '2-digit',
-  year: 'numeric',
-};
-
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
 const timeFormatterCache = new Map<string, Intl.DateTimeFormat>();
-const datetimePartsFormatterCache = new Map<string, Intl.DateTimeFormat>();
 const EMPTY_DATETIME: DateTimeResult = { date: '', time: '' };
 
 function getDateFormatter(timezone: string): Intl.DateTimeFormat {
@@ -70,18 +60,6 @@ function getTimeFormatter(timezone: string): Intl.DateTimeFormat {
       timeZone: timezone,
     });
     timeFormatterCache.set(timezone, formatter);
-  }
-  return formatter;
-}
-
-function getDatetimePartsFormatter(timezone: string): Intl.DateTimeFormat {
-  let formatter = datetimePartsFormatterCache.get(timezone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', {
-      ...DATETIME_PARTS_FORMAT,
-      timeZone: timezone,
-    });
-    datetimePartsFormatterCache.set(timezone, formatter);
   }
   return formatter;
 }
@@ -134,42 +112,6 @@ function formatTimeDisplay(hour: number, minute: number): string {
   const period = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
-}
-
-function createDateFromTimezone(
-  year: number,
-  month: number,
-  day: number,
-  hours: number,
-  minutes: number,
-  timezone: string = 'UTC',
-): Date {
-  if (timezone === 'UTC') {
-    return new Date(Date.UTC(year, month - 1, day, hours, minutes));
-  }
-
-  const baseUtcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
-  const parts = getDatetimePartsFormatter(timezone).formatToParts(baseUtcDate);
-  const getPartValue = (type: string) =>
-    parseInt(parts.find((part) => part.type === type)?.value || '0', 10);
-
-  const formattedYear = getPartValue('year');
-  const formattedMonth = getPartValue('month');
-  const formattedDay = getPartValue('day');
-  const formattedHour = getPartValue('hour');
-  const formattedMinute = getPartValue('minute');
-
-  const desiredDate = new Date(Date.UTC(year, month - 1, day));
-  const formattedDate = new Date(
-    Date.UTC(formattedYear, formattedMonth - 1, formattedDay),
-  );
-  const dayDiffMs = desiredDate.getTime() - formattedDate.getTime();
-
-  const desiredTotalMinutes = hours * 60 + minutes;
-  const formattedTotalMinutes = formattedHour * 60 + formattedMinute;
-  const timeDiffMs = (desiredTotalMinutes - formattedTotalMinutes) * 60 * 1000;
-
-  return new Date(baseUtcDate.getTime() + dayDiffMs + timeDiffMs);
 }
 
 function getDateTimeSourceKey(value: string | Date | undefined): string {

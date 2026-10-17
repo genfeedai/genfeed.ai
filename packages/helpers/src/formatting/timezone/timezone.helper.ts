@@ -200,33 +200,34 @@ export function createDateFromTimezone(
     return new Date(Date.UTC(year, month - 1, day, hours, minutes));
   }
 
-  const baseUtcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  const formatter = getDateTimePartsFormatter(timezone);
+  const wallClockMs = Date.UTC(year, month - 1, day, hours, minutes);
 
-  function getPartValue(
-    parts: Intl.DateTimeFormatPart[],
-    type: string,
-  ): number {
-    return parseInt(parts.find((p) => p.type === type)?.value || '0', 10);
+  function readWallClockMs(instantMs: number): number {
+    const parts = formatter.formatToParts(new Date(instantMs));
+    const getPartValue = (type: string): number =>
+      Number.parseInt(parts.find((p) => p.type === type)?.value || '0', 10);
+
+    return Date.UTC(
+      getPartValue('year'),
+      getPartValue('month') - 1,
+      getPartValue('day'),
+      getPartValue('hour') % 24,
+      getPartValue('minute'),
+    );
   }
 
-  const parts = getDateTimePartsFormatter(timezone).formatToParts(baseUtcDate);
-  const formattedYear = getPartValue(parts, 'year');
-  const formattedMonth = getPartValue(parts, 'month');
-  const formattedDay = getPartValue(parts, 'day');
-  const formattedHour = getPartValue(parts, 'hour');
-  const formattedMinute = getPartValue(parts, 'minute');
+  // The zone's UTC offset depends on the instant being resolved, so a single
+  // pass lands on the wrong side of a DST change when the offset at the guess
+  // differs from the offset at the answer. A second pass re-reads the offset at
+  // the first answer. A wall-clock time inside a spring-forward gap does not
+  // exist and resolves to an instant that renders as a different time.
+  let instantMs = wallClockMs;
+  for (let pass = 0; pass < 2; pass++) {
+    instantMs = wallClockMs - (readWallClockMs(instantMs) - instantMs);
+  }
 
-  const desiredDate = new Date(Date.UTC(year, month - 1, day));
-  const formattedDate = new Date(
-    Date.UTC(formattedYear, formattedMonth - 1, formattedDay),
-  );
-  const dayDiffMs = desiredDate.getTime() - formattedDate.getTime();
-
-  const desiredTotalMinutes = hours * 60 + minutes;
-  const formattedTotalMinutes = formattedHour * 60 + formattedMinute;
-  const timeDiffMs = (desiredTotalMinutes - formattedTotalMinutes) * 60 * 1000;
-
-  return new Date(baseUtcDate.getTime() + dayDiffMs + timeDiffMs);
+  return new Date(instantMs);
 }
 
 const DATE_TIME_LOCAL_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;

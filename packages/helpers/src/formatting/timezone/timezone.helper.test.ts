@@ -184,6 +184,81 @@ describe('createDateFromTimezone', () => {
     const result = createDateFromTimezone(2024, 1, 1, 9, 0, 'Asia/Tokyo');
     expect(result).toBeInstanceOf(Date);
   });
+
+  it('resolves a time after the spring-forward change using the new offset', () => {
+    // New York jumped from EST (-5) to EDT (-4) at 02:00 on 2026-03-08.
+    expect(
+      createDateFromTimezone(
+        2026,
+        3,
+        8,
+        3,
+        0,
+        'America/New_York',
+      ).toISOString(),
+    ).toBe('2026-03-08T07:00:00.000Z');
+    expect(
+      createDateFromTimezone(
+        2026,
+        3,
+        8,
+        9,
+        30,
+        'America/New_York',
+      ).toISOString(),
+    ).toBe('2026-03-08T13:30:00.000Z');
+  });
+
+  it('resolves a time before the spring-forward change using the old offset', () => {
+    expect(
+      createDateFromTimezone(
+        2026,
+        3,
+        8,
+        1,
+        30,
+        'America/New_York',
+      ).toISOString(),
+    ).toBe('2026-03-08T06:30:00.000Z');
+  });
+
+  it('resolves times on either side of the fall-back change', () => {
+    // New York fell back from EDT (-4) to EST (-5) at 02:00 on 2026-11-01.
+    expect(
+      createDateFromTimezone(
+        2026,
+        11,
+        1,
+        0,
+        30,
+        'America/New_York',
+      ).toISOString(),
+    ).toBe('2026-11-01T04:30:00.000Z');
+    expect(
+      createDateFromTimezone(
+        2026,
+        11,
+        1,
+        3,
+        0,
+        'America/New_York',
+      ).toISOString(),
+    ).toBe('2026-11-01T08:00:00.000Z');
+  });
+
+  it('resolves a time in a southern-hemisphere zone on a DST day', () => {
+    // Sydney moved from AEST (+10) to AEDT (+11) at 02:00 on 2026-10-04.
+    expect(
+      createDateFromTimezone(
+        2026,
+        10,
+        4,
+        3,
+        30,
+        'Australia/Sydney',
+      ).toISOString(),
+    ).toBe('2026-10-03T16:30:00.000Z');
+  });
 });
 
 describe('toDateTimeLocalInput', () => {
