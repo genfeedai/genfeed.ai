@@ -17,7 +17,7 @@ describe('ReplicateWebhookVerificationService', () => {
   let cacheService: { claimOnce: vi.Mock; generateKey: vi.Mock };
   let configService: { get: vi.Mock };
   let loggerService: { error: vi.Mock; log: vi.Mock; warn: vi.Mock };
-  let replicateService: { getPrediction: vi.Mock };
+  let replicateService: { getPrediction: vi.Mock; getTraining: vi.Mock };
 
   const signedPayload = {
     id: 'pred_123',
@@ -33,7 +33,7 @@ describe('ReplicateWebhookVerificationService', () => {
     };
     configService = { get: vi.fn().mockReturnValue('r8_test_key') };
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-    replicateService = { getPrediction: vi.fn() };
+    replicateService = { getPrediction: vi.fn(), getTraining: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -107,6 +107,59 @@ describe('ReplicateWebhookVerificationService', () => {
         'https://replicate.delivery/pbxt/real.png',
       ]);
       expect(resolved?.version).toBe('ver_real');
+    });
+
+    it('fetches trusted training state without consulting predictions', async () => {
+      replicateService.getPrediction.mockRejectedValue(
+        new Error('prediction not found'),
+      );
+      replicateService.getTraining.mockResolvedValue({
+        id: signedPayload.id,
+        output: { version: 'owner/trained:real' },
+        status: 'succeeded',
+      });
+
+      const resolved = await service.resolveTrustedPayload(
+        signedPayload,
+        'training',
+      );
+
+      expect(replicateService.getTraining).toHaveBeenCalledExactlyOnceWith(
+        signedPayload.id,
+      );
+      expect(replicateService.getPrediction).not.toHaveBeenCalled();
+      expect(resolved?.output).toEqual({ version: 'owner/trained:real' });
+    });
+
+    it.each([
+      ['unavailable', undefined],
+      ['mismatched', { id: 'different', status: 'succeeded' }],
+      ['invalid status', { id: signedPayload.id, status: null }],
+    ])('defers %s authoritative training state', async (_label, training) => {
+      replicateService.getTraining.mockResolvedValue(training);
+      await expect(
+        service.resolveTrustedPayload(signedPayload, 'training'),
+      ).resolves.toBeNull();
+      expect(replicateService.getPrediction).not.toHaveBeenCalled();
+    });
+
+    it('defers a failed training re-fetch without falling back to predictions', async () => {
+      replicateService.getTraining.mockRejectedValue(
+        new Error('training not found'),
+      );
+      await expect(
+        service.resolveTrustedPayload(signedPayload, 'training'),
+      ).resolves.toBeNull();
+      expect(replicateService.getPrediction).not.toHaveBeenCalled();
+    });
+
+    it('does not fetch training state without the platform key', async () => {
+      configService.get.mockReturnValue(undefined);
+      await expect(
+        service.resolveTrustedPayload(signedPayload, 'training'),
+      ).resolves.toBeNull();
+      expect(replicateService.getTraining).not.toHaveBeenCalled();
+      expect(replicateService.getPrediction).not.toHaveBeenCalled();
     });
 
     it('overrides a forged success with the real failed status', async () => {
