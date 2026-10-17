@@ -64,11 +64,18 @@ function OrganizationConfigPageContent() {
     >
       {settings ? (
         <OrganizationReleaseGrants
+          hasOrganizationBilling={settings.hasOrganizationBilling !== false}
           isReleasePreviewEnabled={settings.isReleasePreviewEnabled === true}
+          moduleOverrides={settings.moduleOverrides ?? {}}
           releasedItemIds={(settings.releasedItemIds ?? []).filter(
             isReleaseItemId,
           )}
-          onChange={(releasedItemIds) => updateSettings({ releasedItemIds })}
+          onModuleOverridesChange={(moduleOverrides) =>
+            updateSettings({ moduleOverrides })
+          }
+          onReleasedItemIdsChange={(releasedItemIds) =>
+            updateSettings({ releasedItemIds })
+          }
         />
       ) : null}
       <OrganizationSettingsTable

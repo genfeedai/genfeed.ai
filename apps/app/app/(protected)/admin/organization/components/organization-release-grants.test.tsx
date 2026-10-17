@@ -8,39 +8,85 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
+function renderGrants(
+  overrides: Partial<Parameters<typeof OrganizationReleaseGrants>[0]> = {},
+) {
+  const onReleasedItemIdsChange = vi.fn().mockResolvedValue(undefined);
+  const onModuleOverridesChange = vi.fn().mockResolvedValue(undefined);
+  render(
+    <OrganizationReleaseGrants
+      hasOrganizationBilling
+      isReleasePreviewEnabled={false}
+      moduleOverrides={{}}
+      releasedItemIds={[]}
+      onModuleOverridesChange={onModuleOverridesChange}
+      onReleasedItemIdsChange={onReleasedItemIdsChange}
+      {...overrides}
+    />,
+  );
+  return { onModuleOverridesChange, onReleasedItemIdsChange };
+}
+
 describe('OrganizationReleaseGrants', () => {
-  it('grants one release item and keeps the others', async () => {
-    const onChange = vi.fn().mockResolvedValue(undefined);
-    render(
-      <OrganizationReleaseGrants
-        isReleasePreviewEnabled={false}
-        releasedItemIds={['motion']}
-        onChange={onChange}
-      />,
+  it('releases one item and keeps the others already released', async () => {
+    const { onReleasedItemIdsChange } = renderGrants({
+      releasedItemIds: ['motion'],
+    });
+
+    expect(
+      screen.getByRole('switch', { name: 'release motion' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('switch', { name: 'release turbo' }),
+    ).not.toBeChecked();
+
+    await userEvent.click(
+      screen.getByRole('switch', { name: 'release turbo' }),
     );
 
-    expect(screen.getByRole('switch', { name: 'motion' })).toBeChecked();
-    expect(screen.getByRole('switch', { name: 'turbo' })).not.toBeChecked();
-
-    await userEvent.click(screen.getByRole('switch', { name: 'turbo' }));
-
     await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith(['turbo', 'motion']),
+      expect(onReleasedItemIdsChange).toHaveBeenCalledWith(['turbo', 'motion']),
     );
   });
 
-  it('revokes a granted release item', async () => {
-    const onChange = vi.fn().mockResolvedValue(undefined);
-    render(
-      <OrganizationReleaseGrants
-        isReleasePreviewEnabled={false}
-        releasedItemIds={['motion', 'turbo']}
-        onChange={onChange}
-      />,
+  it('revokes a released item', async () => {
+    const { onReleasedItemIdsChange } = renderGrants({
+      releasedItemIds: ['motion', 'turbo'],
+    });
+
+    await userEvent.click(
+      screen.getByRole('switch', { name: 'release motion' }),
     );
 
-    await userEvent.click(screen.getByRole('switch', { name: 'motion' }));
+    await waitFor(() =>
+      expect(onReleasedItemIdsChange).toHaveBeenCalledWith(['turbo']),
+    );
+  });
 
-    await waitFor(() => expect(onChange).toHaveBeenCalledWith(['turbo']));
+  it('hides Playground and Storyboard with an organization override', async () => {
+    const { onModuleOverridesChange } = renderGrants({
+      moduleOverrides: { storyboard: false },
+    });
+
+    expect(
+      screen.getByRole('switch', { name: 'show playground' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('switch', { name: 'show storyboard' }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('switch', { name: 'show motion' }),
+    ).not.toBeChecked();
+
+    await userEvent.click(
+      screen.getByRole('switch', { name: 'show playground' }),
+    );
+
+    await waitFor(() =>
+      expect(onModuleOverridesChange).toHaveBeenCalledWith({
+        storyboard: false,
+        playground: false,
+      }),
+    );
   });
 });

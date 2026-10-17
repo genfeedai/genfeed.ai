@@ -4879,6 +4879,7 @@
     "previewLabel": "Release Preview (sees unreleased modules)",
     "grantsTitle": "Release access",
     "grantsHelp": "Open individual apps for this organization only. Everything not switched on here follows Admin → Flags.",
+    "visibilityHelp": "Show or hide an app for this organization's members. Hiding only removes the app from their Store and rail; API and MCP work keeps running.",
     "grantsPreviewHelp": "Release preview is on, so this organization already sees every app. These switches take effect once preview is turned off."
   },
   "adminFlags": {
