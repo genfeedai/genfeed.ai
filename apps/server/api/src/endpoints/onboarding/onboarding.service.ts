@@ -205,7 +205,6 @@ export class OnboardingService {
         title: 'Error',
       },
       async () => {
-        // Check if org already has a prefix
         const org = await this.organizationsService.findOne({
           id: organizationId,
           isDeleted: false,

@@ -44,7 +44,6 @@ export function validateRequiredSchemaFields(
 
     const value = values[field];
 
-    // Check if value is missing or empty
     if (value === undefined || value === null || value === '') {
       missingFields.push(field);
     }

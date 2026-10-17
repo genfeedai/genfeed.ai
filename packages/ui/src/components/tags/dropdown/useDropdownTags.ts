@@ -205,7 +205,6 @@ export function useDropdownTags({
       const dropdownWidth = 320;
       const viewportWidth = window.innerWidth;
 
-      // Check if dropdown would go off-screen to the right
       const wouldOverflowRight = rect.left + dropdownWidth > viewportWidth;
 
       // Calculate right position (distance from right edge of viewport)
@@ -265,7 +264,6 @@ export function useDropdownTags({
     return allTags.filter((tag) => tag.id && selectedTagIds.has(tag.id));
   }, [allTags, selectedTagIds]);
 
-  // Check if a tag is selected
   const isTagSelected = (tagId: string) => selectedTagIds.has(tagId);
 
   // Toggle tag selection
@@ -320,7 +318,6 @@ export function useDropdownTags({
     onChange(selectedTags.filter((id) => id !== tagId));
   };
 
-  // Check if we should show "Create" option
   const showCreateOption =
     searchQuery.trim() !== '' &&
     !filteredTags.some(

@@ -81,7 +81,6 @@ function EditorEffectsPanel({
     (effectType: EditorEffectType, defaultIntensity: number) => {
       if (!selectedTrackId || !selectedClipId || !selectedClip) return;
 
-      // Check if effect already applied
       if (selectedClip.effects.some((e) => e.type === effectType)) return;
 
       const track = tracks.find((t) => t.id === selectedTrackId);

@@ -243,7 +243,6 @@ export class ArticlesTransformationsController {
     @Body() body: { model?: string; width?: number; height?: number },
     @CurrentUser() user: User,
   ) {
-    // Get the article
     const article = await this.articlesService.findOne({
       id: articleId,
       OR: [
@@ -296,7 +295,6 @@ export class ArticlesTransformationsController {
     @Body() body: { model?: string; duration?: number },
     @CurrentUser() user: User,
   ) {
-    // Get the article
     const article = await this.articlesService.findOne({
       id: articleId,
       OR: [

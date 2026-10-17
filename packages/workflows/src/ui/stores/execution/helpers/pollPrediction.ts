@@ -32,7 +32,6 @@ export async function pollPrediction(
       return;
     }
 
-    // Check if aborted before making request
     if (signal?.aborted) return;
 
     // Pass workflowId and nodeId so backend can save output to local storage

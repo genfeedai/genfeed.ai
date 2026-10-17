@@ -234,7 +234,6 @@ export class PromptBuilderService {
     try {
       this.loggerService.debug(`${url} started`, { model, params });
 
-      // Initialize with basic prompt as default
       let promptText: string = params.prompt;
       let templateKey: string | undefined;
       let templateVersion: number | undefined;
@@ -373,7 +372,6 @@ export class PromptBuilderService {
           systemPromptResult = `${systemPromptResult}\n\n${params.systemPromptSuffix}`;
         }
 
-        // Set the final system prompt
         params = { ...params, systemPrompt: systemPromptResult };
       } else {
         // For non-TEXT models, prepend brand context to user prompt

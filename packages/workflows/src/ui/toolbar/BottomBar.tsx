@@ -353,7 +353,6 @@ export function BottomBar() {
 
       await waitForExecutionEnd();
 
-      // Check if execution failed
       if (useExecutionStore.getState().lastFailedNodeId) return;
 
       // Accumulate outputImages from imageGen nodes across batch runs

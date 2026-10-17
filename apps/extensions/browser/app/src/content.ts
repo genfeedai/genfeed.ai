@@ -135,7 +135,6 @@ function initializePlatformIntegration(): void {
 
   // Observe DOM changes to inject buttons when UI is ready
   observer = new MutationObserver((mutations) => {
-    // Check if submit button was added or modified
     const submitButtonSelector = platform?.selectors.submitButton;
     const actionsContainerSelector = platform?.selectors.actionsContainer;
 

@@ -30,7 +30,6 @@ function createPastePayload(
 ): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
   const { nodes: clipboardNodes, edges: clipboardEdges } = clipboard;
 
-  // Create a map from old IDs to new IDs
   const idMap = new Map<string, string>();
   for (const node of clipboardNodes) {
     idMap.set(node.id, nanoid(8));

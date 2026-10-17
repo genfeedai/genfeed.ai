@@ -352,13 +352,11 @@ export class ReplyBotConfigsService extends BaseService<
     const now = new Date();
     const rateLimits = this.normalizeRateLimits(config.rateLimits);
 
-    // Check if we need to reset hourly counter
     if (!rateLimits.hourResetAt || now >= new Date(rateLimits.hourResetAt)) {
       await this.resetHourlyCounter(id, organizationId);
       return true;
     }
 
-    // Check if we need to reset daily counter
     if (!rateLimits.dayResetAt || now >= new Date(rateLimits.dayResetAt)) {
       await this.resetDailyCounter(id, organizationId);
       return true;

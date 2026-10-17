@@ -520,7 +520,6 @@ export class TrainingsService extends BaseService<
           continue;
         }
 
-        // Check if file exists and has content
         if (!fs.existsSync(filePath)) {
           this.logger.warn(`Skipping missing image ${i} at ${filePath}`);
           continue;

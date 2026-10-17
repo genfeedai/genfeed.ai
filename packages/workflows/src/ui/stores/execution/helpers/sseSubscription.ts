@@ -207,7 +207,6 @@ export function createExecutionSubscription(
 
         applyJobUpdates(data.jobs, workflowStore, data.debugMode, set);
 
-        // Check if execution is complete
         const isComplete = [
           'completed',
           'failed',

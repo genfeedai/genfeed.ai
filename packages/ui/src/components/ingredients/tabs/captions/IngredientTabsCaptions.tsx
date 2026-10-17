@@ -143,7 +143,6 @@ export default function IngredientTabsCaptions({
   };
 
   const handleDownloadCaption = (caption: ICaption) => {
-    // Create a blob with the caption text
     const blob = new Blob([caption.content || ''], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

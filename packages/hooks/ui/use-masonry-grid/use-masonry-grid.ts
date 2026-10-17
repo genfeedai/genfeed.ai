@@ -118,7 +118,6 @@ export function useMasonryGrid<T extends MasonryItem>(
     const columnCount = getColumnCount(containerWidth) ?? 1;
     const itemWidth = (containerWidth - (columnCount - 1) * gap) / columnCount;
 
-    // Initialize column heights
     const columnHeights: number[] = new Array(columnCount).fill(0);
 
     // Get all masonry items

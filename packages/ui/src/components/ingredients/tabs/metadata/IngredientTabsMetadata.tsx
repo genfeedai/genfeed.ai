@@ -82,7 +82,6 @@ export default function IngredientTabsMetadata({
 
   const hasZeroOrUnknownSize = !metadataExists || ingredient.metadataSize === 0;
 
-  // Check if any critical metadata is zero or unknown
   const hasInvalidMetadata =
     hasZeroOrUnknownWidth ||
     hasZeroOrUnknownHeight ||

@@ -338,13 +338,11 @@ function WorkflowRefNodeComponent(props: NodeProps) {
         }
       }
 
-      // Initialize empty input mappings for each input
       const inputMappings: Record<string, string | null> = {};
       for (const input of selectedWorkflow.interface.inputs) {
         inputMappings[input.name] = null;
       }
 
-      // Initialize empty output mappings for each output
       const outputMappings: Record<string, string | null> = {};
       for (const output of selectedWorkflow.interface.outputs) {
         outputMappings[output.name] = null;

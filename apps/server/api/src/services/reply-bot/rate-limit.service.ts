@@ -229,13 +229,11 @@ export class RateLimitService {
     const currentMinute = now.getMinutes();
     const currentTimeMinutes = currentHour * 60 + currentMinute;
 
-    // Check if current day is active
     const activeDays = botConfig.schedule.activeDays || [];
     if (activeDays.length > 0 && !activeDays.includes(currentDay)) {
       return false;
     }
 
-    // Check if current time is within active hours
     if (
       botConfig.schedule.activeHoursStart &&
       botConfig.schedule.activeHoursEnd

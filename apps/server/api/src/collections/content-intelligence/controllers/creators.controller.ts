@@ -128,7 +128,6 @@ export class CreatorsController {
     const organizationId = user.organizationId;
     const userId = user.userId ?? user.id;
 
-    // Check if creator already exists
     const existing = await this.contentIntelligenceService.findByHandle(
       organizationId,
       dto.platform,

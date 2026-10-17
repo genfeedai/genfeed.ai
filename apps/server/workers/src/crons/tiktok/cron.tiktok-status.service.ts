@@ -272,7 +272,6 @@ export class CronTiktokStatusService implements OnModuleInit {
         return;
       }
 
-      // Check if credential is already disconnected
       if (credential.isConnected === false) {
         this.logger.warn(
           `${url} post ${post.id} has disconnected credential - marking as failed`,

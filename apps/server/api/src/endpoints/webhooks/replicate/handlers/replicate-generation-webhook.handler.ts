@@ -40,7 +40,6 @@ export class ReplicateGenerationWebhookHandler {
     payload: ReplicateWebhookPayload,
     workflowContinuationId?: string,
   ): Promise<void> {
-    // Check if this is an asset generation first
     const asset = await this.assetsService.findOne({
       externalId: payload.id,
     });
@@ -63,7 +62,6 @@ export class ReplicateGenerationWebhookHandler {
     payload: ReplicateWebhookPayload,
     workflowContinuationId?: string,
   ): Promise<void> {
-    // Check if this is a failed asset generation first
     const asset = await this.assetsService.findOne({
       externalId: payload.id,
     });

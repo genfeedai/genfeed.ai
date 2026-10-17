@@ -69,7 +69,6 @@ export class RateLimitGuard implements CanActivate {
     );
     response.setHeader('RateLimit-Reset', Math.ceil(windowMs / 1000));
 
-    // Check if limit exceeded
     if (currentCount > limit) {
       response.setHeader('Retry-After', Math.ceil(windowMs / 1000));
 

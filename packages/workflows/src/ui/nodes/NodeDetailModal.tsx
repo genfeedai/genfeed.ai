@@ -403,7 +403,6 @@ export function NodeDetailModal() {
   );
   const { currentIndex, isPanning, panOffset, zoomLevel } = previewState;
 
-  // Get the node being displayed
   const node = useMemo(() => {
     if (!nodeDetailNodeId) return null;
     return getNodeById(nodeDetailNodeId);

@@ -648,7 +648,6 @@ export default function AppTable<T>({
                                   : action.tooltip,
                               ).reduce<ReactNode[]>(
                                 (acc, { item: action, key }) => {
-                                  // Check if action should be visible for this item
                                   const isVisible = action.isVisible
                                     ? action.isVisible(item)
                                     : true;

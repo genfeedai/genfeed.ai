@@ -45,7 +45,6 @@ export default function DropdownPrompt({
       const dropdownWidth = 320;
       const viewportWidth = window.innerWidth;
 
-      // Check if dropdown would go off-screen to the right
       const wouldOverflowRight = rect.left + dropdownWidth > viewportWidth;
 
       // Calculate right position (distance from right edge of viewport)

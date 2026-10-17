@@ -120,7 +120,6 @@ export default function QuickActionsSubmenu({
       const dropdownHeight = 300; // Approximate max height
       const viewportHeight = window.innerHeight;
 
-      // Check if there's enough space above the button
       const spaceAbove = rect.top;
       const spaceBelow = viewportHeight - rect.bottom;
       const shouldShowBelow =

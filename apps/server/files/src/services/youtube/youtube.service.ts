@@ -74,7 +74,6 @@ export class YoutubeService {
     try {
       this.logger.log(`Uploading video ${ingredientId} to YouTube`);
 
-      // Initialize YouTube API
       this.initializeYoutubeAPI(credential);
 
       // Download video file

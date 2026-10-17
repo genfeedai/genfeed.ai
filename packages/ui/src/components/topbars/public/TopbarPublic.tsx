@@ -227,7 +227,6 @@ export default function TopbarPublic({
     [],
   );
 
-  // Get the current open dropdown data
   const currentDropdown = dropdowns.find((d) => d.label === openDropdown);
 
   return (

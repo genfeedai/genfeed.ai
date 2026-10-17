@@ -642,7 +642,6 @@ export class StripeWebhookSupportService {
         return;
       }
 
-      // Get the latest model IDs for this tier
       const enabledModelIds =
         await this.organizationSettingsService.getLatestMajorVersionModelIds();
 

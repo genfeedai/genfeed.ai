@@ -260,10 +260,8 @@ function findFileInputSemantic(): HTMLInputElement | null {
     const element = input as HTMLInputElement;
     const accept = element.getAttribute('accept') || '';
 
-    // Check if it accepts images or videos
     const acceptsMedia = /image|video|gif/.test(accept);
 
-    // Check if it's in a compose/reply context
     const isInComposeContext =
       element.closest('[data-testid*="tweet"]') !== null ||
       element.closest('[aria-label*="compose"]') !== null ||
@@ -294,12 +292,10 @@ function findSubmitButtonSemantic(): HTMLElement | null {
     const isPostButton =
       /post|tweet|reply/.test(ariaLabel) || /post|tweet|reply/.test(innerText);
 
-    // Check if it's in a compose context
     const isInComposeContext =
       element.closest('[data-testid*="tweetTextarea"]') !== null ||
       element.closest('form') !== null;
 
-    // Check if it looks like a primary action button
     const isPrimary =
       element.closest('[data-testid*="Button"]') !== null ||
       element.getAttribute('type') === 'submit';
@@ -324,7 +320,6 @@ export function waitForElement(
   timeout = 5000,
 ): Promise<HTMLElement | null> {
   return new Promise((resolve) => {
-    // Check if already exists
     const existing = findElement(selectorKey);
     if (existing) {
       resolve(existing);
