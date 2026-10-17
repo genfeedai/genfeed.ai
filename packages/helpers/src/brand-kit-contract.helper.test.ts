@@ -626,3 +626,40 @@ describe('approved website baseline authority', () => {
     ).toEqual(buildBrandKitDraftFromManualInput(brand, { label: 'Manual' }));
   });
 });
+
+describe('website icon fallback logo', () => {
+  const scraped = {
+    logoSource: 'icon' as const,
+    logoUrl: 'https://acme.example/favicon-32.png',
+    scrapedAt: new Date('2026-10-01T00:00:00Z'),
+    sourceUrl: 'https://acme.example',
+  };
+
+  it('does not propose an icon over a logo the brand already has', () => {
+    const draft = buildBrandKitDraftFromWebsiteScrape(
+      createCompleteBrand(),
+      scraped,
+    );
+
+    expect(draft.fields.logo?.proposedValue).toBeUndefined();
+    expect(draft.assetCandidates).toContainEqual(
+      expect.objectContaining({
+        label: 'Website icon',
+        role: 'logo',
+        url: scraped.logoUrl,
+      }),
+    );
+  });
+
+  it('proposes the icon, labelled as one, when the brand has no logo', () => {
+    const brand = createCompleteBrand();
+    brand.logo = undefined;
+    brand.logoUrl = undefined;
+    const draft = buildBrandKitDraftFromWebsiteScrape(brand, scraped);
+
+    expect(draft.fields.logo?.proposedValue).toMatchObject({
+      label: 'Website icon',
+      url: scraped.logoUrl,
+    });
+  });
+});

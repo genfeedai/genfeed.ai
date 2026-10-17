@@ -165,6 +165,8 @@ export interface WebsiteScrapingResult {
 
   // Images
   logoUrl?: string;
+  /** `logoUrl` fell back to a touch icon or favicon, not a logo on the page. */
+  isLogoFromIcon?: boolean;
   bannerUrl?: string;
   images: Array<{
     src: string;
