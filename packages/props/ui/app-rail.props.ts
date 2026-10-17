@@ -8,6 +8,7 @@ import type {
   AppRailNavigationEvent,
   AppRailNavigationItem,
   AppRailNavigationVia,
+  AppRailReorderEvent,
   AppRailSurface,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 import type { ReactNode } from 'react';
@@ -39,6 +40,8 @@ export interface AppRailProps {
   installedAppIds?: readonly string[];
   surface?: AppRailSurface;
   onNavigationEvent?: (event: AppRailNavigationEvent) => void;
+  /** Called after a member moves an app, by drag, keyboard or the customize dialog. */
+  onReorderEvent?: (event: AppRailReorderEvent) => void;
   /** Count pills keyed by app id; a missing or zero count renders nothing. */
   badges?: Readonly<Partial<Record<string, AppRailBadge>>>;
   /** Selected brand context used by brand-aware apps when the current route is org-scoped. */

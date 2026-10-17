@@ -1930,6 +1930,30 @@ describe('AppRail', () => {
       expect(onRailAppOrderChange).toHaveBeenLastCalledWith([]);
     });
 
+    it('reports where a moved app came from and landed', () => {
+      const onReorderEvent = vi.fn();
+      render(
+        <AppRail
+          onRailAppOrderChange={vi.fn()}
+          onReorderEvent={onReorderEvent}
+          orgSlug="acme"
+          surface="desktop"
+        />,
+      );
+
+      fireEvent.keyDown(screen.getByTestId('app-rail-item-agent'), {
+        altKey: true,
+        key: 'ArrowDown',
+      });
+
+      expect(onReorderEvent).toHaveBeenCalledWith({
+        app: 'agent',
+        from_index: 1,
+        surface: 'desktop',
+        to_index: 2,
+      });
+    });
+
     it('offers the home picker in the customize dialog only with a handler', () => {
       const { unmount } = render(
         <AppRail

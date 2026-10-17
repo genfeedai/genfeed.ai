@@ -16,7 +16,10 @@ import { useRailPreferencesContext } from '@/components/shell/rail-preferences.p
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useAvailableRailApps } from '@/components/shell/use-available-rail-apps';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
-import { captureAppRailNavigation } from '@/lib/analytics/app-rail-analytics';
+import {
+  captureAppRailNavigation,
+  captureAppRailReorder,
+} from '@/lib/analytics/app-rail-analytics';
 import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 import {
   appendSearchParamsToHref,
@@ -117,6 +120,7 @@ function AppProtectedRailContent({
     <AppRail
       surface={onNavigate ? 'drawer' : 'desktop'}
       onNavigationEvent={captureAppRailNavigation}
+      onReorderEvent={captureAppRailReorder}
       footer={<RailAccount />}
       badges={{
         workspace: {

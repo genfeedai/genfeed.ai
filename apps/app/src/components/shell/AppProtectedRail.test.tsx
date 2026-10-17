@@ -4,6 +4,7 @@ vi.mock('@genfeedai/hooks/data/tasks/use-workspace-inbox-count', () => ({
 }));
 vi.mock('@/lib/analytics/app-rail-analytics', () => ({
   captureAppRailNavigation: vi.fn(),
+  captureAppRailReorder: vi.fn(),
 }));
 const messagesUnread = vi.hoisted(() => ({
   count: 0,

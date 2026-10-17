@@ -208,6 +208,7 @@ export function AppRail({
   homeAppId,
   onHomeAppChange,
   onRailAppOrderChange,
+  onReorderEvent,
   onTogglePin,
   organizationHomeAppId,
   pinnedAppIds = [],
@@ -349,6 +350,12 @@ export function AppRail({
         (candidate) => candidate.app.id === moved?.id,
       );
       if (moved && item) {
+        onReorderEvent?.({
+          app: item.app.id,
+          from_index: railItemIds.indexOf(item.app.id),
+          surface,
+          to_index: moved.position - 1,
+        });
         setNavigationAnnouncement(
           t('reordered', {
             app: item.label,
@@ -358,7 +365,7 @@ export function AppRail({
         );
       }
     },
-    [onRailAppOrderChange, railItems, t],
+    [onRailAppOrderChange, onReorderEvent, railItemIds, railItems, surface, t],
   );
   const { draggingId, getItemProps, overId } = useRailDragReorder({
     ids: railItemIds,

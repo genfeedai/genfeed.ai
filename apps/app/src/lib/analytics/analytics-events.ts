@@ -1,5 +1,8 @@
 import type { GenerationType } from '@genfeedai/contracts';
-import type { AppRailNavigationEvent } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
+import type {
+  AppRailNavigationEvent,
+  AppRailReorderEvent,
+} from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 
 /**
  * PostHog product-analytics event taxonomy for the studio app.
@@ -17,6 +20,7 @@ import type { AppRailNavigationEvent } from '@genfeedai/contracts/interfaces/ui/
  */
 export const ANALYTICS_EVENTS = {
   APP_RAIL_NAVIGATED: 'app_rail_navigated',
+  APP_RAIL_REORDERED: 'app_rail_reordered',
   AGENT_THREAD_CREATED: 'agent_thread_created',
   BRAND_OS_DRAFT_ACCEPTED: 'brand_os_draft_accepted',
   BRAND_OS_DRAFT_SAVED: 'brand_os_draft_saved',
@@ -138,6 +142,7 @@ export interface ConversationShellTelemetryContext {
  */
 export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.APP_RAIL_NAVIGATED]: AppRailNavigationEvent;
+  [ANALYTICS_EVENTS.APP_RAIL_REORDERED]: AppRailReorderEvent;
   [ANALYTICS_EVENTS.AGENT_THREAD_CREATED]: {
     /** Optional agent-type slug (e.g. the configured agent kind), never a title. */
     readonly agentType?: string;
