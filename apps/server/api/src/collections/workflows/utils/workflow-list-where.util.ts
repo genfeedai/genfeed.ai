@@ -10,6 +10,25 @@ type WorkflowListWhereInput = {
   userId: string;
 };
 
+export function buildWorkflowVisibilityWhere(scope: {
+  organizationId: string;
+  userId: string;
+}): Prisma.WorkflowWhereInput {
+  return {
+    isDeleted: false,
+    organizationId: scope.organizationId,
+    OR: [
+      { userId: scope.userId },
+      {
+        metadata: {
+          equals: 'organization',
+          path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
+        },
+      },
+    ],
+  };
+}
+
 const SYSTEM_WORKFLOW_KIND_PATH = [
   SYSTEM_WORKFLOW_METADATA_KEY,
   'kind',

@@ -1,4 +1,5 @@
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { MAX_WORKFLOW_QUERY_IDS } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
@@ -24,12 +25,12 @@ import {
   createWorkflowWithTemplateInstantiation,
   validateTemplateInstantiationKey,
 } from '@api/collections/workflows/services/workflow-template-instantiation.util';
-import {
-  isProtectedSystemWorkflowMetadata,
-  SYSTEM_WORKFLOW_METADATA_KEY,
-} from '@api/collections/workflows/system-workflow.contract';
+import { isProtectedSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
-import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
+import {
+  buildWorkflowVisibilityWhere,
+  EXCLUDE_SYSTEM_WORKFLOW,
+} from '@api/collections/workflows/utils/workflow-list-where.util';
 import { PLATFORM_SEED_INVALIDATING_PATCH_FIELDS } from '@api/collections/workflows/utils/workflow-platform-seed.util';
 import {
   resolveScheduleInitiatingActor,
@@ -957,16 +958,7 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowDocument> {
     const workflow = await this.findOne({
       id: workflowId,
-      organizationId: scope.organizationId,
-      OR: [
-        { userId: scope.userId },
-        {
-          metadata: {
-            equals: 'organization',
-            path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
-          },
-        },
-      ],
+      ...buildWorkflowVisibilityWhere(scope),
     });
 
     if (!workflow) {
@@ -974,6 +966,24 @@ export class WorkflowsService extends BaseService<
     }
 
     return workflow;
+  }
+
+  async findVisibleByIds(
+    ids: string[],
+    scope: { organizationId: string; userId: string; brandId?: string },
+  ): Promise<WorkflowDocument[]> {
+    if (ids.length > MAX_WORKFLOW_QUERY_IDS) {
+      throw new BadRequestException(
+        `At most ${MAX_WORKFLOW_QUERY_IDS} workflow IDs may be requested`,
+      );
+    }
+    if (ids.length === 0) return [];
+
+    return this.find({
+      ...buildWorkflowVisibilityWhere(scope),
+      ...(scope.brandId ? { brandId: scope.brandId } : {}),
+      id: { in: ids },
+    });
   }
 
   /**
