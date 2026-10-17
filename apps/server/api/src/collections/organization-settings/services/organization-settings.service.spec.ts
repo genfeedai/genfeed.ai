@@ -5,6 +5,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
   return {
     ...actual,
+    hasOrganizationBilling: vi.fn(() => false),
     isCloudDeployment: vi.fn(() => false),
   };
 });
@@ -14,7 +15,7 @@ import { resolve } from 'node:path';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { isCloudDeployment } from '@genfeedai/config';
+import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
 import {
   LOWEST_COST_IMAGE_MODEL_KEY,
   MODEL_KEYS,
@@ -332,6 +333,25 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     expect(ensureEnabledModelIds).not.toHaveBeenCalled();
     expect(patch).not.toHaveBeenCalled();
     expect(result).toBe(created);
+  });
+
+  it('starts a billed cloud organization without Playground and Storyboard', async () => {
+    vi.mocked(hasOrganizationBilling).mockReturnValue(true);
+    const service = makeService();
+    vi.spyOn(service, 'findOne').mockResolvedValue(null);
+    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue(['model_1']);
+    const create = vi
+      .spyOn(service, 'create')
+      .mockResolvedValue({ id: 'set_new' } as never);
+
+    await service.ensureForOrganization('org_1');
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleOverrides: { playground: false, storyboard: false },
+      }),
+    );
+    vi.mocked(hasOrganizationBilling).mockReturnValue(false);
   });
 
   it('re-reads after a unique constraint race', async () => {
