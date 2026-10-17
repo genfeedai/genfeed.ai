@@ -11,6 +11,7 @@ import {
   GROUP_ACTION_STATES,
   type PostGroupTargetOperationDependencies,
   schedulePostGroupTarget,
+  updatePostGroupTarget,
 } from '@api/collections/post-groups/services/post-group-target.operations';
 import { replacePostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
@@ -516,6 +517,90 @@ describe('schedulePostGroupTarget legacy group ids', () => {
 
     expect(ensureReleaseForPost).not.toHaveBeenCalled();
     expect(enqueueReleaseTargets).not.toHaveBeenCalled();
+  });
+});
+
+describe('updatePostGroupTarget approval invalidation', () => {
+  const contractService = new PostGroupContractService();
+  const releaseId = 'release-1';
+  let invalidatePost: ReturnType<typeof vi.fn>;
+  let updateMany: ReturnType<typeof vi.fn>;
+  let dependencies: PostGroupTargetOperationDependencies;
+
+  beforeEach(() => {
+    invalidatePost = vi.fn().mockResolvedValue(undefined);
+    updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    // Channel content validation is covered by the contract service spec; this
+    // suite only asserts which fields invalidate the approval.
+    vi.spyOn(contractService, 'validateTargetUpdate').mockReturnValue(
+      undefined,
+    );
+    const tx = { post: { updateMany } } as unknown as SchedulerTx;
+    dependencies = {
+      contractService,
+      ensureReleaseForPost: vi.fn(),
+      enqueueReleaseTargets: vi.fn(),
+      persistenceService: {
+        getGroupOrThrow: vi.fn().mockResolvedValue(makeGroup(releaseId)),
+        getTargetOrThrow: vi.fn().mockResolvedValue({
+          ...makeTarget({
+            id: 'target-1',
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          }),
+          platform: CredentialPlatform.YOUTUBE,
+        }),
+        hydrateWithDerivedStatus: vi
+          .fn()
+          .mockResolvedValue(makeRelease(releaseId)),
+      } as unknown as PostGroupPersistenceService,
+      postLifecycleService: {} as PostLifecycleService,
+      prisma: {
+        $transaction: vi.fn(async (fn: (client: SchedulerTx) => unknown) =>
+          fn(tx),
+        ),
+        postGroup: { findFirst: vi.fn().mockResolvedValue({ id: releaseId }) },
+      } as unknown as PrismaService,
+      publishApprovalsService: {
+        invalidatePost,
+      } as unknown as PublishApprovalsService,
+      readinessService: {} as PostGroupReadinessService,
+      scheduledPostWorkflowQueue: {} as ScheduledPostWorkflowQueueService,
+    };
+  });
+
+  it('invalidates the approval when only the YouTube audience changes', async () => {
+    await updatePostGroupTarget(
+      {
+        body: { visibility: PostVisibility.PRIVATE },
+        groupId: releaseId,
+        organizationId: 'org-1',
+        targetId: 'target-1',
+        userId: 'user-1',
+      },
+      dependencies,
+    );
+
+    expect(invalidatePost).toHaveBeenCalledWith(
+      'org-1',
+      'target-1',
+      expect.any(String),
+      'user-1',
+    );
+  });
+
+  it('keeps the approval when no protected field changes', async () => {
+    await updatePostGroupTarget(
+      {
+        body: { order: 2 },
+        groupId: releaseId,
+        organizationId: 'org-1',
+        targetId: 'target-1',
+        userId: 'user-1',
+      },
+      dependencies,
+    );
+
+    expect(invalidatePost).not.toHaveBeenCalled();
   });
 });
 

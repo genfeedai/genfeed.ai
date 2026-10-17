@@ -446,7 +446,8 @@ export async function updatePostGroupTarget(
   if (
     input.scheduledDate !== undefined ||
     input.settings !== undefined ||
-    input.timezone !== undefined
+    input.timezone !== undefined ||
+    input.visibility !== undefined
   ) {
     await dependencies.publishApprovalsService.invalidatePost(
       params.organizationId,
