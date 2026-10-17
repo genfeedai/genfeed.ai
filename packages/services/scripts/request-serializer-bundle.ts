@@ -159,10 +159,20 @@ export function verifyRequestSerializerBundle(
       };
     if (deferred.length !== 1)
       throw new Error(`Expected one request serializer async group: ${route}`);
-    const files = [...new Set(deferred[0].outputs.filter(isClientJavaScript))];
-    if (files.length !== 1 || files.some((file) => initial.includes(file))) {
+    const groupFiles = [
+      ...new Set(deferred[0].outputs.filter(isClientJavaScript)),
+    ];
+    const files = groupFiles.filter((file) => !initial.includes(file));
+    const alreadyInitial = groupFiles.filter((file) => initial.includes(file));
+    const chunkEvidence = {
+      javaScriptChunks: files.length,
+      javaScriptOutputs: files,
+      alreadyInitialJavaScriptChunks: alreadyInitial.length,
+      alreadyInitialJavaScriptOutputs: alreadyInitial,
+    };
+    if (files.length !== 1) {
       throw new Error(
-        `Expected exactly one deferred serializer JavaScript chunk: ${route}`,
+        `Expected exactly one deferred serializer JavaScript chunk: ${route}; ${JSON.stringify(chunkEvidence)}`,
       );
     }
     const sources = sourcesFor(files);
@@ -173,7 +183,9 @@ export function verifyRequestSerializerBundle(
       '/node_modules/lodash/',
     ]) {
       if (!sources.some((source) => source.includes(required)))
-        throw new Error(`Missing deferred ${required}: ${route}`);
+        throw new Error(
+          `Missing deferred ${required}: ${route}; ${JSON.stringify(chunkEvidence)}`,
+        );
     }
     const contributions = parts.filter((part) => files.includes(part.filename));
     return {
@@ -181,7 +193,7 @@ export function verifyRequestSerializerBundle(
       initialJavaScriptChunks: initial.length,
       forbiddenInitialSources: 0,
       deferred: {
-        javaScriptChunks: files.length,
+        ...chunkEvidence,
         requiredSources: {
           canonical: sources.filter((source) =>
             source.includes('/packages/serializers/'),

@@ -79,9 +79,33 @@ describe('serializer bundle evidence', () => {
     expect(report.routes).toHaveLength(4);
     expect(report.routes[1].deferred).toEqual({
       javaScriptChunks: 1,
+      javaScriptOutputs: ['[client-fs]/write.js'],
+      alreadyInitialJavaScriptChunks: 0,
+      alreadyInitialJavaScriptOutputs: [],
       requiredSources: { canonical: 1, tsJsonapi: 1, lodash: 1 },
       rawSourceBytes: 1000,
       compressedSourceBytes: 400,
+    });
+  });
+
+  it('counts only additional network chunks when an async group shares initial dependencies', () => {
+    const report = verifyRequestSerializerBundle(
+      graph().map((record) =>
+        record.type === 'group' && 'kind' in record && record.kind === 'async'
+          ? {
+              ...record,
+              outputs: ['[client-fs]/initial.js', '[client-fs]/write.js'],
+            }
+          : record,
+      ),
+    );
+
+    expect(report.routes[1].deferred).toMatchObject({
+      javaScriptChunks: 1,
+      javaScriptOutputs: ['[client-fs]/write.js'],
+      alreadyInitialJavaScriptChunks: 1,
+      alreadyInitialJavaScriptOutputs: ['[client-fs]/initial.js'],
+      requiredSources: { canonical: 1, tsJsonapi: 1, lodash: 1 },
     });
   });
 
@@ -156,6 +180,8 @@ describe('serializer bundle evidence', () => {
             : record,
         ),
       ),
-    ).toThrow('Expected exactly one deferred serializer JavaScript chunk');
+    ).toThrow(
+      '"javaScriptChunks":2,"javaScriptOutputs":["[client-fs]/write.js","[client-fs]/vendor.js"],"alreadyInitialJavaScriptChunks":0',
+    );
   });
 });
