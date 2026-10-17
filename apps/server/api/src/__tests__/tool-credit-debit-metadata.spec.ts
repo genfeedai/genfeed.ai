@@ -52,6 +52,7 @@ const TOOLS_BY_FILE: Record<string, readonly string[]> = {
   'agent-generation-settings-tool-handler.service.ts': ['enhance_prompt'],
   'agent-media-text-generation.service.ts': ['generate_content'],
   'agent-publish-tool-handler.service.ts': ['repurpose_post'],
+  'agent-thread-tool-handler.service.ts': ['draft_thread'],
   'agent-x-actions-tool-handler.service.ts': [
     'get_x_posts',
     'list_x_account_activity',
