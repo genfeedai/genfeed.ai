@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { AgentScopeContextService } from '@api/agent-context/agent-scope-context.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   isTwitterPlatform,
   threadExpansionBlockReason,
@@ -27,15 +28,20 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { resolveToolSchedulePrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  ActivitySource,
   Platform,
   PostCategory,
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+
+/** Flat charge for one proposal, the price of every agent text tool. */
+const DRAFT_THREAD_CREDITS = GENERATE_CONTENT_TEXT_CREDITS;
 
 type SavedThreadPost = { description: string; id: string; order: number };
 
@@ -49,6 +55,13 @@ function failure(
 ): AgentToolResult {
   return { creditsUsed: 0, error, success: false, ...(data ? { data } : {}) };
 }
+
+const INSUFFICIENT_CREDITS_RESULT: AgentToolResult = {
+  creditsUsed: 0,
+  data: { code: 'insufficient_credits' },
+  error: 'Not enough credits to draft a thread.',
+  success: false,
+};
 
 /**
  * X thread and first-comment agent tools (#6809). `draft_thread` only
@@ -65,6 +78,7 @@ export class AgentThreadToolHandler {
     private readonly loggerService: LoggerService,
     private readonly postsService: PostsService,
     private readonly brandedContentActions: BrandedContentActionsService,
+    private readonly creditsUtilsService: CreditsUtilsService,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
   ) {}
@@ -97,6 +111,11 @@ export class AgentThreadToolHandler {
   /**
    * Proposes replies for an X post. Nothing is added to the post's thread; the
    * proposal is recorded on a brand receipt whose id returns to the chat.
+   *
+   * Billing mirrors the other agent text tools: admitted up front, then one flat
+   * charge when this call reached the provider, whether the replies were usable
+   * or the run stopped afterwards. A replay and a stop before the provider are
+   * free. The charge is settled here, so the result is billing-delegated.
    */
   async draftThread(
     params: Record<string, unknown>,
@@ -114,6 +133,13 @@ export class AgentThreadToolHandler {
 
     const brandId = post.brandId ?? ctx.validatedScope?.brandId;
     if (!brandId) return failure('A brand is required to draft a thread.');
+
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        ctx.organizationId,
+        DRAFT_THREAD_CREDITS,
+      );
+    if (!hasCredits) return INSUFFICIENT_CREDITS_RESULT;
 
     let outcome: BrandedPostsOutcomeV1;
     try {
@@ -135,22 +161,34 @@ export class AgentThreadToolHandler {
       );
       return failure('Failed to draft the thread. Try again.');
     }
+    const isCharged = outcome.hasNewDispatch === true;
+    if (isCharged) await this.chargeDraft(ctx, brandId);
+    const billing = isCharged
+      ? { creditsUsed: DRAFT_THREAD_CREDITS, isBillingDelegated: true }
+      : { creditsUsed: 0 };
     if (outcome.kind === 'failed') {
-      return failure(outcome.message, {
-        code: outcome.code,
-        ...(outcome.reasonCode ? { reasonCode: outcome.reasonCode } : {}),
-        ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
-      });
+      return {
+        ...billing,
+        data: {
+          code: outcome.code,
+          ...(outcome.reasonCode ? { reasonCode: outcome.reasonCode } : {}),
+          ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
+        },
+        error: outcome.message,
+        success: false,
+      };
     }
     const { posts: proposedPosts, receiptId, receiptState } = outcome.result;
     if (proposedPosts.length === 0) {
-      return failure(
-        'No valid replies were generated. Try again or change the tone.',
-      );
+      return {
+        ...billing,
+        error: 'No valid replies were generated. Try again or change the tone.',
+        success: false,
+      };
     }
 
     return {
-      creditsUsed: 0,
+      ...billing,
       data: {
         isAddedToThread: false,
         nextStep:
@@ -177,6 +215,20 @@ export class AgentThreadToolHandler {
       ],
       success: true,
     };
+  }
+
+  private async chargeDraft(
+    ctx: ToolExecutionContext,
+    brandId: string,
+  ): Promise<void> {
+    await this.creditsUtilsService.deductCreditsFromOrganization(
+      ctx.organizationId,
+      ctx.userId,
+      DRAFT_THREAD_CREDITS,
+      'Agent tool: draft_thread',
+      ActivitySource.SCRIPT,
+      { brandId },
+    );
   }
 
   /** Saves accepted replies in order; a closing @grok post stays last. */

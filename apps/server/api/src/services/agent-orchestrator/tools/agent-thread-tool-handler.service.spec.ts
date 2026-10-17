@@ -1,5 +1,6 @@
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,16 +65,22 @@ function createHandler() {
       }),
     ),
   };
+  const creditsUtilsService = {
+    checkOrganizationCreditsAvailable: vi.fn(async () => true),
+    deductCreditsFromOrganization: vi.fn(async () => undefined),
+  };
   const agentScopeContextService = { assertResourceBrand: vi.fn() };
   const handler = new AgentThreadToolHandler(
     loggerService as unknown as LoggerService,
     postsService as never,
     brandedContentActions as never,
+    creditsUtilsService as never,
     agentScopeContextService as never,
   );
   return {
     agentScopeContextService,
     brandedContentActions,
+    creditsUtilsService,
     handler,
     loggerService,
     postsService,
@@ -131,6 +138,84 @@ describe('AgentThreadToolHandler', () => {
         requestKey: expect.stringMatching(/^[0-9a-f-]{36}$/u),
         tone: 'viral',
       });
+    });
+
+    it('charges the flat text price once, in the tool, after a new provider call', async () => {
+      const result = await h.handler.execute(
+        'draft_thread',
+        { count: 3, postId: 'post-1' },
+        ctx,
+      );
+
+      expect(result).toMatchObject({
+        creditsUsed: GENERATE_CONTENT_TEXT_CREDITS,
+        isBillingDelegated: true,
+        success: true,
+      });
+      expect(
+        h.creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith('org-1', GENERATE_CONTENT_TEXT_CREDITS);
+      expect(
+        h.creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        h.creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        GENERATE_CONTENT_TEXT_CREDITS,
+        'Agent tool: draft_thread',
+        expect.anything(),
+        { brandId: 'brand-1' },
+      );
+    });
+
+    it('does not charge a replay that made no provider call', async () => {
+      h.brandedContentActions.draftThreadReplies.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'completed',
+        result: {
+          maxCharacters: 280,
+          platform: 'twitter',
+          posts: ['Reply one'],
+          receiptId: 'receipt-1',
+          receiptState: 'ready',
+        },
+      });
+
+      const result = await h.handler.execute(
+        'draft_thread',
+        { count: 2, postId: 'post-1' },
+        ctx,
+      );
+
+      expect(result).toMatchObject({ creditsUsed: 0, success: true });
+      expect(result.isBillingDelegated).toBeUndefined();
+      expect(
+        h.creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('refuses before the provider when the balance cannot cover the draft', async () => {
+      h.creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        false,
+      );
+
+      const result = await h.handler.execute(
+        'draft_thread',
+        { count: 3, postId: 'post-1' },
+        ctx,
+      );
+
+      expect(result).toMatchObject({
+        creditsUsed: 0,
+        data: { code: 'insufficient_credits' },
+        success: false,
+      });
+      expect(h.brandedContentActions.draftThreadReplies).not.toHaveBeenCalled();
+      expect(
+        h.creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
     });
 
     it('looks the post up inside the caller organization', async () => {
@@ -241,6 +326,10 @@ describe('AgentThreadToolHandler', () => {
 
       expect(result.success).toBe(false);
       expect(result.nextActions).toBeUndefined();
+      expect(result.creditsUsed).toBe(GENERATE_CONTENT_TEXT_CREDITS);
+      expect(
+        h.creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('reports a stopped generation with its reason and receipt', async () => {
@@ -268,6 +357,38 @@ describe('AgentThreadToolHandler', () => {
         error: 'Your brand voice could not be applied (no_draft_revision).',
         success: false,
       });
+    });
+
+    it('charges a run that stopped after the provider recorded an attempt', async () => {
+      h.brandedContentActions.draftThreadReplies.mockResolvedValue({
+        code: 'blocked',
+        hasNewDispatch: true,
+        kind: 'failed',
+        message: 'The dispatch window closed.',
+        reasonCode: 'dispatch_window_expired',
+        receiptId: 'receipt-9',
+      });
+
+      const result = await h.handler.execute(
+        'draft_thread',
+        { count: 3, postId: 'post-1' },
+        ctx,
+      );
+
+      expect(result).toEqual({
+        creditsUsed: GENERATE_CONTENT_TEXT_CREDITS,
+        data: {
+          code: 'blocked',
+          reasonCode: 'dispatch_window_expired',
+          receiptId: 'receipt-9',
+        },
+        error: 'The dispatch window closed.',
+        isBillingDelegated: true,
+        success: false,
+      });
+      expect(
+        h.creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('needs a brand to write the replies for', async () => {

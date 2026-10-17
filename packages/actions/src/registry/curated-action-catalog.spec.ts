@@ -1,3 +1,4 @@
+import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants/tool-credit.constant';
 import { describe, expect, it } from 'vitest';
 import {
   CURATED_ACTION_CATALOG,
@@ -235,7 +236,9 @@ describe('curated action catalog', () => {
     expect(getToolByName('add_first_comment')?.mutationPolicy).toBe(
       'approval-required',
     );
-    expect(getToolByName('draft_thread')?.creditCost).toBe(1);
+    expect(getToolByName('draft_thread')?.creditCost).toBe(
+      GENERATE_CONTENT_TEXT_CREDITS,
+    );
     expect(getToolByName('add_thread_posts')?.creditCost).toBe(0);
   });
 

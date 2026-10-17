@@ -71,6 +71,12 @@ post: the receipt is blocked, the paid call is visible and billed, and nothing i
 persisted without a receipt. Any other `recordDispatch` failure is a real error
 and propagates unchanged.
 
+Agent `generate_content` (social), `refine_text`, `generate_reply_variants` and
+`draft_thread` all charge `GENERATE_CONTENT_TEXT_CREDITS`. Each handler admits
+the balance first, charges once when `hasNewDispatch` is true (on success, on a
+stop after the provider attempt and when no usable reply came back) and marks
+the result billing-delegated so the agent turn does not charge it again.
+
 ## Stable reason codes
 
 `no_approved_revision`, `unsupported_capability`, `provider_attempt_ref_unavailable`
