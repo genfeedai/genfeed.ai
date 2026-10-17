@@ -140,6 +140,8 @@ export interface UseModalGalleryProps {
   category: IngredientCategory;
   isOpen: boolean;
   format: IngredientFormat;
+  /** False lists every aspect ratio instead of only `format`. */
+  isFormatFilterEnabled?: boolean;
   selectedId?: string;
   maxSelectableItems?: number;
   selectedReferences?: string[];

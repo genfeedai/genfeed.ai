@@ -52,7 +52,9 @@ export default function SaveAsCharacter({
     queryKey,
     enabled: Boolean(brandId && assetId),
     queryFn: async () => (await getService()).listCharacters(),
-    staleTime: 30_000,
+    // Characters are edited on the Library page, which does not share this
+    // cache, so a remount must read them again rather than trust a cached list.
+    staleTime: 0,
   });
   // Any reference image counts, not only the primary one.
   const savedReference = characters?.find((character) =>

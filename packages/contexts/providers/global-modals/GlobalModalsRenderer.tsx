@@ -130,6 +130,7 @@ export default function GlobalModalsRenderer({
           title={galleryConfig.title}
           selectedId={galleryConfig.selectedId}
           format={galleryConfig.format}
+          isFormatFilterEnabled={galleryConfig.isFormatFilterEnabled}
           isNoneAllowed={galleryConfig.isNoneAllowed}
           maxSelectableItems={galleryConfig.maxSelectableItems}
           accountReference={galleryConfig.accountReference}

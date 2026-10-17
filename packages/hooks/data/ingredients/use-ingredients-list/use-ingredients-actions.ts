@@ -163,6 +163,9 @@ export function useIngredientsActions({
   const handleDeleteIngredient = useCallback(
     async (ingredient: IIngredient) => {
       const children = await getCharacterReferenceWarning([ingredient.id]);
+      if (children === null) {
+        return;
+      }
 
       openConfirm({
         children,
@@ -654,6 +657,9 @@ export function useIngredientsActions({
     const count = selectedIngredientIds.length;
     const assets = count === 1 ? 'asset' : 'assets';
     const children = await getCharacterReferenceWarning(selectedIngredientIds);
+    if (children === null) {
+      return;
+    }
 
     openConfirm({
       children,

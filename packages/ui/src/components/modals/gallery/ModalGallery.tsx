@@ -49,6 +49,7 @@ export default function ModalGallery({
   title,
   selectedId,
   format = IngredientFormat.PORTRAIT,
+  isFormatFilterEnabled = true,
   isNoneAllowed = false,
   maxSelectableItems,
   accountReference = null,
@@ -83,6 +84,7 @@ export default function ModalGallery({
   } = useModalGallery({
     category,
     format: format as IngredientFormat,
+    isFormatFilterEnabled,
     isOpen,
     maxSelectableItems,
     selectedId,

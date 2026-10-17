@@ -9,6 +9,10 @@ const ONBOARDING_HREF_PATTERN = /(^|\/)onboarding(\/|\?|$)/;
 
 function isLeavingAnchor(anchor: HTMLAnchorElement): boolean {
   const href = anchor.getAttribute('href');
+  // A link that opens its own tab leaves the onboarding tab where it is.
+  if (anchor.target === '_blank') {
+    return false;
+  }
   if (
     !href ||
     href.startsWith('#') ||
@@ -47,7 +51,7 @@ export default function OnboardingNavigationHold({
     };
 
     const blockKeys = (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase();
+      const key = event.key?.toLowerCase() ?? '';
       const hasCommand = event.metaKey || event.ctrlKey;
       if (hasCommand && (key === 'k' || (event.shiftKey && key === 'n'))) {
         event.preventDefault();

@@ -33,6 +33,7 @@ export function useModalGallery({
   category,
   isOpen,
   format,
+  isFormatFilterEnabled = true,
   selectedId,
   maxSelectableItems,
   selectedReferences: initialSelectedReferences = [],
@@ -55,6 +56,9 @@ export function useModalGallery({
   const [localFormat, setLocalFormat] = useState<IngredientFormat>(
     format as IngredientFormat,
   );
+  // `format` narrows what the gallery lists; a picker that accepts any aspect
+  // ratio turns the narrowing off while the format control keeps its state.
+  const formatFilter = isFormatFilterEnabled ? localFormat : undefined;
   const [uploads, setUploads] = useState<IImage[]>([]);
   const [references, setReferences] = useState<IAsset[]>([]);
   const [creations, setCreations] = useState<IImage[]>([]);
@@ -140,7 +144,7 @@ export function useModalGallery({
         parentModel: 'Brand',
         sort: 'createdAt: -1',
         // Filter by format for consistent aspect ratios when selecting references
-        ...(localFormat && { format: localFormat }),
+        ...(formatFilter && { format: formatFilter }),
       };
 
       const data = await service.findAll(query as Record<string, unknown>);
@@ -160,7 +164,7 @@ export function useModalGallery({
       setIsLoadingReferences(false);
       isLoadingReferencesRef.current = false;
     }
-  }, [getAssetsService, notificationsService, brandId, localFormat]);
+  }, [getAssetsService, notificationsService, brandId, formatFilter]);
 
   const findAllCreations = useCallback(
     async (pageOverride?: number) => {
@@ -183,8 +187,8 @@ export function useModalGallery({
         if (brandId) {
           query.brand = brandId;
         }
-        if (localFormat) {
-          query.format = localFormat;
+        if (formatFilter) {
+          query.format = formatFilter;
         }
 
         const data = await service.findAll(query as Record<string, unknown>);
@@ -203,7 +207,7 @@ export function useModalGallery({
         isLoadingCreationsRef.current = false;
       }
     },
-    [getImagesService, notificationsService, brandId, localFormat],
+    [getImagesService, notificationsService, brandId, formatFilter],
   );
 
   const findAllUploads = useCallback(
@@ -225,8 +229,8 @@ export function useModalGallery({
         if (brandId) {
           query.brand = brandId;
         }
-        if (localFormat) {
-          query.format = localFormat;
+        if (formatFilter) {
+          query.format = formatFilter;
         }
 
         const data = await service.findAll(query as Record<string, unknown>);
@@ -244,7 +248,7 @@ export function useModalGallery({
         setIsLoading(false);
       }
     },
-    [getImagesService, notificationsService, brandId, localFormat],
+    [getImagesService, notificationsService, brandId, formatFilter],
   );
 
   const findAllItems = useCallback(
@@ -272,8 +276,8 @@ export function useModalGallery({
               (query as Record<string, unknown>).reference = filterReferenceId;
             }
 
-            if (localFormat) {
-              query.format = localFormat;
+            if (formatFilter) {
+              query.format = formatFilter;
             }
 
             const data = await service.findAll(
@@ -320,8 +324,8 @@ export function useModalGallery({
               query.reference = filterReferenceId;
             }
 
-            if (localFormat) {
-              query.format = localFormat;
+            if (formatFilter) {
+              query.format = formatFilter;
             }
 
             const data = await service.findAll(
@@ -347,7 +351,7 @@ export function useModalGallery({
       getImagesService,
       notificationsService,
       brandId,
-      localFormat,
+      formatFilter,
       filterReferenceId,
     ],
   );

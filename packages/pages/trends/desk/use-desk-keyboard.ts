@@ -34,7 +34,7 @@ export function useDeskKeyboard({
         return;
       }
 
-      switch (event.key.toLowerCase()) {
+      switch (event.key?.toLowerCase()) {
         case 'j':
           event.preventDefault();
           onMoveCursor(1);
