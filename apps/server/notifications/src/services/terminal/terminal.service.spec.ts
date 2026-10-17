@@ -35,7 +35,10 @@ function createService(
   adapter: IPtyAdapter,
 ): TerminalService {
   return new TerminalService(
-    createConfigService(configValues) as never,
+    createConfigService({
+      GENFEED_LOCAL_TERMINAL: 'true',
+      ...configValues,
+    }) as never,
     adapter,
   );
 }
@@ -53,8 +56,20 @@ describe('TerminalService', () => {
     process.env.NODE_ENV = 'development';
   });
 
-  it('is available during local development outside hosted cloud', () => {
-    const service = createService({ NODE_ENV: 'development' }, mockAdapter);
+  it('is disabled by default, even during local development', () => {
+    const service = createService(
+      { GENFEED_LOCAL_TERMINAL: undefined, NODE_ENV: 'development' },
+      mockAdapter,
+    );
+
+    expect(service.isAvailable()).toBe(false);
+  });
+
+  it('is available in local development when explicitly enabled', () => {
+    const service = createService(
+      { GENFEED_LOCAL_TERMINAL: 'true', NODE_ENV: 'development' },
+      mockAdapter,
+    );
 
     expect(service.isAvailable()).toBe(true);
   });
@@ -81,7 +96,10 @@ describe('TerminalService', () => {
 
   it('requires explicit enablement in self-hosted production', () => {
     process.env.NODE_ENV = 'production';
-    const disabled = createService({ NODE_ENV: 'production' }, mockAdapter);
+    const disabled = createService(
+      { GENFEED_LOCAL_TERMINAL: undefined, NODE_ENV: 'production' },
+      mockAdapter,
+    );
     const enabled = createService(
       { GENFEED_LOCAL_TERMINAL: 'true', NODE_ENV: 'production' },
       mockAdapter,

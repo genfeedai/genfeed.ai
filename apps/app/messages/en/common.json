@@ -2404,8 +2404,8 @@
     "insufficientCredits": "Not enough credits to rewrite the remaining items.",
     "cancelled": "Rewrite stopped. {count, plural, =0 {No captions were rewritten.} one {# caption was rewritten.} other {# captions were rewritten.}}"
   },
-  "store": {
-    "title": "Store",
+  "explore": {
+    "title": "Explore",
     "description": "Install apps into your own setup. Installing never changes your organization's access or starts any work.",
     "appsTitle": "Apps",
     "featuredTitle": "Featured",
@@ -2441,11 +2441,10 @@
   },
   "appRail": {
     "apps": "Apps",
-    "launcher": "Apps",
+    "launcher": "Explore",
     "search": "Search apps",
     "noApps": "No apps installed yet.",
     "noMatches": "No matching apps.",
-    "store": "Store",
     "pin": "Pin {app}",
     "unpin": "Unpin {app}",
     "navigation": "App navigation",

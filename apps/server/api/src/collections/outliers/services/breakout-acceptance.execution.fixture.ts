@@ -359,11 +359,7 @@ export function buildExecutionHarness(
     prisma,
     logger,
     {
-      findOne: async () => ({
-        inputCostPerMillionTokens: 1,
-        outputCostPerMillionTokens: 1,
-        pricingType: 'per-token',
-      }),
+      findOne: async () => ({ cost: 1, pricingType: 'flat' }),
     } as Stub,
     replicate as Stub,
   );

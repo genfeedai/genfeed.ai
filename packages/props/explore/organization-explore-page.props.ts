@@ -6,7 +6,7 @@ import type {
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 
 /** One native app in the Store (#5502), with its resolved state for the member. */
-export interface StoreAppEntry {
+export interface ExploreAppEntry {
   appId: NativeSecondaryAppId;
   description: string;
   icon: IconComponent;
@@ -19,12 +19,12 @@ export interface StoreAppEntry {
 }
 
 /** Store shelves an app is filed under; the filter chips mirror these. */
-export type StoreCategoryId = 'create' | 'publish' | 'automate';
+export type ExploreCategoryId = 'create' | 'publish' | 'automate';
 
-export type StoreFilterId = 'all' | StoreCategoryId;
+export type ExploreFilterId = 'all' | ExploreCategoryId;
 
 /** Abstract mini-illustration drawn on an app's thumbnail. */
-export type StoreThumbnailArt =
+export type ExploreThumbnailArt =
   | 'flow'
   | 'frames'
   | 'inbox'
@@ -37,29 +37,29 @@ export type StoreThumbnailArt =
   | 'trend'
   | 'trim';
 
-export type StoreThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
+export type ExploreThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
 
-export type StoreThumbnailSize = 'compact' | 'featured' | 'standard';
+export type ExploreThumbnailSize = 'compact' | 'featured' | 'standard';
 
 /** Store-only presentation data for one native app, keyed by app id. */
-export interface StoreAppCatalogEntry {
-  art: StoreThumbnailArt;
-  category: StoreCategoryId;
+export interface ExploreAppCatalogEntry {
+  art: ExploreThumbnailArt;
+  category: ExploreCategoryId;
   isFeatured: boolean;
   /** Real artwork; replaces the designed tile once an image exists. */
   thumbnailSrc?: string;
-  tone: StoreThumbnailTone;
+  tone: ExploreThumbnailTone;
 }
 
-export interface StoreAppThumbnailProps {
+export interface ExploreAppThumbnailProps {
   appId: OrganizationModuleId;
   icon: IconComponent;
   label: string;
-  size: StoreThumbnailSize;
+  size: ExploreThumbnailSize;
 }
 
-export interface StoreAppCardProps {
-  app: StoreAppEntry;
+export interface ExploreAppCardProps {
+  app: ExploreAppEntry;
   /** `featured` is the larger hero card; the testid prefix keeps both findable. */
   variant?: 'featured' | 'standard';
   /** Set after the last install or uninstall request for this app failed. */
@@ -73,7 +73,7 @@ export interface StoreAppCardProps {
   subscriptionHref: string;
 }
 
-export interface StoreAppAccessNoteProps
-  extends Pick<StoreAppCardProps, 'manageModulesHref' | 'subscriptionHref'> {
-  state: StoreAppEntry['state'];
+export interface ExploreAppAccessNoteProps
+  extends Pick<ExploreAppCardProps, 'manageModulesHref' | 'subscriptionHref'> {
+  state: ExploreAppEntry['state'];
 }

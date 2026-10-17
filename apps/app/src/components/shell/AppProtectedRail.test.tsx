@@ -119,7 +119,7 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
       PUBLISHING: '/settings/publishing',
     },
     SIGN_UP: '/signup',
-    STORE: { ROOT: '/store' },
+    EXPLORE: { ROOT: '/explore' },
     WORKSPACE: {
       ACTIVITY: '/workspace/activity',
       OVERVIEW: '/workspace/overview',
@@ -236,9 +236,9 @@ describe('AppProtectedRail', () => {
         surface: 'desktop',
       }),
     );
-    // Pins are changed from Store cards; the rail only reads them. The Apps
-    // link to the Store lives in the topbar.
-    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('storeHref');
+    // Pins are changed from Explore cards; the rail only reads them. The Explore
+    // link lives in the topbar.
+    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('exploreHref');
     expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('onTogglePin');
   });
 

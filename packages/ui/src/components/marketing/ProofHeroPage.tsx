@@ -53,7 +53,9 @@ export default function ProofHeroPage({
               ) : null}
 
               {heroActions ? (
-                <div className="mt-8 flex flex-wrap gap-3">{heroActions}</div>
+                <div className="mt-8 flex flex-wrap gap-3" data-hero-cta>
+                  {heroActions}
+                </div>
               ) : null}
 
               {heroProof ? <div className="mt-8">{heroProof}</div> : null}

@@ -123,7 +123,7 @@ describe('OrganizationModulesCard', () => {
     mocks.getService.mockResolvedValue({ patchSettings: mocks.patchSettings });
   });
 
-  it('shows every module on the Store shelves with the settled defaults', () => {
+  it('shows every module on the Explore shelves with the settled defaults', () => {
     render(<OrganizationModulesCard />);
     expect(switchNames()).toHaveLength(11);
     for (const name of [

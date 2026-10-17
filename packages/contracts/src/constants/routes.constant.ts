@@ -350,8 +350,8 @@ export const APP_ROUTES = {
    * image/video/avatar/music tabs were retired.
    */
   /** #5502 native app catalog; installation is per organization membership. */
-  STORE: {
-    ROOT: '/store',
+  EXPLORE: {
+    ROOT: '/explore',
   },
   STUDIO: {
     MOTION: '/studio/motion',

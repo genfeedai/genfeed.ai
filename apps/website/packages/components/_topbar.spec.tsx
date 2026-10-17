@@ -1,6 +1,6 @@
 // biome-ignore assist/source/organizeImports: External packages precede project aliases.
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
 
@@ -165,5 +165,51 @@ describe('WebsiteTopbar', () => {
     expect(
       screen.queryByRole('button', { name: /Appearance/i }),
     ).not.toBeInTheDocument();
+  });
+
+  describe('hero call to action', () => {
+    type ObserverCallback = (
+      entries: { isIntersecting: boolean; target: Element }[],
+    ) => void;
+    let notify: ObserverCallback = () => {};
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      document.body.innerHTML = '';
+    });
+
+    function getCtaGroup(): HTMLElement {
+      return screen.getByTestId('topbar-actions');
+    }
+
+    it('holds the bar CTA back while the hero CTA is on screen, then reveals it on scroll', () => {
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(callback: ObserverCallback) {
+            notify = callback;
+          }
+          observe = vi.fn();
+          disconnect = vi.fn();
+        },
+      );
+      document.body.innerHTML = '<div data-hero-cta></div>';
+      const hero = document.querySelector('[data-hero-cta]') as Element;
+
+      render(<WebsiteTopbar />);
+      expect(getCtaGroup().className).toContain('invisible');
+
+      act(() => notify([{ isIntersecting: false, target: hero }]));
+      expect(getCtaGroup().className).not.toContain('invisible');
+
+      act(() => notify([{ isIntersecting: true, target: hero }]));
+      expect(getCtaGroup().className).toContain('invisible');
+    });
+
+    it('keeps the bar CTA on pages without a hero CTA', () => {
+      render(<WebsiteTopbar />);
+
+      expect(getCtaGroup().className).not.toContain('invisible');
+    });
   });
 });

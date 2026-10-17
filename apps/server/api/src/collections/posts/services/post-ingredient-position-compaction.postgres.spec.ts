@@ -125,12 +125,16 @@ describe.skipIf(!connectionString)(
       waiterName: string,
     ): Promise<void> {
       for (let attempt = 0; attempt < 250; attempt += 1) {
-        const { rows } = await holder.query<{ wait_event: string | null }>(
-          `SELECT wait_event FROM pg_stat_activity
-           WHERE application_name = $1 AND state = 'active'`,
+        // Match the ungranted lock, not `state = 'active'`: while a parameterized
+        // statement blocks, pg_stat_activity can still report the session as idle.
+        const { rows } = await holder.query(
+          `SELECT 1 FROM pg_locks l
+           JOIN pg_stat_activity a ON a.pid = l.pid
+           WHERE a.application_name = $1
+             AND l.locktype = 'advisory' AND NOT l.granted`,
           [waiterName],
         );
-        if (rows.some((row) => row.wait_event === 'advisory')) return;
+        if (rows.length > 0) return;
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
       throw new Error(`${waiterName} did not wait on the post position lock`);

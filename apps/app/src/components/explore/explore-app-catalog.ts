@@ -1,25 +1,25 @@
 import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
 import type {
-  StoreAppCatalogEntry,
-  StoreCategoryId,
-} from '@genfeedai/props/store/organization-store-page.props';
+  ExploreAppCatalogEntry,
+  ExploreCategoryId,
+} from '@genfeedai/props/explore/organization-explore-page.props';
 
 /** Shelves in display order. */
 export const STORE_CATEGORY_IDS = [
   'create',
   'publish',
   'automate',
-] as const satisfies readonly StoreCategoryId[];
+] as const satisfies readonly ExploreCategoryId[];
 
 /**
- * Presentation per organization module, shared by the Store and the Modules
+ * Presentation per organization module, shared by Explore and the Modules
  * settings page: shelf, featured flag and the designed thumbnail. Set
  * `thumbnailSrc` on an entry to swap its tile for real artwork; nothing else
- * changes. Publishing and Analytics are core apps, never listed in the Store.
+ * changes. Publishing and Analytics are core apps, never listed in Explore.
  */
-export const STORE_APP_CATALOG: Record<
+export const EXPLORE_APP_CATALOG: Record<
   OrganizationModuleId,
-  StoreAppCatalogEntry
+  ExploreAppCatalogEntry
 > = {
   analytics: {
     art: 'stats',
@@ -28,42 +28,42 @@ export const STORE_APP_CATALOG: Record<
     tone: 'primary',
   },
   automation: {
-    thumbnailSrc: '/store/automation.webp',
+    thumbnailSrc: '/explore/automation.webp',
     art: 'flow',
     category: 'automate',
     isFeatured: false,
     tone: 'info',
   },
   clips: {
-    thumbnailSrc: '/store/clips.webp',
+    thumbnailSrc: '/explore/clips.webp',
     art: 'trim',
     category: 'create',
     isFeatured: false,
     tone: 'warning',
   },
   discovery: {
-    thumbnailSrc: '/store/discovery.webp',
+    thumbnailSrc: '/explore/discovery.webp',
     art: 'trend',
     category: 'publish',
     isFeatured: false,
     tone: 'success',
   },
   editor: {
-    thumbnailSrc: '/store/editor.webp',
+    thumbnailSrc: '/explore/editor.webp',
     art: 'timeline',
     category: 'create',
     isFeatured: false,
     tone: 'info',
   },
   messages: {
-    thumbnailSrc: '/store/messages.webp',
+    thumbnailSrc: '/explore/messages.webp',
     art: 'inbox',
     category: 'publish',
     isFeatured: false,
     tone: 'primary',
   },
   motion: {
-    thumbnailSrc: '/store/motion.webp',
+    thumbnailSrc: '/explore/motion.webp',
     art: 'motion',
     category: 'create',
     isFeatured: false,
@@ -76,21 +76,21 @@ export const STORE_APP_CATALOG: Record<
     tone: 'warning',
   },
   playground: {
-    thumbnailSrc: '/store/playground.webp',
+    thumbnailSrc: '/explore/playground.webp',
     art: 'prompt',
     category: 'create',
     isFeatured: true,
     tone: 'primary',
   },
   storyboard: {
-    thumbnailSrc: '/store/storyboard.webp',
+    thumbnailSrc: '/explore/storyboard.webp',
     art: 'frames',
     category: 'create',
     isFeatured: true,
     tone: 'success',
   },
   turbo: {
-    thumbnailSrc: '/store/turbo.webp',
+    thumbnailSrc: '/explore/turbo.webp',
     art: 'layers',
     category: 'create',
     isFeatured: true,

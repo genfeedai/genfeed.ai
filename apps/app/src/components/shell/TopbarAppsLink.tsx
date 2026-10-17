@@ -9,15 +9,14 @@ import { cn } from '@genfeedai/helpers';
 import type { TopbarAppsLinkProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
-import { LayoutGrid } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 /**
- * The Apps entry: goes straight to the Store, the full-page home for every
- * app. It sits in the topbar so the rail holds only the core loop and the
- * apps the member pinned.
+ * Explore: goes straight to the full-page home for every app. It sits in the
+ * topbar so the rail holds only the core loop and the apps the member pinned.
  */
 export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
   const pathname = usePathname();
@@ -27,12 +26,12 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
 
   if (!effectiveOrgSlug) return null;
 
-  const storeHref = createOrganizationAppRoute(
+  const exploreHref = createOrganizationAppRoute(
     effectiveOrgSlug,
-    APP_ROUTES.STORE.ROOT,
+    APP_ROUTES.EXPLORE.ROOT,
   );
   const isActive =
-    pathname === storeHref || pathname?.startsWith(`${storeHref}/`);
+    pathname === exploreHref || pathname?.startsWith(`${exploreHref}/`);
 
   return (
     <Button
@@ -48,10 +47,10 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
       <Link
         aria-current={isActive ? 'page' : undefined}
         aria-label={translate('launcher')}
-        href={storeHref}
+        href={exploreHref}
         prefetch={false}
       >
-        <LayoutGrid aria-hidden="true" className="size-4" />
+        <Compass aria-hidden="true" className="size-4" />
       </Link>
     </Button>
   );

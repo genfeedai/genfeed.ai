@@ -14,11 +14,11 @@ import {
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type {
-  StoreAppAccessNoteProps,
-  StoreAppCardProps,
-  StoreAppEntry,
-  StoreFilterId,
-} from '@genfeedai/props/store/organization-store-page.props';
+  ExploreAppAccessNoteProps,
+  ExploreAppCardProps,
+  ExploreAppEntry,
+  ExploreFilterId,
+} from '@genfeedai/props/explore/organization-explore-page.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
@@ -34,39 +34,39 @@ import {
   getAppRailHref,
   isAppRailItemEnabled,
 } from '@ui/shell/app-rail/app-rail.registry';
-import { Store, Workflow } from 'lucide-react';
+import { Compass, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import ExploreAppThumbnail from '@/components/explore/ExploreAppThumbnail';
+import {
+  EXPLORE_APP_CATALOG,
+  STORE_CATEGORY_IDS,
+} from '@/components/explore/explore-app-catalog';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.provider';
-import StoreAppThumbnail from '@/components/store/StoreAppThumbnail';
-import {
-  STORE_APP_CATALOG,
-  STORE_CATEGORY_IDS,
-} from '@/components/store/store-app-catalog';
 
 const ALL_FILTER = 'all';
 
 const STORE_SKELETON_KEYS = [
-  'store-skeleton-1',
-  'store-skeleton-2',
-  'store-skeleton-3',
+  'explore-skeleton-1',
+  'explore-skeleton-2',
+  'explore-skeleton-3',
 ] as const;
 
-function isAppOpenable(app: StoreAppEntry): boolean {
+function isAppOpenable(app: ExploreAppEntry): boolean {
   return app.state === 'installed' || app.state === 'pinned';
 }
 
 /**
- * Store v1 at `/:orgSlug/~/store` (#5502): native apps a member installs into
+ * Explore v1 at `/:orgSlug/~/explore` (#5502): native apps a member installs into
  * their own setup. Installing is a presentation preference; organization,
  * subscription and release access still decide what the member can open, and
  * the server rechecks every new piece of work. Apps switched off for the
  * platform or not released to the organization are not listed.
  */
-export default function OrganizationStorePage() {
-  const translate = useTranslations('common.store');
+export default function OrganizationExplorePage() {
+  const translate = useTranslations('common.explore');
   const translateRail = useTranslations('common.appRail');
   const { selectedBrand, settings, settingsLoading } = useBrand();
   const { flags, isConfigured } = useFeatureFlagContext();
@@ -76,11 +76,11 @@ export default function OrganizationStorePage() {
   const [failedActions, setFailedActions] = useState<
     Partial<Record<NativeSecondaryAppId, 'install' | 'uninstall'>>
   >({});
-  const [filter, setFilter] = useState<StoreFilterId>(ALL_FILTER);
+  const [filter, setFilter] = useState<ExploreFilterId>(ALL_FILTER);
   const brandSlug = selectedBrand?.slug?.trim() || undefined;
   const isLoading = settingsLoading || installedApps.status === 'loading';
 
-  const apps = useMemo<StoreAppEntry[]>(
+  const apps = useMemo<ExploreAppEntry[]>(
     () =>
       APP_RAIL_REGISTRY.flatMap((app) => {
         const appId = app.id;
@@ -134,9 +134,11 @@ export default function OrganizationStorePage() {
 
   // Only shelves that hold an app the member can see get a chip, so a shelf
   // that is empty for this member never offers an empty filter.
-  const filterIds = useMemo<StoreFilterId[]>(() => {
+  const filterIds = useMemo<ExploreFilterId[]>(() => {
     const shelves = STORE_CATEGORY_IDS.filter((categoryId) =>
-      apps.some((app) => STORE_APP_CATALOG[app.appId].category === categoryId),
+      apps.some(
+        (app) => EXPLORE_APP_CATALOG[app.appId].category === categoryId,
+      ),
     );
     return shelves.length > 1 ? [ALL_FILTER, ...shelves] : [ALL_FILTER];
   }, [apps]);
@@ -146,15 +148,15 @@ export default function OrganizationStorePage() {
       activeFilter === ALL_FILTER
         ? apps
         : apps.filter(
-            (app) => STORE_APP_CATALOG[app.appId].category === activeFilter,
+            (app) => EXPLORE_APP_CATALOG[app.appId].category === activeFilter,
           ),
     [activeFilter, apps],
   );
-  // Only apps the member can open or install headline the Store; a locked app
+  // Only apps the member can open or install headline Explore; a locked app
   // stays on its shelf with its access note instead.
   const featuredApps = visibleApps.filter(
     (app) =>
-      STORE_APP_CATALOG[app.appId].isFeatured &&
+      EXPLORE_APP_CATALOG[app.appId].isFeatured &&
       (isAppOpenable(app) || app.state === 'not-installed'),
   );
   // No per-member app usage is recorded anywhere, so "most used" cannot be
@@ -192,8 +194,11 @@ export default function OrganizationStorePage() {
     }
   };
 
-  const renderCard = (app: StoreAppEntry, variant: 'featured' | 'standard') => (
-    <StoreAppCard
+  const renderCard = (
+    app: ExploreAppEntry,
+    variant: 'featured' | 'standard',
+  ) => (
+    <ExploreAppCard
       key={`${variant}-${app.appId}`}
       app={app}
       failedAction={failedActions[app.appId] ?? null}
@@ -218,7 +223,7 @@ export default function OrganizationStorePage() {
     <OverviewLayout
       label={translate('title')}
       description={translate('description')}
-      icon={Store}
+      icon={Compass}
     >
       {installedApps.status === 'error' ? (
         <p className="px-1 text-sm text-destructive" role="alert">
@@ -232,7 +237,7 @@ export default function OrganizationStorePage() {
           itemCount={apps.length}
           title={translate('appsTitle')}
         >
-          <CollectionGrid data-testid="store-apps">
+          <CollectionGrid data-testid="explore-apps">
             {STORE_SKELETON_KEYS.map((key) => (
               <SkeletonCard
                 key={key}
@@ -245,7 +250,7 @@ export default function OrganizationStorePage() {
       ) : (
         <div className="flex flex-col gap-8">
           {filterIds.length > 1 ? (
-            <div className="flex flex-wrap gap-2" data-testid="store-filters">
+            <div className="flex flex-wrap gap-2" data-testid="explore-filters">
               {filterIds.map((filterId) => (
                 <Button
                   key={filterId}
@@ -267,7 +272,7 @@ export default function OrganizationStorePage() {
           ) : null}
 
           <CollectionSection
-            data-testid="store-featured"
+            data-testid="explore-featured"
             itemCount={featuredApps.length}
             title={translate('featuredTitle')}
           >
@@ -277,7 +282,7 @@ export default function OrganizationStorePage() {
           </CollectionSection>
 
           <CollectionSection
-            data-testid="store-yours"
+            data-testid="explore-yours"
             description={translate('yoursDescription')}
             itemCount={yourApps.length}
             title={translate('yoursTitle')}
@@ -286,10 +291,10 @@ export default function OrganizationStorePage() {
               {yourApps.map((app) => (
                 <ListRow
                   key={app.appId}
-                  data-testid={`store-yours-${app.appId}`}
+                  data-testid={`explore-yours-${app.appId}`}
                   density="compact"
                   leading={
-                    <StoreAppThumbnail
+                    <ExploreAppThumbnail
                       appId={app.appId}
                       icon={app.icon}
                       label={app.label}
@@ -321,15 +326,15 @@ export default function OrganizationStorePage() {
             </CollectionList>
           </CollectionSection>
 
-          <div className="flex flex-col gap-8" data-testid="store-apps">
+          <div className="flex flex-col gap-8" data-testid="explore-apps">
             {STORE_CATEGORY_IDS.map((categoryId) => {
               const categoryApps = visibleApps.filter(
-                (app) => STORE_APP_CATALOG[app.appId].category === categoryId,
+                (app) => EXPLORE_APP_CATALOG[app.appId].category === categoryId,
               );
               return (
                 <CollectionSection
                   key={categoryId}
-                  data-testid={`store-category-${categoryId}`}
+                  data-testid={`explore-category-${categoryId}`}
                   description={translate(`categoryDescriptions.${categoryId}`)}
                   itemCount={categoryApps.length}
                   title={translate(`categories.${categoryId}`)}
@@ -348,7 +353,7 @@ export default function OrganizationStorePage() {
         <CollectionSection itemCount={1} title={translate('workflowsTitle')}>
           <Card
             bodyClassName="flex flex-col gap-3"
-            data-testid="store-workflows"
+            data-testid="explore-workflows"
           >
             <div className="flex items-center gap-3">
               <Workflow
@@ -390,7 +395,7 @@ export default function OrganizationStorePage() {
   );
 }
 
-function StoreAppCard({
+function ExploreAppCard({
   app,
   failedAction,
   isPending,
@@ -401,8 +406,8 @@ function StoreAppCard({
   onUninstall,
   subscriptionHref,
   variant = 'standard',
-}: StoreAppCardProps) {
-  const translate = useTranslations('common.store');
+}: ExploreAppCardProps) {
+  const translate = useTranslations('common.explore');
   const translateRail = useTranslations('common.appRail');
   const isOpenable = isAppOpenable(app);
   const isLocked = !isOpenable && app.state !== 'not-installed';
@@ -413,9 +418,9 @@ function StoreAppCard({
       bodyClassName="flex h-full flex-col gap-0 p-0"
       className={isLocked ? 'h-full opacity-60' : 'h-full'}
       data-locked={isLocked}
-      data-testid={`${isFeatured ? 'store-featured' : 'store-app'}-${app.appId}`}
+      data-testid={`${isFeatured ? 'explore-featured' : 'explore-app'}-${app.appId}`}
     >
-      <StoreAppThumbnail
+      <ExploreAppThumbnail
         appId={app.appId}
         icon={app.icon}
         label={app.label}
@@ -437,7 +442,7 @@ function StoreAppCard({
               {app.label}
             </h3>
             <p className="text-xs text-muted-foreground">{app.description}</p>
-            <StoreAppAccessNote
+            <ExploreAppAccessNote
               manageModulesHref={manageModulesHref}
               state={app.state}
               subscriptionHref={subscriptionHref}
@@ -507,12 +512,12 @@ function StoreAppCard({
   );
 }
 
-function StoreAppAccessNote({
+function ExploreAppAccessNote({
   manageModulesHref,
   state,
   subscriptionHref,
-}: StoreAppAccessNoteProps) {
-  const translate = useTranslations('common.store');
+}: ExploreAppAccessNoteProps) {
+  const translate = useTranslations('common.explore');
   const linkClassName = 'ml-1 underline underline-offset-2';
 
   switch (state) {

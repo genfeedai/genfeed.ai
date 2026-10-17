@@ -84,8 +84,8 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
       PUBLISHING: '/settings/publishing',
     },
     SIGN_UP: '/signup',
-    STORE: {
-      ROOT: '/store',
+    EXPLORE: {
+      ROOT: '/explore',
     },
     WORKSPACE: {
       ACTIVITY: '/workspace/activity',
@@ -203,7 +203,7 @@ vi.mock('next-intl', () => ({
     (
       ({
         'common.appRail': {
-          launcher: 'Apps',
+          launcher: 'Explore',
         },
         'common.agentDock': {
           close: 'Close agent',
@@ -377,13 +377,13 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('links Apps to the Store, right after the credits balance', () => {
+  it('links Explore to the app catalog, right after the credits balance', () => {
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
-    const apps = screen.getByRole('link', { name: 'Apps' });
+    const apps = screen.getByRole('link', { name: 'Explore' });
     const credits = screen.getByTestId('topbar-credits-bar');
 
-    expect(apps).toHaveAttribute('href', '/acme/~/store');
+    expect(apps).toHaveAttribute('href', '/acme/~/explore');
     expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
     expect(apps).not.toHaveAttribute('aria-current');
     expect(
@@ -391,12 +391,12 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('marks the Apps link as current on the Store', () => {
-    mockPathname.value = '/acme/~/store';
+  it('marks the Explore link as current on its page', () => {
+    mockPathname.value = '/acme/~/explore';
 
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
-    expect(screen.getByRole('link', { name: 'Apps' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Explore' })).toHaveAttribute(
       'aria-current',
       'page',
     );

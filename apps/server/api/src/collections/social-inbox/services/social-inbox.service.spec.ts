@@ -2123,6 +2123,38 @@ describe('SocialInboxService', () => {
       ]);
     }
 
+    it('syncs a specific credential regardless of the active brand', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      await context.service.ingestYoutubeComments(
+        { brandId: 'brand-active', organizationId: 'org-1', userId: 'user-1' },
+        { credentialId: 'credential-1', limit: 50 },
+      );
+
+      const where = context.prisma.credential.findMany.mock.calls[0]?.[0].where;
+      expect(where).toMatchObject({
+        id: 'credential-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+      expect(where).not.toHaveProperty('brandId');
+    });
+
+    it('limits a sweep without a credential id to the active brand', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      await context.service.ingestYoutubeComments(
+        { brandId: 'brand-active', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 50 },
+      );
+
+      expect(
+        context.prisma.credential.findMany.mock.calls[0]?.[0].where,
+      ).toMatchObject({ brandId: 'brand-active' });
+    });
+
     it('dedups via batched findMany keyed by external ids, scoped to the org', async () => {
       const context = createContext();
       seedSweep(context);

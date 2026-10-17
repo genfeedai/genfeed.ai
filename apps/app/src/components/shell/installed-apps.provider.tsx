@@ -28,7 +28,7 @@ const InstalledAppsContext = createContext<InstalledAppsContextValue>({
 
 /**
  * The signed-in member's personal app installations in the current
- * organization (#5502), shared by the rail launcher and the Store. Only
+ * organization (#5502), shared by the rail launcher and Explore. Only
  * server-confirmed lists are shown: a failed write keeps the last confirmed
  * state, and an organization switch discards responses from the previous one.
  */

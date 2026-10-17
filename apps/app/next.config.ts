@@ -317,6 +317,23 @@ const config = createAppNextConfig({
       source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
     },
 
+    // Explore was the Store (#5502). Keep bookmarked and shared links working.
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.EXPLORE.ROOT,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/store'),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        `${APP_ROUTES.EXPLORE.ROOT}/:path*`,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/store/:path*'),
+    },
     ...filterRouteRedirects,
     ...adminFilterRouteRedirects,
     // Market trends moved from Analytics (own-content measurement) to

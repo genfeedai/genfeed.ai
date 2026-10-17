@@ -1,49 +1,49 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
-  StoreAppThumbnailProps,
-  StoreThumbnailArt,
-  StoreThumbnailSize,
-  StoreThumbnailTone,
-} from '@genfeedai/props/store/organization-store-page.props';
+  ExploreAppThumbnailProps,
+  ExploreThumbnailArt,
+  ExploreThumbnailSize,
+  ExploreThumbnailTone,
+} from '@genfeedai/props/explore/organization-explore-page.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import Image from 'next/image';
-import { STORE_APP_CATALOG } from './store-app-catalog';
+import { EXPLORE_APP_CATALOG } from './explore-app-catalog';
 
-const TONE_SURFACE_CLASSES: Record<StoreThumbnailTone, string> = {
+const TONE_SURFACE_CLASSES: Record<ExploreThumbnailTone, string> = {
   info: 'from-info/20 via-info/5 to-transparent',
   primary: 'from-primary/20 via-primary/5 to-transparent',
   success: 'from-success/20 via-success/5 to-transparent',
   warning: 'from-warning/20 via-warning/5 to-transparent',
 };
 
-const TONE_ICON_CLASSES: Record<StoreThumbnailTone, string> = {
+const TONE_ICON_CLASSES: Record<ExploreThumbnailTone, string> = {
   info: 'bg-info/15 text-info',
   primary: 'bg-primary/15 text-primary',
   success: 'bg-success/15 text-success',
   warning: 'bg-warning/15 text-warning',
 };
 
-const TONE_FILL_CLASSES: Record<StoreThumbnailTone, string> = {
+const TONE_FILL_CLASSES: Record<ExploreThumbnailTone, string> = {
   info: 'bg-info/40',
   primary: 'bg-primary/40',
   success: 'bg-success/40',
   warning: 'bg-warning/40',
 };
 
-const SIZE_CLASSES: Record<StoreThumbnailSize, string> = {
+const SIZE_CLASSES: Record<ExploreThumbnailSize, string> = {
   compact: 'size-10 rounded-md',
   featured: 'h-44 w-full rounded-t-card',
   standard: 'h-28 w-full rounded-t-card',
 };
 
-const ICON_SIZE_CLASSES: Record<StoreThumbnailSize, string> = {
+const ICON_SIZE_CLASSES: Record<ExploreThumbnailSize, string> = {
   compact: 'size-5',
   featured: 'size-8',
   standard: 'size-6',
 };
 
 const ICON_WRAPPER_CLASSES: Record<
-  Exclude<StoreThumbnailSize, 'compact'>,
+  Exclude<ExploreThumbnailSize, 'compact'>,
   string
 > = {
   featured: 'size-16 rounded-xl',
@@ -61,8 +61,8 @@ function ThumbnailArt({
   art,
   tone,
 }: {
-  art: StoreThumbnailArt;
-  tone: StoreThumbnailTone;
+  art: ExploreThumbnailArt;
+  tone: ExploreThumbnailTone;
 }) {
   const fill = TONE_FILL_CLASSES[tone];
 
@@ -232,13 +232,13 @@ function ThumbnailArt({
  * and a small abstract illustration; once the app's catalog entry carries a
  * `thumbnailSrc`, that image replaces the tile.
  */
-export default function StoreAppThumbnail({
+export default function ExploreAppThumbnail({
   appId,
   icon: Icon,
   label,
   size,
-}: StoreAppThumbnailProps) {
-  const entry = STORE_APP_CATALOG[appId];
+}: ExploreAppThumbnailProps) {
+  const entry = EXPLORE_APP_CATALOG[appId];
   const { thumbnailSrc } = entry;
 
   if (thumbnailSrc) {
@@ -248,7 +248,7 @@ export default function StoreAppThumbnail({
           'relative shrink-0 overflow-hidden bg-muted',
           SIZE_CLASSES[size],
         )}
-        data-testid={`store-thumbnail-${appId}`}
+        data-testid={`explore-thumbnail-${appId}`}
       >
         <Image
           alt={label}
@@ -276,7 +276,7 @@ export default function StoreAppThumbnail({
         TONE_SURFACE_CLASSES[entry.tone],
         SIZE_CLASSES[size],
       )}
-      data-testid={`store-thumbnail-${appId}`}
+      data-testid={`explore-thumbnail-${appId}`}
     >
       {size === 'compact' ? (
         <Icon className={cn(ICON_SIZE_CLASSES[size], 'text-foreground/80')} />

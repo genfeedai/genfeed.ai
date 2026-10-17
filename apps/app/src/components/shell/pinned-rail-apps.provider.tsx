@@ -14,8 +14,8 @@ const PinnedRailAppsContext = createContext<PinnedRailAppsContextValue>({
 });
 
 /**
- * The member's rail pins, shared by the rail and the Store so a pin changed on
- * a Store card shows on the rail without a reload.
+ * The member's rail pins, shared by the rail and Explore so a pin changed on
+ * an Explore card shows on the rail without a reload.
  */
 export function PinnedRailAppsProvider({ children }: { children: ReactNode }) {
   const value = usePinnedRailApps();

@@ -20,7 +20,7 @@ import {
   Clapperboard,
   FileStack,
   Gauge,
-  House,
+  LayoutGrid,
   LibraryBig,
   MessageSquare,
   Radar,
@@ -53,7 +53,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
     activePathRoots: ['/workspace', '/overview'],
     description: 'workspace.description',
-    icon: House,
+    icon: LayoutGrid,
     group: 'daily',
     id: 'workspace',
     label: 'workspace.label',

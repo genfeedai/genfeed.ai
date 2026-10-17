@@ -49,6 +49,7 @@ export default function HomeHero(): React.ReactElement {
 
         <div
           className="animate-gen-stagger-in mt-9 [--gen-stagger-delay:270ms]"
+          data-hero-cta
           data-testid="home-hero-actions"
         >
           <div className="flex flex-wrap items-center justify-center gap-3">

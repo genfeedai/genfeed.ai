@@ -86,6 +86,7 @@ export default function TopbarPublicMobileMenu({
         }
         onClick={onClose}
         ariaLabel="Close menu"
+        withWrapper={false}
       />
 
       <div

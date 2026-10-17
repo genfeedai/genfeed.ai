@@ -1147,7 +1147,7 @@ export class SocialInboxIngestionService {
     return this.prisma.credential.findMany({
       where: scopedWhere(scope.organizationId, {
         ...(credentialId ? { id: credentialId } : {}),
-        ...(scope.brandId ? { brandId: scope.brandId } : {}),
+        ...(scope.brandId && !credentialId ? { brandId: scope.brandId } : {}),
         isConnected: true,
         platform,
       }),

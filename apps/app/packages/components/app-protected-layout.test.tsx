@@ -1570,18 +1570,18 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('gives the Store no module nav column', () => {
-    mockPathname.value = '/org-123/~/store';
+  it('gives Explore no module nav column', () => {
+    mockPathname.value = '/org-123/~/explore';
 
     render(
       <AppProtectedLayout>
-        <div>Store content</div>
+        <div>Explore content</div>
       </AppProtectedLayout>,
     );
 
     expect(appSidebarSpy).not.toHaveBeenCalled();
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
-    expect(screen.getByText('Store content')).toBeInTheDocument();
+    expect(screen.getByText('Explore content')).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ railComponent: expect.anything() }),
     );

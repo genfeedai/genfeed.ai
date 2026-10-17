@@ -328,7 +328,7 @@ function AppLayoutWithDynamicMenu({
   const activeNavPanel =
     conversationNavPanel ?? libraryNavPanel ?? messagesNavPanel;
 
-  const isStoreRoute = /\/~\/store(\/|$)/.test(sidebarPathname ?? '');
+  const isExploreRoute = /\/~\/explore(\/|$)/.test(sidebarPathname ?? '');
   const menuComponent = useMemo(() => {
     // Editor/workflow canvas routes suppress the Automation/module sidebar so
     // the surface can own the left rail (nodes palette, graph chrome) instead
@@ -337,9 +337,9 @@ function AppLayoutWithDynamicMenu({
       return undefined;
     }
 
-    // The Store and a Studio app with a single page have nothing to navigate
+    // Explore and a Studio app with a single page have nothing to navigate
     // between, so they use the full width instead of a one-item menu.
-    if (isStoreRoute || (isStudioRoute && studioMenuItems.length <= 1)) {
+    if (isExploreRoute || (isStudioRoute && studioMenuItems.length <= 1)) {
       return undefined;
     }
 
@@ -388,7 +388,7 @@ function AppLayoutWithDynamicMenu({
     isPublishingRoute,
     isDiscoveryRoute,
     isSettingsRoute,
-    isStoreRoute,
+    isExploreRoute,
     isStudioRoute,
     isAutomationRoute,
     libraryMenuItems,
