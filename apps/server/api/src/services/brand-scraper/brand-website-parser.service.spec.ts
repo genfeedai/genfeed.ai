@@ -152,6 +152,27 @@ describe('BrandWebsiteParserService', () => {
     );
   });
 
+  it('drops a customer logo carousel whose markup carries no logo-wall words', () => {
+    const parsed = service.parseHtml(
+      `<head>
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+      </head>
+      <body>
+        <header><a href="/">Vitae</a></header>
+        <div class="marquee">
+          <img alt="Grosvenor Search" src="/customer-logos/grosvenor-search.png">
+          <img alt="Quest Search" src="/customer-logos/quest-search.png">
+        </div>
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.logoUrl).toBe('https://acme.example/favicon-32.png');
+    expect(parsed.images.map((image) => image.src)).not.toContain(
+      'https://acme.example/customer-logos/grosvenor-search.png',
+    );
+  });
+
   it('keeps a header logo stored under /logos/', () => {
     const parsed = service.parseHtml(
       `<body>
