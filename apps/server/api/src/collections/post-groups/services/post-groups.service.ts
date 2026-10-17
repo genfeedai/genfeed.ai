@@ -70,6 +70,14 @@ function publishingCapabilityForReleaseStatus(
   return 'schedule';
 }
 
+/** Rolls back `ensureReleaseForPost` when another caller bound the root first. */
+class ReleaseBindingLostError extends Error {
+  constructor() {
+    super('Post was bound to a release by a concurrent request');
+    this.name = 'ReleaseBindingLostError';
+  }
+}
+
 @Injectable()
 export class PostGroupsService {
   constructor(
@@ -321,46 +329,80 @@ export class PostGroupsService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const transition = this.contractService.buildTransition(
-        null,
-        ReleaseStatus.DRAFT,
-        userId,
-      );
-      const mediaKind =
-        post.category === PostCategory.VIDEO ||
-        post.category === PostCategory.REEL
-          ? 'video'
-          : 'image';
-      const media = post.ingredients.map((ingredient, order) => ({
-        assetId: ingredient.id,
-        kind: mediaKind,
-        order,
-      }));
-      const group = await tx.postGroup.create({
-        data: {
-          attachments: this.contractService.toJson([]),
-          baseContent: post.description,
-          brandId: post.brandId,
-          media: this.contractService.toJson(media),
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const transition = this.contractService.buildTransition(
+          null,
+          ReleaseStatus.DRAFT,
+          userId,
+        );
+        const mediaKind =
+          post.category === PostCategory.VIDEO ||
+          post.category === PostCategory.REEL
+            ? 'video'
+            : 'image';
+        const media = post.ingredients.map((ingredient, order) => ({
+          assetId: ingredient.id,
+          kind: mediaKind,
+          order,
+        }));
+        const group = await tx.postGroup.create({
+          data: {
+            attachments: this.contractService.toJson([]),
+            baseContent: post.description,
+            brandId: post.brandId,
+            media: this.contractService.toJson(media),
+            organizationId,
+            ownerId: userId,
+            status: ReleaseStatus.DRAFT,
+            statusTransitions: this.contractService.toJson([transition]),
+            timezone: post.timezone || 'UTC',
+            title: deriveReleaseTitle(post.label, post.description),
+          },
+        });
+        // Compare-and-set on the groupId read above: a concurrent caller that
+        // bound the root first wins, and this transaction rolls back so the
+        // group created here never survives as an orphan release.
+        const bound = await tx.post.updateMany({
+          data: { groupId: group.id },
+          where: scopedWhere(organizationId, {
+            groupId: post.groupId ?? null,
+            id: post.id,
+          }),
+        });
+        if (bound.count === 0) {
+          throw new ReleaseBindingLostError();
+        }
+        return this.persistenceService.hydrateWithDerivedStatus(
+          tx,
           organizationId,
-          ownerId: userId,
-          status: ReleaseStatus.DRAFT,
-          statusTransitions: this.contractService.toJson([transition]),
-          timezone: post.timezone || 'UTC',
-          title: deriveReleaseTitle(post.label, post.description),
-        },
+          group.id,
+        );
       });
-      await tx.post.updateMany({
-        data: { groupId: group.id },
-        where: scopedWhere(organizationId, { id: post.id }),
-      });
-      return this.persistenceService.hydrateWithDerivedStatus(
-        tx,
-        organizationId,
-        group.id,
-      );
+    } catch (error) {
+      if (!(error instanceof ReleaseBindingLostError)) {
+        throw error;
+      }
+      return this.hydrateBoundRelease(organizationId, postId);
+    }
+  }
+
+  private async hydrateBoundRelease(
+    organizationId: string,
+    postId: string,
+  ): Promise<IReleaseGroup> {
+    const winner = await this.prisma.post.findFirst({
+      select: { groupId: true },
+      where: scopedWhere(organizationId, { id: postId }),
     });
+    if (!winner?.groupId) {
+      throw new NotFoundException('Post', postId);
+    }
+    return this.persistenceService.hydrateWithDerivedStatus(
+      this.prisma,
+      organizationId,
+      winner.groupId,
+    );
   }
 
   async update(

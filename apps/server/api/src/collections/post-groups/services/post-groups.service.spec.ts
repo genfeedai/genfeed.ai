@@ -414,6 +414,41 @@ describe('PostGroupsService', () => {
     );
   });
 
+  it('returns the winning release when a concurrent caller binds the root first', async () => {
+    const ungrouped = {
+      ...makeTarget({ groupId: null, id: 'post-1' }),
+      ingredientLinks: [],
+    };
+    prisma.post.findFirst
+      .mockResolvedValueOnce(ungrouped)
+      .mockResolvedValueOnce({ groupId: 'group-winner' });
+    prisma.post.updateMany.mockResolvedValue({ count: 0 });
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-winner' }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'group-winner', id: 'post-1' }),
+    ]);
+
+    const release = await service.ensureReleaseForPost(
+      'org-1',
+      'user-1',
+      'post-1',
+    );
+
+    expect(release.id).toBe('group-winner');
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { groupId: expect.any(String) },
+        where: expect.objectContaining({
+          groupId: null,
+          id: 'post-1',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+  });
+
   it('treats a partially published release as posted and not as not-posted', async () => {
     prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
     prisma.post.findMany.mockResolvedValue([
