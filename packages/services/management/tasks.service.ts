@@ -4,7 +4,6 @@ import type {
   IWorkspaceInboxRead,
   IWorkspaceInboxReadState,
 } from '@genfeedai/contracts/interfaces';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -130,10 +129,6 @@ export interface ListTasksParams {
   view?: 'all' | 'inbox' | 'in_progress';
 }
 
-const taskSerializer: IServiceSerializer<Task> = {
-  serialize: (data) => data,
-};
-
 export class Task {
   id!: string;
   organizationId!: string;
@@ -232,7 +227,7 @@ export class TasksService extends BaseService<
   Partial<CreateTaskInput>
 > {
   constructor(token: string) {
-    super('/tasks', token, Task, taskSerializer);
+    super('/tasks', token, Task);
   }
 
   public static getInstance(token: string): TasksService {

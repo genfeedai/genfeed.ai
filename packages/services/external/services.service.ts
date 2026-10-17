@@ -6,7 +6,6 @@ import {
   Credential,
   CredentialOAuth,
 } from '@genfeedai/models/auth/credential.model';
-import { CredentialOAuthSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -19,12 +18,7 @@ export interface OAuthConnectReadinessResponse {
 export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   constructor(platform: string, token: string) {
     // Pass platform-specific endpoint (e.g., '/services/twitter', '/services/instagram')
-    super(
-      `/services/${platform}`,
-      token,
-      CredentialOAuth,
-      CredentialOAuthSerializer,
-    );
+    super(`/services/${platform}`, token, CredentialOAuth);
   }
 
   // Note: getInstance pattern doesn't apply here due to platform parameter in constructor

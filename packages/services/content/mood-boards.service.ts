@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { MoodBoard } from '@genfeedai/models/content/mood-board.model';
-import { MoodBoardSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -8,7 +7,7 @@ import {
 
 export class MoodBoardsService extends BaseService<MoodBoard> {
   constructor(token: string) {
-    super(API_ENDPOINTS.MOOD_BOARDS, token, MoodBoard, MoodBoardSerializer);
+    super(API_ENDPOINTS.MOOD_BOARDS, token, MoodBoard);
   }
 
   public static getInstance(token: string): MoodBoardsService {

@@ -4,12 +4,11 @@ import type {
   SourcePostDraftActionResult,
 } from '@genfeedai/contracts/interfaces';
 import { SourcePost } from '@genfeedai/models/social/source-post.model';
-import { SourcePostSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class SourcePostsService extends BaseService<SourcePost> {
   constructor(token: string) {
-    super(API_ENDPOINTS.SOURCE_POSTS, token, SourcePost, SourcePostSerializer);
+    super(API_ENDPOINTS.SOURCE_POSTS, token, SourcePost);
   }
 
   public static getInstance(token: string): SourcePostsService {

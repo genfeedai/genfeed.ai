@@ -80,7 +80,6 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { PagesService } from '@services/content/pages.service';
 // Import after mocks
 import {
@@ -100,14 +99,9 @@ class TestModel {
   }
 }
 
-const mockSerializer: IServiceSerializer<TestModel> = {
-  deserialize: vi.fn((data) => new TestModel(data)),
-  serialize: vi.fn((data) => data),
-};
-
 class TestService extends BaseService<TestModel> {
   constructor(token: string) {
-    super('/test', token, TestModel, mockSerializer);
+    super('/test', token, TestModel);
   }
 
   public setValidationSchema(schema: z.ZodType) {
@@ -143,7 +137,7 @@ class TestService extends BaseService<TestModel> {
 
 class OtherTestService extends BaseService<TestModel> {
   constructor(token: string) {
-    super('/other', token, TestModel, mockSerializer);
+    super('/other', token, TestModel);
   }
 }
 
@@ -151,7 +145,7 @@ class MultiArgTestService extends BaseService<TestModel> {
   public readonly organizationId: string;
 
   constructor(token: string, organizationId: string) {
-    super(`/org/${organizationId}/test`, token, TestModel, mockSerializer);
+    super(`/org/${organizationId}/test`, token, TestModel);
     this.organizationId = organizationId;
   }
 }
@@ -1229,7 +1223,7 @@ describe('ServiceInstanceManager (implicit)', () => {
   it('should manage multiple service types', () => {
     class ServiceA extends BaseService<TestModel> {
       constructor(token: string) {
-        super('/a', token, TestModel, mockSerializer);
+        super('/a', token, TestModel);
       }
 
       static override getInstance(token: string): ServiceA {
@@ -1239,7 +1233,7 @@ describe('ServiceInstanceManager (implicit)', () => {
 
     class ServiceB extends BaseService<TestModel> {
       constructor(token: string) {
-        super('/b', token, TestModel, mockSerializer);
+        super('/b', token, TestModel);
       }
 
       static override getInstance(token: string): ServiceB {
