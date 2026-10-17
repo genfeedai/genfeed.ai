@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
@@ -45,7 +46,9 @@ test.describe('Settings command navigation', () => {
   test('/agent/onboarding keeps the command palette closed', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/agent/onboarding', { waitUntil: 'domcontentloaded' });
+    await page.goto(APP_ROUTES.AGENT.ONBOARDING, {
+      waitUntil: 'domcontentloaded',
+    });
     await expectNoErrorOverlay(page);
 
     await page.keyboard.press('Control+k');
