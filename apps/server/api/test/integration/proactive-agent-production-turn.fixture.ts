@@ -574,6 +574,7 @@ export async function createProactiveProductionTurnFixture() {
     // All producers remain real; overrides are real UUID-owned Bull queues.
     for (const name of [
       ...queueNames.ALL_QUEUE_NAMES,
+      queueNames.BRAND_RELOCATION_QUEUE,
       queueNames.LLM_COST_SETTLEMENT_QUEUE,
       queueNames.MEDIA_DELIVERY_QUEUE,
     ]) {
@@ -1152,7 +1153,7 @@ export async function createProactiveProductionTurnFixture() {
           organizationId,
           defaultModel: model.id,
           enabledModelIds: [model.id],
-          subscriptionTier: 'scale',
+          subscriptionTier: 'pro',
         }),
       });
       await db.subscription.create({

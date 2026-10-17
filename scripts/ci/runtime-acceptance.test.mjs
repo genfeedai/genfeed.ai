@@ -2984,7 +2984,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
-    '767880433f8c08e5e4ef0b0f08cfd4c67c150d394a3cf960914f5bbb9c9d7bfa',
+    'f62ff61a5c689d25d18803c0492fe5711c91abf4a697ba15207927e6b1f2a9f9',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
