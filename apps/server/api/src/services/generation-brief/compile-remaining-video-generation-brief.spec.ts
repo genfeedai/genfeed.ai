@@ -103,6 +103,36 @@ describe('compileRemainingVideoGenerationBrief', () => {
     );
   });
 
+  it.each([
+    [undefined, 6],
+    [5, 6],
+    [8, 6],
+    [9, 10],
+    [15, 10],
+  ])(
+    'dispatches a provider-supported Hailuo 2.3 Fast duration for a requested %s s',
+    (durationSeconds, expected) => {
+      const brief = videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'off',
+        intent: { objective: 'the product turns to camera' },
+        mediaKind: 'video',
+        output: durationSeconds === undefined ? {} : { durationSeconds },
+        references: [{ assetId: 'frame-1', role: 'first_frame' }],
+        version: 1,
+      });
+
+      const result = compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST),
+        modelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      });
+
+      expect(result.dispatch.duration).toBe(expected);
+      expect(result.dispatch.resolution).toBe('768p');
+    },
+  );
+
   it('requires a first frame for Kling v2.1', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],

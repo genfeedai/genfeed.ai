@@ -2,8 +2,11 @@ import { ModelCreditQuoteService } from '@api/collections/models/services/model-
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { seedReviewedProviderRates } from '@api/seeds/reviewed-provider-rates-seed';
+import { compileRemainingVideoGenerationBrief } from '@api/services/generation-brief/compile-remaining-video-generation-brief';
+import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import { ReplicateVideoBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-video.builder';
 import { ModelCategory } from '@genfeedai/contracts';
+import { videoGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   applyMargin,
@@ -156,19 +159,24 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
     },
   );
 
-  it('charges applyMargin(0.19) when the request omits a resolution (API-GENFEED-AI-87)', async () => {
-    const providerInput = builder.buildPrompt(
-      KEY,
-      {
-        duration: 5,
-        height: 1080,
-        modelCategory: ModelCategory.VIDEO,
-        prompt: 'A cinematic product reveal',
-        references: [FIRST_FRAME],
-        width: 1920,
-      },
-      'A cinematic product reveal',
+  it('charges applyMargin(0.19) for the default 5 s brief compiled for production (API-GENFEED-AI-87)', async () => {
+    const family = REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES.find((entry) =>
+      entry.profiles.some((profile) => profile.modelKey === KEY),
     );
+    if (!family) throw new Error('Hailuo must have a brief family');
+    const { dispatch } = compileRemainingVideoGenerationBrief({
+      brief: videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'off',
+        intent: { objective: 'A cinematic product reveal' },
+        mediaKind: 'video',
+        output: { durationSeconds: 5 },
+        references: [{ assetId: 'frame-1', role: 'first_frame' }],
+        version: 1,
+      }),
+      family,
+      modelKey: KEY,
+    });
     const request = { creditsConfig: { deferred: true } };
 
     await (await service()).ensureDeferredCredits(
@@ -176,10 +184,10 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
       KEY,
       'org-1',
       request as never,
-      providerInput as unknown as Record<string, unknown>,
+      dispatch as unknown as Record<string, unknown>,
     );
 
-    expect(providerInput).toMatchObject({ duration: 6, resolution: '768p' });
+    expect(dispatch).toMatchObject({ duration: 6, resolution: '768p' });
     expect(request.creditsConfig).toMatchObject({
       amount: applyMargin(0.19, MARGIN),
       deferred: false,

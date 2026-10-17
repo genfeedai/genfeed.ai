@@ -5,6 +5,7 @@ import {
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type { RemainingVideoGenerationBriefFamily } from '@api/services/generation-brief/remaining-video-generation-brief-families';
+import { normalizeProviderVideoDuration } from '@api/services/prompt-builder/builders/replicate/provider-video-duration.util';
 import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
@@ -43,7 +44,12 @@ function resolveDuration(
 ): number {
   const { defaultSeconds, maxSeconds, minSeconds } = profile.duration;
   const requested = brief.output.durationSeconds ?? defaultSeconds;
-  return Math.round(Math.min(Math.max(requested, minSeconds), maxSeconds));
+  const clamped = Math.round(
+    Math.min(Math.max(requested, minSeconds), maxSeconds),
+  );
+  // Models with fixed clip lengths dispatch the length the provider runs, so
+  // the quoted duration is the executed one (Hailuo 5 s runs as 6 s).
+  return normalizeProviderVideoDuration(profile.modelKey, clamped) ?? clamped;
 }
 
 function requiresFirstFrame(
