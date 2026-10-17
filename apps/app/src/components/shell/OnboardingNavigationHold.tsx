@@ -3,6 +3,10 @@
 import { useEffect } from 'react';
 import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 
+// The agent onboarding thread and the expert-path handoff links
+// (`/onboarding/positioning`, `/onboarding/first-system`) stay in the flow.
+const ONBOARDING_HREF_PATTERN = /(^|\/)onboarding(\/|\?|$)/;
+
 function isLeavingAnchor(anchor: HTMLAnchorElement): boolean {
   const href = anchor.getAttribute('href');
   if (
@@ -13,7 +17,7 @@ function isLeavingAnchor(anchor: HTMLAnchorElement): boolean {
   ) {
     return false;
   }
-  return !href.includes('/agent/onboarding');
+  return !ONBOARDING_HREF_PATTERN.test(href);
 }
 
 /**
