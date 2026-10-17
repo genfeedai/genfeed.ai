@@ -160,6 +160,8 @@ import { Module } from '@nestjs/common';
     // The runner and its queue are re-exported through WorkflowsCoreModule,
     // which owns them; Nest rejects re-exporting another module's provider.
     WorkflowsCoreModule,
+    // The workflow execution processors drop expired sweeps through it.
+    WorkflowExecutionsModule,
     WorkflowRunControlService,
     WorkflowSchedulerService,
     WorkflowTemplateSeederService,

@@ -23,6 +23,12 @@ describe('WorkflowsModule optional executor imports', () => {
       /providers:\s*\[[\s\S]*ContentLearningWorkflowService[\s\S]*\]/,
     );
   });
+  it('re-exports WorkflowExecutionsModule so the workflow execution processors resolve WorkflowExecutionsService', () => {
+    expect(source).toMatch(
+      /exports:\s*\[[\s\S]*WorkflowExecutionsModule[\s\S]*\]\s*,\s*imports:/,
+    );
+  });
+
   it('imports fat PostsModule so AnalyticsSyncWorkflowService is constructible', () => {
     expect(source).toContain("from '@api/collections/posts/posts.module'");
     expect(source).toContain('PostsModule');
