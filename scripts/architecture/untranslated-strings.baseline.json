@@ -1,7 +1,6 @@
 {
   "version": 1,
   "files": {
-    "apps/app/app/(onboarding)/layout.tsx": 2,
     "apps/app/app/(onboarding)/onboarding/(wizard)/layout.tsx": 3,
     "apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-action-bar.tsx": 4,
     "apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx": 7,

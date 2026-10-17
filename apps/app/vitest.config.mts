@@ -17,6 +17,10 @@ export default mergeConfig(
     resolve: {
       alias: [
         {
+          find: /^@app-i18n\/(.*)$/,
+          replacement: path.resolve(__dirname, './i18n/$1'),
+        },
+        {
           find: /^genfeed-serwist-asset-reader$/,
           replacement: path.resolve(
             __dirname,

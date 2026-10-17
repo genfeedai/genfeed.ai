@@ -1,0 +1,19 @@
+{
+  "title": "Bot account links",
+  "manage": "Manage bot account links",
+  "description": "Link a private bot conversation to your Genfeed account. This does not grant organization or brand access.",
+  "confirmTitle": "Confirm your bot account",
+  "confirmDescription": "Confirm only if you started this request in your own private bot conversation.",
+  "sender": "{platform} account: {remoteUserId}",
+  "confirm": "Confirm account link",
+  "confirmed": "Account linked. Return to your private bot conversation.",
+  "challengeUnavailable": "This confirmation is unavailable or expired. Start a new link request in your private bot conversation.",
+  "loadError": "Unable to load your linked accounts.",
+  "retry": "Retry",
+  "loading": "Loading bot account links…",
+  "empty": "No bot accounts linked. Send /link in your private bot conversation to start.",
+  "unlink": "Unlink account",
+  "unlinked": "Account unlinked.",
+  "mutationError": "The account link could not be updated. Please try again.",
+  "revoked": "Unlinked"
+}

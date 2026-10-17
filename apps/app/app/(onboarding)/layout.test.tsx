@@ -3,7 +3,9 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { render, screen } from '@testing-library/react';
+import AppIntlProvider from '@app-i18n/AppIntlProvider';
+import { render as renderView, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import {
   afterEach,
   beforeAll,
@@ -13,6 +15,10 @@ import {
   it,
   vi,
 } from 'vitest';
+
+function render(children: ReactNode) {
+  return renderView(<AppIntlProvider locale="en">{children}</AppIntlProvider>);
+}
 
 let OnboardingSetupLayout: typeof import('./layout').default;
 let isSignedIn = true;
@@ -61,8 +67,22 @@ vi.mock('@providers/theme-sync/theme-preference-sync', () => ({
 }));
 
 vi.mock('@ui/error', () => ({
-  ErrorBoundary: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="error-boundary">{children}</div>
+  ErrorBoundary: ({
+    children,
+    title,
+    description,
+  }: {
+    children: React.ReactNode;
+    title: string;
+    description: string;
+  }) => (
+    <div
+      data-testid="error-boundary"
+      data-title={title}
+      data-description={description}
+    >
+      {children}
+    </div>
   ),
 }));
 
@@ -118,6 +138,14 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(screen.getByTestId('theme-preference-sync')).toBeInTheDocument();
     expect(screen.getByTestId('brand-provider')).toBeInTheDocument();
     expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+    expect(screen.getByTestId('error-boundary')).toHaveAttribute(
+      'data-title',
+      'Onboarding Error',
+    );
+    expect(screen.getByTestId('error-boundary')).toHaveAttribute(
+      'data-description',
+      'Something went wrong during setup. Please try again.',
+    );
     expect(
       screen.getByTestId('onboarding-funnel-analytics'),
     ).toBeInTheDocument();

@@ -1,0 +1,41 @@
+{
+  "allSequences": "All sequences",
+  "backToSequences": "Back to sequences",
+  "columnSequence": "Sequence",
+  "complete": "Complete",
+  "createAction": "Create outreach sequence",
+  "createDescription": "Set up a DM or growth sequence",
+  "createTitle": "Create outreach sequence",
+  "deliveryTime": "Delivery time:",
+  "description": "Description:",
+  "empty": "No outreach sequences yet",
+  "fallbackDescription": "Sequence details and targets",
+  "fallbackTitle": "Outreach sequence",
+  "maxPerDay": "Max/Day:",
+  "maxPerHour": "Max/Hour:",
+  "name": "Name:",
+  "needsYou": {
+    "pausedDescription": "This sequence is paused.",
+    "resume": "Resume",
+    "title": "Needs you"
+  },
+  "notFoundDescription": "The requested outreach sequence could not be found",
+  "notFoundTitle": "Outreach sequence not found",
+  "pause": "Pause",
+  "platform": "Platform:",
+  "resume": "Resume",
+  "reviewTitle": "Review your outreach sequence",
+  "sequenceType": "Sequence type",
+  "start": "Start",
+  "statisticsTitle": "Sequence statistics",
+  "statusOptions": {
+    "active": "Active",
+    "completed": "Completed",
+    "draft": "Draft",
+    "paused": "Paused"
+  },
+  "timezone": "Timezone:",
+  "tone": "Tone:",
+  "totalSequences": "Total sequences",
+  "type": "Type:"
+}
