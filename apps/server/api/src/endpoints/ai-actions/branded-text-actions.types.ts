@@ -50,6 +50,8 @@ export interface TextActionFailureV1 {
   /** Seam reason code when the saved receipt stopped the request. */
   reasonCode?: string;
   receiptId?: string;
+  /** True when this call reached the provider before stopping; that known cost is still charged. */
+  hasNewDispatch?: boolean;
 }
 
 export type TextActionOutcomeV1 =
@@ -151,5 +153,5 @@ export type BrandedTextRunOutcomeV1 =
       text: string;
     }
   /** The provider answered but the gate refused it; the gate says why. */
-  | { kind: 'rejected'; receiptId: string }
+  | { kind: 'rejected'; receiptId: string; hasNewDispatch: boolean }
   | TextActionFailureV1;

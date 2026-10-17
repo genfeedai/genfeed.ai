@@ -92,6 +92,7 @@ export class BrandedTextActionsService {
         message: isDroppedToken
           ? 'The edit dropped or changed a mention, hashtag or link. Try again.'
           : `The result did not fit the ${maxCharacters}-character limit. Try again.`,
+        hasNewDispatch: outcome.hasNewDispatch,
         receiptId: outcome.receiptId,
       };
     }
@@ -160,6 +161,7 @@ export class BrandedTextActionsService {
         kind: 'failed',
         code: 'no_usable_reply',
         message: 'The model gave no usable reply. Try again.',
+        hasNewDispatch: outcome.hasNewDispatch,
         receiptId: outcome.receiptId,
       };
     }
