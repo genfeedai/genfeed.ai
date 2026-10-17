@@ -82,3 +82,29 @@ export function scopesWithinCaller(
     (SELF_SERVICE_API_KEY_SCOPES as readonly string[]).includes(scope),
   );
 }
+
+/**
+ * Scopes written onto a key take on that key's own IP allowlist and expiry, so
+ * when an update changes scopes, the reach to check is what the key ends up
+ * with, not just the fields present in the request.
+ */
+export function updatedKeyReach(
+  existingKey: Pick<ApiKeyDocument, 'allowedIps' | 'expiresAt'>,
+  requested: RequestedApiKeyReach,
+): RequestedApiKeyReach {
+  if (requested.scopes === undefined) {
+    return requested;
+  }
+
+  return {
+    ...requested,
+    allowedIps:
+      requested.allowedIps === undefined
+        ? existingKey.allowedIps
+        : requested.allowedIps,
+    expiresAt:
+      requested.expiresAt === undefined
+        ? (existingKey.expiresAt?.toISOString() ?? null)
+        : requested.expiresAt,
+  };
+}

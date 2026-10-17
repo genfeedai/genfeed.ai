@@ -9,6 +9,7 @@ import {
   assertKeyWithinCaller,
   type RequestedApiKeyReach,
   scopesWithinCaller,
+  updatedKeyReach,
 } from '@api/collections/api-keys/utils/api-key-escalation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -319,27 +320,8 @@ export class ApiKeysController {
       });
     }
 
-    // Scopes written onto a key take on that key's own IP and expiry limits, so
-    // when they change, check the reach the key will end up with.
-    await this.assertNoKeyPrivilegeEscalation(
-      user,
-      updateApiKeyDto.scopes === undefined
-        ? updateApiKeyDto
-        : {
-            ...updateApiKeyDto,
-            allowedIps:
-              updateApiKeyDto.allowedIps === undefined
-                ? existingKey.allowedIps
-                : updateApiKeyDto.allowedIps,
-            expiresAt:
-              updateApiKeyDto.expiresAt === undefined
-                ? existingKey.expiresAt
-                  ? existingKey.expiresAt.toISOString()
-                  : null
-                : updateApiKeyDto.expiresAt,
-          },
-      false,
-    );
+    const reach = updatedKeyReach(existingKey, updateApiKeyDto);
+    await this.assertNoKeyPrivilegeEscalation(user, reach, false);
 
     if (updateApiKeyDto.defaultBrandId !== undefined) {
       await this.apiKeysService.assertValidDefaultBrandId(
