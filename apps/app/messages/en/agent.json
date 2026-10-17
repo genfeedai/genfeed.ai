@@ -13,6 +13,7 @@
   "chrome": {
     "conversations": "Conversations",
     "runs": "Runs",
+    "scrollToLatest": "Scroll to latest message",
     "title": "Agent",
     "unsupportedCard": "This card type is not supported yet."
   },

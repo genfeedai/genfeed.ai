@@ -12,6 +12,11 @@ import type { ReactNode } from 'react';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'scrollToLatest' ? 'Scroll to latest message' : key,
+}));
+
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
