@@ -2,7 +2,10 @@ import { ModelCreditQuoteService } from '@api/collections/models/services/model-
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicateVideoBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-video.builder';
 import { ModelCategory } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  MODEL_KEYS,
+  UNIFIED_MODEL_CATALOG,
+} from '@genfeedai/contracts/constants';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -167,4 +170,24 @@ describe('ModelCreditQuoteService', () => {
       expect(quote.credits).toBe(seconds * 2);
     },
   );
+
+  it('quotes the seeded Gemini 3.8 Flash product-text fallback instead of reporting its tariff unavailable', async () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+    );
+    if (!row) throw new Error('The catalog must seed Gemini 3.8 Flash');
+    modelsService.findBillablePricingProfile.mockResolvedValue(
+      billableProfile({
+        cost: row.cost,
+        key: row.key,
+        pricingType: row.pricingType ?? null,
+        provider: row.provider,
+      }),
+    );
+    await expect(
+      service.quoteByKey(MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH, {
+        provider: row.provider,
+      }),
+    ).resolves.toBe(3);
+  });
 });
