@@ -1144,10 +1144,13 @@ export class SocialInboxIngestionService {
     platform: PrismaCredentialPlatform,
     credentialId?: string,
   ) {
+    // A credential id is already organization-scoped and exact. The scope's
+    // brand is the caller's active brand, so applying it too would make an
+    // "All brands" sync of another brand's account match nothing.
     return this.prisma.credential.findMany({
       where: scopedWhere(scope.organizationId, {
         ...(credentialId ? { id: credentialId } : {}),
-        ...(scope.brandId ? { brandId: scope.brandId } : {}),
+        ...(scope.brandId && !credentialId ? { brandId: scope.brandId } : {}),
         isConnected: true,
         platform,
       }),
