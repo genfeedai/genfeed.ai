@@ -16,6 +16,9 @@ import {
   toMcpTools,
 } from '@genfeedai/actions';
 
+/** Tools whose MCP description is deliberately worded for the MCP surface. */
+const MCP_REWORDED_TOOLS: ReadonlySet<string> = new Set(['create_post']);
+
 describe('agent-tool-registry', () => {
   it('should include onboarding tool definitions', () => {
     const definitions = getToolDefinitions();
@@ -289,12 +292,18 @@ it('shows the agent and MCP the same definition of every shared tool', () => {
     // its generation tools say brandId is required (#5786). Everything else,
     // including the rest of the description, must match the agent definition.
     const isBrandRequired = isMcpBrandRequiredTool(String(tool.name));
-    expect(
-      isBrandRequired
-        ? mcp?.description.replace(` ${MCP_BRAND_REQUIRED_NOTE}`, '')
-        : mcp?.description,
-      tool.name,
-    ).toBe(tool.description);
+    if (MCP_REWORDED_TOOLS.has(String(tool.name))) {
+      // MCP hides options it cannot honour, so it words the tool for that
+      // surface instead (#7178).
+      expect(mcp?.description, tool.name).toContain('never publishes');
+    } else {
+      expect(
+        isBrandRequired
+          ? mcp?.description.replace(` ${MCP_BRAND_REQUIRED_NOTE}`, '')
+          : mcp?.description,
+        tool.name,
+      ).toBe(tool.description);
+    }
     const { brandId: _mcpBrand, ...mcpProperties } =
       (mcp?.inputSchema.properties as Record<string, unknown>) ?? {};
     expect(tool.parameters, tool.name).toMatchObject({
