@@ -422,6 +422,8 @@ jobs:
           node scripts/ci/migration-safety.mjs --base "${CI_BASE_SHA:-HEAD^1}"
       - name: Check pinned product skill catalog
         run: bun run check:skills-catalog
+      - name: Check env files and .env.example drift
+        run: bun run env:check
       # Formatting reads files only and can overlap secretlint/lint. Explicit
       # wait propagates its failure before memory-intensive typechecking.
       - name: Check formatting

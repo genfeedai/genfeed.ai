@@ -9,3 +9,7 @@ if ! command -v bun >/dev/null 2>&1; then
 fi
 
 bun x lint-staged
+
+# Real env files (.env, .env.local, .env.production, ...) never get committed;
+# only .env.example templates do.
+bun scripts/env-check.ts --staged

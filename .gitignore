@@ -33,8 +33,8 @@ apps/app/packages/**/*.js.map
 !packages/ui/src/css.d.ts
 !packages/workflow-ui/src/css.d.ts
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 .DS_Store
 coverage/
 coverage-all/
@@ -49,9 +49,6 @@ apps/desktop/app/release/
 apps/server/files/remotion-bundle/
 *.dmg
 *.zip
-.env.production
-.env.staging
-.env.local
 # Local env/DB backups & dumps — contain live secrets, never commit
 *.rdsbak
 *.sqlbak
