@@ -82,12 +82,44 @@ type RoutedOrganizationMismatchReason =
   | 'route-unauthorized'
   | 'switch-failed';
 
-function emitSanitizedMismatch(reason: RoutedOrganizationMismatchReason): void {
+/** What made a switch fail, without carrying any payload into the report. */
+type RoutedOrganizationFailure =
+  | 'auth'
+  | 'network'
+  | 'timeout'
+  | 'unknown'
+  | 'verification';
+
+const VERIFICATION_FAILED_MESSAGE = 'Organization context verification failed';
+
+function classifyFailure(error: unknown): RoutedOrganizationFailure {
+  if (typeof error === 'object' && error !== null) {
+    const record = error as Record<string, unknown>;
+    if (record.isNetworkError === true) return 'network';
+    if (record.isTimeout === true) return 'timeout';
+    if (record.isAuthError === true) return 'auth';
+  }
+  return error instanceof Error && error.message === VERIFICATION_FAILED_MESSAGE
+    ? 'verification'
+    : 'unknown';
+}
+
+function emitSanitizedMismatch(
+  reason: RoutedOrganizationMismatchReason,
+  error?: unknown,
+): void {
+  const failure = error === undefined ? undefined : classifyFailure(error);
+  // A request that never reached the server (offline, aborted by a
+  // navigation, timed out) says nothing about which organization is active,
+  // so it is logged with its cause but is not a context mismatch to alert on.
+  const isTransportFailure = failure === 'network' || failure === 'timeout';
   logger.warn('Routed organization context mismatch', {
     reportToSentry:
-      reason === 'cross-tab-sync-failed' || reason === 'switch-failed',
+      (reason === 'cross-tab-sync-failed' || reason === 'switch-failed') &&
+      !isTransportFailure,
     tags: {
       eventType: 'organization-context-mismatch',
+      ...(failure ? { failure } : {}),
       reason,
     },
   });
@@ -298,7 +330,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
             organization.id === target.id && organization.isActive,
         );
         if (!confirmedOrganization) {
-          throw new Error('Organization context verification failed');
+          throw new Error(VERIFICATION_FAILED_MESSAGE);
         }
 
         if (isCurrentGeneration(generation, routeOrganizationSlug)) {
@@ -317,7 +349,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         if (isCurrentGeneration(generation, routeOrganizationSlug)) {
           setRequestOrganizationId(null);
           if (!isCancelledMembershipRead(error)) {
-            emitSanitizedMismatch('switch-failed');
+            emitSanitizedMismatch('switch-failed', error);
           }
           setState((current) => ({
             ...current,
@@ -421,7 +453,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
                 organization.isActive,
             );
             if (!confirmedTarget) {
-              throw new Error('Organization context verification failed');
+              throw new Error(VERIFICATION_FAILED_MESSAGE);
             }
 
             if (generationRef.current === generation) {
@@ -438,7 +470,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
             if (generationRef.current === generation) {
               setRequestOrganizationId(null);
               if (!isCancelledMembershipRead(error)) {
-                emitSanitizedMismatch('switch-failed');
+                emitSanitizedMismatch('switch-failed', error);
               }
               setState((current) => ({
                 ...current,

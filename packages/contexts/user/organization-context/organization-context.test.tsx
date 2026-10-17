@@ -484,6 +484,7 @@ describe('RoutedOrganizationProvider', () => {
         reportToSentry: true,
         tags: {
           eventType: 'organization-context-mismatch',
+          failure: 'verification',
           reason: 'switch-failed',
         },
       },
@@ -768,6 +769,53 @@ describe('RoutedOrganizationProvider', () => {
       expect.objectContaining({
         tags: expect.objectContaining({ reason: 'switch-failed' }),
       }),
+    );
+  });
+
+  it('logs a post-switch read that never reached the server without alerting on a mismatch', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(BRAVO_ACTIVE)
+      .mockRejectedValue({ isNetworkError: true });
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      {
+        reportToSentry: false,
+        tags: {
+          eventType: 'organization-context-mismatch',
+          failure: 'network',
+          reason: 'switch-failed',
+        },
+      },
+    );
+  });
+
+  it('still reports a rejected switch with its failure kind', async () => {
+    getMyOrganizationsMock.mockResolvedValue(BRAVO_ACTIVE);
+    switchOrganizationMock.mockRejectedValueOnce({ isAuthError: true });
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      {
+        reportToSentry: true,
+        tags: {
+          eventType: 'organization-context-mismatch',
+          failure: 'auth',
+          reason: 'switch-failed',
+        },
+      },
     );
   });
 
