@@ -320,6 +320,11 @@ export class OrganizationSettingsService extends BaseService<
         isWatermarkEnabled: true,
         isWebhookEnabled: false,
         isWhitelabelEnabled: false,
+        // Cloud launches app by app: a new organization starts without
+        // Storyboard and an operator opens it per organization.
+        ...(isCloudDeployment()
+          ? { moduleOverrides: { storyboard: false } }
+          : {}),
         organizationId,
         seatsLimit: DEFAULT_FREE_SEATS,
         timezone: 'UTC',

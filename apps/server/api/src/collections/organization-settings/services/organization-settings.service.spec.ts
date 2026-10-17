@@ -334,6 +334,24 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     expect(result).toBe(created);
   });
 
+  it('starts a cloud organization without Storyboard', async () => {
+    vi.mocked(isCloudDeployment).mockReturnValue(true);
+    const service = makeService();
+    vi.spyOn(service, 'findOne').mockResolvedValue(null);
+    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue(['model_1']);
+    const create = vi
+      .spyOn(service, 'create')
+      .mockResolvedValue({ id: 'set_new' } as never);
+
+    await service.ensureForOrganization('org_1');
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleOverrides: { storyboard: false },
+      }),
+    );
+  });
+
   it('re-reads after a unique constraint race', async () => {
     const service = makeService();
     const raced = { enabledModelIds: ['model_1'], id: 'set_raced' };
