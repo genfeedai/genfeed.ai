@@ -5289,22 +5289,6 @@
       "workspace": "helpers"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/helpers/src/media/download/download.helper.test.ts",
-      "fingerprint": "ce96299fa6baafb66e05",
-      "message": "Type '{}' is not assignable to type 'string | IMetadata | undefined'.",
-      "workspace": "helpers"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/helpers/src/media/download/download.helper.test.ts",
-      "fingerprint": "d4d043aa259b2e08b158",
-      "message": "Type '{ label: string; }' is not assignable to type 'string | IMetadata | undefined'.   Type '{ label: string; }' is missing the following properties from type 'IMetadata': id, isDeleted, createdAt, updatedAt",
-      "workspace": "helpers"
-    },
-    {
       "code": 2339,
       "count": 2,
       "file": "packages/helpers/src/media/metadata/page-metadata.helper.test.ts",

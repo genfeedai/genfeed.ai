@@ -169,7 +169,11 @@ describe('download.helper', () => {
         { metadata: { label: 'Track' } as IMetadata },
         'Track-music-ing-123.mp3',
       ],
-      [IngredientCategory.IMAGE, { metadata: {} }, 'genfeed-image-ing-123.jpg'],
+      [
+        IngredientCategory.IMAGE,
+        { metadata: {} as IMetadata },
+        'genfeed-image-ing-123.jpg',
+      ],
     ])('names %s downloads (%j)', (category, fields, expected) => {
       expect(
         ingredientDownloadFilename({
