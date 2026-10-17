@@ -22,9 +22,7 @@ export class CiTriageWebhookController {
     @Body() payload: CiTriagePayload,
     @Headers('x-webhook-secret') secret: string,
   ): Promise<{ status: string }> {
-    const expectedSecret = this.configService.get<string>(
-      'CI_TRIAGE_WEBHOOK_SECRET',
-    );
+    const expectedSecret = this.configService.get('CI_TRIAGE_WEBHOOK_SECRET');
 
     if (!isMatchingSecret(expectedSecret, secret)) {
       throw new UnauthorizedException('Invalid webhook secret');
