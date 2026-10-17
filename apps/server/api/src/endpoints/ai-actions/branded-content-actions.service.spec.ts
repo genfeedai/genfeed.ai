@@ -190,6 +190,7 @@ describe('BrandedContentActionsService', () => {
 
       expect(await ctx.service.generateSocial(social)).toEqual({
         code: 'no_usable_draft',
+        hasNewDispatch: true,
         kind: 'failed',
         message: 'The model gave no usable draft. Try again.',
         receiptId: 'receipt-1',

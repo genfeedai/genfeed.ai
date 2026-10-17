@@ -81,9 +81,17 @@ export function useMasonryVideo({
   }, [ingredientUrl, referenceImageUrl, isProcessing]);
 
   // A real poster (not the generic placeholder) lets the tile skip loading
-  // the video until it is played.
+  // the video until it is played. The Video model's thumbnailUrl getter always
+  // returns a placeholder, so that URL does not count: without a real poster
+  // the video itself must load, or the player stays at opacity 0.
+  const isPlaceholderThumbnail = Boolean(
+    explicitThumbnail?.startsWith(
+      `${EnvironmentService.assetsEndpoint}/placeholders/`,
+    ),
+  );
   const hasPosterThumbnail =
-    Boolean(explicitThumbnail) || Boolean(referenceImageUrl);
+    (Boolean(explicitThumbnail) && !isPlaceholderThumbnail) ||
+    Boolean(referenceImageUrl);
 
   const thumbnailImageUrl = useMemo(() => {
     if (explicitThumbnail && explicitThumbnail !== '') {

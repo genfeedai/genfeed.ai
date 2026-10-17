@@ -177,10 +177,18 @@ const INSUFFICIENT_TEXT_CREDITS_RESULT: AgentToolResult = {
   success: false,
 };
 
-/** A stopped branded generation: the stable code, the seam reason and the receipt it left. */
-function stoppedTextResult(outcome: TextActionFailureV1): AgentToolResult {
+/**
+ * A stopped branded generation: the stable code, the seam reason and the
+ * receipt it left. `isCharged` is true when the known provider cost was
+ * charged because the provider was already reached.
+ */
+function stoppedTextResult(
+  outcome: TextActionFailureV1,
+  isCharged: boolean,
+): AgentToolResult {
   return {
-    creditsUsed: 0,
+    creditsUsed: isCharged ? TEXT_GENERATION_CREDITS : 0,
+    ...(isCharged ? { isBillingDelegated: true } : {}),
     data: {
       code: outcome.code,
       ...(outcome.reasonCode ? { reasonCode: outcome.reasonCode } : {}),
@@ -264,6 +272,20 @@ export class AgentMediaTextGenerationService {
       ActivitySource.SCRIPT,
       { brandId },
     );
+  }
+
+  /** A stopped run that already reached the provider is charged, not released. */
+  private async chargeStoppedText(
+    ctx: ToolExecutionContext,
+    brandId: string,
+    description: string,
+    outcome: TextActionFailureV1,
+  ): Promise<AgentToolResult> {
+    const isCharged = outcome.hasNewDispatch === true;
+    if (isCharged) {
+      await this.chargeTextGeneration(ctx, brandId, description);
+    }
+    return stoppedTextResult(outcome, isCharged);
   }
 
   async aiAction(
@@ -385,7 +407,9 @@ export class AgentMediaTextGenerationService {
         userId: ctx.userId,
       },
     );
-    if (outcome.kind === 'failed') return stoppedTextResult(outcome);
+    if (outcome.kind === 'failed') {
+      return this.chargeStoppedText(ctx, brandId, input.chargeLabel, outcome);
+    }
     if (outcome.hasNewDispatch) {
       await this.chargeTextGeneration(ctx, brandId, input.chargeLabel);
     }
@@ -685,7 +709,14 @@ export class AgentMediaTextGenerationService {
         topic,
         variants: variationsCount,
       });
-    if (outcome.kind === 'failed') return stoppedTextResult(outcome);
+    if (outcome.kind === 'failed') {
+      return this.chargeStoppedText(
+        ctx,
+        brandId,
+        `Agent tool: generate_content (${normalizedType})`,
+        outcome,
+      );
+    }
     if (outcome.hasNewDispatch) {
       await this.chargeTextGeneration(
         ctx,

@@ -17,8 +17,9 @@ const MAX_IMAGE_CANDIDATES = 12;
 const MAX_FONT_CANDIDATES = 8;
 const THIRD_PARTY_SECTION =
   /\b(?:clients?|customers?|partners?|providers?|trusted|logo-wall|testimonials?|quotes?|case-stud(?:y|ies)|as-seen|press)\b|\blogos\b/iu;
-const THIRD_PARTY_ASSET_PATH = /\/(?:clients|partners|trusted)(?:\/|$)/u;
-const LOGO_DIRECTORY_PATH = /\/logos(?:\/|$)/u;
+const THIRD_PARTY_ASSET_PATH =
+  /\/(?:(?:[a-z0-9]+[-_])*(?:clients?|customers?|partners?)(?:[-_]logos?)?|trusted)(?:\/|$)/u;
+const LOGO_DIRECTORY_PATH = /\/(?:[a-z0-9]+[-_])*logos(?:\/|$)/u;
 
 function selectedDomNodes(api: cheerio.CheerioAPI, selector: string) {
   return api(selector).toArray();

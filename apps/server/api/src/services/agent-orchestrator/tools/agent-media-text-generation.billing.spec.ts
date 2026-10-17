@@ -267,6 +267,35 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
     expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
 
+  it('charges the known cost when the seam stops after a provider attempt', async () => {
+    const { brandedContentActions, credits, service } = createService();
+    brandedContentActions.generateSocial.mockResolvedValue({
+      code: 'no_usable_draft',
+      hasNewDispatch: true,
+      kind: 'failed',
+      message: 'The model gave no usable draft. Try again.',
+      receiptId: 'receipt-2',
+    });
+
+    const result = await service.generateContent(
+      {
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+        type: 'post',
+      },
+      headless,
+    );
+
+    expect(result).toMatchObject({
+      creditsUsed: 2,
+      data: { code: 'no_usable_draft', receiptId: 'receipt-2' },
+      isBillingDelegated: true,
+      success: false,
+    });
+    expect(credits.deductCreditsFromOrganization).toHaveBeenCalledOnce();
+  });
+
   it('does not charge a generation that reached no new provider call', async () => {
     const { brandedContentActions, credits, service } = createService();
     brandedContentActions.generateSocial.mockResolvedValue({
@@ -415,6 +444,27 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
       expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
     });
 
+    it('charges the known cost of an action stopped after a provider attempt', async () => {
+      const { brandedTextActions, credits, service } = createService();
+      brandedTextActions.run.mockResolvedValue({
+        code: 'limit_exceeded',
+        hasNewDispatch: true,
+        kind: 'failed',
+        message: 'The result did not fit.',
+        receiptId: 'receipt-2',
+      });
+
+      const result = await service.refineText(params, headless);
+
+      expect(result).toMatchObject({
+        creditsUsed: 2,
+        data: { code: 'limit_exceeded', receiptId: 'receipt-2' },
+        isBillingDelegated: true,
+        success: false,
+      });
+      expect(credits.deductCreditsFromOrganization).toHaveBeenCalledOnce();
+    });
+
     it('keeps the seam reason of a blocked action beside its receipt', async () => {
       const { brandedTextActions, service } = createService();
       brandedTextActions.run.mockResolvedValue({
@@ -558,6 +608,25 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
         success: false,
       });
       expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+    });
+
+    it('charges the known cost of a draft stopped after a provider attempt', async () => {
+      const { brandedTextActions, credits, service } = createService();
+      brandedTextActions.draftReplyVariants.mockResolvedValue({
+        code: 'no_usable_reply',
+        hasNewDispatch: true,
+        kind: 'failed',
+        message: 'The model gave no usable reply. Try again.',
+      });
+
+      const result = await service.generateReplyVariants(params, headless);
+
+      expect(result).toMatchObject({
+        creditsUsed: 2,
+        isBillingDelegated: true,
+        success: false,
+      });
+      expect(credits.deductCreditsFromOrganization).toHaveBeenCalledOnce();
     });
 
     it.each([

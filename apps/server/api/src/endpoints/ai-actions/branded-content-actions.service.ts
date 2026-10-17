@@ -146,7 +146,11 @@ export class BrandedContentActionsService {
       requestKey: input.request.requestKey,
     });
     if (outcome.kind === 'rejected') {
-      return { ...NO_USABLE_DRAFT, receiptId: outcome.receiptId };
+      return {
+        ...NO_USABLE_DRAFT,
+        hasNewDispatch: outcome.hasNewDispatch,
+        receiptId: outcome.receiptId,
+      };
     }
     if (outcome.kind === 'failed') return outcome;
     return {

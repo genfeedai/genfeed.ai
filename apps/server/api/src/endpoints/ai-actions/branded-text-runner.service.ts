@@ -137,7 +137,11 @@ export class BrandedTextRunnerService {
     if (outcome.kind === 'stopped') {
       const receiptId = outcome.receipt.id;
       if (outcome.reasonCode === 'channel_limit_exceeded') {
-        return { kind: 'rejected', receiptId };
+        return {
+          kind: 'rejected',
+          receiptId,
+          hasNewDispatch: outcome.hasNewDispatch,
+        };
       }
       const message = FAILURE_MESSAGES[outcome.reasonCode];
       return message
@@ -145,6 +149,7 @@ export class BrandedTextRunnerService {
             kind: 'failed',
             code: 'provider_unavailable',
             message,
+            hasNewDispatch: outcome.hasNewDispatch,
             reasonCode: outcome.reasonCode,
             receiptId,
           }
@@ -152,6 +157,7 @@ export class BrandedTextRunnerService {
             kind: 'failed',
             code: 'blocked',
             message: `Your brand voice could not be applied (${outcome.reasonCode}). Nothing was written.`,
+            hasNewDispatch: outcome.hasNewDispatch,
             reasonCode: outcome.reasonCode,
             receiptId,
           };
@@ -166,6 +172,7 @@ export class BrandedTextRunnerService {
         code: 'blocked',
         message:
           'The saved result is no longer available. Run the action again.',
+        hasNewDispatch: outcome.hasNewDispatch,
         reasonCode: 'receipt_artifact_not_found',
         receiptId: outcome.receipt.id,
       };

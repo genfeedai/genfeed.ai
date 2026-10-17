@@ -281,6 +281,7 @@ describe('BrandedTextActionsService', () => {
         kind: 'failed',
         message:
           'Your brand voice could not be applied (no_draft_revision). Nothing was written.',
+        hasNewDispatch: false,
         reasonCode: 'no_draft_revision',
         receiptId: 'receipt-4',
       });
@@ -312,6 +313,7 @@ describe('BrandedTextActionsService', () => {
       kind: 'failed',
       message:
         'Your brand voice could not be applied (unsupported_capability). Nothing was written.',
+      hasNewDispatch: false,
       reasonCode: 'unsupported_capability',
       receiptId: 'receipt-9',
     });
@@ -329,6 +331,7 @@ describe('BrandedTextActionsService', () => {
     expect(await ctx.service.run(request)).toEqual({
       code: 'limit_exceeded',
       kind: 'failed',
+      hasNewDispatch: true,
       message: 'The result did not fit the 280-character limit. Try again.',
       receiptId: 'receipt-1',
     });
@@ -589,6 +592,7 @@ describe('BrandedTextActionsService', () => {
 
       expect(await ctx.service.draftReplyVariants(reply)).toEqual({
         code: 'no_usable_reply',
+        hasNewDispatch: true,
         kind: 'failed',
         message: 'The model gave no usable reply. Try again.',
         receiptId: 'receipt-1',
