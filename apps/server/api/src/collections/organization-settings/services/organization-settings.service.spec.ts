@@ -335,7 +335,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     expect(result).toBe(created);
   });
 
-  it('starts a billed cloud organization without Playground and Storyboard', async () => {
+  it('starts a billed cloud organization without Storyboard', async () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(true);
     const service = makeService();
     vi.spyOn(service, 'findOne').mockResolvedValue(null);
@@ -348,7 +348,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        moduleOverrides: { playground: false, storyboard: false },
+        moduleOverrides: { storyboard: false },
       }),
     );
     vi.mocked(hasOrganizationBilling).mockReturnValue(false);
