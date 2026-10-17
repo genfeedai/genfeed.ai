@@ -322,6 +322,20 @@ describe('PublicService', () => {
         expect(result).toHaveLength(MAX_PAGE_SIZE + 1);
       });
 
+      it('rejects when a page request fails instead of returning a partial list', async () => {
+        const fullPage = Array.from({ length: MAX_PAGE_SIZE }, (_, index) => ({
+          id: `article_${index}`,
+        }));
+
+        http.get
+          .mockResolvedValueOnce(axiosResponse(collectionDocument(fullPage)))
+          .mockRejectedValueOnce(new Error('network'));
+
+        await expect(service.findAllPublicArticles()).rejects.toThrow(
+          'network',
+        );
+      });
+
       it('stops after one request when the first page is short', async () => {
         http.get.mockResolvedValue(
           axiosResponse(collectionDocument([{ id: 'article_1' }])),

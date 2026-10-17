@@ -282,6 +282,7 @@ describe('AssetsController', () => {
       await expect(
         controller.update(mockRequest, mockAssetId, mockUser, {
           category: AssetCategory.LOGO,
+          isDeleted: false,
           parentId: foreignBrandId,
           parentType: AssetParent.BRAND,
         }),
@@ -300,6 +301,7 @@ describe('AssetsController', () => {
     it('rejects reparenting under another organization', async () => {
       await expect(
         controller.update(mockRequest, mockAssetId, mockUser, {
+          isDeleted: false,
           parentId: 'cmorganization000000000000999',
           parentType: AssetParent.ORGANIZATION,
         }),
@@ -312,6 +314,7 @@ describe('AssetsController', () => {
       mockAssetsService.patch.mockResolvedValue(mockAsset);
 
       await controller.update(mockRequest, mockAssetId, mockUser, {
+        isDeleted: false,
         parentId: mockOrgId,
         parentType: AssetParent.ORGANIZATION,
       });

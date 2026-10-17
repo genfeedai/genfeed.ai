@@ -311,9 +311,10 @@ export class PublicService extends HTTPBaseService {
   /**
    * Every published article, for SEO surfaces (sitemap, static params) that need
    * the whole corpus. `BaseQueryDto` declares `@Max(100)` on `limit`, so a single
-   * oversized request is rejected with a 400 by the API's ValidationPipe — and
-   * `fetchMany` swallows that into an empty array, which silently drops every
-   * article from the sitemap. Walk pages at the cap instead.
+   * oversized request is rejected with a 400 by the API's ValidationPipe; walk
+   * pages at the cap instead. A failed request rejects rather than reading as
+   * an empty page: callers that fall back when the corpus cannot be loaded
+   * (the sitemap) must be able to tell an outage from "no articles".
    */
   public async findAllPublicArticles(
     query?: Omit<IQueryParams, 'limit' | 'page'>,
@@ -321,11 +322,15 @@ export class PublicService extends HTTPBaseService {
     const articles: Article[] = [];
 
     for (let page = 1; page <= MAX_PUBLIC_ARTICLE_PAGES; page += 1) {
-      const pageArticles = await this.findPublicArticles({
-        ...query,
-        limit: MAX_PAGE_SIZE,
-        page,
-      });
+      const pageArticles = await this.instance
+        .get<JsonApiResponseDocument>('articles', {
+          params: { ...query, limit: MAX_PAGE_SIZE, page },
+        })
+        .then((res) =>
+          deserializeCollection<Partial<Article>>(res.data).map(
+            (data) => new Article(data),
+          ),
+        );
 
       articles.push(...pageArticles);
 

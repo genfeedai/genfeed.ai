@@ -1,6 +1,7 @@
 import type { ActionJsonSchema } from '../../interfaces/action-definition.interface';
 import type { ActionContractSchemas } from './action-contract.interface';
 import {
+  arraySchema,
   closedObjectSchema,
   enumSchema,
   INTEGER_SCHEMA,
@@ -151,7 +152,20 @@ const VALIDATED_SYNC = closedObjectSchema(
   ['conversationType', 'organizationId', 'platform'],
 );
 const SYNC_RESULT = closedObjectSchema(
-  { conversationsCreated: INTEGER_SCHEMA, messagesCreated: INTEGER_SCHEMA },
+  {
+    conversationsCreated: INTEGER_SCHEMA,
+    messagesCreated: INTEGER_SCHEMA,
+    postFailures: arraySchema(
+      closedObjectSchema(
+        {
+          errorName: STRING_SCHEMA,
+          message: STRING_SCHEMA,
+          postId: STRING_SCHEMA,
+        },
+        ['errorName', 'message', 'postId'],
+      ),
+    ),
+  },
   ['conversationsCreated', 'messagesCreated'],
 );
 const syncContract = (
