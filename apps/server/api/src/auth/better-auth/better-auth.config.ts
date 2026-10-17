@@ -8,6 +8,13 @@ import type {
 export const BETTER_AUTH_SECRET_REQUIRED_MESSAGE =
   'BETTER_AUTH_SECRET is required when BETTER_AUTH_ENABLED=true';
 
+/** Boot error when a deployed environment keeps the `.env.example` secret. */
+export const BETTER_AUTH_SECRET_PLACEHOLDER_MESSAGE =
+  'BETTER_AUTH_SECRET is still the .env.example placeholder; set your own secret (openssl rand -base64 48)';
+
+/** The value shipped in `.env.example` so a fresh checkout boots in development. */
+const BETTER_AUTH_SECRET_PLACEHOLDER = 'replace_with_a_long_random_secret';
+
 /**
  * Pure config helpers shared by the Better Auth module (instance construction)
  * and CombinedAuthGuard (issuer-based routing). Kept free of the `better-auth`
@@ -191,6 +198,12 @@ export function resolveBetterAuthRuntimeConfig(
   const secret = env.BETTER_AUTH_SECRET;
   if (!secret) {
     throw new Error(BETTER_AUTH_SECRET_REQUIRED_MESSAGE);
+  }
+
+  const isDeployedEnv =
+    env.NODE_ENV === 'production' || env.NODE_ENV === 'staging';
+  if (isDeployedEnv && secret === BETTER_AUTH_SECRET_PLACEHOLDER) {
+    throw new Error(BETTER_AUTH_SECRET_PLACEHOLDER_MESSAGE);
   }
 
   const baseURL = resolveBetterAuthBaseUrl(env.BETTER_AUTH_URL, env.PORT);

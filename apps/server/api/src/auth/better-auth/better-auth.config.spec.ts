@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BETTER_AUTH_SECRET_PLACEHOLDER_MESSAGE,
   BETTER_AUTH_SECRET_REQUIRED_MESSAGE,
   DESKTOP_SHELL_TRUSTED_ORIGINS,
   parseCommaSeparated,
@@ -146,6 +147,27 @@ describe('Better Auth config', () => {
           BETTER_AUTH_URL: 'https://api.genfeed.ai',
         }),
       ).toThrow(BETTER_AUTH_SECRET_REQUIRED_MESSAGE);
+    });
+
+    it('refuses the .env.example secret in production and staging only', () => {
+      const placeholder = 'replace_with_a_long_random_secret';
+
+      for (const NODE_ENV of ['production', 'staging']) {
+        expect(() =>
+          resolveBetterAuthRuntimeConfig({
+            BETTER_AUTH_SECRET: placeholder,
+            BETTER_AUTH_URL: 'https://api.genfeed.ai',
+            NODE_ENV,
+          }),
+        ).toThrow(BETTER_AUTH_SECRET_PLACEHOLDER_MESSAGE);
+      }
+
+      expect(
+        resolveBetterAuthRuntimeConfig({
+          BETTER_AUTH_SECRET: placeholder,
+          NODE_ENV: 'development',
+        }).secret,
+      ).toBe(placeholder);
     });
 
     it('does not infer a cookie domain from a cloud hostname', () => {
