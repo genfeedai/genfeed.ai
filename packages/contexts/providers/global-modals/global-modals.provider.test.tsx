@@ -8,6 +8,10 @@ import {
 
 vi.mock('@genfeedai/auth-client/react', () => ({}));
 
+vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => ({ user: null }),
+}));
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     credentials: [],
@@ -41,6 +45,7 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalMetadata: () => null,
   LazyModalPostBatch: () => null,
   LazyModalPostRemix: () => null,
+  LazyModalPostRepurpose: () => null,
   LazyModalPrompt: () => null,
   LazyModalUpload: () => null,
   LazyPostMetadataOverlay: () => null,

@@ -1,0 +1,188 @@
+{
+  "badges": {
+    "scopePrefix": "scope: {scope}"
+  },
+  "brandMissing": "Brand not found.",
+  "description": "This brand’s agent runtime profile — structure, delivery knobs, and examples. Scoped to the brand (not org-wide).",
+  "fields": {
+    "aggression": {
+      "helper": "How sharp or soft the delivery reads.",
+      "label": "Aggression"
+    },
+    "audience": {
+      "helper": "One audience segment per line.",
+      "label": "ICP / Audience"
+    },
+    "avoid": {
+      "helper": "One example to avoid per line.",
+      "label": "Anti Examples"
+    },
+    "bannedPhrases": {
+      "helper": "One disallowed phrase per line.",
+      "label": "Banned Phrases"
+    },
+    "beliefs": {
+      "helper": "One core belief per line.",
+      "label": "Beliefs"
+    },
+    "description": {
+      "helper": "What this profile is for.",
+      "label": "Description"
+    },
+    "endings": {
+      "helper": "One closing line per line.",
+      "label": "Endings"
+    },
+    "enemies": {
+      "helper": "One thing this account argues against per line.",
+      "label": "Enemies"
+    },
+    "good": {
+      "helper": "One reference example per line.",
+      "label": "Good Examples"
+    },
+    "guardrails": {
+      "helper": "One guardrail per line.",
+      "label": "Guardrails"
+    },
+    "label": {
+      "helper": "Name for these content rules.",
+      "label": "Label"
+    },
+    "lineRules": {
+      "helper": "One formatting rule per line.",
+      "label": "Line Rules"
+    },
+    "longFormSkeleton": {
+      "helper": "One beat per line for threads and articles.",
+      "label": "Long Form Skeleton"
+    },
+    "offers": {
+      "helper": "One thing this account sells or offers per line.",
+      "label": "Offers"
+    },
+    "platforms": {
+      "helper": "One platform per line (x, linkedin, instagram, tiktok).",
+      "label": "Platforms"
+    },
+    "proofPoints": {
+      "helper": "One proof point per line.",
+      "label": "Proof Points"
+    },
+    "sarcasm": {
+      "helper": "How much dry humor to allow.",
+      "label": "Sarcasm"
+    },
+    "scope": {
+      "helper": "Locked to brand on this settings page.",
+      "label": "Scope"
+    },
+    "shortFormSkeleton": {
+      "helper": "One beat per line for one-liners and short posts.",
+      "label": "Short Form Skeleton"
+    },
+    "stance": {
+      "helper": "The account's point of view.",
+      "label": "Stance"
+    },
+    "style": {
+      "helper": "Sentence and paragraph style.",
+      "label": "Style"
+    },
+    "tone": {
+      "helper": "Overall delivery tone.",
+      "label": "Tone"
+    },
+    "transitions": {
+      "helper": "One transition phrase per line.",
+      "label": "Transitions"
+    },
+    "vocabulary": {
+      "helper": "One preferred word or phrase per line.",
+      "label": "Vocabulary"
+    }
+  },
+  "learning": {
+    "accountId": "Account ID",
+    "actionFailed": "The action failed. Refresh status before trying again.",
+    "actions": {
+      "disable": "Disable",
+      "pause": "Pause",
+      "shadow": "Shadow"
+    },
+    "activePolicy": "Active policy ID",
+    "ambiguous": "The action outcome is unknown. Retry the same action to recover its authoritative result.",
+    "armVersion": "Arm catalog version",
+    "baselineCount": "Scoped baseline count",
+    "completed": "Action completed.",
+    "completedRefreshFailed": "The action completed, but status refresh failed. Refresh status before another action.",
+    "configVersion": "Config version",
+    "conflict": "Status changed or the action conflicted. Review refreshed status before choosing another action.",
+    "consentVersion": "Contribution consent version",
+    "decisionId": "Selected decision ID",
+    "description": "Inspect account status and separate descriptor evidence, or explicitly restrict an account with safety controls. Mode alone does not establish an enabled private policy or successful learning.",
+    "descriptorHash": "Descriptor hash",
+    "drift": "Drift state",
+    "empty": "No connected accounts.",
+    "epoch": "Epoch",
+    "exclusions": "Unavailable reasons",
+    "exposureSource": "Exposure source",
+    "failure": "Failure reason",
+    "featureVersion": "Feature schema version",
+    "format": "Format",
+    "lastReward": "Last valid reward at",
+    "loadError": "Learning status could not be loaded.",
+    "loading": "Loading learning status…",
+    "metricMask": "Metric mask and weights",
+    "mode": "Mode",
+    "noConsent": "No current contribution consent",
+    "noEvidence": "Scoped evidence is unavailable; history and eligibility are unknown.",
+    "noneReported": "None reported",
+    "objective": "Objective",
+    "operationIncomplete": "The operation has not completed. Refresh status or retry the same action to inspect its result.",
+    "pinnedPolicy": "Pinned policy ID",
+    "pinnedRelease": "Pinned receiving release ID",
+    "platform": "Platform",
+    "readOnly": "Learning status is read-only for your role.",
+    "receiving": "Receiving preference",
+    "receivingExplanation": "Receiving shared strategies does not grant contribution consent. These preferences are read-only here.",
+    "refresh": "Refresh status",
+    "retryAction": "Retry same action",
+    "retryLoad": "Retry loading",
+    "revision": "Revision",
+    "safetyExplanation": "Pause, shadow and disable send an explicit safety action for this account at its displayed revision. Queued-generation pause fencing is not established by this view.",
+    "scopeUnavailable": "Select a resolved organization and matching brand to view learning status.",
+    "scopedEvidence": "Descriptor evidence",
+    "selectedArm": "Selected arm ID",
+    "selectedPolicy": "Selected policy ID",
+    "selectedStrategy": "Selected strategy",
+    "selectionExplanation": "This selected strategy does not establish that it was applied to generation.",
+    "selectionUnavailable": "Selection is unavailable.",
+    "threshold": "The 20-sample threshold is informational. Meeting it alone does not mean trained, eligible or applied.",
+    "title": "Learning",
+    "unauthorized": "You are not authorized to perform this action.",
+    "unavailable": "Unavailable",
+    "window": "Reward window version"
+  },
+  "positioningScorecard": {
+    "title": "Positioning scorecard",
+    "description": "How strongly your positioning would land with a cold audience.",
+    "scoreValue": "{score}/100",
+    "dimensionScore": "{score}/10",
+    "weakestTitle": "Weakest: {label}",
+    "interviewLink": "Answer this in the interview"
+  },
+  "promote": "Promote winners to memory",
+  "promoting": "Promoting…",
+  "save": "Save content rules",
+  "saving": "Saving...",
+  "tabs": {
+    "delivery": "Delivery",
+    "examples": "Examples",
+    "identity": "Identity",
+    "learning": "Learning",
+    "structure": "Structure",
+    "thesis": "Thesis"
+  },
+  "title": "Content rules"
+}

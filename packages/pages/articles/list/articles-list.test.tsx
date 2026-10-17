@@ -21,7 +21,7 @@ const pagesMessages = JSON.parse(
   readFileSync(
     join(
       dirname(fileURLToPath(import.meta.url)),
-      '../../../../apps/app/messages/en/pages.json',
+      '../../../../apps/app/messages/en/pages',
     ),
     'utf8',
   ),

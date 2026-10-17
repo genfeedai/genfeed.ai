@@ -137,6 +137,9 @@ describe('AppIntlProvider', () => {
 
       expect(screen.getByText(save)).toBeTruthy();
       expect(screen.getByText(VIEWER_TIME_ZONE)).toBeTruthy();
+      expect(
+        Object.keys(onMessages.mock.calls.at(-1)?.[0] ?? {}).sort(),
+      ).toEqual(['agent', 'common', 'ui']);
       expect(onMessages).toHaveBeenCalledWith(sharedMessages(locale));
       expect(onMessages.mock.calls.at(-1)?.[0]).not.toHaveProperty('pages');
     },
@@ -236,6 +239,9 @@ describe('AppIntlProvider', () => {
       </AppIntlProvider>,
     );
     expect(onMessages.mock.calls.at(-1)?.[0]).not.toBe(firstMessages);
+    expect(Object.keys(onMessages.mock.calls.at(-1)?.[0] ?? {}).sort()).toEqual(
+      ['agent', 'common', 'ui'],
+    );
     expect(onMessages.mock.calls.at(-1)?.[0]).toEqual(
       sharedMessages(PSEUDO_LOCALE),
     );

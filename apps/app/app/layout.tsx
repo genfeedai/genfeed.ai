@@ -71,8 +71,8 @@ export default function RootLayout({ children }: LayoutProps) {
         </>
       }
     >
-      {/* The client module loads the offline catalog once instead of serializing
-          it into every prerendered route. Server translations still use request.ts.
+      {/* The root client module carries the shared offline catalog. Route areas
+          receive their selected pages; server translations still use request.ts.
           It resolves the viewer's time zone itself instead of taking the
           server's zone (UTC on Vercel). */}
       <AppIntlProvider locale={DEFAULT_LOCALE}>

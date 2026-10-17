@@ -54,7 +54,9 @@ describe('AdminLayout authorization', () => {
     isProtectedBootstrapBypassedMock.mockResolvedValue(true);
     const AdminLayout = (await import('./layout')).default;
 
-    await expect(AdminLayout({ children })).resolves.toBe(children);
+    await expect(AdminLayout({ children })).resolves.toMatchObject({
+      props: { children },
+    });
     expect(loadProtectedBootstrapMock).not.toHaveBeenCalled();
     expect(notFoundMock).not.toHaveBeenCalled();
   });
@@ -78,7 +80,9 @@ describe('AdminLayout authorization', () => {
     });
     const AdminLayout = (await import('./layout')).default;
 
-    await expect(AdminLayout({ children })).resolves.toBe(children);
+    await expect(AdminLayout({ children })).resolves.toMatchObject({
+      props: { children },
+    });
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 

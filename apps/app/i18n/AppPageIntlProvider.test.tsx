@@ -13,7 +13,7 @@ import {
 } from 'next-intl';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import pages from '../messages/en/pages.json';
+import pages from '../messages/en/pages';
 import AppPageIntlProvider from './AppPageIntlProvider';
 import { loadMessages } from './messages';
 import { pseudoLocalizeMessage } from './pseudo';

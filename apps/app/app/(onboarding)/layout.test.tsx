@@ -3,7 +3,9 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { render, screen } from '@testing-library/react';
+import AppIntlProvider from '@app-i18n/AppIntlProvider';
+import { render as renderView, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import {
   afterEach,
   beforeAll,
@@ -13,6 +15,10 @@ import {
   it,
   vi,
 } from 'vitest';
+
+function render(children: ReactNode) {
+  return renderView(<AppIntlProvider locale="en">{children}</AppIntlProvider>);
+}
 
 let OnboardingSetupLayout: typeof import('./layout').default;
 let isSignedIn = true;
