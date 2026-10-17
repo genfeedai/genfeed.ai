@@ -277,9 +277,9 @@ export default function StudioPlaygroundComposer({
   const isPromptEmpty = prompt.trim().length === 0;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
   const selectedModel = models.find((model) => model.key === settings.modelKey);
-  // A provider can cap the clip length at some resolutions. When the model or
-  // resolution changes, keep the closest length the pair can run instead of
-  // submitting a clip the provider rejects.
+  // A provider can cap the clip length at some resolutions. When the
+  // resolution cuts off the chosen length, keep the closest length it can run
+  // instead of submitting a clip the provider rejects.
   useEffect(() => {
     if (
       type !== 'video' ||
@@ -288,12 +288,17 @@ export default function StudioPlaygroundComposer({
       !settings.duration
     )
       return;
+    const requested = settings.duration;
     const options = resolveModelDurationOptions(
       selectedModel,
       settings.resolution,
     );
-    const requested = settings.duration;
-    if (options.length === 0 || options.includes(requested)) return;
+    if (
+      options.length === 0 ||
+      options.includes(requested) ||
+      !resolveModelDurationOptions(selectedModel).includes(requested)
+    )
+      return;
     onSettingsChange({
       duration: options.reduce((best, candidate) =>
         Math.abs(candidate - requested) < Math.abs(best - requested)

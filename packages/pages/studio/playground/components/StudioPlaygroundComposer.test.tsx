@@ -56,7 +56,14 @@ import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolu
 import StudioPlaygroundComposer from '@pages/studio/playground/components/StudioPlaygroundComposer';
 import { getDefaultGenerationSetupValues } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
 import { isStudioPlaygroundType } from '@pages/studio/playground/utils/studio-playground-types';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1307,6 +1314,36 @@ describe('StudioPlaygroundComposer', () => {
       expect(baseProps.onPromptChange).not.toHaveBeenCalled();
     },
   );
+
+  it('snaps the duration to a length the selected resolution can run', async () => {
+    const model = {
+      key: 'test/video-capped',
+      label: 'Capped video',
+      category: ModelCategory.VIDEO,
+      maxOutputs: 1,
+      durations: [6, 10],
+      durationsByResolution: { '1080p': [6] },
+      defaultDuration: 6,
+      hasDurationEditing: true,
+    } as IModel;
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        models={[model]}
+        prompt="My topic"
+        settings={{
+          ...settings,
+          duration: 10,
+          modelKey: model.key,
+          resolution: '1080p',
+        }}
+        type="video"
+      />,
+    );
+    await waitFor(() =>
+      expect(baseProps.onSettingsChange).toHaveBeenCalledWith({ duration: 6 }),
+    );
+  });
 
   it('hides missing, inactive and deleted system templates while keeping saved preset access', async () => {
     presetCatalogMocks.presets = [

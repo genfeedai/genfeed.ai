@@ -951,36 +951,43 @@ export function usePromptBarState({
     ],
   );
 
-  const videoDurations = useMemo(() => {
-    if (isCrunVideo) return [];
-    // A provider can cap the clip length at some resolutions, so each model
-    // offers only the lengths the selected resolution can run.
-    const getModelVideoDurations = (modelKey: string): number[] =>
-      resolveModelDurationOptions(
-        selectedModels.find((candidate) => candidate.key === modelKey) ?? {
-          key: modelKey,
-        },
-        watchedResolution,
-      );
-    if (normalizedWatchedModels.length === 0) {
-      return getModelVideoDurations(watchedModel as string);
-    }
-    return getUnionFromAllModels<number>(getModelVideoDurations);
-  }, [
-    isCrunVideo,
-    normalizedWatchedModels,
-    selectedModels,
-    watchedModel,
-    watchedResolution,
-    getUnionFromAllModels,
-  ]);
+  // A provider can cap the clip length at some resolutions, so each model
+  // offers only the lengths the selected resolution can run.
+  const getVideoDurations = useCallback(
+    (resolution?: string | null): number[] => {
+      if (isCrunVideo) return [];
+      const getModelVideoDurations = (modelKey: string): number[] =>
+        resolveModelDurationOptions(
+          selectedModels.find((candidate) => candidate.key === modelKey) ?? {
+            key: modelKey,
+          },
+          resolution,
+        );
+      if (normalizedWatchedModels.length === 0) {
+        return getModelVideoDurations(watchedModel as string);
+      }
+      return getUnionFromAllModels<number>(getModelVideoDurations);
+    },
+    [
+      isCrunVideo,
+      normalizedWatchedModels,
+      selectedModels,
+      watchedModel,
+      getUnionFromAllModels,
+    ],
+  );
+  const videoDurations = useMemo(
+    () => getVideoDurations(watchedResolution),
+    [getVideoDurations, watchedResolution],
+  );
 
   useEffect(() => {
     if (
       isCrunVideo ||
       videoDurations.length === 0 ||
       !watchedDuration ||
-      videoDurations.includes(watchedDuration)
+      videoDurations.includes(watchedDuration) ||
+      !getVideoDurations().includes(watchedDuration)
     ) {
       return;
     }
@@ -993,7 +1000,14 @@ export function usePromptBarState({
     );
     form.setValue('duration', closest, { shouldValidate: true });
     triggerConfigChange();
-  }, [isCrunVideo, videoDurations, watchedDuration, form, triggerConfigChange]);
+  }, [
+    isCrunVideo,
+    videoDurations,
+    getVideoDurations,
+    watchedDuration,
+    form,
+    triggerConfigChange,
+  ]);
 
   const formatIcon = useMemo(() => {
     switch (watchedFormat) {
