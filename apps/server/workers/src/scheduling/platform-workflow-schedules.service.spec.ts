@@ -41,13 +41,7 @@ describe('PlatformWorkflowSchedulesService', () => {
       { id: 'strategy-1', organizationId: 'org-1', config: {} },
     ]);
     runner.enqueueWorkflow.mockResolvedValue({ executionId: 'execution-1' });
-    // Active with Discovery by default, so the dispatch assertions below keep
-    // exercising the branches they target; the gate has its own tests.
-    prisma.member.findMany.mockResolvedValue([]);
-    prisma.session.findMany.mockImplementation(
-      async ({ where }: { where: { userId: { in: string[] } } }) =>
-        where.userId.in.map((userId) => ({ userId })),
-    );
+    // The default organization result also represents a recently active page.
     moduleAccess.canStartWork.mockResolvedValue(true);
   });
 
