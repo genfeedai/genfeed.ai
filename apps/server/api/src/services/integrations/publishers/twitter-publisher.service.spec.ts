@@ -753,9 +753,6 @@ describe('TwitterPublisherService', () => {
           isAuthorizedMediaDeliveryEnabled: enabled,
           ingredientsEndpoint: 'http://media.internal:9000/ingredients',
         });
-        httpService.get.mockReturnValue(
-          of({ data: Buffer.from('fake-image-data') }),
-        );
         mockUploadMedia.mockResolvedValue('media');
         mockTweet.mockResolvedValue({ data: { id: 'child' } });
         postsService.patch.mockResolvedValue({} as unknown as PostDocument);
@@ -800,9 +797,6 @@ describe('TwitterPublisherService', () => {
 
     it('marks a rejected thread transfer failed before uploading that media or tweeting', async () => {
       vi.mocked(safeFetch).mockRejectedValue(new Error('destination rejected'));
-      httpService.get.mockReturnValue(
-        of({ data: Buffer.from('fake-image-data') }),
-      );
       mockUploadMedia.mockResolvedValue('media');
       mockTweet.mockResolvedValue({ data: { id: 'child' } });
       postsService.patch.mockResolvedValue({} as unknown as PostDocument);
