@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/publishing/posts',
+  useRouter: () => ({ push: vi.fn() }),
+}));
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => path }),
 }));
