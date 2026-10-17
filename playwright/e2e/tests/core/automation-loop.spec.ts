@@ -83,10 +83,12 @@ test.describe('Core Automation Loop', () => {
     await workflowPage.gotoTemplates();
 
     await expect(automationPage.getByText('Templates').first()).toBeVisible();
+    // A template that is also in the system catalog is one installable row
+    // (#7065), so "Use template" is a button that installs and opens it.
     await automationPage
-      .locator('a[href*="/automation/workflows?view=templates&template="]')
+      .getByRole('button', { name: 'Use template', exact: true })
       .first()
-      .click({ force: true });
+      .click();
 
     await expect(automationPage).toHaveURL(
       /\/automation\/workflows\/workflow-new$/,
