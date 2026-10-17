@@ -195,6 +195,45 @@ describe('LinkedInPublisherService', () => {
     postsService = module.get(PostsService) as vi.Mocked<PostsService>;
   });
 
+  describe('internal media provenance', () => {
+    it.each([true, false])(
+      'marks feed image/video and comment media as publisher inputs in authorized mode %s',
+      async (enabled) => {
+        Object.assign(_configService, {
+          isAuthorizedMediaDeliveryEnabled: enabled,
+        });
+        linkedInService.uploadImage.mockResolvedValue({ id: 'image' });
+        linkedInService.uploadVideo.mockResolvedValue({ id: 'video' });
+        linkedInService.postComment.mockResolvedValue({ commentId: 'comment' });
+        postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+        await service.publish(createPublishContext(mockImagePost));
+        await service.publish(createPublishContext(mockVideoPost));
+        await service.publishThreadChildren(
+          createPublishContext(mockImagePost),
+          [
+            {
+              id: testId('post', 90),
+              category: PostCategory.IMAGE,
+              description: 'Image',
+              ingredients: mockImagePost.ingredients,
+              order: 1,
+            },
+          ],
+          'urn:li:share:parent',
+        );
+        expect(linkedInService.uploadImage.mock.calls[0]?.at(-1)).toBe(
+          'publisher',
+        );
+        expect(linkedInService.uploadVideo.mock.calls[0]?.at(-1)).toBe(
+          'publisher',
+        );
+        expect(linkedInService.postComment.mock.calls[0]?.at(-1)).toBe(
+          'publisher',
+        );
+      },
+    );
+  });
+
   describe('initialization', () => {
     it('should be defined', () => {
       expect(service).toBeDefined();
@@ -344,6 +383,7 @@ describe('LinkedInPublisherService', () => {
           expect.any(String),
           {},
           mockCredential.id,
+          'publisher',
         );
       });
 
@@ -385,6 +425,7 @@ describe('LinkedInPublisherService', () => {
           expect.any(String),
           {},
           mockCredential.id,
+          'publisher',
         );
       });
     });
@@ -540,6 +581,7 @@ describe('LinkedInPublisherService', () => {
           imageUrl:
             'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
         }),
+        'publisher',
       );
     });
 
