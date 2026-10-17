@@ -1,3 +1,4 @@
+import { MAX_WORKFLOW_QUERY_IDS } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -10,8 +11,6 @@ import {
   IsIn,
   IsOptional,
 } from 'class-validator';
-
-export const MAX_WORKFLOW_QUERY_IDS = 50;
 
 /**
  * Query params for `GET /workflows`.

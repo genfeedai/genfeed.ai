@@ -1,5 +1,8 @@
 import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
 import { Prisma } from '@genfeedai/prisma';
+import { BadRequestException } from '@nestjs/common';
+
+export const MAX_WORKFLOW_QUERY_IDS = 50;
 
 type WorkflowListWhereInput = {
   brandId?: string;
@@ -26,6 +29,22 @@ export function buildWorkflowVisibilityWhere(scope: {
         },
       },
     ],
+  };
+}
+
+export function buildWorkflowIdsWhere(
+  ids: string[],
+  scope: { organizationId: string; userId: string; brandId?: string },
+): Prisma.WorkflowWhereInput {
+  if (ids.length > MAX_WORKFLOW_QUERY_IDS) {
+    throw new BadRequestException(
+      `At most ${MAX_WORKFLOW_QUERY_IDS} workflow IDs may be requested`,
+    );
+  }
+  return {
+    ...buildWorkflowVisibilityWhere(scope),
+    ...(scope.brandId ? { brandId: scope.brandId } : {}),
+    id: { in: ids },
   };
 }
 
