@@ -190,13 +190,9 @@ export class TerminalService {
   }
 
   isAvailable(): boolean {
-    const explicitlyEnabled = this.configService.get('GENFEED_LOCAL_TERMINAL');
-    const isDevelopment =
-      this.configService.get('NODE_ENV') === 'development' ||
-      process.env.NODE_ENV === 'development';
-
     return (
-      !isCloudDeployment() && (isDevelopment || explicitlyEnabled === 'true')
+      !isCloudDeployment() &&
+      this.configService.get('GENFEED_LOCAL_TERMINAL') === 'true'
     );
   }
 
@@ -335,7 +331,7 @@ export class TerminalService {
   private assertAvailable(): void {
     if (!this.isAvailable()) {
       throw new Error(
-        'Local terminal is disabled. Set GENFEED_LOCAL_TERMINAL=true for self-hosted production.',
+        'Local terminal is disabled. Set GENFEED_LOCAL_TERMINAL=true to enable it on a self-hosted install.',
       );
     }
   }
