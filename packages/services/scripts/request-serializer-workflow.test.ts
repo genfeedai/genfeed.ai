@@ -57,7 +57,7 @@ if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^
 if (process.env.FAIL_RECEIPT === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) process.exit(19);
 if (process.env.ISOLATED === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) {
   fs.mkdirSync(path.dirname(args[2]), { recursive: true });
-  fs.writeFileSync(args[2], JSON.stringify({ mode: 'production-default' }));
+  fs.writeFileSync(args[2], JSON.stringify({ mode: 'verification-trial', effectiveRequestCost: 400000 }));
 }
 if (args.includes('scripts/collect-bundle-manifest.ts')) {
   const out = args[args.indexOf('--out') + 1];
@@ -107,7 +107,7 @@ if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/r
 }
 
 describe('pinned serializer bundle workflow', () => {
-  it('builds dependencies and compiles the app once through its existing analyze script', () => {
+  it('builds dependencies before exactly one fixed verification trial', () => {
     expect(buildStep).toContain(`BUNDLE_APP: ${matrixApp}`);
     expect(runScript(script, 'app')).toEqual({
       status: 0,
@@ -128,9 +128,10 @@ describe('pinned serializer bundle workflow', () => {
             'run',
             'packages/services/scripts/request-serializer-build-receipt.ts',
             '.bundle-size/request-serializers-build.json',
+            '--trial',
+            '400000',
           ],
         },
-        { bin: 'bun', args: ['run', '--cwd', 'apps/app', 'analyze'] },
       ],
     });
   });
@@ -214,7 +215,7 @@ describe('pinned serializer bundle workflow', () => {
       true,
     );
     expect(result.status).toBe(23);
-    expect(result.calls).toHaveLength(12);
+    expect(result.calls).toHaveLength(11);
     expect(result.proofFiles).toEqual([
       'request-serializers-0.json',
       'request-serializers-1.json',
@@ -242,7 +243,7 @@ describe('pinned serializer bundle workflow', () => {
     expect(uploadStep).toContain('retention-days: 1');
   });
 
-  it('captures exact build identity before compilation and aborts when provenance cannot be captured', () => {
+  it('does not start a separate app compile when the fixed trial wrapper fails', () => {
     const result = runScript(script, 'app', false, false, false, true);
     expect(result.status).toBe(19);
     expect(result.calls).toHaveLength(2);
