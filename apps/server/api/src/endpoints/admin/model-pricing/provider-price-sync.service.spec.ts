@@ -25,7 +25,7 @@ describe('ProviderPriceSyncService', () => {
   });
 
   it('enqueues only the requested provider', async () => {
-    const add = vi.fn(async () => ({ id: 'job-1' }));
+    const add = vi.fn(async (_name: string) => ({ id: 'job-1' }));
     const service = new ProviderPriceSyncService({ add } as unknown as Queue);
 
     await service.enqueue(['replicate']);
