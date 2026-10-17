@@ -67,7 +67,7 @@ export default function LandingTopbar({
         <TopbarLogo logoHref={logoHref} />
 
         <div
-          className={`flex items-center gap-2 transition-opacity sm:gap-3 ${
+          className={`flex items-center gap-2 transition-[opacity,visibility] duration-200 sm:gap-3 ${
             isInPageCtaVisible ? 'invisible opacity-0' : ''
           }`}
         >

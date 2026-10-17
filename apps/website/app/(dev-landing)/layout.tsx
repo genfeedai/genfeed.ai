@@ -11,6 +11,7 @@ const topbar = (
   <LandingTopbar
     ctaHref={`${EnvironmentService.apps.app}/sign-up`}
     ctaLabel="Start creating"
+    hideActionWhileVisible="[data-hero-cta]"
   />
 );
 

@@ -1,11 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useDeferredIsSignedIn } from '@genfeedai/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
+import {
+  HERO_CTA_PENDING_CLASS,
+  useHeroCtaRevealed,
+} from '@ui/topbars/public/useHeroCtaRevealed';
 import {
   Bot,
   Building2,
@@ -162,6 +167,7 @@ const NAV_LINKS = [
 
 export default function WebsiteTopbar() {
   const isSignedIn = useDeferredIsSignedIn();
+  const isHeroCtaRevealed = useHeroCtaRevealed();
 
   // The desktop bar hides Log in and the agent action to fit, so on a phone they
   // live in the menu. Without them a returning visitor had no way to sign in.
@@ -241,24 +247,32 @@ export default function WebsiteTopbar() {
               >
                 Log in
               </a>
-              <ConnectAgentButton
-                label="Connect your agent"
-                variant={ButtonVariant.SECONDARY}
-                className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
-                trackingAction="connect_agent_topbar"
-                trackingName="topbar_cta_click"
-              />
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
-                className="h-11 px-5 text-sm uppercase lg:h-9"
-                trackingData={{ action: 'start_free_topbar' }}
-                trackingName="topbar_cta_click"
+              <div
+                data-testid="topbar-actions"
+                className={cn(
+                  'flex items-center gap-3 transition-[opacity,visibility] duration-200 lg:gap-6',
+                  !isHeroCtaRevealed && HERO_CTA_PENDING_CLASS,
+                )}
               >
-                <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                  Start creating
-                </a>
-              </ButtonTracked>
+                <ConnectAgentButton
+                  label="Connect your agent"
+                  variant={ButtonVariant.SECONDARY}
+                  className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
+                  trackingAction="connect_agent_topbar"
+                  trackingName="topbar_cta_click"
+                />
+                <ButtonTracked
+                  asChild
+                  size={ButtonSize.PUBLIC}
+                  className="h-11 px-5 text-sm uppercase lg:h-9"
+                  trackingData={{ action: 'start_free_topbar' }}
+                  trackingName="topbar_cta_click"
+                >
+                  <a href={`${EnvironmentService.apps.app}/sign-up`}>
+                    Start creating
+                  </a>
+                </ButtonTracked>
+              </div>
             </>
           ) : (
             <a

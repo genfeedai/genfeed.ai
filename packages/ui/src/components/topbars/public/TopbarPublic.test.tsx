@@ -90,6 +90,17 @@ describe('TopbarPublic mobile menu', () => {
     expect(screen.getByRole('banner')).toHaveClass('z-50');
   });
 
+  it('starts the panel flush under the header, with nothing in flow above it', () => {
+    fireEvent.click(renderTopbar());
+
+    // The scrim button is absolutely positioned. If it keeps the Button's
+    // default wrapper, that wrapper sits in flow and pushes the panel down by a
+    // line box, leaving a strip of page between the bar and the menu.
+    const layer = getMobileMenu().parentElement as HTMLElement;
+    const scrim = within(layer).getByRole('button', { name: 'Close menu' });
+    expect(scrim.parentElement).toBe(layer);
+  });
+
   it('closes on Escape and returns focus to the menu button', () => {
     const toggle = renderTopbar();
     fireEvent.click(toggle);
