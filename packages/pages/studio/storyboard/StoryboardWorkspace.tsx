@@ -212,6 +212,7 @@ export function LegacyStoryboardWorkspace() {
           {mode === 'interpolate' ? (
             <Card label={translate('autoMerge.label')}>
               <MergeSettingsPanel
+                isDisabled={isMerging}
                 settings={mergeSettings}
                 onChange={updateMergeSettings}
               />
