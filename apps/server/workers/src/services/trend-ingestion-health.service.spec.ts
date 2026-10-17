@@ -94,6 +94,37 @@ function setup() {
 }
 
 describe('TrendIngestionHealthService', () => {
+  it('retains the earliest incident baseline without spreading a large outage into function arguments', async () => {
+    const { service, recorder } = setup();
+    const missed = {
+      baseline: new Date('2026-09-28T12:15:00.000Z'),
+      isMissed: true,
+      successAt: null,
+    };
+    const evaluated = Array.from({ length: 150_000 }, () => missed);
+    evaluated[75_000] = { ...missed, baseline: enrollment };
+    const now = new Date('2026-09-30T00:15:00.000Z');
+
+    // biome-ignore lint/complexity/useLiteralKeys: Isolate the private incident phase without running the quadratic sweep.
+    await service['reconcileIncident']({
+      description: 'Large provider outage',
+      evaluated,
+      now,
+      recoveredDescription: () => 'Recovered',
+      sourceId: 'youtube/trends/scoped',
+    });
+
+    expect(recorder.dispatch).toHaveBeenCalledOnce();
+    expect(recorder.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deduplicationKey: `trend-ingestion-health/youtube/trends/scoped/missed/${enrollment.toISOString()}`,
+        occurredAt: now,
+        organizationId: null,
+        source: { id: 'youtube/trends/scoped', type: 'trend_ingestion_health' },
+      }),
+    );
+  });
+
   it('waits for two closed scheduled windows, emits actionable alerts once, and deduplicates continued failure', async () => {
     const { service, recorder, events, prisma } = setup();
     await service.checkMissedWindows(new Date('2026-09-28T12:15:00.000Z'));
