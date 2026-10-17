@@ -16,18 +16,19 @@ import {
   MASTER_CI_FAILURE_LABEL,
   reportMasterCiFailure,
   resolveMasterCiFailure,
+  updateMasterCiFailureFromVerdict,
 } from './master-ci-failure-reporter.mjs';
 import { NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL } from './nightly-playwright-full-failure-reporter.mjs';
 import { SCHEDULED_FAILURE_MARKER } from './scheduled-failure-tracker.mjs';
 
-const UNLABELED_TRACKER_TITLE =
-  '🚨 Tests Gate failed on master push — 2026-08-27';
+const UNLABELED_TRACKER_TITLE = '🚨 Full Suite failed on master — 2026-08-27';
 
 function createGithubMock({
   openIssues = [],
   unlabeledTitleIssues = [],
   createNumber = 99,
   labelsApplied = [MASTER_CI_FAILURE_LABEL],
+  masterSha = 'a'.repeat(40),
 } = {}) {
   const comments = [];
   const created = [];
@@ -50,6 +51,12 @@ function createGithubMock({
       return [...openIssues, ...unlabeledTitleIssues];
     },
     rest: {
+      git: {
+        getRef: async ({ ref }) => {
+          assert.equal(ref, 'heads/master');
+          return { data: { object: { sha: masterSha } } };
+        },
+      },
       issues: {
         listForRepo: async () => ({ data: openIssues }),
         getLabel: async () => ({ data: { name: MASTER_CI_FAILURE_LABEL } }),
@@ -640,7 +647,7 @@ test('reportMasterCiFailure files a new Tests Gate tracker instead of commenting
   assert.equal(result.issueNumber, 99);
   assert.equal(comments.length, 0);
   assert.equal(created.length, 1);
-  assert.match(created[0].title, /^🚨 Tests Gate failed on master push/);
+  assert.match(created[0].title, /^🚨 Full Suite failed on master/);
 });
 
 test('resolveMasterCiFailure does not close a scheduled-failure tracker that only has the Tests Gate label', async () => {
@@ -670,80 +677,206 @@ test('resolveMasterCiFailure does not close a scheduled-failure tracker that onl
   assert.equal(updates.length, 0);
 });
 
-// ── Workflow contract (#2510) ───────────────────────────────────────────────
-//
-// A `push`-driven Tests Gate must be conclusive, and a red gate must file the
-// tracker. The Full Suite no longer runs on master pushes, so this wiring is
-// dormant, but these pins keep it intact for a future push-driven caller.
+const GREEN_RESULTS = {
+  ci: 'success',
+  'build-verify': 'success',
+  e2e: 'success',
+  'visual-connected': 'skipped',
+  'runtime-acceptance-gate': 'skipped',
+};
+
+function verdictInput(mock, overrides = {}) {
+  return {
+    github: mock.github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    defaultBranch: 'master',
+    sha: 'a'.repeat(40),
+    verdict: 'failure',
+    results: { ...GREEN_RESULTS, e2e: 'failure' },
+    date: '2026-10-17',
+    headline: 'fix: validated commit',
+    runUrl: 'https://example.test/run/2',
+    core: { info: () => {}, warning: () => {} },
+    ...overrides,
+  };
+}
+
+test('an E2E-only red aggregate opens the tracker despite a green CI gate', async () => {
+  const mock = createGithubMock();
+  const result = await updateMasterCiFailureFromVerdict(verdictInput(mock));
+  assert.equal(result.action, 'created');
+  assert.equal(mock.created.length, 1);
+  assert.match(mock.created[0].body, /Full Suite/);
+  assert.match(mock.created[0].body, /ci=success/);
+  assert.match(mock.created[0].body, /e2e=failure/);
+  assert.equal(mock.updates.length, 0);
+});
+
+test('a green CI gate with red E2E updates an existing tracker without closing it', async () => {
+  const mock = createGithubMock({ openIssues: [{ number: 5884 }] });
+  const result = await updateMasterCiFailureFromVerdict(verdictInput(mock));
+  assert.equal(result.action, 'commented');
+  assert.equal(mock.comments[0].issue_number, 5884);
+  assert.equal(mock.updates.length, 0);
+});
+
+test('a complete green current-SHA aggregate closes only its own trackers', async () => {
+  const mock = createGithubMock({
+    openIssues: [
+      { number: 5884 },
+      {
+        number: 6150,
+        labels: [{ name: NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL }],
+      },
+    ],
+  });
+  const result = await updateMasterCiFailureFromVerdict(
+    verdictInput(mock, { verdict: 'success', results: GREEN_RESULTS }),
+  );
+  assert.deepEqual(result.closed, [5884]);
+  assert.match(mock.comments[0].body, /Full Suite is green/);
+  assert.equal(mock.updates.length, 1);
+  assert.equal(mock.updates[0].issue_number, 5884);
+});
+
+for (const verdict of ['success', 'failure']) {
+  test(`a stale/nontrunk SHA cannot ${verdict === 'success' ? 'close' : 'open'} a trunk tracker`, async () => {
+    const mock = createGithubMock({
+      masterSha: 'b'.repeat(40),
+      openIssues: [{ number: 5884 }],
+    });
+    const result = await updateMasterCiFailureFromVerdict(
+      verdictInput(mock, { verdict }),
+    );
+    assert.equal(result.action, 'ignored');
+    assert.equal(
+      mock.comments.length + mock.created.length + mock.updates.length,
+      0,
+    );
+    assert.equal(mock.graphqlCalls.length, 0);
+  });
+}
+
+for (const overrides of [
+  { verdict: 'cancelled' },
+  { verdict: 'skipped' },
+  { results: { ...GREEN_RESULTS, e2e: 'cancelled' } },
+]) {
+  test(`incomplete verification cannot mutate a tracker: ${JSON.stringify(overrides)}`, async () => {
+    const mock = createGithubMock({ openIssues: [{ number: 5884 }] });
+    const result = await updateMasterCiFailureFromVerdict(
+      verdictInput(mock, overrides),
+    );
+    assert.equal(result.action, 'ignored');
+    assert.equal(
+      mock.comments.length + mock.created.length + mock.updates.length,
+      0,
+    );
+    assert.equal(mock.graphqlCalls.length, 0);
+  });
+}
+
+test('a failed freshness lookup propagates without issue writes', async () => {
+  const mock = createGithubMock();
+  mock.github.rest.git.getRef = async () => {
+    throw new Error('lookup unavailable');
+  };
+  await assert.rejects(
+    updateMasterCiFailureFromVerdict(verdictInput(mock)),
+    /lookup unavailable/,
+  );
+  assert.equal(
+    mock.comments.length + mock.created.length + mock.updates.length,
+    0,
+  );
+});
 
 const CI_WORKFLOW = readFileSync(
   fileURLToPath(new URL('../../.github/workflows/ci.yml', import.meta.url)),
   'utf8',
 );
+const FULL_SUITE = readFileSync(
+  fileURLToPath(
+    new URL('../../.github/workflows/full-suite.yml', import.meta.url),
+  ),
+  'utf8',
+);
 
-/** Slice one job out of ci.yml, ending at the next job key at the same indent. */
-function ciJob(name) {
-  const start = CI_WORKFLOW.indexOf(`\n  ${name}:\n`);
-  assert.notEqual(start, -1, `ci.yml must define ${name}`);
-  const rest = CI_WORKFLOW.slice(start + 1);
+function suiteJob(name) {
+  const start = FULL_SUITE.indexOf(`\n  ${name}:\n`);
+  assert.notEqual(start, -1, `full-suite.yml must define ${name}`);
+  const rest = FULL_SUITE.slice(start + 1);
   const end = rest.search(/\n {2}[a-z][a-z0-9-]*:\n/);
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('tests-gate keeps its push arm alongside pull requests', () => {
-  const gate = ciJob('tests-gate');
+test('the tracker consumes the aggregate and cannot be closed by the CI gate alone', () => {
+  assert.doesNotMatch(CI_WORKFLOW, /^ {2}master-failure-tracker:/m);
+  const tracker = suiteJob('master-failure-tracker');
   assert.match(
-    gate,
-    /github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'/,
-    'tests-gate must keep its push arm so the tracker stays wired (#2510)',
+    tracker,
+    /needs: \[master-sha-verdict, ci, build-verify, e2e, visual-connected, runtime-acceptance-gate\]/,
+  );
+  assert.match(tracker, /!cancelled\(\)/);
+  assert.match(tracker, /needs\.master-sha-verdict\.result == 'failure'/);
+  assert.match(tracker, /needs\.master-sha-verdict\.result == 'success'/);
+  assert.doesNotMatch(tracker, /needs\.tests-gate/);
+  assert.match(tracker, /group: master-ci-failure-tracker/);
+  assert.match(tracker, /cancel-in-progress: false/);
+  assert.match(tracker, /issues: write/);
+  assert.match(
+    tracker,
+    /VERDICT: \$\{\{ needs\.master-sha-verdict\.result \}\}/,
+  );
+  for (const [name, id] of [
+    ['CI_RESULT', 'ci'],
+    ['BUILD_RESULT', 'build-verify'],
+    ['E2E_RESULT', 'e2e'],
+    ['VISUAL_RESULT', 'visual-connected'],
+    ['CONNECTED_RESULT', 'runtime-acceptance-gate'],
+  ]) {
+    assert.ok(tracker.includes(`${name}: \${{ needs.${id}.result }}`));
+  }
+  assert.match(tracker, /updateMasterCiFailureFromVerdict/);
+  assert.match(tracker, /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/);
+  assert.match(tracker, /projectGithub: github/);
+  assert.match(
+    tracker,
+    /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \|\| github\.token \}\}/,
   );
 });
 
-test('a red master gate files the tracker and a green one resolves it', () => {
-  const tracker = ciJob('master-failure-tracker');
-  assert.match(tracker, /needs: \[tests-gate\]/);
-  assert.match(tracker, /group: master-ci-failure-tracker/);
-  assert.match(tracker, /cancel-in-progress: false/);
-  // Without a status function the implicit `success()` spans the transitive
-  // needs graph, where skipped test lanes are routine — the resolve arm was
-  // skipped on every green master run until this was pinned (#2625).
+test('the tracker validates a current trusted SHA before checkout or App credentials', () => {
+  const tracker = suiteJob('master-failure-tracker');
+  const preflight = tracker.indexOf(
+    '- name: Validate current default-branch SHA',
+  );
+  const checkout = tracker.indexOf('- name: Checkout failure reporter');
+  const mint = tracker.indexOf('- name: Mint reporter token (Genfeed bot App)');
+  assert.ok(preflight !== -1 && preflight < checkout && checkout < mint);
+  assert.match(tracker, /github\.rest\.git\.getRef/);
   assert.match(
     tracker,
-    /!cancelled\(\)/,
-    'the tracker must opt out of transitive skip propagation (#2625)',
+    /ref: `heads\/\$\{context\.payload\.repository\.default_branch\}`/,
   );
-  assert.match(tracker, /github\.event_name == 'push'/);
-  assert.match(tracker, /issues: write/);
-
-  const report = tracker.slice(
-    tracker.indexOf('- name: Open or update tracking issue'),
-    tracker.indexOf('- name: Close open master-ci-failure trackers'),
+  assert.match(tracker, /data\.object\.sha === context\.sha/);
+  assert.equal(
+    (
+      tracker.match(/if: steps\.trusted-head\.outputs\.current == 'true'/g) ??
+      []
+    ).length,
+    4,
   );
-  assert.match(report, /if: needs\.tests-gate\.result == 'failure'/);
-  assert.match(report, /REPOSITORY_TOKEN: \$\{\{ github\.token \}\}/);
-  assert.match(report, /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/);
-  assert.match(report, /projectGithub: github/);
-  assert.match(report, /master-ci-failure-reporter\.mjs/);
+  assert.match(tracker, /persist-credentials: false/);
+  assert.match(tracker, /ref: \$\{\{ github\.sha \}\}/);
   assert.match(
-    report,
-    /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \}\}/,
-    'Project #12 writes must use the Genfeed bot App token, not repository GITHUB_TOKEN',
+    tracker,
+    /client-id: \$\{\{ secrets\.GENFEED_BOT_CLIENT_ID \}\}/,
   );
   assert.match(
     tracker,
-    /- name: Mint reporter token \(Genfeed bot App\)\n\s+id: reporter-token\n\s+uses: \.\/\.github\/actions\/reporter-token\n\s+with:\n\s+client-id: \$\{\{ secrets\.GENFEED_BOT_CLIENT_ID \}\}\n\s+private-key: \$\{\{ secrets\.GENFEED_BOT_PRIVATE_KEY \}\}\n/u,
-    'reporter token must be minted from the Genfeed bot App',
+    /private-key: \$\{\{ secrets\.GENFEED_BOT_PRIVATE_KEY \}\}/,
   );
-  assert.ok(
-    tracker.indexOf('actions/checkout@') <
-      tracker.indexOf('uses: ./.github/actions/reporter-token'),
-    'the composite action is local, so the repository must be checked out first',
-  );
-  assert.doesNotMatch(tracker, /CONSOLE_DEPLOY_TOKEN/u);
-
-  const resolve = tracker.slice(
-    tracker.indexOf('- name: Close open master-ci-failure trackers'),
-  );
-  assert.match(resolve, /if: needs\.tests-gate\.result == 'success'/);
-  assert.match(resolve, /resolveMasterCiFailure/);
+  assert.doesNotMatch(tracker, /CONSOLE_DEPLOY_TOKEN/);
 });
