@@ -34,6 +34,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ADMIN_RAIL_APP,
+  ADMIN_RAIL_BACK_APP,
   ADMIN_RAIL_CATEGORIES,
   APP_RAIL_REGISTRY,
   getActiveAppId,
@@ -217,9 +218,8 @@ export function AppRail({
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
   const apps = useMemo(() => {
     if (isAdminChrome) {
-      // Workspace is the way out of admin; the categories are the admin nav.
-      const exit = APP_RAIL_REGISTRY.filter((app) => app.id === 'workspace');
-      return [...exit, ...ADMIN_RAIL_CATEGORIES];
+      // The back button is the way out of admin; the categories are the admin nav.
+      return [ADMIN_RAIL_BACK_APP, ...ADMIN_RAIL_CATEGORIES];
     }
     const visible = APP_RAIL_REGISTRY.filter((app) => {
       if (!isAppRailItemEnabled(app, flags, isConfigured)) {
@@ -291,6 +291,7 @@ export function AppRail({
   ]);
   const dailyItems = items.filter((item) => item.app.group === 'daily');
   const launcherItems = items.filter((item) => item.app.group === 'app');
+  const adminExitItem = items.find((item) => item.app.group === 'admin-exit');
   const adminCategoryItems = items.filter(
     (item) => item.app.group === 'admin-category',
   );
@@ -354,22 +355,32 @@ export function AppRail({
             <Separator className="mt-1 w-5" />
           </div>
         ) : null}
-        <div className="flex flex-col items-center gap-1">
-          {dailyItems.map(renderItem)}
-          {pinnedItems.length > 0 ? (
-            <Separator
-              className="my-1 w-5"
-              data-testid="app-rail-pins-separator"
-            />
-          ) : null}
-          {pinnedItems.map(renderItem)}
-        </div>
+        {adminExitItem ? (
+          <div
+            className="flex flex-col items-center gap-1"
+            data-testid="app-rail-admin-exit"
+          >
+            {renderItem(adminExitItem)}
+          </div>
+        ) : null}
+        {dailyItems.length > 0 || pinnedItems.length > 0 ? (
+          <div className="flex flex-col items-center gap-1">
+            {dailyItems.map(renderItem)}
+            {pinnedItems.length > 0 ? (
+              <Separator
+                className="my-1 w-5"
+                data-testid="app-rail-pins-separator"
+              />
+            ) : null}
+            {pinnedItems.map(renderItem)}
+          </div>
+        ) : null}
         {adminCategoryItems.length > 0 ? (
           <div
             className="flex flex-col items-center gap-1"
             data-testid="app-rail-admin-categories"
           >
-            <Separator className="my-1 w-5" />
+            {adminExitItem ? <Separator className="my-1 w-5" /> : null}
             {adminCategoryItems.map(renderItem)}
           </div>
         ) : null}

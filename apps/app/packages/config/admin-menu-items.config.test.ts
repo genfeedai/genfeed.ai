@@ -18,6 +18,13 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(ADMIN_MENU_ITEMS.some((item) => item.label === 'Agent')).toBe(false);
   });
 
+  it('lights Overview only on its own pages, not on every /admin route', () => {
+    const overview = ADMIN_MENU_ITEMS[0];
+
+    expect(overview?.isExactMatch).toBe(true);
+    expect(overview?.matchPaths).toContain('/admin');
+  });
+
   it('keeps CRM and marketplace surfaces out of the public app admin menu', () => {
     const hrefs = ADMIN_MENU_ITEMS.map((item) => item.href);
 

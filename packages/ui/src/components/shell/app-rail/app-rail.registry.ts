@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 import { GalleryHorizontalStart } from '@ui/primitives/animated-icons/custom-lucide';
 import {
+  ArrowLeft,
   Bot,
   BotMessageSquare,
   CalendarDays,
@@ -226,6 +227,21 @@ export const ADMIN_RAIL_APP: AppRailItemConfig = {
 };
 
 /**
+ * Admin chrome leads with this back button instead of the Workspace home
+ * icon: it leaves Admin for the workspace the member came from. It carries no
+ * `activePathRoots`, so it is never the active rail item.
+ */
+export const ADMIN_RAIL_BACK_APP: AppRailItemConfig = {
+  activePathRoots: [],
+  description: 'adminBack.description',
+  group: 'admin-exit',
+  icon: ArrowLeft,
+  id: 'admin-back',
+  label: 'adminBack.label',
+  route: createScopedAppRoute({ brandPath: '/workspace/overview' }),
+};
+
+/**
  * Admin chrome swaps the app loop for these: one icon per admin category, each
  * opening that category's pages in the sidebar. `activePathRoots` mirror the
  * pages of the matching group in `ADMIN_MENU_ITEMS`; the longest root wins, so
@@ -243,7 +259,15 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
   },
   {
-    activePathRoots: ['/admin/content'],
+    // Ingredient detail (`/admin/images/:id`, `/admin/videos/:id`) and folders
+    // sit outside `/admin/content` but belong with it; unclaimed, the sidebar
+    // falls back to listing every admin page.
+    activePathRoots: [
+      '/admin/content',
+      APP_ROUTES.ADMIN.IMAGES,
+      APP_ROUTES.ADMIN.VIDEOS,
+      APP_ROUTES.ADMIN.FOLDERS,
+    ],
     adminMenuGroup: 'Content',
     description: 'adminContent.description',
     group: 'admin-category',

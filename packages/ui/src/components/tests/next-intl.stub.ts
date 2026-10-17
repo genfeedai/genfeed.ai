@@ -182,6 +182,10 @@ const UI_TEST_MESSAGES = {
         label: 'Admin',
         description: 'Platform management.',
       },
+      adminBack: {
+        label: 'Back to app',
+        description: 'Leave Admin and return to your workspace.',
+      },
     },
     sidebar: {
       collapse: 'Collapse sidebar',

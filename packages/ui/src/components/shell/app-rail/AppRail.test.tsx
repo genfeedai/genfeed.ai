@@ -299,7 +299,8 @@ describe('AppRail', () => {
         showAdmin
       />,
     );
-    expect(screen.getByTestId('app-rail-item-workspace')).toBeInTheDocument();
+    expect(screen.getByTestId('app-rail-item-admin-back')).toBeInTheDocument();
+    expect(screen.queryByTestId('app-rail-item-workspace')).toBeNull();
     for (const id of [
       'admin-overview',
       'admin-content',
@@ -319,6 +320,44 @@ describe('AppRail', () => {
     );
     expect(screen.queryByTestId('app-rail-item-agent')).toBeNull();
     expect(screen.queryByTestId('app-rail-item-admin')).toBeNull();
+  });
+
+  it('leads admin chrome with a back button to the workspace, never active', () => {
+    render(
+      <AppRail
+        brandSlug="moonrise"
+        currentPath="/admin/content/posts"
+        isAdminChrome
+        orgSlug="acme"
+        showAdmin
+      />,
+    );
+    const back = screen.getByRole('link', { name: 'Back to app' });
+    expect(back).toBe(screen.getByTestId('app-rail-item-admin-back'));
+    expect(back).toHaveAttribute('href', '/acme/moonrise/workspace/overview');
+    expect(back).not.toHaveAttribute('aria-current');
+    expect(screen.queryByRole('link', { name: 'Workspace' })).toBeNull();
+  });
+
+  it('separates the admin back button from the categories with one divider', () => {
+    render(
+      <AppRail
+        currentPath="/admin/content/posts"
+        isAdminChrome
+        orgSlug="acme"
+        showAdmin
+      />,
+    );
+    const nav = screen.getByTestId('app-rail');
+    const categories = screen.getByTestId('app-rail-admin-categories');
+    // The divider is the group's first child, followed by the five categories.
+    expect(categories.querySelectorAll('a')).toHaveLength(5);
+    expect(categories.firstElementChild?.tagName).toBe('DIV');
+    expect(categories.firstElementChild).toHaveClass('my-1', 'w-5');
+    // No empty app-loop group between the back button and the categories.
+    expect(
+      Array.from(nav.children).filter((child) => child.childElementCount === 0),
+    ).toHaveLength(0);
   });
 
   it('uses web sequences and desktop command keys without numbering Admin', () => {

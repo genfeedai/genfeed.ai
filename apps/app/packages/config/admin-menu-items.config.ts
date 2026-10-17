@@ -45,6 +45,9 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     // permanently redirects here; never link to `/admin/overview` (no page).
     href: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
     label: 'Overview',
+    // Exact: `/admin` is a prefix of every admin route, so a prefix match would
+    // keep Overview lit on pages that have no menu item of their own.
+    isExactMatch: true,
     matchPaths: [APP_ROUTES.ADMIN.ROOT, APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD],
     outline: Gauge,
     solid: Gauge,
@@ -108,7 +111,11 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.INGREDIENTS_VIDEOS,
     label: 'Ingredients',
-    matchPaths: [APP_ROUTES.ADMIN.CONTENT.INGREDIENTS],
+    matchPaths: [
+      APP_ROUTES.ADMIN.CONTENT.INGREDIENTS,
+      APP_ROUTES.ADMIN.IMAGES,
+      APP_ROUTES.ADMIN.VIDEOS,
+    ],
     outline: LibraryBig,
     solid: LibraryBig,
   },

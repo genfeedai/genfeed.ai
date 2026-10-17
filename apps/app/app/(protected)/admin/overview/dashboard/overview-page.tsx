@@ -74,15 +74,6 @@ const quickActionCards: OverviewCard[] = [
 
 // ActivityChart is lazy-loaded via dynamic import (see top of file)
 
-// Organization type labels for metadata display
-const orgTypes = [
-  'Enterprise AI',
-  'Creative Node',
-  'Digital Studio',
-  'Content Lab',
-  'Media Network',
-];
-
 function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
   return (
     <WorkspaceSurface
@@ -123,22 +114,15 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
               )}
             >
               <div className="flex items-center gap-4">
-                {/* White numbered badge */}
-                <span className="text-gray-800 text-xs font-black w-6">
+                <span className="text-muted-foreground text-xs font-black w-6">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 {/* Icon circle */}
                 <div className="size-10 rounded-full bg-muted flex items-center justify-center">
                   <Building2 className="size-5 text-muted-foreground" />
                 </div>
-                {/* Name and metadata */}
-                <div>
-                  <div className="font-bold text-sm uppercase">
-                    {org.organization.name}
-                  </div>
-                  <div className="text-gray-800 text-xs uppercase tracking-widest">
-                    {orgTypes[index % orgTypes.length]}
-                  </div>
+                <div className="font-bold text-sm uppercase">
+                  {org.organization.name}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -166,11 +150,13 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
 
       {/* View All Entities CTA button */}
       <Button
-        type="button"
+        asChild
         variant={ButtonVariant.SECONDARY}
         className="w-full mt-6 py-4 border border-border text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/70 transition-colors"
       >
-        View All Entities
+        <Link href={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS}>
+          View All Entities
+        </Link>
       </Button>
     </WorkspaceSurface>
   );

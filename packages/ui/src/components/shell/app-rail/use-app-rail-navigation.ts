@@ -72,7 +72,8 @@ export function useAppRailNavigation({
       if (media.matches !== (surface === 'desktop')) return;
       registeredIds = CommandPaletteService.registerCommands(
         createNavigationCommands({
-          items: getItems(),
+          // Leaving Admin is a button, not a destination worth "Go to Back to app".
+          items: getItems().filter((item) => item.app.group !== 'admin-exit'),
           commandLabel: getCommandLabel,
           navigate: (item) => {
             navigateToApp(item.app.id, 'palette');

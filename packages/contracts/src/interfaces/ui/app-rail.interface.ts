@@ -13,7 +13,9 @@ export type AdminRailCategoryId =
   | 'admin-configuration'
   | 'admin-administration';
 
-export type AppRailItemId = AppContext | AdminRailCategoryId;
+export type AdminRailExitId = 'admin-back';
+
+export type AppRailItemId = AppContext | AdminRailCategoryId | AdminRailExitId;
 
 export interface AppRailItemConfig {
   id: AppRailItemId;
@@ -23,7 +25,8 @@ export interface AppRailItemConfig {
   description: string;
   /** `daily` is the fixed core loop; `app` entries open from the Apps launcher. */
   /** `admin-category` entries replace the app loop while the admin chrome is up. */
-  group: 'daily' | 'app' | 'admin' | 'admin-category';
+  /** `admin-exit` is the back button that leaves the admin chrome. */
+  group: 'daily' | 'app' | 'admin' | 'admin-category' | 'admin-exit';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
   /** Platform switch for one Studio surface, under the `studio` module flag. */

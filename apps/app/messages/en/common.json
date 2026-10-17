@@ -2514,6 +2514,10 @@
       "label": "Admin",
       "description": "Platform management."
     },
+    "adminBack": {
+      "label": "Back to app",
+      "description": "Leave Admin and return to your workspace."
+    },
     "adminOverview": {
       "label": "Overview",
       "description": "Dashboard, analytics and activity."

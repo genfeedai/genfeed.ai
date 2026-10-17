@@ -2,6 +2,7 @@ import { findAnimatedIcon } from '@ui/primitives/animated-icons/animated-icon.re
 import { describe, expect, it } from 'vitest';
 import {
   ADMIN_RAIL_APP,
+  ADMIN_RAIL_BACK_APP,
   ADMIN_RAIL_CATEGORIES,
   APP_RAIL_REGISTRY,
   getActiveAppId,
@@ -16,6 +17,7 @@ describe('app rail registry', () => {
     for (const app of [
       ...APP_RAIL_REGISTRY,
       ADMIN_RAIL_APP,
+      ADMIN_RAIL_BACK_APP,
       ...ADMIN_RAIL_CATEGORIES,
     ]) {
       expect(
@@ -162,6 +164,22 @@ describe('app rail registry', () => {
         (app) => app.id,
       ),
     ).toEqual(['workspace']);
+  });
+
+  it('keeps ingredient detail and folders under the Content category', () => {
+    for (const path of [
+      '/admin/images/abc',
+      '/admin/videos/abc',
+      '/admin/folders',
+    ]) {
+      expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, path)).toBe('admin-content');
+    }
+  });
+
+  it('never marks the admin back button active', () => {
+    expect(
+      getActiveAppId([ADMIN_RAIL_BACK_APP], '/admin/content/posts'),
+    ).toBeUndefined();
   });
 
   it('maps admin paths to one category icon each', () => {
