@@ -351,7 +351,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(mediaHandler).toContain('this.generationGateway.generateVideo(');
     expect(enhancement).toContain('this.harness.resolveBrief(');
     expect(enhancement).toContain('this.promptEnhancement.enhance(');
-    expect(enhancement).toContain('buildMediaPromptFromHarness(result, brief)');
+    expect(enhancement).toContain('buildMediaPromptFromHarness(result, {');
     for (const generationService of [
       'ImageGenerationService',
       'VideoGenerationPreparationService',
