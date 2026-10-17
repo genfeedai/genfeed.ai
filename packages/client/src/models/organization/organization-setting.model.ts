@@ -49,6 +49,8 @@ export class OrganizationSetting
 
   declare public moduleOverrides?: IOrganizationSetting['moduleOverrides'];
   declare public releasedItemIds?: IOrganizationSetting['releasedItemIds'];
+  declare public defaultRailOrder?: IOrganizationSetting['defaultRailOrder'];
+  declare public defaultHomeAppId?: IOrganizationSetting['defaultHomeAppId'];
   declare public readonly hasOrganizationBilling?: boolean;
   declare public readonly hasPaidModuleSubscription?: boolean | null;
   declare public enabledModelIds?: string[];

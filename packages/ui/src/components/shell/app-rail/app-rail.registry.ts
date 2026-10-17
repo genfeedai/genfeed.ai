@@ -216,6 +216,19 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   },
 ];
 
+/**
+ * Where a rail app opens for an organization and, when it has one, a brand.
+ * Null for an id that is not a rail app.
+ */
+export function getRailAppRoute(
+  appId: string,
+  orgSlug: string,
+  brandSlug?: string,
+): string | null {
+  const app = APP_RAIL_REGISTRY.find((candidate) => candidate.id === appId);
+  return app ? app.route(orgSlug, brandSlug) : null;
+}
+
 export const ADMIN_RAIL_APP: AppRailItemConfig = {
   activePathRoots: ['/admin'],
   description: 'admin.description',

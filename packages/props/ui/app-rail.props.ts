@@ -76,6 +76,55 @@ export interface AppRailProps {
    * Unknown, uninstalled and unavailable ids are ignored.
    */
   pinnedAppIds?: readonly string[];
+  /**
+   * The member's saved rail order over core and pinned apps. Empty keeps the
+   * default order; apps it does not list follow in default order.
+   */
+  railAppOrder?: readonly string[];
+  /**
+   * Saves a new rail order (drag in the rail or the customize dialog). Without
+   * it the rail is not reorderable.
+   */
+  onRailAppOrderChange?: (order: readonly string[]) => void;
+  /** Pins or unpins a launcher app from the More menu and customize dialog. */
+  onTogglePin?: (appId: string) => void;
+  /** The member's own home app. Null or undefined means they have not chosen one. */
+  homeAppId?: string | null;
+  /** The organization's default home app, shown as what "Default" lands on. */
+  organizationHomeAppId?: string | null;
+  /**
+   * Saves the member's home app; null clears it. Without it the customize
+   * dialog offers no home picker.
+   */
+  onHomeAppChange?: (appId: string | null) => void;
+}
+
+export interface AppRailMoreProps {
+  isSuspended?: boolean;
+  /** Installed launcher apps that are not on the rail. */
+  items: readonly AppRailNavigationItem[];
+  onCustomize?: () => void;
+  onOpen: (item: AppRailNavigationItem) => void;
+  onTogglePin?: (appId: string) => void;
+}
+
+export interface AppRailCustomizeProps {
+  isOpen: boolean;
+  /** The rail apps in their current order. */
+  items: readonly AppRailNavigationItem[];
+  onOpenChange: (isOpen: boolean) => void;
+  onReorder: (
+    order: readonly string[],
+    moved: { id: string; position: number },
+  ) => void;
+  onReset: () => void;
+  onTogglePin?: (appId: string) => void;
+  /** Every app the member can open, for the home picker. */
+  homeOptions?: readonly AppRailNavigationItem[];
+  homeAppId?: string | null;
+  /** The home app the organization sets, or Workspace when it sets none. */
+  defaultHomeLabel?: string;
+  onHomeAppChange?: (appId: string | null) => void;
 }
 
 export interface TopbarAppsLinkProps {

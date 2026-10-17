@@ -37,6 +37,16 @@ export interface ISetting extends IBaseEntity {
    * studio, automation, messages and discovery are accepted.
    */
   pinnedAppIds?: string[];
+  /**
+   * Rail order over every rail app (core and secondary), left to right.
+   * Empty means the default order; unlisted apps follow in default order.
+   */
+  railAppOrder?: string[];
+  /**
+   * The app the member lands on after login. Null or unset falls back to the
+   * organization default, then Workspace.
+   */
+  homeAppId?: string | null;
   isAgentAssetsPanelOpen?: boolean;
   generationPriority?: GenerationPriority;
   dashboardPreferences?: DashboardPreferences;

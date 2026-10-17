@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import type { AppRailProps } from '@genfeedai/props/ui/app-rail.props';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -523,8 +523,7 @@ describe('AppRail', () => {
         .querySelector('svg')
         ?.classList.toString(),
     ).toMatch(/lucide-calendar/);
-    // The Apps entry lives in the topbar, so the rail ends with the core loop.
-    expect(screen.queryByTestId('app-rail-pins-separator')).toBeNull();
+    // Explore lives in the topbar, so the rail ends with the core loop.
     // Launcher apps live in the Store until they are pinned.
     expect(renderedLauncherAppIds()).toEqual([]);
     for (const retired of [
@@ -541,11 +540,21 @@ describe('AppRail', () => {
     }
   });
 
-  it('keeps pinned apps after the core loop with a divider', () => {
+  it('keeps pinned apps after the core loop', () => {
     render(<AppRail orgSlug="acme" pinnedAppIds={['playground']} />);
 
-    expect(screen.getByTestId('app-rail-item-playground')).toBeInTheDocument();
-    expect(screen.getByTestId('app-rail-pins-separator')).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId(/^app-rail-item-/)
+        .map((item) => item.dataset.testid),
+    ).toEqual([
+      'app-rail-item-workspace',
+      'app-rail-item-agent',
+      'app-rail-item-library',
+      'app-rail-item-publishing',
+      'app-rail-item-analytics',
+      'app-rail-item-playground',
+    ]);
   });
   it('pins only installed, available apps (#5502)', () => {
     render(
@@ -1708,28 +1717,23 @@ describe('AppRail', () => {
       );
     });
 
-    it('places pinned apps after the core loop and its divider in pin order', () => {
+    it('places pinned apps after the core loop in pin order', () => {
       render(
         <AppRail orgSlug="acme" pinnedAppIds={['playground', 'messages']} />,
       );
 
       const analytics = screen.getByRole('link', { name: 'Analytics' });
-      const separator = screen.getByTestId('app-rail-pins-separator');
       const studio = screen.getByRole('link', { name: 'Playground' });
       const messages = screen.getByRole('link', { name: 'Messages' });
       expect(
-        analytics.compareDocumentPosition(separator) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-      expect(
-        separator.compareDocumentPosition(studio) &
+        analytics.compareDocumentPosition(studio) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       expect(
         studio.compareDocumentPosition(messages) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
-      // Pins are managed from Store cards: the rail renders no pin controls.
+      // Without handlers the rail is read-only: no pin controls anywhere.
       expect(
         screen.queryByRole('button', { name: /^(Unpin|Pin) / }),
       ).not.toBeInTheDocument();
@@ -1747,6 +1751,226 @@ describe('AppRail', () => {
         'href',
         '/acme/~/analytics/overview?taskId=123&taskSource=workspace',
       );
+    });
+  });
+
+  describe('rail order and More', () => {
+    const railIds = () =>
+      screen
+        .getAllByTestId(/^app-rail-item-/)
+        .map((item) => item.dataset.testid?.replace('app-rail-item-', ''));
+
+    it('applies the saved order and keeps unlisted apps after it', () => {
+      render(
+        <AppRail
+          orgSlug="acme"
+          pinnedAppIds={['playground', 'messages']}
+          railAppOrder={['messages', 'agent', 'unknown']}
+        />,
+      );
+
+      expect(railIds()).toEqual([
+        'messages',
+        'agent',
+        'workspace',
+        'library',
+        'publishing',
+        'analytics',
+        'playground',
+      ]);
+    });
+
+    it('numbers the daily shortcuts in the order the member sees', () => {
+      clientSurface.isDesktop = true;
+      render(
+        <AppRail orgSlug="acme" railAppOrder={['analytics', 'workspace']} />,
+      );
+
+      const slot = screen.getByTestId('app-rail-slot-analytics');
+      expect(within(slot).getByTestId('rail-tooltip')).toHaveTextContent('⌘ 1');
+    });
+
+    it('lists installed apps that are not on the rail in More, with a pin', () => {
+      const onTogglePin = vi.fn();
+      render(
+        <AppRail
+          orgSlug="acme"
+          installedAppIds={['playground', 'turbo']}
+          onTogglePin={onTogglePin}
+          pinnedAppIds={['playground']}
+        />,
+      );
+
+      expect(screen.queryByTestId('app-rail-more-menu')).toBeNull();
+      fireEvent.click(screen.getByTestId('app-rail-more'));
+      expect(screen.getByTestId('app-rail-more-item-turbo')).toHaveAttribute(
+        'href',
+        expect.stringContaining('/studio/turbo'),
+      );
+      expect(screen.queryByTestId('app-rail-more-item-playground')).toBeNull();
+      fireEvent.click(screen.getByTestId('app-rail-more-pin-turbo'));
+      expect(onTogglePin).toHaveBeenCalledWith('turbo');
+    });
+
+    it('shows no More entry when every installed app is on the rail', () => {
+      render(
+        <AppRail
+          orgSlug="acme"
+          installedAppIds={['playground']}
+          pinnedAppIds={['playground']}
+        />,
+      );
+
+      expect(screen.queryByTestId('app-rail-more')).toBeNull();
+    });
+
+    it('moves an app by dragging it onto another slot', () => {
+      const onRailAppOrderChange = vi.fn();
+      render(
+        <AppRail orgSlug="acme" onRailAppOrderChange={onRailAppOrderChange} />,
+      );
+      const dataTransfer = { setData: vi.fn() };
+
+      fireEvent.dragStart(screen.getByTestId('app-rail-slot-analytics'), {
+        dataTransfer,
+      });
+      fireEvent.dragOver(screen.getByTestId('app-rail-slot-workspace'), {
+        dataTransfer,
+      });
+      fireEvent.drop(screen.getByTestId('app-rail-slot-workspace'), {
+        dataTransfer,
+      });
+
+      expect(onRailAppOrderChange).toHaveBeenCalledWith([
+        'analytics',
+        'workspace',
+        'agent',
+        'library',
+        'publishing',
+      ]);
+    });
+
+    it('moves the focused app with Alt+Arrow and announces it', () => {
+      const onRailAppOrderChange = vi.fn();
+      render(
+        <AppRail orgSlug="acme" onRailAppOrderChange={onRailAppOrderChange} />,
+      );
+
+      fireEvent.keyDown(screen.getByTestId('app-rail-item-agent'), {
+        altKey: true,
+        key: 'ArrowDown',
+      });
+
+      expect(onRailAppOrderChange).toHaveBeenCalledWith([
+        'workspace',
+        'library',
+        'agent',
+        'publishing',
+        'analytics',
+      ]);
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Agent moved to position 3 of 5.',
+      );
+    });
+
+    it('ignores plain arrows and is not reorderable without a handler', () => {
+      const onRailAppOrderChange = vi.fn();
+      const { unmount } = render(
+        <AppRail orgSlug="acme" onRailAppOrderChange={onRailAppOrderChange} />,
+      );
+      fireEvent.keyDown(screen.getByTestId('app-rail-item-agent'), {
+        key: 'ArrowDown',
+      });
+      expect(onRailAppOrderChange).not.toHaveBeenCalled();
+      unmount();
+
+      render(<AppRail orgSlug="acme" />);
+      expect(
+        screen.getByTestId('app-rail-slot-agent').getAttribute('draggable'),
+      ).toBeNull();
+    });
+
+    it('reorders, unpins and resets from the customize dialog', () => {
+      const onRailAppOrderChange = vi.fn();
+      const onTogglePin = vi.fn();
+      render(
+        <AppRail
+          orgSlug="acme"
+          onRailAppOrderChange={onRailAppOrderChange}
+          onTogglePin={onTogglePin}
+          pinnedAppIds={['playground']}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('app-rail-more'));
+      fireEvent.click(screen.getByTestId('app-rail-customize-open'));
+      expect(screen.getByTestId('app-rail-customize')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Move Agent up' }));
+      expect(onRailAppOrderChange).toHaveBeenLastCalledWith([
+        'agent',
+        'workspace',
+        'library',
+        'publishing',
+        'analytics',
+        'playground',
+      ]);
+      expect(
+        screen.getByRole('button', { name: 'Move Workspace up' }),
+      ).toBeDisabled();
+      // Core apps cannot leave the rail; pinned ones can.
+      expect(
+        screen.queryByRole('button', { name: 'Unpin Agent' }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Unpin Playground' }));
+      expect(onTogglePin).toHaveBeenCalledWith('playground');
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Reset to default order' }),
+      );
+      expect(onRailAppOrderChange).toHaveBeenLastCalledWith([]);
+    });
+
+    it('offers the home picker in the customize dialog only with a handler', () => {
+      const { unmount } = render(
+        <AppRail
+          orgSlug="acme"
+          onRailAppOrderChange={vi.fn()}
+          organizationHomeAppId="agent"
+        />,
+      );
+      fireEvent.click(screen.getByTestId('app-rail-more'));
+      fireEvent.click(screen.getByTestId('app-rail-customize-open'));
+      expect(screen.queryByTestId('app-rail-home')).not.toBeInTheDocument();
+      unmount();
+
+      render(
+        <AppRail
+          homeAppId="library"
+          onHomeAppChange={vi.fn()}
+          onRailAppOrderChange={vi.fn()}
+          orgSlug="acme"
+          organizationHomeAppId="agent"
+        />,
+      );
+      fireEvent.click(screen.getByTestId('app-rail-more'));
+      fireEvent.click(screen.getByTestId('app-rail-customize-open'));
+      expect(screen.getByTestId('app-rail-home')).toBeInTheDocument();
+      expect(screen.getByTestId('app-rail-home-select')).toBeInTheDocument();
+    });
+
+    it('freezes reordering and More during the onboarding hold', () => {
+      render(
+        <AppRail
+          orgSlug="acme"
+          isNavigationSuspended
+          onRailAppOrderChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId('app-rail-more')).toBeDisabled();
+      expect(
+        screen.getByTestId('app-rail-slot-agent').getAttribute('draggable'),
+      ).toBeNull();
     });
   });
 });

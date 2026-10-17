@@ -5437,6 +5437,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'defaultAvatarIngredientId',
       'defaultAvatarPhotoUrl',
       'defaultAvatarRef',
+      'defaultHomeAppId',
       'defaultImageModel',
       'defaultImageToVideoModel',
       'defaultLocale',
@@ -5492,7 +5493,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'webhookEndpoint',
       'webhookSecret',
     ],
-    listFields: ['enabledModelIds', 'releasedItemIds', 'webhookEventTypes'],
+    listFields: [
+      'defaultRailOrder',
+      'enabledModelIds',
+      'releasedItemIds',
+      'webhookEventTypes',
+    ],
     enumFields: {
       agentReplyStyle: { enumType: 'AgentReplyStyle', isRequired: true },
     },
@@ -6830,6 +6836,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'createdAt',
       'dashboardPreferences',
       'generationPriority',
+      'homeAppId',
       'id',
       'isAdvancedMode',
       'isAgentAssetsPanelOpen',
@@ -6858,6 +6865,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'favoriteModelKeys',
       'favoriteWorkflowIds',
       'pinnedAppIds',
+      'railAppOrder',
     ],
     enumFields: {
       generationPriority: { enumType: 'GenerationPriority', isRequired: true },

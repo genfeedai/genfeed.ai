@@ -8,6 +8,7 @@ import {
   getActiveAppId,
   getAppRailFlagKeyForPath,
   getAppRailHref,
+  getRailAppRoute,
   isAppRailItemEnabled,
   isAppRailItemLocked,
 } from './app-rail.registry';
@@ -204,5 +205,26 @@ describe('app rail registry', () => {
         '/admin/overview/analytics/organizations',
       ),
     ).toBe('admin-administration');
+  });
+
+  describe('getRailAppRoute', () => {
+    it('opens a rail app in a brand, or in the organization without one', () => {
+      expect(getRailAppRoute('workspace', 'acme', 'moonrise')).toBe(
+        '/acme/moonrise/workspace/overview',
+      );
+      expect(getRailAppRoute('agent', 'acme')).toBe('/acme/~/agent');
+      expect(getRailAppRoute('turbo', 'acme', 'moonrise')).toBe(
+        '/acme/moonrise/studio/turbo',
+      );
+    });
+
+    it('has a route for every rail app and none for an unknown id', () => {
+      for (const app of APP_RAIL_REGISTRY) {
+        expect(getRailAppRoute(app.id, 'acme', 'moonrise')).toBe(
+          app.route('acme', 'moonrise'),
+        );
+      }
+      expect(getRailAppRoute('nope', 'acme')).toBeNull();
+    });
   });
 });

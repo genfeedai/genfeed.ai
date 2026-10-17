@@ -9,11 +9,26 @@ const messagesUnread = vi.hoisted(() => ({
   count: 0,
   spy: vi.fn(),
 }));
-vi.mock('@/components/shell/pinned-rail-apps.provider', () => ({
-  usePinnedRailAppsContext: () => ({
+const preferences = vi.hoisted(() => ({
+  setHomeAppId: vi.fn(),
+  setRailAppOrder: vi.fn(),
+  togglePin: vi.fn(),
+}));
+const savedPreferences = vi.hoisted(() => ({
+  homeAppId: null as string | null,
+  railAppOrder: ['library', 'agent'] as string[],
+}));
+vi.mock('@/components/shell/rail-preferences.provider', () => ({
+  useRailPreferencesContext: () => ({
+    isLoaded: true,
     pinnedAppIds: ['playground'],
-    togglePin: vi.fn(),
+    ...savedPreferences,
+    ...preferences,
   }),
+}));
+// The rail only forwards module access; the app list is the home page's.
+vi.mock('@ui/shell/app-rail/app-rail.availability', () => ({
+  resolveAvailableRailApps: () => [],
 }));
 const installedApps = vi.hoisted(() => ({
   installedAppIds: ['playground', 'turbo'] as string[],
@@ -84,6 +99,7 @@ vi.mock('@genfeedai/contracts', () => ({
 }));
 
 vi.mock('@genfeedai/contracts/constants', async () => ({
+  ...(await import('@genfeedai/contracts/constants/native-apps.constant')),
   ...(await import(
     '@genfeedai/contracts/constants/organization-modules.constant'
   )),
@@ -236,10 +252,57 @@ describe('AppProtectedRail', () => {
         surface: 'desktop',
       }),
     );
-    // Pins are changed from Explore cards; the rail only reads them. The Explore
-    // link lives in the topbar.
+    // The Explore link lives in the topbar, not the rail.
     expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('exploreHref');
-    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('onTogglePin');
+    // The member's order and pins flow in and out through the shared context.
+    expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
+      onHomeAppChange: preferences.setHomeAppId,
+      onRailAppOrderChange: preferences.setRailAppOrder,
+      onTogglePin: preferences.togglePin,
+      railAppOrder: ['library', 'agent'],
+    });
+  });
+
+  describe('organization rail defaults', () => {
+    it('follows the organization order until the member sets their own', () => {
+      savedPreferences.railAppOrder = [];
+      brandContextState.settings = {
+        ...brandContextState.settings,
+        defaultHomeAppId: 'agent',
+        defaultRailOrder: ['analytics', 'bogus', 'agent', 'analytics'],
+      };
+      render(<AppProtectedRail orgSlug="acme" />);
+      expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
+        homeAppId: null,
+        organizationHomeAppId: 'agent',
+        railAppOrder: ['analytics', 'agent'],
+      });
+    });
+
+    it("keeps the member's own order over the organization's", () => {
+      savedPreferences.railAppOrder = ['library'];
+      brandContextState.settings = {
+        ...brandContextState.settings,
+        defaultRailOrder: ['analytics', 'agent'],
+      };
+      render(<AppProtectedRail orgSlug="acme" />);
+      expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
+        railAppOrder: ['library'],
+      });
+    });
+
+    it("passes the member's home app alongside the organization's", () => {
+      savedPreferences.homeAppId = 'library';
+      brandContextState.settings = {
+        ...brandContextState.settings,
+        defaultHomeAppId: 'agent',
+      };
+      render(<AppProtectedRail orgSlug="acme" />);
+      expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
+        homeAppId: 'library',
+        organizationHomeAppId: 'agent',
+      });
+    });
   });
 
   it('puts Help and the account avatar in the rail footer', () => {
@@ -256,6 +319,8 @@ describe('AppProtectedRail', () => {
   });
 
   beforeEach(() => {
+    savedPreferences.homeAppId = null;
+    savedPreferences.railAppOrder = ['library', 'agent'];
     brandContextState.settings = {
       hasOrganizationBilling: true,
       moduleOverrides: {},

@@ -50,6 +50,8 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'moduleOverrides',
   'isReleasePreviewEnabled',
   'releasedItemIds',
+  'defaultRailOrder',
+  'defaultHomeAppId',
   'isBreakoutResponsesEnabled',
   'isBreakoutAutoPublishEnabled',
   'isBrandVisionChecksEnabled',

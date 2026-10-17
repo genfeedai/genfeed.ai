@@ -36,9 +36,24 @@ const mocks = vi.hoisted(() => ({
     },
     isLoading: false,
   },
+  homeApp: { appId: 'workspace', isResolved: true },
   isAccessStateLoading: false,
   replace: vi.fn(),
   searchParams: new URLSearchParams(),
+}));
+
+// The home app's own resolution is covered in use-home-app.test.tsx; here it
+// is an input to the redirect.
+vi.mock('@/components/shell/use-home-app', () => ({
+  useHomeApp: () => ({
+    ...mocks.homeApp,
+    resolveHref: (orgSlug: string, brandSlug?: string) =>
+      `/${orgSlug}/${brandSlug ?? '~'}/${
+        mocks.homeApp.appId === 'workspace'
+          ? 'workspace/overview'
+          : mocks.homeApp.appId
+      }`,
+  }),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -77,6 +92,7 @@ describe('ProtectedRootResolver', () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    mocks.homeApp = { appId: 'workspace', isResolved: true };
     mocks.accessState = null;
     mocks.isAccessStateLoading = false;
     mocks.brandState.brandId = '';
@@ -112,6 +128,69 @@ describe('ProtectedRootResolver', () => {
         '/acme/moonrise/workspace/overview',
       );
     });
+  });
+
+  it("opens the member's home app instead of Workspace", async () => {
+    mocks.homeApp = { appId: 'agent', isResolved: true };
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/moonrise/agent');
+    });
+  });
+
+  it('waits for the home app before sending a returning user anywhere', async () => {
+    mocks.homeApp = { appId: 'workspace', isResolved: false };
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    };
+
+    const { rerender } = render(<ProtectedRootResolver />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mocks.replace).not.toHaveBeenCalled();
+
+    mocks.homeApp = { appId: 'turbo', isResolved: true };
+    rerender(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/moonrise/turbo');
+    });
+  });
+
+  it('sends unfinished onboarding on without waiting for the home app', async () => {
+    mocks.homeApp = { appId: 'workspace', isResolved: false };
+    mocks.currentUserState.currentUser = {
+      ...mocks.currentUserState.currentUser,
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.replace).not.toHaveBeenCalledWith(
+      expect.stringContaining('/workspace/overview'),
+    );
   });
 
   it('opens workspace overview from the first brand in the active organization', async () => {

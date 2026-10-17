@@ -18,6 +18,7 @@ import type {
 import {
   DEFAULT_LOCALE,
   PUBLISHING_QUOTA_MAX,
+  RAIL_APP_IDS,
   RELEASE_ITEM_IDS,
   SUPPORTED_LOCALES,
 } from '@genfeedai/contracts/constants';
@@ -29,6 +30,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   Allow,
+  ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsBoolean,
@@ -217,6 +219,35 @@ export class CreateOrganizationSettingDto {
       'Release items opened for this organization alone. Only platform admins may change it; on cloud each listed item admits new work without a platform-wide release in Admin → Flags.',
   })
   readonly releasedItemIds?: ReleaseItemId[];
+
+  @IsArray()
+  @ArrayMaxSize(RAIL_APP_IDS.length)
+  @ArrayUnique()
+  @IsIn(RAIL_APP_IDS, { each: true })
+  @IsOptional()
+  @ApiProperty({
+    default: [],
+    description:
+      "The rail order members start from, left to right. Empty keeps the standard order; apps not listed follow in standard order. A member's own order wins. Owners and admins may update it.",
+    enum: RAIL_APP_IDS,
+    isArray: true,
+    maxItems: RAIL_APP_IDS.length,
+    required: false,
+    type: [String],
+  })
+  readonly defaultRailOrder?: string[];
+
+  @IsIn(RAIL_APP_IDS)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'The app members land on after login unless they pick their own. Null clears it, falling back to Workspace. An app the member cannot open is skipped. Owners and admins may update it.',
+    enum: RAIL_APP_IDS,
+    nullable: true,
+    required: false,
+    type: String,
+  })
+  readonly defaultHomeAppId?: string | null;
 
   @IsBoolean()
   @IsOptional()

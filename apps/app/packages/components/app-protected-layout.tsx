@@ -45,7 +45,7 @@ import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
 import OnboardingNavigationHold from '@/components/shell/OnboardingNavigationHold';
-import { PinnedRailAppsProvider } from '@/components/shell/pinned-rail-apps.provider';
+import { RailPreferencesProvider } from '@/components/shell/rail-preferences.provider';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -670,7 +670,7 @@ function AppProtectedLayoutContent({
         includePromptBarProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
       >
         <InstalledAppsProvider>
-          <PinnedRailAppsProvider>
+          <RailPreferencesProvider>
             <BreadcrumbLeafProvider>
               <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
                 <OnboardingGuard>
@@ -678,7 +678,7 @@ function AppProtectedLayoutContent({
                 </OnboardingGuard>
               </AppLayoutWithDynamicMenu>
             </BreadcrumbLeafProvider>
-          </PinnedRailAppsProvider>
+          </RailPreferencesProvider>
         </InstalledAppsProvider>
       </ProtectedProviders>
     </WorkspaceNavPanelProvider>

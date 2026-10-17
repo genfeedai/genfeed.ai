@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { usePinnedRailApps } from './use-pinned-rail-apps';
+import { useRailPreferences } from './use-rail-preferences';
 
 const mocks = vi.hoisted(() => ({
   findMeSettings: vi.fn(),
@@ -32,7 +32,7 @@ beforeEach(() => {
 
 describe('rail pin persistence', () => {
   it('performs one write for one toggle under StrictMode', async () => {
-    const { result } = renderHook(usePinnedRailApps, { wrapper: StrictMode });
+    const { result } = renderHook(useRailPreferences, { wrapper: StrictMode });
     await waitFor(() =>
       expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
@@ -44,7 +44,7 @@ describe('rail pin persistence', () => {
   it('rebases edits made during the initial read onto saved preferences', async () => {
     const initial = deferred();
     mocks.findMeSettings.mockReturnValue(initial.promise);
-    const { result } = renderHook(usePinnedRailApps);
+    const { result } = renderHook(useRailPreferences);
     act(() => result.current.togglePin('discovery'));
     expect(mocks.patchMeSettings).not.toHaveBeenCalled();
     await act(async () => initial.resolve({ pinnedAppIds: ['playground'] }));
@@ -64,7 +64,7 @@ describe('rail pin persistence', () => {
       mocks.patchMeSettings
         .mockReturnValueOnce(first.promise)
         .mockReturnValueOnce(second.promise);
-      const { result } = renderHook(usePinnedRailApps);
+      const { result } = renderHook(useRailPreferences);
       await waitFor(() =>
         expect(result.current.pinnedAppIds).toEqual(['playground']),
       );
@@ -105,7 +105,7 @@ describe('rail pin persistence', () => {
 
   it('rolls back a final failed save to the last confirmed list', async () => {
     mocks.patchMeSettings.mockRejectedValueOnce(new Error('offline'));
-    const { result } = renderHook(usePinnedRailApps);
+    const { result } = renderHook(useRailPreferences);
     await waitFor(() =>
       expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
@@ -118,7 +118,7 @@ describe('rail pin persistence', () => {
 
   it('does not write unknown preferences after an initial read failure', async () => {
     mocks.findMeSettings.mockRejectedValueOnce(new Error('offline'));
-    const { result } = renderHook(usePinnedRailApps);
+    const { result } = renderHook(useRailPreferences);
     await act(async () => {});
     act(() => result.current.togglePin('discovery'));
     expect(mocks.patchMeSettings).not.toHaveBeenCalled();
@@ -127,7 +127,7 @@ describe('rail pin persistence', () => {
   it('does not start a queued save after unmount', async () => {
     const pending = deferred();
     mocks.patchMeSettings.mockReturnValueOnce(pending.promise);
-    const { result, unmount } = renderHook(usePinnedRailApps);
+    const { result, unmount } = renderHook(useRailPreferences);
     await waitFor(() =>
       expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
@@ -139,5 +139,104 @@ describe('rail pin persistence', () => {
       pending.resolve({ pinnedAppIds: ['playground', 'discovery'] }),
     );
     expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves a rail order with one read, dropping unknown and duplicate ids', async () => {
+    mocks.findMeSettings.mockResolvedValue({
+      pinnedAppIds: ['playground'],
+      railAppOrder: ['agent'],
+    });
+    const { result } = renderHook(useRailPreferences);
+    await waitFor(() => expect(result.current.railAppOrder).toEqual(['agent']));
+    act(() =>
+      result.current.setRailAppOrder([
+        'library',
+        'studio',
+        'agent',
+        'library',
+        'playground',
+      ]),
+    );
+    expect(result.current.railAppOrder).toEqual([
+      'library',
+      'agent',
+      'playground',
+    ]);
+    await waitFor(() =>
+      expect(mocks.patchMeSettings).toHaveBeenCalledWith({
+        railAppOrder: ['library', 'agent', 'playground'],
+      }),
+    );
+    expect(mocks.findMeSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes pins and order as separate patches, one at a time', async () => {
+    const first = deferred();
+    mocks.patchMeSettings
+      .mockReturnValueOnce(first.promise)
+      .mockImplementation(async (settings) => settings);
+    const { result } = renderHook(useRailPreferences);
+    await waitFor(() =>
+      expect(result.current.pinnedAppIds).toEqual(['playground']),
+    );
+    act(() => result.current.togglePin('discovery'));
+    act(() => result.current.setRailAppOrder(['analytics', 'workspace']));
+    await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1));
+    expect(mocks.patchMeSettings).toHaveBeenLastCalledWith({
+      pinnedAppIds: ['playground', 'discovery'],
+    });
+    await act(async () =>
+      first.resolve({ pinnedAppIds: ['playground', 'discovery'] }),
+    );
+    await waitFor(() =>
+      expect(mocks.patchMeSettings).toHaveBeenLastCalledWith({
+        railAppOrder: ['analytics', 'workspace'],
+      }),
+    );
+    expect(result.current.pinnedAppIds).toEqual(['playground', 'discovery']);
+    expect(result.current.railAppOrder).toEqual(['analytics', 'workspace']);
+  });
+
+  it('reports loaded after the read, including a failed one', async () => {
+    const { result } = renderHook(useRailPreferences);
+    expect(result.current.isLoaded).toBe(false);
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    mocks.findMeSettings.mockRejectedValueOnce(new Error('offline'));
+    const failed = renderHook(useRailPreferences);
+    await waitFor(() => expect(failed.result.current.isLoaded).toBe(true));
+    expect(failed.result.current.homeAppId).toBeNull();
+  });
+
+  it('saves the home app and clears it with null', async () => {
+    mocks.findMeSettings.mockResolvedValue({
+      homeAppId: 'agent',
+      pinnedAppIds: [],
+    });
+    const { result } = renderHook(useRailPreferences);
+    await waitFor(() => expect(result.current.homeAppId).toBe('agent'));
+
+    act(() => result.current.setHomeAppId('library'));
+    expect(result.current.homeAppId).toBe('library');
+    await waitFor(() =>
+      expect(mocks.patchMeSettings).toHaveBeenLastCalledWith({
+        homeAppId: 'library',
+      }),
+    );
+
+    act(() => result.current.setHomeAppId(null));
+    await waitFor(() =>
+      expect(mocks.patchMeSettings).toHaveBeenLastCalledWith({
+        homeAppId: null,
+      }),
+    );
+    expect(result.current.homeAppId).toBeNull();
+  });
+
+  it('ignores a saved home app the catalog does not know', async () => {
+    mocks.findMeSettings.mockResolvedValue({ homeAppId: 'studio' });
+    const { result } = renderHook(useRailPreferences);
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+    expect(result.current.homeAppId).toBeNull();
   });
 });

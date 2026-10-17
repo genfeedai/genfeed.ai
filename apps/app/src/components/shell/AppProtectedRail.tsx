@@ -3,23 +3,18 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import {
-  ORGANIZATION_MODULE_IDS,
-  resolveOrganizationModulePreferences,
-  resolveOrganizationModulePresentationAccess,
-} from '@genfeedai/contracts/constants';
+import { normalizeRailAppOrder } from '@genfeedai/contracts/constants';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
-import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AppRail } from '@ui/shell/app-rail/AppRail';
 import RailAccount from '@ui/shell/app-rail/RailAccount';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useMemo } from 'react';
-import { useInstalledApps } from '@/components/shell/installed-apps.provider';
-import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.provider';
+import { Suspense, useCallback } from 'react';
+import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
 import { resolveShellScope } from '@/components/shell/shell-scope';
+import { useAvailableRailApps } from '@/components/shell/use-available-rail-apps';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
 import { captureAppRailNavigation } from '@/lib/analytics/app-rail-analytics';
 import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
@@ -37,30 +32,9 @@ function AppProtectedRailContent({
 }: AppProtectedRailProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { brandId, brands, selectedBrand, settings, settingsLoading } =
-    useBrand();
-  const { flags: platformFlags } = useFeatureFlagContext();
-  const modulePreferences = resolveOrganizationModulePreferences(
-    settingsLoading ? null : settings,
-    platformFlags,
-  );
-  const moduleAccess = useMemo(
-    () =>
-      settingsLoading
-        ? null
-        : Object.fromEntries(
-            ORGANIZATION_MODULE_IDS.map((moduleId) => [
-              moduleId,
-              resolveOrganizationModulePresentationAccess(
-                settings,
-                moduleId,
-                platformFlags,
-              ),
-            ]),
-          ),
-    [platformFlags, settings, settingsLoading],
-  );
-  const installedApps = useInstalledApps();
+  const { brandId, brands, selectedBrand, settings } = useBrand();
+  const { installedAppIds, moduleAccess, modulePreferences } =
+    useAvailableRailApps();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
     useOrgUrl();
@@ -99,7 +73,20 @@ function AppProtectedRailContent({
     pathname,
     new URLSearchParams(searchParams.toString()),
   );
-  const { pinnedAppIds } = usePinnedRailAppsContext();
+  const {
+    homeAppId,
+    pinnedAppIds,
+    railAppOrder,
+    setHomeAppId,
+    setRailAppOrder,
+    togglePin,
+  } = useRailPreferencesContext();
+  // A member's own order wins; until they set one, the rail follows the
+  // organization's default. Resetting clears theirs and lands back on it.
+  const effectiveRailAppOrder =
+    railAppOrder.length > 0
+      ? railAppOrder
+      : normalizeRailAppOrder(settings?.defaultRailOrder);
   const preservedTaskSearch = pickOperatorTaskContextSearchParams(
     new URLSearchParams(searchParams.toString()),
   ).toString();
@@ -148,16 +135,20 @@ function AppProtectedRailContent({
       brandSlug={effectiveBrandSlug}
       currentPath={pathname}
       isAdminChrome={isAdminChrome}
-      installedAppIds={
-        installedApps.status === 'ready' ? installedApps.installedAppIds : []
-      }
+      installedAppIds={installedAppIds}
       isAssetGateLocked={isAssetGateLocked}
       isNavigationSuspended={isAgentOnboardingPathname(pathname)}
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
+      homeAppId={homeAppId}
+      onHomeAppChange={setHomeAppId}
       onNavigate={onNavigate}
+      onRailAppOrderChange={setRailAppOrder}
+      onTogglePin={togglePin}
+      organizationHomeAppId={settings?.defaultHomeAppId}
       orgSlug={effectiveOrgSlug}
       pinnedAppIds={pinnedAppIds}
+      railAppOrder={effectiveRailAppOrder}
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
       showAdmin={isAdminChrome || isSuperAdmin}
