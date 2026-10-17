@@ -19,6 +19,12 @@ describe('formatCreditBalance', () => {
     expect(formatCreditBalance(12.999999)).toBe('12');
   });
 
+  it('ignores float noise from repeated fractional charges', () => {
+    expect(formatCreditBalance(9 - 1e-12)).toBe('9');
+    expect(formatCreditBalance(8.999999999999998)).toBe('9');
+    expect(formatCreditBalanceExact(99.57000000000001)).toBe('99');
+  });
+
   it('treats null, undefined, and non-finite as zero', () => {
     expect(formatCreditBalance(null)).toBe('0');
     expect(formatCreditBalance(undefined)).toBe('0');

@@ -46,10 +46,10 @@ describe('ReplyGenerationService', () => {
 
   const mockModelsService = {
     findOne: vi.fn().mockResolvedValue({
-      inputTokenPricePerMillion: 1,
+      inputCostPerMillionTokens: 1_000,
       key: 'openai/gpt-5',
       minCost: 1,
-      outputTokenPricePerMillion: 1,
+      outputCostPerMillionTokens: 1_000,
       pricingType: 'per-token',
     }),
   };

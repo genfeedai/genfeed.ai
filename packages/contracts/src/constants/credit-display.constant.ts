@@ -44,6 +44,14 @@ function toFiniteNumber(value: number | null | undefined): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+/**
+ * Whole credits, rounded down, after stripping float noise: ten 0.1 charges
+ * off 10 leave 9.000000000000002 or 8.999999999999998, and both are 9.
+ */
+function floorWhole(value: number | null | undefined): number {
+  return Math.floor(Number(toFiniteNumber(value).toFixed(6)));
+}
+
 /** Floor to `digits` decimals without float noise (1.2999999 → 1.2). */
 function floorTo(value: number, digits: number): number {
   const factor = 10 ** digits;
@@ -54,7 +62,7 @@ function floorTo(value: number, digits: number): number {
 export function formatCreditBalanceExact(
   value: number | null | undefined,
 ): string {
-  return WHOLE_NUMBER_FORMATTER.format(Math.floor(toFiniteNumber(value)));
+  return WHOLE_NUMBER_FORMATTER.format(floorWhole(value));
 }
 
 /**
@@ -63,7 +71,7 @@ export function formatCreditBalanceExact(
  * (title/tooltip) whenever {@link isCompactCreditBalance} is true.
  */
 export function formatCreditBalance(value: number | null | undefined): string {
-  const whole = Math.floor(toFiniteNumber(value));
+  const whole = floorWhole(value);
   if (Math.abs(whole) < CREDIT_BALANCE_COMPACT_THRESHOLD) {
     return WHOLE_NUMBER_FORMATTER.format(whole);
   }
@@ -84,10 +92,7 @@ export function formatCreditBalance(value: number | null | undefined): string {
 export function isCompactCreditBalance(
   value: number | null | undefined,
 ): boolean {
-  return (
-    Math.abs(Math.floor(toFiniteNumber(value))) >=
-    CREDIT_BALANCE_COMPACT_THRESHOLD
-  );
+  return Math.abs(floorWhole(value)) >= CREDIT_BALANCE_COMPACT_THRESHOLD;
 }
 
 /**
