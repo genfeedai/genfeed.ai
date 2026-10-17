@@ -10,6 +10,10 @@ import {
   LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
+import {
+  downloadLinkedInMedia,
+  type LinkedInMediaSource,
+} from '@api/services/integrations/linkedin/services/linkedin-media-download.util';
 import { getSafeLinkedInOAuthErrorLog } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import {
@@ -365,6 +369,7 @@ export class LinkedInService {
     caption: string,
     settings: ChannelTargetSettings = {},
     credentialId?: string,
+    mediaSource: LinkedInMediaSource = 'external',
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -392,6 +397,7 @@ export class LinkedInService {
         decryptedAccessToken,
         personURN,
         imageUrl,
+        mediaSource,
       );
 
       // Step 3: Create share with image
@@ -565,6 +571,7 @@ export class LinkedInService {
     caption: string,
     settings: ChannelTargetSettings = {},
     credentialId?: string,
+    mediaSource: LinkedInMediaSource = 'external',
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -619,14 +626,15 @@ export class LinkedInService {
         ].uploadUrl;
 
       // Step 2: Upload video
-      const videoRes = await firstValueFrom(
-        this.httpService.get(videoUrl, {
-          responseType: 'arraybuffer',
-        }),
+      const video = await downloadLinkedInMedia(
+        videoUrl,
+        'video',
+        this.configService.ingredientsEndpoint,
+        mediaSource,
       );
 
       await firstValueFrom(
-        this.httpService.put(uploadUrl, videoRes.data, {
+        this.httpService.put(uploadUrl, video, {
           headers: {
             Authorization: `Bearer ${decryptedAccessToken}`,
             'Content-Type': 'application/octet-stream',
@@ -691,8 +699,6 @@ export class LinkedInService {
   /**
    * List comments on one published LinkedIn share/UGC post.
    * Replies keep the top-level comment id as their thread id.
-   */
-  /**
    * @param credentialId - which connected LinkedIn account this runs as. A brand
    *   may hold several; without an id this falls back to its oldest one.
    */
@@ -777,8 +783,6 @@ export class LinkedInService {
    * LinkedIn member messaging is a partner API. The connected-account OAuth
    * path only requests `w_member_social`, so DMs stay closed unless a later
    * grant adds a mailbox scope.
-   */
-  /**
    * @param credentialId - which connected LinkedIn account this runs as. A brand
    *   may hold several; without an id this falls back to its oldest one.
    */
@@ -828,6 +832,7 @@ export class LinkedInService {
     accessToken: string,
     ownerUrn: string,
     imageUrl: string,
+    mediaSource: LinkedInMediaSource,
   ): Promise<string> {
     const registerResponse = await firstValueFrom(
       this.httpService.post(
@@ -859,14 +864,15 @@ export class LinkedInService {
         'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
       ].uploadUrl;
 
-    const imageRes = await firstValueFrom(
-      this.httpService.get(imageUrl, {
-        responseType: 'arraybuffer',
-      }),
+    const image = await downloadLinkedInMedia(
+      imageUrl,
+      'image',
+      this.configService.ingredientsEndpoint,
+      mediaSource,
     );
 
     await firstValueFrom(
-      this.httpService.put(uploadUrl, imageRes.data, {
+      this.httpService.put(uploadUrl, image, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/octet-stream',
@@ -887,8 +893,6 @@ export class LinkedInService {
    *   single image on this endpoint and no video, so callers drop other media
    *   upstream.
    * @returns The comment URN
-   */
-  /**
    * @param credentialId - which connected LinkedIn account this runs as. A brand
    *   may hold several; without an id this falls back to its oldest one.
    */
@@ -899,6 +903,7 @@ export class LinkedInService {
     text: string,
     credentialId?: string,
     options: { imageUrl?: string } = {},
+    mediaSource: LinkedInMediaSource = 'external',
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -929,6 +934,7 @@ export class LinkedInService {
             decryptedAccessToken,
             personURN,
             options.imageUrl,
+            mediaSource,
           )
         : undefined;
 
@@ -973,8 +979,6 @@ export class LinkedInService {
    * @param brandId The brand ID
    * @param shareId The LinkedIn share/post ID (URN format)
    * @returns Analytics data including views, likes, comments, shares, impressions
-   */
-  /**
    * @param credentialId - which connected LinkedIn account this runs as. A brand
    *   may hold several; without an id this falls back to its oldest one.
    */
