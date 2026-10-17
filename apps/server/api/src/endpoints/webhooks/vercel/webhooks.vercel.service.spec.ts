@@ -63,13 +63,13 @@ describe('VercelWebhookService', () => {
       expect(result).toBe(false);
     });
 
-    it('should return true when secret not configured', () => {
+    it('should reject when secret not configured', () => {
       const payload = { type: 'deployment.ready' };
       const payloadBuffer = Buffer.from(JSON.stringify(payload));
       configService.get.mockReturnValue(undefined);
 
       const result = service.validateSignature(payloadBuffer, 'any-signature');
-      expect(result).toBe(true);
+      expect(result).toBe(false);
     });
   });
 

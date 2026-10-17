@@ -77,7 +77,7 @@ describe('TelegramBotAdapter', () => {
       expect(adapter.validateSignature('', '')).toBe(false);
     });
 
-    it('returns true when webhookSecret not configured', async () => {
+    it('fails closed when webhookSecret not configured', async () => {
       configService.get.mockImplementation((key: string) => {
         if (key === 'TELEGRAM_BOT_TOKEN') return BOT_TOKEN;
         return undefined;
@@ -92,7 +92,7 @@ describe('TelegramBotAdapter', () => {
       }).compile();
       const noSecretAdapter =
         module.get<TelegramBotAdapter>(TelegramBotAdapter);
-      expect(noSecretAdapter.validateSignature('body', 'anything')).toBe(true);
+      expect(noSecretAdapter.validateSignature('body', 'anything')).toBe(false);
     });
   });
 

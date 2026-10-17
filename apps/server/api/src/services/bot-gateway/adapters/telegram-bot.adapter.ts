@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { isMatchingSecret } from '@api/helpers/utils/secret-compare/secret-compare.util';
 import {
   BotCommandType,
   BotInteractionType,
@@ -56,21 +56,13 @@ export class TelegramBotAdapter implements IBotPlatformAdapter {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     if (!this.webhookSecret) {
-      // Keep compatibility when secret is not configured.
-      return true;
-    }
-
-    if (!signature) {
-      this.loggerService.warn(`${url} missing Telegram webhook secret header`);
+      this.loggerService.warn(
+        `${url} TELEGRAM_WEBHOOK_SECRET is not set, rejecting Telegram webhook`,
+      );
       return false;
     }
 
-    const isValid =
-      signature.length === this.webhookSecret.length &&
-      crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(this.webhookSecret),
-      );
+    const isValid = isMatchingSecret(this.webhookSecret, signature);
     if (!isValid) {
       this.loggerService.warn(`${url} invalid Telegram webhook secret`);
     }
