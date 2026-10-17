@@ -194,19 +194,19 @@ export class AccountHealthService {
       this.prisma.post.groupBy({
         _count: { _all: true },
         by: ['credentialId'],
-        where: {
-          ...accountWhere,
+        where: scopedWhere(organizationId, {
+          credentialId: { in: credentialIds },
           ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-        },
+        }),
       }),
       this.prisma.post.groupBy({
         _count: { _all: true },
         by: ['credentialId'],
-        where: {
-          ...accountWhere,
+        where: scopedWhere(organizationId, {
           createdAt: { gte: since },
+          credentialId: { in: credentialIds },
           ...postExecutionStateReadFilter(TargetExecutionState.FAILED),
-        },
+        }),
       }),
       this.prisma.socialWarmupEnrollment.findMany({
         include: {
