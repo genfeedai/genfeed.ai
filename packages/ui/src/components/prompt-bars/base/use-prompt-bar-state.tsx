@@ -977,7 +977,10 @@ export function usePromptBarState({
     ],
   );
   const videoDurations = useMemo(
-    () => getVideoDurations(watchedResolution),
+    () =>
+      getVideoDurations(
+        typeof watchedResolution === 'string' ? watchedResolution : undefined,
+      ),
     [getVideoDurations, watchedResolution],
   );
 
