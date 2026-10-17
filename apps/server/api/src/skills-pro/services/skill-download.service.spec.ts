@@ -374,6 +374,171 @@ describe('SkillDownloadService', () => {
     ).rejects.toThrow('Receipt not found or not completed');
     expect(getPresignedDownloadUrl).not.toHaveBeenCalled();
   });
+  describe('pack transfer limits', () => {
+    const maxBytes = 1_000_000;
+
+    function preparePack(response: Response, checksum = skill.checksum) {
+      findFirst
+        .mockResolvedValueOnce(receipt())
+        .mockResolvedValueOnce(receipt());
+      const entry = { ...skill, checksum };
+      getRegistry.mockResolvedValue({ skills: [entry] });
+      getSkillBySlug.mockReturnValue(entry);
+      getPresignedDownloadUrl.mockResolvedValue('https://cdn.example/download');
+      globalThis.fetch = vi.fn().mockResolvedValue(response);
+    }
+
+    function expectNoInstall() {
+      expect(installManagedSkillPackage).not.toHaveBeenCalled();
+      expect(updateMany).not.toHaveBeenCalled();
+    }
+
+    it.each([undefined, '1'])(
+      'stops after observed overflow with content-length %s and releases the reader',
+      async (contentLength) => {
+        const pull = vi.fn();
+        const cancel = vi.fn();
+        const body = new ReadableStream<Uint8Array>(
+          {
+            pull(controller) {
+              pull();
+              if (pull.mock.calls.length === 1)
+                controller.enqueue(new Uint8Array(maxBytes + 1));
+              else if (pull.mock.calls.length === 2)
+                controller.enqueue(new Uint8Array([1]));
+              else controller.close();
+            },
+            cancel,
+          },
+          { highWaterMark: 0 },
+        );
+        preparePack(
+          new Response(body, {
+            headers: contentLength ? { 'content-length': contentLength } : {},
+          }),
+        );
+
+        await expect(
+          service.installSkill('org-1', 'sk_rcpt_one', skill.slug),
+        ).rejects.toThrow('Skills Pro pack exceeds the allowed size');
+        expect(pull).toHaveBeenCalledTimes(1);
+        expect(cancel).toHaveBeenCalledTimes(1);
+        expect(body.locked).toBe(false);
+        expectNoInstall();
+      },
+    );
+
+    it('cancels an advertised oversized body before acquiring a reader', async () => {
+      const cancel = vi.fn();
+      const body = new ReadableStream<Uint8Array>({ cancel });
+      const getReader = vi.spyOn(body, 'getReader');
+      preparePack(
+        new Response(body, {
+          headers: { 'content-length': String(maxBytes + 1) },
+        }),
+      );
+
+      await expect(
+        service.installSkill('org-1', 'sk_rcpt_one', skill.slug),
+      ).rejects.toThrow('Skills Pro pack exceeds the allowed size');
+      expect(getReader).not.toHaveBeenCalled();
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(body.locked).toBe(false);
+      expectNoInstall();
+    });
+
+    it.each(['rejects', 'never settles'])(
+      'preserves an HTTP error when unread-body cancellation %s',
+      async (cleanup) => {
+        const cancel = vi.fn(() =>
+          cleanup === 'rejects'
+            ? Promise.reject(new Error('cleanup failed'))
+            : new Promise<void>(() => {}),
+        );
+        const body = new ReadableStream<Uint8Array>({ cancel });
+        preparePack(new Response(body, { status: 503 }));
+
+        await expect(
+          service.installSkill('org-1', 'sk_rcpt_one', skill.slug),
+        ).rejects.toThrow('Failed to download Skills Pro pack: 503');
+        expect(cancel).toHaveBeenCalledTimes(1);
+        expect(body.locked).toBe(false);
+        expectNoInstall();
+      },
+    );
+
+    it('rejects observed overflow without awaiting stuck reader cancellation', async () => {
+      const cancel = vi.fn(() => new Promise<void>(() => {}));
+      let sent = false;
+      const body = new ReadableStream<Uint8Array>(
+        {
+          pull(controller) {
+            if (sent) controller.close();
+            else {
+              sent = true;
+              controller.enqueue(new Uint8Array(maxBytes + 1));
+            }
+          },
+          cancel,
+        },
+        { highWaterMark: 0 },
+      );
+      preparePack(new Response(body));
+
+      await expect(
+        service.installSkill('org-1', 'sk_rcpt_one', skill.slug),
+      ).rejects.toThrow('Skills Pro pack exceeds the allowed size');
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(body.locked).toBe(false);
+      expectNoInstall();
+    });
+
+    it('preserves a body read failure while releasing the errored reader', async () => {
+      const failure = new Error('pack response interrupted');
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.error(failure);
+        },
+      });
+      preparePack(new Response(body));
+
+      await expect(
+        service.installSkill('org-1', 'sk_rcpt_one', skill.slug),
+      ).rejects.toBe(failure);
+      expect(body.locked).toBe(false);
+      expectNoInstall();
+    });
+
+    it('lets an exact-limit response reach checksum and archive validation', async () => {
+      const bytes = new Uint8Array(maxBytes);
+      const checksum = createHash('sha256').update(bytes).digest('hex');
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(bytes.subarray(0, 400_000));
+          controller.enqueue(bytes.subarray(400_000));
+          controller.close();
+        },
+      });
+      preparePack(
+        new Response(body, { headers: { 'content-length': String(maxBytes) } }),
+        `sha256:${checksum}`,
+      );
+
+      await expect(
+        service.installSkill('org-1', 'sk_rcpt_one', skill.slug),
+      ).rejects.toThrow('Skill package ZIP is invalid');
+      expect(body.locked).toBe(false);
+      expectNoInstall();
+    });
+
+    it('preserves checksum rejection for an empty response body', async () => {
+      preparePack(new Response(null));
+      await expect(
+        service.installSkill('org-1', 'sk_rcpt_one', skill.slug),
+      ).rejects.toThrow('Skills Pro pack integrity check failed');
+      expectNoInstall();
+    });
+  });
 });
 
 import { createHash } from 'node:crypto';
