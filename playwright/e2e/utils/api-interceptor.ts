@@ -2072,6 +2072,10 @@ export function buildUnhandledApiMockBody(url: string): unknown {
     return subscriptionBody;
   }
   const parsedUrl = new URL(url, 'http://localhost');
+  // The shell stays on its outage screen until this answers with real flags.
+  if (/^(?:\/v1)?\/public\/platform-flags\/?$/.test(parsedUrl.pathname)) {
+    return DEFAULT_PLATFORM_FLAGS;
+  }
   if (/^(?:\/v1)?\/referrals\/me\/?$/.test(parsedUrl.pathname)) {
     return buildReferralProgramMockBody();
   }

@@ -6,7 +6,7 @@ import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/publishing/posts',
+  usePathname: () => '/test-org/brand-1/workspace/overview',
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({

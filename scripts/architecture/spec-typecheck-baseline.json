@@ -945,14 +945,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/api-keys/controllers/api-keys.controller.spec.ts",
-      "fingerprint": "991beb087c8aba37f4c4",
-      "message": "Argument of type '{ metadata: { actionOrigin: string; actionOriginProof: string; connectGenfeed: { lastVerifiedAt: string; transport: string; }; purpose: string; }; }' is not assignable to parameter of type 'UpdateApiKeyDto'.   Property 'isDeleted' is missing in type '{ metadata: { actionOrigin: string; actionOriginProof: string; connectGenfeed: { lastVerifiedAt: string; transport: string; }; purpose: string; }; }' but required in type 'UpdateApiKeyDto'.",
-      "workspace": "api"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/collections/api-keys/controllers/api-keys.controller.spec.ts",
@@ -1006,14 +998,6 @@
       "file": "apps/server/api/src/collections/assets/controllers/assets.controller.spec.ts",
       "fingerprint": "1bf359b4112326fbb057",
       "message": "Argument of type '{}' is not assignable to parameter of type 'AssetQueryDto'.   Type '{}' is missing the following properties from type 'AssetQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 3,
-      "file": "apps/server/api/src/collections/assets/controllers/assets.controller.spec.ts",
-      "fingerprint": "ed810e3951eab902c5c7",
-      "message": "Property 'isDeleted' is missing in type '{ category: AssetCategory.BANNER; }' but required in type 'UpdateAssetDto'.",
       "workspace": "api"
     },
     {

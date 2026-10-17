@@ -60,6 +60,7 @@ type ExistingModelRow = {
   providerCostUsd: unknown;
   qualityTier: unknown;
   recommendedFor: unknown;
+  reviewStatus: unknown;
   speedTier: unknown;
   succeededBy: unknown;
   supportsFeatures: unknown;
@@ -109,6 +110,7 @@ const EXISTING_MODEL_SELECT = {
   providerCostUsd: true,
   qualityTier: true,
   recommendedFor: true,
+  reviewStatus: true,
   speedTier: true,
   succeededBy: true,
   supportsFeatures: true,
@@ -392,9 +394,13 @@ export class ModelCatalogSeedService {
     } else {
       const targetIsDefault = await this.resolveUpdateIsDefault(entry);
       const isDiscoveredDraft = existingRow.isDiscovered === true;
+      // A superadmin rejection leaves `isDiscovered` true. Curating it would flip
+      // it to routable (the router gates on `!isDiscovered`), undoing the review.
+      const isRejectedByReview = existingRow.reviewStatus === 'rejected';
       const isFirstCuration =
         entry.isActive &&
         entry.cost > 0 &&
+        !isRejectedByReview &&
         (asNumber(existingRow.cost) === 0 || isDiscoveredDraft);
       let hasOperatorFieldWrite = false;
 

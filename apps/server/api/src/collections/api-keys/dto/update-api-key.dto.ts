@@ -9,5 +9,5 @@ export class UpdateApiKeyDto extends PartialType(CreateApiKeyDto) {
     description: 'Whether the key is marked as deleted',
     required: false,
   })
-  readonly isDeleted!: boolean;
+  readonly isDeleted?: boolean;
 }

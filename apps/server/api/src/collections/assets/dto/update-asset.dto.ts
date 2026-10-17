@@ -9,7 +9,7 @@ export class UpdateAssetDto extends PartialType(CreateAssetDto) {
     description: 'Whether the asset is marked as deleted',
     required: false,
   })
-  readonly isDeleted!: boolean;
+  readonly isDeleted?: boolean;
 
   @IsString()
   @IsOptional()
