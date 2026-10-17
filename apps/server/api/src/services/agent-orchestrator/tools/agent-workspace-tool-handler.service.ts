@@ -16,6 +16,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { readAccountIdentity } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
   agentPostPreviewInclude,
@@ -179,69 +180,22 @@ export class AgentWorkspaceToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown>> {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
-    const [isOnboardingCompleted, organization, brands] = await Promise.all([
-      this.resolveOnboardingCompleted(ctx),
-      this.resolveOrganizationIdentity(ctx),
-      this.resolveAccountBrands(ctx),
-    ]);
-    const brandName = brandId
-      ? brands?.find((brand) => brand.id === brandId)?.name
-      : undefined;
+    const identity = await readAccountIdentity(
+      {
+        listBrands: (context) => this.listAccessibleBrands(context),
+        organizationsService: this.organizationsService,
+        usersService: this.usersService,
+      },
+      ctx,
+      brandId,
+    );
     return {
+      ...identity,
       ...(brandId ? { brandId } : {}),
-      ...(brandName ? { brandName } : {}),
-      ...(brands
-        ? {
-            brandCount: brands.length,
-            brands: brands
-              .slice(0, ACCOUNT_BRAND_LIMIT)
-              .map(({ id, name }) => ({ id, name })),
-          }
-        : {}),
-      ...(isOnboardingCompleted === undefined ? {} : { isOnboardingCompleted }),
-      ...(organization?.name ? { organizationName: organization.name } : {}),
       organizationId: ctx.organizationId,
-      ...(organization?.slug ? { organizationSlug: organization.slug } : {}),
       role: await this.resolveOrganizationRole(ctx),
       userId: ctx.userId,
     };
-  }
-
-  /** The organization's display name and slug. Omitted when unresolved. */
-  private async resolveOrganizationIdentity(
-    ctx: ToolExecutionContext,
-  ): Promise<{ name?: string; slug?: string } | undefined> {
-    if (!this.organizationsService) {
-      return undefined;
-    }
-    try {
-      const organization = await this.organizationsService.findOne({
-        id: ctx.organizationId,
-        isDeleted: false,
-      });
-      const name = organization?.label?.trim();
-      const slug = organization?.slug?.trim();
-      return {
-        ...(name ? { name } : {}),
-        ...(slug ? { slug } : {}),
-      };
-    } catch {
-      return undefined;
-    }
-  }
-
-  /**
-   * The brands this caller can use. `undefined` when the lookup fails, so a
-   * transient error is never reported as "no brands".
-   */
-  private async resolveAccountBrands(
-    ctx: ToolExecutionContext,
-  ): Promise<AgentBrandSerializedData[] | undefined> {
-    try {
-      return await this.listAccessibleBrands(ctx);
-    } catch {
-      return undefined;
-    }
   }
 
   private async listAccessibleBrands(
@@ -263,25 +217,6 @@ export class AgentWorkspaceToolHandler {
     return serializeAgentBrands(
       (brands.docs as Record<string, unknown>[] | undefined) ?? [],
     );
-  }
-
-  /**
-   * Whether the caller finished first-run onboarding. An MCP client that signed
-   * up during the OAuth connect never sees the web onboarding, so it reads this
-   * to know it must run `onboard_brand` first. Omitted when unresolved.
-   */
-  private async resolveOnboardingCompleted(
-    ctx: ToolExecutionContext,
-  ): Promise<boolean | undefined> {
-    if (!this.usersService) {
-      return undefined;
-    }
-    try {
-      const user = await this.usersService.findOne({ id: ctx.userId });
-      return user ? user.isOnboardingCompleted === true : undefined;
-    } catch {
-      return undefined;
-    }
   }
 
   /**
@@ -794,9 +729,6 @@ export class AgentWorkspaceToolHandler {
 }
 
 const ACCOUNT_SECTIONS = ['profile', 'credits', 'usage'] as const;
-
-/** Brands listed in the account profile; `brandCount` carries the total. */
-const ACCOUNT_BRAND_LIMIT = 25;
 
 type AccountSection = (typeof ACCOUNT_SECTIONS)[number];
 
