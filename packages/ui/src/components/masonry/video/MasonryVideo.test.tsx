@@ -187,6 +187,23 @@ describe('MasonryVideo', () => {
     );
   });
 
+  it('preloads metadata when the only thumbnail is the generic placeholder', () => {
+    render(
+      <MasonryVideo
+        video={
+          {
+            ...mockVideo,
+            thumbnailUrl: 'https://assets.test.com/placeholders/portrait.jpg',
+          } as unknown as IVideo
+        }
+      />,
+    );
+
+    expect(mockVideoPlayer.mock.calls[0]?.[0]?.config?.preload).toBe(
+      'metadata',
+    );
+  });
+
   it('should make the embedded video player ignore pointer events so the card remains draggable', () => {
     render(<MasonryVideo video={mockVideo} />);
 
