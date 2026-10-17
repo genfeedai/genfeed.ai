@@ -75,6 +75,68 @@ describe('download.helper', () => {
       expect(mockSaveAs).not.toHaveBeenCalled();
     });
 
+    describe('stalled downloads', () => {
+      const STALL_MS = 600_000;
+
+      beforeEach(() => {
+        vi.useFakeTimers();
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('keeps a slow download alive while bytes keep arriving', async () => {
+        let isAborted = false;
+        mockFetch.mockImplementation((_url: string, init: RequestInit) => {
+          init.signal?.addEventListener('abort', () => {
+            isAborted = true;
+          });
+          return Promise.resolve({
+            body: {
+              getReader: () => {
+                let calls = 0;
+                return {
+                  read: async () => {
+                    calls += 1;
+                    if (calls > 3) return { done: true, value: undefined };
+                    await vi.advanceTimersByTimeAsync(STALL_MS - 1);
+                    return { done: false, value: new Uint8Array([calls]) };
+                  },
+                };
+              },
+            },
+            headers: { get: () => 'video/mp4' },
+            ok: true,
+          });
+        });
+
+        await downloadUrl('https://example.com/big.mp4', 'big.mp4');
+
+        expect(isAborted).toBe(false);
+        const saved = mockSaveAs.mock.calls[0]?.[0] as Blob;
+        expect(saved.size).toBe(3);
+        expect(saved.type).toBe('video/mp4');
+      });
+
+      it('aborts when no bytes arrive for the stall limit', async () => {
+        mockFetch.mockImplementation(
+          (_url: string, init: RequestInit) =>
+            new Promise((_resolve, reject) => {
+              init.signal?.addEventListener('abort', () =>
+                reject(new DOMException('aborted', 'AbortError')),
+              );
+            }),
+        );
+
+        const download = downloadUrl('https://example.com/stuck', 'stuck.bin');
+        const assertion = expect(download).rejects.toThrow('aborted');
+        await vi.advanceTimersByTimeAsync(STALL_MS);
+        await assertion;
+        expect(mockSaveAs).not.toHaveBeenCalled();
+      });
+    });
+
     it('throws instead of opening a new tab when response is not ok', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 403 });
 

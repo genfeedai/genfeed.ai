@@ -115,20 +115,52 @@ export function saveDownloadBlob(blob: Blob, filename: string): void {
   saveAs(blob, sanitizeDownloadFilename(filename));
 }
 
-// Large originals can take minutes; this only stops a stalled connection.
-const DOWNLOAD_TIMEOUT_MS = 600_000;
+// Large originals can take minutes, so this is an inactivity limit, not a total
+// one: it restarts whenever bytes arrive and only stops a stalled connection.
+const DOWNLOAD_STALL_TIMEOUT_MS = 600_000;
 
 async function fetchDownloadBlob(url: string): Promise<Blob> {
-  const response = await fetch(url, {
-    cache: 'no-store',
-    credentials: 'omit',
-    mode: 'cors',
-    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to download file (status ${response.status})`);
+  const controller = new AbortController();
+  let stallTimer = setTimeout(
+    () => controller.abort(),
+    DOWNLOAD_STALL_TIMEOUT_MS,
+  );
+  const restartStallTimer = () => {
+    clearTimeout(stallTimer);
+    stallTimer = setTimeout(
+      () => controller.abort(),
+      DOWNLOAD_STALL_TIMEOUT_MS,
+    );
+  };
+
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      credentials: 'omit',
+      mode: 'cors',
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to download file (status ${response.status})`);
+    }
+    if (!response.body) {
+      return await response.blob();
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array<ArrayBuffer>[] = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      restartStallTimer();
+    }
+    return new Blob(chunks, {
+      type: response.headers.get('content-type') ?? '',
+    });
+  } finally {
+    clearTimeout(stallTimer);
   }
-  return response.blob();
 }
 
 export async function downloadUrl(
