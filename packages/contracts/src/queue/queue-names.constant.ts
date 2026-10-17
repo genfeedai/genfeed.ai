@@ -146,3 +146,18 @@ export const LLM_COST_SETTLEMENT_QUEUE = 'llm-cost-settlement';
 export const MEDIA_DELIVERY_QUEUE = 'media-delivery';
 
 export const BRAND_RELOCATION_QUEUE = 'brand-relocation';
+
+/**
+ * Queue behind every code-owned platform schedule. The name is a wire-level
+ * contract: bootstrap reconciliation removes only the scheduler ids it knows.
+ * The API also enqueues on it to run a platform task once, on demand.
+ */
+export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
+
+/** Platform tasks that re-import provider model prices into the pricing snapshot. */
+export const PROVIDER_PRICE_SYNC_TASKS = {
+  fal: 'fal-model-discovery',
+  replicate: 'replicate-model-discovery',
+} as const;
+
+export type ProviderPriceSyncProvider = keyof typeof PROVIDER_PRICE_SYNC_TASKS;

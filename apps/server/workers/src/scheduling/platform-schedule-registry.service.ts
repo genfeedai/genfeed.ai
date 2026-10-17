@@ -5,7 +5,10 @@ import {
   PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
   PROACTIVE_AGENT_TURN_SOURCE,
 } from '@api/collections/workflows/system-workflow-definition';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+import {
+  PLATFORM_SCHEDULE_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
@@ -13,7 +16,6 @@ import { ConfigService } from '@workers/config/config.service';
 import { LEGACY_SWEEP_CANONICAL_IDS } from '@workers/scheduling/legacy-sweep-canonical-ids.constant';
 import {
   PLATFORM_SCHEDULE_CATALOG,
-  PLATFORM_SCHEDULE_QUEUE,
   type PlatformSchedule,
   type PlatformScheduledTaskName,
   platformSchedulerId,

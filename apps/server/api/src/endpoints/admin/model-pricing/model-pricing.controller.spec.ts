@@ -102,4 +102,48 @@ describe('private operator pricing boundary', () => {
     ).rejects.toThrow('expectedPendingVersion');
     expect(approveRates).not.toHaveBeenCalled();
   });
+  describe('sync', () => {
+    function buildController() {
+      const enqueue = vi
+        .fn()
+        .mockResolvedValue([{ jobId: 'job-1', provider: 'fal' }]);
+      return {
+        controller: new AdminModelPricingController(
+          {} as never,
+          {
+            enqueue,
+          } as never,
+        ),
+        enqueue,
+      };
+    }
+
+    it('queues every provider by default', async () => {
+      const { controller, enqueue } = buildController();
+
+      const response = await controller.sync(undefined);
+
+      expect(enqueue).toHaveBeenCalledWith(['fal', 'replicate']);
+      expect(response).toEqual({
+        queued: [{ jobId: 'job-1', provider: 'fal' }],
+      });
+    });
+
+    it('queues a single named provider', async () => {
+      const { controller, enqueue } = buildController();
+
+      await controller.sync({ provider: 'replicate' });
+
+      expect(enqueue).toHaveBeenCalledWith(['replicate']);
+    });
+
+    it('rejects an unknown provider without queueing', async () => {
+      const { controller, enqueue } = buildController();
+
+      await expect(controller.sync({ provider: 'openai' })).rejects.toThrow(
+        'provider must be one of',
+      );
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+  });
 });

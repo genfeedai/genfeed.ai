@@ -153,7 +153,7 @@ function runAllClusters(): void {
   }
 }
 
-function parseOptionalId(value?: string): string | null {
+function parseOptionalId(value?: string | null): string | null {
   if (!value) {
     return null;
   }
@@ -435,6 +435,110 @@ async function ensureDefaultBundle(params: {
   };
 }
 
+export interface WorkflowsSeedOptions {
+  brandId?: string | null;
+  dryRun: boolean;
+  /** Only shown in the log line, e.g. `production`. */
+  environmentLabel?: string;
+  organizationId?: string | null;
+  userId?: string | null;
+}
+
+export interface WorkflowsSeedResult {
+  dryRun: boolean;
+  skipped: number;
+  unchanged: number;
+  updated: number;
+}
+
+/**
+ * Ensures the default recurring workflow bundle for every matching brand.
+ * Shared by the CLI runner below and the super-admin
+ * `POST /admin/seeds/workflows` endpoint.
+ */
+export async function seedWorkflows(
+  prisma: PrismaClient,
+  options: WorkflowsSeedOptions,
+): Promise<WorkflowsSeedResult> {
+  const brandId = parseOptionalId(options.brandId);
+  const organizationId = parseOptionalId(options.organizationId);
+
+  const where: Record<string, unknown> = { isDeleted: false };
+  if (brandId) {
+    where.id = brandId;
+  }
+  if (organizationId) {
+    where.organizationId = organizationId;
+  }
+
+  const brands = (await prisma.brand.findMany({
+    select: {
+      agentConfig: true,
+      id: true,
+      label: true,
+      organizationId: true,
+      userId: true,
+    },
+    where,
+    orderBy: { createdAt: 'asc' },
+  })) as SeedBrand[];
+
+  logger.log(
+    `${options.dryRun ? 'DRY RUN' : 'LIVE'} evaluating ${brands.length} brand(s)${options.environmentLabel ? ` for ${options.environmentLabel}` : ''}`,
+  );
+
+  let created = 0;
+  let skipped = 0;
+  let unchanged = 0;
+
+  for (const brand of brands) {
+    const ownerUserId =
+      options.userId ||
+      ((brand as Record<string, unknown>).userId as string | undefined);
+    if (!ownerUserId?.trim()) {
+      logger.warn(
+        `Skipping brand ${brand.id} (${(brand as Record<string, unknown>).label}) because no valid owner userId is available`,
+      );
+      skipped += 1;
+      continue;
+    }
+
+    const result = await ensureDefaultBundle({
+      brand,
+      dryRun: options.dryRun,
+      prisma,
+      userId: ownerUserId,
+    });
+
+    if (result.unchanged) {
+      logger.log(
+        `Unchanged brand ${brand.id} (${brand.label}) - bundle already configured and enabled`,
+      );
+      unchanged += 1;
+      continue;
+    }
+
+    if (options.dryRun) {
+      logger.log(
+        `[DRY RUN] would ensure ${result.changedTypes.join(', ')} workflows for brand ${brand.id} (${brand.label})`,
+      );
+      created += 1;
+      continue;
+    }
+
+    logger.log(
+      `Ensured ${result.changedTypes.join(', ')} workflows for brand ${brand.id} (${brand.label})`,
+    );
+    created += 1;
+  }
+
+  logger.log(
+    `Workflow seed summary: updated=${created}, unchanged=${unchanged}, skipped=${skipped}`,
+  );
+
+  return { dryRun: options.dryRun, skipped, unchanged, updated: created };
+}
+
 async function main(): Promise<void> {
   loadEnvFile();
 
@@ -448,87 +552,21 @@ async function main(): Promise<void> {
   const prisma = createPrismaClient();
 
   try {
-    const brandId = parseOptionalId(args.brandId);
-    const organizationId = parseOptionalId(args.organizationId);
-
-    const where: Record<string, unknown> = { isDeleted: false };
-    if (brandId) {
-      where.id = brandId;
-    }
-    if (organizationId) {
-      where.organizationId = organizationId;
-    }
-
-    const brands = (await prisma.brand.findMany({
-      select: {
-        agentConfig: true,
-        id: true,
-        label: true,
-        organizationId: true,
-        userId: true,
-      },
-      where,
-      orderBy: { createdAt: 'asc' },
-    })) as SeedBrand[];
-
-    logger.log(
-      `${args.dryRun ? 'DRY RUN' : 'LIVE'} evaluating ${brands.length} brand(s)${args.env ? ` for ${args.env}` : ''}`,
-    );
-
-    let created = 0;
-    let skipped = 0;
-    let unchanged = 0;
-
-    for (const brand of brands) {
-      const ownerUserId =
-        args.userId ||
-        ((brand as Record<string, unknown>).userId as string | undefined);
-      if (!ownerUserId?.trim()) {
-        logger.warn(
-          `Skipping brand ${brand.id} (${(brand as Record<string, unknown>).label}) because no valid owner userId is available`,
-        );
-        skipped += 1;
-        continue;
-      }
-
-      const result = await ensureDefaultBundle({
-        brand,
-        dryRun: args.dryRun,
-        prisma,
-        userId: ownerUserId,
-      });
-
-      if (result.unchanged) {
-        logger.log(
-          `Unchanged brand ${brand.id} (${brand.label}) - bundle already configured and enabled`,
-        );
-        unchanged += 1;
-        continue;
-      }
-
-      if (args.dryRun) {
-        logger.log(
-          `[DRY RUN] would ensure ${result.changedTypes.join(', ')} workflows for brand ${brand.id} (${brand.label})`,
-        );
-        created += 1;
-        continue;
-      }
-
-      logger.log(
-        `Ensured ${result.changedTypes.join(', ')} workflows for brand ${brand.id} (${brand.label})`,
-      );
-      created += 1;
-    }
-
-    logger.log(
-      `Workflow seed summary: updated=${created}, unchanged=${unchanged}, skipped=${skipped}`,
-    );
+    await seedWorkflows(prisma, {
+      brandId: args.brandId,
+      dryRun: args.dryRun,
+      environmentLabel: args.env,
+      organizationId: args.organizationId,
+      userId: args.userId,
+    });
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main().catch((error) => {
-  logger.error('Workflow seed failed', error);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    logger.error('Workflow seed failed', error);
+    process.exit(1);
+  });
+}

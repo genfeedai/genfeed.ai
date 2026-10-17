@@ -9,7 +9,9 @@ import {
   MEDIA_MODERATION_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
+  PLATFORM_SCHEDULE_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  PROVIDER_PRICE_SYNC_TASKS,
   REPLICATE_POLL_QUEUE,
   SCHEDULED_PUBLISH_QUEUE,
   TURBO_REWRITE_QUEUE,
@@ -35,6 +37,14 @@ describe('queue-names.constant', () => {
     expect(MEDIA_MODERATION_QUEUE).toBe('media-moderation');
     expect(BRAND_VISION_QUEUE).toBe('brand-vision');
     expect(TURBO_REWRITE_QUEUE).toBe('turbo-rewrite');
+  });
+
+  it('preserves the platform schedule queue and price sync task names', () => {
+    expect(PLATFORM_SCHEDULE_QUEUE).toBe('system-sweeps');
+    expect(PROVIDER_PRICE_SYNC_TASKS).toEqual({
+      fal: 'fal-model-discovery',
+      replicate: 'replicate-model-discovery',
+    });
   });
 
   it('lists every queue exactly once', () => {

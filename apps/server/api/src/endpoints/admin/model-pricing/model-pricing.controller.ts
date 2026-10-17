@@ -1,14 +1,20 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AdminModelPricingService } from '@api/endpoints/admin/model-pricing/model-pricing.service';
+import { ProviderPriceSyncService } from '@api/endpoints/admin/model-pricing/provider-price-sync.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import {
+  PROVIDER_PRICE_SYNC_TASKS,
+  type ProviderPriceSyncProvider,
+} from '@genfeedai/contracts/queue';
 import { ModelPricingReportSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Post,
   Req,
@@ -22,11 +28,20 @@ const modelIdSchema = z.string().trim().min(1).max(200);
 const approveBodySchema = z
   .object({ expectedPendingVersion: z.string().min(1).max(500) })
   .strict();
+const syncProviders = Object.keys(
+  PROVIDER_PRICE_SYNC_TASKS,
+) as ProviderPriceSyncProvider[];
+const syncBodySchema = z
+  .object({ provider: z.enum(['all', ...syncProviders]).default('all') })
+  .strict();
 
 @Controller('admin/model-pricing')
 @UseGuards(IpWhitelistGuard, SuperAdminGuard)
 export class AdminModelPricingController {
-  constructor(private readonly pricing: AdminModelPricingService) {}
+  constructor(
+    private readonly pricing: AdminModelPricingService,
+    private readonly priceSync: ProviderPriceSyncService,
+  ) {}
 
   @Get()
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
@@ -36,6 +51,25 @@ export class AdminModelPricingController {
       ModelPricingReportSerializer,
       await this.pricing.getReport(this.reportSource(request)),
     );
+  }
+
+  /**
+   * Queue the provider price import now instead of waiting for the weekly
+   * schedule. The import lands pending rates; approving them stays a separate,
+   * explicit step.
+   */
+  @Post('sync')
+  @HttpCode(202)
+  @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
+  async sync(@Body() body: unknown) {
+    const parsed = syncBodySchema.safeParse(body ?? {});
+    if (!parsed.success)
+      throw new BadRequestException(
+        `provider must be one of: all, ${syncProviders.join(', ')}`,
+      );
+    const providers =
+      parsed.data.provider === 'all' ? syncProviders : [parsed.data.provider];
+    return { queued: await this.priceSync.enqueue(providers) };
   }
 
   /**
