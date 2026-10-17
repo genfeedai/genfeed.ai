@@ -3,6 +3,12 @@ import type { SchedulerPostGroup } from '@api/collections/post-groups/services/p
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import {
+  bindPostToRelease,
+  buildReleaseMedia,
+  findBoundGroupId,
+  ReleaseBindingLostError,
+} from '@api/collections/post-groups/services/post-group-release-binding.util';
 import { deriveReleaseTitle } from '@api/collections/post-groups/services/post-group-release-projection.util';
 import {
   applyReleaseTargetUpdates,
@@ -37,7 +43,6 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
-  PostCategory,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -68,14 +73,6 @@ function publishingCapabilityForReleaseStatus(
     return 'publish';
   }
   return 'schedule';
-}
-
-/** Rolls back `ensureReleaseForPost` when another caller bound the root first. */
-class ReleaseBindingLostError extends Error {
-  constructor() {
-    super('Post was bound to a release by a concurrent request');
-    this.name = 'ReleaseBindingLostError';
-  }
 }
 
 @Injectable()
@@ -330,79 +327,45 @@ export class PostGroupsService {
     }
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const transition = this.contractService.buildTransition(
-          null,
-          ReleaseStatus.DRAFT,
-          userId,
-        );
-        const mediaKind =
-          post.category === PostCategory.VIDEO ||
-          post.category === PostCategory.REEL
-            ? 'video'
-            : 'image';
-        const media = post.ingredients.map((ingredient, order) => ({
-          assetId: ingredient.id,
-          kind: mediaKind,
-          order,
-        }));
+      const groupId = await this.prisma.$transaction(async (tx) => {
         const group = await tx.postGroup.create({
           data: {
             attachments: this.contractService.toJson([]),
             baseContent: post.description,
             brandId: post.brandId,
-            media: this.contractService.toJson(media),
+            media: this.contractService.toJson(buildReleaseMedia(post)),
             organizationId,
             ownerId: userId,
             status: ReleaseStatus.DRAFT,
-            statusTransitions: this.contractService.toJson([transition]),
+            statusTransitions: this.contractService.toJson([
+              this.contractService.buildTransition(
+                null,
+                ReleaseStatus.DRAFT,
+                userId,
+              ),
+            ]),
             timezone: post.timezone || 'UTC',
             title: deriveReleaseTitle(post.label, post.description),
           },
         });
-        // Compare-and-set on the groupId read above: a concurrent caller that
-        // bound the root first wins, and this transaction rolls back so the
-        // group created here never survives as an orphan release.
-        const bound = await tx.post.updateMany({
-          data: { groupId: group.id },
-          where: scopedWhere(organizationId, {
-            groupId: post.groupId ?? null,
-            id: post.id,
-          }),
-        });
-        if (bound.count === 0) {
-          throw new ReleaseBindingLostError();
-        }
-        return this.persistenceService.hydrateWithDerivedStatus(
-          tx,
-          organizationId,
-          group.id,
-        );
+        await bindPostToRelease(tx, organizationId, post, group.id);
+        return group.id;
       });
+      return this.persistenceService.hydrateWithDerivedStatus(
+        this.prisma,
+        organizationId,
+        groupId,
+      );
     } catch (error) {
       if (!(error instanceof ReleaseBindingLostError)) {
         throw error;
       }
-      return this.hydrateBoundRelease(organizationId, postId);
+      return this.persistenceService.hydrateWithDerivedStatus(
+        this.prisma,
+        organizationId,
+        await findBoundGroupId(this.prisma, organizationId, postId),
+      );
     }
-  }
-
-  private async hydrateBoundRelease(
-    organizationId: string,
-    postId: string,
-  ): Promise<IReleaseGroup> {
-    const winner = await this.prisma.post.findFirst({
-      select: { groupId: true },
-      where: scopedWhere(organizationId, { id: postId }),
-    });
-    if (!winner?.groupId) {
-      throw new NotFoundException('Post', postId);
-    }
-    return this.persistenceService.hydrateWithDerivedStatus(
-      this.prisma,
-      organizationId,
-      winner.groupId,
-    );
   }
 
   async update(
