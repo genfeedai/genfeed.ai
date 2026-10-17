@@ -9,6 +9,7 @@ import {
   buildYoutubeCommentsSweepDefinition,
   YOUTUBE_MAINTENANCE_ACTION_IDS,
 } from '@workers/crons/youtube/youtube-maintenance-workflow-definition';
+import { sweepExpiryMs } from '@workers/scheduling/sweep-expiry.util';
 
 const YOUTUBE_MESSAGES_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
@@ -62,6 +63,7 @@ export class CronYoutubeMessagesService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        expireAfterMs: sweepExpiryMs(YOUTUBE_MESSAGES_SWEEP_INTERVAL_MS),
       },
     );
   }

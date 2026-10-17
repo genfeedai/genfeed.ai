@@ -6,6 +6,7 @@ import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { sweepExpiryMs } from '@workers/scheduling/sweep-expiry.util';
 
 const WORKFLOW_HOUSEKEEPING_PRINCIPAL_ID = 'genfeed-public-tools';
 
@@ -43,6 +44,7 @@ export class CronWorkflowArtifactsService {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        expireAfterMs: sweepExpiryMs(60 * 60 * 1000),
       },
     );
 

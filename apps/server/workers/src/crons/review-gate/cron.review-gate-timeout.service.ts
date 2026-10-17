@@ -9,6 +9,7 @@ import {
   buildReviewGateTimeoutSweepDefinition,
   REVIEW_GATE_TIMEOUT_ACTION_IDS,
 } from '@workers/crons/review-gate/review-gate-timeout-workflow-definition';
+import { sweepExpiryMs } from '@workers/scheduling/sweep-expiry.util';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 const REVIEW_GATE_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
@@ -82,6 +83,7 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        expireAfterMs: sweepExpiryMs(REVIEW_GATE_SWEEP_INTERVAL_MS),
       },
     );
   }

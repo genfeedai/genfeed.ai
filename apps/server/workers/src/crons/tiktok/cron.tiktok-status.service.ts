@@ -27,6 +27,7 @@ import {
   buildTiktokStatusSweepDefinition,
   TIKTOK_STATUS_ACTION_IDS,
 } from '@workers/crons/tiktok/tiktok-status-workflow-definition';
+import { sweepExpiryMs } from '@workers/scheduling/sweep-expiry.util';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import {
   queueLearningPublicationRefreshV1,
@@ -158,6 +159,7 @@ export class CronTiktokStatusService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        expireAfterMs: sweepExpiryMs(TIKTOK_SWEEP_INTERVAL_MS),
       },
     );
   }

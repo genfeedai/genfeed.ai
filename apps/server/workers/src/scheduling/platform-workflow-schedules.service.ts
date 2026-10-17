@@ -14,6 +14,7 @@ import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfe
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pending-workflow-execution-reconcile.service';
+import { sweepExpiryMs } from '@workers/scheduling/sweep-expiry.util';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 
 /**
@@ -37,13 +38,6 @@ const ACTIVE_DISCOVERY_GATED_TEMPLATE_IDS: ReadonlySet<string> = new Set([
 ]);
 
 const ORGANIZATION_ACTIVITY_WINDOW_MS = 48 * 60 * 60 * 1000;
-
-/**
- * How long a queued sweep run may wait before it is dropped at pickup: one
- * cycle of its template, floored so a one-minute cadence tolerates a normal
- * backlog. A run older than that is superseded by the next tick (#5634).
- */
-const MIN_SWEEP_EXPIRY_MS = 10 * 60 * 1000;
 
 const WORKFLOWS = {
   'content-learning.reconcile': {
@@ -223,7 +217,7 @@ export class PlatformWorkflowSchedulesService {
             },
             {
               dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-              expireAfterMs: Math.max(interval, MIN_SWEEP_EXPIRY_MS),
+              expireAfterMs: sweepExpiryMs(interval),
             },
           );
         } catch (error) {

@@ -369,7 +369,7 @@ describe('CronTiktokStatusService.checkPendingTiktokPosts', () => {
     expect(h.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ source: 'tiktok_status_sweep' }),
       expect.stringMatching(/^tiktok-status-sweep-\d+$/),
-      expect.objectContaining({ attempts: 3 }),
+      expect.objectContaining({ attempts: 3, expireAfterMs: 10 * 60 * 1000 }),
     );
   });
 });

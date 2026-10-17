@@ -415,6 +415,37 @@ describe('WorkflowExecutionProcessor', () => {
         expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
       });
 
+      it('drops an expired cron sweep that has no execution row yet', async () => {
+        const result = await processor.process(
+          createMockJob({
+            systemRun: { expiresAt: Date.now() - 1, input },
+            type: 'system-run',
+          }) as never,
+        );
+
+        expect(result).toEqual({
+          executionId: undefined,
+          status: WorkflowExecutionStatus.CANCELLED,
+        });
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
+        expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+      });
+
+      it('never drops a stalled re-pickup, which may already have a row', async () => {
+        await processor.process(
+          createMockJob(
+            {
+              systemRun: { expiresAt: Date.now() - 1, input },
+              type: 'system-run',
+            },
+            { attemptsStarted: 2 },
+          ) as never,
+        );
+
+        expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
+        expect(mockSystemWorkflowRunner.startWorkflow).toHaveBeenCalled();
+      });
+
       it('never drops a run that already started', async () => {
         await processor.process(
           createMockJob({

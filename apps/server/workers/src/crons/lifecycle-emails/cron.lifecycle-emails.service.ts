@@ -3,6 +3,7 @@ import { LIFECYCLE_MAINTENANCE_IDS } from '@api/services/lifecycle-emails/lifecy
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable } from '@nestjs/common';
+import { sweepExpiryMs } from '@workers/scheduling/sweep-expiry.util';
 
 const HOUR_MS = 3_600_000;
 
@@ -31,6 +32,7 @@ export class CronLifecycleEmailsService {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        expireAfterMs: sweepExpiryMs(HOUR_MS),
       },
     );
   }

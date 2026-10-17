@@ -35,6 +35,7 @@ import {
   buildEngagementSweepWorkflowDefinition,
   ENGAGEMENT_SWEEP_ACTION_IDS,
 } from '@workers/crons/engagement/engagement-sweep-workflow-definition';
+import { sweepExpiryMs } from '@workers/scheduling/sweep-expiry.util';
 
 const REPOST_PLATFORMS = new Set<string>([
   CredentialPlatform.FACEBOOK,
@@ -161,6 +162,7 @@ export class CronEngagementTriggersService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        expireAfterMs: sweepExpiryMs(ENGAGEMENT_SWEEP_INTERVAL_MS),
       },
     );
   }
