@@ -7,6 +7,8 @@ import {
   getAssetParentId,
   getAssetParentIdField,
 } from '@api/collections/assets/utils/asset-parent.util';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -58,6 +60,7 @@ export class AssetsController {
 
   constructor(
     private readonly assetsService: AssetsService,
+    private readonly brandsService: BrandsService,
     private readonly cacheService: CacheService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
@@ -194,6 +197,11 @@ export class AssetsController {
 
     if (updateAssetDto.parentId) {
       EntityIdUtil.validate(updateAssetDto.parentId, 'parentId');
+      await this.assertParentInOrganization(
+        updateAssetDto.parentId,
+        updateAssetDto.parentType,
+        user,
+      );
       sanitizedUpdate.parentId = updateAssetDto.parentId;
     }
 
@@ -290,5 +298,37 @@ export class AssetsController {
     return deletedAsset
       ? serializeSingle(request, AssetSerializer, deletedAsset)
       : returnNotFound(this.constructorName, assetId);
+  }
+
+  /**
+   * Asset rows carry no `organizationId`, so the tenant guard does not cover
+   * them: a caller-supplied parent must be checked against the caller's org
+   * before it is used to reparent the asset or to retire sibling assets.
+   */
+  private async assertParentInOrganization(
+    parentId: string,
+    parentType: AssetParent | undefined,
+    user: User,
+  ): Promise<void> {
+    if (parentType === AssetParent.ORGANIZATION) {
+      if (parentId !== user.organizationId) {
+        throw new NotFoundException('Parent', parentId);
+      }
+      return;
+    }
+
+    if (parentType !== AssetParent.BRAND) {
+      return;
+    }
+
+    const brand = await this.brandsService.findOne({
+      id: parentId,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Parent', parentId);
+    }
   }
 }
