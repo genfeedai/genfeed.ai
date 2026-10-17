@@ -439,6 +439,50 @@ describe('StripeCheckoutWebhookHandler', () => {
       ).toHaveBeenCalledWith('cs_managed_1');
     });
 
+    it('never mints an API key for an account that already existed', async () => {
+      // Regression: the checkout email is unverified buyer input and the
+      // plaintext key is served from a public status endpoint, so a payment
+      // naming someone else's email must not mint a key on their account.
+      await handler.handleCheckoutCompleted(session, 'url');
+
+      expect(apiKeysService.createWithKey).not.toHaveBeenCalled();
+      expect(
+        managedStripeCheckoutService.cacheCheckoutResult,
+      ).toHaveBeenCalledWith(
+        'cs_managed_1',
+        expect.objectContaining({ apiKey: null, apiKeyAlreadyExists: true }),
+      );
+    });
+
+    it('mints an API key for the account this checkout created', async () => {
+      usersService.findOne.mockResolvedValueOnce(null);
+      usersService.create.mockResolvedValueOnce({
+        id: 'user_managed_1',
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: [],
+      });
+      eventEmitter.emitAsync.mockResolvedValue([]);
+      apiKeysService.findOne.mockResolvedValueOnce(null);
+      apiKeysService.createWithKey.mockResolvedValueOnce({
+        plainKey: 'gf_plain_key',
+      });
+
+      await handler.handleCheckoutCompleted(session, 'url');
+
+      expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org_managed_1',
+          userId: 'user_managed_1',
+        }),
+      );
+      expect(
+        managedStripeCheckoutService.cacheCheckoutResult,
+      ).toHaveBeenCalledWith(
+        'cs_managed_1',
+        expect.objectContaining({ apiKey: 'gf_plain_key' }),
+      );
+    });
+
     it('does not throw when managed post-grant Redis writes fail', async () => {
       managedStripeCheckoutService.cacheCheckoutResult.mockRejectedValueOnce(
         new Error('redis unavailable'),

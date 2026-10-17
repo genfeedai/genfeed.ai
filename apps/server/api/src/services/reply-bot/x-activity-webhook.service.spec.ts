@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -117,5 +118,60 @@ describe('X activity webhook Messages admission', () => {
     processor.enqueue.mockRejectedValue(error);
     await expect(service.handleEventPayload(PAYLOAD)).rejects.toBe(error);
     expect(processor.enqueue).toHaveBeenCalledOnce();
+  });
+
+  describe('receiveEvent signature gate', () => {
+    const secret = 'consumer-secret';
+    const rawBody = Buffer.from(JSON.stringify(PAYLOAD));
+    const signature = `sha256=${createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('base64')}`;
+
+    beforeEach(() => {
+      config.get.mockImplementation((key: string) =>
+        key === 'X_WEBHOOK_CONSUMER_SECRET' ? secret : 'true',
+      );
+    });
+
+    it('enqueues replies for a correctly signed delivery', async () => {
+      await expect(
+        service.receiveEvent(rawBody, signature),
+      ).resolves.toMatchObject({ enqueued: 2, mode: 'live' });
+    });
+
+    it('rejects a forged delivery without enqueueing anything', async () => {
+      await expect(
+        service.receiveEvent(rawBody, 'sha256=forged'),
+      ).rejects.toThrow('Invalid webhook signature');
+      await expect(service.receiveEvent(rawBody, undefined)).rejects.toThrow(
+        'Invalid webhook signature',
+      );
+      expect(processor.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('rejects a body that was parsed before verification', async () => {
+      await expect(service.receiveEvent(PAYLOAD, signature)).rejects.toThrow(
+        'Raw webhook body is required',
+      );
+    });
+
+    it('fails closed when the consumer secret is not configured', async () => {
+      config.get.mockImplementation((key: string) =>
+        key === 'X_ACTIVITY_WEBHOOK_ENABLED' ? 'true' : undefined,
+      );
+      await expect(service.receiveEvent(rawBody, signature)).rejects.toThrow(
+        'consumer secret is not configured',
+      );
+      expect(processor.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('stays a no-op without checking the signature when disabled', async () => {
+      config.get.mockReturnValue('false');
+      await expect(service.receiveEvent(rawBody, undefined)).resolves.toEqual({
+        enqueued: 0,
+        ignored: 0,
+        mode: 'disabled',
+      });
+    });
   });
 });

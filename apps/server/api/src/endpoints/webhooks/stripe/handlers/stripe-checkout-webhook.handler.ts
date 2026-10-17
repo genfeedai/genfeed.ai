@@ -460,7 +460,10 @@ export class StripeCheckoutWebhookHandler {
     email: string,
     url: string,
   ): Promise<ManagedCheckoutResult> {
-    const { dbUser } = await this.resolveManagedCheckoutUser(session, email);
+    const { dbUser, isNewUser } = await this.resolveManagedCheckoutUser(
+      session,
+      email,
+    );
     const { brand, organization, orgSetting } =
       await this.resolveManagedCheckoutResources(dbUser);
 
@@ -492,11 +495,17 @@ export class StripeCheckoutWebhookHandler {
       String(dbUser.id),
     );
 
-    const plainKey = await this.ensureManagedApiKey(
-      session,
-      String(organization.id),
-      String(dbUser.id),
-    );
+    // The checkout email is unverified buyer input, and the plaintext key is
+    // returned from a public status endpoint. Only mint a key for the account
+    // this checkout just created; an existing account never receives a key
+    // from someone else's payment.
+    const plainKey = isNewUser
+      ? await this.ensureManagedApiKey(
+          session,
+          String(organization.id),
+          String(dbUser.id),
+        )
+      : null;
 
     // The session's Stripe customer funds ORG credits, so it binds to the
     // org's single customer row — never to users."stripeCustomerId", which is
