@@ -5,16 +5,16 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { FileInputType } from '@genfeedai/contracts';
+import { MAX_FILE_SIZE } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type IngredientMediaSource,
   resolveIngredientMediaUrl,
 } from '@libs/media/media-url.util';
+import { safeFetch } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 type UploadedAudioFile = {
   buffer: Buffer;
@@ -28,25 +28,7 @@ type AudioConversionResult = {
   [key: string]: unknown;
 };
 
-type HttpResponseWithData = {
-  data: Buffer | ArrayBuffer | string;
-};
-
-type HttpErrorWithResponse = {
-  response?: unknown;
-};
-
-function toBuffer(data: string | ArrayBuffer | Buffer): Buffer {
-  if (Buffer.isBuffer(data)) {
-    return data;
-  }
-
-  if (typeof data === 'string') {
-    return Buffer.from(data);
-  }
-
-  return Buffer.from(new Uint8Array(data));
-}
+const MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000;
 
 @Injectable()
 export class WhisperService {
@@ -56,11 +38,81 @@ export class WhisperService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly fileQueueService: FileQueueService,
-    private readonly httpService: HttpService,
     private readonly replicateService: ReplicateService,
     private readonly mediaUrlService: MediaUrlService,
     private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
+
+  private async downloadMedia(
+    input: string,
+    allowIngredientsOrigin = false,
+  ): Promise<Buffer> {
+    const destination = new URL(input);
+    const configuredOrigin = [
+      this.configService.cdnUrl,
+      ...(allowIngredientsOrigin
+        ? [this.configService.ingredientsEndpoint]
+        : []),
+    ].some((configured) => {
+      try {
+        return new URL(configured).origin === destination.origin;
+      } catch {
+        return false;
+      }
+    });
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(new Error('Media download timeout')),
+      MEDIA_DOWNLOAD_TIMEOUT_MS,
+    );
+    try {
+      const response = await safeFetch(
+        input,
+        { signal: controller.signal },
+        configuredOrigin
+          ? { allowedOrigins: [destination.origin], allowPrivateNetwork: true }
+          : { allowPrivateNetwork: false },
+      );
+      if (!response.ok || !response.body) {
+        await response.body?.cancel().catch(() => undefined);
+        throw new Error('Media download is unavailable');
+      }
+      const declared = Number(response.headers.get('content-length'));
+      if (Number.isFinite(declared) && declared > MAX_FILE_SIZE) {
+        await response.body.cancel().catch(() => undefined);
+        throw new Error('Media download exceeds the size limit');
+      }
+      const reader = response.body.getReader();
+      const chunks: Buffer[] = [];
+      let total = 0;
+      let complete = false;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            complete = true;
+            return Buffer.concat(chunks, total);
+          }
+          total += value.byteLength;
+          if (total > MAX_FILE_SIZE) {
+            throw new Error('Media download exceeds the size limit');
+          }
+          chunks.push(Buffer.from(value));
+        }
+      } finally {
+        try {
+          if (!complete) await reader.cancel().catch(() => undefined);
+        } finally {
+          reader.releaseLock();
+        }
+      }
+    } catch (error: unknown) {
+      if (controller.signal.aborted) throw new Error('Media download timeout');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 
   private async convertVideoToAudio(
     videoPath: string,
@@ -96,12 +148,8 @@ export class WhisperService {
         throw new Error('Video-to-audio conversion returned no URL');
       }
 
-      const audioResponse = (await firstValueFrom(
-        this.httpService.get(result.url, { responseType: 'arraybuffer' }),
-      )) as HttpResponseWithData;
-
-      // Write to local audio path
-      fs.writeFileSync(audioPath, toBuffer(audioResponse.data));
+      const audioBuffer = await this.downloadMedia(result.url);
+      fs.writeFileSync(audioPath, audioBuffer);
 
       this.loggerService.log(`${url} success`);
     } catch (error: unknown) {
@@ -113,22 +161,19 @@ export class WhisperService {
   private async downloadVideo(id: string, videoUrl?: string): Promise<Buffer> {
     const url =
       videoUrl ?? `${this.configService.ingredientsEndpoint}/videos/${id}`;
-    this.loggerService.log(`Attempting to download video from: ${url}`);
+    this.loggerService.log(`Downloading caption video for ingredient: ${id}`);
 
     try {
-      const res = (await firstValueFrom(
-        this.httpService.get(url, { responseType: 'arraybuffer' }),
-      )) as HttpResponseWithData;
+      const bytes = await this.downloadMedia(url, videoUrl === undefined);
       this.loggerService.log(
         `Successfully downloaded video for ingredient: ${id}`,
       );
-      return toBuffer(res.data);
+      return bytes;
     } catch (error: unknown) {
-      this.loggerService.error(`Failed to download video from ${url}`, error);
-      const httpError = error as HttpErrorWithResponse;
-      if (httpError.response) {
-        this.loggerService.error(`${url} failed`, httpError.response);
-      }
+      this.loggerService.error(
+        `Failed to download caption video for ${id}`,
+        error,
+      );
 
       throw new Error(
         `Failed to download video for caption generation: ${(error as Error).message}`,
@@ -302,11 +347,7 @@ export class WhisperService {
     this.loggerService.log(`${methodName} Transcribing from URL`);
 
     try {
-      const audioResponse = (await firstValueFrom(
-        this.httpService.get(audioUrl, { responseType: 'arraybuffer' }),
-      )) as HttpResponseWithData;
-
-      const audioBuffer = toBuffer(audioResponse.data);
+      const audioBuffer = await this.downloadMedia(audioUrl);
       const filename = audioUrl.split('/').pop() || 'audio.mp3';
 
       const result = await this.replicateService.transcribeAudio({
