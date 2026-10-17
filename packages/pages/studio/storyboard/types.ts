@@ -21,6 +21,8 @@ export interface UseStoryboardGenerationParams {
     isValid: boolean;
   };
   promptText: string;
+  /** Clears the typed prompt once a generation was accepted; settings stay. */
+  onPromptSubmitted?: () => void;
   setGeneratedAssetId: (id: string | null) => void;
 }
 

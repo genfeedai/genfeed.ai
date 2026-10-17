@@ -41,6 +41,7 @@ export function useStoryboardGeneration({
   currentModels,
   findAllAssets,
   mergeSettings,
+  onPromptSubmitted,
   promptConfig,
   promptText,
   setGeneratedAssetId,
@@ -160,6 +161,7 @@ export function useStoryboardGeneration({
       }
 
       setGeneratedAssetId(processingJobs[0].id);
+      onPromptSubmitted?.();
 
       let completedCount = 0;
       const totalExpected = processingJobs.length;
@@ -274,6 +276,7 @@ export function useStoryboardGeneration({
     getVideosService,
     mergeSettings,
     notificationsService,
+    onPromptSubmitted,
     promptConfig.duration,
     promptConfig.format,
     promptConfig.height,
