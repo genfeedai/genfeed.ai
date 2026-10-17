@@ -45,6 +45,8 @@ import {
 } from '@genfeedai/helpers';
 import { Injectable } from '@nestjs/common';
 
+const HAILUO_23_FAST_DEFAULT_RESOLUTION = '768p';
+
 /**
  * Replicate video model prompt builder.
  * Handles: Sora, Veo, WAN Video, and Kling models.
@@ -677,15 +679,15 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     const duration =
       normalizeProviderVideoDuration(model, params.duration) ?? 6;
     const firstFrameImage = params.references?.[0]?.trim() ?? '';
+    // The reviewed rates are priced per resolution, so a request that omits it
+    // must dispatch Replicate's own default (768p) explicitly, otherwise the
+    // quote has no resolution selector and fails as an unpriced variant.
     const input: Hailuo23FastInput = {
       duration,
       first_frame_image: firstFrameImage,
       prompt: promptText,
+      resolution: params.resolution || HAILUO_23_FAST_DEFAULT_RESOLUTION,
     };
-
-    if (params.resolution) {
-      input.resolution = params.resolution;
-    }
 
     assertRequiredSchemaInput(model, input, params.modelInputSchema);
     return input;

@@ -135,6 +135,28 @@ describe('ReplicateVideoBuilder', () => {
       );
     });
 
+    it('dispatches the 768p default when the request omits a resolution', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+        { ...baseParams, references: [firstFrame] },
+        'A cinematic product reveal',
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({ duration: 6, resolution: '768p' }),
+      );
+    });
+
+    it('keeps an explicit resolution', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+        { ...baseParams, references: [firstFrame], resolution: '1080p' },
+        'A cinematic product reveal',
+      );
+
+      expect(result).toEqual(expect.objectContaining({ resolution: '1080p' }));
+    });
+
     it('rejects an empty first-frame image with a named 4xx validation error', () => {
       expectRequiredFieldValidation(
         () =>

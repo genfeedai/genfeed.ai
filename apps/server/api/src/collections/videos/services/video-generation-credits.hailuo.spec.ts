@@ -155,4 +155,35 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
       });
     },
   );
+
+  it('charges applyMargin(0.19) when the request omits a resolution (API-GENFEED-AI-87)', async () => {
+    const providerInput = builder.buildPrompt(
+      KEY,
+      {
+        duration: 5,
+        height: 1080,
+        modelCategory: ModelCategory.VIDEO,
+        prompt: 'A cinematic product reveal',
+        references: [FIRST_FRAME],
+        width: 1920,
+      },
+      'A cinematic product reveal',
+    );
+    const request = { creditsConfig: { deferred: true } };
+
+    await (await service()).ensureDeferredCredits(
+      { duration: 5, height: 1080, outputs: 1, width: 1920 },
+      KEY,
+      'org-1',
+      request as never,
+      providerInput as unknown as Record<string, unknown>,
+    );
+
+    expect(providerInput).toMatchObject({ duration: 6, resolution: '768p' });
+    expect(request.creditsConfig).toMatchObject({
+      amount: applyMargin(0.19, MARGIN),
+      deferred: false,
+      modelKey: KEY,
+    });
+  });
 });
