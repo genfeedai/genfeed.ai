@@ -193,6 +193,7 @@ export class TwitterInboxService {
     private readonly loggerService: LoggerService,
     private readonly resolveCredential: ResolveTwitterCredential,
     private readonly getTweetReplies: GetTweetReplies,
+    private readonly resolveMentionsCredential: ResolveTwitterCredential,
   ) {}
 
   async listMentions(
@@ -225,7 +226,7 @@ export class TwitterInboxService {
     credentialId?: string,
   ): Promise<TwitterMentionsPage> {
     const caller = `TwitterService ${CallerUtil.getCallerName()}`;
-    const credential = await this.resolveCredential(
+    const credential = await this.resolveMentionsCredential(
       organizationId,
       brandId,
       credentialId,

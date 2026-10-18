@@ -30,7 +30,16 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
  */
 
 import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { TwitterApi } from 'twitter-api-v2';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 
 // ── Module-level mocks ──────────────────────────────────────────────────────
 
@@ -1485,6 +1494,339 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
+  describe('mentions credential lifecycle', () => {
+    const now = new Date('2026-10-18T08:00:00.000Z');
+    const validCredential = (overrides: Record<string, unknown> = {}) =>
+      makeCredential({
+        accessTokenExpiry: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+        externalId: 'account-id',
+        ...overrides,
+      });
+
+    function storeCredential(overrides: Record<string, unknown> = {}) {
+      let stored = validCredential(overrides);
+      credentialsService.findOne.mockImplementation(async () => stored);
+      credentialsService.patch.mockImplementation(
+        async (_id: string, patch: Record<string, unknown>) => {
+          stored = { ...stored, ...patch };
+          return stored;
+        },
+      );
+      return stored;
+    }
+
+    const readPage = () =>
+      service.listMentionsPage('org', 'brand', {}, 'cred-id');
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(now);
+      vi.mocked(TwitterApi).mockClear();
+      mockV2Get.mockReset().mockResolvedValue({ data: [] });
+      mockRefreshOAuth2Token.mockReset().mockResolvedValue({
+        accessToken: 'fresh-access',
+        expiresIn: 7200,
+        refreshToken: 'fresh-refresh',
+        scope: 'tweet.read users.read',
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('reads five pages without refreshing an already-valid connected account', async () => {
+      storeCredential();
+      const defaultClient = service.twitterClient;
+      for (let index = 0; index < 5; index++) {
+        mockV2Get.mockResolvedValueOnce({
+          data: [],
+          ...(index < 4 ? { meta: { next_token: `page-${index + 2}` } } : {}),
+        });
+      }
+
+      let paginationToken: string | undefined;
+      for (let index = 0; index < 5; index++) {
+        const page = await service.listMentionsPage(
+          'org',
+          'brand',
+          { limit: 100, paginationToken, sinceId: '1800000000000000000' },
+          'cred-id',
+        );
+        paginationToken = page.nextToken;
+      }
+
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledTimes(5);
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId: 'brand',
+        credentialId: 'cred-id',
+        isDisconnectedIncluded: true,
+        organizationId: 'org',
+        platform: 'twitter',
+      });
+      expect(mockV2Get).toHaveBeenCalledTimes(5);
+      expect(mockV2Get).toHaveBeenNthCalledWith(
+        5,
+        'users/account-id/mentions',
+        expect.objectContaining({
+          max_results: 100,
+          pagination_token: 'page-5',
+          since_id: '1800000000000000000',
+        }),
+      );
+      expect(vi.mocked(TwitterApi).mock.calls).toEqual(
+        Array.from({ length: 5 }, () => ['decrypted:enc-access-token']),
+      );
+      expect(service.twitterClient).toBe(defaultClient);
+      expect(paginationToken).toBeUndefined();
+    });
+
+    it.each([
+      {
+        state: 'expired',
+        overrides: { accessTokenExpiry: new Date(now.getTime() - 1) },
+      },
+      { state: 'disconnected', overrides: { isConnected: false } },
+    ])(
+      'refreshes the $state account once, then reads its persisted valid token',
+      async ({ overrides }) => {
+        storeCredential(overrides);
+
+        for (let index = 0; index < 5; index++) await readPage();
+
+        expect(mockRefreshOAuth2Token).toHaveBeenCalledOnce();
+        expect(credentialsService.patch).toHaveBeenCalledOnce();
+        expect(credentialsService.resolveBrandAccount).toHaveBeenCalledTimes(6);
+        expect(credentialsService.patch).toHaveBeenCalledWith(
+          'cred-id',
+          expect.objectContaining({
+            accessToken: 'fresh-access',
+            accessTokenExpiry: new Date(now.getTime() + 7200 * 1000),
+            isConnected: true,
+            refreshToken: 'fresh-refresh',
+          }),
+        );
+        expect(mockV2Get).toHaveBeenCalledTimes(5);
+        expect(vi.mocked(TwitterApi).mock.calls.at(-1)).toEqual([
+          'decrypted:fresh-access',
+        ]);
+      },
+    );
+
+    it.each([
+      { state: 'missing expiry', overrides: { accessTokenExpiry: undefined } },
+      { state: 'null expiry', overrides: { accessTokenExpiry: null } },
+      { state: 'invalid expiry', overrides: { accessTokenExpiry: 'invalid' } },
+      {
+        state: 'exact refresh boundary',
+        overrides: {
+          accessTokenExpiry: new Date(now.getTime() + 15 * 60 * 1000),
+        },
+      },
+      {
+        state: 'inside refresh boundary',
+        overrides: {
+          accessTokenExpiry: new Date(now.getTime() + 14 * 60 * 1000),
+        },
+      },
+      { state: 'missing access token', overrides: { accessToken: null } },
+    ])(
+      'retains the existing refresh policy for $state',
+      async ({ overrides }) => {
+        storeCredential(overrides);
+
+        await readPage();
+
+        expect(mockRefreshOAuth2Token).toHaveBeenCalledOnce();
+        expect(credentialsService.patch).toHaveBeenCalledOnce();
+        expect(mockV2Get).toHaveBeenCalledOnce();
+      },
+    );
+
+    it('does not refresh just beyond the existing fifteen-minute buffer', async () => {
+      storeCredential({
+        accessTokenExpiry: new Date(now.getTime() + 15 * 60 * 1000 + 1),
+      });
+
+      await readPage();
+
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('does not invent an expiry when a refresh response omits expiresIn', async () => {
+      storeCredential({ accessTokenExpiry: undefined });
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'fresh-access',
+        refreshToken: 'fresh-refresh',
+        scope: 'tweet.read',
+      });
+
+      await readPage();
+      await readPage();
+
+      expect(mockRefreshOAuth2Token).toHaveBeenCalledTimes(2);
+      expect(mockV2Get).toHaveBeenCalledTimes(2);
+    });
+
+    it('preserves reconnection failure without a refresh token, even with future expiry', async () => {
+      storeCredential({ refreshToken: null });
+
+      await expect(readPage()).rejects.toThrow(
+        'Twitter credential requires reconnection',
+      );
+
+      expect(credentialsService.patch).toHaveBeenCalledTimes(2);
+      expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
+        isConnected: false,
+      });
+      expect(activitiesService.record).toHaveBeenCalledOnce();
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+      expect(mockV2Get).not.toHaveBeenCalled();
+    });
+
+    it('re-resolves every page and stops when the named credential disappears', async () => {
+      credentialsService.findOne
+        .mockResolvedValueOnce(validCredential())
+        .mockResolvedValueOnce(null);
+      credentialsService.patch.mockResolvedValue(validCredential());
+
+      await readPage();
+      await expect(readPage()).rejects.toThrow('Twitter credential not found');
+
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledTimes(2);
+      expect(credentialsService.findBrandAccounts).not.toHaveBeenCalled();
+      expect(mockV2Get).toHaveBeenCalledOnce();
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+    });
+
+    it('does not dispatch mentions when the resolved account has no externalId', async () => {
+      storeCredential({ externalId: null });
+
+      await expect(readPage()).rejects.toThrow('missing externalId');
+
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+      expect(mockV2Get).not.toHaveBeenCalled();
+    });
+
+    it('does not guess an account when the brand fallback is ambiguous', async () => {
+      credentialsService.findBrandAccounts.mockResolvedValue([
+        validCredential(),
+        validCredential({ id: 'other-credential' }),
+      ]);
+
+      await expect(service.listMentionsPage('org', 'brand')).rejects.toThrow(
+        'pass an explicit credentialId',
+      );
+
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+      expect(mockV2Get).not.toHaveBeenCalled();
+    });
+
+    it('preserves disconnect/activity and the original failed refresh', async () => {
+      storeCredential({ accessTokenExpiry: null });
+      const error = new Error('refresh failed');
+      mockRefreshOAuth2Token.mockRejectedValue(error);
+
+      await expect(readPage()).rejects.toBe(error);
+
+      expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
+        isConnected: false,
+      });
+      expect(activitiesService.record).toHaveBeenCalledOnce();
+      expect(mockV2Get).not.toHaveBeenCalled();
+    });
+
+    it('does not read a page when refreshed credentials cannot be persisted', async () => {
+      storeCredential({ accessTokenExpiry: null });
+      const error = new Error('persistence failed');
+      credentialsService.patch.mockRejectedValueOnce(error);
+
+      await expect(readPage()).rejects.toBe(error);
+
+      expect(credentialsService.patch).toHaveBeenCalledTimes(2);
+      expect(activitiesService.record).toHaveBeenCalledOnce();
+      expect(mockV2Get).not.toHaveBeenCalled();
+    });
+
+    it.each([401, 403, 429])(
+      'propagates %s once without a new refresh or retry',
+      async (status) => {
+        storeCredential();
+        const error = Object.assign(new Error('provider failure'), {
+          code: status,
+        });
+        mockV2Get.mockRejectedValue(error);
+
+        await expect(readPage()).rejects.toBe(error);
+
+        expect(mockV2Get).toHaveBeenCalledOnce();
+        expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+        expect(credentialsService.patch).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps concurrent account clients local to their resolved tokens', async () => {
+      const defaultClient = service.twitterClient;
+      credentialsService.patch.mockImplementation(
+        async (id: string, patch: Record<string, unknown>) =>
+          validCredential({
+            id,
+            externalId: id === 'cred-b' ? 'account-b' : 'account-id',
+            ...patch,
+          }),
+      );
+      credentialsService.findOne
+        .mockResolvedValueOnce(validCredential({ accessToken: 'token-a' }))
+        .mockResolvedValueOnce(
+          validCredential({
+            accessToken: 'token-b',
+            externalId: 'account-b',
+            id: 'cred-b',
+          }),
+        );
+
+      await Promise.all([
+        readPage(),
+        service.listMentionsPage('org-b', 'brand-b', {}, 'cred-b'),
+      ]);
+
+      expect(vi.mocked(TwitterApi).mock.calls).toEqual([
+        ['decrypted:token-a'],
+        ['decrypted:token-b'],
+      ]);
+      expect(mockV2Get.mock.calls.map(([path]) => path)).toEqual([
+        'users/account-id/mentions',
+        'users/account-b/mentions',
+      ]);
+      expect(service.twitterClient).toBe(defaultClient);
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+    });
+
+    it('keeps other inbox operations on the forced-refresh dependency', async () => {
+      storeCredential();
+      const refresh = vi.spyOn(service, 'refreshToken');
+      const valid = vi.spyOn(service, 'getValidCredential');
+      vi.spyOn(service, 'getTweetReplies').mockResolvedValue([]);
+      mockV2SendDmInConversation.mockResolvedValue({});
+
+      await service.listPostReplies('org', 'brand', 'tweet-id', {}, 'cred-id');
+      await service.listDirectMessages('org', 'brand', {}, 'cred-id');
+      await service.sendCommentReplyDm(
+        'org',
+        'brand',
+        'recipient',
+        'hello',
+        'cred-id',
+      );
+
+      expect(refresh).toHaveBeenCalledTimes(3);
+      expect(valid).not.toHaveBeenCalled();
+    });
+  });
+
   describe('listMentions', () => {
     const recordedMentions = {
       data: [
@@ -1523,7 +1865,7 @@ describe('TwitterService (coverage)', () => {
     };
 
     beforeEach(() => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',

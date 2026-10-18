@@ -112,6 +112,20 @@ export class TwitterService {
       (organizationId, brandId, credentialId) =>
         this.refreshToken(organizationId, brandId, credentialId),
       (tweetId, options) => this.getTweetReplies(tweetId, options),
+      async (organizationId, brandId, credentialId) => {
+        const credential = await this.getValidCredential(
+          organizationId,
+          brandId,
+          credentialId,
+        );
+        return credential.isConnected === false || !credential.refreshToken
+          ? this.refreshToken(
+              organizationId,
+              brandId,
+              credentialId ?? credential.id,
+            )
+          : credential;
+      },
     );
     this.publishingService = new TwitterPublishingService(
       this.configService.ingredientsEndpoint,
