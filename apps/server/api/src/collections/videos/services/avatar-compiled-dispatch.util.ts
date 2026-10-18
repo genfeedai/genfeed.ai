@@ -8,10 +8,11 @@ import { HttpException, HttpStatus } from '@nestjs/common';
  */
 export function attachAvatarAudioToCompiledDispatch(
   model: string,
-  promptParams: Record<string, unknown>,
+  dispatch: Record<string, unknown> | undefined,
   audioUrl?: string,
 ): void {
-  if (model !== MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2) return;
+  if (!dispatch || model !== MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2)
+    return;
   if (!audioUrl) {
     throw new HttpException(
       {
@@ -22,5 +23,5 @@ export function attachAvatarAudioToCompiledDispatch(
       HttpStatus.BAD_REQUEST,
     );
   }
-  promptParams.audio = audioUrl;
+  dispatch.audio = audioUrl;
 }

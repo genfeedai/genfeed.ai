@@ -305,11 +305,6 @@ export class VideoGenerationPreparationService {
     let templateVersion: number | undefined;
     if (compiledDispatch) {
       promptParams = compiledDispatch as unknown as Record<string, unknown>;
-      attachAvatarAudioToCompiledDispatch(
-        model,
-        promptParams,
-        createVideoDto.audioUrl,
-      );
     } else {
       const built = await this.buildPromptParams({
         endFrameUrl,
@@ -716,6 +711,11 @@ export class VideoGenerationPreparationService {
           'raw_prompt_requested',
         );
       }
+      attachAvatarAudioToCompiledDispatch(
+        params.model,
+        compiled.dispatch,
+        params.createVideoDto.audioUrl,
+      );
       return compiled;
     } catch (error: unknown) {
       if (error instanceof GenerationBriefCompileError) {
