@@ -14,7 +14,7 @@ import { getMasonryActionsBarClassName } from '@ui/masonry/shared/masonry-action
 import type { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
-import { ThumbsUp } from 'lucide-react';
+import { ThumbsUp, Trash2 } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
 type ImageActionHandlers = ReturnType<typeof useIngredientActions>['handlers'];
@@ -22,6 +22,8 @@ type ImageActionHandlers = ReturnType<typeof useIngredientActions>['handlers'];
 type MasonryImageActionsBarProps = {
   image: IImage;
   isActionsEnabled: boolean;
+  /** Failed or still generating: there is no asset to act on yet. */
+  isUnavailable?: boolean;
   isSelected: boolean;
   showActions: boolean;
   actionStates: MasonryActionStates;
@@ -182,6 +184,7 @@ function QuickActionsWrapper({
 export default function MasonryImageActionsBar({
   image,
   isActionsEnabled,
+  isUnavailable = false,
   isSelected,
   showActions,
   actionStates,
@@ -219,6 +222,25 @@ export default function MasonryImageActionsBar({
         <div className="flex-shrink-0 flex items-center gap-2">
           {onVoteIngredient ? (
             <VoteButton image={image} onVote={onVoteIngredient} />
+          ) : isUnavailable ? (
+            <div
+              role="presentation"
+              className="quick-actions-wrapper flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseEnter={handleQuickActionsMouseEnter}
+              onMouseLeave={handleQuickActionsMouseLeave}
+            >
+              <Button
+                ariaLabel="Move to Trash"
+                tooltip="Move to Trash"
+                icon={<Trash2 />}
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+                isDisabled={actionStates.isDeleting}
+                onClick={() => void handlers.handleDelete(image)}
+              />
+            </div>
           ) : (
             <QuickActionsWrapper
               image={image}
