@@ -1,6 +1,7 @@
 import { type AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
@@ -28,6 +29,7 @@ export class AgentCampaignExecutionService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => AgentRuntimeService))
     private readonly agentRuntimeService: AgentRuntimeService,
+    private readonly autonomousProducerInstallService: AutonomousProducerInstallService,
   ) {}
 
   /**
@@ -78,6 +80,17 @@ export class AgentCampaignExecutionService {
     if (!updated) {
       throw new NotFoundException({
         message: `Failed to update campaign ${campaignId}`,
+      });
+    }
+
+    // Starting a campaign is the explicit opt-in to the campaign producers:
+    // install their workflows so due and triggered campaigns keep running
+    // without a manual catalog step.
+    if (schedulePrincipal) {
+      await this.autonomousProducerInstallService.installOnOptIn({
+        organizationId,
+        principal: schedulePrincipal,
+        producer: 'campaigns',
       });
     }
 

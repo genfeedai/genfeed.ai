@@ -1,4 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { isContentEngineOptedIn } from '@api/collections/workflows/autonomous-producers/content-engine-opt-in.util';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { parseFrequencyToMs } from '@api/helpers/utils/content-frequency/content-frequency.util';
 import { scopedWhere } from '@api/index';
@@ -6,6 +7,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
+import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ImageTaskModel,
@@ -20,6 +22,7 @@ import { Injectable } from '@nestjs/common';
 const MAX_BRANDS_PER_CYCLE = 10;
 const MAX_PERSONAS_PER_CYCLE = 20;
 const FIFTEEN_MINUTES_SECONDS = 900;
+const CONTENT_PLAN_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 
 type ContentProductionAction =
   | typeof AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE
@@ -75,6 +78,7 @@ export class ContentProductionWorkflowService {
     private readonly contentExecutionService: ContentExecutionService,
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
+    private readonly mediaPromptEnhancement: MediaPromptEnhancementService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -98,18 +102,16 @@ export class ContentProductionWorkflowService {
       return { baseInput: { organizationId }, items: [], skipped: 0 };
     }
     const brands = await this.brandsService.findForOrganization(organizationId);
-    const items = brands
-      .filter((brand) => {
-        if (brand.isActive !== true) return false;
-        const agentConfig = this.readRecord(brand.agentConfig);
-        const autoPublish = this.readRecord(agentConfig.autoPublish);
-        const strategy = this.readRecord(agentConfig.strategy);
-        return (
-          autoPublish.enabled === true &&
-          Array.isArray(strategy.contentTypes) &&
-          strategy.contentTypes.length > 0
-        );
-      })
+    const optedIn = brands.filter(
+      (brand) =>
+        brand.isActive === true && isContentEngineOptedIn(brand.agentConfig),
+    );
+    const planned = await this.findBrandsWithOpenPlan(
+      organizationId,
+      optedIn.map((brand) => String(brand.id)),
+    );
+    const items = optedIn
+      .filter((brand) => !planned.has(String(brand.id)))
       .slice(0, MAX_BRANDS_PER_CYCLE)
       .map(
         (brand): ContentEngineBrandSnapshot => ({
@@ -125,6 +127,35 @@ export class ContentProductionWorkflowService {
       items,
       skipped: Math.max(brands.length - items.length, 0),
     };
+  }
+
+  /**
+   * Brands whose current content plan period has not ended. The engine runs
+   * every 30 minutes and each run plans a week, so a brand gets a new plan
+   * only once its open one has run out instead of a new plan every cycle.
+   */
+  private async findBrandsWithOpenPlan(
+    organizationId: string,
+    brandIds: string[],
+  ): Promise<Set<string>> {
+    if (brandIds.length === 0) return new Set();
+    const now = Date.now();
+    const plans = await this.prisma.contentPlan.findMany({
+      select: { brandId: true, config: true },
+      where: scopedWhere(organizationId, {
+        brandId: { in: brandIds },
+        createdAt: { gte: new Date(now - CONTENT_PLAN_PERIOD_MS) },
+      }),
+    });
+    const open = new Set<string>();
+    for (const plan of plans) {
+      const periodEnd = Date.parse(
+        String(this.readRecord(plan.config).periodEnd ?? ''),
+      );
+      if (plan.brandId && Number.isFinite(periodEnd) && periodEnd > now)
+        open.add(plan.brandId);
+    }
+    return open;
   }
 
   async planContentEngineBrand(
@@ -143,7 +174,7 @@ export class ContentProductionWorkflowService {
         this.readRecord(brand.agentConfig).strategy,
       );
       const now = new Date();
-      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const weekFromNow = new Date(now.getTime() + CONTENT_PLAN_PERIOD_MS);
       const { plan } = await this.contentPlannerService.generatePlan(
         organizationId,
         brandId,
@@ -275,24 +306,34 @@ export class ContentProductionWorkflowService {
     const now = new Date(this.requiredString(input.now, 'now'));
     const personaId = persona.id;
     const config = (persona.config ?? {}) as PersonaConfig;
-    if (persona.credentialCount < 1 || !config.profileImageUrl) {
-      return {
-        imageItems: [],
-        musicItems: [],
-        now: now.toISOString(),
-        persona,
-        personaId,
-        status: 'skipped',
-        videoItems: [],
-      };
+    const skipped = {
+      imageItems: [],
+      musicItems: [],
+      now: now.toISOString(),
+      persona,
+      personaId,
+      status: 'skipped',
+      videoItems: [],
+    };
+    // A persona without a brand has no brand context to write from.
+    if (
+      persona.credentialCount < 1 ||
+      !config.profileImageUrl ||
+      !persona.brandId
+    ) {
+      return skipped;
     }
-    const prompt = await this.buildPromptFromStrategy(persona);
-    const step = this.buildStepsFromStrategy(persona, prompt)[0];
-    if (!step) {
+    const brandId = persona.brandId;
+    const brief = await this.buildPersonaBrief(persona);
+    const draftStep = this.buildStepsFromStrategy(persona, brief)[0];
+    if (!draftStep) {
       throw new Error(`Persona ${personaId} has no generation step`);
     }
+    const step = await this.writeAgentPrompt(persona, brandId, draftStep);
+    if (!step) return skipped;
+    const prompt = 'prompt' in step && step.prompt ? step.prompt : brief;
     const pipelineRequest = {
-      brandId: persona.brandId ?? '',
+      brandId,
       idempotencyKey: `autopilot-${personaId}-${now.toISOString().slice(0, 13)}`,
       organizationId: persona.organizationId,
       personaId,
@@ -378,9 +419,54 @@ export class ContentProductionWorkflowService {
     return { organizationId, released: acquired };
   }
 
-  private async buildPromptFromStrategy(
+  /**
+   * The provider prompt is written by the brand harness agent from the
+   * assembled brand identity, guidance and Knowledge, with the persona brief
+   * as its locked subject. Music has no media harness, so its step takes the
+   * brief itself. A failed or skipped enhancement skips the persona this
+   * cycle instead of generating from an unbranded prompt.
+   */
+  private async writeAgentPrompt(
     persona: PersonaSnapshot,
-  ): Promise<string> {
+    brandId: string,
+    step: PipelineStep,
+  ): Promise<PipelineStep | null> {
+    if (step.type !== 'text-to-image' && step.type !== 'image-to-video')
+      return step;
+    const brief = step.prompt ?? '';
+    try {
+      const receipt = await this.mediaPromptEnhancement.enhance({
+        actorUserId: persona.userId,
+        brandId,
+        contentType: step.type === 'image-to-video' ? 'video' : 'image',
+        harness: true,
+        organizationId: persona.organizationId,
+        prompt: brief,
+      });
+      if (receipt.status === 'applied' && receipt.enhancedPrompt.trim())
+        return { ...step, prompt: receipt.enhancedPrompt };
+      this.logger.warn(
+        `${this.logContext} persona prompt was not brand enhanced; skipping`,
+        { brandId, personaId: persona.id, status: receipt.status },
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.logContext} persona prompt enhancement failed; skipping`,
+        {
+          brandId,
+          error: error instanceof Error ? error.message : String(error),
+          personaId: persona.id,
+        },
+      );
+    }
+    return null;
+  }
+
+  /**
+   * The persona's brief for the agent: who is speaking, in which tone, and
+   * the configured topic with the best measured performance for this persona.
+   */
+  private async buildPersonaBrief(persona: PersonaSnapshot): Promise<string> {
     const strategy = persona.config?.contentStrategy;
     const rows = await this.prisma.contentPerformance.findMany({
       where: scopedWhere(persona.organizationId, {
@@ -392,8 +478,9 @@ export class ContentProductionWorkflowService {
       distinct: ['postId'],
       take: 100,
     });
+    const voice = `Persona: ${persona.label}. Tone: ${strategy?.tone ?? 'engaging'}.`;
     if (!strategy?.topics?.length)
-      return `Create engaging content for ${persona.label}`;
+      return `${voice} Topic: the persona's everyday content.`;
     const ranked = strategy.topics
       .map((topic, index) => {
         const measurements = rows.filter((row) => {
@@ -422,7 +509,7 @@ export class ContentProductionWorkflowService {
       selected.samples > 0
         ? ` Observed feedback: ${selected.samples} prior posts about this topic averaged ${selected.score.toFixed(2)} performance score.`
         : ' No measured topic evidence yet.';
-    return `Create a ${strategy.tone ?? 'engaging'} video about: ${selected.topic}.${feedback}`;
+    return `${voice} Topic: ${selected.topic}.${feedback}`;
   }
 
   private buildStepsFromStrategy(

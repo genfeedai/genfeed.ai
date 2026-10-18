@@ -84,6 +84,7 @@ import { ExternalVoiceCatalogService } from '@api/collections/voices/services/ex
 import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { AdBulkUploadWorkflowService } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
@@ -244,6 +245,7 @@ const WORKER_DOMAIN_SERVICES = [
   AdAutomationWorkflowService,
   AgentCampaignExecutionService,
   AgentCampaignsService,
+  AutonomousProducerInstallService,
   AgentOrchestratorService,
   AgentPublishAuditsService,
   AgentStrategiesService,

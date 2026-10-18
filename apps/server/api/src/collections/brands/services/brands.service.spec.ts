@@ -100,6 +100,7 @@ describe('BrandsService', () => {
   let defaultRecurringContentService: {
     updateScheduleFromAgentConfig: ReturnType<typeof vi.fn>;
   };
+  let producerInstall: { installOnOptIn: ReturnType<typeof vi.fn> };
   let skillsService: {
     assertAccessibleSkillSlugs: ReturnType<typeof vi.fn>;
   };
@@ -155,6 +156,7 @@ describe('BrandsService', () => {
     defaultRecurringContentService = {
       updateScheduleFromAgentConfig: vi.fn().mockResolvedValue(undefined),
     };
+    producerInstall = { installOnOptIn: vi.fn().mockResolvedValue({}) };
     skillsService = {
       assertAccessibleSkillSlugs: vi.fn().mockResolvedValue(undefined),
     };
@@ -224,6 +226,7 @@ describe('BrandsService', () => {
         voiceDefault: vi.fn(async (ref) => ref),
       } as never,
       brandAccessFixture(prisma as never),
+      producerInstall as never,
     );
   });
 
@@ -2315,6 +2318,45 @@ describe('BrandsService', () => {
       });
       delegate.updateMany.mockResolvedValue({ count: 1 });
     }
+
+    const principal = { organizationId: orgId, userId: 'user-1' };
+
+    it('installs the content engine when an authenticated caller opts the brand in', async () => {
+      withStoredConfig({ strategy: { contentTypes: ['post'] } });
+
+      await service.updateAgentConfig(
+        brandId,
+        orgId,
+        { autoPublish: { enabled: true } } as never,
+        principal,
+      );
+
+      expect(producerInstall.installOnOptIn).toHaveBeenCalledWith({
+        organizationId: orgId,
+        principal,
+        producer: 'contentEngine',
+      });
+    });
+
+    it('never installs on a system write or a brand that was already opted in', async () => {
+      withStoredConfig({ strategy: { contentTypes: ['post'] } });
+      await service.updateAgentConfig(brandId, orgId, {
+        autoPublish: { enabled: true },
+      } as never);
+
+      withStoredConfig({
+        autoPublish: { enabled: true },
+        strategy: { contentTypes: ['post'] },
+      });
+      await service.updateAgentConfig(
+        brandId,
+        orgId,
+        { persona: 'Rewritten' },
+        principal,
+      );
+
+      expect(producerInstall.installOnOptIn).not.toHaveBeenCalled();
+    });
 
     it('validates enabled skill slugs at the persistence boundary', async () => {
       withStoredConfig({ enabledSkills: [] });

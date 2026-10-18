@@ -35,6 +35,7 @@ describe('ContentProductionWorkflowService.discoverContentPipelinePersonas', () 
       prisma as never,
       {} as never,
       {} as never,
+      {} as never,
     );
     const action = getActionDefinition(
       'content.production.autopilot.discover-personas',
@@ -74,6 +75,63 @@ describe('ContentProductionWorkflowService.discoverContentPipelinePersonas', () 
   });
 });
 
+describe('ContentProductionWorkflowService.discoverContentEngineBrands', () => {
+  const optedIn = {
+    autoPublish: { enabled: true },
+    strategy: { contentTypes: ['post'] },
+  };
+
+  it('plans only opted-in brands whose current plan period has ended', async () => {
+    const now = Date.now();
+    const brandsService = {
+      findForOrganization: vi.fn().mockResolvedValue([
+        { agentConfig: optedIn, id: 'open-plan', isActive: true },
+        { agentConfig: optedIn, id: 'ended-plan', isActive: true },
+        { agentConfig: optedIn, id: 'no-plan', isActive: true, userId: 'u' },
+        { agentConfig: {}, id: 'not-opted-in', isActive: true },
+        { agentConfig: optedIn, id: 'inactive', isActive: false },
+      ]),
+    };
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        brandId: 'open-plan',
+        config: { periodEnd: new Date(now + 60_000).toISOString() },
+      },
+      {
+        brandId: 'ended-plan',
+        config: { periodEnd: new Date(now - 60_000).toISOString() },
+      },
+    ]);
+    const service = new ContentProductionWorkflowService(
+      brandsService as never,
+      {} as never,
+      {} as never,
+      { contentPlan: { findMany } } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await service.discoverContentEngineBrands('org-1', {
+      state: { acquired: true },
+    });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: { in: ['open-plan', 'ended-plan', 'no-plan'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(
+      (result.items as Array<{ id: string }>).map((item) => item.id),
+    ).toEqual(['ended-plan', 'no-plan']);
+    expect(result.skipped).toBe(3);
+  });
+});
+
 describe('ContentProductionWorkflowService atomic actions', () => {
   function buildService() {
     const contentExecution = {
@@ -89,16 +147,26 @@ describe('ContentProductionWorkflowService atomic actions', () => {
       }),
     };
     const measurements = vi.fn().mockResolvedValue([]);
+    const enhancement = {
+      enhance: vi.fn(async (input: { prompt: string }) => ({
+        enhancedPrompt: `Branded: ${input.prompt}`,
+        status: 'applied',
+      })),
+    };
+    const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     return {
       measurements,
       contentExecution,
+      enhancement,
+      logger,
       service: new ContentProductionWorkflowService(
         {} as never,
         {} as never,
         contentExecution as never,
         { contentPerformance: { findMany: measurements } } as never,
         {} as never,
-        {} as never,
+        enhancement as never,
+        logger as never,
       ),
     };
   }
@@ -150,6 +218,88 @@ describe('ContentProductionWorkflowService atomic actions', () => {
         ),
       }),
     ]);
+  });
+
+  function photoPersona(overrides: Record<string, unknown> = {}) {
+    return {
+      brandId: 'brand-1',
+      config: {
+        contentStrategy: {
+          formats: [PersonaContentFormat.PHOTO],
+          tone: 'playful',
+          topics: ['shipping'],
+        },
+        profileImageUrl: 'https://cdn.example.com/persona.png',
+      },
+      credentialCount: 1,
+      id: 'persona-1',
+      label: 'Founder',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      ...overrides,
+    };
+  }
+
+  it('has the brand harness agent write the provider prompt from the persona brief', async () => {
+    const { enhancement, service } = buildService();
+    const result = await service.prepareContentPipelinePersona({
+      item: photoPersona(),
+      now: '2026-08-28T00:00:00.000Z',
+    });
+
+    expect(enhancement.enhance).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      brandId: 'brand-1',
+      contentType: 'image',
+      harness: true,
+      organizationId: 'org-1',
+      prompt:
+        'Persona: Founder. Tone: playful. Topic: shipping. No measured topic evidence yet.',
+    });
+    const [request] = result.imageItems as Array<Record<string, unknown>>;
+    expect(request).toEqual(
+      expect.objectContaining({
+        prompt:
+          'Branded: Persona: Founder. Tone: playful. Topic: shipping. No measured topic evidence yet.',
+        step: expect.objectContaining({
+          prompt:
+            'Branded: Persona: Founder. Tone: playful. Topic: shipping. No measured topic evidence yet.',
+        }),
+      }),
+    );
+  });
+
+  it('skips the persona instead of generating from an unbranded prompt', async () => {
+    const { enhancement, service } = buildService();
+    enhancement.enhance.mockRejectedValueOnce(new Error('provider down'));
+    const failed = await service.prepareContentPipelinePersona({
+      item: photoPersona(),
+      now: '2026-08-28T00:00:00.000Z',
+    });
+    enhancement.enhance.mockResolvedValueOnce({
+      enhancedPrompt: 'raw',
+      status: 'skipped',
+    });
+    const unenhanced = await service.prepareContentPipelinePersona({
+      item: photoPersona(),
+      now: '2026-08-28T00:00:00.000Z',
+    });
+
+    for (const result of [failed, unenhanced]) {
+      expect(result.status).toBe('skipped');
+      expect(result.imageItems).toEqual([]);
+    }
+  });
+
+  it('skips a persona with no brand to write from', async () => {
+    const { enhancement, service } = buildService();
+    const result = await service.prepareContentPipelinePersona({
+      item: photoPersona({ brandId: undefined }),
+      now: '2026-08-28T00:00:00.000Z',
+    });
+
+    expect(result.status).toBe('skipped');
+    expect(enhancement.enhance).not.toHaveBeenCalled();
   });
 
   it.each([

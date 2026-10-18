@@ -114,6 +114,7 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -196,6 +197,7 @@ import { Module } from '@nestjs/common';
     AgentThreadsModule,
     BrandedTextGenerationModule,
     BrandsCoreModule,
+    MediaPromptEnhancementModule,
     CaptionsModule,
     ContentEngineModule,
     ContentPerformanceModule,
