@@ -21,6 +21,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
@@ -177,9 +178,13 @@ export default function TrainingDetail({
           </Card>
         </Container>
 
-        <Container moduleChrome headerTabs={trainingSubNavHeaderTabs}>
+        <AdminPageShell
+          title="Training"
+          tabs={trainingSubNavHeaderTabs}
+          onRefresh={() => void loadTraining()}
+        >
           {null}
-        </Container>
+        </AdminPageShell>
       </>
     );
   }
@@ -272,7 +277,11 @@ export default function TrainingDetail({
         )}
       </Container>
 
-      <Container moduleChrome headerTabs={trainingSubNavHeaderTabs}>
+      <AdminPageShell
+        title="Training"
+        tabs={trainingSubNavHeaderTabs}
+        onRefresh={() => void loadTraining()}
+      >
         {training ? (
           <TrainingProvider training={training} refreshTraining={loadTraining}>
             {children}
@@ -280,7 +289,7 @@ export default function TrainingDetail({
         ) : (
           <Loading isFullSize={false} />
         )}
-      </Container>
+      </AdminPageShell>
     </>
   );
 }

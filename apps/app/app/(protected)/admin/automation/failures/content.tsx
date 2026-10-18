@@ -5,9 +5,8 @@ import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { logger } from '@services/core/logger.service';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -79,17 +78,11 @@ export default function AgentFailuresPage() {
   }
 
   return (
-    <Container
-      label={translate('title')}
-      description={translate('description')}
-      moduleChrome
-      refresh={
-        <ButtonRefresh
-          onClick={refreshFailures}
-          isRefreshing={state === 'loading'}
-        />
-      }
-      right={
+    <AdminPageShell
+      title={translate('title')}
+      onRefresh={refreshFailures}
+      isRefreshing={state === 'loading'}
+      filters={
         <Select value={reason ?? 'all'} onValueChange={changeReason}>
           <SelectTrigger aria-label={translate('reasonFilter')}>
             <SelectValue />
@@ -107,7 +100,6 @@ export default function AgentFailuresPage() {
     >
       <WorkspaceSurface
         framed={state === 'ready' && failures.length > 0}
-        title={translate('feed')}
         tone="muted"
       >
         {state === 'loading' ? (
@@ -185,6 +177,6 @@ export default function AgentFailuresPage() {
           onClick={() => setOffset((value) => value + 20)}
         />
       </WorkspaceSurface>
-    </Container>
+    </AdminPageShell>
   );
 }

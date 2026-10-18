@@ -34,12 +34,18 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    leading,
+    refresh,
     right,
   }: {
     children: ReactNode;
+    leading?: ReactNode;
+    refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
+      {leading}
+      {refresh}
       {right}
       {children}
     </main>
@@ -130,7 +136,10 @@ describe('admin voice collection', () => {
         search: 'Ada',
       }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Sync ElevenLabs' }));
+    await user.click(screen.getByRole('button', { name: /Sync provider/ }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Sync ElevenLabs' }),
+    );
     await waitFor(() =>
       expect(mocks.service.importCatalogVoices).toHaveBeenCalledWith([
         VoiceProvider.ELEVENLABS,

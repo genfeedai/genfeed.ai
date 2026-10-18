@@ -2,8 +2,8 @@
 
 import { PageScope } from '@genfeedai/contracts';
 import TrainingsList from '@pages/trainings/list/trainings-list';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Container from '@ui/layout/container/Container';
+import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { GraduationCap } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 
@@ -36,23 +36,19 @@ export default function AdminTrainingsPage() {
   }, []);
 
   return (
-    <Container
-      label="Trainings"
-      description="Create and manage model trainings."
+    <AdminPageShell
+      title="Trainings"
       icon={GraduationCap}
-      refresh={
-        <ButtonRefresh
-          onClick={() => {
-            void handleRefresh();
-          }}
-          isRefreshing={isRefreshing}
-        />
-      }
+      onRefresh={() => {
+        void handleRefresh();
+      }}
+      isRefreshing={isRefreshing}
+      dropdowns={<AdminOrgBrandUrlFilter />}
     >
       <TrainingsList
         scope={PageScope.SUPERADMIN}
         onRefreshRegister={handleRefreshRegister}
       />
-    </Container>
+    </AdminPageShell>
   );
 }

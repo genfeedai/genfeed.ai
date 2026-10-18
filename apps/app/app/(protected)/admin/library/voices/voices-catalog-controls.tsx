@@ -5,11 +5,19 @@ import {
   VoiceProvider,
 } from '@genfeedai/contracts';
 import type {
-  VoicesCatalogControlsProps as Props,
   ProviderFilter,
+  VoicesCatalogFiltersProps,
+  VoicesCatalogSearchProps,
+  VoicesSyncControlsProps,
 } from '@props/admin/voices.props';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -18,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { RefreshCw } from 'lucide-react';
+import { ChevronDown, RefreshCw } from 'lucide-react';
 
 const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
   { label: 'All providers', value: 'all' },
@@ -26,80 +34,100 @@ const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
   { label: 'HeyGen', value: VoiceProvider.HEYGEN },
 ];
 
-export default function VoicesCatalogControls({
-  view,
-  onViewChange,
-  isSyncingAll,
-  providerFilter,
+const SYNC_PROVIDERS: Array<{ label: string; provider: VoiceProvider }> = [
+  { label: 'Sync ElevenLabs', provider: VoiceProvider.ELEVENLABS },
+  { label: 'Sync HeyGen', provider: VoiceProvider.HEYGEN },
+];
+
+export function VoicesCatalogSearch({
   search,
-  syncingProvider,
-  onProviderFilterChange,
   onSearchChange,
-  onSync,
-}: Props) {
+}: VoicesCatalogSearchProps) {
   return (
-    <CollectionToolbar
-      view={view}
-      onViewChange={onViewChange}
-      search={
-        <FormSearchbar
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search by name or external ID"
-          size={ComponentSize.MD}
-          value={search}
-        />
-      }
-      filters={
-        <>
-          <Select
-            onValueChange={(value) =>
-              onProviderFilterChange(value as ProviderFilter)
-            }
-            value={providerFilter}
-          >
-            <SelectTrigger aria-label="Provider" className="w-auto min-w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PROVIDER_FILTERS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              isDisabled={isSyncingAll || syncingProvider !== null}
-              onClick={() => onSync()}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-            >
-              <RefreshCw className="mr-2 size-4" />
-              Sync All
-            </Button>
-            <Button
-              isDisabled={isSyncingAll || syncingProvider !== null}
-              onClick={() => onSync([VoiceProvider.ELEVENLABS])}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              Sync ElevenLabs
-            </Button>
-            <Button
-              isDisabled={isSyncingAll || syncingProvider !== null}
-              onClick={() => onSync([VoiceProvider.HEYGEN])}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              Sync HeyGen
-            </Button>
-          </div>
-        </>
-      }
+    <FormSearchbar
+      onChange={(event) => onSearchChange(event.target.value)}
+      placeholder="Search by name or external ID"
+      size={ComponentSize.MD}
+      value={search}
     />
+  );
+}
+
+export function VoicesCatalogFilters({
+  providerFilter,
+  view,
+  onProviderFilterChange,
+  onViewChange,
+}: VoicesCatalogFiltersProps) {
+  return (
+    <>
+      <Select
+        onValueChange={(value) =>
+          onProviderFilterChange(value as ProviderFilter)
+        }
+        value={providerFilter}
+      >
+        <SelectTrigger aria-label="Provider" className="w-auto min-w-40">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PROVIDER_FILTERS.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <CollectionToolbar view={view} onViewChange={onViewChange} />
+    </>
+  );
+}
+
+/** The per-provider sync dropdown; "Sync All" is the page's primary action. */
+export function VoicesSyncMenu({
+  isSyncingAll,
+  syncingProvider,
+  onSync,
+}: VoicesSyncControlsProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          isDisabled={isSyncingAll || syncingProvider !== null}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          withWrapper={false}
+        >
+          Sync provider
+          <ChevronDown className="ml-2 size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {SYNC_PROVIDERS.map(({ label, provider }) => (
+          <DropdownMenuItem key={provider} onSelect={() => onSync([provider])}>
+            {label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function VoicesSyncAllButton({
+  isSyncingAll,
+  syncingProvider,
+  onSync,
+}: VoicesSyncControlsProps) {
+  return (
+    <Button
+      isDisabled={isSyncingAll || syncingProvider !== null}
+      onClick={() => onSync()}
+      size={ButtonSize.SM}
+      variant={ButtonVariant.DEFAULT}
+      withWrapper={false}
+    >
+      <RefreshCw className="mr-2 size-4" />
+      Sync All
+    </Button>
   );
 }
