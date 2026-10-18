@@ -11,6 +11,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const user: AuthenticatedUser = {
+  brandId: 'brand-1',
   id: 'auth-user',
   organizationId: 'org-1',
   userId: 'user-1',
