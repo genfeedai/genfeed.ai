@@ -34,7 +34,6 @@ const TABLE_COPY: Record<string, string> = {
   'table.costFree': 'Free',
   'table.costHeader': 'Cost',
   'table.defaultHeader': 'Default',
-  'table.keyHeader': 'Key',
   'table.labelHeader': 'Label',
   'table.legacyStatus': 'Legacy',
   'table.lifecycleHeader': 'Lifecycle',
@@ -198,14 +197,6 @@ describe('buildModelsTableColumns', () => {
       screen.queryByRole('combobox', { name: 'Successor for Flux Dev' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Successor: Flux Pro')).toBeInTheDocument();
-  });
-
-  it('renders the model key on one compact line', () => {
-    renderColumn('Key', buildModel({ key: 'openrouter/auto-beta' }), true);
-
-    const key = screen.getByText('openrouter/auto-beta');
-    expect(key).toHaveClass('truncate', 'whitespace-nowrap', 'text-2xs');
-    expect(key).toHaveAttribute('title', 'openrouter/auto-beta');
   });
 
   it.each(Object.values(ModelProvider))(
@@ -417,7 +408,7 @@ describe('buildModelsTableColumns', () => {
     );
   });
 
-  it('places the model description under its label', () => {
+  it('keeps the key and description out of the admin table', () => {
     const model = buildModel({ description: 'Detailed model description' });
     const columns = buildModelsTableColumns({
       handleAdminToggle: vi.fn(),
@@ -432,8 +423,29 @@ describe('buildModelsTableColumns', () => {
       translate,
     });
 
+    expect(columns.map((column) => column.key)).not.toContain('key');
     expect(columns.map((column) => column.header)).not.toContain('Provider');
     expect(columns.map((column) => column.header)).not.toContain('Category');
+    const labelColumn = columns.find((column) => column.header === 'Label');
+
+    expect(labelColumn?.subtext).toBeUndefined();
+  });
+
+  it('places the model description under its label outside admin', () => {
+    const model = buildModel({ description: 'Detailed model description' });
+    const columns = buildModelsTableColumns({
+      handleAdminToggle: vi.fn(),
+      handleLifecycleChange: vi.fn(),
+      handleToggleModel: vi.fn(),
+      isAdminScope: false,
+      isModelEnabled: () => true,
+      isOnlyDefaultInCategory: () => false,
+      onOpenDetails: vi.fn(),
+      togglingModelId: null,
+      models: [model],
+      translate,
+    });
+
     const labelColumn = columns.find((column) => column.header === 'Label');
 
     expect(labelColumn?.subtext?.(model)).toBe('Detailed model description');

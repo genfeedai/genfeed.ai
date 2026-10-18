@@ -412,26 +412,8 @@ export function buildModelsTableColumns({
           </div>
         </div>
       ),
-      subtext: (model: IModel) => model.description,
+      subtext: isAdminScope ? undefined : (model: IModel) => model.description,
     },
-    ...(isAdminScope
-      ? [
-          {
-            className: 'max-w-[11rem]',
-            header: translate('table.keyHeader'),
-            key: 'key',
-            sortable: true,
-            render: (model: IModel) => (
-              <span
-                className="block max-w-[11rem] truncate whitespace-nowrap font-mono text-2xs text-muted-foreground"
-                title={model.key}
-              >
-                {model.key}
-              </span>
-            ),
-          },
-        ]
-      : []),
     ...(isAdminScope
       ? [
           {
