@@ -1,5 +1,4 @@
 // Components
-export { AgentActivityFeed } from '@genfeedai/agent/components/AgentActivityFeed';
 export {
   AgentApiServiceProvider,
   useAgentApiService,

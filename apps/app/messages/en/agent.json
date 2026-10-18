@@ -20,20 +20,6 @@
     "onboardingUrlPlaceholder": "Paste a public URL…",
     "outputs": "Outputs"
   },
-  "activityFeed": {
-    "budget": "Budget",
-    "completed": "Completed",
-    "contentGenerated": "{count} content generated",
-    "credits": "{count} credits",
-    "empty": "No activity yet",
-    "emptyDescription": "Activity from agent runs will appear here.",
-    "failed": "Failed",
-    "loadError": "Could not load agent activity.",
-    "recent": "Recent Activity",
-    "view": "View",
-    "viewConversation": "View conversation",
-    "viewExecution": "View execution"
-  },
   "threadList": {
     "agent": "Agent",
     "fork": "Fork thread",
@@ -489,6 +475,17 @@
     "openDraft": "Open draft",
     "openDraftAria": "Open {platform} draft in review",
     "remainingInReview": "+{count} more {count, plural, one {post} other {posts}} in review"
+  },
+  "reviewGateCard": {
+    "approve": "Approve ({count})",
+    "defaultTitle": "Review queue",
+    "empty": "No items to review",
+    "failed": "Some items were not resolved. Try again, or open the review inbox.",
+    "partiallySubmitted": "{count, plural, one {# item was resolved} other {# items were resolved}} before the error.",
+    "readOnly": "Decisions are unavailable here. Open the review inbox to decide these items.",
+    "reject": "Reject ({count})",
+    "selectAll": "Select all",
+    "submitted": "{count, plural, one {Review submitted for # item} other {Review submitted for # items}}"
   },
   "dock": {
     "emptyTitle": "What do you want to do?",

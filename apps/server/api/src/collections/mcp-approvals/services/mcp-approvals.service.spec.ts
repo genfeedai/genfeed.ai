@@ -739,6 +739,120 @@ describe('McpApprovalsService', () => {
       });
     },
   );
+  describe('claimExecutionForActor', () => {
+    it('lets the requester redeem an approval a reviewer granted', async () => {
+      vi.spyOn(service, 'findOwned').mockResolvedValue({
+        id: 'approval-claim',
+        userId: 'requester',
+      } as McpApprovalDocument);
+      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.claimExecutionForActor(
+          'approval-claim',
+          'org-1',
+          'requester',
+          false,
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('lets a reviewer claim another member approval', async () => {
+      vi.spyOn(service, 'findOwned').mockResolvedValue({
+        id: 'approval-claim',
+        userId: 'requester',
+      } as McpApprovalDocument);
+      mcpApproval.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.claimExecutionForActor(
+          'approval-claim',
+          'org-1',
+          'admin',
+          true,
+        ),
+      ).resolves.toBe(false);
+    });
+
+    it('refuses a member who neither asked nor reviews', async () => {
+      vi.spyOn(service, 'findOwned').mockResolvedValue({
+        id: 'approval-claim',
+        userId: 'requester',
+      } as McpApprovalDocument);
+
+      await expect(
+        service.claimExecutionForActor(
+          'approval-claim',
+          'org-1',
+          'bystander',
+          false,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+  });
+  describe('attachResultForActor', () => {
+    beforeEach(() => {
+      vi.spyOn(service, 'findOwned').mockResolvedValue({
+        id: 'approval-result',
+        userId: 'requester',
+      } as McpApprovalDocument);
+    });
+
+    it('lets the requester record the outcome of a claimed run only', async () => {
+      await service.attachResultForActor(
+        'approval-result',
+        'org-1',
+        'requester',
+        false,
+        { ok: true },
+      );
+
+      expect(mcpApproval.updateMany).toHaveBeenCalledWith({
+        data: { executedAt: expect.any(Date), result: { ok: true } },
+        where: expect.objectContaining({
+          executionClaimedAt: { not: null },
+          id: 'approval-result',
+          isDeleted: false,
+          organizationId: 'org-1',
+          result: { equals: Prisma.DbNull },
+          status: 'APPROVED',
+        }),
+      });
+    });
+
+    it('lets a reviewer record any outcome of the organization', async () => {
+      await service.attachResultForActor(
+        'approval-result',
+        'org-1',
+        'admin',
+        true,
+        { ok: true },
+      );
+
+      expect(mcpApproval.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({
+            executionClaimedAt: expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    it('refuses a member who neither asked nor reviews', async () => {
+      await expect(
+        service.attachResultForActor(
+          'approval-result',
+          'org-1',
+          'bystander',
+          false,
+          { ok: true },
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('replacePending', () => {
     const original: McpApprovalDocument = {
       id: 'old-approval',

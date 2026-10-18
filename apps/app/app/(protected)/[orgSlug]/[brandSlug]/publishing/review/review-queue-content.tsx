@@ -3,6 +3,7 @@
 import Loading from '@ui/loading/default/Loading';
 import { Suspense } from 'react';
 import ReviewQueueView from './components/ReviewQueueView';
+import { useReviewInboxApprovals } from './useReviewInboxApprovals';
 import { useReviewQueueContent } from './useReviewQueueContent';
 
 function ReviewQueueContentContent() {
@@ -42,6 +43,7 @@ function ReviewQueueContentContent() {
     handleUnassignItem,
     setSelectedPostId,
   } = useReviewQueueContent();
+  const approvals = useReviewInboxApprovals();
 
   if (isTurboRunsLoading) {
     return <Loading />;
@@ -54,6 +56,7 @@ function ReviewQueueContentContent() {
       activeTurboRun={activeTurboRun}
       activeTurboRunError={activeTurboRunError as Error | null}
       activeTurboRunId={activeTurboRunId}
+      approvals={approvals}
       turboRunList={turboRunList}
       turboRunsError={turboRunsError as Error | null}
       canDiscardTurboRun={canDiscardTurboRun}
@@ -77,7 +80,9 @@ function ReviewQueueContentContent() {
       onDiscardTurboRun={handleDiscardTurboRun}
       onClosePostDetail={() => setSelectedPostId(null)}
       onFilterChange={handleFilterChange}
-      onRefresh={refreshQueue}
+      onRefresh={async () => {
+        await Promise.all([refreshQueue(), approvals.refresh()]);
+      }}
       onRequestChanges={handleRequestChanges}
       onReject={handleRejectItem}
       onSelectItem={handleSelectItem}

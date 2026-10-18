@@ -67,6 +67,8 @@ export * from '@serializers/server/content/publish-approval.serializer';
 export * from '@serializers/server/content/recurrence-rule.serializer';
 export * from '@serializers/server/content/release-attachment.serializer';
 export * from '@serializers/server/content/release-group.serializer';
+export * from '@serializers/server/content/review-inbox-decision.serializer';
+export * from '@serializers/server/content/review-inbox-item.serializer';
 export * from '@serializers/server/content/rss-source.serializer';
 export * from '@serializers/server/content/schedule.serializer';
 export * from '@serializers/server/content/speech-transcription.serializer';

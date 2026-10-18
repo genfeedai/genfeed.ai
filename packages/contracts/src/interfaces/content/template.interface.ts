@@ -118,6 +118,8 @@ export interface ITemplateFilter {
   difficulty?: TemplateDifficulty[];
   isPremium?: boolean;
   scope?: string;
+  /** Also return the platform (system) templates. */
+  includeSystem?: boolean;
   search?: string;
   minRating?: number;
   sortBy?: TemplateSortBy;

@@ -2,6 +2,7 @@ import * as brandsApi from '@genfeedai/agent/services/agent-api/agent-api.brands
 import * as executionsApi from '@genfeedai/agent/services/agent-api/agent-api.executions';
 import * as mediaApi from '@genfeedai/agent/services/agent-api/agent-api.media';
 import * as mentionsApi from '@genfeedai/agent/services/agent-api/agent-api.mentions';
+import * as reviewInboxApi from '@genfeedai/agent/services/agent-api/agent-api.review-inbox';
 import * as threadsApi from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import * as workObjectsApi from '@genfeedai/agent/services/agent-api/agent-api.work-objects';
 import * as workflowsApi from '@genfeedai/agent/services/agent-api/agent-api.workflows';
@@ -119,6 +120,12 @@ export class AgentApiService extends AgentBaseApiService {
   getWorkflowInterface = workflowsApi.getWorkflowInterface.bind(null, this);
   triggerWorkflow = workflowsApi.triggerWorkflow.bind(null, this);
   createManualReviewTurboRun = workflowsApi.createManualReviewTurboRun.bind(
+    null,
+    this,
+  );
+
+  // Review inbox
+  resolveReviewInboxItem = reviewInboxApi.resolveReviewInboxItem.bind(
     null,
     this,
   );

@@ -15,6 +15,7 @@ import {
   readPricingReport,
   readSystemBrand,
   seedArticles,
+  seedTemplates,
   seedWorkflows,
   syncProviderPrices,
   updateSystemBrand,
@@ -223,6 +224,16 @@ async function runSeedArticles(options: {
   if (summary.dryRun) print(chalk.dim('\nRe-run with --yes to apply.'));
 }
 
+async function runSeedTemplates(options: { yes?: boolean }): Promise<void> {
+  const summary = await seedTemplates({ dryRun: !options.yes });
+
+  print(formatHeader(`Templates seed${summary.dryRun ? ' (dry run)' : ''}\n`));
+  print(formatLabel(summary.dryRun ? 'Would create' : 'Created', String(summary.written)));
+  for (const key of summary.keys) print(chalk.dim(`  ${key}`));
+  print(formatLabel('Unchanged', String(summary.unchanged)));
+  if (summary.dryRun) print(chalk.dim('\nRe-run with --yes to apply.'));
+}
+
 async function runSeedWorkflows(options: {
   allBrands?: boolean;
   brandId?: string;
@@ -353,6 +364,18 @@ function createSeedCommand(): Command {
         .action(async (options) => {
           try {
             await runSeedArticles(options);
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
+    .addCommand(
+      new Command('templates')
+        .description('Create the missing platform (system) templates')
+        .option('--yes', 'Apply instead of previewing')
+        .action(async (options) => {
+          try {
+            await runSeedTemplates(options);
           } catch (error) {
             handleError(error);
           }

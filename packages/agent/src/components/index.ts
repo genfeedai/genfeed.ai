@@ -3,7 +3,6 @@ export {
   AdsSearchResultsCard,
   CampaignLaunchPrepCard,
 } from '@genfeedai/agent/components/AdsAgentCards';
-export { AgentActivityFeed } from '@genfeedai/agent/components/AgentActivityFeed';
 export { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 export { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 export { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';

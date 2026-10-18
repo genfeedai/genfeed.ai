@@ -19,12 +19,15 @@ import {
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import { toTemplateView } from '../template-view';
 import { DetailCard, MetadataRow } from './template-detail-helpers';
 import TemplateSidebar from './template-sidebar';
 import TemplateVariablesCard from './template-variables-card';
 
 export default function TemplateDetail({ templateId }: TemplateDetailProps) {
+  const t = useTranslations('pages.adminTemplates');
   const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
 
@@ -47,16 +50,17 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
       logger.info('Loaded template', { id: templateId });
     } catch (error) {
       logger.error('Failed to load template', error);
-      notificationsService.error('Failed to load template');
+      notificationsService.error(t('detailLoadError'));
       push(APP_ROUTES.ADMIN.CONTENT.TEMPLATES);
     }
-  }, [templateId, getTemplatesService, notificationsService, push]);
+  }, [templateId, getTemplatesService, notificationsService, push, t]);
 
   useEffect(() => {
     loadTemplate();
   }, [loadTemplate]);
 
   const isLoading = template === undefined;
+  const view = template ? toTemplateView(template) : undefined;
 
   return (
     <div
@@ -65,13 +69,17 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
     >
       <div className="mb-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Heading size="2xl">{template ? template.name : 'Template'}</Heading>
+          <Heading size="2xl">
+            {template ? toTemplateView(template).title : t('detailTemplate')}
+          </Heading>
           {template?.isActive !== undefined && (
             <Badge variant={template.isActive ? 'success' : 'warning'}>
-              {template.isActive ? 'Active' : 'Inactive'}
+              {template.isActive ? t('active') : t('inactive')}
             </Badge>
           )}
-          {template?.isPremium && <Badge variant="primary">Premium</Badge>}
+          {template?.isPremium && (
+            <Badge variant="primary">{t('detailPremium')}</Badge>
+          )}
         </div>
       </div>
 
@@ -83,16 +91,13 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
       ) : !template ? (
         <Card>
           <div className="p-6">
-            <Text color="subtle-70">
-              The template you are looking for does not exist or has been
-              deleted.
-            </Text>
+            <Text color="subtle-70">{t('detailNotFound')}</Text>
           </div>
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="flex flex-col gap-6 lg:col-span-2">
-            <DetailCard title="Overview">
+            <DetailCard title={t('detailOverview')}>
               {template.description && (
                 <Text as="p" color="subtle-70">
                   {template.description}
@@ -100,18 +105,22 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
               )}
 
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="capitalize">
-                  {template.category.replace(/-/g, ' ')}
-                </Badge>
-                <Badge variant="outline" className="capitalize">
-                  {template.type}
-                </Badge>
-                {template.industry.map((ind) => (
+                {template.category && (
+                  <Badge variant="outline" className="capitalize">
+                    {template.category.replace(/-/g, ' ')}
+                  </Badge>
+                )}
+                {template.type && (
+                  <Badge variant="outline" className="capitalize">
+                    {template.type}
+                  </Badge>
+                )}
+                {(template.industry ?? []).map((ind) => (
                   <Badge key={ind} variant="outline" className="capitalize">
                     {ind.replace(/-/g, ' ')}
                   </Badge>
                 ))}
-                {template.tags.map((tag) => (
+                {(template.tags ?? []).map((tag) => (
                   <Badge key={tag} variant="ghost">
                     {tag}
                   </Badge>
@@ -121,7 +130,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
               {template.metadata?.difficulty && (
                 <Text size="sm" color="subtle-60">
                   <Text as="span" weight="medium">
-                    Difficulty:{' '}
+                    {t('detailDifficulty')}{' '}
                   </Text>
                   <span className="capitalize">
                     {template.metadata.difficulty}
@@ -130,48 +139,53 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
               )}
             </DetailCard>
 
-            <TemplateVariablesCard variables={template.variables} />
+            <TemplateVariablesCard variables={template.variables ?? []} />
 
-            <DetailCard title="Content">
+            <DetailCard title={t('detailContent')}>
               <div className="flex flex-col gap-3">
-                {template.content.prompt && (
+                {view?.key && (
+                  <MetadataRow label={t('detailKey')}>{view.key}</MetadataRow>
+                )}
+                {view?.body && (
                   <div>
                     <Text as="p" size="sm" weight="medium" className="mb-1">
-                      Prompt:
+                      {t('detailPrompt')}
                     </Text>
                     <Pre variant="debug" size="md" className="text-sm">
-                      {template.content.prompt}
+                      {view.body}
                     </Pre>
                   </div>
                 )}
-                {template.content.style && (
-                  <MetadataRow label="Style">
-                    {template.content.style}
+                {template.content?.style && (
+                  <MetadataRow label={t('detailStyle')}>
+                    {template.content?.style}
                   </MetadataRow>
                 )}
-                {template.content.mood && (
-                  <MetadataRow label="Mood">
-                    {template.content.mood}
+                {template.content?.mood && (
+                  <MetadataRow label={t('detailMood')}>
+                    {template.content?.mood}
                   </MetadataRow>
                 )}
-                {template.content.aspectRatio && (
-                  <MetadataRow label="Aspect Ratio">
-                    {template.content.aspectRatio}
+                {template.content?.aspectRatio && (
+                  <MetadataRow label={t('detailAspectRatio')}>
+                    {template.content?.aspectRatio}
                   </MetadataRow>
                 )}
-                {template.content.duration && (
-                  <MetadataRow label="Duration">
-                    {template.content.duration} seconds
+                {template.content?.duration && (
+                  <MetadataRow label={t('detailDuration')}>
+                    {t('detailSeconds', {
+                      count: template.content?.duration,
+                    })}
                   </MetadataRow>
                 )}
-                {template.content.structure && (
+                {template.content?.structure && (
                   <Collapsible className="rounded-lg bg-tertiary">
                     <CollapsibleTrigger className="w-full cursor-pointer list-none px-4 py-3 text-left text-sm font-medium">
-                      Structure
+                      {t('detailStructure')}
                     </CollapsibleTrigger>
                     <CollapsibleContent className="px-4 pb-4">
                       <Pre>
-                        {JSON.stringify(template.content.structure, null, 2)}
+                        {JSON.stringify(template.content?.structure, null, 2)}
                       </Pre>
                     </CollapsibleContent>
                   </Collapsible>

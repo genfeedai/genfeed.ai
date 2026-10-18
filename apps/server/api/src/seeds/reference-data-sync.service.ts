@@ -1,4 +1,5 @@
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
+import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import {
   type ReferenceDataDomainName,
   type ReferenceDataDomainSummary,
@@ -19,6 +20,7 @@ export class ReferenceDataSyncService {
   constructor(
     private readonly logger: LoggerService,
     private readonly models: ModelCatalogSeedService,
+    private readonly platformTemplates: PlatformTemplateSeedService,
     private readonly prisma: PrismaService,
     private readonly skills: SkillCatalogSeedService,
     private readonly studioElements: StudioElementSeedService,
@@ -60,6 +62,17 @@ export class ReferenceDataSyncService {
           failed: [],
           unchanged: result.skipped,
           written: result.inserted + result.updated,
+        };
+      }),
+    );
+
+    domains.push(
+      await this.runDomain('platform-templates', async () => {
+        const result = await this.platformTemplates.reconcileCatalog();
+        return {
+          failed: [],
+          unchanged: result.unchanged,
+          written: result.written,
         };
       }),
     );
