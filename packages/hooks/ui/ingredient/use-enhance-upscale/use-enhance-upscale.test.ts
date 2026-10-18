@@ -100,6 +100,90 @@ describe('useEnhanceUpscale', () => {
     mockPostUpscale.mockResolvedValue({ id: 'new-ingredient' });
   });
 
+  it('does not refresh a new actor scope when an accepted upscale finishes late', async () => {
+    let resolveOutput: ((value: { id: string }) => void) | undefined;
+    mockPostUpscale.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOutput = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ scopeKey }) => useEnhanceUpscale({ ...defaultParams, scopeKey }),
+      {
+        initialProps: { scopeKey: 'org:brand:actor:session-1' },
+      },
+    );
+    await act(async () => {
+      await result.current.handleUpscale({
+        id: 'original-source',
+        category: IngredientCategory.IMAGE,
+      } as IIngredient);
+    });
+    let pending: Promise<void> | undefined;
+    await act(async () => {
+      pending = result.current.executeUpscale();
+    });
+    expect(mockPostUpscale).toHaveBeenCalledTimes(1);
+    expect(result.current.upscalingSourceId).toBe('original-source');
+    rerender({ scopeKey: 'org:brand:actor:session-2' });
+    expect(result.current.upscalingSourceId).toBeUndefined();
+    await act(async () => {
+      resolveOutput?.({ id: 'separate-child' });
+      await pending;
+    });
+    expect(mockOnRefresh).not.toHaveBeenCalled();
+  });
+
+  it('hides a confirmation after the actor scope changes', async () => {
+    const { result, rerender } = renderHook(
+      ({ scopeKey }) => useEnhanceUpscale({ ...defaultParams, scopeKey }),
+      { initialProps: { scopeKey: 'org:brand:actor:session-1' } },
+    );
+    await act(async () => {
+      await result.current.handleUpscale({
+        id: 'source',
+        category: IngredientCategory.IMAGE,
+      } as IIngredient);
+    });
+    expect(result.current.upscaleConfirmData?.ingredient?.id).toBe('source');
+    rerender({ scopeKey: 'org:brand:actor:session-2' });
+    expect(result.current.upscaleConfirmData).toBeNull();
+  });
+
+  it('rejects upscale dispatch after the actor scope changes during service acquisition', async () => {
+    let resolveService:
+      | ((service: { postUpscale: typeof mockPostUpscale }) => void)
+      | undefined;
+    mockGetImagesService.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveService = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ scopeKey }) => useEnhanceUpscale({ ...defaultParams, scopeKey }),
+      { initialProps: { scopeKey: 'org:brand:actor:session-1' } },
+    );
+    await act(async () => {
+      await result.current.handleUpscale({
+        id: 'source',
+        category: IngredientCategory.IMAGE,
+      } as IIngredient);
+    });
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.executeUpscale();
+    });
+    rerender({ scopeKey: 'org:brand:actor:session-2' });
+    await act(async () => {
+      resolveService?.({ postUpscale: mockPostUpscale });
+      await expect(pending).rejects.toThrow('model or price changed');
+    });
+    expect(mockPostUpscale).not.toHaveBeenCalled();
+    expect(mockOnRefresh).not.toHaveBeenCalled();
+  });
+
   describe('Initial State', () => {
     it('returns all expected functions and state', () => {
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
@@ -680,6 +764,7 @@ describe('useEnhanceUpscale', () => {
       expect(mockPostUpscale).not.toHaveBeenCalled();
       mockUseElements.mockReturnValue(defaultElements);
       rerender();
+      expect(result.current.upscalingSourceId).toBeUndefined();
       await act(async () => {
         await result.current.handleUpscale(image);
       });

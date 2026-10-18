@@ -1,12 +1,36 @@
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { useStudioPlaygroundGallery } from '@pages/studio/playground/hooks/useStudioPlaygroundGallery';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { useCallback } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ findAllPage: vi.fn(), error: vi.fn() }));
-const getService = async () => ({ findAllPage: mocks.findAllPage });
+const mocks = vi.hoisted(() => ({
+  findAllPage: vi.fn(),
+  error: vi.fn(),
+  getService: vi.fn(),
+  identity: { userId: 'user-a', sessionId: 'session-a', orgId: 'org-a' },
+  organizationId: 'org-a',
+  apiEndpoint: 'https://api.example.test',
+}));
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: mocks.organizationId }),
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => mocks.identity,
+}));
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    get apiEndpoint() {
+      return mocks.apiEndpoint;
+    },
+  },
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => getService,
+  useAuthedService: () => {
+    const { userId, sessionId, orgId } = mocks.identity;
+    // biome-ignore lint/correctness/useExhaustiveDependencies: Mirror the canonical auth getter identity contract.
+    return useCallback(() => mocks.getService(), [userId, sessionId, orgId]);
+  },
 }));
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: {},
@@ -46,6 +70,14 @@ describe('Studio history recovery with the real bounded loader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findAllPage.mockReset();
+    mocks.getService.mockReset().mockResolvedValue({
+      findAllPage: mocks.findAllPage,
+    });
+    mocks.identity.userId = 'user-a';
+    mocks.identity.sessionId = 'session-a';
+    mocks.identity.orgId = 'org-a';
+    mocks.organizationId = 'org-a';
+    mocks.apiEndpoint = 'https://api.example.test';
   });
 
   it('loads a complete snapshot and supports a successful empty result', async () => {
@@ -227,5 +259,161 @@ describe('Studio history recovery with the real bounded loader', () => {
       second.resolve(page(['late']));
     });
     expect(mocks.error).not.toHaveBeenCalled();
+  });
+  it.each([
+    'actor',
+    'session',
+    'auth organization',
+    'context organization',
+    'api',
+  ] as const)(
+    'immediately discards prior-owner rows and error when %s changes',
+    async (change) => {
+      queueCategoryPages(['old-owner']);
+      const { result, rerender } = renderHook(() =>
+        useStudioPlaygroundGallery(scope),
+      );
+      await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
+      mocks.findAllPage.mockRejectedValue(new Error('Refresh failed'));
+      act(() => result.current.refresh());
+      await waitFor(() => expect(result.current.galleryError).toBe('refresh'));
+      mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+      if (change === 'actor') mocks.identity.userId = 'user-b';
+      else if (change === 'session') mocks.identity.sessionId = 'session-b';
+      else if (change === 'auth organization') mocks.identity.orgId = 'org-b';
+      else if (change === 'context organization')
+        mocks.organizationId = 'org-b';
+      else mocks.apiEndpoint = 'https://other-api.example.test';
+      rerender();
+      expect(result.current.storedJobs).toEqual([]);
+      expect(result.current.galleryError).toBeNull();
+      expect(result.current.isLoadingGallery).toBe(true);
+      await waitFor(() =>
+        expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 3),
+      );
+    },
+  );
+
+  it('treats replacement-owner failure as an empty load failure', async () => {
+    queueCategoryPages(['old-owner']);
+    const { result, rerender } = renderHook(() =>
+      useStudioPlaygroundGallery(scope),
+    );
+    await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
+    mocks.findAllPage.mockRejectedValue(new Error('New owner offline'));
+    mocks.identity.userId = 'user-b';
+    rerender();
+    await waitFor(() => expect(result.current.galleryError).toBe('load'));
+    expect(result.current.storedJobs).toEqual([]);
+    expect(result.current.isLoadingGallery).toBe(false);
+  });
+
+  it.each(['success', 'failure'] as const)(
+    'ignores old-owner %s after an actor scope round trip',
+    async (outcome) => {
+      const old = deferred<ReturnType<typeof page>>();
+      mocks.findAllPage.mockReturnValue(old.promise);
+      const { result, rerender } = renderHook(() =>
+        useStudioPlaygroundGallery(scope),
+      );
+      await waitFor(() =>
+        expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT),
+      );
+      const signal = mocks.findAllPage.mock.calls[0][1] as AbortSignal;
+      mocks.findAllPage.mockResolvedValue(page(['owner-b']));
+      mocks.identity.userId = 'user-b';
+      rerender();
+      await waitFor(() =>
+        expect(result.current.storedJobs.map((job) => job.id)).toEqual([
+          'owner-b',
+        ]),
+      );
+      mocks.findAllPage.mockResolvedValue(page(['fresh-owner-a']));
+      mocks.identity.userId = 'user-a';
+      rerender();
+      expect(result.current.storedJobs).toEqual([]);
+      await waitFor(() =>
+        expect(result.current.storedJobs.map((job) => job.id)).toEqual([
+          'fresh-owner-a',
+        ]),
+      );
+      expect(signal.aborted).toBe(true);
+      await act(async () => {
+        if (outcome === 'success') old.resolve(page(['old-owner-a']));
+        else old.reject(new Error('Old owner failure'));
+      });
+      expect(result.current.storedJobs.map((job) => job.id)).toEqual([
+        'fresh-owner-a',
+      ]);
+      expect(result.current.galleryError).toBeNull();
+      expect(result.current.isLoadingGallery).toBe(false);
+      expect(mocks.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not dispatch a stale acquisition after an API scope round trip', async () => {
+    const acquisition = deferred<{ findAllPage: typeof mocks.findAllPage }>();
+    mocks.getService.mockReturnValueOnce(acquisition.promise);
+    mocks.findAllPage.mockResolvedValue(page(['current-owner']));
+    const { result, rerender } = renderHook(() =>
+      useStudioPlaygroundGallery(scope),
+    );
+    mocks.apiEndpoint = 'https://other-api.example.test';
+    rerender();
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT),
+    );
+    mocks.apiEndpoint = 'https://api.example.test';
+    rerender();
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
+    );
+    await act(async () =>
+      acquisition.resolve({ findAllPage: mocks.findAllPage }),
+    );
+    expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2);
+    expect(result.current.storedJobs.map((job) => job.id)).toEqual([
+      'current-owner',
+    ]);
+  });
+
+  it('does not dispatch an acquisition that completes after unmount', async () => {
+    const acquisition = deferred<{ findAllPage: typeof mocks.findAllPage }>();
+    mocks.getService.mockReturnValueOnce(acquisition.promise);
+    const { unmount } = renderHook(() => useStudioPlaygroundGallery(scope));
+    unmount();
+    await act(async () =>
+      acquisition.resolve({ findAllPage: mocks.findAllPage }),
+    );
+    expect(mocks.findAllPage).not.toHaveBeenCalled();
+  });
+
+  it('ignores a captured old refresh without aborting the current owner', async () => {
+    queueCategoryPages(['old-owner']);
+    const { result, rerender } = renderHook(() =>
+      useStudioPlaygroundGallery(scope),
+    );
+    await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
+    const oldRefresh = result.current.refresh;
+    const current = deferred<ReturnType<typeof page>>();
+    mocks.findAllPage.mockReturnValue(current.promise);
+    mocks.identity.userId = 'user-b';
+    rerender();
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
+    );
+    const signal = mocks.findAllPage.mock.calls[
+      ALL_CATEGORY_COUNT
+    ][1] as AbortSignal;
+    act(() => oldRefresh());
+    expect(signal.aborted).toBe(false);
+    expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2);
+    await act(async () => current.resolve(page(['current-owner'])));
+    await waitFor(() =>
+      expect(result.current.storedJobs.map((job) => job.id)).toEqual([
+        'current-owner',
+      ]),
+    );
+    expect(result.current.galleryError).toBeNull();
   });
 });

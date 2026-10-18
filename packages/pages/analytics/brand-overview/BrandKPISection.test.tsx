@@ -2,7 +2,7 @@ import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it } from 'vitest';
-import pages from '../../../../apps/app/messages/en/pages.json';
+import pages from '../../../../apps/app/messages/en/pages';
 import BrandKPISection from './BrandKPISection';
 
 describe('BrandKPISection metric definitions', () => {

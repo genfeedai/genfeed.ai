@@ -388,6 +388,70 @@ describe('useIngredientActions', () => {
       },
     );
 
+    it('does not refresh a new actor scope when an accepted extension finishes late', async () => {
+      mockUseElements.mockReturnValue({ videoModels: [model] });
+      let resolveOutput: ((value: { id: string }) => void) | undefined;
+      mockVideosService.postExtend.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOutput = resolve;
+          }),
+      );
+      const onRefresh = vi.fn();
+      const { result, rerender } = renderHook(
+        ({ scopeKey }) => useIngredientActions({ scopeKey, onRefresh }),
+        {
+          initialProps: { scopeKey: 'org:brand:actor:session-1' },
+        },
+      );
+      act(() => {
+        result.current.handlers.handleExtend(mockVideoIngredient);
+      });
+      let pending: Promise<void> | undefined;
+      await act(async () => {
+        pending = result.current.executeExtend(selection);
+      });
+      expect(mockVideosService.postExtend).toHaveBeenCalledTimes(1);
+      expect(result.current.extendingSourceId).toBe(mockVideoIngredient.id);
+      rerender({ scopeKey: 'org:brand:actor:session-2' });
+      expect(result.current.extendingSourceId).toBeUndefined();
+      await act(async () => {
+        resolveOutput?.({ id: 'separate-child' });
+        await pending;
+      });
+      expect(onRefresh).not.toHaveBeenCalled();
+    });
+
+    it('rejects extension dispatch after the actor scope changes during service acquisition', async () => {
+      mockUseElements.mockReturnValue({ videoModels: [model] });
+      let resolve: ((service: typeof mockVideosService) => void) | undefined;
+      mockGetVideosService.mockImplementationOnce(
+        () =>
+          new Promise((done) => {
+            resolve = done;
+          }),
+      );
+      const { result, rerender } = renderHook(
+        ({ scopeKey }) => useIngredientActions({ scopeKey }),
+        {
+          initialProps: { scopeKey: 'org:brand:actor:session-1' },
+        },
+      );
+      act(() => {
+        result.current.handlers.handleExtend(mockVideoIngredient);
+      });
+      let pending: Promise<void> | undefined;
+      act(() => {
+        pending = result.current.executeExtend(selection);
+      });
+      rerender({ scopeKey: 'org:brand:actor:session-2' });
+      await act(async () => {
+        resolve?.(mockVideosService);
+        await pending;
+      });
+      expect(mockVideosService.postExtend).not.toHaveBeenCalled();
+    });
+
     it('consumes one confirmation and snapshots source/settings across asynchronous lookup', async () => {
       mockUseElements.mockReturnValue({ videoModels: [model] });
       let resolve: ((service: typeof mockVideosService) => void) | undefined;
@@ -414,11 +478,13 @@ describe('useIngredientActions', () => {
           id: 'other-source',
         });
       });
+      expect(result.current.extendingSourceId).toBe(mockVideoIngredient.id);
       selected.duration = 5;
       await act(async () => {
         resolve?.(mockVideosService);
         await request;
       });
+      expect(result.current.extendingSourceId).toBeUndefined();
       await act(async () => {
         await execute(selection);
       });

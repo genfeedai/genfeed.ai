@@ -1,5 +1,7 @@
+import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
+import messages from '@app-i18n/page-scopes/brand-settings';
 import type { LayoutProps } from '@props/layout/layout.props';
 
-export default function BrandSettingsLayout({ children }: LayoutProps) {
-  return children;
+export default function PageIntlLayout({ children }: LayoutProps) {
+  return <AppPageIntlProvider pages={messages}>{children}</AppPageIntlProvider>;
 }

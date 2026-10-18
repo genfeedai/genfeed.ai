@@ -318,7 +318,9 @@ for (const { model, editing } of [
     if (flux && editing) {
       expect(JSON.stringify(bodies[0])).not.toContain('maskId');
       expect(JSON.stringify(bodies[0])).not.toContain('seed');
-      await page.getByRole('button', { name: 'Vary', exact: true }).click();
+      await page
+        .getByRole('button', { name: 'Generate again', exact: true })
+        .click();
       const replacement = page.getByRole('dialog', {
         name: 'Replace your draft?',
         exact: true,

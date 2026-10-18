@@ -136,6 +136,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           caption,
           context.settings,
           credential.id,
+          'publisher',
         );
         externalId = this.getLinkedInPublishId(result);
       } else {
@@ -146,6 +147,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           caption,
           context.settings,
           credential.id,
+          'publisher',
         );
         externalId = this.getLinkedInPublishId(result);
       }
@@ -206,6 +208,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           // Comments go out as the account that posted the parent.
           context.credential.id,
           media ? { imageUrl: media.url } : {},
+          'publisher',
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

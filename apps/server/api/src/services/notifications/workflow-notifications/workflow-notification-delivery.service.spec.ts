@@ -479,6 +479,7 @@ describe('agent completion and review notifications', () => {
       },
       member: {
         findFirst: vi.fn().mockResolvedValue({
+          id: 'selected-member',
           role: { key: 'member' },
           brands: [{ id: 'brand' }],
         }),
@@ -512,6 +513,147 @@ describe('agent completion and review notifications', () => {
     sourcePath: '/acme/main/automation/agents/strategy',
     strategyId: 'strategy',
   };
+  it.each([
+    { role: 'owner', assigned: true, restricted: false },
+    { role: 'admin', assigned: true, restricted: false },
+    { role: 'owner', assigned: false, restricted: false },
+    { role: 'admin', assigned: false, restricted: false },
+    { role: 'member', assigned: false, restricted: false },
+    { role: 'member', assigned: true, restricted: true },
+  ])(
+    'bounds assignment evidence and preserves $role access (assigned=$assigned)',
+    async ({ role, assigned, restricted }) => {
+      const { service, prisma, notifications } = setup(completion);
+      prisma.member.findFirst.mockResolvedValue({
+        id: 'selected-member',
+        role: { key: role },
+        brands: assigned ? [{ id: 'brand' }] : [],
+      });
+      await service.deliver('delivery');
+      expect(prisma.member.findFirst).toHaveBeenCalledExactlyOnceWith({
+        where: {
+          organizationId: 'org',
+          userId: 'owner',
+          isActive: true,
+          isDeleted: false,
+          organization: { is: { isDeleted: false } },
+          user: { is: { isDeleted: false } },
+        },
+        select: {
+          id: true,
+          role: { select: { key: true } },
+          brands: {
+            where: { organizationId: 'org', isDeleted: false },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      });
+      expect(prisma.agentStrategy.findFirst).toHaveBeenCalledExactlyOnceWith({
+        where: {
+          id: 'strategy',
+          organizationId: 'org',
+          isDeleted: false,
+          userId: 'owner',
+          OR: [
+            { brandId: null },
+            {
+              brand: {
+                is: {
+                  organizationId: 'org',
+                  isDeleted: false,
+                  ...(restricted
+                    ? {
+                        members: {
+                          some: {
+                            id: 'selected-member',
+                            organizationId: 'org',
+                            isDeleted: false,
+                          },
+                        },
+                      }
+                    : {}),
+                },
+              },
+            },
+          ],
+        },
+        select: { id: true },
+      });
+      expect(notifications.deliverEmail).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each([
+    {
+      label: 'deleted',
+      assignments: [{ organizationId: 'org', isDeleted: true }],
+    },
+    {
+      label: 'foreign organization',
+      assignments: [{ organizationId: 'other-org', isDeleted: false }],
+    },
+  ])(
+    'keeps zero-live-assignment access when only $label assignments exist',
+    async ({ assignments }) => {
+      const { service, prisma, notifications } = setup(completion);
+      prisma.member.findFirst.mockImplementation(
+        async ({
+          select,
+        }: {
+          select: {
+            brands: {
+              where: { organizationId: string; isDeleted: boolean };
+              take?: number;
+            };
+          };
+        }) => ({
+          id: 'selected-member',
+          role: { key: 'member' },
+          brands: assignments
+            .filter(
+              (assignment) =>
+                assignment.organizationId ===
+                  select.brands.where.organizationId &&
+                assignment.isDeleted === select.brands.where.isDeleted,
+            )
+            .slice(0, select.brands.take)
+            .map(() => ({ id: 'irrelevant-assignment' })),
+        }),
+      );
+      await service.deliver('delivery');
+      expect(prisma.member.findFirst.mock.calls[0][0].select.brands).toEqual({
+        where: { organizationId: 'org', isDeleted: false },
+        select: { id: true },
+        take: 1,
+      });
+      const strategyWhere =
+        prisma.agentStrategy.findFirst.mock.calls[0][0].where;
+      expect(strategyWhere.OR).toEqual([
+        { brandId: null },
+        { brand: { is: { organizationId: 'org', isDeleted: false } } },
+      ]);
+      expect(notifications.deliverEmail).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('performs no strategy read when the recipient has no strategy or has lost membership', async () => {
+    const withoutStrategy = setup({ ...completion, strategyId: undefined });
+    await withoutStrategy.service.deliver('delivery');
+    expect(withoutStrategy.prisma.member.findFirst).toHaveBeenCalledOnce();
+    expect(
+      withoutStrategy.prisma.agentStrategy.findFirst,
+    ).not.toHaveBeenCalled();
+    expect(withoutStrategy.notifications.deliverEmail).toHaveBeenCalledOnce();
+
+    const revoked = setup(completion);
+    revoked.prisma.member.findFirst.mockResolvedValue(null);
+    await revoked.service.deliver('delivery');
+    expect(revoked.prisma.member.findFirst).toHaveBeenCalledOnce();
+    expect(revoked.prisma.agentStrategy.findFirst).not.toHaveBeenCalled();
+    expect(revoked.notifications.deliverEmail).not.toHaveBeenCalled();
+  });
+
   it('delivers a safe completed agent report using the agent preference and current scoped membership', async () => {
     const { service, notifications, prisma } = setup(completion);
     await service.deliver('delivery');
@@ -535,7 +677,13 @@ describe('agent completion and review notifications', () => {
             expect.objectContaining({
               brand: {
                 is: {
-                  id: { in: ['brand'] },
+                  members: {
+                    some: {
+                      id: 'selected-member',
+                      organizationId: 'org',
+                      isDeleted: false,
+                    },
+                  },
                   organizationId: 'org',
                   isDeleted: false,
                 },

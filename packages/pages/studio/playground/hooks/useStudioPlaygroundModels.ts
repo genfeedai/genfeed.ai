@@ -6,9 +6,11 @@ import {
   isVoiceSpeechModel,
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ModelsService } from '@services/ai/models.service';
-import { useEffect, useState } from 'react';
+import { EnvironmentService } from '@services/core/environment.service';
+import { useEffect, useRef, useState } from 'react';
 
 const MODEL_PAGE_LIMIT = 100;
 
@@ -44,37 +46,55 @@ export function useStudioPlaygroundModels(
   category: ModelCategory | null,
   organizationId: string | undefined,
 ): UseStudioPlaygroundModelsReturn {
-  const [models, setModels] = useState<readonly IModel[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(Boolean(category));
-  const [loadedCategory, setLoadedCategory] = useState<ModelCategory | null>(
-    null,
-  );
-
+  const { orgId, userId, sessionId } = useAuthIdentity();
+  const ownerKey = JSON.stringify([
+    category,
+    organizationId,
+    orgId,
+    userId,
+    sessionId,
+    EnvironmentService.apiEndpoint,
+  ]);
+  const ownerRef = useRef({ key: ownerKey, epoch: 0 });
+  if (ownerRef.current.key !== ownerKey)
+    ownerRef.current = { key: ownerKey, epoch: ownerRef.current.epoch + 1 };
+  const owner = ownerRef.current;
+  const [snapshot, setSnapshot] = useState({
+    owner,
+    models: [] as readonly IModel[],
+    isLoadingModels: Boolean(category && organizationId),
+    isModelCatalogReady: false,
+  });
   const getModelsService = useAuthedService((token: string) =>
     ModelsService.getInstance(token),
   );
 
   useEffect(() => {
     if (!category || !organizationId) {
-      setModels([]);
-      setLoadedCategory(null);
-      setIsLoadingModels(false);
+      setSnapshot({
+        owner,
+        models: [],
+        isLoadingModels: false,
+        isModelCatalogReady: false,
+      });
       return;
     }
 
     const controller = new AbortController();
     let isCancelled = false;
-
-    // Drop the previous category's catalog before fetching. Keeping it would
-    // let `resolveModelKey` fall back to an image model on a video submit
-    // during the window between the type switch and the new rows landing.
-    setModels([]);
-    setLoadedCategory(null);
-    setIsLoadingModels(true);
+    const canApply = () =>
+      !isCancelled && !controller.signal.aborted && ownerRef.current === owner;
+    setSnapshot({
+      owner,
+      models: [],
+      isLoadingModels: true,
+      isModelCatalogReady: false,
+    });
 
     void (async () => {
       try {
         const service = await getModelsService();
+        if (!canApply()) return;
         const rows = await service.findAll(
           {
             category,
@@ -85,20 +105,29 @@ export function useStudioPlaygroundModels(
           },
           controller.signal,
         );
-
-        if (isCancelled || controller.signal.aborted) {
-          return;
-        }
-
-        setModels(filterCategoryRows(category, rows));
-        setLoadedCategory(category);
+        if (!canApply()) return;
+        setSnapshot({
+          owner,
+          models: filterCategoryRows(category, rows),
+          isLoadingModels: false,
+          isModelCatalogReady: true,
+        });
       } catch {
-        if (!isCancelled) {
-          setModels([]);
+        if (canApply()) {
+          setSnapshot({
+            owner,
+            models: [],
+            isLoadingModels: false,
+            isModelCatalogReady: false,
+          });
         }
       } finally {
-        if (!isCancelled) {
-          setIsLoadingModels(false);
+        if (canApply()) {
+          setSnapshot((current) =>
+            canApply() && current.owner === owner
+              ? { ...current, isLoadingModels: false }
+              : current,
+          );
         }
       }
     })();
@@ -107,11 +136,17 @@ export function useStudioPlaygroundModels(
       isCancelled = true;
       controller.abort();
     };
-  }, [category, getModelsService, organizationId]);
+  }, [category, getModelsService, organizationId, owner]);
 
-  return {
-    isLoadingModels,
-    isModelCatalogReady: category !== null && loadedCategory === category,
-    models,
-  };
+  return snapshot.owner === owner
+    ? {
+        isLoadingModels: snapshot.isLoadingModels,
+        isModelCatalogReady: snapshot.isModelCatalogReady,
+        models: snapshot.models,
+      }
+    : {
+        isLoadingModels: Boolean(category && organizationId),
+        isModelCatalogReady: false,
+        models: [],
+      };
 }

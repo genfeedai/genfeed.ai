@@ -7,6 +7,12 @@
 const mockTweet = vi.fn();
 const mockUploadMedia = vi.fn();
 
+vi.mock('@libs/security/destination-guard', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@libs/security/destination-guard')>();
+  return { ...actual, safeFetch: vi.fn() };
+});
+
 vi.mock('twitter-api-v2', () => ({
   TwitterApi: vi.fn().mockImplementation(() => ({
     v2: {
@@ -38,6 +44,7 @@ import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contr
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -176,6 +183,10 @@ describe('TwitterPublisherService', () => {
   beforeEach(async () => {
     // Reset all mocks
     vi.clearAllMocks();
+    vi.mocked(safeFetch).mockReset();
+    vi.mocked(safeFetch).mockImplementation(
+      async () => new Response(new TextEncoder().encode('fake-image-data')),
+    );
 
     vi.spyOn(EncryptionUtil, 'decrypt').mockImplementation((value) => {
       return `decrypted-${value}`;
@@ -241,7 +252,9 @@ describe('TwitterPublisherService', () => {
         getTwitterClientFromCredential: TwitterPublisherService['getTwitterClientFromCredential'];
       },
       'getTwitterClientFromCredential',
-    ).mockResolvedValue({ v2: { tweet: mockTweet } } as unknown as Awaited<
+    ).mockResolvedValue({
+      v2: { tweet: mockTweet, uploadMedia: mockUploadMedia },
+    } as unknown as Awaited<
       ReturnType<TwitterPublisherService['getTwitterClientFromCredential']>
     >);
     _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
@@ -450,6 +463,22 @@ describe('TwitterPublisherService', () => {
     });
 
     describe('media posts', () => {
+      it.each([true, false])(
+        'marks only internal publisher media trusted when authorized delivery is %s',
+        async (enabled) => {
+          Object.assign(_configService, {
+            isAuthorizedMediaDeliveryEnabled: enabled,
+            ingredientsEndpoint: 'http://media.internal:9000/ingredients',
+          });
+          twitterService.uploadMedia.mockResolvedValue('tweet');
+          twitterService.buildTweetUrl.mockReturnValue('https://x.com/tweet');
+          await service.publish(createPublishContext(mockImagePost));
+          expect(twitterService.uploadMedia.mock.calls[0]?.at(-1)).toBe(
+            'publisher',
+          );
+        },
+      );
+
       it('should forward the target settings to uploadMedia', async () => {
         // The media path builds its tweet inside `TwitterService`, so the
         // settings have to travel with the call rather than be applied here.
@@ -471,6 +500,7 @@ describe('TwitterPublisherService', () => {
           undefined,
           { replyPolicy: 'mentioned' },
           mockCredential.id,
+          'publisher',
         );
       });
 
@@ -496,6 +526,7 @@ describe('TwitterPublisherService', () => {
           undefined,
           {},
           mockCredential.id,
+          'publisher',
         );
       });
 
@@ -521,6 +552,7 @@ describe('TwitterPublisherService', () => {
           undefined,
           {},
           mockCredential.id,
+          'publisher',
         );
       });
 
@@ -547,6 +579,7 @@ describe('TwitterPublisherService', () => {
           undefined,
           {},
           mockCredential.id,
+          'publisher',
         );
       });
 
@@ -581,6 +614,7 @@ describe('TwitterPublisherService', () => {
           undefined,
           {},
           mockCredential.id,
+          'publisher',
         );
       });
     });
@@ -710,6 +744,75 @@ describe('TwitterPublisherService', () => {
         ...mockCredential,
         accessToken: 'encrypted-token',
       } as unknown as CredentialDocument);
+    });
+
+    it.each([true, false])(
+      'uses the guarded exact-origin exception for trusted thread media in mode %s',
+      async (enabled) => {
+        Object.assign(_configService, {
+          isAuthorizedMediaDeliveryEnabled: enabled,
+          ingredientsEndpoint: 'http://media.internal:9000/ingredients',
+        });
+        mockUploadMedia.mockResolvedValue('media');
+        mockTweet.mockResolvedValue({ data: { id: 'child' } });
+        postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+        const child = {
+          ...mockChildren[1],
+          ingredients: [
+            {
+              id: mockIngredientId,
+              mediaUrl:
+                'http://media.internal:9000/ingredients/images/key?signature=valid',
+            },
+          ],
+        };
+        await service.publishThreadChildren(
+          createPublishContext(mockTextPost),
+          [child],
+          mockParentExternalId,
+        );
+        expect(safeFetch).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'http://media.internal:9000/ingredients/images/',
+          ),
+          { signal: expect.any(AbortSignal) },
+          {
+            allowedSchemes: ['http:', 'https:'],
+            allowedOrigins: ['http://media.internal:9000'],
+            allowPrivateNetwork: true,
+          },
+        );
+        expect(mockUploadMedia).toHaveBeenCalledWith(
+          Buffer.from('fake-image-data'),
+          { media_type: 'image/jpeg' },
+        );
+        expect(mockTweet).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            reply: { in_reply_to_tweet_id: mockParentExternalId },
+          }),
+        );
+      },
+    );
+
+    it('marks a rejected thread transfer failed before uploading that media or tweeting', async () => {
+      vi.mocked(safeFetch).mockRejectedValue(new Error('destination rejected'));
+      mockUploadMedia.mockResolvedValue('media');
+      mockTweet.mockResolvedValue({ data: { id: 'child' } });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+      await service.publishThreadChildren(
+        createPublishContext(mockTextPost),
+        [mockChildren[1]],
+        mockParentExternalId,
+      );
+      expect(mockUploadMedia).not.toHaveBeenCalled();
+      expect(mockTweet).not.toHaveBeenCalled();
+      expect(postsService.patch).toHaveBeenCalledWith(
+        mockChildren[1].id,
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      );
     });
 
     it('should publish thread children as replies in order', async () => {

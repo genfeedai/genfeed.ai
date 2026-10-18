@@ -51,13 +51,16 @@ export async function fetchKnowledgeBytes(input: {
       response.status === 403 ||
       response.status === 451
     ) {
+      void response.body?.cancel().catch(() => undefined);
       throw new KnowledgeFetchProhibitedError(response.status);
     }
     if (!response.ok) {
+      void response.body?.cancel().catch(() => undefined);
       throw new Error(`Failed to fetch source (${response.status})`);
     }
     const declared = Number(response.headers.get('content-length'));
     if (Number.isFinite(declared) && declared > maxBytes) {
+      void response.body?.cancel().catch(() => undefined);
       throw new Error('The source exceeds the ingest size limit');
     }
     const reader = response.body?.getReader();
@@ -75,20 +78,29 @@ export async function fetchKnowledgeBytes(input: {
     }
     const chunks: Buffer[] = [];
     let total = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
+    let complete = false;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          complete = true;
+          break;
+        }
+        if (!value) {
+          continue;
+        }
+        total += value.byteLength;
+        if (total > maxBytes) {
+          throw new Error('The source exceeds the ingest size limit');
+        }
+        chunks.push(Buffer.from(value));
       }
-      if (!value) {
-        continue;
+    } finally {
+      try {
+        if (!complete) void reader.cancel().catch(() => undefined);
+      } finally {
+        reader.releaseLock();
       }
-      total += value.byteLength;
-      if (total > maxBytes) {
-        await reader.cancel();
-        throw new Error('The source exceeds the ingest size limit');
-      }
-      chunks.push(Buffer.from(value));
     }
     return {
       bytes: Buffer.concat(chunks),

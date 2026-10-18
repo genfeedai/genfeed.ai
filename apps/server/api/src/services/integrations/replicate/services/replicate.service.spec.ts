@@ -18,6 +18,7 @@ const predictionsCreate = vi.fn();
 const predictionsGet = vi.fn();
 const predictionsCancel = vi.fn();
 const trainingsCreate = vi.fn();
+const trainingsGet = vi.fn();
 const modelsCreate = vi.fn();
 const wait = vi.fn();
 const constructed: Array<{ auth?: string }> = [];
@@ -34,7 +35,7 @@ vi.mock('replicate', () => ({
         create: predictionsCreate,
         get: predictionsGet,
       },
-      trainings: { create: trainingsCreate },
+      trainings: { create: trainingsCreate, get: trainingsGet },
       wait,
     });
   }),
@@ -86,6 +87,7 @@ describe('ReplicateService', () => {
     predictionsGet.mockResolvedValue({ id: 'pred-1', status: 'succeeded' });
     predictionsCancel.mockResolvedValue({ id: 'pred-1', status: 'canceled' });
     trainingsCreate.mockResolvedValue({ id: 'train-1' });
+    trainingsGet.mockResolvedValue({ id: 'train-1', status: 'succeeded' });
     modelsCreate.mockResolvedValue({});
     wait.mockImplementation(async (prediction) => prediction);
   });
@@ -344,6 +346,39 @@ describe('ReplicateService', () => {
       predictionsGet.mockRejectedValueOnce(new Error('gone'));
 
       await expect(service.getPrediction('pred-1')).rejects.toThrow('gone');
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('getTraining', () => {
+    it('returns the authoritative training using the configured client', async () => {
+      const { service } = createHarness();
+      await expect(service.getTraining('train-1')).resolves.toEqual({
+        id: 'train-1',
+        status: 'succeeded',
+      });
+      expect(trainingsGet).toHaveBeenCalledExactlyOnceWith('train-1');
+      expect(predictionsGet).not.toHaveBeenCalled();
+      expect(constructed).toEqual([{ auth: 'env-key' }]);
+    });
+
+    it('uses a request-local override and preserves the configured client', async () => {
+      const { service } = createHarness();
+      await service.getTraining('train-1', 'organization-key');
+      await service.getTraining('train-1');
+      expect(constructed).toEqual([
+        { auth: 'env-key' },
+        { auth: 'organization-key' },
+      ]);
+      expect(trainingsGet).toHaveBeenCalledTimes(2);
+    });
+
+    it('logs and rethrows an authoritative training lookup failure', async () => {
+      const { loggerService, service } = createHarness();
+      trainingsGet.mockRejectedValueOnce(new Error('training gone'));
+      await expect(service.getTraining('train-1')).rejects.toThrow(
+        'training gone',
+      );
       expect(loggerService.error).toHaveBeenCalled();
     });
   });

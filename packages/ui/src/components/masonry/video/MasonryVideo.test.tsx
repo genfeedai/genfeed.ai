@@ -1,5 +1,7 @@
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { fireEvent, render, screen } from '@testing-library/react';
+import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
+import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock hooks used by MasonryVideo
@@ -53,11 +55,11 @@ vi.mock('@ui/masonry/shared/MasonryBrandLogo', () => ({
 }));
 
 vi.mock('@ui/masonry/shared/MasonryConfirmBridge', () => ({
-  default: () => null,
+  default: vi.fn(() => null),
 }));
 
 vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
-  default: () => <div data-testid="quick-actions" />,
+  default: vi.fn(() => <div data-testid="quick-actions" />),
 }));
 
 vi.mock('@ui/drag-drop/draggable/DraggableIngredient', () => ({
@@ -130,6 +132,96 @@ const mockVideo: IVideo = {
 } as unknown as IVideo;
 
 describe('MasonryVideo', () => {
+  it.each([false, true])(
+    'binds controlled pending indicators to this source (matching: %s)',
+    (isMatchingSource) => {
+      const sourceId = isMatchingSource ? mockVideo.id : 'another-source';
+      render(
+        <MasonryVideo
+          video={mockVideo}
+          isSelected
+          transformActions={{
+            getAvailability: () => ({ isAvailable: true }),
+            onUpscale: vi.fn(),
+            onExtend: vi.fn(),
+            isUpscaling: true,
+            isExtending: true,
+            upscalingSourceId: sourceId,
+            extendingSourceId: sourceId,
+          }}
+        />,
+      );
+      const quickActions = vi
+        .mocked(IngredientQuickActions)
+        .mock.calls.at(-1)?.[0];
+      expect(quickActions).toMatchObject({
+        isUpscaling: isMatchingSource,
+        isExtending: isMatchingSource,
+      });
+    },
+  );
+
+  it('forwards controlled transforms to the workspace owner and suppresses its leaf confirmation', () => {
+    const factory = vi.mocked(useIngredientActions).getMockImplementation();
+    if (!factory) throw new Error('Missing leaf action fixture');
+    const local = factory({});
+    vi.mocked(useIngredientActions).mockReturnValueOnce({
+      ...local,
+      upscaleConfirmData: {
+        ingredient: mockVideo,
+        cost: 10,
+        modelKey: 'fixture-upscaler',
+      },
+      extendConfirmData: { ingredient: mockVideo, modelOptions: [] },
+    });
+    const onUpscale = vi.fn();
+    const onExtend = vi.fn();
+    const transformActions = {
+      getAvailability: () => ({ isAvailable: true }),
+      onUpscale,
+      onExtend,
+      isUpscaling: false,
+      isExtending: false,
+    };
+    vi.mocked(IngredientQuickActions).mockImplementationOnce(
+      ({ selectedIngredient, onUpscale, onExtend }) => (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedIngredient) onUpscale?.(selectedIngredient);
+            }}
+          >
+            Shared upscale
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedIngredient) onExtend?.(selectedIngredient);
+            }}
+          >
+            Shared extend
+          </button>
+        </>
+      ),
+    );
+    render(
+      <MasonryVideo
+        video={mockVideo}
+        isSelected
+        transformActions={transformActions}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Shared upscale' }));
+    expect(onUpscale).toHaveBeenCalledWith(mockVideo);
+    expect(local.handlers.handleUpscale).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Shared extend' }));
+    expect(onExtend).toHaveBeenCalledWith(mockVideo);
+    expect(
+      vi.mocked(MasonryConfirmBridge).mock.calls.at(-1)?.[0],
+    ).toMatchObject({ upscaleConfirmData: null, extendConfirmData: null });
+  });
+
   it('names the keyboard video action without using provider instructions', () => {
     const onClickIngredient = vi.fn();
     render(

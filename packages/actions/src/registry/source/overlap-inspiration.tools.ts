@@ -6,7 +6,8 @@ const ADS_DETAIL_PROPERTIES = {
     type: 'string',
   },
   adId: {
-    description: 'Ad identifier returned by list_ads_research.',
+    description:
+      'Identifier of the selected public ad or ad from a connected account.',
     type: 'string',
   },
   channel: {

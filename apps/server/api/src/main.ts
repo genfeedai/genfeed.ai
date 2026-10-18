@@ -22,6 +22,7 @@ import {
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
 import { DocsService } from '@api/endpoints/docs/docs.service';
+import { createReplicateWebhookBodyParser } from '@api/endpoints/webhooks/replicate/replicate-webhook-body.util';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { DatabaseExceptionFilter } from '@api/helpers/filters/database-exception/database-exception.filter';
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
@@ -78,6 +79,7 @@ import helmet from 'helmet';
 import gptActionsSpec from './config/gpt-actions-openapi.json';
 
 const apiDir = dirname(fileURLToPath(import.meta.url));
+const API_GLOBAL_PREFIX = 'v1';
 const DEFAULT_API_LISTEN_TIMEOUT_MS = 120_000;
 const bootstrapLogger = new Logger('ApiBootstrap');
 
@@ -208,7 +210,7 @@ async function main() {
       ),
     );
 
-    app.setGlobalPrefix('v1');
+    app.setGlobalPrefix(API_GLOBAL_PREFIX);
 
     app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
@@ -265,6 +267,7 @@ async function main() {
       );
     }
 
+    app.use(createReplicateWebhookBodyParser(API_GLOBAL_PREFIX));
     app.use(express.json({ limit: '50mb' }));
 
     const limitMultiplier = nodeEnv === 'production' ? 100 : 1000;

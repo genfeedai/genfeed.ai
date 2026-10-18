@@ -606,6 +606,7 @@ describe('unchanged read-only workflow service contracts', () => {
     ).toEqual(expect.objectContaining(target));
     expect(findOne).toHaveBeenCalledWith({
       id: 'workflow',
+      isDeleted: false,
       organizationId: selectedOrg,
       OR: [
         { userId: user.userId },
