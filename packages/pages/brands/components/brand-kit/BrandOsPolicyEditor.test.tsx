@@ -27,12 +27,12 @@ function renderEditor(value?: IBrandPublishPolicy, isDisabled = false) {
 }
 
 describe('BrandOsPolicyEditor', () => {
-  it('explains that everything is reviewed without a Policy and offers a default one', () => {
+  it('explains the default that applies without a Policy and offers to customise it', () => {
     const onChange = renderEditor();
 
     expect(
       screen.getByText(
-        'This revision has no Policy, so every autonomous draft waits for review.',
+        'This revision has no Policy, so the default applies: video is reviewed, text and image earn autonomy, and nothing is banned or capped.',
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Add a Policy' }));

@@ -444,6 +444,46 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     );
   }
 
+  /**
+   * Text a branded receipt did not clear (#5786), or that breaks the brand
+   * Policy on any destination (#7339), is saved as a draft, never scheduled
+   * unattended: a member approves it in the app first.
+   */
+  private async findTextPublishHold(
+    publishHold: BrandedPublishHoldService | undefined,
+    input: {
+      brandId: string;
+      caption: string;
+      ingredients: string[];
+      organizationId: string;
+      platforms: readonly string[];
+      scheduledFor: Date;
+    },
+  ) {
+    const receiptHold = await publishHold?.findHoldForText(
+      input.organizationId,
+      input.brandId,
+      input.caption,
+    );
+    if (receiptHold || !this.brandPublishPolicy) return receiptHold ?? null;
+    const categories = await this.brandPublishPolicy.readIngredientCategories(
+      input.organizationId,
+      input.ingredients,
+    );
+    return (
+      (await publishHold?.findPolicyHoldForText(
+        {
+          brandId: input.brandId,
+          format: resolveBrandPolicyDraftFormat(null, categories),
+          organizationId: input.organizationId,
+          publishAt: input.scheduledFor,
+          text: input.caption,
+        },
+        input.platforms,
+      )) ?? null
+    );
+  }
+
   private registerPublishExecutor(engine: WorkflowEngine): void {
     const postsService = this.postsService;
     const fanoutService = this.postAccountFanoutService;
@@ -475,32 +515,16 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         }
 
         const ingredients = this.helper.extractPublishIngredientIds(media);
-        // Text a branded receipt did not clear (#5786), or that breaks the
-        // brand Policy on any destination (#7339), is saved as a draft, never
-        // scheduled unattended: a member approves it in the app first.
-        const receiptHold = scheduledFor
-          ? await publishHold?.findHoldForText(organizationId, brandId, caption)
+        const hold = scheduledFor
+          ? await this.findTextPublishHold(publishHold, {
+              brandId,
+              caption,
+              ingredients,
+              organizationId,
+              platforms,
+              scheduledFor,
+            })
           : null;
-        const hold =
-          receiptHold ??
-          (scheduledFor && brandPublishPolicy
-            ? await publishHold?.findPolicyHoldForText(
-                {
-                  brandId,
-                  format: resolveBrandPolicyDraftFormat(
-                    null,
-                    await brandPublishPolicy.readIngredientCategories(
-                      organizationId,
-                      ingredients,
-                    ),
-                  ),
-                  organizationId,
-                  publishAt: scheduledFor,
-                  text: caption,
-                },
-                platforms,
-              )
-            : null);
         const scheduledSlot = hold ? null : scheduledFor;
         const postIds: string[] = [];
         const publishedPlatforms: SocialPlatform[] = [];

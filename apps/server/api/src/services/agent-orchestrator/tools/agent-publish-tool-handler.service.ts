@@ -41,6 +41,7 @@ import {
   resolvePublishValidationMedia,
   toCanonicalChannelTarget,
 } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
+import { readRepurposeErrorDetail } from '@api/services/agent-orchestrator/tools/agent-repurpose-error.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -74,7 +75,6 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  HttpException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -260,9 +260,7 @@ export class AgentPublishToolHandler {
       caption: baseContent,
       scheduledAt,
       targets: resolvedTargets.targets,
-      channelAllowsAutoPublish: resolvedTargets.targets.every((target) =>
-        this.isCredentialConnected(credentialsById.get(target.credentialId)),
-      ),
+      credentialsById,
       ctx,
     });
     const requiresApproval =
@@ -395,7 +393,9 @@ export class AgentPublishToolHandler {
     caption?: string;
     scheduledAt?: string;
     targets: Array<{ credentialId: string; platform: string }>;
-    channelAllowsAutoPublish: boolean;
+    /** Given outright, or derived from each target's credential connection. */
+    channelAllowsAutoPublish?: boolean;
+    credentialsById?: ReadonlyMap<string, unknown>;
     ctx: ToolExecutionContext;
   }): Promise<{
     autonomyMode: AgentAutonomyMode;
@@ -403,6 +403,13 @@ export class AgentPublishToolHandler {
   }> {
     const service = this.autonomousPublishPolicyService;
     const brandId = params.brandId;
+    const channelAllowsAutoPublish =
+      params.channelAllowsAutoPublish ??
+      params.targets.every((target) =>
+        this.isCredentialConnected(
+          params.credentialsById?.get(target.credentialId),
+        ),
+      );
     if (service && brandId && params.targets.length) {
       const policies = await Promise.all(
         params.targets.map((target) =>
@@ -417,7 +424,7 @@ export class AgentPublishToolHandler {
             strategyId: params.ctx.strategyId,
             platform: String(target.platform),
             credentialId: target.credentialId,
-            channelAllowsAutoPublish: params.channelAllowsAutoPublish,
+            channelAllowsAutoPublish,
           }),
         ),
       );
@@ -1074,33 +1081,4 @@ export class AgentPublishToolHandler {
       };
     }
   }
-}
-
-/**
- * Client-safe detail from repurpose validation failures. Only 4xx
- * HttpException responses carry actionable catalog messages; 5xx and
- * non-HTTP errors are withheld so internal details never leak into
- * model-visible output.
- */
-function readRepurposeErrorDetail(error: unknown): string | undefined {
-  if (!(error instanceof HttpException) || error.getStatus() >= 500) {
-    return undefined;
-  }
-
-  const response = error.getResponse();
-  if (typeof response === 'string') {
-    return response;
-  }
-  if (response && typeof response === 'object') {
-    const detail = (response as { detail?: unknown; message?: unknown }).detail;
-    if (typeof detail === 'string' && detail.length > 0) {
-      return detail;
-    }
-    const message = (response as { message?: unknown }).message;
-    if (typeof message === 'string' && message.length > 0) {
-      return message;
-    }
-  }
-
-  return error.message || undefined;
 }

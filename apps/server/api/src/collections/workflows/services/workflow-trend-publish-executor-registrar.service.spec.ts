@@ -298,7 +298,7 @@ describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
     expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 
-  it('saves a draft and records why while the brand has no approved Policy (#7339)', async () => {
+  it('schedules clean text under the default Policy while the brand has no approved Policy (#7339)', async () => {
     const { fanoutService, postsService, prisma } = fixture([]);
 
     const result = (await runPublishNode(postsService, fanoutService, {
@@ -308,15 +308,11 @@ describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
 
     expect(postsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        targetExecutionState: TargetExecutionState.DRAFT,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
       }),
     );
-    expect(result).toMatchObject({
-      holdReason: 'policy_violation',
-      scheduledFor: null,
-      status: 'held',
-    });
-    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(result).not.toHaveProperty('holdReason');
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 
   it('holds text that breaks the approved Policy', async () => {

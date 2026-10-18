@@ -430,7 +430,7 @@ describe('AgentStrategyAutopilotService', () => {
     );
   });
 
-  it('routes a draft to review while the brand has no approved Policy (#7339)', async () => {
+  it('auto-publishes under the default Policy while the brand has no approved Policy (#7339)', async () => {
     const deps = createService();
     deps.policyDb.brandOsRevision.findFirst.mockResolvedValue(null);
     queueStrongTextDraft(deps);
@@ -442,7 +442,13 @@ describe('AgentStrategyAutopilotService', () => {
       userId,
     });
 
-    expectReviewHandoffWithoutScheduling(deps, 'Brand Policy requires review');
+    expect(
+      deps.turboRunService.createManualReviewTurboRun,
+    ).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({ credentialId }),
+    );
   });
 
   it('routes a draft to review when the target account is not connected', async () => {
