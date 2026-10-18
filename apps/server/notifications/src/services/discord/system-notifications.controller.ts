@@ -1,3 +1,4 @@
+import type { DiscordTestChannel } from '@genfeedai/contracts/interfaces';
 import { escapeSystemEmailHtml } from '@helpers/email/system-email.helper';
 import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
 import {
@@ -19,6 +20,14 @@ import {
 import { ResendService } from '@notifications/services/resend/resend.service';
 import { TelegramService } from '@notifications/services/telegram/telegram.service';
 
+const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
+  'deployments',
+  'models',
+  'posts',
+  'studio',
+  'users',
+];
+
 @Controller('internal/system-notifications')
 @UseGuards(InternalApiKeyGuard)
 export class SystemNotificationsController {
@@ -32,6 +41,16 @@ export class SystemNotificationsController {
   async status() {
     const discord = await this.discord.status().catch(() => null);
     return { discord, isAvailable: true };
+  }
+
+  @Post('discord-channel-test')
+  @HttpCode(200)
+  async testDiscordChannel(@Body() body: unknown) {
+    const channel: unknown =
+      body && typeof body === 'object' ? Reflect.get(body, 'channel') : null;
+    const testChannel = DISCORD_TEST_CHANNELS.find((name) => name === channel);
+    if (!testChannel) throw new BadRequestException('Invalid Discord channel');
+    return this.discord.sendChannelTest(testChannel);
   }
 
   @Post()

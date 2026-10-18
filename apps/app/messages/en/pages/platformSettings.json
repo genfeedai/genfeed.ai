@@ -155,6 +155,17 @@
     "transportUnavailable": "The notification service is unavailable.",
     "discordBotUnavailable": "The Discord bot is not connected, so signup, studio and revenue alerts are not delivered. Check DISCORD_BOT_TOKEN on the notifications service.",
     "discordChannelsMissing": "Discord alerts for these channels are skipped until a channel ID is set in the Discord settings: {channels}.",
+    "discordChannelTests": "Discord channel tests",
+    "discordChannelTestsHelp": "Posts a test message through the bot to the channel ID saved in the Discord channels settings. Save the settings first.",
+    "discordChannelTest": "Test {channel}",
+    "discordChannelTestSent": "Test message posted to the {channel} channel",
+    "discordChannels": {
+      "deployments": "Deployments",
+      "models": "Models",
+      "posts": "Posts",
+      "studio": "Studio",
+      "users": "Users"
+    },
     "ready": "Recording is enabled. Destinations receive the selected events.",
     "webhookSaved": "Webhook saved securely",
     "enabled": "Enabled",

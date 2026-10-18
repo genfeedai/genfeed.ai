@@ -2,9 +2,14 @@ import type { CredentialCryptoService } from '@api/collections/credentials/servi
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SystemNotificationDestinationsService } from '@api/services/system-events/system-notification-destinations.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
-function setup() {
+function setup(
+  notifications: Partial<NotificationsService> = {
+    deliverSystemNotification: vi.fn(),
+  },
+) {
   const prisma = {
     $executeRaw: vi.fn().mockResolvedValue(1),
     $transaction: vi.fn(),
@@ -24,7 +29,7 @@ function setup() {
   const service = new SystemNotificationDestinationsService(
     prisma as unknown as PrismaService,
     crypto as unknown as CredentialCryptoService,
-    { deliverSystemNotification: vi.fn() } as unknown as NotificationsService,
+    notifications as unknown as NotificationsService,
   );
   return { service, prisma, crypto };
 }
@@ -103,5 +108,33 @@ describe('admin system notification destinations', () => {
     await expect(
       service.save({ ...input, address: undefined }),
     ).rejects.toThrow();
+  });
+  it('posts a Discord channel test and accepts a delivery', async () => {
+    const testDiscordChannel = vi
+      .fn()
+      .mockResolvedValue({ status: 'delivered' });
+    const { service } = setup({ testDiscordChannel });
+    await expect(service.testDiscordChannel('models')).resolves.toBeUndefined();
+    expect(testDiscordChannel).toHaveBeenCalledWith('models');
+  });
+
+  it('tells the operator why a Discord channel test was skipped', async () => {
+    const { service } = setup({
+      testDiscordChannel: vi
+        .fn()
+        .mockResolvedValue({ reason: 'channel_id_missing', status: 'skipped' }),
+    });
+    await expect(service.testDiscordChannel('studio')).rejects.toThrow(
+      'No channel ID is saved for this channel',
+    );
+  });
+
+  it('rejects an unknown Discord channel without calling the service', async () => {
+    const testDiscordChannel = vi.fn();
+    const { service } = setup({ testDiscordChannel });
+    await expect(service.testDiscordChannel('general')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(testDiscordChannel).not.toHaveBeenCalled();
   });
 });

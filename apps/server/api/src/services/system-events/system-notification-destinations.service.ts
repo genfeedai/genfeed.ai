@@ -3,6 +3,8 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
+  DiscordChannelTestFailure,
+  DiscordTestChannel,
   ISystemNotificationDestination,
   SystemNotificationProvider,
 } from '@genfeedai/contracts/interfaces';
@@ -15,6 +17,28 @@ import {
 import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const DISCORD_CHANNEL_TEST_FAILURES: Record<DiscordChannelTestFailure, string> =
+  {
+    bot_not_configured:
+      'The Discord bot token is not set on the notifications service.',
+    bot_not_ready:
+      'The Discord bot is not connected yet. Try again in a moment.',
+    channel_id_missing:
+      'No channel ID is saved for this channel. Save it in the Discord channels settings first.',
+    channel_unreachable:
+      'The bot cannot open this channel. Check the channel ID, and that the bot has View Channel and Manage Webhooks there.',
+    send_failed:
+      'Discord rejected the test message. Check the bot has Send Messages and Embed Links in this channel.',
+  };
+
+const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
+  'deployments',
+  'models',
+  'posts',
+  'studio',
+  'users',
+];
+
 @Injectable()
 export class SystemNotificationDestinationsService {
   constructor(
@@ -22,6 +46,17 @@ export class SystemNotificationDestinationsService {
     private readonly crypto: CredentialCryptoService,
     private readonly notifications: NotificationsService,
   ) {}
+
+  /** Throws with the reason shown to the operator when the test message cannot be posted. */
+  async testDiscordChannel(channel: string): Promise<void> {
+    const testChannel = DISCORD_TEST_CHANNELS.find((name) => name === channel);
+    if (!testChannel) throw new BadRequestException('Unknown Discord channel');
+    const result = await this.notifications.testDiscordChannel(testChannel);
+    if (result.status !== 'delivered')
+      throw new BadRequestException(
+        DISCORD_CHANNEL_TEST_FAILURES[result.reason ?? 'send_failed'],
+      );
+  }
 
   async list(): Promise<ISystemNotificationDestination[]> {
     // tenant-scope-ignore: super-admin deployment destinations, never tenant routes

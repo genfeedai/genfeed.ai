@@ -28,6 +28,26 @@ export interface IDiscordTransportStatus {
   missingChannels: string[];
 }
 
+/** Platform-settings Discord channels the operator bot can post a test message to. */
+export type DiscordTestChannel =
+  | 'deployments'
+  | 'models'
+  | 'posts'
+  | 'studio'
+  | 'users';
+
+export type DiscordChannelTestFailure =
+  | 'bot_not_configured'
+  | 'bot_not_ready'
+  | 'channel_id_missing'
+  | 'channel_unreachable'
+  | 'send_failed';
+
+export interface IDiscordChannelTestResult {
+  status: 'delivered' | 'skipped';
+  reason?: DiscordChannelTestFailure;
+}
+
 export interface ISystemNotificationOverview {
   id: string;
   configuration: {

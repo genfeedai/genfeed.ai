@@ -2,6 +2,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 
 import type {
+  DiscordTestChannel,
   ISystemNotificationDestination,
   ISystemNotificationDestinationInput,
   ISystemNotificationOverview,
@@ -33,6 +34,13 @@ const EVENTS = [
   'subscription.payment_succeeded',
   'payment.failed',
   'credits.purchased',
+];
+const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
+  'studio',
+  'models',
+  'users',
+  'posts',
+  'deployments',
 ];
 const EMPTY: ISystemNotificationDestinationInput = {
   label: '',
@@ -144,6 +152,36 @@ export default function SystemNotificationsPanel() {
                 channels: discordStatus.missingChannels.join(', '),
               })}
             </p>
+          ) : null}
+          {discordStatus ? (
+            <div className="rounded-md border p-3 space-y-2">
+              <p className="font-medium">{t('discordChannelTests')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('discordChannelTestsHelp')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {DISCORD_TEST_CHANNELS.map((channel) => (
+                  <Button
+                    key={channel}
+                    type="button"
+                    variant={ButtonVariant.SECONDARY}
+                    disabled={isBusy}
+                    onClick={() =>
+                      void act(
+                        (service) => service.testDiscordChannel(channel),
+                        t('discordChannelTestSent', {
+                          channel: t(`discordChannels.${channel}`),
+                        }),
+                      )
+                    }
+                  >
+                    {t('discordChannelTest', {
+                      channel: t(`discordChannels.${channel}`),
+                    })}
+                  </Button>
+                ))}
+              </div>
+            </div>
           ) : null}
           <Switch
             aria-label={t('deliveryEnabled')}

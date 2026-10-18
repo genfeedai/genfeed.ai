@@ -1,4 +1,5 @@
 import type {
+  DiscordTestChannel,
   ISystemNotificationDestinationInput,
   ISystemNotificationOverview,
 } from '@genfeedai/contracts/interfaces';
@@ -62,6 +63,14 @@ export class AdminSystemNotificationsService extends HTTPBaseService {
   async test(id: string): Promise<ISystemNotificationOverview> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/destinations/${id}/test`,
+    );
+    return deserializeResource<ISystemNotificationOverview>(response.data);
+  }
+  async testDiscordChannel(
+    channel: DiscordTestChannel,
+  ): Promise<ISystemNotificationOverview> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/discord-channels/${channel}/test`,
     );
     return deserializeResource<ISystemNotificationOverview>(response.data);
   }

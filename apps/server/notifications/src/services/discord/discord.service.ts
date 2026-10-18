@@ -1,5 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type {
+  DiscordTestChannel,
+  IDiscordChannelTestResult,
   IDiscordEmbed,
   IDiscordEmbedField,
   IDiscordTransportStatus,
@@ -58,6 +60,64 @@ export class DiscordService {
         .filter(([, channelId]) => !channelId)
         .map(([name]) => name),
     };
+  }
+
+  /**
+   * Posts a test message to one bot channel and says why it could not, so the
+   * operator sees a failure the skipped-alert warning only logs.
+   */
+  async sendChannelTest(
+    channel: DiscordTestChannel,
+  ): Promise<IDiscordChannelTestResult> {
+    const settings = await this.runtimeSettings.get();
+    const channelIds: Record<DiscordTestChannel, string | null | undefined> = {
+      deployments: settings.discordChannelIdDeployments,
+      models: settings.discordChannelIdModels,
+      posts: settings.discordChannelIdPosts,
+      studio: settings.discordChannelIdStudio,
+      users: settings.discordChannelIdUsers,
+    };
+    if (!channelIds[channel])
+      return { reason: 'channel_id_missing', status: 'skipped' };
+    if (!this.configService.isDiscordEnabled())
+      return { reason: 'bot_not_configured', status: 'skipped' };
+    if (!this.discordBotService.botReady)
+      return { reason: 'bot_not_ready', status: 'skipped' };
+
+    const webhooks: Record<
+      DiscordTestChannel,
+      () => Promise<WebhookClient | null>
+    > = {
+      deployments: () => this.discordBotService.getDeploymentsWebhook(),
+      models: () => this.discordBotService.getModelsWebhook(),
+      posts: () => this.discordBotService.getPostsWebhook(),
+      studio: () => this.discordBotService.getIngredientsWebhook(),
+      users: () => this.discordBotService.getUsersWebhook(),
+    };
+    const webhookClient = await webhooks[channel]();
+    if (!webhookClient)
+      return { reason: 'channel_unreachable', status: 'skipped' };
+
+    try {
+      await webhookClient.send({
+        avatarURL: settings.discordBotAvatarUrl ?? undefined,
+        embeds: [
+          {
+            description: `Test message for the ${channel} channel. Alerts for it will post here.`,
+            timestamp: new Date().toISOString(),
+            title: 'Genfeed.ai Discord test',
+          },
+        ],
+        username: 'Genfeed.ai',
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} test message to ${channel} failed`,
+        error,
+      );
+      return { reason: 'send_failed', status: 'skipped' };
+    }
+    return { status: 'delivered' };
   }
 
   async sendSystemNotification(

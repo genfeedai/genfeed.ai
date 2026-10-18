@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   save: vi.fn(),
   remove: vi.fn(),
   test: vi.fn(),
+  testDiscordChannel: vi.fn(),
   retry: vi.fn(),
   configure: vi.fn(),
   error: vi.fn(),
@@ -81,6 +82,7 @@ beforeEach(() => {
   mocks.save.mockResolvedValue(overview);
   mocks.retry.mockResolvedValue(overview);
   mocks.test.mockResolvedValue(overview);
+  mocks.testDiscordChannel.mockResolvedValue(overview);
 });
 describe('admin notification destinations', () => {
   it('warns when Discord channels are not set', async () => {
@@ -99,6 +101,29 @@ describe('admin notification destinations', () => {
     expect(
       await screen.findByText(/channel ID is set.*users, studio/),
     ).toBeTruthy();
+  });
+  it('posts a test message to a Discord channel and reports a failure reason', async () => {
+    mocks.overview.mockResolvedValue({
+      ...overview,
+      configuration: {
+        ...overview.configuration,
+        discord: {
+          isBotConfigured: true,
+          isBotReady: true,
+          missingChannels: [],
+        },
+      },
+    });
+    render(<SystemNotificationsPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Test Models' }));
+    await waitFor(() =>
+      expect(mocks.testDiscordChannel).toHaveBeenCalledWith('models'),
+    );
+    await waitFor(() => expect(mocks.success).toHaveBeenCalled());
+
+    mocks.testDiscordChannel.mockRejectedValueOnce(new Error('rejected'));
+    fireEvent.click(screen.getByRole('button', { name: 'Test Studio' }));
+    await waitFor(() => expect(mocks.error).toHaveBeenCalled());
   });
   it('preserves the encrypted webhook when changing only a destination name', async () => {
     render(<SystemNotificationsPanel />);

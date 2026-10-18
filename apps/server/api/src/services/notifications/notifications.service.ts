@@ -3,8 +3,11 @@ import {
   systemNotificationStatusCode,
 } from '@api/services/notifications/system-notification-delivery.error';
 import type {
+  DiscordChannelTestFailure,
+  DiscordTestChannel,
   IChannelDeliveryRequest,
   IChannelDeliveryResponse,
+  IDiscordChannelTestResult,
   IDiscordTransportStatus,
   IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
@@ -62,6 +65,27 @@ function readChannelDeliveryResponse(
     return { reason: reason.slice(0, 200), status };
   }
   return null;
+}
+
+const DISCORD_CHANNEL_TEST_FAILURES: readonly DiscordChannelTestFailure[] = [
+  'bot_not_configured',
+  'bot_not_ready',
+  'channel_id_missing',
+  'channel_unreachable',
+  'send_failed',
+];
+
+function readDiscordChannelTestResult(
+  value: unknown,
+): IDiscordChannelTestResult | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const status = Reflect.get(value, 'status');
+  const reason = Reflect.get(value, 'reason');
+  if (status === 'delivered') return { status };
+  const failure = DISCORD_CHANNEL_TEST_FAILURES.find(
+    (known) => known === reason,
+  );
+  return status === 'skipped' && failure ? { reason: failure, status } : null;
 }
 
 function readDiscordTransportStatus(
@@ -162,8 +186,23 @@ export class NotificationsService {
       throw new Error('Notification delivery was not acknowledged');
   }
 
+  /** Posts a test message to one operator Discord channel and reports the outcome. */
+  async testDiscordChannel(
+    channel: DiscordTestChannel,
+  ): Promise<IDiscordChannelTestResult> {
+    const result = readDiscordChannelTestResult(
+      await this.requestSystemNotifications(
+        { channel },
+        'discord-channel-test',
+      ),
+    );
+    if (!result) throw new Error('Invalid Discord channel test response');
+    return result;
+  }
+
   private async requestSystemNotifications(
-    delivery?: SystemNotificationDeliveryRequest,
+    delivery?: SystemNotificationDeliveryRequest | { channel: string },
+    path?: string,
   ): Promise<unknown> {
     const endpoint = this.configService
       .get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL')
@@ -176,7 +215,12 @@ export class NotificationsService {
       if (!['http:', 'https:'].includes(base.protocol))
         throw new Error('Invalid service URL');
       const response = await safeFetch(
-        new URL('v1/internal/system-notifications', base),
+        new URL(
+          path
+            ? `v1/internal/system-notifications/${path}`
+            : 'v1/internal/system-notifications',
+          base,
+        ),
         {
           method: delivery ? 'POST' : 'GET',
           headers: {

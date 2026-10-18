@@ -89,6 +89,7 @@ describe('DiscordService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDiscordBotService.botReady = false;
     mockSend.mockResolvedValue(undefined);
     mockConfigService.isDiscordEnabled.mockReturnValue(true);
     mockConfigService.get.mockImplementation((key: string) => {
@@ -126,6 +127,83 @@ describe('DiscordService', () => {
     expect(mockLoggerService.log).not.toHaveBeenCalledWith(
       'Discord service initialized with bot webhooks',
     );
+  });
+
+  describe('sendChannelTest', () => {
+    function configureChannels(ids: Record<string, string>): void {
+      mockConfigService.get.mockImplementation(
+        (key: string) => ids[key] ?? undefined,
+      );
+    }
+
+    it('posts a test message to the channel and reports delivery', async () => {
+      configureChannels({ DISCORD_CHANNEL_ID_MODELS: 'models-1' });
+      mockDiscordBotService.botReady = true;
+      const { service } = await createService();
+
+      await expect(service.sendChannelTest('models')).resolves.toEqual({
+        status: 'delivered',
+      });
+
+      expect(mockDiscordBotService.getModelsWebhook).toHaveBeenCalled();
+      expect(lastSendPayload().embeds).toHaveLength(1);
+    });
+
+    it('does not use the studio fallback when the models channel ID is empty', async () => {
+      configureChannels({ DISCORD_CHANNEL_ID_STUDIO: 'studio-1' });
+      mockDiscordBotService.botReady = true;
+      const { service } = await createService();
+
+      await expect(service.sendChannelTest('models')).resolves.toEqual({
+        reason: 'channel_id_missing',
+        status: 'skipped',
+      });
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('reports a bot that is not configured or not connected', async () => {
+      configureChannels({ DISCORD_CHANNEL_ID_STUDIO: 'studio-1' });
+      const { service } = await createService();
+
+      mockConfigService.isDiscordEnabled.mockReturnValue(false);
+      await expect(service.sendChannelTest('studio')).resolves.toEqual({
+        reason: 'bot_not_configured',
+        status: 'skipped',
+      });
+
+      mockConfigService.isDiscordEnabled.mockReturnValue(true);
+      mockDiscordBotService.botReady = false;
+      await expect(service.sendChannelTest('studio')).resolves.toEqual({
+        reason: 'bot_not_ready',
+        status: 'skipped',
+      });
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('reports a channel the bot cannot open', async () => {
+      configureChannels({ DISCORD_CHANNEL_ID_STUDIO: 'studio-1' });
+      mockDiscordBotService.botReady = true;
+      mockDiscordBotService.getIngredientsWebhook.mockResolvedValue(null);
+      const { service } = await createService();
+
+      await expect(service.sendChannelTest('studio')).resolves.toEqual({
+        reason: 'channel_unreachable',
+        status: 'skipped',
+      });
+    });
+
+    it('reports a rejected send and logs the error', async () => {
+      configureChannels({ DISCORD_CHANNEL_ID_USERS: 'users-1' });
+      mockDiscordBotService.botReady = true;
+      mockSend.mockRejectedValueOnce(new Error('Missing Permissions'));
+      const { service } = await createService();
+
+      await expect(service.sendChannelTest('users')).resolves.toEqual({
+        reason: 'send_failed',
+        status: 'skipped',
+      });
+      expect(mockLoggerService.error).toHaveBeenCalled();
+    });
   });
 
   describe('sendIngredientNotification', () => {

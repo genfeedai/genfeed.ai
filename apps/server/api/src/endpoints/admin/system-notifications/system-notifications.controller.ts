@@ -67,6 +67,16 @@ export class AdminSystemNotificationsController {
     return this.overview(request);
   }
 
+  @Post('discord-channels/:channel/test')
+  @HttpCode(200)
+  async testDiscordChannel(
+    @Req() request: Request,
+    @Param('channel') channel: string,
+  ) {
+    await this.destinations.testDiscordChannel(channel);
+    return this.overview(request);
+  }
+
   @Post('deliveries/:id/retry')
   @HttpCode(200)
   async retry(@Req() request: Request, @Param('id') id: string) {
