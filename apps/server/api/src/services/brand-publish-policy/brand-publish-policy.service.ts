@@ -178,23 +178,31 @@ export class BrandPublishPolicyService {
       evaluateBrandPublishPolicyRules(input).length > 0
     )
       return input;
-    input.judgeViolations = this.judge
-      ? await this.judge.judge({
-          bannedClaims: policy.bannedClaims,
-          bannedTopics: policy.bannedTopics,
-          brandId: facts.brandId,
-          guardrails,
-          isModerationRequired: policy.requiredChecks.includes('moderation'),
-          organizationId: facts.organizationId,
-          text: facts.text,
-        })
-      : [
-          {
-            detail:
-              'The Policy judge is not available here, so banned topics, claims and moderation were not checked.',
-            rule: 'policy_judge_unavailable',
-          },
-        ];
+    const request = {
+      bannedClaims: policy.bannedClaims,
+      bannedTopics: policy.bannedTopics,
+      brandId: facts.brandId,
+      guardrails,
+      isModerationRequired: policy.requiredChecks.includes('moderation'),
+      organizationId: facts.organizationId,
+      text: facts.text,
+    };
+    // Inside a transaction the judge only reads its cache: a model call would
+    // hold the transaction's locks past its timeout. Callers judge first.
+    const isInTransaction = db !== this.prisma;
+    const judged = !this.judge
+      ? undefined
+      : isInTransaction
+        ? this.judge.peek(request)
+        : await this.judge.judge(request);
+    input.judgeViolations = judged ?? [
+      {
+        detail: this.judge
+          ? 'The Policy judge had not checked this draft before the publish step, so banned topics, claims and moderation were not checked.'
+          : 'The Policy judge is not available here, so banned topics, claims and moderation were not checked.',
+        rule: 'policy_judge_unavailable',
+      },
+    ];
     return input;
   }
 

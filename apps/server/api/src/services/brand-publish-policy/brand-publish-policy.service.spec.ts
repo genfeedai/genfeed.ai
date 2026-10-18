@@ -77,7 +77,10 @@ function makeDb(policy: IBrandPublishPolicy | null | 'invalid') {
 }
 
 function makeJudge(violations: IBrandPolicyViolation[] = []) {
-  return { judge: vi.fn().mockResolvedValue(violations) };
+  return {
+    judge: vi.fn().mockResolvedValue(violations),
+    peek: vi.fn().mockReturnValue(undefined),
+  };
 }
 
 function makeService(
@@ -228,6 +231,30 @@ describe('BrandPublishPolicyService', () => {
     expect(unjudged.judgeViolations).toEqual([
       expect.objectContaining({ rule: 'policy_judge_unavailable' }),
     ]);
+  });
+
+  it('only reads the judge cache inside a transaction, and holds a draft it has not judged', async () => {
+    const judge = makeJudge();
+    const service = makeService(db, judge);
+    const transaction = makeDb(createDefaultBrandPublishPolicy());
+
+    const unjudged = await service.buildEvaluation(
+      FACTS,
+      { isJudgeEnabled: true },
+      transaction as never,
+    );
+    expect(unjudged.judgeViolations).toEqual([
+      expect.objectContaining({ rule: 'policy_judge_unavailable' }),
+    ]);
+
+    judge.peek.mockReturnValue([]);
+    const cached = await service.buildEvaluation(
+      FACTS,
+      { isJudgeEnabled: true },
+      transaction as never,
+    );
+    expect(cached.judgeViolations).toEqual([]);
+    expect(judge.judge).not.toHaveBeenCalled();
   });
 
   it('counts only live top-level posts of the brand in the local day and week, never this one', async () => {

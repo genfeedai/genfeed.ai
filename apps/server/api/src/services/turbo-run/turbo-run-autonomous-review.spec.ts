@@ -100,6 +100,8 @@ function fixture() {
   // Transactions queue like the database's run row lock; concurrent review calls must reload after their predecessor commits.
   let tail = Promise.resolve();
   const prisma = {
+    // The pre-transaction read that warms the Policy judge.
+    turboRun: { findFirst: vi.fn(async () => turboRun()) },
     $transaction: <T>(fn: (client: typeof tx) => Promise<T>) => {
       const result = tail.then(() => fn(tx));
       tail = result.then(
@@ -540,5 +542,17 @@ describe('Autonomous review transaction boundary', () => {
     await f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1', true);
     expect(f.approvals.createForCurrentPost).toHaveBeenCalledTimes(1);
     expect(f.policy.recordReviewDecision).not.toHaveBeenCalled();
+  });
+  it('judges the brand Policy before the transaction, then again inside it', async () => {
+    const f = fixture();
+    f.policy.resolveForPost.mockResolvedValue({
+      reviewTimeoutHours: 24,
+      result: { decision: AgentPublishDecision.PERMITTED },
+    });
+    await f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1', true);
+    expect(f.policy.resolveForPost.mock.calls).toEqual([
+      [expect.objectContaining({ organizationId: 'org-1', postId: 'post-1' })],
+      [expect.objectContaining({ postId: 'post-1' }), f.tx],
+    ]);
   });
 });

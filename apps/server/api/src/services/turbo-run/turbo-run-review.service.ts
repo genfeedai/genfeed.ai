@@ -234,6 +234,8 @@ export class TurboRunReviewService {
     autonomous = false,
     expectedPostVersions?: Record<string, string>,
   ): Promise<ITurboRunSummary> {
+    if (autonomous)
+      await this.prejudgeAutonomousDrafts(turboRunId, itemIds, orgId);
     const updatedTurboRun = await this.withLockedTurboRun(
       turboRunId,
       orgId,
@@ -262,6 +264,31 @@ export class TurboRunReviewService {
     });
 
     return this.summaryService.toTurboRunSummary(updatedTurboRun);
+  }
+
+  /**
+   * Runs the brand Policy judge on each autonomous draft before the review
+   * transaction opens, so its model call never holds the transaction's locks;
+   * the transaction then reads the cached verdict.
+   */
+  private async prejudgeAutonomousDrafts(
+    turboRunId: string,
+    itemIds: string[],
+    orgId: string,
+  ): Promise<void> {
+    const turboRun = await this.prisma.turboRun.findFirst({
+      include: turboRunItemRowsInclude(orgId),
+      where: scopedWhere(orgId, { id: turboRunId }),
+    });
+    if (!turboRun) return;
+    const items = resolveTurboRunItems(toTurboRunWithConfig(turboRun));
+    for (const postId of getSelectedPostIds(items, new Set(itemIds)))
+      await this.autonomousPublishPolicy.resolveForPost({
+        organizationId: orgId,
+        postId,
+        qualityScore: items.find((item) => item.postId === postId)
+          ?.gateOverallScore,
+      });
   }
 
   private async approveItemsInTransaction(

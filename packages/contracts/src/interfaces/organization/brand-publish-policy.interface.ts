@@ -3,8 +3,8 @@
  *
  * The Policy is a section of a Brand OS revision. It takes effect only when an
  * owner or admin approves that revision; the approved revision's Policy is the
- * brand's active Policy. A brand with no approved Policy keeps every
- * autonomous draft in review.
+ * brand's active Policy. A brand with no approved Policy is judged by the
+ * default one (`createDefaultBrandPublishPolicy`).
  */
 
 /** `earned`: auto-publish once the approval streak allows it. `review`: always review. */

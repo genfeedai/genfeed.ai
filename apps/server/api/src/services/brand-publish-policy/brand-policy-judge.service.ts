@@ -24,6 +24,32 @@ export interface BrandPolicyJudgeRequest extends PolicyJudgeRules {
   text: string;
 }
 
+function cacheKey(request: BrandPolicyJudgeRequest): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        request.organizationId,
+        request.brandId,
+        request.bannedTopics,
+        request.bannedClaims,
+        request.guardrails,
+        request.isModerationRequired,
+        request.text,
+      ]),
+    )
+    .digest('hex');
+}
+
+function normalizeRule(value: string): string {
+  return value
+    .normalize('NFKC')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('en-US');
+}
+
 function unavailable(detail: string): IBrandPolicyViolation[] {
   return [{ detail, rule: 'policy_judge_unavailable' }];
 }
@@ -84,21 +110,9 @@ export class BrandPolicyJudgeService {
     if (!request.text.trim()) return [];
     if (request.text.length > MAX_POLICY_JUDGE_TEXT_LENGTH)
       return unavailable('The draft is too long for the Policy judge to read.');
-    const key = createHash('sha256')
-      .update(
-        JSON.stringify([
-          request.organizationId,
-          request.brandId,
-          request.bannedTopics,
-          request.bannedClaims,
-          request.guardrails,
-          request.isModerationRequired,
-          request.text,
-        ]),
-      )
-      .digest('hex');
-    const cached = this.cache.get(key);
-    if (cached && cached.expiresAt > Date.now()) return cached.violations;
+    const key = cacheKey(request);
+    const cached = this.readCache(key);
+    if (cached) return cached;
 
     let judgment: PolicyJudgment;
     try {
@@ -125,10 +139,11 @@ export class BrandPolicyJudgeService {
     }
 
     // A finding has to name a listed rule and quote the draft, or it is not about this draft.
+    // The rule may come back recased or respaced; the evidence must be exact.
     const listed = {
-      banned_claim: new Set(request.bannedClaims),
-      banned_topic: new Set(request.bannedTopics),
-      guardrail: new Set(request.guardrails),
+      banned_claim: new Set(request.bannedClaims.map(normalizeRule)),
+      banned_topic: new Set(request.bannedTopics.map(normalizeRule)),
+      guardrail: new Set(request.guardrails.map(normalizeRule)),
     };
     const violations = judgment.findings
       .filter(
@@ -136,7 +151,7 @@ export class BrandPolicyJudgeService {
           request.text.includes(finding.evidence) &&
           (finding.kind === 'unsafe'
             ? request.isModerationRequired
-            : listed[finding.kind].has(finding.rule)),
+            : listed[finding.kind].has(normalizeRule(finding.rule))),
       )
       .map((finding) => {
         const violation = toViolation(finding);
@@ -144,6 +159,19 @@ export class BrandPolicyJudgeService {
       });
     this.remember(key, violations);
     return violations;
+  }
+
+  /** A cached verdict, without calling the model; undefined when there is none. */
+  peek(request: BrandPolicyJudgeRequest): IBrandPolicyViolation[] | undefined {
+    if (!request.text.trim()) return [];
+    return this.readCache(cacheKey(request));
+  }
+
+  private readCache(key: string): IBrandPolicyViolation[] | undefined {
+    const cached = this.cache.get(key);
+    return cached && cached.expiresAt > Date.now()
+      ? cached.violations
+      : undefined;
   }
 
   private remember(key: string, violations: IBrandPolicyViolation[]): void {
