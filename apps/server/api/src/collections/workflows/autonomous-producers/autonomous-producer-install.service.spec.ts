@@ -11,11 +11,9 @@ const principal = { organizationId: 'org-1', userId: 'user-1' };
 function setup(options: { hasCatalog?: boolean; role?: MemberRole } = {}) {
   const prisma = {
     member: {
-      findFirst: vi
-        .fn()
-        .mockResolvedValue({
-          role: { key: options.role ?? MemberRole.CREATOR },
-        }),
+      findFirst: vi.fn().mockResolvedValue({
+        role: { key: options.role ?? MemberRole.CREATOR },
+      }),
     },
     workflow: { findFirst: vi.fn().mockResolvedValue(null) },
   };
