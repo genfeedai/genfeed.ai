@@ -2,6 +2,9 @@ import { AnalyticsMetric } from '@genfeedai/contracts';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import type { IOrgLeaderboardItem } from '@genfeedai/services/analytics/analytics.service';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -23,6 +26,21 @@ export interface UseAdminStatsReturn {
 }
 
 export function useAdminStats(): UseAdminStatsReturn {
+  const { isLoaded, isSignedIn, orgId, sessionId, userId } = useAuthIdentity();
+  const playwrightAuth = getPlaywrightAuthState();
+  const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
+  const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
+  const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
+  const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? null;
+  const shouldFetch =
+    effectiveIsLoaded && effectiveIsSignedIn && !!effectiveUserId;
+  const queryOwner = [
+    effectiveUserId,
+    sessionId ?? null,
+    effectiveOrgId,
+    EnvironmentService.apiEndpoint,
+    shouldFetch,
+  ];
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -33,10 +51,16 @@ export function useAdminStats(): UseAdminStatsReturn {
     isFetching: isFetchingStats,
     refetch: refetchStats,
   } = useQuery({
-    queryKey: ['admin-stats'],
-    queryFn: async () => {
+    enabled: shouldFetch,
+    queryKey: ['admin-stats', ...queryOwner],
+    queryFn: async ({ signal }) => {
+      if (!shouldFetch) return null;
+      signal.throwIfAborted();
       const service = await getAnalyticsService();
-      return await service.findAll();
+      signal.throwIfAborted();
+      const result = await service.findAll();
+      signal.throwIfAborted();
+      return result;
     },
   });
 
@@ -46,13 +70,19 @@ export function useAdminStats(): UseAdminStatsReturn {
     isFetching: isFetchingLeaderboard,
     refetch: refetchLeaderboard,
   } = useQuery({
-    queryKey: ['admin-leaderboard'],
-    queryFn: async () => {
+    enabled: shouldFetch,
+    queryKey: ['admin-leaderboard', ...queryOwner],
+    queryFn: async ({ signal }) => {
+      if (!shouldFetch) return [];
+      signal.throwIfAborted();
       const service = await getAnalyticsService();
-      return await service.getOrganizationsLeaderboard({
+      signal.throwIfAborted();
+      const result = await service.getOrganizationsLeaderboard({
         limit: 5,
         sort: AnalyticsMetric.POSTS,
       });
+      signal.throwIfAborted();
+      return result;
     },
   });
 
@@ -62,32 +92,42 @@ export function useAdminStats(): UseAdminStatsReturn {
     isFetching: isFetchingTimeseries,
     refetch: refetchTimeseries,
   } = useQuery({
-    queryKey: ['admin-timeseries'],
-    queryFn: async () => {
+    enabled: shouldFetch,
+    queryKey: ['admin-timeseries', ...queryOwner],
+    queryFn: async ({ signal }) => {
+      if (!shouldFetch) return [];
+      signal.throwIfAborted();
       const service = await getAnalyticsService();
+      signal.throwIfAborted();
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
 
-      return await service.getTimeSeries({
+      const result = await service.getTimeSeries({
         endDate: endDate.toISOString().split('T')[0],
         startDate: startDate.toISOString().split('T')[0],
       });
+      signal.throwIfAborted();
+      return result;
     },
   });
 
   const stats = useMemo(
-    () => (statsData as IAnalytics | null | undefined) ?? null,
-    [statsData],
+    () =>
+      shouldFetch
+        ? ((statsData as IAnalytics | null | undefined) ?? null)
+        : null,
+    [shouldFetch, statsData],
   );
 
   const leaderboard = useMemo(
-    () => (leaderboardData as IOrgLeaderboardItem[]) ?? [],
-    [leaderboardData],
+    () =>
+      shouldFetch ? ((leaderboardData as IOrgLeaderboardItem[]) ?? []) : [],
+    [leaderboardData, shouldFetch],
   );
 
   const timeseries = useMemo(() => {
-    if (!timeseriesData || !Array.isArray(timeseriesData)) {
+    if (!shouldFetch || !timeseriesData || !Array.isArray(timeseriesData)) {
       return [];
     }
 
@@ -121,16 +161,19 @@ export function useAdminStats(): UseAdminStatsReturn {
         users: totalLikes,
       };
     });
-  }, [timeseriesData]);
+  }, [shouldFetch, timeseriesData]);
 
   const isLoading =
-    isLoadingStats || isLoadingLeaderboard || isLoadingTimeseries;
+    shouldFetch &&
+    (isLoadingStats || isLoadingLeaderboard || isLoadingTimeseries);
   const isRefreshing =
-    (isFetchingStats && !isLoadingStats) ||
-    (isFetchingLeaderboard && !isLoadingLeaderboard) ||
-    (isFetchingTimeseries && !isLoadingTimeseries);
+    shouldFetch &&
+    ((isFetchingStats && !isLoadingStats) ||
+      (isFetchingLeaderboard && !isLoadingLeaderboard) ||
+      (isFetchingTimeseries && !isLoadingTimeseries));
 
   const refresh = async () => {
+    if (!shouldFetch) return;
     await Promise.all([
       refetchStats(),
       refetchLeaderboard(),
