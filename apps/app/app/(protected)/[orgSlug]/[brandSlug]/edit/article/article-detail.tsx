@@ -20,6 +20,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -296,6 +297,21 @@ export default function ArticleDetail({
                   isGeneratingTeaser={!!generatingTeaserFormat}
                 />
               )}
+
+              {article?.coverImageUrl ? (
+                <div
+                  className="relative aspect-[1200/630] w-full overflow-hidden rounded-lg bg-muted"
+                  data-testid="article-cover-preview"
+                >
+                  <Image
+                    src={article.coverImageUrl}
+                    alt={form.label || 'Article cover'}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+              ) : null}
 
               <ArticleEditForm form={form} setFormField={setFormField} />
             </>

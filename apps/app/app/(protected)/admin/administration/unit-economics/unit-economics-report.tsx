@@ -16,9 +16,8 @@ import type {
 import { AdminUnitEconomicsService } from '@services/admin/unit-economics.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -219,50 +218,40 @@ export default function UnitEconomicsReport() {
   };
 
   return (
-    <Container
-      label={
+    <AdminPageShell
+      title={
         drillDown
           ? translate('titleDrillDown', { label: drillDown.label })
           : translate('title')
       }
-      description={
-        drillDown ? translate('descriptionDrillDown') : translate('description')
-      }
       icon={Scale}
-      refresh={
-        <ButtonRefresh
-          onClick={() => refetch()}
-          isRefreshing={isFetching && !isLoading}
-        />
+      onRefresh={() => refetch()}
+      isRefreshing={isFetching && !isLoading}
+      dropdowns={
+        <Select value={periodDays} onValueChange={setPeriodDays}>
+          <SelectTrigger className="w-40" aria-label={translate('periodLabel')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {UNIT_ECONOMICS_PERIOD_DAYS.map((days) => (
+              <SelectItem key={days} value={String(days)}>
+                {translate('period', { days })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       }
-      right={
-        <div className="flex items-center gap-2">
-          {drillDown ? (
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-              onClick={() => setDrillDown(null)}
-            >
-              <ArrowLeft className="size-4" />
-              {translate('allOrganizations')}
-            </Button>
-          ) : null}
-          <Select value={periodDays} onValueChange={setPeriodDays}>
-            <SelectTrigger
-              className="w-40"
-              aria-label={translate('periodLabel')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {UNIT_ECONOMICS_PERIOD_DAYS.map((days) => (
-                <SelectItem key={days} value={String(days)}>
-                  {translate('period', { days })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      filters={
+        drillDown ? (
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            onClick={() => setDrillDown(null)}
+          >
+            <ArrowLeft className="size-4" />
+            {translate('allOrganizations')}
+          </Button>
+        ) : undefined
       }
     >
       <AppTable<UnitEconomicsTableRow>
@@ -297,6 +286,6 @@ export default function UnitEconomicsReport() {
         sortDirection={sortDirection}
         onSortChange={handleSortChange}
       />
-    </Container>
+    </AdminPageShell>
   );
 }

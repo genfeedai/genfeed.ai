@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TREND_SOURCE_PREVIEW_LIMIT } from '@api/collections/trends/services/modules/trend-source.constants';
 import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
+import { CacheService } from '@api/services/cache/cache.service';
 import type {
   ApifyInstagramPost,
   ApifyNormalizedTweet,
@@ -25,7 +26,17 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class TrendSourceItemsService {
-  constructor(private readonly apifyService: ApifyService) {}
+  /**
+   * A source search depends on the platform, the search term and the limit,
+   * not on which organization asked, so identical searches share one billed run.
+   */
+  private readonly SOURCE_ITEMS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
+  private readonly EMPTY_SOURCE_ITEMS_TTL_SECONDS = 60 * 60; // 1 hour
+
+  constructor(
+    private readonly apifyService: ApifyService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   /**
    * Build the source-reference sync input for a trend from its stored preview.
@@ -120,7 +131,26 @@ export class TrendSourceItemsService {
     };
 
     const fetcher = fetchers[trend.platform];
-    const items = fetcher ? await fetcher() : [];
+    if (!fetcher) {
+      return [];
+    }
+
+    const cacheKey = this.cacheService.generateKey(
+      'trends:source-items',
+      trend.platform,
+      searchTerm.toLowerCase(),
+      limit,
+    );
+    let items = await this.cacheService.get<TrendSourceItem[]>(cacheKey);
+    if (!items) {
+      items = await fetcher();
+      await this.cacheService.set(cacheKey, items, {
+        tags: ['trends', `trends:${trend.platform}`],
+        ttl: items.length
+          ? this.SOURCE_ITEMS_TTL_SECONDS
+          : this.EMPTY_SOURCE_ITEMS_TTL_SECONDS,
+      });
+    }
 
     return items.map((item) => this.withSourceClassification(item, trend));
   }

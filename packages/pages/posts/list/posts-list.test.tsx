@@ -361,4 +361,28 @@ describe('PostsList', () => {
 
     expect(pushMock).not.toHaveBeenCalled();
   });
+
+  it('renders the admin list as table rows with no in-content header or org filter', () => {
+    resourceData = [postFixture];
+
+    render(
+      <PostsList
+        scope={PageScope.SUPERADMIN}
+        platform="all"
+        status={PostStatus.DRAFT}
+      />,
+    );
+
+    // The breadcrumb names the page and the organization filter lives in the
+    // subbar, so the content starts straight at the table.
+    expect(screen.queryByRole('heading', { name: 'All posts' })).toBeNull();
+    expect(screen.queryByText('Posts grid')).toBeNull();
+    expect(screen.queryByText('Open table row')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /open table row/i }));
+
+    expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
+      'post-1',
+    );
+  });
 });

@@ -7,10 +7,9 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { SubscriptionsService } from '@services/billing/subscriptions.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Progress } from '@ui/primitives/progress';
 import { ChartColumn, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -129,13 +128,11 @@ export default function CreditUsageList() {
   ];
 
   return (
-    <Container
-      label="Credit Usage"
-      description="Monitor per-organization credit balance and plan allotment usage"
+    <AdminPageShell
+      title="Credit Usage"
       icon={ChartColumn}
-      refresh={
-        <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
-      }
+      onRefresh={() => refresh()}
+      isRefreshing={isRefreshing}
     >
       <AppTable<IOrganizationCreditUsage>
         items={creditUsage}
@@ -152,6 +149,6 @@ export default function CreditUsageList() {
           organizationName={selectedOrganization.organizationName}
         />
       )}
-    </Container>
+    </AdminPageShell>
   );
 }

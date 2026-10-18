@@ -34,6 +34,9 @@ export GENFEEDAI_MCP_PUBLIC_URL=${GENFEEDAI_MCP_PUBLIC_URL:-http://localhost:301
 export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 export GENFEED_STORAGE_PATH=${GENFEED_STORAGE_PATH:-/data/files}
 export TEMP_DIR=${TEMP_DIR:-/data/tmp/videos}
+# Platform schedules (scheduled publishing, analytics sync, hired agents) are
+# off in development mode, which is the default when NODE_ENV is unset.
+export GF_DEV_ENABLE_SCHEDULERS=${GF_DEV_ENABLE_SCHEDULERS:-true}
 
 # Community runs the local Better Auth handler by default so a fresh install can
 # sign up its first user. Set BETTER_AUTH_ENABLED=false for the seeded

@@ -2,6 +2,7 @@ import type { BrandOsRevisionsService } from '@api/collections/brands/services/b
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { fitRequiredBrandContextToBudgetWithReport } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { encodeBrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
 import {
   compileSnapshotBriefResolution,
   projectBrandSnapshotContributions,
@@ -1441,6 +1442,100 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       result.layers.find((layer) => layer.kind === 'knowledge'),
     ).toMatchObject({
       status: 'unavailable',
+      reasonCode: 'knowledge_unavailable',
+    });
+  });
+  it('keeps promoted performance winners in the branded brief with post identity', async () => {
+    const env = snapshotService();
+    const winner = {
+      content: 'Winning post on instagram (6.00% engagement): Show the craft',
+      kind: 'performance_winner',
+      metadata: {
+        engagementRate: 6,
+        kind: 'performance_winner',
+        platform: 'instagram',
+        postId: 'post-1',
+        source: 'harness-winner-promotion',
+      },
+      relevance: 0.9,
+    };
+    env.retrieval.retrieveBrandContentMemory.mockResolvedValue([
+      winner,
+      { ...winner },
+      hit(),
+      {
+        content: 'Spoofed uncited note',
+        kind: 'performance_winner',
+        metadata: { kind: 'performance_winner', postId: 'post-2' },
+        relevance: 0.9,
+      },
+    ]);
+    const input = generationInput();
+    const [result, recipe] = await env.service.resolveSnapshotBriefWithRecipe(
+      input,
+      snapshot(),
+      [],
+      [],
+      env.formatter,
+      baselineLearning(),
+      {},
+      snapshotInitiatingActor(input),
+    );
+    expect(result.status).toBe('resolved');
+    const knowledge = result.layers.filter(
+      (layer) => layer.kind === 'knowledge',
+    );
+    expect(knowledge).toEqual([
+      expect.objectContaining({
+        id: 'performance-winner:post-1',
+        status: 'applied',
+      }),
+      expect.objectContaining({ id: 'knowledge-version', status: 'applied' }),
+      expect.objectContaining({
+        status: 'unavailable',
+        reasonCode: 'knowledge_unavailable',
+      }),
+    ]);
+    if (result.status !== 'resolved') throw new Error('unresolved');
+    expect(result.compiledPrompt).toContain('Show the craft');
+    expect(result.compiledPrompt).toContain('"postId":"post-1"');
+    expect(result.compiledPrompt).not.toContain('Spoofed uncited note');
+    expect(recipe).not.toBeNull();
+    expect(() =>
+      encodeBrandedGenerationCompilerRecipeV1(
+        recipe as NonNullable<typeof recipe>,
+      ),
+    ).not.toThrow();
+  });
+  it('keeps winners out of an explicit Knowledge selection', async () => {
+    const env = snapshotService();
+    const input = generationInput();
+    input.knowledgeSourceIds = ['source'];
+    env.retrieval.retrieveSelectedBrandContentMemory.mockResolvedValue([
+      hit(),
+      {
+        content: 'Winning post',
+        kind: 'performance_winner',
+        metadata: {
+          kind: 'performance_winner',
+          postId: 'post-1',
+          source: 'harness-winner-promotion',
+        },
+        relevance: 0.9,
+      },
+    ]);
+    const result = await env.service.resolveSnapshotBrief(
+      input,
+      snapshot(),
+      [],
+      [],
+      env.formatter,
+      baselineLearning(),
+      {},
+      snapshotInitiatingActor(input),
+    );
+    expect(result).toMatchObject({
+      status: 'blocked',
       reasonCode: 'knowledge_unavailable',
     });
   });

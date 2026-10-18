@@ -33,7 +33,7 @@ import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -590,12 +590,10 @@ export default function PlatformSettingsPage() {
   }
 
   return (
-    <Container
-      label="Platform settings"
-      description="Platform-wide business and infrastructure controls for operators"
+    <AdminPageShell
+      title="Platform settings"
       icon={Banknote}
-      moduleChrome
-      headerTabs={{
+      tabs={{
         activeTab,
         fullWidth: false,
         onTabChange: (tab) => {
@@ -611,6 +609,6 @@ export default function PlatformSettingsPage() {
         {activeTab === 'notifications' ? <SystemNotificationsPanel /> : null}
         {renderFormContent()}
       </div>
-    </Container>
+    </AdminPageShell>
   );
 }
