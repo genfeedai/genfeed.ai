@@ -468,9 +468,9 @@ export class CreateOrganizationSettingDto {
   @Max(PUBLISHING_QUOTA_MAX)
   @IsOptional()
   @ApiProperty({
-    default: 5,
+    default: 15,
     description:
-      'Daily cap on published X (Twitter) posts per connected account. 0 = no cap.',
+      'Daily cap on published X (Twitter) posts per connected account. A thread counts as one post. 0 = no cap.',
     maximum: PUBLISHING_QUOTA_MAX,
     minimum: 0,
     required: false,

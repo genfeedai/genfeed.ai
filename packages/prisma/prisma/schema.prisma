@@ -1774,7 +1774,7 @@ model OrganizationSetting {
   webhookDeliveryStatus          Json?
   quotaYoutube                   Int               @default(5)
   quotaTiktok                    Int               @default(1)
-  quotaTwitter                   Int               @default(5)
+  quotaTwitter                   Int               @default(15)
   quotaInstagram                 Int               @default(5)
   enabledModelIds                String[]          @default([])
   subscriptionTier               String?
