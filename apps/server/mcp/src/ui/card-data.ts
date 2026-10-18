@@ -24,7 +24,21 @@ export const MCP_CARD_RESOURCE_HASH = createHash('sha256')
   .update(SATOSHI_FONT_RESOURCE_PATH)
   .digest('hex')
   .slice(0, 12);
-export const MCP_CARD_RESOURCE_URI = `ui://genfeed/content-cards-v5-${MCP_CARD_RESOURCE_HASH}.html`;
+const MCP_CARD_RESOURCE_URI_PREFIX = 'ui://genfeed/content-cards-v5-';
+export const MCP_CARD_RESOURCE_URI = `${MCP_CARD_RESOURCE_URI_PREFIX}${MCP_CARD_RESOURCE_HASH}.html`;
+const MCP_CARD_RESOURCE_URI_PATTERN = new RegExp(
+  `^${MCP_CARD_RESOURCE_URI_PREFIX}[0-9a-f]{12}\\.html$`,
+);
+
+/**
+ * The card view of any build. The hash changes with every deploy, but hosts
+ * (ChatGPT in particular) keep reading the URI from a tool list they cached
+ * earlier. Every build serves the current view for those URIs rather than
+ * failing the widget with an error.
+ */
+export function isContentCardsUri(uri: unknown): uri is string {
+  return typeof uri === 'string' && MCP_CARD_RESOURCE_URI_PATTERN.test(uri);
+}
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 /** Statuses of a media job that has not produced its output yet. */

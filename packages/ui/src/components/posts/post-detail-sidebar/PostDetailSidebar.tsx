@@ -209,23 +209,18 @@ export default function PostDetailSidebar({
             isDefaultOpen
             testId="inspector-performance"
           >
-            <div className="grid grid-cols-2 gap-3">
+            <dl className="flex flex-wrap gap-x-5 gap-y-2 pb-3">
               {analyticsStats.map((stat) => (
-                <div key={stat.label} className="flex items-center gap-3">
-                  <div className="flex-shrink-0 bg-secondary p-2 text-foreground">
-                    <stat.icon size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="mb-0.5 text-xs text-foreground/60">
-                      {stat.label}
-                    </p>
-                    <p className="text-lg font-bold tabular-nums text-foreground">
-                      {stat.value}
-                    </p>
-                  </div>
+                <div key={stat.label} className="flex items-baseline gap-1.5">
+                  <dd className="text-sm font-semibold tabular-nums text-foreground">
+                    {stat.value}
+                  </dd>
+                  <dt className="text-xs text-muted-foreground">
+                    {stat.label}
+                  </dt>
                 </div>
               ))}
-            </div>
+            </dl>
           </InspectorSection>
         ) : null}
 
@@ -251,7 +246,7 @@ export default function PostDetailSidebar({
         <InspectorSection
           title={translate('checks')}
           summary={checksSummary || translate('notRun')}
-          isDefaultOpen
+          isDefaultOpen={!isPublished}
           testId="inspector-checks"
         >
           <div className="flex flex-col gap-4">

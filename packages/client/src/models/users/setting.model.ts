@@ -23,6 +23,7 @@ export class Setting extends BaseEntity implements ISetting {
   declare public favoriteWorkflowIds?: string[];
   declare public pinnedAppIds?: string[];
   declare public railAppOrder?: string[];
+  declare public hiddenAppIds?: string[];
   declare public homeAppId?: string | null;
   declare public isAgentAssetsPanelOpen?: boolean;
   declare public dashboardPreferences?: DashboardPreferences;

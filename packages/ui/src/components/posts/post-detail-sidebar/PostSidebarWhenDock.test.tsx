@@ -229,6 +229,7 @@ describe('PostSidebarWhenDock', () => {
     );
 
     expect(screen.getByText('Published')).toBeVisible();
+    expect(screen.queryByText(/2026/)).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'View on Instagram' }),
     ).toHaveAttribute('href', 'https://instagram.com/p/abc');

@@ -1,6 +1,9 @@
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+
 export interface PostPreviewItemProps {
   id: string;
   content: string;
+  media?: IIngredient[];
   index: number;
   isLast: boolean;
 }
@@ -12,6 +15,7 @@ export interface ThreadPreviewPanelProps {
   parent: {
     id: string;
     content: string;
+    media?: IIngredient[];
   };
   /**
    * Child posts (in order)
@@ -19,6 +23,7 @@ export interface ThreadPreviewPanelProps {
   replies: Array<{
     id: string;
     content: string;
+    media?: IIngredient[];
   }>;
   className?: string;
 }
