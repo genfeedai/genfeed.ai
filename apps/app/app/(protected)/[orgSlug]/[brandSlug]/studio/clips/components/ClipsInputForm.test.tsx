@@ -1,12 +1,75 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import type { ComponentProps } from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ClipsInputForm from './ClipsInputForm';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
+});
+
+// Radix Select needs pointer APIs jsdom lacks; a context stub keeps these
+// specs on the form's own wiring (options, value, onChange).
+vi.mock('@ui/primitives/select', async () => {
+  const { createContext, useContext } = await import('react');
+  const SelectContext = createContext<{
+    onValueChange: (value: string) => void;
+    value: string;
+  }>({ onValueChange: () => undefined, value: '' });
+  return {
+    Select: ({
+      children,
+      onValueChange,
+      value,
+    }: {
+      children: ReactNode;
+      onValueChange: (value: string) => void;
+      value: string;
+    }) => (
+      <SelectContext.Provider value={{ onValueChange, value }}>
+        {children}
+      </SelectContext.Provider>
+    ),
+    SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+    SelectItem: ({
+      children,
+      value,
+    }: {
+      children: ReactNode;
+      value: string;
+    }) => {
+      const context = useContext(SelectContext);
+      return (
+        <div
+          aria-selected={context.value === value}
+          onClick={() => context.onValueChange(value)}
+          onKeyDown={() => undefined}
+          role="option"
+          tabIndex={-1}
+        >
+          {children}
+        </div>
+      );
+    },
+    SelectTrigger: ({
+      'aria-label': ariaLabel,
+      children,
+    }: {
+      'aria-label'?: string;
+      children: ReactNode;
+    }) => (
+      <div
+        aria-expanded={false}
+        aria-label={ariaLabel}
+        role="combobox"
+        tabIndex={0}
+      >
+        {children}
+      </div>
+    ),
+    SelectValue: () => null,
+  };
 });
 
 function renderForm(
@@ -122,7 +185,7 @@ describe('ClipsInputForm', () => {
   it('lets the user select raw-cut before starting a project', () => {
     const { props } = renderForm();
 
-    fireEvent.click(screen.getByRole('button', { name: /raw cut/i }));
+    fireEvent.click(screen.getByRole('option', { name: /raw cut/i }));
 
     expect(props.onModeChange).toHaveBeenCalledWith('raw-cut');
   });
@@ -162,15 +225,19 @@ describe('ClipsInputForm', () => {
     ).toBeDisabled();
   });
 
-  it.each([
-    ['saving', 'Saving draft…'],
-    ['saved', 'Draft saved'],
-    ['error', 'Draft not saved. Your changes are still on this page.'],
-  ] as const)('announces the %s draft state', (draftSaveState, copy) => {
-    renderForm({ draftSaveState });
+  it('keeps the draft state silent unless saving failed', () => {
+    const { rerender, props } = renderForm({ draftSaveState: 'saving' });
+    expect(screen.queryByText('Saving draft…')).not.toBeInTheDocument();
 
+    rerender(<ClipsInputForm {...props} draftSaveState="saved" />);
+    expect(screen.queryByText('Draft saved')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('clips-draft-save-state'),
+    ).not.toBeInTheDocument();
+
+    rerender(<ClipsInputForm {...props} draftSaveState="error" />);
     expect(screen.getByTestId('clips-draft-save-state')).toHaveTextContent(
-      copy,
+      'Draft not saved. Your changes are still on this page.',
     );
   });
 
@@ -180,5 +247,61 @@ describe('ClipsInputForm', () => {
     expect(
       screen.queryByTestId('clips-draft-save-state'),
     ).not.toBeInTheDocument();
+  });
+
+  it('renders the source, hint, errors and actions inside the one shared prompt bar', () => {
+    const { container } = renderForm({
+      draftSaveState: 'error',
+      error: 'Upload failed',
+      quickStartHint: 'Uses saved brand avatar and voice defaults.',
+    });
+    const bar = screen.getByTestId('clips-prompt-bar');
+
+    expect(bar).toHaveAttribute('data-prompt-bar-composer');
+    expect(within(bar).getByLabelText('YouTube URL')).toBeInTheDocument();
+    expect(
+      within(bar).getByText('Uses saved brand avatar and voice defaults.'),
+    ).toBeInTheDocument();
+    expect(within(bar).getByRole('alert')).toHaveTextContent('Upload failed');
+    expect(
+      within(bar).getByTestId('clips-draft-save-state'),
+    ).toBeInTheDocument();
+    expect(
+      within(bar).getByRole('button', { name: /start clip factory/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(bar).getByRole('button', { name: /review highlights first/i }),
+    ).toBeInTheDocument();
+    // No text floats outside the bar.
+    expect(container.textContent).toBe(bar.textContent);
+  });
+
+  it('starts from the keyboard when the YouTube field is submitted', () => {
+    const { props } = renderForm();
+
+    fireEvent.keyDown(screen.getByLabelText('YouTube URL'), { key: 'Enter' });
+
+    expect(props.onStartQuick).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not submit from the keyboard without a source', () => {
+    const { props } = renderForm({ youtubeUrl: '' });
+
+    fireEvent.keyDown(screen.getByLabelText('YouTube URL'), { key: 'Enter' });
+
+    expect(props.onStartQuick).not.toHaveBeenCalled();
+  });
+
+  it('opens max clips and virality from the toolbar settings', () => {
+    const { props } = renderForm();
+    expect(screen.queryByLabelText(/max clips/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clip settings' }));
+    fireEvent.change(screen.getByLabelText(/max clips/i), {
+      target: { value: '12' },
+    });
+
+    expect(props.onSetMaxClips).toHaveBeenCalledWith(12);
+    expect(screen.getByLabelText(/min virality score/i)).toBeInTheDocument();
   });
 });

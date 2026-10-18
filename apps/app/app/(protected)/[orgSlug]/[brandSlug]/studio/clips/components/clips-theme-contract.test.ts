@@ -36,7 +36,7 @@ describe('Clips theme contract', () => {
     expect(source).not.toContain('max-w-4xl');
   });
 
-  it('aligns source choice icons with their labels at canvas width', () => {
+  it('builds the input form on the shared prompt bar, not a card', () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -45,7 +45,10 @@ describe('Clips theme contract', () => {
       'utf8',
     );
 
-    expect(source).toContain('flex w-full items-center justify-center gap-2.5');
+    expect(source).toContain(
+      "from '@ui/prompt-bars/components/shell/PromptBarComposer'",
+    );
+    expect(source).not.toContain("from '@ui/card/Card'");
     expect(source).not.toContain('max-w-3xl');
   });
 });

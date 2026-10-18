@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -65,17 +66,55 @@ vi.mock('@ui/layout/container/Container', () => ({
 }));
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    ariaLabel,
     children,
-    onClick,
     disabled,
+    icon,
+    isDisabled,
+    label,
+    onClick,
   }: {
-    children: ReactNode;
-    onClick?: () => void;
+    ariaLabel?: string;
+    children?: ReactNode;
     disabled?: boolean;
+    icon?: ReactNode;
+    isDisabled?: boolean;
+    label?: string;
+    onClick?: () => void;
   }) => (
-    <button type="button" disabled={disabled} onClick={onClick}>
-      {children}
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      disabled={disabled || isDisabled}
+      onClick={onClick}
+    >
+      {icon}
+      {children ?? label}
     </button>
+  ),
+}));
+// The TipTap editor needs a real DOM layout; a textarea keeps these tests on
+// the bar's own behaviour.
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    ariaLabel,
+    onSubmit,
+    onValueChange,
+    value,
+  }: {
+    ariaLabel?: string;
+    onSubmit?: () => void;
+    onValueChange?: (value: string) => void;
+    value?: string;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(event) => onValueChange?.(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') onSubmit?.();
+      }}
+    />
   ),
 }));
 vi.mock('@ui/primitives/input', () => ({
@@ -381,6 +420,44 @@ describe('Motion quote review', () => {
     expect(
       screen.queryByRole('button', { name: 'reloadRevision' }),
     ).not.toBeInTheDocument();
+  });
+  it('renders the compose controls inside the one shared prompt bar', async () => {
+    render(<MotionContent />);
+    const bar = screen.getByTestId('motion-prompt-bar');
+    expect(bar).toHaveAttribute('data-prompt-bar-composer');
+    expect(within(bar).getByLabelText('prompt')).toBeInTheDocument();
+    expect(within(bar).getByLabelText('label')).toBeInTheDocument();
+    expect(
+      within(bar).getByRole('button', { name: 'getQuote' }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Animate a title' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    const review = await screen.findByTestId('motion-quote-review');
+    expect(bar).toContainElement(review);
+  });
+  it('requests a quote from the keyboard like every other prompt bar', async () => {
+    render(<MotionContent />);
+    const prompt = screen.getByLabelText('prompt');
+    fireEvent.change(prompt, { target: { value: 'Animate a title' } });
+    fireEvent.keyDown(prompt, { key: 'Enter' });
+    await screen.findByRole('button', { name: 'confirm' });
+    expect(mocks.quote).toHaveBeenCalledOnce();
+  });
+  it('keeps the send action blocked while the renderer is unavailable', () => {
+    mocks.catalog = { ...mocks.catalog, isAvailable: false };
+    render(<MotionContent />);
+    expect(screen.getByRole('button', { name: 'getQuote' })).toBeDisabled();
+    expect(
+      within(screen.getByTestId('motion-prompt-bar')).getByRole('status'),
+    ).toHaveTextContent('unavailable');
+  });
+  it('opens size and output settings from the toolbar, not a separate form', () => {
+    render(<MotionContent />);
+    expect(screen.queryByLabelText('PNG')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('settings'));
+    expect(screen.getByLabelText('PNG')).toBeInTheDocument();
   });
   it('renders when the catalog payload omits models', () => {
     Reflect.deleteProperty(mocks.catalog, 'models');

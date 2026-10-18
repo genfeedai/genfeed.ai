@@ -1,14 +1,24 @@
-import { APP_ROUTE_PREFIXES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+
+function isRouteOrChild(pathname: string, route: string): boolean {
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
 
 /**
- * Studio and the legacy long-form editor already host a full prompt bar.
- * Product-page agent chrome must not add another prompt bar or chat bubble there.
+ * Routes whose primary surface is a full prompt bar. Product-page agent chrome
+ * must not add another prompt bar or chat bubble there.
+ *
+ * Matching is by what a route renders, not by its section: Studio's Turbo and
+ * Editor routes and the long-form `/edit` editors have no prompt bar, and the
+ * Clips and Storyboard run lists only link to the routes that do.
  */
 export function isMajorPromptBarHost(normalizedPathname: string): boolean {
   return (
-    normalizedPathname === APP_ROUTE_PREFIXES.STUDIO ||
-    normalizedPathname.startsWith(`${APP_ROUTE_PREFIXES.STUDIO}/`) ||
-    normalizedPathname === APP_ROUTE_PREFIXES.EDIT ||
-    normalizedPathname.startsWith(`${APP_ROUTE_PREFIXES.EDIT}/`)
+    isRouteOrChild(normalizedPathname, APP_ROUTES.STUDIO.PLAYGROUND) ||
+    isRouteOrChild(normalizedPathname, APP_ROUTES.STUDIO.MOTION) ||
+    // Children only: `/studio/clips` and `/studio/storyboard` are run lists,
+    // while `/new` and `/:id` open the source or brief composer.
+    normalizedPathname.startsWith(`${APP_ROUTES.STUDIO.CLIPS}/`) ||
+    normalizedPathname.startsWith(`${APP_ROUTES.STUDIO.STORYBOARD}/`)
   );
 }

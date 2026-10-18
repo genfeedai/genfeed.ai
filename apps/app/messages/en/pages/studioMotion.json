@@ -36,6 +36,7 @@
   "libraryHint": "Select up to 12 of your latest 50 Library assets. Reference them with staticFile(\"assets/ASSET_ID\").",
   "outputs": "Output formats",
   "frames": "Still frames, separated by commas",
+  "settings": "Size, assets and outputs",
   "limits": "Up to 30 seconds, 1920×1080 pixels, 24 or 30 fps, and 8 outputs. Prompt revisions inherit the previous settings and output selection.",
   "sourceHint": "Export a named VisualComposition component. React and Remotion are available. Direct source is retained exactly and never automatically repaired.",
   "getQuote": "Review generation quote",

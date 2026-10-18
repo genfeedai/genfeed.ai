@@ -1527,7 +1527,7 @@ describe('UniversalWorkspaceShell', () => {
 
     it.each([
       '/acme/moonrise/studio/playground',
-      '/acme/moonrise/studio/clips',
+      '/acme/moonrise/studio/clips/new',
     ])('hides the chat bubble on prompt-bar page %s', async (pathname) => {
       navigation.pathname = pathname;
       renderWithDock();

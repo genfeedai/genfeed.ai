@@ -1,6 +1,6 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   resolveOrganizationModulePreferences,
@@ -14,6 +14,7 @@ import type {
   VisualCodeQuoteRequest,
 } from '@genfeedai/contracts/interfaces';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
+import type { MotionSettingKey } from '@genfeedai/props/studio/motion-composer.props';
 import type {
   MotionPreset,
   MotionPresetId,
@@ -26,23 +27,29 @@ import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import OrganizationModulePreferenceGate from '@ui/guards/organization-module/OrganizationModulePreferenceGate';
 import Container from '@ui/layout/container/Container';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@ui/primitives/popover';
 import { Textarea } from '@ui/primitives/textarea';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
+import { SlidersHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import MotionAdvancedSettings from './components/MotionAdvancedSettings';
 import MotionPresetPanel from './components/MotionPresetPanel';
+import MotionQuoteReview from './components/MotionQuoteReview';
 
 export default function MotionContent() {
   const { orgId, userId, sessionId } = useAuthIdentity();
@@ -113,7 +120,7 @@ function MotionWorkspace() {
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [appliedPresetId, setAppliedPresetId] = useState<MotionPresetId>();
-  const composeRef = useRef<HTMLElement>(null);
+  const composeRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (isModuleWorkEnabled) return;
     quoteEpoch.current++;
@@ -293,6 +300,129 @@ function MotionWorkspace() {
   const uiError =
     error ??
     (api.catalog.error ?? api.project.error ?? api.projects.error)?.message;
+  const isQuoteBlocked = isBusy || isActive || !catalog?.isAvailable;
+  const modeOptions = [
+    { label: t('prompt'), value: 'prompt' },
+    { label: t('source'), value: 'sourceCode' },
+    ...(project ? [{ label: t('props'), value: 'props' }] : []),
+  ];
+  const modelOptions = [
+    { label: t('organizationDefault'), value: 'default' },
+    ...catalogModels.map((model) => ({
+      isDisabled: !model.isAvailable,
+      label: `${model.label}${model.isByok ? ' · BYOK' : ''}`,
+      value: model.key,
+    })),
+  ];
+  const libraryAssets = (api.library.data ?? [])
+    .filter((item) =>
+      ['image', 'video', 'audio', 'music', 'voice'].includes(
+        String(item.category),
+      ),
+    )
+    .map((item) => ({
+      id: item.id,
+      label:
+        typeof item.metadata === 'object'
+          ? (item.metadata?.label ?? item.id)
+          : item.id,
+    }));
+  const inheritedOutputs = current?.outputRequests
+    .map(
+      (item) =>
+        `${item.format}${item.frame === undefined ? '' : ` @${item.frame}`}`,
+    )
+    .join(', ');
+  function updateLabel(value: string) {
+    invalidateQuote();
+    setLabel(value);
+  }
+  function updateText(value: string) {
+    invalidateQuote();
+    setText(value);
+  }
+  function updateMode(value: string) {
+    invalidateQuote();
+    setMode(value as typeof mode);
+  }
+  function updateModel(value: string) {
+    invalidateQuote();
+    setModelKey(value);
+  }
+  function updateSetting(key: MotionSettingKey, value: number) {
+    invalidateQuote();
+    setSettings((prior) => ({ ...prior, [key]: value }));
+  }
+  function updatePropsText(value: string) {
+    invalidateQuote();
+    setPropsText(value);
+  }
+  function updateFrames(value: string) {
+    invalidateQuote();
+    setFrames(value);
+  }
+  function toggleAsset(assetId: string, isChecked: boolean) {
+    invalidateQuote();
+    setAssetIds((prior) =>
+      isChecked ? [...prior, assetId] : prior.filter((id) => id !== assetId),
+    );
+  }
+  function toggleFormat(format: string, isChecked: boolean) {
+    invalidateQuote();
+    setFormats((prior) =>
+      isChecked
+        ? [...prior, format]
+        : prior.filter((value) => value !== format),
+    );
+  }
+  function submitFromEditor() {
+    if (!isQuoteBlocked) void requestQuote(project ? 'revise' : 'create');
+  }
+  const noticeContent =
+    uiError || (catalog && !catalog.isAvailable) ? (
+      <div className="grid gap-3 text-sm">
+        {catalog && !catalog.isAvailable && (
+          <p role="status">
+            {t('unavailable')} {catalog.unavailableReason}
+          </p>
+        )}
+        {uiError && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center gap-3 text-destructive"
+          >
+            <p>{uiError}</p>
+            {isStaleRevision ? (
+              <Button
+                variant={ButtonVariant.GHOST}
+                onClick={reloadLatestRevision}
+              >
+                {t('reloadRevision')}
+              </Button>
+            ) : null}
+          </div>
+        )}
+      </div>
+    ) : null;
+  const composerBanner =
+    noticeContent || review ? (
+      <div className="grid gap-4 p-3.5">
+        {noticeContent}
+        {review && (
+          <MotionQuoteReview
+            isAcknowledged={isAcknowledged}
+            isBusy={isBusy}
+            isVisionUnverified={
+              catalogModels.find((model) => model.key === review.quote.modelKey)
+                ?.inspectionCapability === 'unknown'
+            }
+            onAcknowledgedChange={setIsAcknowledged}
+            onConfirm={() => void submit()}
+            review={review}
+          />
+        )}
+      </div>
+    ) : undefined;
   return (
     <Container label={t('title')} titleVisibility="sr-only">
       <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
@@ -335,30 +465,7 @@ function MotionWorkspace() {
           </nav>
         </aside>
         <main className="min-w-0 space-y-6">
-          {uiError && (
-            <div
-              role="alert"
-              className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive p-3 text-sm text-destructive"
-            >
-              <p>{uiError}</p>
-              {isStaleRevision ? (
-                <Button
-                  variant={ButtonVariant.GHOST}
-                  onClick={reloadLatestRevision}
-                >
-                  {t('reloadRevision')}
-                </Button>
-              ) : null}
-            </div>
-          )}
-          {catalog && !catalog.isAvailable && (
-            <p
-              role="status"
-              className="rounded-lg border border-border p-4 text-sm"
-            >
-              {t('unavailable')} {catalog.unavailableReason}
-            </p>
-          )}
+          {isModuleWorkEnabled ? null : noticeContent}
           {project && (
             <section className="space-y-3" aria-label={t('history')}>
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -598,303 +705,159 @@ function MotionWorkspace() {
                 onApply={applyPreset}
               />
             )}
-            <section
-              ref={composeRef}
-              className="space-y-4 rounded-xl border border-border p-5"
-              aria-label={t('compose')}
-              onChange={invalidateQuote}
+            <PromptBarContainer
+              containerRef={(node) => {
+                composeRef.current = node;
+              }}
+              layoutMode="inflow"
+              maxWidth="full"
             >
-              <h2 className="gen-heading-sm">
-                {project ? t('revise') : t('compose')}
-              </h2>
-              {!project && (
-                <label className="grid gap-2 text-sm">
-                  {t('label')}
-                  <Input
-                    value={label}
-                    onChange={(event) => setLabel(event.target.value)}
-                    maxLength={120}
-                  />
-                </label>
-              )}
-              <label className="grid gap-2 text-sm">
-                {t('inputMode')}
-                <Select
-                  value={mode}
-                  onValueChange={(value) => {
-                    setMode(value as typeof mode);
-                    invalidateQuote();
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="prompt">{t('prompt')}</SelectItem>
-                    <SelectItem value="sourceCode">{t('source')}</SelectItem>
-                    {project && (
-                      <SelectItem value="props">{t('props')}</SelectItem>
+              <PromptBarComposer
+                aria-label={t('compose')}
+                banner={composerBanner}
+                beforeBody={
+                  <div className="grid gap-2 px-3.5 pt-3">
+                    <p className="gen-label">
+                      {project ? t('revise') : t('compose')}
+                    </p>
+                    {!project && (
+                      <Input
+                        aria-label={t('label')}
+                        className="h-7 border-0 bg-transparent px-0 shadow-none"
+                        maxLength={120}
+                        onChange={(event) => updateLabel(event.target.value)}
+                        placeholder={t('label')}
+                        value={label}
+                      />
                     )}
-                  </SelectContent>
-                </Select>
-              </label>
-              <label className="grid gap-2 text-sm">
-                {mode === 'prompt'
-                  ? t('prompt')
-                  : mode === 'props'
-                    ? t('props')
-                    : t('source')}
-                <Textarea
-                  rows={mode === 'sourceCode' ? 12 : 5}
-                  value={text}
-                  onChange={(event) => setText(event.target.value)}
-                  className={mode === 'prompt' ? '' : 'font-mono text-xs'}
-                />
-              </label>
-              {mode === 'sourceCode' && (
-                <p className="text-sm text-muted-foreground">
-                  {t('sourceHint')}
-                </p>
-              )}
-              {!project && (
-                <>
-                  <label className="grid gap-2 text-sm">
-                    {t('model')}
-                    <Select
-                      value={modelKey}
-                      onValueChange={(value) => {
-                        setModelKey(value);
-                        invalidateQuote();
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">
-                          {t('organizationDefault')}
-                        </SelectItem>
-                        {catalogModels.map((model) => (
-                          <SelectItem
-                            key={model.key}
-                            value={model.key}
-                            disabled={!model.isAvailable}
-                          >
-                            {model.label}
-                            {model.isByok ? ' · BYOK' : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  {selectedModel?.inspectionCapability === 'unknown' && (
-                    <p className="text-sm text-muted-foreground">
+                  </div>
+                }
+                data-testid="motion-prompt-bar"
+                density="compact"
+                role="group"
+              >
+                {mode === 'prompt' ? (
+                  <PromptEditor
+                    ariaLabel={t('prompt')}
+                    className="min-h-12"
+                    onSubmit={submitFromEditor}
+                    onValueChange={updateText}
+                    placeholder={t('prompt')}
+                    value={text}
+                  />
+                ) : (
+                  <Textarea
+                    aria-label={mode === 'props' ? t('props') : t('source')}
+                    className="border-0 bg-transparent px-0 font-mono text-xs shadow-none"
+                    onChange={(event) => updateText(event.target.value)}
+                    rows={mode === 'sourceCode' ? 12 : 6}
+                    value={text}
+                  />
+                )}
+                {mode === 'sourceCode' && (
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {t('sourceHint')}
+                  </p>
+                )}
+                {!project &&
+                  selectedModel?.inspectionCapability === 'unknown' && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
                       {t('unverifiedVision')}
                     </p>
                   )}
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {(
-                      ['width', 'height', 'fps', 'durationFrames'] as const
-                    ).map((key) => (
-                      <label key={key} className="grid gap-2 text-sm">
-                        {t(key)}
-                        <Input
-                          type="number"
-                          value={settings[key]}
-                          onChange={(event) =>
-                            setSettings((prior) => ({
-                              ...prior,
-                              [key]: Number(event.target.value),
-                            }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                  <label className="grid gap-2 text-sm">
-                    {t('props')}
-                    <Textarea
-                      rows={3}
-                      value={propsText}
-                      onChange={(event) => setPropsText(event.target.value)}
-                      className="font-mono text-xs"
-                    />
-                  </label>
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm">{t('libraryAssets')}</legend>
-                    <p className="text-xs text-muted-foreground">
-                      {t('libraryHint')}
-                    </p>
-                    <div className="max-h-40 space-y-2 overflow-y-auto">
-                      {api.library.data
-                        ?.filter((item) =>
-                          [
-                            'image',
-                            'video',
-                            'audio',
-                            'music',
-                            'voice',
-                          ].includes(String(item.category)),
-                        )
-                        .map((item) => (
-                          <Checkbox
-                            key={item.id}
-                            checked={assetIds.includes(item.id)}
-                            disabled={
-                              !assetIds.includes(item.id) &&
-                              assetIds.length >= 12
-                            }
-                            label={
-                              typeof item.metadata === 'object'
-                                ? (item.metadata?.label ?? item.id)
-                                : item.id
-                            }
-                            onCheckedChange={(checked) => {
-                              setAssetIds((prior) =>
-                                checked === true
-                                  ? [...prior, item.id]
-                                  : prior.filter((id) => id !== item.id),
-                              );
-                              invalidateQuote();
-                            }}
-                          />
-                        ))}
-                    </div>
-                  </fieldset>
-                </>
-              )}
-              <fieldset className="space-y-3">
-                <legend className="text-sm">
-                  {project ? t('exportOutputs') : t('outputs')}
-                </legend>
-                {project && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('inheritedOutputs')}{' '}
-                    {current?.outputRequests
-                      .map(
-                        (item) =>
-                          `${item.format}${item.frame === undefined ? '' : ` @${item.frame}`}`,
-                      )
-                      .join(', ')}
-                  </p>
-                )}
-                <div className="flex gap-4">
-                  {['mp4', 'png', 'jpeg'].map((format) => (
-                    <label
-                      key={format}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <Checkbox
-                        aria-label={format.toUpperCase()}
-                        checked={formats.includes(format)}
-                        onCheckedChange={(checked) =>
-                          setFormats((prior) =>
-                            checked === true
-                              ? [...prior, format]
-                              : prior.filter((value) => value !== format),
-                          )
-                        }
+                <PromptBarToolbar
+                  density="compact"
+                  leading={
+                    <>
+                      <PromptBarCompactSelect
+                        ariaLabel={t('inputMode')}
+                        density="compact"
+                        onChange={updateMode}
+                        options={modeOptions}
+                        value={mode}
                       />
-                      {format.toUpperCase()}
-                    </label>
-                  ))}
-                </div>
-                {formats.some((format) => format !== 'mp4') && (
-                  <label className="grid gap-2 text-sm">
-                    {t('frames')}
-                    <Input
-                      value={frames}
-                      onChange={(event) => setFrames(event.target.value)}
-                    />
-                  </label>
-                )}
-              </fieldset>
-              <p className="text-xs text-muted-foreground">{t('limits')}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  disabled={isBusy || isActive || !catalog?.isAvailable}
-                  onClick={() =>
-                    void requestQuote(project ? 'revise' : 'create')
+                      {!project && (
+                        <PromptBarCompactSelect
+                          ariaLabel={t('model')}
+                          density="compact"
+                          onChange={updateModel}
+                          options={modelOptions}
+                          value={modelKey}
+                        />
+                      )}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ariaLabel={t('settings')}
+                            icon={<SlidersHorizontal className="size-4" />}
+                            size={ButtonSize.ICON}
+                            tooltip={t('settings')}
+                            tooltipPosition="top"
+                            variant={ButtonVariant.GHOST}
+                            withWrapper={false}
+                          />
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="start"
+                          className="max-h-[min(560px,var(--radix-popover-content-available-height,70vh))] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto"
+                          collisionPadding={16}
+                          side="top"
+                          sideOffset={8}
+                        >
+                          <MotionAdvancedSettings
+                            assetIds={assetIds}
+                            formats={formats}
+                            frames={frames}
+                            inheritedOutputs={inheritedOutputs}
+                            isProject={Boolean(project)}
+                            libraryAssets={libraryAssets}
+                            onAssetToggle={toggleAsset}
+                            onFormatToggle={toggleFormat}
+                            onFramesChange={updateFrames}
+                            onPropsTextChange={updatePropsText}
+                            onSettingChange={updateSetting}
+                            propsText={propsText}
+                            settings={settings}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </>
                   }
-                >
-                  {t('getQuote')}
-                </Button>
-                {revision?.hasSource && (
-                  <Button
-                    disabled={isBusy || isActive}
-                    variant={ButtonVariant.SECONDARY}
-                    onClick={() => void requestQuote('export')}
-                  >
-                    {t('quoteExport')}
-                  </Button>
-                )}
-                {revision?.hasSource &&
-                  ['failed', 'cancelled'].includes(revision.status) && (
-                    <Button
-                      disabled={isBusy || isActive}
-                      variant={ButtonVariant.SECONDARY}
-                      onClick={() => void requestQuote('retry')}
-                    >
-                      {t('quoteRetry')}
-                    </Button>
-                  )}
-              </div>
-            </section>
-            {review && (
-              <section
-                className="space-y-3 rounded-xl border border-border p-5"
-                aria-label={t('reviewQuote')}
-              >
-                <h2 className="gen-heading-sm">{t('reviewQuote')}</h2>
-                <p className="text-sm">
-                  {review.quote.modelKey}
-                  {review.quote.isByok ? ' · BYOK' : ''} ·{' '}
-                  {review.quote.settings.width}×{review.quote.settings.height} ·{' '}
-                  {review.quote.outputRequests
-                    .map(
-                      (output) =>
-                        `${output.format}${output.frame === undefined ? '' : ` @${output.frame}`}`,
-                    )
-                    .join(', ')}
-                </p>
-                <dl className="grid grid-cols-2 gap-2 text-sm">
-                  <dt>{t('authoring')}</dt>
-                  <dd>{review.quote.authoringCredits}</dd>
-                  <dt>{t('inspection')}</dt>
-                  <dd>{review.quote.inspectionCredits}</dd>
-                  <dt>{t('rendering')}</dt>
-                  <dd>{review.quote.renderCredits}</dd>
-                  <dt>{t('maximum')}</dt>
-                  <dd>{review.quote.maximumCredits}</dd>
-                </dl>
-                <p className="text-sm text-muted-foreground">
-                  {t('billingHint')}
-                </p>
-                {catalogModels.find(
-                  (model) => model.key === review.quote.modelKey,
-                )?.inspectionCapability === 'unknown' && (
-                  <p className="text-sm">{t('unverifiedVision')}</p>
-                )}
-                <label className="flex items-start gap-2 text-sm">
-                  <Checkbox
-                    aria-label={t('acknowledge', {
-                      maximum: review.quote.maximumCredits,
-                    })}
-                    checked={isAcknowledged}
-                    onCheckedChange={(checked) =>
-                      setIsAcknowledged(checked === true)
-                    }
-                  />
-                  {t('acknowledge', { maximum: review.quote.maximumCredits })}
-                </label>
-                <Button
-                  disabled={!isAcknowledged || isBusy}
-                  onClick={() => void submit()}
-                >
-                  {isBusy ? t('submitting') : t('confirm')}
-                </Button>
-              </section>
-            )}
+                  trailing={
+                    <>
+                      {revision?.hasSource && (
+                        <Button
+                          isDisabled={isQuoteBlocked}
+                          label={t('quoteExport')}
+                          onClick={() => void requestQuote('export')}
+                          size={ButtonSize.SM}
+                          textTransform="none"
+                          variant={ButtonVariant.GHOST}
+                        />
+                      )}
+                      {revision?.hasSource &&
+                        ['failed', 'cancelled'].includes(revision.status) && (
+                          <Button
+                            isDisabled={isQuoteBlocked}
+                            label={t('quoteRetry')}
+                            onClick={() => void requestQuote('retry')}
+                            size={ButtonSize.SM}
+                            textTransform="none"
+                            variant={ButtonVariant.GHOST}
+                          />
+                        )}
+                      <PromptBarSendButton
+                        ariaLabel={t('getQuote')}
+                        density="compact"
+                        isDisabled={isQuoteBlocked}
+                        onClick={submitFromEditor}
+                        tooltip={t('getQuote')}
+                      />
+                    </>
+                  }
+                />
+              </PromptBarComposer>
+            </PromptBarContainer>
           </OrganizationModulePreferenceGate>
         </main>
       </div>
