@@ -1,5 +1,26 @@
 {
   "credits": "{amount, plural, one {# credit} other {# credits}}",
   "selected": "{count} selected",
-  "clearSelection": "Clear selection"
+  "clearSelection": "Clear selection",
+  "markRead": "Mark as read",
+  "markUnread": "Mark as unread",
+  "copyValue": "Copy",
+  "detailValue": "Stored value",
+  "detailPreviewAlt": "Activity preview",
+  "detailViewOnNetwork": "View on {platform}",
+  "detailUser": "User",
+  "detailUserId": "User ID",
+  "detailOrganization": "Organization",
+  "detailBrand": "Brand",
+  "detailKey": "Activity key",
+  "detailSource": "Source",
+  "detailOrigin": "Origin",
+  "detailActor": "Triggered by",
+  "detailEntity": "Entity",
+  "detailResult": "Result",
+  "detailCredits": "Credits",
+  "detailCreated": "Created",
+  "detailUpdated": "Updated",
+  "detailStarted": "Started",
+  "detailFinished": "Finished"
 }

@@ -2,7 +2,7 @@ import { ActivityKey, PageScope } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import ActivitiesList from '@pages/activities/activities-list';
 import { EnvironmentService } from '@services/core/environment.service';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -302,5 +302,81 @@ describe('ActivitiesList', () => {
     );
 
     expect(screen.getByText('No activity yet')).toBeInTheDocument();
+  });
+
+  describe('admin scope', () => {
+    function renderAdmin() {
+      return render(
+        <ActivitiesList
+          scope={PageScope.SUPERADMIN}
+          isStatsEnabled={false}
+          isFiltersEnabled={false}
+        />,
+      );
+    }
+
+    it('never links into the activity owner’s account', () => {
+      mockActivities = [
+        buildActivity({
+          entityId: 'ing-9',
+          entityModel: 'Ingredient',
+          id: 'failed-image',
+          key: ActivityKey.IMAGE_FAILED,
+          value: JSON.stringify({ error: 'Provider timed out' }),
+        }),
+      ];
+      renderAdmin();
+
+      expect(
+        screen.queryByRole('link', { name: /open failed to generate/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: /library\/assets/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('opens the activity detail when a row is clicked', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          id: 'failed-image',
+          key: ActivityKey.IMAGE_FAILED,
+          organizationId: 'org-123',
+          userId: 'user-456',
+          value: JSON.stringify({ error: 'Provider timed out' }),
+        }),
+      ];
+      renderAdmin();
+
+      await user.click(screen.getByText(/Provider timed out/));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText('org-123')).toBeInTheDocument();
+      expect(within(dialog).getByText('user-456')).toBeInTheDocument();
+      expect(within(dialog).getByRole('alert')).toHaveTextContent(
+        'Provider timed out',
+      );
+    });
+
+    it('keeps the live post link on its network inside the detail', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          id: 'published',
+          value: JSON.stringify({
+            platform: 'instagram',
+            url: 'https://instagram.com/p/abc',
+          }),
+        }),
+      ];
+      renderAdmin();
+
+      await user.click(screen.getAllByRole('row')[1]);
+
+      const dialog = await screen.findByRole('dialog');
+      expect(
+        within(dialog).getByRole('link', { name: /view on instagram/i }),
+      ).toHaveAttribute('href', 'https://instagram.com/p/abc');
+    });
   });
 });

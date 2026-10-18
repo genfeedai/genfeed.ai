@@ -5,8 +5,8 @@ import {
   ButtonSize,
   ButtonVariant,
   formatActivityMessage,
-  getCreditActivityChangeDescriptor,
   type IngredientCategory,
+  PageScope,
 } from '@genfeedai/contracts';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
@@ -18,6 +18,7 @@ import type { TableAction, TableRowLink } from '@props/ui/display/table.props';
 import { useIngredientOverlay } from '@providers/global-modals/global-modals.provider';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
@@ -34,19 +35,20 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
+  getActivityCreditsChange,
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
   getActivityIngredientPreviewUrl,
   getActivityLifecycleText,
+  getActivityStatus,
   getBackgroundTaskStatus,
-  getGenerationCreditAmount,
   getResultTypeFromActivityKey,
   isBackgroundTask,
-  isCreditActivity,
   parseActivityValue,
   parsePostActivityValue,
 } from './activities-list.utils';
+import ActivityDetailSheet from './components/ActivityDetailSheet';
 import ActivityStatusCell from './components/ActivityStatusCell';
 import ActivityThumbnailCell from './components/ActivityThumbnailCell';
 
@@ -83,6 +85,17 @@ export default function ActivitiesList({
   const { openIngredientOverlay } = useIngredientOverlay();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
+  const [detailActivityId, setDetailActivityId] = useState<string | null>(null);
+
+  // An operator cannot open another account's pages, so in the admin an
+  // activity opens its own detail view instead of linking into the account.
+  const isAdminScope = scope === PageScope.SUPERADMIN;
+  const detailActivity = useMemo(
+    () =>
+      filteredActivities.find((activity) => activity.id === detailActivityId) ??
+      null,
+    [detailActivityId, filteredActivities],
+  );
 
   // Helper to get preview URL from populated ingredient
   const getPreviewUrl = getActivityIngredientPreviewUrl;
@@ -141,14 +154,7 @@ export default function ActivitiesList({
         header: 'Status',
         key: 'status',
         render: (a: IActivity) => {
-          let status: string;
-          if (isBackgroundTask(a)) {
-            status = getBackgroundTaskStatus(a.key);
-          } else if (isCreditActivity(a.key)) {
-            status = 'completed';
-          } else {
-            status = a.status || 'pending';
-          }
+          const status = getActivityStatus(a);
           return <ActivityStatusCell status={status} />;
         },
       },
@@ -157,17 +163,7 @@ export default function ActivitiesList({
         header: 'Credits',
         key: 'cost',
         render: (a: IActivity) => {
-          const generationCredits = isCreditActivity(a.key)
-            ? null
-            : getGenerationCreditAmount(a);
-          const change = isCreditActivity(a.key)
-            ? getCreditActivityChangeDescriptor(a.key, a.value)
-            : generationCredits === null
-              ? null
-              : getCreditActivityChangeDescriptor(
-                  ActivityKey.CREDITS_REMOVE,
-                  JSON.stringify({ value: generationCredits }),
-                );
+          const change = getActivityCreditsChange(a);
           return (
             <span className="text-sm text-foreground/70">
               {change ? activityMessageFormatter(change) : '—'}
@@ -200,18 +196,22 @@ export default function ActivitiesList({
             : 'View post';
         },
       },
-      {
-        href: (a: IActivity) => {
-          if (getPublishedPostLink(a)) {
-            return undefined;
-          }
-          const path = getActivityDestinationPath(a);
-          return path ? href(path) : undefined;
-        },
-        icon: <ArrowUpRight className="size-4" />,
-        tooltip: (a: IActivity) =>
-          `Open ${getActivityDescription(a, activityMessageFormatter)}`,
-      },
+      ...(isAdminScope
+        ? []
+        : [
+            {
+              href: (a: IActivity) => {
+                if (getPublishedPostLink(a)) {
+                  return undefined;
+                }
+                const path = getActivityDestinationPath(a);
+                return path ? href(path) : undefined;
+              },
+              icon: <ArrowUpRight className="size-4" />,
+              tooltip: (a: IActivity) =>
+                `Open ${getActivityDescription(a, activityMessageFormatter)}`,
+            },
+          ]),
       {
         getClassName: (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
         icon: (a: IActivity) =>
@@ -225,7 +225,7 @@ export default function ActivitiesList({
           a.isRead ? 'Mark as unread' : 'Mark as read',
       },
     ],
-    [activityMessageFormatter, href, toggleActivityRead],
+    [activityMessageFormatter, href, isAdminScope, toggleActivityRead],
   );
 
   const handleBulkMarkAsRead = useCallback(async () => {
@@ -255,6 +255,9 @@ export default function ActivitiesList({
 
   const getRowLink = useCallback(
     (activity: IActivity): TableRowLink | undefined => {
+      if (isAdminScope) {
+        return undefined;
+      }
       const path = getActivityDestinationPath(activity);
       if (!path) {
         return undefined;
@@ -264,7 +267,11 @@ export default function ActivitiesList({
         label: getActivityDescription(activity, activityMessageFormatter),
       };
     },
-    [activityMessageFormatter, href],
+    [activityMessageFormatter, href, isAdminScope],
+  );
+  const handleRowClick = useCallback(
+    (activity: IActivity) => setDetailActivityId(activity.id),
+    [],
   );
 
   const getRowKey = useCallback((a: IActivity) => a.id, []);
@@ -323,15 +330,8 @@ export default function ActivitiesList({
     ],
   );
 
-  return (
-    <Container
-      label="Activities"
-      description="Recent actions and system events."
-      icon={ClipboardList}
-      titleVisibility="sr-only"
-      refresh={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
-      right={headerActions}
-    >
+  const content = (
+    <>
       <AppTable<IActivity>
         error={
           isError
@@ -353,11 +353,45 @@ export default function ActivitiesList({
         onSelectionChange={setSelectedActivityIds}
         getItemId={getItemId}
         getRowLink={getRowLink}
+        onRowClick={isAdminScope ? handleRowClick : undefined}
       />
 
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="activities" />
       </div>
+    </>
+  );
+
+  if (isAdminScope) {
+    return (
+      <AdminPageShell
+        title="Activities"
+        icon={ClipboardList}
+        onRefresh={() => void refresh()}
+        isRefreshing={isRefreshing}
+        primaryAction={headerActions}
+      >
+        {content}
+        <ActivityDetailSheet
+          activity={detailActivity}
+          activityMessageFormatter={activityMessageFormatter}
+          onClose={() => setDetailActivityId(null)}
+          onToggleRead={toggleActivityRead}
+        />
+      </AdminPageShell>
+    );
+  }
+
+  return (
+    <Container
+      label="Activities"
+      description="Recent actions and system events."
+      icon={ClipboardList}
+      titleVisibility="sr-only"
+      refresh={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
+      right={headerActions}
+    >
+      {content}
     </Container>
   );
 }

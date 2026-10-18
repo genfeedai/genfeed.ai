@@ -5,6 +5,7 @@ import {
   formatActivityMessage as formatEnglishActivityMessage,
   getActivityLifecycleStatus,
   getActivityMessageDescriptor,
+  getCreditActivityChangeDescriptor,
   getCreditActivityMessageDescriptor,
   getCreditActivitySourceLabel,
   IngredientCategory,
@@ -502,4 +503,67 @@ export function parsePostActivityValue(
   }
 
   return null;
+}
+
+/** The status badge an activity shows, whatever its kind. */
+export function getActivityStatus(activity: IActivity): string {
+  if (isBackgroundTask(activity)) {
+    return getBackgroundTaskStatus(activity.key);
+  }
+  if (isCreditActivity(activity.key)) {
+    return 'completed';
+  }
+  return activity.status || 'pending';
+}
+
+/** The credit movement an activity records, or null when it has none. */
+export function getActivityCreditsChange(
+  activity: IActivity,
+): ReturnType<typeof getCreditActivityChangeDescriptor> | null {
+  if (isCreditActivity(activity.key)) {
+    return getCreditActivityChangeDescriptor(activity.key, activity.value);
+  }
+  const generationCredits = getGenerationCreditAmount(activity);
+  return generationCredits === null
+    ? null
+    : getCreditActivityChangeDescriptor(
+        ActivityKey.CREDITS_REMOVE,
+        JSON.stringify({ value: generationCredits }),
+      );
+}
+
+export interface ActivityValueFields {
+  /** Why it failed, when it did. */
+  error?: string;
+  resultId?: string;
+  resultType?: string;
+  startedAt?: string;
+  completedAt?: string;
+  /** The live post on its network, for published posts. */
+  post?: { platform: Platform; url: string };
+  /** The stored value, pretty-printed when it is JSON. */
+  raw: string;
+}
+
+/** The readable parts of an activity's stored value, for the admin detail view. */
+export function getActivityValueFields(
+  activity: Pick<IActivity, 'value'>,
+): ActivityValueFields {
+  const value = activity.value ?? '';
+  const parsed = parseActivityValue(value);
+  const text = (field: unknown): string | undefined =>
+    typeof field === 'string' && field.trim() ? field.trim() : undefined;
+  const post = parsePostActivityValue(value);
+  return {
+    completedAt: text(parsed?.completedAt),
+    error: text(parsed?.error),
+    post:
+      post?.platform && post.url
+        ? { platform: post.platform, url: post.url }
+        : undefined,
+    raw: parsed ? JSON.stringify(parsed, null, 2) : value,
+    resultId: text(parsed?.resultId) ?? text(parsed?.ingredientId),
+    resultType: text(parsed?.resultType),
+    startedAt: text(parsed?.startedAt),
+  };
 }
