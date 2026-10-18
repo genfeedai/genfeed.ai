@@ -59,6 +59,7 @@ export class ReviewInboxController {
     const scope = resolveTenantReadScope(user);
     const access = await this.reviewInbox.resolveViewerAccess(
       Object.assign(req, { user }),
+      scope,
     );
     const items = await this.reviewInbox.listPending(
       {
@@ -85,6 +86,7 @@ export class ReviewInboxController {
   ): Promise<JsonApiSingleResponse> {
     const access = await this.reviewInbox.resolveViewerAccess(
       Object.assign(req, { user }),
+      resolveTenantReadScope(user),
     );
     const result = await this.decisions.decide(user, access, dto);
     return serializeSingle(req, ReviewInboxDecisionSerializer, result);

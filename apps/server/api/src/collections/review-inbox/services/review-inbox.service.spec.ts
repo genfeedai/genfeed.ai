@@ -75,6 +75,12 @@ describe('ReviewInboxService', () => {
   });
 
   describe('resolveViewerAccess', () => {
+    const ownScope = {
+      brandId: undefined,
+      isOrganizationOverride: false,
+      organizationId: 'org-1',
+    };
+
     it('lets creators resolve gates but not MCP approvals', async () => {
       rolesGuard.assertRoles.mockImplementation(
         async (_request: RolesGuardRequest, roles: MemberRole[]) => {
@@ -85,9 +91,10 @@ describe('ReviewInboxService', () => {
       brandAccess.resolve.mockResolvedValue({ brandIds: ['brand-1'] });
 
       await expect(
-        service.resolveViewerAccess({ user } as RolesGuardRequest & {
-          user: AuthenticatedUser;
-        }),
+        service.resolveViewerAccess(
+          { user } as RolesGuardRequest & { user: AuthenticatedUser },
+          ownScope,
+        ),
       ).resolves.toEqual({
         brandIds: ['brand-1'],
         canResolveMcpApprovals: false,
@@ -98,14 +105,35 @@ describe('ReviewInboxService', () => {
       );
     });
 
+    it('resolves brand access in the override organization without the caller membership', async () => {
+      rolesGuard.assertRoles.mockResolvedValue(true);
+
+      await expect(
+        service.resolveViewerAccess(
+          { user } as RolesGuardRequest & { user: AuthenticatedUser },
+          {
+            brandId: undefined,
+            isOrganizationOverride: true,
+            organizationId: 'org-2',
+          },
+        ),
+      ).resolves.toEqual({
+        brandIds: undefined,
+        canResolveMcpApprovals: true,
+        canResolveWorkflowGates: true,
+      });
+      expect(brandAccess.resolve).not.toHaveBeenCalled();
+    });
+
     it('does not hide unexpected role lookup failures', async () => {
       rolesGuard.assertRoles.mockRejectedValue(new Error('db down'));
       brandAccess.resolve.mockResolvedValue({});
 
       await expect(
-        service.resolveViewerAccess({ user } as RolesGuardRequest & {
-          user: AuthenticatedUser;
-        }),
+        service.resolveViewerAccess(
+          { user } as RolesGuardRequest & { user: AuthenticatedUser },
+          ownScope,
+        ),
       ).rejects.toThrow('db down');
     });
   });

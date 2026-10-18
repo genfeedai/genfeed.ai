@@ -10,6 +10,7 @@ import {
   RolesGuard,
   type RolesGuardRequest,
 } from '@api/helpers/guards/roles/roles.guard';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { estimateToolCreditCost, getToolByName } from '@genfeedai/actions';
@@ -105,19 +106,25 @@ export class ReviewInboxService {
   /** The viewer's roles and brand reach, resolved the way the guards do. */
   async resolveViewerAccess(
     request: RolesGuardRequest & { user: AuthenticatedUser },
+    scope: ITenantReadScope,
   ): Promise<ReviewInboxViewerAccess> {
     const user = request.user;
     const [canResolveWorkflowGates, canResolveMcpApprovals, brandScope] =
       await Promise.all([
         this.hasRoles(request, REVIEW_GATE_ROLES),
         this.hasRoles(request, [MemberRole.OWNER, MemberRole.ADMIN]),
-        this.brandAccess.resolve({
-          apiKeyId: user.apiKeyId,
-          isApiKey: user.isApiKey,
-          organizationId: user.organizationId,
-          scopes: user.scopes,
-          userId: user.userId ?? user.id,
-        }),
+        // A superadmin override reads another organization the caller is
+        // not a member of: it sees every brand there, and its own
+        // membership is never looked up inside that tenant.
+        scope.isOrganizationOverride
+          ? Promise.resolve({ brandIds: undefined })
+          : this.brandAccess.resolve({
+              apiKeyId: user.apiKeyId,
+              isApiKey: user.isApiKey,
+              organizationId: scope.organizationId,
+              scopes: user.scopes,
+              userId: user.userId ?? user.id,
+            }),
       ]);
     return {
       brandIds: brandScope.brandIds,
