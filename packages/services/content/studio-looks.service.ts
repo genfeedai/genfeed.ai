@@ -4,7 +4,6 @@ import type {
   StudioLookPayload,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { StudioLook } from '@genfeedai/models/content/studio-look.model';
-import { StudioLookSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -23,7 +22,7 @@ export class StudioLooksService extends BaseService<
   UpdateStudioLookBody
 > {
   constructor(token: string) {
-    super(API_ENDPOINTS.STUDIO_LOOKS, token, StudioLook, StudioLookSerializer);
+    super(API_ENDPOINTS.STUDIO_LOOKS, token, StudioLook);
   }
 
   public static getInstance(token: string): StudioLooksService {

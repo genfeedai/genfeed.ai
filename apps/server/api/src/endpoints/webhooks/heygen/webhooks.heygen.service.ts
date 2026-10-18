@@ -60,6 +60,29 @@ export class HeygenWebhookService {
     );
   }
 
+  /** A notification outage must never block finalizing the render. */
+  private async notifyBestEffort(
+    eventType: string,
+    body: HeygenWebhookPayload,
+    callbackId: string | undefined,
+    url: string,
+  ): Promise<void> {
+    try {
+      await this.microservicesService.notifyWebhook('heygen', eventType, {
+        ...body,
+        metadata: {
+          callbackId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn(`${url} notification failed, continuing`, {
+        callbackId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -73,16 +96,11 @@ export class HeygenWebhookService {
       const { event_data, event_type } = body;
       const callbackId = this.getCallbackId(body);
 
-      await this.microservicesService.notifyWebhook(
-        'heygen',
+      await this.notifyBestEffort(
         event_type || 'unknown',
-        {
-          ...body,
-          metadata: {
-            callbackId,
-            timestamp: new Date().toISOString(),
-          },
-        },
+        body,
+        callbackId,
+        url,
       );
 
       if (!callbackId) {

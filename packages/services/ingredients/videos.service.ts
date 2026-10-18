@@ -22,13 +22,6 @@ import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/
 import { buildResourcePath } from '@genfeedai/helpers/formatting/url/url.helper';
 import { Caption } from '@genfeedai/models/content/caption.model';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
-import {
-  IngredientMergeSerializer,
-  VideoCaptionSerializer,
-  VideoEditSerializer,
-  VideoGenerationSerializer,
-  VideoSerializer,
-} from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 import {
@@ -36,6 +29,7 @@ import {
   parseCrunQuoteResponse,
 } from '@services/core/crun-quote-response';
 import { EnvironmentService } from '@services/core/environment.service';
+import { serializeRequest } from '@services/core/request-serializers';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
@@ -80,7 +74,7 @@ export class VideosService extends IngredientsService<Video> {
       | CrunVideoGenerationRequest,
     signal?: AbortSignal,
   ) {
-    const data = VideoGenerationSerializer.serialize(body);
+    const data = await serializeRequest('VideoGenerationSerializer', body);
     const config: AxiosRequestConfig & IHttpRequestOptions = {
       signal,
       handlesErrorResponse: isExpectedCrunQuoteConflict,
@@ -99,21 +93,21 @@ export class VideosService extends IngredientsService<Video> {
   public async postLipSync(
     body: Partial<IVideo> & { audioUrl?: string; referenceUrl?: string },
   ) {
-    const data = VideoSerializer.serialize(body);
+    const data = await serializeRequest('VideoSerializer', body);
     return await this.instance
       .post<JsonApiResponseDocument>(buildResourcePath('lip-sync'), data)
       .then((res) => this.mapOne(res.data));
   }
 
   public async postMerge(body: IVideoMergeParams) {
-    const data = IngredientMergeSerializer.serialize(body);
+    const data = await serializeRequest('IngredientMergeSerializer', body);
     return await this.instance
       .post<JsonApiResponseDocument>(buildResourcePath('merge'), data)
       .then((res) => this.mapOne(res.data));
   }
 
   public async postUpscale(id: string, data: IVideoEditParams) {
-    const serializedData = VideoEditSerializer.serialize(data);
+    const serializedData = await serializeRequest('VideoEditSerializer', data);
     return await this.instance
       .post<JsonApiResponseDocument>(
         buildResourcePath(id, 'upscale'),
@@ -141,7 +135,7 @@ export class VideosService extends IngredientsService<Video> {
   }
 
   public async postReframe(id: string, data: IVideoEditParams) {
-    const serializedData = VideoEditSerializer.serialize(data);
+    const serializedData = await serializeRequest('VideoEditSerializer', data);
     return await this.instance
       .post<JsonApiResponseDocument>(
         buildResourcePath(id, 'reframe'),
@@ -182,7 +176,9 @@ export class VideosService extends IngredientsService<Video> {
   }
 
   public async postCaptions(id: string, captionId: string) {
-    const data = VideoCaptionSerializer.serialize({ caption: captionId });
+    const data = await serializeRequest('VideoCaptionSerializer', {
+      caption: captionId,
+    });
     return await this.instance
       .post<JsonApiResponseDocument>(buildResourcePath(id, 'captions'), data)
       .then((res) => {
@@ -214,7 +210,7 @@ export class VideosService extends IngredientsService<Video> {
     audioUrl?: string;
     heygenVoiceId?: string;
   }): Promise<IIngredient> {
-    const serializedData = VideoSerializer.serialize(data);
+    const serializedData = await serializeRequest('VideoSerializer', data);
     return await this.instance
       .post<JsonApiResponseDocument>(
         buildResourcePath('avatar'),

@@ -168,9 +168,7 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(
-          document.querySelector('.genfeed-loader-root'),
-        ).toBeInTheDocument();
+        expect(document.querySelector('.genfeed-spinner')).toBeInTheDocument();
       });
 
       await act(async () => {

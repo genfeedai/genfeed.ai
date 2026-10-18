@@ -19,6 +19,12 @@
     "./deserializer": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./request-runtime": {
+      "types": "./dist/request-runtime.d.ts",
+      "import": "./dist/request-runtime.bundle.js",
+      "bun": "./dist/request-runtime.bundle.js",
+      "default": "./dist/request-runtime.bundle.js"
     }
   },
   "files": [
@@ -34,7 +40,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && tsc-alias -p tsconfig.json && test -f dist/index.js",
+    "build": "tsc --build && tsc-alias -p tsconfig.json && bun run ../../scripts/build-request-serializers.ts && test -f dist/index.js && test -f dist/request-runtime.d.ts",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "tsc --watch",

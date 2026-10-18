@@ -85,49 +85,53 @@ export interface AppRailProps {
    */
   railAppOrder?: readonly string[];
   /**
-   * Saves a new rail order (drag in the rail or the customize dialog). Without
-   * it the rail is not reorderable.
+   * Core apps the member took off the rail. They wait in the More menu until
+   * pinned back.
+   */
+  hiddenAppIds?: readonly string[];
+  /**
+   * Saves a new rail order (drag in the rail or the item menu). Without it the
+   * rail is not reorderable.
    */
   onRailAppOrderChange?: (order: readonly string[]) => void;
-  /** Pins or unpins a launcher app from the More menu and customize dialog. */
-  onTogglePin?: (appId: string) => void;
-  /** The member's own home app. Null or undefined means they have not chosen one. */
-  homeAppId?: string | null;
-  /** The organization's default home app, shown as what "Default" lands on. */
-  organizationHomeAppId?: string | null;
   /**
-   * Saves the member's home app; null clears it. Without it the customize
-   * dialog offers no home picker.
+   * Pins or unpins an app: from an item's context menu or the More menu. Without
+   * it the rail offers no unpin.
    */
-  onHomeAppChange?: (appId: string | null) => void;
+  onTogglePin?: (appId: string) => void;
+  /** Clears the member's order and hidden apps. Without it the More menu has no reset. */
+  onResetRail?: () => void;
 }
 
 export interface AppRailMoreProps {
   isSuspended?: boolean;
-  /** Installed launcher apps that are not on the rail. */
+  /** Apps the member can open that are not on the rail. */
   items: readonly AppRailNavigationItem[];
-  onCustomize?: () => void;
   onOpen: (item: AppRailNavigationItem) => void;
+  onReset?: () => void;
   onTogglePin?: (appId: string) => void;
 }
 
-export interface AppRailCustomizeProps {
-  isOpen: boolean;
-  /** The rail apps in their current order. */
-  items: readonly AppRailNavigationItem[];
-  onOpenChange: (isOpen: boolean) => void;
-  onReorder: (
-    order: readonly string[],
-    moved: { id: string; position: number },
-  ) => void;
-  onReset: () => void;
-  onTogglePin?: (appId: string) => void;
-  /** Every app the member can open, for the home picker. */
-  homeOptions?: readonly AppRailNavigationItem[];
-  homeAppId?: string | null;
-  /** The home app the organization sets, or Workspace when it sets none. */
-  defaultHomeLabel?: string;
-  onHomeAppChange?: (appId: string | null) => void;
+export interface AppRailItemMenuProps {
+  /** The rail item the menu was opened on, and where; null while closed. */
+  target: {
+    item: AppRailNavigationItem;
+    x: number;
+    y: number;
+  } | null;
+  /** Where the item sits in the rail, and how many items the rail holds. */
+  index: number;
+  total: number;
+  isReorderable: boolean;
+  onClose: () => void;
+  /**
+   * Called when the menu closes by keyboard or by choosing an action, so focus
+   * can land on a surviving rail item instead of being lost.
+   */
+  onRestoreFocus: (item: AppRailNavigationItem) => void;
+  onMove: (item: AppRailNavigationItem, delta: -1 | 1) => void;
+  /** Without it the menu offers no unpin. */
+  onUnpin?: (item: AppRailNavigationItem) => void;
 }
 
 export interface TopbarAppsLinkProps {

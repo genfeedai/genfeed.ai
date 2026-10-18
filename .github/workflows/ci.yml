@@ -10,7 +10,7 @@ name: CI
 #
 # Merge groups validate their combined source. The Full Suite no longer runs on
 # a master push (on demand and at release only), so the `push` event never
-# reaches this workflow and the master failure tracker below stays inert.
+# reaches this workflow. Full Suite owns aggregate trunk failure tracking.
 on:
   pull_request:
     branches: [master]
@@ -1002,8 +1002,8 @@ jobs:
   # head cannot auto-merge while ready_for_review validation is still running.
   # The `push` arm is dormant
   # since the Full Suite stopped running on master pushes: it would only match a
-  # Full Suite called from a push, and the master failure tracker below keys off
-  # it. The Full Suite paths (workflow_dispatch, release) are gated by the Master
+  # Full Suite called from a push. The Full Suite paths (workflow_dispatch,
+  # release) are gated by the Master
   # SHA Verdict job in full-suite.yml.
   mcp-auth-runtime:
     name: MCP Auth Runtime
@@ -1104,134 +1104,3 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
-
-  # ── Master failure tracker (#2510) ──────────────────────────────────────────
-  #
-  # A red trunk must not depend on someone opening the Actions tab. When the
-  # Tests Gate fails on a master push, file (or update) ONE
-  # `master-ci-failure` tracking issue at native issue Priority P0; when a later
-  # run is green, close every open tracker. Dormant: full-suite.yml no longer
-  # runs on push, so no `push` event reaches this workflow. Pull requests
-  # surface a red gate on the PR itself, and manual or release Full Suite runs
-  # (workflow_dispatch) never match; their verdict is the Master SHA Verdict.
-  #
-  # `!cancelled()` is load-bearing: an `if:` without a status function
-  # implicitly ANDs `success()` over the (routinely partly skipped) graph, and
-  # `always()` would act on a cancelled run that never got to report.
-  master-failure-tracker:
-    name: Master CI failure tracker
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    concurrency:
-      group: master-ci-failure-tracker
-      cancel-in-progress: false
-    needs: [tests-gate]
-    if: >-
-      !cancelled()
-      && github.event_name == 'push'
-      && (needs.tests-gate.result == 'failure' || needs.tests-gate.result == 'success')
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: Checkout failure reporter
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Read the validated commit subject
-        id: head
-        run: echo "subject=$(git log -1 --format=%s)" >> "$GITHUB_OUTPUT"
-
-      - name: Mint reporter token (Genfeed bot App)
-        id: reporter-token
-        uses: ./.github/actions/reporter-token
-        with:
-          client-id: ${{ secrets.GENFEED_BOT_CLIENT_ID }}
-          private-key: ${{ secrets.GENFEED_BOT_PRIVATE_KEY }}
-
-      - name: Open or update tracking issue (Priority P0)
-        if: needs.tests-gate.result == 'failure'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          REPOSITORY_TOKEN: ${{ github.token }}
-          HEAD_COMMIT_MESSAGE: ${{ steps.head.outputs.subject }}
-        with:
-          # This trusted master-only job mints a Genfeed bot App token so
-          # native org issue-field and Project #12 writes are possible;
-          # GITHUB_TOKEN is repository-scoped and remains the fallback.
-          github-token: ${{ steps.reporter-token.outputs.token }}
-          script: |
-            const path = require('node:path');
-            const { pathToFileURL } = require('node:url');
-            const {
-              buildMasterCiFailureBody,
-              reportMasterCiFailure,
-            } = await import(
-              pathToFileURL(
-                path.join(
-                  process.env.GITHUB_WORKSPACE,
-                  'scripts/ci/master-ci-failure-reporter.mjs',
-                ),
-              ).href,
-            );
-
-            const date = new Date().toISOString().slice(0, 10);
-            const headline = process.env.HEAD_COMMIT_MESSAGE || 'unresolved';
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = buildMasterCiFailureBody({
-              date,
-              sha: context.sha,
-              headline,
-              runUrl,
-            });
-
-            const result = await reportMasterCiFailure({
-              github: getOctokit(process.env.REPOSITORY_TOKEN),
-              projectGithub: github,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body,
-              date,
-              core,
-            });
-            core.info(JSON.stringify(result));
-
-      - name: Close open master-ci-failure trackers
-        if: needs.tests-gate.result == 'success'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          HEAD_COMMIT_MESSAGE: ${{ steps.head.outputs.subject }}
-        with:
-          script: |
-            const path = require('node:path');
-            const { pathToFileURL } = require('node:url');
-            const { resolveMasterCiFailure } = await import(
-              pathToFileURL(
-                path.join(
-                  process.env.GITHUB_WORKSPACE,
-                  'scripts/ci/master-ci-failure-reporter.mjs',
-                ),
-              ).href,
-            );
-
-            const date = new Date().toISOString().slice(0, 10);
-            const headline = process.env.HEAD_COMMIT_MESSAGE || 'unresolved';
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = [
-              `**Tests Gate is green on \`master\`** on \`${date}\`.`,
-              ``,
-              `- Commit: \`${context.sha}\` — ${headline}`,
-              `- Green run: ${runUrl}`,
-              ``,
-              `Closing automatically. A future red master run will file a new tracker at Priority P0.`,
-            ].join('\n');
-
-            const result = await resolveMasterCiFailure({
-              github,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body,
-              core,
-            });
-            core.info(JSON.stringify(result));

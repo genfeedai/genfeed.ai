@@ -4,6 +4,9 @@
  * Grouped by domain. Use these instead of hardcoding error strings
  * to keep copy consistent across the app.
  */
+/** `Error.name` of a watermark export rejected with a readable reason. */
+export const WATERMARK_EXPORT_ERROR_NAME = 'WatermarkExportError';
+
 export const ERROR_MESSAGES = {
   GENERIC: {
     DELETE_FAILED: 'Failed to delete. Please try again.',

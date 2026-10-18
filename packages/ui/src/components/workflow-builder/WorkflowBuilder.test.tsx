@@ -61,7 +61,7 @@ describe('WorkflowBuilder', () => {
     });
 
     const { container } = render(<WorkflowBuilder {...defaultProps} />);
-    expect(container.querySelector('.genfeed-loader-root')).toBeInTheDocument();
+    expect(container.querySelector('.genfeed-spinner')).toBeInTheDocument();
   });
 
   it('should display error state when error exists', () => {

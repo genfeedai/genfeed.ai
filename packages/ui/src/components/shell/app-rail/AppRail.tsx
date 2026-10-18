@@ -1,10 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import {
-  applyRailAppOrder,
-  DEFAULT_HOME_APP_ID,
-} from '@genfeedai/contracts/constants';
+import { applyRailAppOrder } from '@genfeedai/contracts/constants';
 import type {
   AppRailNavigationItem,
   AppRailNavigationVia,
@@ -13,6 +10,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
+  AppRailItemMenuProps,
   AppRailItemProps,
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
@@ -30,8 +28,8 @@ import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
-import { AppRailCustomize } from './AppRailCustomize';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { AppRailItemMenu } from './AppRailItemMenu';
 import { AppRailMore } from './AppRailMore';
 import { resolveAvailableRailApps } from './app-rail.availability';
 import { moveRailAppBy } from './app-rail.order';
@@ -205,12 +203,11 @@ export function AppRail({
   onNavigate,
   onNavigationEvent,
   orgSlug,
-  homeAppId,
-  onHomeAppChange,
+  hiddenAppIds = [],
   onRailAppOrderChange,
   onReorderEvent,
+  onResetRail,
   onTogglePin,
-  organizationHomeAppId,
   pinnedAppIds = [],
   preservedSearch,
   railAppOrder = [],
@@ -224,7 +221,9 @@ export function AppRail({
   const router = useRouter();
   const t = useTranslations('common.appRail');
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
-  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const [menuTarget, setMenuTarget] =
+    useState<AppRailItemMenuProps['target']>(null);
   const apps = useMemo(() => {
     if (isAdminChrome) {
       // The back button is the way out of admin; the categories are the admin nav.
@@ -289,14 +288,18 @@ export function AppRail({
     t,
     isDesktop,
   ]);
-  const launcherItems = items.filter((item) => item.app.group === 'app');
+  const launcherItems = useMemo(
+    () => items.filter((item) => item.app.group === 'app'),
+    [items],
+  );
   const adminExitItem = items.find((item) => item.app.group === 'admin-exit');
   const adminCategoryItems = items.filter(
     (item) => item.app.group === 'admin-category',
   );
   // The rail is the core loop then the pins, in the member's saved order.
   // Apps the saved order does not list (a new pin) keep their default place
-  // at the end. Daily shortcuts follow the order the member sees.
+  // at the end. Daily shortcuts follow the order the member sees. A core app
+  // the member took off the rail waits in the More menu.
   const railItems = useMemo(() => {
     const pinnedItems = pinnedAppIds.flatMap((appId) => {
       const item = items.find(
@@ -308,7 +311,10 @@ export function AppRail({
     let dailyIndex = 0;
     return applyRailAppOrder(
       [
-        ...items.filter((item) => item.app.group === 'daily'),
+        ...items.filter(
+          (item) =>
+            item.app.group === 'daily' && !hiddenAppIds.includes(item.app.id),
+        ),
         ...pinnedItems,
       ].map((item) => ({ id: item.app.id, item })),
       railAppOrder,
@@ -317,28 +323,31 @@ export function AppRail({
         ? { ...item, shortcut: getAppRailShortcut(dailyIndex++, isDesktop) }
         : item,
     );
-  }, [isDesktop, items, pinnedAppIds, railAppOrder]);
+  }, [hiddenAppIds, isDesktop, items, pinnedAppIds, railAppOrder]);
   const railItemIds = useMemo(
     () => railItems.map((item) => item.app.id),
     [railItems],
   );
-  const moreItems = launcherItems.filter(
-    (item) => !railItemIds.includes(item.app.id),
+  // Hidden core apps first, then installed apps that are not pinned. Neither
+  // holds a rail slot, so neither keeps a number shortcut.
+  const moreItems = useMemo(
+    () => [
+      ...items
+        .filter(
+          (item) =>
+            item.app.group === 'daily' && !railItemIds.includes(item.app.id),
+        )
+        .map((item) => ({ ...item, shortcut: undefined })),
+      ...launcherItems.filter((item) => !railItemIds.includes(item.app.id)),
+    ],
+    [items, launcherItems, railItemIds],
   );
-  // The home picker draws from the same list the rail does, so it never offers
-  // an app the member cannot open.
-  const homeOptions = useMemo(
-    () => [...railItems, ...moreItems],
-    [moreItems, railItems],
-  );
-  const defaultHomeLabel = (
-    homeOptions.find((item) => item.app.id === organizationHomeAppId) ??
-    homeOptions.find((item) => item.app.id === DEFAULT_HOME_APP_ID)
-  )?.label;
   const navigationItems = useMemo(() => {
-    const byId = new Map(railItems.map((item) => [item.app.id, item]));
+    const byId = new Map(
+      [...railItems, ...moreItems].map((item) => [item.app.id, item]),
+    );
     return items.map((item) => byId.get(item.app.id) ?? item);
-  }, [items, railItems]);
+  }, [items, moreItems, railItems]);
   const isReorderable =
     onRailAppOrderChange !== undefined &&
     !isAdminChrome &&
@@ -366,6 +375,54 @@ export function AppRail({
       }
     },
     [onRailAppOrderChange, onReorderEvent, railItemIds, railItems, surface, t],
+  );
+  const moveItem = useCallback(
+    (item: AppRailNavigationItem, delta: -1 | 1) => {
+      const from = railItemIds.indexOf(item.app.id);
+      const next = moveRailAppBy(railItemIds, item.app.id, delta);
+      if (next !== railItemIds) {
+        reorder(next, { id: item.app.id, position: from + delta + 1 });
+      }
+    },
+    [railItemIds, reorder],
+  );
+  // After the menu closes, focus the item it acted on; one that left the rail
+  // (unpinned) hands focus to its neighbour, then to the More button.
+  const restoreItemFocus = useCallback(
+    (item: AppRailNavigationItem) => {
+      const index = railItemIds.indexOf(item.app.id);
+      const candidates = [
+        item.app.id,
+        railItemIds[index + 1],
+        railItemIds[index - 1],
+      ];
+      requestAnimationFrame(() => {
+        const nav = navRef.current;
+        if (!nav) return;
+        for (const id of candidates) {
+          const target =
+            id &&
+            nav.querySelector<HTMLElement>(
+              `[data-testid="app-rail-item-${id}"]`,
+            );
+          if (target) {
+            target.focus();
+            return;
+          }
+        }
+        nav
+          .querySelector<HTMLElement>('[data-testid="app-rail-more"]')
+          ?.focus();
+      });
+    },
+    [railItemIds],
+  );
+  const unpinItem = useCallback(
+    (item: AppRailNavigationItem) => {
+      onTogglePin?.(item.app.id);
+      setNavigationAnnouncement(t('unpinned', { app: item.label }));
+    },
+    [onTogglePin, t],
   );
   const { draggingId, getItemProps, overId } = useRailDragReorder({
     ids: railItemIds,
@@ -436,17 +493,26 @@ export function AppRail({
         )}
         data-testid={`app-rail-slot-${item.app.id}`}
         key={item.app.id}
+        onContextMenu={(event) => {
+          if (isNavigationSuspended || (!isReorderable && !onTogglePin)) return;
+          event.preventDefault();
+          // A keyboard-opened menu reports no pointer position: anchor it
+          // beside the item instead.
+          const hasPointer = event.clientX !== 0 || event.clientY !== 0;
+          const rect = event.currentTarget.getBoundingClientRect();
+          setMenuTarget({
+            item,
+            x: hasPointer ? event.clientX : rect.right,
+            y: hasPointer ? event.clientY : rect.top,
+          });
+        }}
         onKeyDown={(event) => {
           if (!isReorderable || !event.altKey) return;
           const delta =
             event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
           if (delta === 0) return;
           event.preventDefault();
-          const from = railItemIds.indexOf(item.app.id);
-          const next = moveRailAppBy(railItemIds, item.app.id, delta);
-          if (next !== railItemIds) {
-            reorder(next, { id: item.app.id, position: from + delta + 1 });
-          }
+          moveItem(item, delta);
         }}
       >
         {renderItem(item)}
@@ -454,12 +520,12 @@ export function AppRail({
     );
   }
   const showMore =
-    !isAdminChrome &&
-    (moreItems.length > 0 || onRailAppOrderChange !== undefined);
+    !isAdminChrome && (moreItems.length > 0 || onResetRail !== undefined);
   const admin = items.find((item) => item.app.group === 'admin');
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
       <nav
+        ref={navRef}
         aria-label={t('apps')}
         className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
         // Page menu: the one surface exempt from the product motion policy.
@@ -491,12 +557,8 @@ export function AppRail({
               <AppRailMore
                 isSuspended={isNavigationSuspended}
                 items={moreItems}
-                onCustomize={
-                  onRailAppOrderChange
-                    ? () => setIsCustomizeOpen(true)
-                    : undefined
-                }
                 onOpen={(item) => handleNavigate(item, 'click')}
+                onReset={onResetRail}
                 onTogglePin={onTogglePin}
               />
             ) : null}
@@ -530,20 +592,16 @@ export function AppRail({
           </div>
         ) : null}
       </nav>
-      {onRailAppOrderChange ? (
-        <AppRailCustomize
-          defaultHomeLabel={defaultHomeLabel}
-          homeAppId={homeAppId}
-          homeOptions={homeOptions}
-          isOpen={isCustomizeOpen}
-          items={railItems}
-          onHomeAppChange={onHomeAppChange}
-          onOpenChange={setIsCustomizeOpen}
-          onReorder={reorder}
-          onReset={() => onRailAppOrderChange([])}
-          onTogglePin={onTogglePin}
-        />
-      ) : null}
+      <AppRailItemMenu
+        index={menuTarget ? railItemIds.indexOf(menuTarget.item.app.id) : -1}
+        isReorderable={isReorderable}
+        onClose={() => setMenuTarget(null)}
+        onMove={moveItem}
+        onRestoreFocus={restoreItemFocus}
+        onUnpin={onTogglePin ? unpinItem : undefined}
+        target={menuTarget}
+        total={railItems.length}
+      />
       <span aria-live="polite" className="sr-only" role="status">
         {navigationAnnouncement}
       </span>

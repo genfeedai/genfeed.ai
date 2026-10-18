@@ -4,7 +4,6 @@ import type {
   UpdatePostingSignatureInput,
 } from '@genfeedai/contracts/interfaces';
 import { PostingSignature } from '@genfeedai/models/content/posting-set.model';
-import { PostingSignatureSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class PostingSignaturesService extends BaseService<
@@ -13,12 +12,7 @@ export class PostingSignaturesService extends BaseService<
   UpdatePostingSignatureInput
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.POSTING_SIGNATURES,
-      token,
-      PostingSignature,
-      PostingSignatureSerializer,
-    );
+    super(API_ENDPOINTS.POSTING_SIGNATURES, token, PostingSignature);
   }
 
   public static getInstance(token: string): PostingSignaturesService {

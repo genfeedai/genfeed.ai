@@ -21,6 +21,10 @@ type HandleTikTokAuthError = (
   context: string,
 ) => Promise<boolean>;
 
+// Display API video/query fields; the Display API rejects any other field.
+const TIKTOK_VIDEO_QUERY_FIELDS =
+  'id,like_count,comment_count,view_count,share_count';
+
 export class TiktokAnalyticsService {
   constructor(
     private readonly httpService: HttpService,
@@ -50,14 +54,17 @@ export class TiktokAnalyticsService {
       }
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const response = await firstValueFrom(
-        this.httpService.get(`${this.endpoint}/video/query/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          params: {
-            fields:
-              'id,like_count,comment_count,view_count,share_count,download_count,reach_count,impression_count,full_video_watched_rate,average_watch_time,total_time_watched',
-            video_ids: mediaId,
+        this.httpService.post(
+          `${this.endpoint}/video/query/`,
+          { filters: { video_ids: [mediaId] } },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            params: { fields: TIKTOK_VIDEO_QUERY_FIELDS },
           },
-        }),
+        ),
       );
       const videos = response.data?.data?.videos;
       if (

@@ -9,7 +9,6 @@ import type {
   VerifyConnectGenfeedPayload,
 } from '@genfeedai/contracts/interfaces';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
-import { ApiKeySerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -34,7 +33,7 @@ export class ApiKeysService extends BaseService<
   UpdateApiKeyPayload
 > {
   constructor(token: string) {
-    super(API_ENDPOINTS.API_KEYS, token, ApiKey, ApiKeySerializer);
+    super(API_ENDPOINTS.API_KEYS, token, ApiKey);
   }
 
   public static forOrganization(

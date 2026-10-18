@@ -8,6 +8,7 @@ import type {
   GenerationSetupFieldKey,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { PromptCommandContext } from '@genfeedai/props/prompt-bars/prompt-command.props';
 import type {
   GenerationSetupFieldSetter,
   GenerationSetupImageEditingMode,
@@ -320,6 +321,20 @@ const baseProps = {
   onTypeChange: vi.fn(),
   isVoiceInputAvailable: false,
 };
+
+/** Picks a preset from the `/` menu the composer registered, as the editor would. */
+function selectSlashPreset(
+  onContextChange: ReturnType<typeof vi.fn>,
+  label: string,
+  promptText: string,
+): void {
+  const context = onContextChange.mock.lastCall?.[0] as
+    | PromptCommandContext
+    | undefined;
+  const command = context?.commands.find((item) => item.label === label);
+  if (!context || !command) throw new Error(`No "/" preset named ${label}`);
+  act(() => context.onSelect(command, promptText));
+}
 
 describe('StudioPlaygroundComposer', () => {
   beforeEach(() => {
@@ -1185,17 +1200,18 @@ describe('StudioPlaygroundComposer', () => {
     expect(studioLooksMocks.deleteLook).toHaveBeenCalledWith('preset-1');
   });
 
-  it('applies a system image template on first click and preserves the existing prompt', async () => {
+  it('applies a system image template from / and preserves the existing prompt', () => {
+    const onContextChange = vi.fn();
     render(
       <StudioPlaygroundComposer
         {...baseProps}
+        onPromptCommandContextChange={onContextChange}
         prompt="My existing topic"
         settings={settings}
         type="image"
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Banner' }));
+    selectSlashPreset(onContextChange, 'Banner', 'My existing topic');
     expect(storeMocks.applyPreset).toHaveBeenCalledWith(
       'studio:image',
       studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
@@ -1205,17 +1221,18 @@ describe('StudioPlaygroundComposer', () => {
     expect(baseProps.onPromptChange).not.toHaveBeenCalled();
   });
 
-  it('fills an empty video prompt from a template without choosing a model', async () => {
+  it('fills an empty video prompt from a template without choosing a model', () => {
+    const onContextChange = vi.fn();
     render(
       <StudioPlaygroundComposer
         {...baseProps}
+        onPromptCommandContextChange={onContextChange}
         prompt=""
         settings={settings}
         type="video"
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
+    selectSlashPreset(onContextChange, 'Dance', '');
     expect(baseProps.onPromptChange).toHaveBeenCalledWith(
       STUDIO_SYSTEM_PRESETS[5].prompt,
     );
@@ -1229,7 +1246,10 @@ describe('StudioPlaygroundComposer', () => {
       duration: 5,
       type: 'video',
     });
-    expect(screen.queryByRole('button', { name: 'Banner' })).toBeNull();
+    const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
+    expect(context.commands.some((command) => command.label === 'Banner')).toBe(
+      false,
+    );
   });
 
   it('repairs a stale music type in the video scope before normalizing a system template', async () => {
@@ -1249,16 +1269,17 @@ describe('StudioPlaygroundComposer', () => {
       actual.applyGenerationSetupPreset,
     );
     try {
+      const onContextChange = vi.fn();
       render(
         <StudioPlaygroundComposer
           {...baseProps}
+          onPromptCommandContextChange={onContextChange}
           prompt="My dance"
           settings={settings}
           type="video"
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-      fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
+      selectSlashPreset(onContextChange, 'Dance', 'My dance');
       const applied =
         actual.useGenerationSetupStore.getState().setupByScope[scope];
       expect(applied).toMatchObject({
@@ -1292,17 +1313,18 @@ describe('StudioPlaygroundComposer', () => {
         defaultDuration: 4,
         hasDurationEditing: true,
       } as IModel;
+      const onContextChange = vi.fn();
       render(
         <StudioPlaygroundComposer
           {...baseProps}
           models={[model]}
+          onPromptCommandContextChange={onContextChange}
           prompt="My topic"
           settings={{ ...settings, modelKey: model.key, duration }}
           type="video"
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-      fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
+      selectSlashPreset(onContextChange, 'Dance', 'My topic');
       expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
         duration: expected,
         type: 'video',
@@ -1345,7 +1367,7 @@ describe('StudioPlaygroundComposer', () => {
     );
   });
 
-  it('hides missing, inactive and deleted system templates while keeping saved preset access', async () => {
+  it('hides missing, inactive and deleted system templates while keeping saved preset access', () => {
     presetCatalogMocks.presets = [
       {
         id: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[0].key),
@@ -1358,7 +1380,35 @@ describe('StudioPlaygroundComposer', () => {
         isDeleted: true,
       },
     ];
+    const onContextChange = vi.fn();
     render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onPromptCommandContextChange={onContextChange}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    expect(generationSetupPopoverMocks.props.showPresets).toBe(true);
+    const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
+    expect(context.commands.map((command) => command.label)).not.toEqual(
+      expect.arrayContaining([
+        'Profile picture',
+        'Banner',
+        'YouTube thumbnail',
+      ]),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Apply preset Banner' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Apply preset Profile picture' }),
+    ).toBeNull();
+  });
+
+  it("offers this type's presets in the row only while the prompt is empty", () => {
+    const view = render(
       <StudioPlaygroundComposer
         {...baseProps}
         prompt=""
@@ -1366,18 +1416,82 @@ describe('StudioPlaygroundComposer', () => {
         type="image"
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-    expect(await screen.findByPlaceholderText('Save as preset…')).toBeVisible();
+    const row = screen.getByRole('toolbar', {
+      name: 'Suggestions for this prompt',
+    });
     expect(
-      screen.queryByRole('button', { name: 'Profile picture' }),
+      within(row).getAllByRole('button', { name: /^Apply preset / }),
+    ).toHaveLength(3);
+    expect(
+      within(row).queryByRole('button', { name: 'Apply preset Dance' }),
     ).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Banner' })).toBeNull();
+
+    view.rerender(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A launch"
+        settings={settings}
+        type="image"
+      />,
+    );
     expect(
-      screen.queryByRole('button', { name: 'YouTube thumbnail' }),
+      screen.queryByRole('toolbar', { name: 'Suggestions for this prompt' }),
     ).toBeNull();
   });
 
-  it('applies persisted admin labels, prompt and settings from the first card click', async () => {
+  it('pins the applied preset in the row with a way to unpin it', () => {
+    storeMocks.setupByScope = {
+      'studio:image': {
+        presetId: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+        sources: {},
+        values: getDefaultGenerationSetupValues('image'),
+      },
+    };
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A launch"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Banner' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Unpin preset' }));
+    expect(storeMocks.clearPreset).toHaveBeenCalledWith('studio:image');
+  });
+
+  it('shows the selection and its actions instead of presets', () => {
+    const onAnimate = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        contextGroups={{
+          recent: {
+            id: 'recent',
+            items: [{ id: 'r1', label: 'Old shot', onSelect: vi.fn() }],
+          },
+          selection: {
+            id: 'selection',
+            items: [{ id: 'animate', label: 'Animate', onSelect: onAnimate }],
+          },
+        }}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /^Apply preset / })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Old shot' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Animate' }));
+    expect(onAnimate).toHaveBeenCalledOnce();
+  });
+
+  it('applies persisted admin labels, prompt and settings from the context row', () => {
     const row = presetCatalogMocks.presets[1];
     Object.assign(row, {
       label: 'Campaign banner',
@@ -1394,9 +1508,8 @@ describe('StudioPlaygroundComposer', () => {
         type="image"
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Campaign banner' }),
+      screen.getByRole('button', { name: 'Apply preset Campaign banner' }),
     );
     expect(baseProps.onPromptChange).toHaveBeenCalledWith('A new campaign');
     expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
@@ -1693,10 +1806,8 @@ describe('StudioPlaygroundComposer', () => {
       ).queryByRole('button', { name: 'Setup' }),
     ).toBeNull();
     expect(generationSetupPopoverMocks.props.isIconOnly).toBe(true);
-    expect(generationSetupPopoverMocks.props.showPresets).toBe(false);
-    expect(
-      promptTools.getByRole('button', { name: 'Presets' }),
-    ).toBeInTheDocument();
+    expect(generationSetupPopoverMocks.props.showPresets).toBe(true);
+    expect(promptTools.queryByRole('button', { name: 'Presets' })).toBeNull();
 
     const imageEditing = generationSetupPopoverMocks.props
       .imageEditing as GenerationSetupImageEditingMode;

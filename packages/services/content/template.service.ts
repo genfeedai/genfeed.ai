@@ -15,14 +15,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { Template } from '@genfeedai/models/content/template.model';
-import { TemplateSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 
 export class TemplateService extends BaseService<IContentTemplate> {
   constructor(token: string) {
-    super(API_ENDPOINTS.TEMPLATES, token, Template, TemplateSerializer);
+    super(API_ENDPOINTS.TEMPLATES, token, Template);
   }
 
   public static getInstance(token: string): TemplateService {

@@ -5,16 +5,11 @@ import type {
   SkillVersionReadPageV1,
   SkillVersionReadV1,
 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
 import type { AxiosResponse } from 'axios';
-
-const skillSerializer: IServiceSerializer<Skill> = {
-  serialize: (data) => data,
-};
 
 export type SkillSource = 'built_in' | 'custom' | 'customized' | 'imported';
 export type SkillStatus = 'disabled' | 'draft' | 'published';
@@ -364,7 +359,7 @@ export class SkillsService extends BaseService<
   Partial<SkillInput>
 > {
   constructor(token: string) {
-    super('/skills', token, Skill, skillSerializer);
+    super('/skills', token, Skill);
   }
 
   public static forOrganization(

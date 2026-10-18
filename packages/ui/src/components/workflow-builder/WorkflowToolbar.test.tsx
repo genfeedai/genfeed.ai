@@ -124,6 +124,6 @@ describe('WorkflowToolbar', () => {
       <WorkflowToolbar {...defaultProps} isDirty={true} isSaving={true} />,
     );
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
-    expect(container.querySelector('.genfeed-loader-root')).toBeNull();
+    expect(container.querySelector('.genfeed-spinner')).toBeNull();
   });
 });

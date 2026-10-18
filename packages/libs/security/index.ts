@@ -12,6 +12,13 @@ export {
   SAFE_ARG_VALUE_PATTERN,
 } from '@libs/security/arg-security';
 export {
+  type BoundedDownload,
+  type BoundedDownloadContext,
+  type BoundedDownloadOptions,
+  downloadBounded,
+  publisherMediaDestination,
+} from '@libs/security/bounded-download';
+export {
   DestinationGuardError,
   type DestinationGuardOptions,
   isBlockedDestinationAddress,

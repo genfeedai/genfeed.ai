@@ -4,7 +4,10 @@ import {
   type TagBulkAction,
   VoteEntityModel,
 } from '@genfeedai/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import {
+  API_ENDPOINTS,
+  WATERMARK_EXPORT_ERROR_NAME,
+} from '@genfeedai/contracts/constants';
 import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
@@ -27,15 +30,6 @@ import { Image } from '@genfeedai/models/ingredients/image.model';
 import { Music } from '@genfeedai/models/ingredients/music.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { Voice } from '@genfeedai/models/ingredients/voice.model';
-import {
-  AvatarSerializer,
-  ImageSerializer,
-  IngredientBulkDeleteSerializer,
-  IngredientSerializer,
-  MetadataSerializer,
-  MusicSerializer,
-  VideoSerializer,
-} from '@genfeedai/serializers';
 import { MediaPreviewBatchService } from '@services/content/media-preview-batch.service';
 import { PagesService } from '@services/content/pages.service';
 import {
@@ -44,6 +38,7 @@ import {
 } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeResource } from '@services/core/json-api';
+import { serializeRequest } from '@services/core/request-serializers';
 import axios from 'axios';
 
 // Local type for model constructors (IngredientModelMap expects instances, but we need constructors)
@@ -56,6 +51,30 @@ type IngredientModelConstructorMap = {
   musics: typeof Music;
   ingredients: typeof Ingredient;
 };
+
+/**
+ * A `responseType: 'blob'` request buries the API's JSON error body inside a
+ * Blob, so the reason (for example "Configure a watermark in brand settings
+ * first") never reaches the caller. Unwrap it into the error message.
+ */
+async function readExportErrorDetail(error: unknown): Promise<string | null> {
+  if (!axios.isAxiosError(error)) return null;
+  const data: unknown = error.response?.data;
+  if (!(data instanceof Blob)) return null;
+  try {
+    const body: unknown = JSON.parse(await data.text());
+    if (typeof body !== 'object' || body === null) return null;
+    const { detail, errors, message } = body as {
+      detail?: unknown;
+      errors?: Array<{ detail?: unknown }>;
+      message?: unknown;
+    };
+    const reason = detail ?? errors?.[0]?.detail ?? message;
+    return typeof reason === 'string' && reason.trim() ? reason : null;
+  } catch {
+    return null;
+  }
+}
 
 /** The bulk tag endpoint answers plain JSON; tolerate a JSON API wrapper too. */
 function isBulkTagResult(
@@ -123,11 +142,20 @@ export class IngredientsService<
   }
 
   public async downloadWatermarked(id: string): Promise<void> {
-    const response = await this.instance.post<Blob>(
-      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/export-file`,
-      { watermark: true },
-      { responseType: 'blob', timeout: 600_000 },
-    );
+    let response: Awaited<ReturnType<typeof this.instance.post<Blob>>>;
+    try {
+      response = await this.instance.post<Blob>(
+        `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/export-file`,
+        { watermark: true },
+        { responseType: 'blob', timeout: 600_000 },
+      );
+    } catch (error) {
+      const detail = await readExportErrorDetail(error);
+      if (!detail) throw error;
+      const exportError = new Error(detail, { cause: error });
+      exportError.name = WATERMARK_EXPORT_ERROR_NAME;
+      throw exportError;
+    }
     const header = response.headers?.['content-disposition'];
     saveDownloadBlob(
       response.data,
@@ -154,14 +182,7 @@ export class IngredientsService<
       modelMap[category as keyof IngredientModelConstructorMap] || Ingredient;
 
     // Pass category as the endpoint (e.g., '/videos', '/images', etc.)
-    super(
-      `/${category}`,
-      token,
-      model as new (
-        partial: Partial<T>,
-      ) => T,
-      IngredientSerializer,
-    );
+    super(`/${category}`, token, model as new (partial: Partial<T>) => T);
   }
 
   /**
@@ -239,19 +260,19 @@ export class IngredientsService<
       let data: unknown;
       switch (type) {
         case IngredientCategory.VIDEO:
-          data = VideoSerializer.serialize(body);
+          data = await serializeRequest('VideoSerializer', body);
           break;
         case IngredientCategory.IMAGE:
-          data = ImageSerializer.serialize(body);
+          data = await serializeRequest('ImageSerializer', body);
           break;
         case IngredientCategory.MUSIC:
-          data = MusicSerializer.serialize(body);
+          data = await serializeRequest('MusicSerializer', body);
           break;
         case IngredientCategory.AVATAR:
-          data = AvatarSerializer.serialize(body);
+          data = await serializeRequest('AvatarSerializer', body);
           break;
         default:
-          data = IngredientSerializer.serialize(body);
+          data = await serializeRequest('IngredientSerializer', body);
           break;
       }
 
@@ -469,7 +490,7 @@ export class IngredientsService<
   }
 
   public async patchMetadata(id: string, data: Partial<T>): Promise<T> {
-    const body = MetadataSerializer.serialize(data);
+    const body = await serializeRequest('MetadataSerializer', data);
 
     return await this.instance
       .patch<JsonApiResponseDocument>(`${id}/metadata`, body)
@@ -516,7 +537,7 @@ export class IngredientsService<
   public async bulkDelete(
     data: IBulkDeleteRequest,
   ): Promise<IBulkDeleteResult> {
-    const body = IngredientBulkDeleteSerializer.serialize(data);
+    const body = await serializeRequest('IngredientBulkDeleteSerializer', data);
     return await this.instance
       .delete<IBulkDeleteResult | JsonApiResponseDocument>(``, { data: body })
       .then((res) =>

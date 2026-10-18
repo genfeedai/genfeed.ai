@@ -6864,6 +6864,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'contentPreferences',
       'favoriteModelKeys',
       'favoriteWorkflowIds',
+      'hiddenAppIds',
       'pinnedAppIds',
       'railAppOrder',
     ],

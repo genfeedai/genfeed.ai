@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
-import { PromptSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -8,7 +7,7 @@ import {
 
 export class PromptsService extends BaseService<Prompt> {
   constructor(token: string) {
-    super(API_ENDPOINTS.PROMPTS, token, Prompt, PromptSerializer);
+    super(API_ENDPOINTS.PROMPTS, token, Prompt);
   }
 
   public static getInstance(token: string): PromptsService {
