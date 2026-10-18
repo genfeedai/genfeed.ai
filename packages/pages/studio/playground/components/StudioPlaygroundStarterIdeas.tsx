@@ -32,7 +32,6 @@ function starterCopyKey(
 export default function StudioPlaygroundStarterIdeas({
   character,
   isDisabled = false,
-  isDocked = false,
   offeringKind,
   onSelect,
   productReference,
@@ -42,30 +41,18 @@ export default function StudioPlaygroundStarterIdeas({
   return (
     <section
       aria-label={translate('title')}
-      className={
-        isDocked
-          ? 'mx-auto flex w-full max-w-4xl flex-col gap-2 pb-2'
-          : 'mx-auto flex w-full max-w-4xl flex-col gap-4 py-8'
-      }
+      className="mx-auto flex w-full max-w-4xl flex-col gap-4 py-8"
       data-testid="studio-playground-starter-ideas"
     >
-      {isDocked ? null : (
-        <div className="flex flex-col gap-1 text-center">
-          <h2 className="text-lg font-medium text-foreground">
-            {translate('title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {translate('description')}
-          </p>
-        </div>
-      )}
-      <div
-        className={
-          isDocked
-            ? 'flex gap-2 overflow-x-auto'
-            : 'grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3'
-        }
-      >
+      <div className="flex flex-col gap-1 text-center">
+        <h2 className="text-lg font-medium text-foreground">
+          {translate('title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {translate('description')}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {STUDIO_PLAYGROUND_STARTER_IDEAS.map((idea) => {
           const taggedCharacter =
             character !== undefined && idea.usesCharacter
@@ -153,18 +140,16 @@ export default function StudioPlaygroundStarterIdeas({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
             >
-              {isDocked ? null : (
-                <span className="relative aspect-[3/2] w-full overflow-hidden rounded-xl bg-muted/40">
-                  <Image
-                    alt=""
-                    className="object-cover"
-                    fill
-                    loading="lazy"
-                    sizes="(min-width: 1024px) 14rem, (min-width: 640px) 50vw, 100vw"
-                    src={idea.thumbnailUrl}
-                  />
-                </span>
-              )}
+              <span className="relative aspect-[3/2] w-full overflow-hidden rounded-xl bg-muted/40">
+                <Image
+                  alt=""
+                  className="object-cover"
+                  fill
+                  loading="lazy"
+                  sizes="(min-width: 1024px) 14rem, (min-width: 640px) 50vw, 100vw"
+                  src={idea.thumbnailUrl}
+                />
+              </span>
               <span className="flex w-full flex-col items-start gap-1">
                 <span className="break-words text-left text-sm font-medium leading-snug text-foreground/88">
                   {translate(`${idea.id}.label`)}

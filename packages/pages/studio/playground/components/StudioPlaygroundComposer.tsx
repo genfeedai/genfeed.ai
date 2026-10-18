@@ -151,6 +151,7 @@ export default function StudioPlaygroundComposer({
   isTranscribing,
   isUploading,
   models,
+  notice,
   onAddFiles,
   onCancelEnhancePrompt,
   onEnhancePrompt,
@@ -853,6 +854,7 @@ export default function StudioPlaygroundComposer({
 
   return (
     <PromptBarComposer
+      banner={notice}
       beforeBody={
         attachedAssets.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 px-3 pb-1 pt-3">

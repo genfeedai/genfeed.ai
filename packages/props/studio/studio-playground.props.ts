@@ -20,7 +20,7 @@ import type {
   UseCrunGenerationQuoteReturn,
 } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioPlaygroundFilter = StudioPlaygroundType | 'all';
@@ -58,6 +58,8 @@ export interface StudioPlaygroundComposerProps {
   isTranscribing: boolean;
   isUploading: boolean;
   models: readonly IModel[];
+  /** Status or recovery notice pinned inside the composer shell, never above it. */
+  notice?: ReactNode;
   onAddFiles: (files: File[], role?: StudioPlaygroundReferenceRole) => void;
   onCancelEnhancePrompt?: () => void;
   onEnhancePrompt?: () => void;
@@ -196,7 +198,6 @@ export interface StudioPlaygroundStarterCharacterCandidate
 export interface StudioPlaygroundStarterIdeasProps {
   character?: StudioPlaygroundStarterCharacter;
   isDisabled?: boolean;
-  isDocked?: boolean;
   offeringKind?: 'physical' | 'service' | 'software' | 'unknown';
   onSelect: (selection: StudioPlaygroundStarterSelection) => void;
   productReference?: StudioPlaygroundStarterProductReference;

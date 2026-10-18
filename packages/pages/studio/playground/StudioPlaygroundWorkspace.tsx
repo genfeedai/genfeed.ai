@@ -940,8 +940,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     !isLoadingGallery &&
     galleryJobs.length === 0 &&
     prompt.trim().length === 0;
-  const showDockedStarterIdeas =
-    !galleryError && !isLoadingGallery && !showEmptyStarterIdeas;
   const starterOffering = starterOfferingKind(selectedBrand);
   const revealInspector = useContextSidebar()?.reveal;
   const handleInspectIngredient = useCallback(
@@ -2390,6 +2388,13 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     [handleAttachGeneratedReference],
   );
 
+  const remixableVideos = attachments.filter(
+    (attachment: AttachmentItem) =>
+      attachment.kind === 'video' &&
+      attachment.status === UploadStatus.COMPLETED &&
+      attachment.ingredientId,
+  );
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <MasonryConfirmBridge key={crunRestoreScope} {...transformConfirmation} />
@@ -2490,9 +2495,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           <div
             ref={galleryScrollRef}
             tabIndex={-1}
-            className={`relative z-0 h-full overflow-auto px-3 py-3 sm:px-4 sm:py-4 ${
-              showDockedStarterIdeas ? 'pb-72' : 'pb-40'
-            }`}
+            className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
           >
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
               {isFocusedPreview && selectedJob ? (
@@ -2598,73 +2601,54 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             className="px-5 pb-5"
             layoutMode="surface-fixed"
             maxWidth="4xl"
-            topContent={
-              showDockedStarterIdeas ? (
-                <StudioPlaygroundStarterIdeas
-                  character={pickStarterCharacter(characterMentions)}
-                  isDocked
-                  offeringKind={starterOffering}
-                  onSelect={handleStarterIdea}
-                  productReference={pickStarterProductReference(
-                    selectedBrand?.references,
-                  )}
-                />
-              ) : null
-            }
             zIndex={40}
           >
             <div {...(capabilities.hasReferences ? dragHandlers : {})}>
-              {draftSaveStatus === 'idle' ? null : (
-                <p
-                  aria-live="polite"
-                  className={`mb-1 text-right text-2xs ${
-                    draftSaveStatus === 'error' || draftSaveStatus === 'failed'
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'
-                  }`}
-                  data-draft-status={draftSaveStatus}
-                  data-testid="studio-draft-status"
-                  role="status"
-                >
-                  {draftSaveStatus === 'saving'
-                    ? translate('draft.saving')
-                    : draftSaveStatus === 'error'
-                      ? translate('draft.saveFailed')
-                      : draftSaveStatus === 'failed'
-                        ? translate('draft.saveRejected')
-                        : translate('draft.saved')}
-                </p>
-              )}
-              {attachments
-                .filter(
-                  (attachment: AttachmentItem) =>
-                    attachment.kind === 'video' &&
-                    attachment.status === UploadStatus.COMPLETED &&
-                    attachment.ingredientId,
-                )
-                .map((attachment: AttachmentItem) => (
-                  <Button
-                    ariaLabel={`${translateActions('remixThisVideo')}: ${attachment.name}`}
-                    className="mb-2 mr-2"
-                    key={attachment.id}
-                    label={translateActions('remixThisVideo')}
-                    onClick={() => {
-                      if (attachment.ingredientId)
-                        void storyboardEntry.createFromUploadAssetId(
-                          attachment.ingredientId,
-                        );
-                    }}
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
-                    withWrapper={false}
-                  />
-                ))}
-              {crunRestoreStatus === 'failed' ? (
-                <Label role="alert">
-                  {translate('crun.referenceUnavailable')}
-                </Label>
-              ) : null}
               <StudioPlaygroundComposer
+                notice={
+                  draftSaveStatus === 'error' ||
+                  draftSaveStatus === 'failed' ||
+                  crunRestoreStatus === 'failed' ||
+                  remixableVideos.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2 px-3.5 py-2">
+                      {draftSaveStatus === 'error' ||
+                      draftSaveStatus === 'failed' ? (
+                        <p
+                          aria-live="polite"
+                          className="text-xs text-destructive"
+                          data-draft-status={draftSaveStatus}
+                          data-testid="studio-draft-status"
+                          role="status"
+                        >
+                          {draftSaveStatus === 'error'
+                            ? translate('draft.saveFailed')
+                            : translate('draft.saveRejected')}
+                        </p>
+                      ) : null}
+                      {crunRestoreStatus === 'failed' ? (
+                        <Label role="alert">
+                          {translate('crun.referenceUnavailable')}
+                        </Label>
+                      ) : null}
+                      {remixableVideos.map((attachment: AttachmentItem) => (
+                        <Button
+                          ariaLabel={`${translateActions('remixThisVideo')}: ${attachment.name}`}
+                          key={attachment.id}
+                          label={translateActions('remixThisVideo')}
+                          onClick={() => {
+                            if (attachment.ingredientId)
+                              void storyboardEntry.createFromUploadAssetId(
+                                attachment.ingredientId,
+                              );
+                          }}
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                          withWrapper={false}
+                        />
+                      ))}
+                    </div>
+                  ) : null
+                }
                 attachedAssets={attachedAssets}
                 crunQuote={crunModel ? crunQuote : undefined}
                 isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
