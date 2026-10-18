@@ -10,6 +10,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { ArrowDown, ArrowUp, PinOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useRef } from 'react';
 
 /**
  * The right-click menu on a rail item: move it, or take it off the rail. It
@@ -21,11 +22,16 @@ export function AppRailItemMenu({
   isReorderable,
   onClose,
   onMove,
+  onRestoreFocus,
   onUnpin,
   target,
   total,
 }: AppRailItemMenuProps) {
   const t = useTranslations('common.appRail');
+  // The menu unmounts with its target, so the item to refocus is kept here.
+  const lastItemRef = useRef(target?.item ?? null);
+  const isOutsideInteractionRef = useRef(false);
+  if (target) lastItemRef.current = target.item;
 
   return (
     <DropdownMenu
@@ -46,6 +52,20 @@ export function AppRailItemMenu({
         <DropdownMenuContent
           align="start"
           data-testid="app-rail-item-menu"
+          onCloseAutoFocus={(event) => {
+            const item = lastItemRef.current;
+            // A click elsewhere keeps Radix's own focus handling.
+            if (isOutsideInteractionRef.current || !item) {
+              isOutsideInteractionRef.current = false;
+              return;
+            }
+            // The anchor is not focusable: hand focus to the rail instead.
+            event.preventDefault();
+            onRestoreFocus(item);
+          }}
+          onInteractOutside={() => {
+            isOutsideInteractionRef.current = true;
+          }}
           side="right"
           sideOffset={4}
         >

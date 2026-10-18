@@ -21,6 +21,7 @@ const state = vi.hoisted(() => ({
   ],
   homeAppId: null as string | null,
   isLoaded: true,
+  isReady: true,
   organizationHomeAppId: null as string | null,
   setHomeAppId: vi.fn(),
 }));
@@ -38,7 +39,7 @@ vi.mock('@/components/shell/rail-preferences.provider', () => ({
   }),
 }));
 vi.mock('@/components/shell/use-available-rail-apps', () => ({
-  useAvailableRailApps: () => ({ apps: state.apps }),
+  useAvailableRailApps: () => ({ apps: state.apps, isReady: state.isReady }),
 }));
 
 // Radix Select needs pointer APIs jsdom lacks; a context-backed stand-in keeps
@@ -50,13 +51,19 @@ vi.mock('@ui/primitives/select', () => {
       children,
       onValueChange,
       value,
+      disabled,
     }: {
       children?: ReactNode;
+      disabled?: boolean;
       onValueChange?: (value: string) => void;
       value?: string;
     }) => (
       <SelectContext value={onValueChange ?? (() => {})}>
-        <div data-testid="select" data-value={value}>
+        <div
+          data-disabled={disabled ? 'true' : undefined}
+          data-testid="select"
+          data-value={value}
+        >
           {children}
         </div>
       </SelectContext>
@@ -85,6 +92,7 @@ describe('SettingsHomeAppCard', () => {
   beforeEach(() => {
     state.homeAppId = null;
     state.isLoaded = true;
+    state.isReady = true;
     state.organizationHomeAppId = null;
     state.setHomeAppId.mockReset();
   });
@@ -120,6 +128,16 @@ describe('SettingsHomeAppCard', () => {
       screen.getByRole('button', { name: 'Default (Workspace)' }),
     );
     expect(state.setHomeAppId).toHaveBeenLastCalledWith(null);
+  });
+
+  it('keeps the picker disabled until the available apps are ready', () => {
+    state.isReady = false;
+    render(<SettingsHomeAppCard />);
+
+    expect(screen.getByTestId('select')).toHaveAttribute(
+      'data-disabled',
+      'true',
+    );
   });
 
   it('treats a saved app the member cannot open as Default', () => {

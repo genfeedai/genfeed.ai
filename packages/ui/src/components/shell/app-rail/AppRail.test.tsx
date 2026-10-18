@@ -5,7 +5,14 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import type { AppRailProps } from '@genfeedai/props/ui/app-rail.props';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1924,6 +1931,17 @@ describe('AppRail', () => {
       expect(onTogglePin).toHaveBeenCalledWith('library');
       expect(screen.getByRole('status')).toHaveTextContent(
         'Library removed from your rail.',
+      );
+    });
+
+    it('returns focus to the rail item after the menu closes', async () => {
+      render(<AppRail orgSlug="acme" onRailAppOrderChange={vi.fn()} />);
+
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
+      fireEvent.click(screen.getByTestId('app-rail-item-menu-move-down'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('app-rail-item-agent')).toHaveFocus(),
       );
     });
 

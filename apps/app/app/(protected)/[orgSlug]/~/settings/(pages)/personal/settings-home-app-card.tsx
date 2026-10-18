@@ -28,7 +28,7 @@ export default function SettingsHomeAppCard() {
   const translate = useTranslations('common.settings.profile.homeApp');
   const translateRail = useTranslations('common.appRail');
   const { settings } = useBrand();
-  const { apps } = useAvailableRailApps();
+  const { apps, isReady } = useAvailableRailApps();
   const { homeAppId, isLoaded, setHomeAppId } = useRailPreferencesContext();
 
   const organizationHomeAppId = settings?.defaultHomeAppId;
@@ -39,6 +39,8 @@ export default function SettingsHomeAppCard() {
     homeAppId && isRailAppId(homeAppId) && apps.some((a) => a.id === homeAppId)
       ? homeAppId
       : DEFAULT_HOME_VALUE;
+  // The list is incomplete until the member's installs and organization
+  // settings load, so a saved app can look unavailable for a moment.
 
   return (
     <Card
@@ -47,7 +49,7 @@ export default function SettingsHomeAppCard() {
       label={translate('label')}
     >
       <Select
-        disabled={!isLoaded}
+        disabled={!isLoaded || !isReady}
         onValueChange={(value) =>
           setHomeAppId(value === DEFAULT_HOME_VALUE ? null : value)
         }

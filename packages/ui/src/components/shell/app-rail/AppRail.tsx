@@ -28,7 +28,7 @@ import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { AppRailItemMenu } from './AppRailItemMenu';
 import { AppRailMore } from './AppRailMore';
 import { resolveAvailableRailApps } from './app-rail.availability';
@@ -221,6 +221,7 @@ export function AppRail({
   const router = useRouter();
   const t = useTranslations('common.appRail');
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
+  const navRef = useRef<HTMLElement>(null);
   const [menuTarget, setMenuTarget] =
     useState<AppRailItemMenuProps['target']>(null);
   const apps = useMemo(() => {
@@ -385,6 +386,37 @@ export function AppRail({
     },
     [railItemIds, reorder],
   );
+  // After the menu closes, focus the item it acted on; one that left the rail
+  // (unpinned) hands focus to its neighbour, then to the More button.
+  const restoreItemFocus = useCallback(
+    (item: AppRailNavigationItem) => {
+      const index = railItemIds.indexOf(item.app.id);
+      const candidates = [
+        item.app.id,
+        railItemIds[index + 1],
+        railItemIds[index - 1],
+      ];
+      requestAnimationFrame(() => {
+        const nav = navRef.current;
+        if (!nav) return;
+        for (const id of candidates) {
+          const target =
+            id &&
+            nav.querySelector<HTMLElement>(
+              `[data-testid="app-rail-item-${id}"]`,
+            );
+          if (target) {
+            target.focus();
+            return;
+          }
+        }
+        nav
+          .querySelector<HTMLElement>('[data-testid="app-rail-more"]')
+          ?.focus();
+      });
+    },
+    [railItemIds],
+  );
   const unpinItem = useCallback(
     (item: AppRailNavigationItem) => {
       onTogglePin?.(item.app.id);
@@ -493,6 +525,7 @@ export function AppRail({
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
       <nav
+        ref={navRef}
         aria-label={t('apps')}
         className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
         // Page menu: the one surface exempt from the product motion policy.
@@ -564,6 +597,7 @@ export function AppRail({
         isReorderable={isReorderable}
         onClose={() => setMenuTarget(null)}
         onMove={moveItem}
+        onRestoreFocus={restoreItemFocus}
         onUnpin={onTogglePin ? unpinItem : undefined}
         target={menuTarget}
         total={railItems.length}

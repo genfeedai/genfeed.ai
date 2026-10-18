@@ -124,6 +124,11 @@ export interface AppRailItemMenuProps {
   total: number;
   isReorderable: boolean;
   onClose: () => void;
+  /**
+   * Called when the menu closes by keyboard or by choosing an action, so focus
+   * can land on a surviving rail item instead of being lost.
+   */
+  onRestoreFocus: (item: AppRailNavigationItem) => void;
   onMove: (item: AppRailNavigationItem, delta: -1 | 1) => void;
   /** Without it the menu offers no unpin. */
   onUnpin?: (item: AppRailNavigationItem) => void;
