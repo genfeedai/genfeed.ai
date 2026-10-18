@@ -1,0 +1,211 @@
+{
+  "clipContinuitySummary": "Clip {index}: character {character}, outfit {outfit}, product {product}",
+  "continuityStatus": "Continuity: {status}",
+  "evidenceNumber": "Evidence {number}",
+  "inspector": {
+    "activeRuns": "{count, plural, one {# active run} other {# active runs}}",
+    "approvals": "Approvals: {count}",
+    "assessmentSkipped": "Assessment skipped: {reason}",
+    "brand": "Brand: {value}",
+    "characterConfidence": "Character: {verdict} ({confidence})",
+    "clipNumber": "Clip {number}",
+    "completed": "Completed",
+    "created": "Created",
+    "driftFindings": "{count, plural, one {# drift finding} other {# drift findings}}",
+    "evidenceFrame": "Evidence frame {number}",
+    "generatedContent": "Generated content: {count}",
+    "issue": "Issue: {value}",
+    "openReportThread": "Open report thread",
+    "organization": "Organization: {value}",
+    "outfitConfidence": "Outfit: {verdict} ({confidence})",
+    "outputs": "Outputs: {count}",
+    "percentComplete": "{percent}% complete",
+    "priority": "Priority: {value}",
+    "productConfidence": "Product: {verdict} ({confidence})",
+    "progress": "Progress",
+    "reportLocationDescription": "This task's report lives in the linked agent thread, not in the workspace task record itself.",
+    "reportThreads": "Report threads: {count}",
+    "reviewState": "Review state: {value}",
+    "routing": "Routing",
+    "runs": "Runs: {count}",
+    "thread": "Thread: {value}",
+    "updated": "Updated",
+    "labels": {
+      "resultPreview": "Result preview",
+      "visualContinuityQa": "Visual continuity QA",
+      "reportLocation": "Report location",
+      "failure": "Failure",
+      "requestedChanges": "Requested changes",
+      "taskMetadata": "Task metadata",
+      "linkedRecords": "Linked records"
+    },
+    "autoRouted": "Auto-routed by workspace orchestration.",
+    "queued": "queued",
+    "reviewStateNone": "none",
+    "loading": "Loading…",
+    "unavailable": "Unavailable",
+    "notAssessed": "not assessed",
+    "confidencePercent": "{percent}% confidence"
+  },
+  "liveRuns": "Live runs",
+  "runCards": {
+    "credits": "{credits} credits",
+    "open": "Open",
+    "openLabel": "Open {label}",
+    "progress": "{percent}% done",
+    "status": {
+      "cancelled": "Cancelled",
+      "completed": "Completed",
+      "failed": "Failed",
+      "live": "Live now",
+      "queued": "Queued"
+    },
+    "title": "Running agents",
+    "viewAll": "View all"
+  },
+  "noActiveTasks": "No active workspace tasks right now.",
+  "openInbox": "Open Inbox",
+  "openReview": "Open Review",
+  "recentOutputsEmpty": "Recent outputs will appear here once the workspace starts routing work.",
+  "requestChangesPrompt": "Please revise this task from the workspace inbox.",
+  "inbox": {
+    "unread": "Unread",
+    "markRead": "Mark read",
+    "markAllRead": "Mark all read",
+    "readActions": "Read actions",
+    "readError": "Could not load or save inbox read status. Try again.",
+    "retry": "Retry",
+    "viewsAriaLabel": "Inbox views",
+    "views": {
+      "unread": {
+        "label": "Unread",
+        "description": "Items that still need operator attention."
+      },
+      "recent": {
+        "label": "Recent",
+        "description": "Latest queue movement, regardless of status."
+      },
+      "all": {
+        "label": "All",
+        "description": "Everything in the workspace queue, including done items."
+      }
+    },
+    "columns": {
+      "task": "Task",
+      "status": "Status",
+      "path": "Path",
+      "updated": "Updated"
+    }
+  },
+  "sections": {
+    "inbox": {
+      "title": "Inbox",
+      "description": "Unread work, recent movement, and the full queue."
+    },
+    "overview": {
+      "title": "Overview",
+      "description": "Tasks, approvals, live work, and operator handoffs in one control surface."
+    }
+  },
+  "tools": {
+    "agent": {
+      "label": "Agent",
+      "description": "All conversations and threads live here."
+    },
+    "studio": {
+      "label": "Studio",
+      "description": "Storyboard, clips, and Turbo production surfaces."
+    },
+    "workflows": {
+      "label": "Workflows",
+      "description": "Workflow builder for repeatable automation."
+    },
+    "runs": {
+      "label": "Runs",
+      "description": "Operator view for live runs and execution state."
+    }
+  },
+  "library": {
+    "overview": {
+      "label": "Overview",
+      "description": "Browse every reusable source and generated asset."
+    },
+    "media": {
+      "label": "Media",
+      "description": "Generated images, videos, and motion assets."
+    },
+    "audioCaptions": {
+      "label": "Audio + captions",
+      "description": "Voice, music, and caption assets ready for reuse."
+    }
+  },
+  "recentActivity": {
+    "empty": "No activity yet.",
+    "title": "Recent Activity"
+  },
+  "recentTasks": {
+    "empty": "No recent tasks.",
+    "title": "Recent Tasks"
+  },
+  "recentViewAll": "View All →",
+  "relativeTime": {
+    "unknown": "unknown",
+    "justNow": "just now",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago"
+  },
+  "actions": {
+    "approve": "Approve",
+    "requestChanges": "Request Changes",
+    "dismiss": "Dismiss",
+    "planNextSteps": "Plan Next Steps",
+    "moreActions": "More actions",
+    "openInWrite": "Open in Write",
+    "openInGenerate": "Open in Generate",
+    "openInEditor": "Open in Editor",
+    "openInAutomation": "Open in Automation",
+    "openIssue": "Open Issue",
+    "openTool": "Open Tool",
+    "openReport": "Open Report",
+    "requestedChangesReason": "Requested changes: {reason}"
+  },
+  "openDetailsFor": "Open details for {title}",
+  "needsAttention": "Needs attention",
+  "inboxEmpty": {
+    "unread": {
+      "label": "You're caught up",
+      "description": "New work will land here when something needs you."
+    },
+    "recent": {
+      "label": "No inbox activity yet",
+      "description": "Your five most recently updated inbox tasks will appear here as work moves through the queue."
+    },
+    "all": {
+      "label": "Inbox is empty",
+      "description": "Tasks enter the inbox when they need review, a decision, or follow-up."
+    }
+  },
+  "sidebarCards": {
+    "inProgress": {
+      "label": "In progress",
+      "description": "Active workspace tasks and live execution state."
+    },
+    "recentOutputs": {
+      "label": "Recent outputs",
+      "description": "Latest generated ingredients and posts."
+    },
+    "recentActivity": {
+      "label": "Recent activity",
+      "description": "Execution logs stay available without owning the main navigation."
+    },
+    "librarySnapshot": {
+      "label": "Library snapshot",
+      "description": "Keep the ingredient library one click away from the dashboard."
+    },
+    "operatorTools": {
+      "label": "Operator tools",
+      "description": "Manual and expert surfaces stay available without owning the main navigation."
+    }
+  }
+}

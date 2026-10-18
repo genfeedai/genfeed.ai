@@ -387,6 +387,44 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
+  test('prepares extension from the Inspector and preserves both saved source and child after reload', async ({
+    authenticatedPage,
+  }, testInfo) => {
+    await mockDraftStore(authenticatedPage);
+    await mockVideoModels(authenticatedPage);
+    const { extendBodies } = await mockVideoGallery(authenticatedPage);
+    await openGenerate(authenticatedPage);
+    await authenticatedPage.getByTestId(`studio-asset-${SOURCE_ID}`).click();
+    const inspector = authenticatedPage.getByTestId(
+      'studio-playground-inspector',
+    );
+    await inspector
+      .getByRole('button', { name: 'Extend video', exact: true })
+      .click();
+    const dialog = authenticatedPage.getByRole('dialog', {
+      name: 'Extend Video',
+      exact: true,
+    });
+    await expect(dialog).toBeVisible();
+    expect(extendBodies).toEqual([]);
+    await dialog.getByRole('button', { name: 'Extend', exact: true }).click();
+    await expect.poll(() => extendBodies.length).toBe(1);
+    await expectLinkedToSource(authenticatedPage, EXTENDED_ID);
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
+    await expect(
+      authenticatedPage.getByTestId(`studio-asset-${SOURCE_ID}`),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByTestId(`studio-asset-${EXTENDED_ID}`),
+    ).toBeVisible();
+    expect(extendBodies).toHaveLength(1);
+    await authenticatedPage.screenshot({
+      path: testInfo.outputPath('inspector-extension-lineage.png'),
+      fullPage: true,
+    });
+    await expectNoErrorOverlay(authenticatedPage);
+  });
+
   test('resizes a video from Generate and shows the result linked to its source', async ({
     authenticatedPage,
   }) => {

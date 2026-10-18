@@ -1,6 +1,8 @@
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
+import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
@@ -54,7 +56,7 @@ vi.mock('@ui/masonry/shared/MasonryBrandLogo', () => ({
 }));
 
 vi.mock('@ui/masonry/shared/MasonryConfirmBridge', () => ({
-  default: () => null,
+  default: vi.fn(() => null),
 }));
 
 vi.mock('@ui/masonry/shared/useMasonryHover', () => ({
@@ -70,7 +72,7 @@ vi.mock('@ui/masonry/shared/useMasonryHover', () => ({
 }));
 
 vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
-  default: () => <div data-testid="quick-actions" />,
+  default: vi.fn(() => <div data-testid="quick-actions" />),
 }));
 
 vi.mock('@ui/drag-drop/draggable/DraggableIngredient', () => ({
@@ -121,6 +123,85 @@ const mockImage: IImage = {
 } as IImage;
 
 describe('MasonryImage', () => {
+  it.each([false, true])(
+    'binds controlled pending indicators to this source (matching: %s)',
+    (isMatchingSource) => {
+      const sourceId = isMatchingSource ? mockImage.id : 'another-source';
+      render(
+        <MasonryImage
+          image={mockImage}
+          isSelected
+          transformActions={{
+            getAvailability: () => ({ isAvailable: true }),
+            onUpscale: vi.fn(),
+            onExtend: vi.fn(),
+            isUpscaling: true,
+            isExtending: true,
+            upscalingSourceId: sourceId,
+            extendingSourceId: sourceId,
+          }}
+        />,
+      );
+      const quickActions = vi
+        .mocked(IngredientQuickActions)
+        .mock.calls.at(-1)?.[0];
+      expect(quickActions).toMatchObject({
+        isUpscaling: isMatchingSource,
+        isExtending: false,
+      });
+    },
+  );
+
+  it('forwards controlled transforms to the workspace owner and suppresses its leaf confirmation', () => {
+    const factory = vi.mocked(useIngredientActions).getMockImplementation();
+    if (!factory) throw new Error('Missing leaf action fixture');
+    const local = factory({});
+    vi.mocked(useIngredientActions).mockReturnValueOnce({
+      ...local,
+      upscaleConfirmData: {
+        ingredient: mockImage,
+        cost: 10,
+        modelKey: 'fixture-upscaler',
+      },
+    });
+    const onUpscale = vi.fn();
+    const onExtend = vi.fn();
+    const transformActions = {
+      getAvailability: () => ({ isAvailable: true }),
+      onUpscale,
+      onExtend,
+      isUpscaling: false,
+      isExtending: false,
+    };
+    vi.mocked(IngredientQuickActions).mockImplementationOnce(
+      ({ selectedIngredient, onUpscale }) => (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedIngredient) onUpscale?.(selectedIngredient);
+            }}
+          >
+            Shared upscale
+          </button>
+        </>
+      ),
+    );
+    render(
+      <MasonryImage
+        image={mockImage}
+        isSelected
+        transformActions={transformActions}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Shared upscale' }));
+    expect(onUpscale).toHaveBeenCalledWith(mockImage);
+    expect(local.handlers.handleUpscale).not.toHaveBeenCalled();
+    expect(
+      vi.mocked(MasonryConfirmBridge).mock.calls.at(-1)?.[0],
+    ).toMatchObject({ upscaleConfirmData: null });
+  });
+
   it('uses the surface asset name for the image and its keyboard action', () => {
     render(
       <MasonryImage accessibleLabel="Recorded user intent" image={mockImage} />,

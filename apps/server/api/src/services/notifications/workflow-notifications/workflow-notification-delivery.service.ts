@@ -584,10 +584,12 @@ export class WorkflowNotificationDeliveryService {
         user: { is: { isDeleted: false } },
       },
       select: {
+        id: true,
         role: { select: { key: true } },
         brands: {
           where: { organizationId, isDeleted: false },
           select: { id: true },
+          take: 1,
         },
       },
     });
@@ -609,7 +611,15 @@ export class WorkflowNotificationDeliveryService {
                 organizationId,
                 isDeleted: false,
                 ...(restrictBrands
-                  ? { id: { in: member.brands.map((brand) => brand.id) } }
+                  ? {
+                      members: {
+                        some: {
+                          id: member.id,
+                          organizationId,
+                          isDeleted: false,
+                        },
+                      },
+                    }
                   : {}),
               },
             },

@@ -1,3 +1,5 @@
+import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
+import messages from '@app-i18n/page-scopes/admin';
 import {
   isProtectedBootstrapBypassed,
   loadProtectedBootstrap,
@@ -19,7 +21,9 @@ import { notFound } from 'next/navigation';
  */
 export default async function AdminLayout({ children }: LayoutProps) {
   if (await isProtectedBootstrapBypassed()) {
-    return children;
+    return (
+      <AppPageIntlProvider pages={messages}>{children}</AppPageIntlProvider>
+    );
   }
 
   const bootstrap = await loadProtectedBootstrap();
@@ -28,5 +32,5 @@ export default async function AdminLayout({ children }: LayoutProps) {
     notFound();
   }
 
-  return children;
+  return <AppPageIntlProvider pages={messages}>{children}</AppPageIntlProvider>;
 }

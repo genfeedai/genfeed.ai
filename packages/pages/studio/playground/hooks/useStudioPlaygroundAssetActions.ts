@@ -8,6 +8,7 @@ import {
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundJob } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import type { MasonryTransformActions } from '@genfeedai/props/content/masonry.props';
 import type {
   StudioFailedIngredientRecoveryActions,
   StudioPlaygroundAssetActions,
@@ -30,6 +31,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef } from 'react';
 
 export interface UseStudioPlaygroundAssetActionsParams {
+  transformActions?: MasonryTransformActions;
   failedRecovery?: StudioFailedIngredientRecoveryActions;
   onAttachReference: (ingredient: IIngredient, type: 'image' | 'video') => void;
   onDeleted?: (id: string) => void;
@@ -39,10 +41,11 @@ export interface UseStudioPlaygroundAssetActionsParams {
 
 /**
  * Studio adapter for the shared masonry action contract. The leaf components
- * keep ownership of transformations; this hook supplies the surrounding
+ * share the optional workspace transform owner; this hook supplies the surrounding
  * product actions that need Studio state, global overlays, or a confirmation.
  */
 export function useStudioPlaygroundAssetActions({
+  transformActions,
   failedRecovery,
   onAttachReference,
   onDeleted,
@@ -267,6 +270,7 @@ export function useStudioPlaygroundAssetActions({
   return useMemo(
     () => ({
       failedRecovery,
+      transformActions,
       onClickIngredient: onSeeDetails,
       onConvertToVideo: (ingredient: IIngredient) =>
         onAttachReference(ingredient, 'video'),
@@ -290,6 +294,7 @@ export function useStudioPlaygroundAssetActions({
       onUseAsVideoReference: createFromAsset,
     }),
     [
+      transformActions,
       changeStatus,
       createFromAsset,
       failedRecovery,

@@ -10,7 +10,7 @@ import { Form } from '@ui/primitives/form';
 import { NextIntlClientProvider } from 'next-intl';
 import type { FormEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import pages from '../../../../../../apps/app/messages/en/pages.json';
+import pages from '../../../../../../apps/app/messages/en/pages';
 import AnalyticsMetricInfo, {
   AnalyticsMetricLabel,
 } from './AnalyticsMetricInfo';

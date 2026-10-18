@@ -1,0 +1,21 @@
+{
+  "columns": {
+    "email": "Email",
+    "joined": "Joined",
+    "lastConnected": "Last connected",
+    "name": "Name",
+    "source": "Source"
+  },
+  "description": "Manage user accounts, roles, and permissions across the platform",
+  "empty": "No users found",
+  "impersonate": "Impersonate",
+  "impersonateFailed": "Failed to impersonate user",
+  "never": "Never",
+  "noEmail": "No email",
+  "noName": "No name",
+  "source": {
+    "direct": "Direct",
+    "unknown": "Unknown"
+  },
+  "title": "Users"
+}

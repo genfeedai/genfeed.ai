@@ -1,5 +1,11 @@
 import type { Mock } from 'vitest';
 
+vi.mock('@libs/security/destination-guard', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@libs/security/destination-guard')>();
+  return { ...actual, safeFetch: vi.fn() };
+});
+
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
@@ -34,6 +40,7 @@ import {
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -82,11 +89,13 @@ describe('LinkedInService', () => {
   };
 
   const mockConfigService = {
+    ingredientsEndpoint: 'http://media.internal:9000/ingredients',
     get: vi.fn((key: string) => mockConfig[key]),
   };
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.mocked(safeFetch).mockReset();
     mockConfig.LINKEDIN_CLIENT_ID = 'test-client-id';
     mockConfig.LINKEDIN_CLIENT_SECRET = 'test-client-secret';
     mockConfig.LINKEDIN_REDIRECT_URI = 'http://localhost:3000/oauth/linkedin';
@@ -112,6 +121,226 @@ describe('LinkedInService', () => {
     }).compile();
 
     service = module.get<LinkedInService>(LinkedInService);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  describe('media source transfers', () => {
+    const operations = ['image', 'video', 'comment'] as const;
+    const sourceUrl = 'https://public.example/media?signature=valid';
+    const uploadUrl = 'https://www.linkedin.com/dms-uploads/fixture';
+    const assetId = 'urn:li:digitalmediaAsset:fixture';
+
+    beforeEach(() => {
+      vi.spyOn(service, 'refreshToken').mockResolvedValue({
+        id: 'credential',
+        accessToken: 'access-token',
+      });
+      vi.spyOn(service, 'getUserProfile').mockResolvedValue({
+        id: 'member',
+        firstName: 'Test',
+        lastName: 'Member',
+        email: 'test@example.com',
+      });
+      mockHttpService.post.mockImplementation((endpoint: string) =>
+        of({
+          data: endpoint.includes('registerUpload')
+            ? {
+                value: {
+                  asset: assetId,
+                  uploadMechanism: {
+                    'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest':
+                      { uploadUrl },
+                  },
+                },
+              }
+            : { id: 'published' },
+        }),
+      );
+      mockHttpService.put.mockReturnValue(of({ data: {} }));
+      vi.mocked(safeFetch).mockImplementation(
+        async () => new Response(new Uint8Array([1, 2])),
+      );
+    });
+
+    afterEach(() => {
+      mockHttpService.get.mockReset();
+      mockHttpService.post.mockReset();
+      mockHttpService.put.mockReset();
+    });
+
+    function publish(
+      operation: (typeof operations)[number],
+      mediaUrl = sourceUrl,
+      source: 'external' | 'publisher' = 'external',
+    ) {
+      return operation === 'comment'
+        ? service.postComment(
+            'org',
+            'brand',
+            'urn:li:share:parent',
+            'caption',
+            'credential',
+            { imageUrl: mediaUrl },
+            source,
+          )
+        : operation === 'image'
+          ? service.uploadImage(
+              'org',
+              'brand',
+              mediaUrl,
+              'caption',
+              {},
+              'credential',
+              source,
+            )
+          : service.uploadVideo(
+              'org',
+              'brand',
+              mediaUrl,
+              'caption',
+              {},
+              'credential',
+              source,
+            );
+    }
+
+    it.each(operations)(
+      'guards %s media before preserving its Buffer upload and published result',
+      async (operation) => {
+        await expect(publish(operation)).resolves.toEqual(
+          operation === 'comment'
+            ? { commentId: 'published' }
+            : { id: 'published' },
+        );
+        expect(safeFetch).toHaveBeenCalledWith(
+          sourceUrl,
+          { signal: expect.any(AbortSignal) },
+          { allowedSchemes: ['http:', 'https:'] },
+        );
+        expect(mockHttpService.put).toHaveBeenCalledWith(
+          uploadUrl,
+          Buffer.from([1, 2]),
+          {
+            headers: {
+              Authorization: 'Bearer access-token',
+              'Content-Type': 'application/octet-stream',
+            },
+          },
+        );
+        expect(mockHttpService.post.mock.invocationCallOrder[0]).toBeLessThan(
+          vi.mocked(safeFetch).mock.invocationCallOrder[0],
+        );
+        expect(vi.mocked(safeFetch).mock.invocationCallOrder[0]).toBeLessThan(
+          mockHttpService.put.mock.invocationCallOrder[0],
+        );
+        const publishBody = mockHttpService.post.mock.calls[1]?.[1];
+        expect(JSON.stringify(publishBody)).toContain(assetId);
+      },
+    );
+
+    it.each(operations)(
+      'rejects an oversized %s source before byte upload or share/comment creation',
+      async (operation) => {
+        vi.mocked(safeFetch).mockResolvedValue(
+          new Response(new Uint8Array([1]), {
+            headers: {
+              'content-length': String(
+                (operation === 'video' ? 500 : 10) * 1024 * 1024 + 1,
+              ),
+            },
+          }),
+        );
+        await expect(publish(operation)).rejects.toThrow(/size limit/);
+        expect(mockHttpService.put).not.toHaveBeenCalled();
+        expect(mockHttpService.post).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it.each(operations)(
+      'passes explicit publisher provenance only for the exact configured %s source',
+      async (operation) => {
+        const mediaUrl =
+          'http://media.internal:9000/ingredients/images/key?signature=valid';
+        await publish(operation, mediaUrl, 'publisher');
+        expect(safeFetch).toHaveBeenCalledWith(
+          mediaUrl,
+          { signal: expect.any(AbortSignal) },
+          {
+            allowedSchemes: ['http:', 'https:'],
+            allowedOrigins: ['http://media.internal:9000'],
+            allowPrivateNetwork: true,
+          },
+        );
+      },
+    );
+
+    it.each(['image', 'video'] as const)(
+      'does not derive private %s trust from channel settings',
+      async (operation) => {
+        const mediaUrl = 'http://media.internal:9000/ingredients/media';
+        const settings = { visibility: 'PUBLIC', mediaSource: 'publisher' };
+        if (operation === 'image') {
+          await service.uploadImage(
+            'org',
+            'brand',
+            mediaUrl,
+            'caption',
+            settings,
+            'credential',
+          );
+        } else {
+          await service.uploadVideo(
+            'org',
+            'brand',
+            mediaUrl,
+            'caption',
+            settings,
+            'credential',
+          );
+        }
+        expect(safeFetch).toHaveBeenCalledWith(
+          mediaUrl,
+          { signal: expect.any(AbortSignal) },
+          { allowedSchemes: ['http:', 'https:'] },
+        );
+      },
+    );
+
+    it('does not derive private comment trust from extra input options', async () => {
+      const options = {
+        imageUrl: 'http://media.internal:9000/ingredients/image',
+        mediaSource: 'publisher',
+      };
+      await service.postComment(
+        'org',
+        'brand',
+        'urn:li:share:parent',
+        'caption',
+        'credential',
+        options,
+      );
+      expect(safeFetch).toHaveBeenCalledWith(
+        options.imageUrl,
+        { signal: expect.any(AbortSignal) },
+        { allowedSchemes: ['http:', 'https:'] },
+      );
+    });
+
+    it('ends a stalled source at the transfer deadline without uploading or publishing', async () => {
+      vi.useFakeTimers();
+      vi.mocked(safeFetch).mockReturnValue(new Promise(() => {}));
+      const result = publish('video').catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(await result).toMatchObject({
+        message: 'LinkedIn media download timed out',
+      });
+      expect(mockHttpService.put).not.toHaveBeenCalled();
+      expect(mockHttpService.post).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('should be defined', () => {

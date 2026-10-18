@@ -1,0 +1,107 @@
+{
+  "adList": {
+    "account": "Account",
+    "channel": "Channel",
+    "ctr": "CTR",
+    "platform": "Platform",
+    "running": "Running",
+    "saved": "Saved",
+    "source": "Source",
+    "title": "Title"
+  },
+  "actions": {
+    "filters": "Filters",
+    "manageConnections": "Manage ad connections",
+    "watchCompetitors": "Competitors"
+  },
+  "connection": {
+    "description": "Connect an ad account to view your own campaigns and ads. Competitor research is available without connecting an account.",
+    "title": "Connect accounts for your campaigns"
+  },
+  "dsaNotice": {
+    "badge": "DSA",
+    "description": "Ad data on this page comes from X's public Ads Repository / DSA transparency export, not live X reporting.",
+    "title": "X Ads Repository disclosure"
+  },
+  "errors": {
+    "remixUnavailable": "The on-brand remix workflow is unavailable here.",
+    "title": "Ads hub needs attention"
+  },
+  "reviewPolicy": "Launch plans require review. No external campaign objects are created from Ads Research.",
+  "detail": {
+    "title": "Ad detail"
+  },
+  "swipeFile": {
+    "brandRequired": "Choose a brand before saving reference ads.",
+    "emptyFilters": "No ads match the current filters.",
+    "emptyLiveFilters": "No ads match the current filters. Adjust filters or widen the timeframe.",
+    "emptySearch": "No ads match your search.",
+    "noteLabel": "Brand note",
+    "notePlaceholder": "Why this ad is worth revisiting…",
+    "saveAction": "Save to swipe file",
+    "saveAria": "Save {title}",
+    "saveNote": "Save note",
+    "saved": "Saved",
+    "snapshotBadge": "Saved snapshot",
+    "sourceLabel": "Saved swipe file",
+    "staleSnapshot": "This saved snapshot is no longer available. Refresh and try again.",
+    "unavailable": "This ad is no longer available.",
+    "unsaveAction": "Unsave from swipe file",
+    "unsaveAria": "Unsave {title}",
+    "updateFailed": "Swipe file update failed. Try again."
+  },
+  "watchlist": {
+    "archivesUnavailable": "Archives we cannot poll yet",
+    "creatives": "{count, plural, one {# creative} other {# creatives}}",
+    "description": "We poll each competitor's public ad archive and file what is running into this page, ready to remix. Archives publish the creative only, so spend and delivery numbers stay unavailable.",
+    "empty": "No competitors watched yet. Add one above to start collecting their live ads.",
+    "loading": "Loading watched competitors…",
+    "title": "Watched competitors",
+    "watchCompetitor": "Watch competitor"
+  },
+  "discovery": {
+    "savedFreshness": "Saved observation",
+    "staleFreshness": "Stale source — Remix unavailable",
+    "unknownFreshness": "Source freshness unknown — Remix unavailable",
+    "observedAt": "Observed {date}",
+    "title": "Browse saved competitor ads",
+    "description": "Browse previously saved competitor image and video ads. Browsing does not collect new ads.",
+    "queryLabel": "Saved ad search",
+    "googlePlaceholder": "Competitor website or Google advertiser ID",
+    "keywordPlaceholder": "Keyword or competitor name",
+    "providerLabel": "Public archive",
+    "countryLabel": "Search country",
+    "coveredRegions": "Covered regions",
+    "allCountries": "All countries",
+    "search": "Search saved ads",
+    "searching": "Loading saved ads",
+    "tiktokCoverage": "TikTok Ads Library covers the EEA, United Kingdom and Switzerland; it is not a global ads inventory.",
+    "failed": "Saved ads could not be loaded. Please try again later.",
+    "pending": "Saved data is unavailable for this request. Please try again later.",
+    "empty": "No matching saved creatives in the available sample.",
+    "unsupported": "This public archive does not support discovery.",
+    "unconfigured": "Saved ads are unavailable on this deployment.",
+    "unavailable": "Saved ads are temporarily unavailable. Please try again later.",
+    "sampleNotice": "{count} creatives in this bounded saved sample. Counts are not the advertiser’s complete inventory.",
+    "watch": "Watch",
+    "watching": "Watching",
+    "creativeCount": "{count} sampled creatives",
+    "activeCount": "{count} active when observed",
+    "longevity": "Earliest saved creative: {days} days",
+    "fundedBy": "Funded by {name}",
+    "viewCreative": "View archive creative",
+    "viewMedia": "View media",
+    "metaProvider": "Meta Ad Library",
+    "googleProvider": "Google Ads Transparency",
+    "youtubeProvider": "YouTube Ads",
+    "formatLabel": "Ad format",
+    "visualFormat": "Images and videos",
+    "imageFormat": "Images only",
+    "videoFormat": "Videos only",
+    "remix": "Remix",
+    "selectBrandToRemix": "Select a brand to remix these ads.",
+    "videoPreviewUnavailable": "Video preview unavailable. View the saved archive link for source details.",
+    "tiktokProvider": "TikTok Ads Library",
+    "videoPreview": "Public ad video preview"
+  }
+}

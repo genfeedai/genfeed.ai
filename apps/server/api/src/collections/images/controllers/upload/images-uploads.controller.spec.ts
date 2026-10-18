@@ -1,3 +1,9 @@
+vi.mock('@libs/security/destination-guard', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@libs/security/destination-guard')>();
+  return { ...actual, safeFetch: vi.fn() };
+});
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw { response, status: 400 };
@@ -40,11 +46,10 @@ import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
+import { safeFetch } from '@libs/security/destination-guard';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { of } from 'rxjs';
 
 describe('ImagesUploadsController', () => {
   let controller: ImagesUploadsController;
@@ -91,7 +96,6 @@ describe('ImagesUploadsController', () => {
       uploadToS3: vi.fn(),
     },
     ingredientsService: { patch: vi.fn() },
-    httpService: { get: vi.fn() },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     presignedUploadService: {
       confirmUpload: vi.fn(),
@@ -116,6 +120,7 @@ describe('ImagesUploadsController', () => {
   };
 
   beforeEach(async () => {
+    vi.mocked(safeFetch).mockReset();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ImagesUploadsController],
       providers: [
@@ -127,7 +132,6 @@ describe('ImagesUploadsController', () => {
           provide: IngredientsService,
           useValue: mockServices.ingredientsService,
         },
-        { provide: HttpService, useValue: mockServices.httpService },
         { provide: LoggerService, useValue: mockServices.loggerService },
         {
           provide: PresignedUploadService,
@@ -442,52 +446,134 @@ describe('ImagesUploadsController', () => {
   });
 
   describe('uploadNFT', () => {
-    it('should upload an NFT image', async () => {
-      const nftAddress = 'solana-nft-address-123';
-      const mockNft = {
-        image: 'https://example.com/nft.png',
+    beforeEach(() => {
+      mockServices.solanaService.getNft.mockResolvedValue({
+        image: 'https://cdn.example.com/nft.png?signature=valid',
         name: 'Cool NFT',
-      };
+      });
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: { ...mockIngredient },
+      });
+      mockServices.filesClientService.uploadToS3.mockResolvedValue({
+        s3Key: 'ingredients/images/nft-image',
+      });
+    });
 
-      mockServices.solanaService.getNft.mockResolvedValue(mockNft);
-      mockServices.httpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('image-data'),
+    it('guards a signed public image URL and preserves upload metadata and stored key', async () => {
+      vi.mocked(safeFetch).mockResolvedValue(
+        new Response('image-data', {
           headers: { 'content-type': 'image/png' },
         }),
       );
-      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
-        ingredientData: mockIngredient,
-      });
-      mockServices.filesClientService.uploadToS3.mockResolvedValue({
-        url: 'https://s3.example.com/nft.png',
-      });
-
       const result = await controller.uploadNFT(mockRequest, mockUser, {
-        address: nftAddress,
+        address: 'nft-address',
       });
 
-      expect(result).toBeDefined();
+      expect(safeFetch).toHaveBeenCalledWith(
+        'https://cdn.example.com/nft.png?signature=valid',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        { allowedSchemes: ['http:', 'https:'] },
+      );
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({
+          category: IngredientCategory.IMAGE,
+          extension: 'png',
+          label: 'Cool NFT',
+        }),
+      );
+      expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
+        mockIngredient.id,
+        'images',
+        {
+          contentType: 'image/png',
+          data: Buffer.from('image-data'),
+          type: 'buffer',
+        },
+      );
+      expect(mockServices.ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredient.id,
+        { s3Key: 'ingredients/images/nft-image' },
+      );
+      expect(result).toMatchObject({
+        data: { s3Key: 'ingredients/images/nft-image' },
+      });
     });
 
-    it('should reject non-image NFTs', async () => {
-      const nftAddress = 'solana-nft-address-123';
-      const mockNft = {
-        image: 'https://example.com/nft.json',
-        name: 'Cool NFT',
-      };
+    it('preserves JPEG and address fallbacks when metadata omits MIME and name', async () => {
+      mockServices.solanaService.getNft.mockResolvedValue({
+        image: 'https://cdn.example.com/image',
+      });
+      vi.mocked(safeFetch).mockResolvedValue(new Response(new Uint8Array([1])));
+      mockServices.filesClientService.uploadToS3.mockResolvedValue({});
+      await controller.uploadNFT(mockRequest, mockUser, {
+        address: 'nft-address',
+      });
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({ extension: 'jpeg', label: 'nft-address' }),
+      );
+      expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
+        mockIngredient.id,
+        'images',
+        expect.objectContaining({
+          contentType: 'image/jpeg',
+          data: Buffer.from([1]),
+        }),
+      );
+      expect(mockServices.ingredientsService.patch).not.toHaveBeenCalled();
+    });
 
-      mockServices.solanaService.getNft.mockResolvedValue(mockNft);
-      mockServices.httpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('json-data'),
+    it('rejects an unsafe destination before creating documents or uploading', async () => {
+      const error = new Error(
+        'Destination resolves to a private or reserved address',
+      );
+      vi.mocked(safeFetch).mockRejectedValue(error);
+
+      await expect(
+        controller.uploadNFT(mockRequest, mockUser, { address: 'nft-address' }),
+      ).rejects.toBe(error);
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).not.toHaveBeenCalled();
+      expect(mockServices.filesClientService.uploadToS3).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-image response before persistence', async () => {
+      vi.mocked(safeFetch).mockResolvedValue(
+        new Response('{}', {
           headers: { 'content-type': 'application/json' },
         }),
       );
 
       await expect(
-        controller.uploadNFT(mockRequest, mockUser, { address: nftAddress }),
+        controller.uploadNFT(mockRequest, mockUser, { address: 'nft-address' }),
       ).rejects.toThrow(BadRequestException);
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).not.toHaveBeenCalled();
+      expect(mockServices.filesClientService.uploadToS3).not.toHaveBeenCalled();
+    });
+
+    it('uses the configured upload maximum before persistence', async () => {
+      mockServices.validationConfigService.getMaxFileSize.mockReturnValueOnce(
+        3,
+      );
+      vi.mocked(safeFetch).mockResolvedValue(
+        new Response('four', { headers: { 'content-type': 'image/png' } }),
+      );
+
+      await expect(
+        controller.uploadNFT(mockRequest, mockUser, { address: 'nft-address' }),
+      ).rejects.toThrow(/size|limit/i);
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).not.toHaveBeenCalled();
+      expect(mockServices.filesClientService.uploadToS3).not.toHaveBeenCalled();
     });
   });
 

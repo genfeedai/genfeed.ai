@@ -189,10 +189,9 @@ export class TrendIngestionHealthService {
   ): Promise<void> {
     const byPlatform = new Map<string, ScopedTarget[]>();
     for (const target of targets) {
-      byPlatform.set(target.platform, [
-        ...(byPlatform.get(target.platform) ?? []),
-        target,
-      ]);
+      const platformTargets = byPlatform.get(target.platform) ?? [];
+      platformTargets.push(target);
+      byPlatform.set(target.platform, platformTargets);
     }
     // Platforms with no remaining targets still need their open incidents closed.
     const platforms = new Set<string>(
@@ -205,6 +204,12 @@ export class TrendIngestionHealthService {
         ...this.evaluateScope(target, twoWindowsAgo),
         sourceId: `${platform}/trends/scope-${createHash('sha256').update(target.organizationId).digest('hex').slice(0, 24)}`,
       }));
+      const evaluatedBySource = new Map<string, typeof evaluated>();
+      for (const entry of evaluated) {
+        const sourceEvaluations = evaluatedBySource.get(entry.sourceId) ?? [];
+        sourceEvaluations.push(entry);
+        evaluatedBySource.set(entry.sourceId, sourceEvaluations);
+      }
       const aggregateMissed = evaluated.filter((entry) => entry.isMissed);
       // Aggregate incident: closes as soon as the global outage ends.
       await this.reconcileIncident({
@@ -226,7 +231,7 @@ export class TrendIngestionHealthService {
         ...evaluated.map((entry) => entry.sourceId),
       ]);
       for (const sourceId of sourceIds) {
-        const scoped = evaluated.filter((entry) => entry.sourceId === sourceId);
+        const scoped = evaluatedBySource.get(sourceId) ?? [];
         await this.reconcileIncident({
           description: `${platform} trends has no successful refresh in two completed 12-hour windows for one connected tenant scope while the global refresh is healthy. Inspect that tenant's provider credentials and rate limits, then retry this dataset.`,
           evaluated: isGlobalOutage ? [] : scoped,
@@ -353,7 +358,10 @@ export class TrendIngestionHealthService {
     }
     const episode = new Date(
       Math.max(
-        Math.min(...missed.map((entry) => entry.baseline.getTime())),
+        missed.reduce(
+          (earliest, entry) => Math.min(earliest, entry.baseline.getTime()),
+          Number.POSITIVE_INFINITY,
+        ),
         recoveryEvent?.occurredAt.getTime() ?? 0,
       ),
     ).toISOString();

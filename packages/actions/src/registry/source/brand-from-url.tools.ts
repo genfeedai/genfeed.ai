@@ -36,7 +36,7 @@ export const BRAND_FROM_URL_TOOLS: SourceTool[] = [
     parameters: {
       properties: {
         brandId: {
-          description: 'Brand ID returned by create_brand_from_url.',
+          description: 'ID of the brand whose website scan you want to read.',
           type: 'string',
         },
       },

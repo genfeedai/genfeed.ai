@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 'use client';
 
+import type { GlobalModalsProviderProps } from '@genfeedai/props/modals/global-modals.props';
 import ProtectedProviders from '@providers/protected-providers/protected-providers';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const globalModalRendererMock = vi.fn();
 const useAuthMock = vi.fn();
 const getPlaywrightAuthStateMock = vi.fn();
 const hasPlaywrightJwtTokenMock = vi.fn();
@@ -70,8 +72,13 @@ vi.mock('@providers/elements/elements.provider', () => ({
 }));
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  GlobalModalsProvider: ({ children }: { children: React.ReactNode }) =>
+  GlobalModalsProvider: ({
     children,
+    renderModal,
+  }: GlobalModalsProviderProps) => {
+    globalModalRendererMock(renderModal);
+    return children;
+  },
 }));
 
 vi.mock('@providers/promptbar/promptbar.provider', () => ({
@@ -124,6 +131,20 @@ describe('ProtectedProviders', () => {
     expect(screen.getByTestId('user-provider')).toContainElement(
       screen.getByTestId('theme-preference-sync'),
     );
+  });
+
+  it('forwards the host modal renderer through the authenticated provider stack', async () => {
+    const renderModal = vi.fn((_kind: string, child: React.ReactNode) => child);
+    render(
+      <ProtectedProviders renderModal={renderModal}>
+        <span data-testid="host-rendered-child">content</span>
+      </ProtectedProviders>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('host-rendered-child')).toBeInTheDocument();
+    });
+    expect(globalModalRendererMock).toHaveBeenLastCalledWith(renderModal);
   });
 
   it('always renders ElementsProvider and PromptBarProvider regardless of enabled flags', async () => {

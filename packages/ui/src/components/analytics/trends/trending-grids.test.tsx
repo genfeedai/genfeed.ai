@@ -74,7 +74,7 @@ vi.mock('next-intl', async () => {
     '@ui/tests/next-intl.stub'
   );
   const { default: pages } = await import(
-    '../../../../../../apps/app/messages/en/pages.json'
+    '../../../../../../apps/app/messages/en/pages'
   );
   const { default: ui } = await import(
     '../../../../../../apps/app/messages/en/ui.json'

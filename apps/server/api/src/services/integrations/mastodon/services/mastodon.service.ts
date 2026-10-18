@@ -1,3 +1,4 @@
+import type { Agent as HttpsAgent } from 'node:https';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -11,14 +12,18 @@ import { assertHostNotPrivate } from '@api/shared/utils/ssrf.util';
 import { createSafeWebhookHttpsAgent } from '@api/shared/utils/webhook-validator/webhook-validator.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { MAX_FILE_SIZE } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import FormData from 'form-data';
 import { firstValueFrom } from 'rxjs';
+
+const MASTODON_REQUEST_TIMEOUT_MS = 30_000;
 
 interface MastodonAppRegistration {
   id: string;
@@ -52,6 +57,11 @@ interface MastodonStatus {
   created_at: string;
 }
 
+interface MastodonMediaDownload {
+  buffer: Buffer;
+  contentType: string;
+}
+
 interface MastodonMediaAttachment {
   id: string;
   type: string;
@@ -73,8 +83,8 @@ export class MastodonService {
   ) {}
 
   /**
-   * Validate that a hostname does not resolve to a private/internal address.
-   * Delegates to the shared SSRF util (single fix path for bypasses).
+   * Reject known internal hostname literals during synchronous normalization.
+   * Requests additionally resolve and pin the destination through the HTTPS agent.
    */
   private validateInstanceHost(hostname: string): void {
     assertHostNotPrivate(hostname);
@@ -138,6 +148,16 @@ export class MastodonService {
       throw new BadRequestException('Instance URL must use HTTPS');
     }
 
+    if (
+      parsedUrl.username ||
+      parsedUrl.password ||
+      parsedUrl.search ||
+      parsedUrl.hash
+    ) {
+      throw new BadRequestException(
+        'Instance URL must not contain credentials, a query, or a fragment',
+      );
+    }
     this.validateInstanceHost(parsedUrl.hostname);
 
     return normalized;
@@ -154,6 +174,7 @@ export class MastodonService {
     this.assertRedirectUriAllowed(redirectUri);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
+    const httpsAgent = await createSafeWebhookHttpsAgent(normalizedUrl);
 
     try {
       const response = await firstValueFrom(
@@ -165,6 +186,7 @@ export class MastodonService {
             scopes: 'read write push',
             website: this.configService.get('GENFEEDAI_APP_URL'),
           },
+          { httpsAgent, maxRedirects: 0, timeout: MASTODON_REQUEST_TIMEOUT_MS },
         ),
       );
 
@@ -177,6 +199,8 @@ export class MastodonService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      httpsAgent.destroy();
     }
   }
 
@@ -214,6 +238,7 @@ export class MastodonService {
     this.assertRedirectUriAllowed(redirectUri);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
+    const httpsAgent = await createSafeWebhookHttpsAgent(normalizedUrl);
 
     try {
       const response = await firstValueFrom(
@@ -227,6 +252,7 @@ export class MastodonService {
             redirect_uri: redirectUri,
             scope: 'read write push',
           },
+          { httpsAgent, maxRedirects: 0, timeout: MASTODON_REQUEST_TIMEOUT_MS },
         ),
       );
 
@@ -241,6 +267,8 @@ export class MastodonService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      httpsAgent.destroy();
     }
   }
 
@@ -375,6 +403,7 @@ export class MastodonService {
   ): Promise<MastodonAccount> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
+    const httpsAgent = await createSafeWebhookHttpsAgent(normalizedUrl);
 
     try {
       const response = await firstValueFrom(
@@ -382,6 +411,9 @@ export class MastodonService {
           `${normalizedUrl}/api/v1/accounts/verify_credentials`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
+            httpsAgent,
+            maxRedirects: 0,
+            timeout: MASTODON_REQUEST_TIMEOUT_MS,
           },
         ),
       );
@@ -395,6 +427,8 @@ export class MastodonService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      httpsAgent.destroy();
     }
   }
 
@@ -413,6 +447,7 @@ export class MastodonService {
   ): Promise<MastodonStatus> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
+    const httpsAgent = await createSafeWebhookHttpsAgent(normalizedUrl);
 
     try {
       const body: Record<string, unknown> = {
@@ -442,6 +477,9 @@ export class MastodonService {
           body,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
+            httpsAgent,
+            maxRedirects: 0,
+            timeout: MASTODON_REQUEST_TIMEOUT_MS,
           },
         ),
       );
@@ -455,6 +493,8 @@ export class MastodonService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      httpsAgent.destroy();
     }
   }
 
@@ -469,23 +509,13 @@ export class MastodonService {
   ): Promise<MastodonMediaAttachment> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
+    let httpsAgent: HttpsAgent | undefined;
 
     try {
-      // Download the media file first
-      const mediaResponse = await firstValueFrom(
-        this.httpService.get(mediaUrl, {
-          responseType: 'arraybuffer',
-        }),
-      );
-
+      const media = await this.downloadMedia(mediaUrl);
       const form = new FormData();
-      const contentTypeHeader = mediaResponse.headers['content-type'];
-      const contentType =
-        typeof contentTypeHeader === 'string'
-          ? contentTypeHeader
-          : 'application/octet-stream';
-      form.append('file', Buffer.from(mediaResponse.data), {
-        contentType,
+      form.append('file', media.buffer, {
+        contentType: media.contentType,
         filename: 'media',
       });
 
@@ -493,11 +523,15 @@ export class MastodonService {
         form.append('description', description);
       }
 
+      httpsAgent = await createSafeWebhookHttpsAgent(normalizedUrl);
       const response = await firstValueFrom(
         this.httpService.post<MastodonMediaAttachment>(
           `${normalizedUrl}/api/v2/media`,
           form,
           {
+            httpsAgent,
+            maxRedirects: 0,
+            timeout: MASTODON_REQUEST_TIMEOUT_MS,
             headers: {
               Authorization: `Bearer ${accessToken}`,
               ...form.getHeaders(),
@@ -515,7 +549,63 @@ export class MastodonService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    } finally {
+      httpsAgent?.destroy();
     }
+  }
+
+  private async downloadMedia(
+    mediaUrl: string,
+  ): Promise<MastodonMediaDownload> {
+    const configuredOrigin = new URL(this.configService.cdnUrl).origin;
+    const isConfiguredMedia = new URL(mediaUrl).origin === configuredOrigin;
+    const response = await safeFetch(
+      mediaUrl,
+      { signal: AbortSignal.timeout(MASTODON_REQUEST_TIMEOUT_MS) },
+      {
+        ...(isConfiguredMedia
+          ? { allowedOrigins: [configuredOrigin], allowPrivateNetwork: true }
+          : {}),
+        maxRedirects: 0,
+      },
+    );
+    if (
+      !response.ok ||
+      !response.body ||
+      Number(response.headers.get('content-length')) > MAX_FILE_SIZE
+    ) {
+      await response.body?.cancel();
+      throw new BadRequestException(
+        'Mastodon media could not be downloaded within the 100 MB limit',
+      );
+    }
+    const reader = response.body.getReader();
+    const chunks: Buffer[] = [];
+    let bytes = 0;
+    try {
+      for (;;) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > MAX_FILE_SIZE) {
+          throw new BadRequestException(
+            'Mastodon media exceeds the 100 MB limit',
+          );
+        }
+        chunks.push(Buffer.from(chunk.value));
+      }
+    } finally {
+      try {
+        await reader.cancel();
+      } finally {
+        reader.releaseLock();
+      }
+    }
+    return {
+      buffer: Buffer.concat(chunks),
+      contentType:
+        response.headers.get('content-type') || 'application/octet-stream',
+    };
   }
 
   /**
@@ -533,6 +623,7 @@ export class MastodonService {
     boosts: number;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let httpsAgent: HttpsAgent | undefined;
 
     try {
       const credential = await this.credentialsService.resolveBrandAccount({
@@ -556,6 +647,7 @@ export class MastodonService {
       );
       const instanceUrl = credential.description;
       const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
+      httpsAgent = await createSafeWebhookHttpsAgent(normalizedUrl);
 
       const response = await firstValueFrom(
         this.httpService.get<
@@ -566,6 +658,9 @@ export class MastodonService {
           }
         >(`${normalizedUrl}/api/v1/statuses/${externalId}`, {
           headers: { Authorization: `Bearer ${decryptedAccessToken}` },
+          httpsAgent,
+          maxRedirects: 0,
+          timeout: MASTODON_REQUEST_TIMEOUT_MS,
         }),
       );
 
@@ -578,6 +673,8 @@ export class MastodonService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       return { boosts: 0, comments: 0, likes: 0, views: 0 };
+    } finally {
+      httpsAgent?.destroy();
     }
   }
 }

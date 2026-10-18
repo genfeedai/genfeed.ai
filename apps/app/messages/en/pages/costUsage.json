@@ -1,0 +1,76 @@
+{
+  "actions": {
+    "exportCsv": "Export credits",
+    "refresh": "Refresh"
+  },
+  "errors": {
+    "export": "Could not export usage. Try again.",
+    "loadTitle": "Could not load usage. Try refreshing."
+  },
+  "filters": {
+    "allBrands": "All brands",
+    "brand": "Brand",
+    "dateRange": "Date range",
+    "lastDays": "Last {days} days"
+  },
+  "metrics": {
+    "creditsUsed": {
+      "description": "Recorded credit burn in this period",
+      "label": "Credits used"
+    },
+    "generations": {
+      "description": "{llm} text · {media} media",
+      "label": "Generations"
+    },
+    "activeDays": {
+      "description": "Days with generation or credit activity",
+      "label": "Active days"
+    }
+  },
+  "notifications": {
+    "exported": "Credit report exported"
+  },
+  "title": "Usage",
+  "tabs": {
+    "overview": "Overview",
+    "generations": "Generations",
+    "workflows": "Workflows"
+  },
+  "notRecorded": "Not recorded",
+  "entryTypes": {
+    "llm": "Text generation",
+    "media": "Media generation",
+    "credit": "Credit charge"
+  },
+  "charts": {
+    "creditsUsed": "Daily credit burn (GEN)",
+    "generationCount": "Daily generations",
+    "loading": "Loading chart…"
+  },
+  "tables": {
+    "brandSplit": {
+      "label": "Usage by brand"
+    },
+    "emptyLabel": "No usage in this period",
+    "headers": {
+      "brand": "Brand",
+      "creditsUsed": "Credits used",
+      "generations": "Generations",
+      "model": "Model",
+      "type": "Type",
+      "when": "When"
+    },
+    "ledger": {
+      "label": "Generation history",
+      "emptyDescription": "Generations and credit charges will appear here.",
+      "entries": "entries",
+      "creditNotice": "Credit charges are recorded separately. “Not recorded” means a generation has no linked credit amount. Exports include up to 10,000 entries."
+    }
+  },
+  "workflowAccounting": {
+    "execution": "Execution",
+    "title": "Workflow usage",
+    "empty": "No workflows in this period",
+    "limit": "Latest 100 workflows in this period. These totals are a separate view of usage; do not add them to generation totals."
+  }
+}

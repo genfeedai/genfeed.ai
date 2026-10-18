@@ -2,6 +2,7 @@
 
 import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
+import { renderAppGlobalModal } from '@app-i18n/AppGlobalModalIntlBoundary';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import { AgentDockProvider } from '@contexts/ui/agent-dock-context';
 import {
@@ -663,6 +664,7 @@ function AppProtectedLayoutContent({
   return (
     <WorkspaceNavPanelProvider>
       <ProtectedProviders
+        renderModal={renderAppGlobalModal}
         includeAssetSelectionProvider={!isEditorCanvasRoute}
         includeApiStatusCheck={false}
         includeElementsProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
