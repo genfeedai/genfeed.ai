@@ -131,6 +131,23 @@ function pruneDisabledImageOptimizer(root) {
   fs.rmSync(sharpPackagesRoot, { force: true, recursive: true });
 }
 
+function pruneBuildTraceFiles(directory) {
+  let prunedBytes = 0;
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const absolutePath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      prunedBytes += pruneBuildTraceFiles(absolutePath);
+    } else if (entry.isFile() && entry.name.endsWith('.nft.json')) {
+      prunedBytes += fs.statSync(absolutePath).size;
+      fs.rmSync(absolutePath, { force: true });
+    }
+  }
+
+  return prunedBytes;
+}
+
 function findServerDirectory(root) {
   const queue = [root];
 
@@ -175,6 +192,16 @@ if (!serverDirectory) {
 }
 
 const relativeServerDirectory = path.relative(standaloneRoot, serverDirectory);
+
+// `next build` writes one `*.nft.json` file-trace list per route into
+// `.next/server`. Only the build-time standalone tracer reads them (Next's
+// runtime never loads them), yet they are ~30 MiB across the app's routes.
+const prunedTraceBytes = pruneBuildTraceFiles(
+  path.join(outputRoot, relativeServerDirectory, '.next'),
+);
+process.stdout.write(
+  `[desktop] pruned ${(prunedTraceBytes / (1024 * 1024)).toFixed(1)} MiB of build trace files\n`,
+);
 
 if (fs.existsSync(staticRoot)) {
   copyDirectory(

@@ -95,6 +95,18 @@ describe('desktop release QA', () => {
     expect(hostedConfig.experimental?.inlineCss).toBe(true);
   });
 
+  it('drops build-time file-trace lists from the packaged app shell', () => {
+    const copyShell = readText('apps/desktop/app/scripts/copy-app-shell.cjs');
+
+    // Every route ships a `page.js.nft.json` that only the build tracer reads;
+    // keeping them pushed the shell past its bundle budget.
+    expect(copyShell).toContain("entry.name.endsWith('.nft.json')");
+    expect(copyShell).toContain('pruneBuildTraceFiles(');
+    expect(copyShell.indexOf('pruneBuildTraceFiles(\n')).toBeGreaterThan(
+      copyShell.indexOf('copyDirectory(standaloneRoot, outputRoot)'),
+    );
+  });
+
   it('packages the canonical app instead of a desktop-local renderer', () => {
     const buildShell = readText('apps/desktop/app/scripts/build-app-shell.cjs');
     const copyShell = readText('apps/desktop/app/scripts/copy-app-shell.cjs');
