@@ -786,6 +786,11 @@
         "loadError": "Agent email preference could not be loaded.",
         "saveError": "Failed to save your agent email preference."
       },
+      "homeApp": {
+        "description": "The app you land on after signing in. Leave it on Default to follow your organization.",
+        "fieldAriaLabel": "Home app",
+        "label": "Home app"
+      },
       "agentMode": {
         "description": "The default mode a new Agent thread starts in. Change it for one thread from the mode dropdown in the prompt bar.",
         "fieldAriaLabel": "Default agent mode",
@@ -2487,13 +2492,11 @@
     "pin": "Pin {app}",
     "unpin": "Unpin {app}",
     "more": "More apps",
-    "noMoreApps": "Every installed app is on your rail.",
-    "customize": "Customize rail",
-    "customizeTitle": "Customize your rail",
-    "customizeDescription": "Reorder the rail, or drag an app on the rail to move it. This changes only your own view.",
+    "noMoreApps": "Every app is on your rail.",
     "moveUp": "Move {app} up",
     "moveDown": "Move {app} down",
-    "reset": "Reset to default order",
+    "reset": "Reset rail to default",
+    "unpinned": "{app} removed from your rail.",
     "homeTitle": "Home app",
     "homeDescription": "The app you land on after signing in.",
     "homeDefault": "Default ({app})",
