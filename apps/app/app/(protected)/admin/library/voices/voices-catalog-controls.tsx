@@ -27,26 +27,18 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { ChevronDown, RefreshCw } from 'lucide-react';
-
-const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
-  { label: 'All providers', value: 'all' },
-  { label: 'ElevenLabs', value: VoiceProvider.ELEVENLABS },
-  { label: 'HeyGen', value: VoiceProvider.HEYGEN },
-];
-
-const SYNC_PROVIDERS: Array<{ label: string; provider: VoiceProvider }> = [
-  { label: 'Sync ElevenLabs', provider: VoiceProvider.ELEVENLABS },
-  { label: 'Sync HeyGen', provider: VoiceProvider.HEYGEN },
-];
+import { useTranslations } from 'next-intl';
 
 export function VoicesCatalogSearch({
   search,
   onSearchChange,
 }: VoicesCatalogSearchProps) {
+  const translate = useTranslations('pages.adminVoices');
+
   return (
     <FormSearchbar
       onChange={(event) => onSearchChange(event.target.value)}
-      placeholder="Search by name or external ID"
+      placeholder={translate('searchPlaceholder')}
       size={ComponentSize.MD}
       value={search}
     />
@@ -59,6 +51,13 @@ export function VoicesCatalogFilters({
   onProviderFilterChange,
   onViewChange,
 }: VoicesCatalogFiltersProps) {
+  const translate = useTranslations('pages.adminVoices');
+  const providerFilters: Array<{ label: string; value: ProviderFilter }> = [
+    { label: translate('providerAll'), value: 'all' },
+    { label: translate('providerElevenLabs'), value: VoiceProvider.ELEVENLABS },
+    { label: translate('providerHeyGen'), value: VoiceProvider.HEYGEN },
+  ];
+
   return (
     <>
       <Select
@@ -67,11 +66,14 @@ export function VoicesCatalogFilters({
         }
         value={providerFilter}
       >
-        <SelectTrigger aria-label="Provider" className="w-auto min-w-40">
+        <SelectTrigger
+          aria-label={translate('providerLabel')}
+          className="w-auto min-w-40"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {PROVIDER_FILTERS.map((item) => (
+          {providerFilters.map((item) => (
             <SelectItem key={item.value} value={item.value}>
               {item.label}
             </SelectItem>
@@ -89,6 +91,12 @@ export function VoicesSyncMenu({
   syncingProvider,
   onSync,
 }: VoicesSyncControlsProps) {
+  const translate = useTranslations('pages.adminVoices');
+  const syncProviders: Array<{ label: string; provider: VoiceProvider }> = [
+    { label: translate('syncElevenLabs'), provider: VoiceProvider.ELEVENLABS },
+    { label: translate('syncHeyGen'), provider: VoiceProvider.HEYGEN },
+  ];
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -98,12 +106,12 @@ export function VoicesSyncMenu({
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
-          Sync provider
+          {translate('syncProvider')}
           <ChevronDown className="ml-2 size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {SYNC_PROVIDERS.map(({ label, provider }) => (
+        {syncProviders.map(({ label, provider }) => (
           <DropdownMenuItem key={provider} onSelect={() => onSync([provider])}>
             {label}
           </DropdownMenuItem>
@@ -118,6 +126,8 @@ export function VoicesSyncAllButton({
   syncingProvider,
   onSync,
 }: VoicesSyncControlsProps) {
+  const translate = useTranslations('pages.adminVoices');
+
   return (
     <Button
       isDisabled={isSyncingAll || syncingProvider !== null}
@@ -127,7 +137,7 @@ export function VoicesSyncAllButton({
       withWrapper={false}
     >
       <RefreshCw className="mr-2 size-4" />
-      Sync All
+      {translate('syncAll')}
     </Button>
   );
 }

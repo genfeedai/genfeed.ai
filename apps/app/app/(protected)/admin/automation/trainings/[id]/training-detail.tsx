@@ -28,12 +28,14 @@ import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { Database, Image, Pencil } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function TrainingDetail({
   children,
   trainingId,
 }: TrainingLayoutContentProps) {
+  const translate = useTranslations('pages.adminTrainings');
   const { brands } = useBrand();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -80,12 +82,9 @@ export default function TrainingDetail({
         }
 
         logger.error(`${url} failed`, error);
-        const errorMessage = getErrorMessage(
-          error,
-          'Failed to load training details',
-        );
+        const errorMessage = getErrorMessage(error, translate('loadError'));
         setError(errorMessage);
-        notificationsService.error('Failed to load training details');
+        notificationsService.error(translate('loadError'));
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
@@ -97,6 +96,7 @@ export default function TrainingDetail({
       getTrainingsService,
       notificationsService,
       trainingId,
+      translate,
     ],
   );
 
@@ -133,7 +133,7 @@ export default function TrainingDetail({
           ) : undefined,
         href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
         icon: Image,
-        label: 'Images',
+        label: translate('images'),
       },
       {
         badge:
@@ -146,7 +146,7 @@ export default function TrainingDetail({
           ) : undefined,
         href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
         icon: Database,
-        label: 'Sources',
+        label: translate('sources'),
       },
     ],
   };
@@ -161,15 +161,15 @@ export default function TrainingDetail({
             </div>
 
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Failed to load training details
+              {translate('loadError')}
             </h3>
 
             <p className="text-muted-foreground mb-4">
-              {error || 'Training not found'}
+              {error || translate('notFound')}
             </p>
 
             <Button
-              label="Try Again"
+              label={translate('retry')}
               onClick={() => {
                 void loadTraining();
               }}
@@ -179,7 +179,7 @@ export default function TrainingDetail({
         </Container>
 
         <AdminPageShell
-          title="Training"
+          title={translate('title')}
           tabs={trainingSubNavHeaderTabs}
           onRefresh={() => void loadTraining()}
         >
@@ -207,7 +207,7 @@ export default function TrainingDetail({
                     onClick={() => openModal(ModalEnum.TRAINING_EDIT)}
                     variant={ButtonVariant.GHOST}
                     size={ButtonSize.SM}
-                    tooltip="Edit Training"
+                    tooltip={translate('editTraining')}
                   />
                 </div>
 
@@ -220,20 +220,22 @@ export default function TrainingDetail({
                 <div className="flex flex-wrap gap-4 mt-4">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">
-                      Status
+                      {translate('status')}
                     </span>
                     <Badge status={training.status}>{training.status}</Badge>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Brand</span>
+                    <span className="text-sm text-muted-foreground">
+                      {translate('brand')}
+                    </span>
                     <Code size="md">
                       {trainingAccount
                         ? brands.find(
                             (a: IBrand) => a.id === trainingAccount?.id,
                           )?.label ||
                           (trainingAccount as IBrand)?.label ||
-                          'Unknown'
+                          translate('unknownBrand')
                         : '-'}
                     </Code>
                   </div>
@@ -241,7 +243,7 @@ export default function TrainingDetail({
                   {training.trigger && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
-                        Trigger
+                        {translate('trigger')}
                       </span>
                       <Code size="md">{training.trigger}</Code>
                     </div>
@@ -250,7 +252,7 @@ export default function TrainingDetail({
                   {training.category && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
-                        Category
+                        {translate('category')}
                       </span>
                       <Code size="md">{training.category}</Code>
                     </div>
@@ -259,7 +261,7 @@ export default function TrainingDetail({
                   {training.steps && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
-                        Steps
+                        {translate('steps')}
                       </span>
                       <Code size="md">{training.steps}</Code>
                     </div>
@@ -278,7 +280,7 @@ export default function TrainingDetail({
       </Container>
 
       <AdminPageShell
-        title="Training"
+        title={translate('title')}
         tabs={trainingSubNavHeaderTabs}
         onRefresh={() => void loadTraining()}
       >

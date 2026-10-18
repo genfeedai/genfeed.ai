@@ -126,19 +126,18 @@ describe('admin voice collection', () => {
     const user = userEvent.setup();
     const first = render(<VoicesLibraryPage />);
     await screen.findByText('Voice 0');
-    fireEvent.change(
-      screen.getByPlaceholderText('Search by name or external ID'),
-      { target: { value: 'Ada' } },
-    );
+    fireEvent.change(screen.getByPlaceholderText('searchPlaceholder'), {
+      target: { value: 'Ada' },
+    });
     await waitFor(() =>
       expect(mocks.service.findCatalog).toHaveBeenLastCalledWith({
         provider: undefined,
         search: 'Ada',
       }),
     );
-    await user.click(screen.getByRole('button', { name: /Sync provider/ }));
+    await user.click(screen.getByRole('button', { name: /syncProvider/ }));
     await user.click(
-      await screen.findByRole('menuitem', { name: 'Sync ElevenLabs' }),
+      await screen.findByRole('menuitem', { name: 'syncElevenLabs' }),
     );
     await waitFor(() =>
       expect(mocks.service.importCatalogVoices).toHaveBeenCalledWith([
