@@ -1185,60 +1185,62 @@ export default function StudioPlaygroundComposer({
         density="compact"
         leadingLabel={translateSetup('promptTools')}
         trailingLabel={translateSetup('generationControls')}
+        pinnedLeading={
+          <GenerationSetupPopover
+            // Applying lives in `/` and the context row; saving and
+            // deleting looks stays in the setup popover.
+            showPresets={type === 'image' || type === 'video'}
+            showEnhancementSettings={type === 'image' || type === 'video'}
+            align="start"
+            isIconOnly
+            // Always offered so the Auto type grid keeps the same tiles
+            // whatever type is selected.
+            imageEditing={{
+              isEnabled: type === 'image-edit',
+              label: getStudioPlaygroundTypeConfig('image-edit').label,
+              onChange: (isEditing) =>
+                onTypeChange(isEditing ? 'image-edit' : 'image'),
+            }}
+            triggerLabel={setupLabel}
+            inputControls={inputControls}
+            referenceCount={crunReferenceCount ?? attachedAssets.length}
+            // Every type keeps the Auto/Advanced layout; Avatar just has
+            // no model to choose in Advanced.
+            advancedMode={{
+              isEnabled: isAdvancedMode,
+              onChange: handleAdvancedModeChange,
+            }}
+            capabilities={capabilities}
+            favoriteModelKeys={favoriteModelKeys}
+            isPresetsLoading={isPresetsLoading}
+            isTypeCommitted
+            lookOptions={lookOptions}
+            models={isModelChoiceVisible ? models : []}
+            onApplyPreset={handleApplyPreset}
+            onClearPreset={handleClearPreset}
+            onDeletePreset={handleDeletePreset}
+            onFavoriteToggle={onFavoriteToggle}
+            onResetAll={onResetSettings}
+            onResetField={handleResetField}
+            onSavePreset={handleSavePreset}
+            onSetField={handleSetField}
+            outputControls={outputControls}
+            onTypeChange={(nextType) => {
+              // The shared popover speaks GenerationSetupType; Studio only
+              // offers its own registry, so anything else is not a Studio pick.
+              if (isStudioPlaygroundType(nextType)) {
+                onTypeChange(nextType);
+              }
+            }}
+            presets={presets}
+            reasons={reasons}
+            scopeKey={scope}
+            setup={setupForComposer}
+            typeOptions={typeOptions}
+          />
+        }
         leading={
           <>
-            <GenerationSetupPopover
-              // Applying lives in `/` and the context row; saving and
-              // deleting looks stays in the setup popover.
-              showPresets={type === 'image' || type === 'video'}
-              showEnhancementSettings={type === 'image' || type === 'video'}
-              align="start"
-              isIconOnly
-              // Always offered so the Auto type grid keeps the same tiles
-              // whatever type is selected.
-              imageEditing={{
-                isEnabled: type === 'image-edit',
-                label: getStudioPlaygroundTypeConfig('image-edit').label,
-                onChange: (isEditing) =>
-                  onTypeChange(isEditing ? 'image-edit' : 'image'),
-              }}
-              triggerLabel={setupLabel}
-              inputControls={inputControls}
-              referenceCount={crunReferenceCount ?? attachedAssets.length}
-              // Every type keeps the Auto/Advanced layout; Avatar just has
-              // no model to choose in Advanced.
-              advancedMode={{
-                isEnabled: isAdvancedMode,
-                onChange: handleAdvancedModeChange,
-              }}
-              capabilities={capabilities}
-              favoriteModelKeys={favoriteModelKeys}
-              isPresetsLoading={isPresetsLoading}
-              isTypeCommitted
-              lookOptions={lookOptions}
-              models={isModelChoiceVisible ? models : []}
-              onApplyPreset={handleApplyPreset}
-              onClearPreset={handleClearPreset}
-              onDeletePreset={handleDeletePreset}
-              onFavoriteToggle={onFavoriteToggle}
-              onResetAll={onResetSettings}
-              onResetField={handleResetField}
-              onSavePreset={handleSavePreset}
-              onSetField={handleSetField}
-              outputControls={outputControls}
-              onTypeChange={(nextType) => {
-                // The shared popover speaks GenerationSetupType; Studio only
-                // offers its own registry, so anything else is not a Studio pick.
-                if (isStudioPlaygroundType(nextType)) {
-                  onTypeChange(nextType);
-                }
-              }}
-              presets={presets}
-              reasons={reasons}
-              scopeKey={scope}
-              setup={setupForComposer}
-              typeOptions={typeOptions}
-            />
             {referenceSources.length > 0 ? (
               <PromptBarReferenceControls
                 density="compact"

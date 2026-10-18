@@ -2,6 +2,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarToolbarProps } from '@genfeedai/props/prompt-bars/prompt-bar-toolbar.props';
 import type { ReactElement } from 'react';
 
+const SCROLLER_CLASS =
+  '-my-1.5 flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+
 /**
  * The one prompt-bar toolbar row shared by Agent and Studio: tools on the
  * left, setup and submission on the right. Surfaces only fill the slots.
@@ -9,12 +12,16 @@ import type { ReactElement } from 'react';
  * sideways when they run out of room. The scroller keeps 6px of vertical
  * padding (cancelled by the negative margin) so the 44px touch targets that
  * 32px icon buttons extend with `::after` are not clipped by its overflow.
+ * A surface's primary control goes in `pinnedLeading`: it sits beside the
+ * scroller, so it keeps its full hit area and its width however many tools
+ * the scroller holds.
  */
 export default function PromptBarToolbar({
   className,
   density = 'default',
   leading,
   leadingLabel,
+  pinnedLeading,
   trailing,
   trailingLabel,
 }: PromptBarToolbarProps): ReactElement {
@@ -28,14 +35,26 @@ export default function PromptBarToolbar({
       data-prompt-bar-toolbar=""
       data-testid="prompt-bar-toolbar"
     >
-      <div
-        aria-label={leadingLabel}
-        className="-my-1.5 flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        data-prompt-bar-leading=""
-        role="group"
-      >
-        {leading}
-      </div>
+      {pinnedLeading ? (
+        <div
+          aria-label={leadingLabel}
+          className="flex min-w-0 flex-1 flex-nowrap items-center gap-1"
+          data-prompt-bar-leading=""
+          role="group"
+        >
+          {pinnedLeading}
+          <div className={SCROLLER_CLASS}>{leading}</div>
+        </div>
+      ) : (
+        <div
+          aria-label={leadingLabel}
+          className={SCROLLER_CLASS}
+          data-prompt-bar-leading=""
+          role="group"
+        >
+          {leading}
+        </div>
+      )}
       <div
         aria-label={trailingLabel}
         className="ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-1"

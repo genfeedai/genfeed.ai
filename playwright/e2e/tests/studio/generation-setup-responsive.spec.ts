@@ -169,6 +169,7 @@ test.describe('touch generation setup', () => {
           hitHeight:
             b.height - parseFloat(pseudo.top) - parseFloat(pseudo.bottom),
           isHitOnTrigger: hit !== null && element.contains(hit),
+          hitDescription: `hit ${hit?.tagName}.${String(hit?.className).slice(0, 80)} at ${Math.round(x)},${Math.round(y)}; trigger ${JSON.stringify(b)}`,
           x,
           y,
         };
@@ -179,7 +180,7 @@ test.describe('touch generation setup', () => {
       expect(target.hitHeight).toBeGreaterThanOrEqual(44);
       // An ancestor clipping the pseudo-element would hand the tap to
       // whatever sits above the button instead.
-      expect(target.isHitOnTrigger).toBe(true);
+      expect(target.isHitOnTrigger, target.hitDescription).toBe(true);
       await page.touchscreen.tap(target.x, target.y);
       await expect(setupDialog(page)).toBeVisible({ timeout: 3000 });
     }).toPass({ timeout: 20_000 });
