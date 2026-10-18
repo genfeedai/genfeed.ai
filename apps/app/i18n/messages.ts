@@ -1,7 +1,7 @@
 import { type AppLocale, PSEUDO_LOCALE } from '@genfeedai/contracts/constants';
 import agent from '../messages/en/agent.json';
 import common from '../messages/en/common.json';
-import pages from '../messages/en/pages.json';
+import pages from '../messages/en/pages';
 import ui from '../messages/en/ui.json';
 import { pseudoLocalizeMessages } from './pseudo';
 
@@ -17,8 +17,8 @@ import { pseudoLocalizeMessages } from './pseudo';
  * first catalog copy) `ui` / `contexts`. `common` is the app-owned namespace.
  * See `.agents/memory/project_shared_package_message_catalogs.md`.
  *
- * Splitting a namespace file further — so a page pulls only the keys it
- * renders — lands once a file is large enough for the payload to matter.
+ * The full aggregate serves server translations and tests. Client route areas
+ * receive only their selected static page partitions.
  */
 const EN_MESSAGES = {
   agent,
@@ -67,5 +67,5 @@ export function loadMessages(locale: AppLocale): AppMessages {
     return mergeMessagesWithEnglish(pseudoLocalizeMessages(EN_MESSAGES));
   }
 
-  return mergeMessagesWithEnglish({});
+  return EN_MESSAGES;
 }

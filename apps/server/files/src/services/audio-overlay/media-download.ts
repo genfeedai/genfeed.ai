@@ -40,21 +40,32 @@ export async function downloadPublicMedia(
       ? { allowedOrigins: [origin], allowPrivateNetwork: true }
       : {},
   );
-  if (!response.ok || !response.body) throw new Error('Media download failed');
+  if (!response.ok || !response.body) {
+    void response.body?.cancel().catch(() => undefined);
+    throw new Error('Media download failed');
+  }
   const reader = response.body.getReader();
   const chunks: Buffer[] = [];
   let size = 0;
+  let complete = false;
   try {
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        complete = true;
+        break;
+      }
       size += value.byteLength;
       if (size > limitBytes)
         throw new Error('Media download exceeds size limit');
       chunks.push(Buffer.from(value));
     }
   } finally {
-    await reader.cancel();
+    try {
+      if (!complete) void reader.cancel().catch(() => undefined);
+    } finally {
+      reader.releaseLock();
+    }
   }
   return Buffer.concat(chunks);
 }

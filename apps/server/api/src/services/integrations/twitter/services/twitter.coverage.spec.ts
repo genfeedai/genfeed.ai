@@ -78,6 +78,12 @@ vi.mock('twitter-api-v2', () => {
   return { TwitterApi: MockTwitterApi };
 });
 
+vi.mock('@libs/security/destination-guard', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@libs/security/destination-guard')>();
+  return { ...actual, safeFetch: vi.fn() };
+});
+
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
@@ -107,6 +113,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -143,6 +150,7 @@ describe('TwitterService (coverage)', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.mocked(safeFetch).mockReset();
 
     credentialsService = {
       findBrandAccounts: vi.fn(async () => {
@@ -178,7 +186,13 @@ describe('TwitterService (coverage)', () => {
         TwitterService,
         TwitterResponseMapper,
         { provide: ActivityRecorderService, useValue: activitiesService },
-        { provide: ConfigService, useValue: { get: vi.fn(() => 'cfg-val') } },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: vi.fn(() => 'cfg-val'),
+            ingredientsEndpoint: 'http://media.internal:9000/ingredients',
+          },
+        },
         { provide: SERVER_TOKENS.credentials, useValue: credentialsService },
         { provide: HttpService, useValue: httpService },
         { provide: LoggerService, useValue: loggerService },
@@ -875,8 +889,89 @@ describe('TwitterService (coverage)', () => {
 
   describe('uploadMedia', () => {
     beforeEach(() => {
+      vi.mocked(safeFetch).mockImplementation(
+        async () => new Response(new TextEncoder().encode('img')),
+      );
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
         makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+      );
+    });
+
+    it.each([
+      'http://127.0.0.1/internal',
+      'http://media.internal:9000/ingredients/images/item',
+    ])(
+      'rejects a raw workflow destination %s before media upload or tweeting',
+      async (mediaUrl) => {
+        const error = new Error('Destination resolves private');
+        vi.mocked(safeFetch).mockRejectedValue(error);
+        httpService.get.mockReturnValue(of({ data: Buffer.from('img') }));
+        mockV2UploadMedia.mockResolvedValue('media');
+        mockV2Tweet.mockResolvedValue({ data: { id: 'tweet' } });
+        await expect(
+          service.uploadMedia(
+            'org',
+            'brand',
+            [mediaUrl],
+            'caption',
+            'image/jpeg',
+          ),
+        ).rejects.toBe(error);
+        expect(mockV2UploadMedia).not.toHaveBeenCalled();
+        expect(mockV2Tweet).not.toHaveBeenCalled();
+      },
+    );
+
+    it('routes a signed public media URL through the guard without granting publisher trust', async () => {
+      const mediaUrl = 'https://public.example/image?signature=valid';
+      httpService.get.mockReturnValue(of({ data: Buffer.from('img') }));
+      mockV2UploadMedia.mockResolvedValue('media');
+      mockV2Tweet.mockResolvedValue({ data: { id: 'tweet' } });
+      await expect(
+        service.uploadMedia(
+          'org',
+          'brand',
+          [mediaUrl],
+          'caption',
+          'image/jpeg',
+        ),
+      ).resolves.toBe('tweet');
+      expect(safeFetch).toHaveBeenCalledWith(
+        mediaUrl,
+        { signal: expect.any(AbortSignal) },
+        { allowedSchemes: ['http:', 'https:'] },
+      );
+      expect(mockV2UploadMedia).toHaveBeenCalledWith(Buffer.from('img'), {
+        media_type: 'image/jpeg',
+      });
+    });
+
+    it('forwards explicit internal publisher provenance through the service facade', async () => {
+      const mediaUrl =
+        'http://media.internal:9000/ingredients/images/key?signature=valid';
+      mockV2UploadMedia.mockResolvedValue('media');
+      mockV2Tweet.mockResolvedValue({ data: { id: 'tweet' } });
+      await expect(
+        service.uploadMedia(
+          'org',
+          'brand',
+          [mediaUrl],
+          'caption',
+          'image/jpeg',
+          undefined,
+          {},
+          'credential',
+          'publisher',
+        ),
+      ).resolves.toBe('tweet');
+      expect(safeFetch).toHaveBeenCalledWith(
+        mediaUrl,
+        { signal: expect.any(AbortSignal) },
+        {
+          allowedSchemes: ['http:', 'https:'],
+          allowedOrigins: ['http://media.internal:9000'],
+          allowPrivateNetwork: true,
+        },
       );
     });
 

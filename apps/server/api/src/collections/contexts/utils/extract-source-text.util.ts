@@ -50,6 +50,7 @@ export type SourceTextFetch = (
   init?: RequestInit,
 ) => Promise<{
   arrayBuffer: () => Promise<ArrayBuffer>;
+  body?: ReadableStream<Uint8Array> | null;
   headers: Headers;
   ok: boolean;
   status: number;
@@ -331,6 +332,55 @@ function extractByMimeType(
   throw new Error(`Unsupported document mime type: ${mimeType}`);
 }
 
+function cancelSourceBody(
+  body: ReadableStream<Uint8Array> | null | undefined,
+): void {
+  void body?.cancel().catch(() => {});
+}
+
+async function readSourceBytes(
+  response: Awaited<ReturnType<SourceTextFetch>>,
+): Promise<Buffer> {
+  const limitMessage = `Source exceeds the ${KNOWLEDGE_SOURCE_MAX_BYTES} byte ingest limit`;
+  if (
+    Number(response.headers.get('content-length')) > KNOWLEDGE_SOURCE_MAX_BYTES
+  ) {
+    cancelSourceBody(response.body);
+    throw new Error(limitMessage);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.byteLength > KNOWLEDGE_SOURCE_MAX_BYTES) {
+      throw new Error(limitMessage);
+    }
+    return bytes;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let byteLength = 0;
+  let completed = false;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        completed = true;
+        break;
+      }
+      byteLength += value.byteLength;
+      if (byteLength > KNOWLEDGE_SOURCE_MAX_BYTES) {
+        throw new Error(limitMessage);
+      }
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks, byteLength);
+  } finally {
+    if (!completed) void reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
+
 export async function extractSourceText(
   input: ExtractSourceTextInput,
 ): Promise<ExtractedSourceText> {
@@ -355,6 +405,7 @@ export async function extractSourceText(
   });
 
   if (response.status === 304) {
+    cancelSourceBody(response.body);
     if (!input.conditional?.etag && !input.conditional?.lastModified) {
       throw new Error('Unsolicited not-modified response');
     }
@@ -362,15 +413,11 @@ export async function extractSourceText(
   }
 
   if (!response.ok) {
+    cancelSourceBody(response.body);
     throw new Error(`Failed to fetch source (${response.status})`);
   }
 
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.byteLength > KNOWLEDGE_SOURCE_MAX_BYTES) {
-    throw new Error(
-      `Source exceeds the ${KNOWLEDGE_SOURCE_MAX_BYTES} byte ingest limit`,
-    );
-  }
+  const bytes = await readSourceBytes(response);
 
   const mimeType = sniffMimeType(
     response.headers.get('content-type'),

@@ -1,3 +1,4 @@
+import AppIntlProvider from '@app-i18n/AppIntlProvider';
 import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -28,9 +29,11 @@ import DiscoveryLayout from './layout';
 describe('DiscoveryLayout', () => {
   it('mounts one shared remix provider and inspector around every Discovery route', () => {
     render(
-      <DiscoveryLayout>
-        <div>Discovery content</div>
-      </DiscoveryLayout>,
+      <AppIntlProvider locale="en">
+        <DiscoveryLayout>
+          <div>Discovery content</div>
+        </DiscoveryLayout>
+      </AppIntlProvider>,
     );
 
     expect(screen.getByTestId('remix-provider')).toContainElement(

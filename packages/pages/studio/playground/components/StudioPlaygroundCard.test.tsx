@@ -123,6 +123,28 @@ const generatedJob = {
 };
 
 describe('StudioPlaygroundCard', () => {
+  it('passes the same controlled transform owner to the shared masonry tile', () => {
+    const transformActions = {
+      getAvailability: () => ({ isAvailable: true }),
+      isUpscaling: false,
+      isExtending: false,
+      onUpscale: vi.fn(),
+      onExtend: vi.fn(),
+    };
+    render(
+      <StudioPlaygroundCard
+        assetActions={{ ...buildAssetActions(), transformActions }}
+        job={generatedJob}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    expect(masonryMocks.image.mock.calls.at(-1)?.[0].transformActions).toBe(
+      transformActions,
+    );
+  });
+
   it('names assets and reference actions from recorded intent without changing the provider request', () => {
     const onUseAsReference = vi.fn();
     const job = {

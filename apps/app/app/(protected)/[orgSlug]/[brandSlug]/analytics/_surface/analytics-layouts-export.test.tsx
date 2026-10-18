@@ -1,11 +1,7 @@
+import AppIntlProvider from '@app-i18n/AppIntlProvider';
 import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
-});
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => ({
@@ -66,9 +62,11 @@ describe('analytics layouts', () => {
     '%s layout renders the scoped export in its toolbar inside the adapter',
     (_scope, Layout, title) => {
       render(
-        <Layout>
-          <p>Page</p>
-        </Layout>,
+        <AppIntlProvider locale="en">
+          <Layout>
+            <p>Page</p>
+          </Layout>
+        </AppIntlProvider>,
       );
 
       const adapter = screen.getByTestId('analytics-adapter');

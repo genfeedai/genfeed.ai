@@ -4,6 +4,7 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { TwitterMediaSource } from '@api/services/integrations/twitter/services/twitter-media-download.util';
 import type {
   TwitterTimelinePost,
   TwitterTimelineResponse,
@@ -29,7 +30,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
 import { TwitterAnalyticsService } from './twitter-analytics.service';
@@ -95,7 +95,6 @@ export class TwitterService {
     private readonly activityRecorder: ActivityRecorderService,
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
-    private readonly httpService: HttpService,
     private readonly responseMapper: TwitterResponseMapper,
   ) {
     this.twitterClient = new TwitterApi(
@@ -115,7 +114,7 @@ export class TwitterService {
       (tweetId, options) => this.getTweetReplies(tweetId, options),
     );
     this.publishingService = new TwitterPublishingService(
-      this.httpService,
+      this.configService.ingredientsEndpoint,
       this.loggerService,
       (organizationId, brandId, credentialId) =>
         this.refreshToken(organizationId, brandId, credentialId),
@@ -767,6 +766,7 @@ export class TwitterService {
     quoteTweetId?: string,
     settings: ChannelTargetSettings = {},
     credentialId?: string,
+    mediaSource: TwitterMediaSource = 'external',
   ): Promise<string> {
     return this.publishingService.uploadMedia(
       organizationId,
@@ -777,6 +777,7 @@ export class TwitterService {
       quoteTweetId,
       settings,
       credentialId,
+      mediaSource,
     );
   }
 

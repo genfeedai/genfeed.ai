@@ -263,6 +263,56 @@ describe('OAuth CIMD clients', () => {
     });
   });
 
+  describe('loopback redirects (RFC 8252 §7.3)', () => {
+    const loopbackMetadata = {
+      ...metadata,
+      redirect_uris: ['http://127.0.0.1/callback', 'http://localhost/callback'],
+    };
+
+    it.each([
+      'http://127.0.0.1:49323/callback',
+      'http://127.0.0.1/callback',
+      'http://localhost:8123/callback',
+    ])('accepts %s for a portless loopback registration', async (redirect) => {
+      vi.mocked(safeFetch).mockResolvedValue(
+        documentResponse(loopbackMetadata),
+      );
+      await expect(
+        buildService().requireClient(clientId, redirect),
+      ).resolves.toMatchObject({ clientId });
+    });
+
+    it.each([
+      'http://127.0.0.1:49323/other',
+      'http://127.0.0.1:49323/callback?next=1',
+      'http://[::1]:49323/callback',
+      'http://127.0.0.2:49323/callback',
+      'https://127.0.0.1:49323/callback',
+      'http://evil.example:49323/callback',
+    ])('rejects %s', async (redirect) => {
+      vi.mocked(safeFetch).mockResolvedValue(
+        documentResponse(loopbackMetadata),
+      );
+      await expect(
+        buildService().requireClient(clientId, redirect),
+      ).rejects.toMatchObject({
+        response: { error_description: 'Unregistered redirect URI' },
+      });
+    });
+
+    it('does not ignore the port of a non-loopback http or https redirect', async () => {
+      vi.mocked(safeFetch).mockResolvedValue(documentResponse());
+      await expect(
+        buildService().requireClient(
+          clientId,
+          'https://client.example:8443/callback',
+        ),
+      ).rejects.toMatchObject({
+        response: { error_description: 'Unregistered redirect URI' },
+      });
+    });
+  });
+
   it('honors no-store', async () => {
     const service = buildService();
     vi.mocked(safeFetch).mockImplementation(async () =>

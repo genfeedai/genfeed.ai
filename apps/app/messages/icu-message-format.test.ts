@@ -8,7 +8,7 @@ import { createTranslator } from 'next-intl';
 import { describe, expect, it } from 'vitest';
 import agent from './en/agent.json';
 import common from './en/common.json';
-import pages from './en/pages.json';
+import pages from './en/pages';
 import ui from './en/ui.json';
 
 function collectLeaves(

@@ -18,6 +18,7 @@ import {
   resolveTwitterReplySettings,
   TwitterService,
 } from '@api/services/integrations/twitter/services/twitter.service';
+import { downloadTwitterMedia } from '@api/services/integrations/twitter/services/twitter-media-download.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   requireRelationId,
@@ -53,22 +54,6 @@ type TwitterQuoteOptions = {
   quote_tweet_id?: string;
   reply_settings?: string;
 };
-
-function toBuffer(data: unknown): Buffer {
-  if (Buffer.isBuffer(data)) {
-    return data;
-  }
-
-  if (typeof data === 'string') {
-    return Buffer.from(data);
-  }
-
-  if (data instanceof ArrayBuffer) {
-    return Buffer.from(new Uint8Array(data));
-  }
-
-  throw new Error('Unsupported media response type');
-}
 
 function requireThreadChildId(child: ThreadChild): string | undefined {
   return typeof child.id === 'string' && child.id.length > 0
@@ -268,6 +253,7 @@ export class TwitterPublisherService extends BasePublisherService {
       // Publish as the account this post was dispatched for, not whichever
       // account the brand happens to list first.
       context.credential.id,
+      'publisher',
     );
 
     return externalId;
@@ -397,18 +383,16 @@ export class TwitterPublisherService extends BasePublisherService {
       // Child has media - upload media and post as reply
       const mediaIds: string[] = [];
       for (const mediaUrl of childMediaUrls) {
-        const mediaRes = await firstValueFrom(
-          this.httpService.get(mediaUrl, {
-            responseType: 'arraybuffer',
-          }),
+        const mediaType = childIsImagePost ? 'image/jpeg' : 'video/mp4';
+        const media = await downloadTwitterMedia(
+          mediaUrl,
+          mediaType,
+          this.configService.ingredientsEndpoint,
+          'publisher',
         );
-
-        const mediaId = await userClient.v2.uploadMedia(
-          toBuffer(mediaRes.data),
-          {
-            media_type: childIsImagePost ? 'image/jpeg' : 'video/mp4',
-          },
-        );
+        const mediaId = await userClient.v2.uploadMedia(media, {
+          media_type: mediaType,
+        });
 
         mediaIds.push(mediaId);
       }
