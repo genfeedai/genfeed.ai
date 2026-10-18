@@ -43,4 +43,16 @@ describe('IngredientTileOverlays', () => {
     expect(screen.queryByText('Generated')).not.toBeInTheDocument();
     expect(screen.queryByTestId('review-actions')).not.toBeInTheDocument();
   });
+
+  it('hides the origin badge while the tile is still generating', () => {
+    render(
+      <IngredientTileOverlays
+        ingredient={makeIngredient(IngredientStatus.PROCESSING)}
+        isReviewEnabled
+        onReviewUpdated={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
+  });
 });
