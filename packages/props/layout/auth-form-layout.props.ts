@@ -5,6 +5,8 @@ export type AuthFormLayoutLogoSize = 'default' | 'compact';
 interface AuthFormLayoutBaseProps {
   children: ReactNode;
   headingIcon?: ReactNode;
+  /** Widen the compact card for two-column content such as OAuth consent. */
+  isWide?: boolean;
   logoSize?: AuthFormLayoutLogoSize;
 }
 

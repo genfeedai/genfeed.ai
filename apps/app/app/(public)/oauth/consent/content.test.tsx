@@ -90,6 +90,31 @@ vi.mock('@ui/primitives/button', () => ({
     ),
 }));
 
+vi.mock('@ui/primitives/select', () => ({
+  SelectField: ({
+    children,
+    label,
+    onChange,
+    value,
+  }: {
+    children: ReactNode;
+    label?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+    value?: string;
+  }) => (
+    <label>
+      {label}
+      <select
+        value={value ?? ''}
+        onChange={(event) => onChange?.({ target: event.target })}
+      >
+        <option value="">Choose</option>
+        {children}
+      </select>
+    </label>
+  ),
+}));
+
 vi.mock('@/components/ui/card', () => ({
   Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -157,14 +182,12 @@ describe('OAuthConsentPage', () => {
     ]);
     mockDecisionResponse();
     render(<OAuthConsentPage />);
-    const first = await screen.findByRole('radio', { name: 'First workspace' });
-    const second = screen.getByRole('radio', { name: 'Second workspace' });
-    expect(first).not.toBeChecked();
-    expect(second).not.toBeChecked();
+    const picker = await screen.findByLabelText('Organization');
+    expect(picker).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Authorize' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     expect(globalThis.fetch).not.toHaveBeenCalled();
-    fireEvent.click(second);
+    fireEvent.change(picker, { target: { value: 'org-2' } });
     expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled();
     expect(screen.getByText('Videos')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
@@ -179,7 +202,7 @@ describe('OAuthConsentPage', () => {
     mockDecisionResponse();
     render(<OAuthConsentPage />);
     await screen.findByText('First workspace');
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Organization')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
     expect(lastDecisionBody()).toMatchObject({ organizationId: 'org-1' });
@@ -261,6 +284,46 @@ describe('OAuthConsentPage', () => {
     expect(consentUrl.searchParams.get('resource')).toBe(
       'https://mcp.genfeed.ai/mcp',
     );
+  });
+
+  it('lets the user narrow access with a dropdown and sends only those scopes', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({
+        scope: 'videos:read videos:create posts:draft posts:schedule',
+      }),
+    );
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+
+    fireEvent.change(screen.getByLabelText('Access level'), {
+      target: { value: 'read' },
+    });
+    expect(screen.getByText('Videos')).toBeInTheDocument();
+    expect(screen.queryByText('Post scheduling')).not.toBeInTheDocument();
+    expect(screen.queryByText(/approve its own queued actions/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({ scope: 'videos:read' });
+  });
+
+  it('keeps the client request untouched at the default access level', async () => {
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({
+      scope: 'videos:read images:create',
+    });
+  });
+
+  it('offers no access choice when the request is already read-only', async () => {
+    useSearchParamsMock.mockReturnValue(oauthParams({ scope: 'videos:read' }));
+    render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+    expect(screen.queryByLabelText('Access level')).not.toBeInTheDocument();
   });
 
   it('shows human-readable scope labels', async () => {

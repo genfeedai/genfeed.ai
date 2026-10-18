@@ -19,28 +19,62 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import Card from '@ui/card/Card';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
-import { Label } from '@ui/primitives/label';
-import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
-import { ArrowUpRight, Lock } from 'lucide-react';
+import { SelectField } from '@ui/primitives/select';
+import { ArrowUpRight, Check, Lock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { redirectToOAuthClient } from './redirect';
 
-function getRequestedScopeLabels(
-  scope: string | null,
-  isClaude: boolean,
-): string[] {
+type AccessLevel = 'full' | 'drafts' | 'read';
+
+/** Scopes that let a client schedule or publish, dropped by the drafts level. */
+const PUBLISHING_SCOPES: readonly string[] = [
+  'posts:schedule',
+  'posts:approve',
+  'posts:publish',
+];
+
+function getRequestedScopes(scope: string | null, isClaude: boolean): string[] {
   const ceiling: readonly string[] = isClaude
     ? MCP_CLAUDE_SCOPE_CEILING
     : API_KEY_SCOPE_PRESETS.mcp;
-  const requested = new Set(
-    (scope?.split(/\s+/).filter(Boolean) ?? ceiling).filter((candidate) =>
-      ceiling.includes(candidate),
-    ),
+  return (scope?.split(/\s+/).filter(Boolean) ?? [...ceiling]).filter(
+    (candidate) => ceiling.includes(candidate),
   );
+}
+
+/**
+ * The access levels a user can pick, narrowest last. A level is offered only
+ * when it differs from the one above it, so a client that already asks for
+ * read-only access gets no dropdown choice to make.
+ */
+function getAccessLevels(requested: string[]): Record<AccessLevel, string[]> {
+  const drafts = requested.filter(
+    (scope) => !PUBLISHING_SCOPES.includes(scope),
+  );
+  const read = requested.filter((scope) => scope.endsWith(':read'));
+  return { drafts, full: requested, read };
+}
+
+function getAvailableAccessLevels(
+  levels: Record<AccessLevel, string[]>,
+): AccessLevel[] {
+  const available: AccessLevel[] = ['full'];
+  if (levels.drafts.length > 0 && levels.drafts.length < levels.full.length) {
+    available.push('drafts');
+  }
+  const widest = available.includes('drafts') ? levels.drafts : levels.full;
+  if (levels.read.length > 0 && levels.read.length < widest.length) {
+    available.push('read');
+  }
+  return available;
+}
+
+function getScopeLabels(scopes: string[]): string[] {
+  const granted = new Set(scopes);
   return API_KEY_SCOPE_OPTIONS.filter((option) =>
-    option.scopes.some((candidate) => requested.has(candidate)),
+    option.scopes.some((candidate) => granted.has(candidate)),
   ).map((option) => option.label);
 }
 
@@ -96,14 +130,28 @@ export default function OAuthConsentContent() {
     Boolean(requestedResource) &&
     resolveMcpAccessModeForResource(requestedResource ?? '') === 'claude';
   const requestedScope = searchParams.get('scope') || null;
-  const scopeLabels = useMemo(
-    () => getRequestedScopeLabels(requestedScope, isClaude),
+  const requestedScopes = useMemo(
+    () => getRequestedScopes(requestedScope, isClaude),
     [requestedScope, isClaude],
   );
-  const requestedScopes =
-    requestedScope?.split(/\s+/).filter(Boolean) ?? API_KEY_SCOPE_PRESETS.mcp;
+  const accessLevels = useMemo(
+    () => getAccessLevels(requestedScopes),
+    [requestedScopes],
+  );
+  const availableAccessLevels = useMemo(
+    () => getAvailableAccessLevels(accessLevels),
+    [accessLevels],
+  );
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>('full');
+  const scopeLabels = useMemo(
+    () => getScopeLabels(accessLevels[accessLevel]),
+    [accessLevels, accessLevel],
+  );
+  // Only the full request carries an org owner's admin standing (the server
+  // adds it for a full preset grant), so a narrower level never shows it.
   const showAdminNotice =
     !isClaude &&
+    accessLevel === 'full' &&
     API_KEY_SCOPE_PRESETS.mcp.every((scope) => requestedScopes.includes(scope));
   // `state` is optional (RFC 6749 §4.1.1); PKCE is the CSRF protection.
   const requiredParams = [
@@ -221,7 +269,12 @@ export default function OAuthConsentContent() {
             organizationId: approved ? selectedOrganizationId : undefined,
             redirect_uri: redirectUri,
             resource: searchParams.get('resource'),
-            scope: requestedScope || undefined,
+            // Untouched, send the client's own request; a narrower level sends
+            // exactly the scopes it keeps.
+            scope:
+              accessLevel === 'full'
+                ? requestedScope || undefined
+                : accessLevels[accessLevel].join(' '),
             // Forwarded unchanged when the client supplied one; omitted otherwise.
             state: searchParams.get('state') || undefined,
           }),
@@ -287,6 +340,7 @@ export default function OAuthConsentContent() {
   return (
     <AuthFormLayout
       description={translate('description')}
+      isWide
       logoSize="compact"
       title={translate('title')}
     >
@@ -319,107 +373,120 @@ export default function OAuthConsentContent() {
           </div>
         ) : (
           <>
-            <Card
-              bodyClassName="flex-row items-start gap-3 p-4"
-              variant={CardVariant.BORDERED}
-            >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background">
-                <Lock className="size-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {translate('request.clientLabel')}
-                </p>
-                <h2 className="truncate text-base font-semibold">
-                  {clientName}
-                </h2>
-                <p className="truncate text-xs text-muted-foreground">
-                  {translate('request.returnsTo', {
-                    host: getCallbackHost(
-                      redirectUri,
-                      translate('callbackHost.unknownClient'),
-                    ),
-                  })}
-                </p>
-              </div>
-            </Card>
-
-            <div className="space-y-3">
-              <p
-                className="text-sm font-medium"
-                id="consent-organization-label"
-              >
-                {translateOrganization('label')}
-              </p>
-              {isLoadingOrganizations ? (
-                <p className="text-sm text-muted-foreground" role="status">
-                  {translateOrganization('loading')}
-                </p>
-              ) : organizationError ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {organizationError}
-                </p>
-              ) : organizations.length === 1 ? (
-                <p className="text-sm">{organizations[0].label}</p>
-              ) : (
-                <RadioGroup
-                  aria-labelledby="consent-organization-label"
-                  disabled={consentState.isSubmitting}
-                  value={selectedOrganizationId}
-                  onValueChange={setSelectedOrganizationId}
+            <div className="grid gap-8 md:grid-cols-2">
+              <div className="space-y-6">
+                <Card
+                  bodyClassName="flex-row items-start gap-3 p-4"
+                  variant={CardVariant.BORDERED}
                 >
-                  {organizations.map((organization) => (
-                    <div
-                      className="flex items-center gap-3"
-                      key={organization.id}
-                    >
-                      <RadioGroupItem
-                        id={`consent-organization-${organization.id}`}
-                        value={organization.id}
-                      />
-                      <Label
-                        htmlFor={`consent-organization-${organization.id}`}
-                      >
-                        {organization.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
-              {!isLoadingOrganizations && organizations.length > 1 && (
-                <p className="text-sm text-muted-foreground">
-                  {translateOrganization('choiceRequired')}
-                </p>
-              )}
-            </div>
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+                    <Lock className="size-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {translate('request.clientLabel')}
+                    </p>
+                    <h2 className="truncate text-base font-semibold">
+                      {clientName}
+                    </h2>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {translate('request.returnsTo', {
+                        host: getCallbackHost(
+                          redirectUri,
+                          translate('callbackHost.unknownClient'),
+                        ),
+                      })}
+                    </p>
+                  </div>
+                </Card>
 
-            <div className="space-y-3">
-              <p className="text-sm font-medium">
-                {translate('request.scopesLabel')}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {scopeLabels.map((label) => (
-                  <span
-                    className="rounded-full border border-border bg-background-tertiary px-3 py-1 text-xs text-muted-foreground"
-                    key={label}
+                {isLoadingOrganizations ? (
+                  <p className="text-sm text-muted-foreground" role="status">
+                    {translateOrganization('loading')}
+                  </p>
+                ) : organizationError ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {organizationError}
+                  </p>
+                ) : organizations.length === 1 ? (
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium">
+                      {translateOrganization('label')}
+                    </p>
+                    <p className="text-sm">{organizations[0].label}</p>
+                  </div>
+                ) : (
+                  <SelectField
+                    isDisabled={consentState.isSubmitting}
+                    label={translateOrganization('label')}
+                    name="consent-organization"
+                    placeholder={translateOrganization('placeholder')}
+                    value={selectedOrganizationId || undefined}
+                    onChange={(event) =>
+                      setSelectedOrganizationId(event.target.value)
+                    }
                   >
-                    {label}
-                  </span>
-                ))}
+                    {organizations.map((organization) => (
+                      <option key={organization.id} value={organization.id}>
+                        {organization.label}
+                      </option>
+                    ))}
+                  </SelectField>
+                )}
+
+                {availableAccessLevels.length > 1 && (
+                  <SelectField
+                    isDisabled={consentState.isSubmitting}
+                    label={translate('access.label')}
+                    name="consent-access-level"
+                    value={accessLevel}
+                    onChange={(event) =>
+                      setAccessLevel(event.target.value as AccessLevel)
+                    }
+                  >
+                    {availableAccessLevels.map((level) => (
+                      <option key={level} value={level}>
+                        {translate(`access.levels.${level}`)}
+                      </option>
+                    ))}
+                  </SelectField>
+                )}
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">
+                    {translate('request.scopesLabel')}
+                  </p>
+                  <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    {scopeLabels.map((label) => (
+                      <li
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                        key={label}
+                      >
+                        <Check
+                          aria-hidden="true"
+                          className="size-4 shrink-0 text-foreground"
+                        />
+                        {label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {isClaude && (
+                  <p className="text-sm text-muted-foreground">
+                    {translate('request.claudeNotice')}
+                  </p>
+                )}
+
+                {showAdminNotice && (
+                  <p className="text-sm text-muted-foreground">
+                    {translate('request.adminNotice')}
+                  </p>
+                )}
               </div>
             </div>
-
-            {isClaude && (
-              <p className="text-sm text-muted-foreground">
-                {translate('request.claudeNotice')}
-              </p>
-            )}
-
-            {showAdminNotice && (
-              <p className="text-sm text-muted-foreground">
-                {translate('request.adminNotice')}
-              </p>
-            )}
 
             {consentState.error && (
               <p className="text-sm text-destructive" role="alert">

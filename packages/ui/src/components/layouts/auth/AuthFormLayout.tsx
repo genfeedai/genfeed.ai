@@ -15,6 +15,7 @@ export default function AuthFormLayout({
   children,
   description,
   headingIcon,
+  isWide = false,
   logoSize = 'default',
   title,
 }: AuthFormLayoutProps) {
@@ -30,7 +31,10 @@ export default function AuthFormLayout({
         className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground"
         data-desktop-drag="true"
       >
-        <Card className="w-full max-w-md" bodyClassName="gap-0 p-6 sm:p-10">
+        <Card
+          className={isWide ? 'w-full max-w-3xl' : 'w-full max-w-md'}
+          bodyClassName="gap-0 p-6 sm:p-10"
+        >
           {title ? (
             <div
               className={`mb-8 flex ${headingIcon ? 'items-start gap-4' : 'items-center gap-5'}`}
