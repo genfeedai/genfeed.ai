@@ -230,6 +230,9 @@ for (const { model, editing } of [
     await page.getByRole('button', { name: 'Advanced', exact: true }).click();
     await page
       .getByRole('dialog')
+      .filter({
+        has: page.getByRole('button', { name: 'Advanced', exact: true }),
+      })
       .getByRole('button', { name: 'Configure Model', exact: true })
       .click();
     await page

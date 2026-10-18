@@ -4,7 +4,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
 import type { CrunImageQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import {
   createPlaywrightMockApiRoutePattern,
   playwrightApiEndpoint,
@@ -333,11 +333,16 @@ async function openGenerationSetup(page: Page, summary: string) {
   await expect(setup).toHaveAccessibleName(`Generation setup: ${summary}`);
   await setup.click();
 }
+// Advanced mode also renders Model/Output/Look chips in the prompt-bar
+// toolbar with the same "Configure <section>" names, so scope to the setup
+// popover (the dialog holding the Auto/Advanced switch).
+function setupDialog(page: Page): Locator {
+  return page.getByRole('dialog').filter({
+    has: page.getByRole('button', { name: 'Auto', exact: true }),
+  });
+}
 async function openConfiguration(page: Page, section: string) {
-  // The Advanced chips in the prompt bar share these names; the setup
-  // dialog's rows are the ones that open a section.
-  await page
-    .getByRole('dialog')
+  await setupDialog(page)
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }

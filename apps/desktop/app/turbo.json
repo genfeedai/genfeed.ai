@@ -4,9 +4,28 @@
   "tasks": {
     // The app shell is a `next build` of apps/app (see scripts/build-app-shell.cjs),
     // which imports workspace packages the desktop package does not declare, so
-    // `^build` never builds them ("Can't resolve '@genfeedai/integrations/ads'").
+    // `^build` never builds them ("Can't resolve '@genfeedai/integrations/ads'",
+    // "Can't resolve '@genfeedai/serializers/request-runtime'"). Keep this list
+    // in sync with the `build.dependsOn` of apps/app/turbo.json.
+    "build": {
+      "dependsOn": [
+        "$TURBO_EXTENDS$",
+        "@genfeedai/auth-client#build",
+        "@genfeedai/config#build",
+        "@genfeedai/integrations#build",
+        "@genfeedai/pricing#build",
+        "@genfeedai/serializers#build"
+      ]
+    },
     "qa:release": {
-      "dependsOn": ["$TURBO_EXTENDS$", "@genfeedai/integrations#build"]
+      "dependsOn": [
+        "$TURBO_EXTENDS$",
+        "@genfeedai/auth-client#build",
+        "@genfeedai/config#build",
+        "@genfeedai/integrations#build",
+        "@genfeedai/pricing#build",
+        "@genfeedai/serializers#build"
+      ]
     },
     // tsconfig `paths` reach these workspaces' sources without a declared
     // dependency, so `^build` never hashes them. Explicit globs ignore
