@@ -200,7 +200,14 @@ export class AutonomousPublishPolicyService {
       : Boolean(persona) &&
         config.isEnabled !== false &&
         config.autoPublishEnabled !== false;
-    const baseMode = normalizeAgentAutonomyMode(config.autonomyMode);
+    // A strategy without its own mode follows the organization default, the
+    // same fallback agent execution uses.
+    const baseMode = normalizeAgentAutonomyMode(
+      config.autonomyMode ??
+        (strategy
+          ? await this.readOrganizationAutonomyDefault(input.organizationId, db)
+          : undefined),
+    );
     const autonomyMode =
       state.autoPublishEnabled === false
         ? AgentAutonomyMode.SUPERVISED
@@ -271,6 +278,18 @@ export class AutonomousPublishPolicyService {
       }),
     });
     return toPolicyMediaAssessment(assessment);
+  }
+
+  private async readOrganizationAutonomyDefault(
+    organizationId: string,
+    db: Prisma.TransactionClient | PrismaService,
+  ): Promise<unknown> {
+    const settings = await db.organizationSetting.findFirst({
+      select: { agentPolicy: true },
+      // One settings row per organization; the model has no soft delete.
+      where: { organizationId },
+    });
+    return policyObject(settings?.agentPolicy).autonomyDefault;
   }
 
   /** Assessment reasons for a post's attached media, for the review inbox. */

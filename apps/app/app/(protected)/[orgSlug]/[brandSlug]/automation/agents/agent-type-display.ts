@@ -112,13 +112,6 @@ export const AGENT_TYPE_DEFAULTS: Record<
   },
 };
 
-export const AGENT_TYPE_OPTIONS = (Object.values(AgentType) as AgentType[]).map(
-  (value) => ({
-    label: AGENT_TYPE_LABELS[value],
-    value,
-  }),
-);
-
 const FALLBACK_AGENT_TYPE_ICON = AGENT_TYPE_ICON_COMPONENTS[AgentType.GENERAL];
 
 export function getAgentTypeIcon(agentType: string | undefined): AgentTypeIcon {

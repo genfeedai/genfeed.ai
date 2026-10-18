@@ -49,6 +49,7 @@ import {
 import AgentActivitySection from './AgentActivitySection';
 import AgentDetailNeedsYou from './AgentDetailNeedsYou';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
+import AgentStrategyPublishToggles from './AgentStrategyPublishToggles';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
 import { buildAgentDetailFacts } from './agent-detail-facts.helper';
 import { useAgentDetailPosts } from './use-agent-detail-posts';
@@ -413,6 +414,12 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           runsHref={href(APP_ROUTES.AUTOMATION.RUNS)}
           title={detail('needsYouTitle')}
           viewRunsLabel={detail('viewRuns')}
+        />
+
+        <AgentStrategyPublishToggles
+          agentId={agentId}
+          strategy={strategy}
+          onSaved={refresh}
         />
 
         <AgentWorkflowBindCard

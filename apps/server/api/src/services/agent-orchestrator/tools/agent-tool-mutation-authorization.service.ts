@@ -23,7 +23,10 @@ import {
   hasTrustedMutationApproval,
   specializedConfirmationTool,
 } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-approval.util';
-import type { AgentMutationAuthorization } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-policy.types';
+import type {
+  AgentMutationAuthorization,
+  ProactiveTextPostGrant,
+} from '@api/services/agent-orchestrator/tools/agent-tool-mutation-policy.types';
 import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
@@ -207,7 +210,8 @@ export class AgentToolMutationAuthorizationService {
     if (
       toolName !== 'create_post' ||
       !context.isProactive ||
-      context.autonomyMode !== AgentAutonomyMode.SUPERVISED ||
+      (context.autonomyMode !== AgentAutonomyMode.SUPERVISED &&
+        context.autonomyMode !== AgentAutonomyMode.AUTO_PUBLISH) ||
       context.approvedApprovalId ||
       context.confirmationOrigin ||
       readPublishContentId(parameters) ||
@@ -219,7 +223,7 @@ export class AgentToolMutationAuthorizationService {
       result: {
         success: false,
         creditsUsed: 0,
-        error: 'Proactive text drafts require a trusted supervised execution.',
+        error: 'Proactive text drafts require a trusted proactive execution.',
       },
     };
     const scope = context.validatedScope;
@@ -236,19 +240,23 @@ export class AgentToolMutationAuthorizationService {
       return denied;
     if (!this.prisma)
       throw new Error('Proactive draft authorization storage is unavailable.');
-    const trusted = await this.prisma.$transaction(
-      (tx) => this.hasTrustedProactiveDraftSnapshot(tx, context),
+    const grant = await this.prisma.$transaction(
+      (tx) => this.resolveTrustedProactiveDraftGrant(tx, context),
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
-    return trusted
-      ? { kind: 'execute', constraint: 'proactive-text-draft-only' }
-      : denied;
+    if (!grant) return denied;
+    // An agent that opted into earned auto-publish runs the post through the
+    // single publish gate, which schedules it only on a graduated platform (or
+    // under AUTO_PUBLISH with every opt-in) and sends the rest to review.
+    return grant === 'publish-gate'
+      ? { kind: 'execute' }
+      : { kind: 'execute', constraint: 'proactive-text-draft-only' };
   }
 
-  private async hasTrustedProactiveDraftSnapshot(
+  private async resolveTrustedProactiveDraftGrant(
     tx: Prisma.TransactionClient,
     context: ToolExecutionContext,
-  ): Promise<boolean> {
+  ): Promise<ProactiveTextPostGrant | null> {
     const [execution, thread, strategy] = await Promise.all([
       tx.workflowExecution.findFirst({
         where: {
@@ -302,15 +310,15 @@ export class AgentToolMutationAuthorizationService {
           organization: { isDeleted: false },
           brand: { organizationId: context.organizationId, isDeleted: false },
         },
-        select: { config: true },
+        select: { config: true, policies: true },
       }),
     ]);
-    if (!execution || !thread || !strategy) return false;
+    if (!execution || !thread || !strategy) return null;
     const workflow = execution.workflow;
     const version = execution.workflowVersion;
     const config = this.readProactiveDraftRecord(strategy.config);
     const mode = config?.autonomyMode;
-    return Boolean(
+    const isTrusted = Boolean(
       config &&
         config.isEnabled !== false &&
         (mode === undefined ||
@@ -318,7 +326,7 @@ export class AgentToolMutationAuthorizationService {
             Object.values(AgentAutonomyMode).some(
               (value) => value === mode.trim().toUpperCase(),
             ))) &&
-        normalizeAgentAutonomyMode(mode) === AgentAutonomyMode.SUPERVISED &&
+        normalizeAgentAutonomyMode(mode) === context.autonomyMode &&
         thread.brandId === context.validatedScope?.brandId &&
         thread.agentStrategyId === context.strategyId &&
         thread.contextVersion === context.validatedScope?.contextVersion &&
@@ -336,6 +344,13 @@ export class AgentToolMutationAuthorizationService {
         version.userId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
         this.hasTrustedProactiveDraftEnvelope(execution.result, context),
     );
+    if (!isTrusted) return null;
+    const publishPolicy = this.readProactiveDraftRecord(
+      this.readProactiveDraftRecord(strategy.policies)?.publishPolicy,
+    );
+    return publishPolicy?.autoPublishEnabled === true
+      ? 'publish-gate'
+      : 'draft-only';
   }
 
   private hasTrustedProactiveDraftEnvelope(
@@ -353,7 +368,7 @@ export class AgentToolMutationAuthorizationService {
         request.strategyId === context.strategyId &&
         request.threadId === context.threadId &&
         request.brandId === context.validatedScope?.brandId &&
-        request.autonomyMode === AgentAutonomyMode.SUPERVISED &&
+        request.autonomyMode === context.autonomyMode &&
         typeof request.creditBudget === 'number' &&
         Number.isFinite(request.creditBudget) &&
         request.creditBudget > 0 &&

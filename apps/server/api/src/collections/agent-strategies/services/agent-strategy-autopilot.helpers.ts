@@ -6,10 +6,6 @@ import type {
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import {
-  AgentAutonomyMode,
-  normalizeAgentAutonomyMode,
-} from '@genfeedai/contracts';
 
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
@@ -177,15 +173,15 @@ export function buildImagePrompt(
   return `Create an on-brand social image for ${strategy.label}. Topic: ${opportunity.topic}. Keep it high contrast, clean, scroll-stopping, and aligned to ${strategy.goalProfile}.`;
 }
 
+/**
+ * Whether a text draft should try the publish gate before review. Auto-publish
+ * is earned per platform: a supervised agent that opted in publishes on a
+ * platform once it graduated, so the strategy's own mode is not checked here.
+ * `AutonomousPublishPolicyService.resolveForTarget` decides each account and
+ * sends anything it does not permit to review.
+ */
 export function shouldAutoPublish(strategy: AgentStrategyDocument): boolean {
-  // `autonomyMode` rides an unmigrated policy JSON blob, so stored strategies
-  // still carry the pre-SCREAMING `auto_publish` spelling — a case-sensitive
-  // comparison would silently route every one of them to manual review.
-  return (
-    normalizeAgentAutonomyMode(strategy.autonomyMode) ===
-      AgentAutonomyMode.AUTO_PUBLISH &&
-    Boolean(strategy.publishPolicy?.autoPublishEnabled)
-  );
+  return strategy.publishPolicy?.autoPublishEnabled === true;
 }
 
 export function resolveReportWindow(reportType: AgentStrategyReportType): {

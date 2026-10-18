@@ -1468,7 +1468,23 @@
       "viewRuns": "View runs",
       "unavailable": "Unavailable",
       "untitledPost": "Untitled post",
-      "usage": "Usage"
+      "usage": "Usage",
+      "publishing": {
+        "title": "Earned auto-publish",
+        "description": "Every platform starts in review. After {requiredApprovals} approvals in a row with no edits, that platform publishes this agent's text posts on its own.",
+        "enable": "Earn auto-publish per platform",
+        "threshold": "Approvals to graduate",
+        "progressTitle": "Platform progress",
+        "choosePlatform": "Add a platform to this agent to track its progress.",
+        "approvalStreak": "{count}/{requiredApprovals} approvals in a row",
+        "approvalStreakLabel": "{platform} progress toward auto-publish",
+        "graduated": "Publishes on its own",
+        "reviewRequired": "Review required",
+        "graduationRequirements": "A graduated platform still needs the brand's auto-publish setting, a connected account and every publishing check to pass. Editing or rejecting a draft sends that platform back to review.",
+        "off": "Auto-publish is off, so every draft waits for review.",
+        "saved": "Auto-publish settings saved",
+        "saveError": "Could not save auto-publish settings"
+      }
     },
     "organizationOverview": {
       "brandsTitle": "Brands",
@@ -1491,37 +1507,6 @@
       "action": "Manage brands",
       "description": "Choose a brand from the top bar to open this Automation page. Your current destination will stay selected when you switch brands.",
       "title": "Select a brand to use Automation"
-    },
-    "autopilot": {
-      "agentType": "Agent Type",
-      "autonomy": "Autonomy",
-      "description": "Set how often this agent runs, its budget, and whether it publishes on its own.",
-      "emptyAction": "Add agent",
-      "emptyDescription": "Add an agent first, then configure its schedule and autonomy here.",
-      "emptyTitle": "No agents available",
-      "goalProfile": "Goal Profile",
-      "platforms": "Platforms",
-      "agentName": "Agent name",
-      "publishToggles": {
-        "allowAutomaticPublishing": "Allow automatic publishing when policy checks pass",
-        "enableAgent": "Enable agent",
-        "markAgentActive": "Mark agent active",
-        "platformApprovalProgress": "Platform approval progress",
-        "enabledForScheduling": "Enabled for scheduling",
-        "activeAndReady": "Active and ready to run",
-        "choosePlatform": "Choose a platform to track approval progress.",
-        "pristineApprovals": "{count}/{requiredApprovals} pristine approvals",
-        "graduated": "Graduated",
-        "reviewRequired": "Review required",
-        "graduationRequirements": "Graduation still requires agent and brand opt-ins, a connected account, and all publishing policy checks.",
-        "automaticPublishingOff": "Automatic publishing is off for this agent."
-      },
-      "runFrequency": "Run Frequency",
-      "skillHelp": "Comma-separated skill slugs. Leave empty to use all brand-enabled skills.",
-      "skillSlugs": "Skill Slugs",
-      "title": "Agent settings",
-      "topics": "Topics",
-      "save": "Save agent"
     },
     "contentPlans": {
       "badgeColdStart": "Cold-start",

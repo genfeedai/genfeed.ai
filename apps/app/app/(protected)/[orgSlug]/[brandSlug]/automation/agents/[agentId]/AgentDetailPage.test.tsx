@@ -15,6 +15,12 @@ vi.mock('./AgentWorkflowBindCard', () => ({
   default: () => <div>Workflow bind card</div>,
 }));
 
+vi.mock('./AgentStrategyPublishToggles', () => ({
+  default: ({ agentId }: { agentId: string }) => (
+    <div data-testid="agent-publish-policy">{agentId}</div>
+  ),
+}));
+
 vi.mock('./AgentActivitySection', () => ({
   default: () => <div data-testid="agent-activity-section" />,
 }));
@@ -267,6 +273,13 @@ describe('AgentDetailPage', () => {
         }),
       );
     }
+  });
+
+  it('shows the earned auto-publish settings for the agent', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+    expect(screen.getByTestId('agent-publish-policy')).toHaveTextContent(
+      'strategy-1',
+    );
   });
 
   it('shows a strategy request failure separately from not found', () => {
