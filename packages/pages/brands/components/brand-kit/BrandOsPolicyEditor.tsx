@@ -13,6 +13,7 @@ import type {
   BrandPublishPolicyFormat,
   IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import type {
   BrandOsPolicyEditorProps,
   BrandOsPolicyListFieldProps,
@@ -62,8 +63,8 @@ function readCount(value: string, min: number, max: number): number | null {
 }
 
 function browserTimezone(): string {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return timezone && isValidPolicyTimezone(timezone) ? timezone : 'UTC';
+  const timezone = getBrowserTimezone();
+  return isValidPolicyTimezone(timezone) ? timezone : 'UTC';
 }
 
 /** One entry per line; the list it emits never holds blank or duplicate lines. */
