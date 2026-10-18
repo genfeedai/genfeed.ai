@@ -37,6 +37,7 @@ import {
   recordReadyDraftReceipt,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
+import { recordPublishingInboxActivity } from '@api/collections/agent-strategies/services/agent-strategy-publishing-inbox-activity.util';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -51,17 +52,12 @@ import { ContentGatewayService } from '@api/services/content-gateway/content-gat
 import { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import {
-  ActivityEntityModel,
-  ActivityKey,
-  ActivitySource,
   AgentPublishDecision,
   ContentFormat,
-  IngredientCategory,
   PersistedReviewDecision,
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { createPublishingApprovalsRoute } from '@genfeedai/contracts/constants';
 import { getPlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -786,7 +782,7 @@ export class AgentStrategyAutopilotExecutionService {
     }
 
     if (reviewItem?.postId) {
-      await this.createPublishingInboxActivity({
+      await recordPublishingInboxActivity(this.activityRecorder, this.logger, {
         turboRunId: turboRun.id,
         format: input.format,
         mediaUrl: input.mediaUrl,
@@ -805,64 +801,6 @@ export class AgentStrategyAutopilotExecutionService {
       postId: reviewItem?.postId,
       reviewItemId: reviewItem?.id,
     };
-  }
-
-  private async createPublishingInboxActivity(input: {
-    turboRunId: string;
-    format: ReviewTurboRunItemFormat;
-    mediaUrl?: string;
-    organizationId: string;
-    platform?: string;
-    postId: string;
-    reviewItemId?: string;
-    strategy: AgentStrategyDocument;
-    topic: string;
-    userId: string;
-  }): Promise<void> {
-    const href = createPublishingApprovalsRoute({
-      run: input.turboRunId,
-      item: input.reviewItemId,
-    });
-    const label = `Autopilot ${input.format} ready for review`;
-    const description = `${input.topic} is ready in the publishing inbox.`;
-
-    try {
-      await this.activityRecorder.record({
-        brandId: getStrategyBrandId(input.strategy) ?? '',
-        entityId: input.postId,
-        entityModel: ActivityEntityModel.POST,
-        key: ActivityKey.POST_GENERATED,
-        organizationId: input.organizationId,
-        source: ActivitySource.POST_GENERATION,
-        userId: input.userId,
-        value: JSON.stringify({
-          turboRunId: input.turboRunId,
-          description,
-          format: input.format,
-          href,
-          label,
-          mediaUrl: input.mediaUrl,
-          platform: input.platform,
-          resultId: input.postId,
-          resultType:
-            input.format === ContentFormat.IMAGE
-              ? IngredientCategory.IMAGE
-              : input.format === ContentFormat.VIDEO
-                ? IngredientCategory.VIDEO
-                : undefined,
-          reviewItemId: input.reviewItemId,
-          sentence: description,
-          topic: input.topic,
-        }),
-      });
-    } catch (error) {
-      this.logger.warn('Failed to create publishing inbox activity', {
-        turboRunId: input.turboRunId,
-        error,
-        postId: input.postId,
-        reviewItemId: input.reviewItemId,
-      });
-    }
   }
 
   private async publishTextDraft(
