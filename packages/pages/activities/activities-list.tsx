@@ -365,7 +365,7 @@ export default function ActivitiesList({
   if (isAdminScope) {
     return (
       <AdminPageShell
-        title="Activities"
+        title={translate('title')}
         icon={ClipboardList}
         onRefresh={() => void refresh()}
         isRefreshing={isRefreshing}
@@ -384,8 +384,8 @@ export default function ActivitiesList({
 
   return (
     <Container
-      label="Activities"
-      description="Recent actions and system events."
+      label={translate('title')}
+      description={translate('description')}
       icon={ClipboardList}
       titleVisibility="sr-only"
       refresh={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}

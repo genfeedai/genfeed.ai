@@ -348,7 +348,7 @@
     "packages/agent/src/workflow/components/VerificationPanel.tsx": 4,
     "packages/contexts/providers/api-status/api-status.provider.tsx": 8,
     "packages/helpers/src/content/posts.helper.tsx": 7,
-    "packages/pages/activities/activities-list.tsx": 7,
+    "packages/pages/activities/activities-list.tsx": 5,
     "packages/pages/agents/campaigns/AgentCampaignContentQuota.tsx": 4,
     "packages/pages/agents/campaigns/AgentCampaignDetailHeader.tsx": 9,
     "packages/pages/agents/campaigns/AgentCampaignDetailPage.tsx": 5,

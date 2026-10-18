@@ -22,5 +22,7 @@
   "detailCreated": "Created",
   "detailUpdated": "Updated",
   "detailStarted": "Started",
-  "detailFinished": "Finished"
+  "detailFinished": "Finished",
+  "title": "Activities",
+  "description": "Recent actions and system events."
 }
