@@ -282,6 +282,31 @@ describe('IngredientsController — Library axes', () => {
       expect(andBranches(aggregate)).toContainEqual({ organizationId });
     });
 
+    it('spans every brand in the organization when allBrands is set', async () => {
+      await controller.findAll(
+        mockRequest,
+        { allBrands: true } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate)).toContainEqual({ organizationId });
+      expect(andBranches(aggregate).some((branch) => 'brandId' in branch)).toBe(
+        false,
+      );
+    });
+
+    it('still narrows allBrands to an explicit brand', async () => {
+      await controller.findAll(
+        mockRequest,
+        { allBrands: true, brandId } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate)).toContainEqual({ brandId });
+    });
+
     it('filters the type axis on the multi-select `categories` field', async () => {
       await controller.findAll(
         mockRequest,
@@ -600,6 +625,19 @@ describe('IngredientsController — Library axes', () => {
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
         { brandId },
+      );
+    });
+
+    it('counts every brand in the organization when allBrands is set', async () => {
+      await controller.getSummary(
+        mockRequest,
+        { allBrands: true } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
+        organizationId,
+        {},
       );
     });
 

@@ -30,7 +30,9 @@ import type { PostsListSearchParams } from '@props/publishing/publishing-list-pa
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
+import LibraryCreditNotice from '../../../[brandSlug]/library/library-credit-notice';
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
 import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page';
@@ -105,7 +107,9 @@ function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
       seededCategories={preset?.categories}
       shelf={shelf}
     >
+      {place === LibraryPlace.ASSETS ? <LibraryCreditNotice /> : null}
       <Suspense fallback={null}>
+        {place === LibraryPlace.ASSETS ? <AssetDeepLink /> : null}
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"

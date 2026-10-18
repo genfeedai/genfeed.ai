@@ -86,6 +86,32 @@ export class IngredientsController {
   ) {}
 
   /**
+   * Brand axis of a Library read. An organization-level view passes
+   * `allBrands` so the list spans every brand in the organization instead of
+   * collapsing to the session brand; an explicit `brandId` still narrows it.
+   */
+  private resolveLibraryBrandFilter(
+    query: IngredientsQueryDto,
+    tenant: ReturnType<typeof CollectionFilterUtil.resolveListOrganizationId>,
+    user: User,
+    request: Request,
+  ): string | Record<string, unknown> | undefined {
+    if (tenant.isOrganizationOverride) {
+      return tenant.brandId;
+    }
+
+    if (query.allBrands && !query.brandId) {
+      return undefined;
+    }
+
+    return CollectionFilterUtil.buildAuthorizedBrandFilter(
+      query.brandId,
+      user,
+      getIsSuperAdmin(user, request),
+    );
+  }
+
+  /**
    * Unified Library list — every asset category in one query.
    *
    * The Library has three orthogonal axes and this endpoint composes all of
@@ -120,13 +146,12 @@ export class IngredientsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const brandId = tenant.isOrganizationOverride
-      ? tenant.brandId
-      : CollectionFilterUtil.buildAuthorizedBrandFilter(
-          query.brandId,
-          user,
-          getIsSuperAdmin(user, request),
-        );
+    const brandId = this.resolveLibraryBrandFilter(
+      query,
+      tenant,
+      user,
+      request,
+    );
 
     // `categories` is the multi-select Library type axis; `category` stays for
     // single-type callers. Both normalize to Prisma labels.
@@ -245,13 +270,12 @@ export class IngredientsController {
     );
     // Counters follow the same brand scope as the list: an explicit brand when
     // asked for, otherwise the caller's brand, otherwise any branded asset.
-    const brandId = tenant.isOrganizationOverride
-      ? tenant.brandId
-      : CollectionFilterUtil.buildAuthorizedBrandFilter(
-          query.brandId,
-          user,
-          getIsSuperAdmin(user, request),
-        );
+    const brandId = this.resolveLibraryBrandFilter(
+      query,
+      tenant,
+      user,
+      request,
+    );
     const brandFilter: Prisma.IngredientWhereInput = brandId ? { brandId } : {};
 
     return this.ingredientsService.getLibrarySummary(
