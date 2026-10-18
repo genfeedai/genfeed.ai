@@ -32,6 +32,7 @@ describe('campaign → runtime → thread snapshot smoke', () => {
   const agentThreadEngineService = {
     appendEvent: vi.fn(),
   };
+  const producerInstall = { installOnOptIn: vi.fn() };
 
   let executionService: AgentCampaignExecutionService;
   let runtimeService: AgentRuntimeService;
@@ -50,6 +51,7 @@ describe('campaign → runtime → thread snapshot smoke', () => {
       agentStrategiesService as never,
       prisma as never,
       runtimeService,
+      producerInstall as never,
     );
   });
 
@@ -100,6 +102,8 @@ describe('campaign → runtime → thread snapshot smoke', () => {
 
     expect(updated.status).toBe('active');
     expect(updated.agents).toEqual([strategyId]);
+    // No authenticated starter, no producer install.
+    expect(producerInstall.installOnOptIn).not.toHaveBeenCalled();
     expect(agentCampaignsService.patch).toHaveBeenCalledWith(
       campaignId,
       expect.objectContaining({ status: 'active' }),
@@ -195,6 +199,12 @@ describe('campaign → runtime → thread snapshot smoke', () => {
       true,
       starter,
     );
+    // Starting the campaign is the opt-in that installs its producers.
+    expect(producerInstall.installOnOptIn).toHaveBeenCalledWith({
+      organizationId,
+      principal: starter,
+      producer: 'campaigns',
+    });
   });
 
   it('pause returns the populated Program roster', async () => {

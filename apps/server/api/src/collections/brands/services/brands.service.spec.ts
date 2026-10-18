@@ -98,6 +98,7 @@ describe('BrandsService', () => {
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
   let defaultRecurringContentService: {
+    installContentEngineOnOptIn: ReturnType<typeof vi.fn>;
     updateScheduleFromAgentConfig: ReturnType<typeof vi.fn>;
   };
   let skillsService: {
@@ -153,6 +154,7 @@ describe('BrandsService', () => {
       warn: vi.fn(),
     } as unknown as LoggerService;
     defaultRecurringContentService = {
+      installContentEngineOnOptIn: vi.fn().mockResolvedValue(undefined),
       updateScheduleFromAgentConfig: vi.fn().mockResolvedValue(undefined),
     };
     skillsService = {
@@ -2315,6 +2317,31 @@ describe('BrandsService', () => {
       });
       delegate.updateMany.mockResolvedValue({ count: 1 });
     }
+
+    const principal = { organizationId: orgId, userId: 'user-1' };
+
+    it('hands the before/after config and caller to the content-engine opt-in install', async () => {
+      withStoredConfig({ strategy: { contentTypes: ['post'] } });
+
+      await service.updateAgentConfig(
+        brandId,
+        orgId,
+        { autoPublish: { enabled: true } } as never,
+        principal,
+      );
+
+      expect(
+        defaultRecurringContentService.installContentEngineOnOptIn,
+      ).toHaveBeenCalledWith({
+        organizationId: orgId,
+        previousAgentConfig: { strategy: { contentTypes: ['post'] } },
+        principal,
+        updatedAgentConfig: {
+          autoPublish: { enabled: true },
+          strategy: { contentTypes: ['post'] },
+        },
+      });
+    });
 
     it('validates enabled skill slugs at the persistence boundary', async () => {
       withStoredConfig({ enabledSkills: [] });

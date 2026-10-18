@@ -60,7 +60,11 @@ export type PipelineRunStatus =
   | 'failed';
 
 export interface PipelineConfigV2 {
-  personaId: string;
+  /**
+   * The persona the run publishes as. Required whenever `publishMode` is not
+   * `'none'`; brand content-plan runs act as the brand alone and omit it.
+   */
+  personaId?: string;
   organizationId: string;
   userId: string;
   brandId: string;

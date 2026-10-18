@@ -2,6 +2,8 @@ import { type ContentPlanItemDocument } from '@api/collections/content-plan-item
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { buildBrandVoiceText } from '@api/services/agent-context-assembly/brand-context-prompt-sections.util';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { SkillWorkflowService } from '@api/services/skill-executor/skill-executor.service';
@@ -33,6 +35,7 @@ export class ContentExecutionService {
     private readonly reviewablePostsService: ReviewablePostsService,
     private readonly skillWorkflowService: SkillWorkflowService,
     private readonly contentOrchestrationService: ContentOrchestrationService,
+    private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -226,7 +229,7 @@ export class ContentExecutionService {
       skillSlug,
       {
         brandId,
-        brandVoice: '',
+        brandVoice: await this.resolveBrandVoice(organizationId, brandId),
         organizationId,
         platforms: itemPlatforms,
       },
@@ -275,6 +278,31 @@ export class ContentExecutionService {
       postId,
       status: ContentPlanItemStatus.COMPLETED,
     };
+  }
+
+  /**
+   * The brand voice the agent is given, from the same assembled brand context
+   * (identity and guidance layers only). Empty when the brand has no voice.
+   */
+  private async resolveBrandVoice(
+    organizationId: string,
+    brandId: string,
+  ): Promise<string> {
+    const context = await this.contextAssemblyService.assembleContext({
+      brandId,
+      layers: {
+        brandGuidance: true,
+        brandIdentity: true,
+        brandKnowledge: false,
+        brandMemory: false,
+        missingBrandContext: false,
+        performancePatterns: false,
+        ragContext: false,
+        recentPosts: false,
+      },
+      organizationId,
+    });
+    return context ? buildBrandVoiceText(context) : '';
   }
 
   private async executeMediaqueryItem(
@@ -352,14 +380,12 @@ export class ContentExecutionService {
       }
     });
 
-    // The hidden workflow is scoped to a persona identity. Content-plan items
-    // currently use their owning brand identity for that system-only scope.
+    // Content-plan items store no persona, so the run acts as the brand
+    // alone and publishes nothing (`publishMode: 'none'`).
     const pipelineResult =
       await this.contentOrchestrationService.generateAndPublish({
         brandId,
         organizationId,
-        // The content-plan contract does not yet store a persona reference.
-        personaId: brandId,
         platforms: itemPlatforms,
         prompt: itemPrompt,
         publishMode: 'none',

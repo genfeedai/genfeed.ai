@@ -77,6 +77,8 @@ export const ingredientAttributes = createEntityAttributes([
   'generationStage',
   'generationProgress',
   'generationCompletedAt',
+  // What the generation cost; only the superadmin generation ledger sets it.
+  'generationCredits',
   'generationPrompt',
   'modelUsed',
   'fileSize',

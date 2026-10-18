@@ -6,6 +6,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import type { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
@@ -359,13 +360,23 @@ function createWorkflowScheduler(
   return { updateSchedule } as unknown as WorkflowSchedulerService;
 }
 
+function createProducerInstall(): AutonomousProducerInstallService {
+  return {
+    installOnOptIn: vi.fn().mockResolvedValue({}),
+  } as unknown as AutonomousProducerInstallService;
+}
+
 function createService(
   prisma: PrismaService,
   workflowSchedulerService: WorkflowSchedulerService = createWorkflowScheduler(),
+  producerInstall: AutonomousProducerInstallService = createProducerInstall(),
 ): DefaultRecurringContentService {
-  return new DefaultRecurringContentService(prisma, createLogger(), {
-    get: () => workflowSchedulerService,
-  } as unknown as ModuleRef);
+  return new DefaultRecurringContentService(
+    prisma,
+    createLogger(),
+    { get: () => workflowSchedulerService } as unknown as ModuleRef,
+    producerInstall,
+  );
 }
 
 const ORGANIZATION_ID = 'org_1';
@@ -420,6 +431,66 @@ function buildStoredWorkflow(
 describe('DefaultRecurringContentService', () => {
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('installContentEngineOnOptIn', () => {
+    const principal = { organizationId: ORGANIZATION_ID, userId: USER_ID };
+    const optedOut = { strategy: { contentTypes: ['post'] } };
+    const optedIn = {
+      autoPublish: { enabled: true },
+      strategy: { contentTypes: ['post'] },
+    };
+
+    function createInstallService() {
+      const installOnOptIn = vi.fn().mockResolvedValue({});
+      const service = createService(
+        {} as PrismaService,
+        createWorkflowScheduler(),
+        { installOnOptIn } as unknown as AutonomousProducerInstallService,
+      );
+      return { installOnOptIn, service };
+    }
+
+    it('installs the content engine when an authenticated caller opts the brand in', async () => {
+      const { installOnOptIn, service } = createInstallService();
+
+      await service.installContentEngineOnOptIn({
+        organizationId: ORGANIZATION_ID,
+        previousAgentConfig: optedOut,
+        principal,
+        updatedAgentConfig: optedIn,
+      });
+
+      expect(installOnOptIn).toHaveBeenCalledWith({
+        organizationId: ORGANIZATION_ID,
+        principal,
+        producer: 'contentEngine',
+      });
+    });
+
+    it('never installs on a system write or a brand that was already opted in', async () => {
+      const { installOnOptIn, service } = createInstallService();
+
+      await service.installContentEngineOnOptIn({
+        organizationId: ORGANIZATION_ID,
+        previousAgentConfig: optedOut,
+        updatedAgentConfig: optedIn,
+      });
+      await service.installContentEngineOnOptIn({
+        organizationId: ORGANIZATION_ID,
+        previousAgentConfig: optedIn,
+        principal,
+        updatedAgentConfig: { ...optedIn, persona: 'Rewritten' },
+      });
+      await service.installContentEngineOnOptIn({
+        organizationId: ORGANIZATION_ID,
+        previousAgentConfig: optedOut,
+        principal,
+        updatedAgentConfig: optedOut,
+      });
+
+      expect(installOnOptIn).not.toHaveBeenCalled();
+    });
   });
 
   it('creates one default recurring workflow per content type for a fresh brand', async () => {
@@ -904,11 +975,16 @@ describe('DefaultRecurringContentService', () => {
       log: vi.fn(),
       warn: warnSpy,
     } as unknown as LoggerService;
-    const service = new DefaultRecurringContentService(prisma, logger, {
-      get: () => {
-        throw new Error('WorkflowSchedulerService is not registered');
-      },
-    } as unknown as ModuleRef);
+    const service = new DefaultRecurringContentService(
+      prisma,
+      logger,
+      {
+        get: () => {
+          throw new Error('WorkflowSchedulerService is not registered');
+        },
+      } as unknown as ModuleRef,
+      createProducerInstall(),
+    );
 
     await service.updateScheduleFromAgentConfig(
       ORGANIZATION_ID,
@@ -1040,6 +1116,7 @@ describe('DefaultRecurringContentService', () => {
             throw new Error('WorkflowSchedulerService is not registered');
           },
         } as unknown as ModuleRef,
+        createProducerInstall(),
       );
 
       await service.updateScheduleFromAgentConfig(

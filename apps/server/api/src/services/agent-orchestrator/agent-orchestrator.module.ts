@@ -65,6 +65,7 @@ import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/
 import { AgentBrandContextController } from '@api/services/agent-orchestrator/agent-brand-context.controller';
 import { AgentBrandContextSnapshotService } from '@api/services/agent-orchestrator/agent-brand-context-snapshot.service';
 import { AgentCadenceExecutionService } from '@api/services/agent-orchestrator/agent-cadence-execution.service';
+import { AgentCadenceMediaGenerationService } from '@api/services/agent-orchestrator/agent-cadence-media-generation.service';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
@@ -334,6 +335,7 @@ import { Module } from '@nestjs/common';
     AgentTurnRoundRunnerService,
     AgentTurnWorkflowExecutionService,
     AgentCadenceExecutionService,
+    AgentCadenceMediaGenerationService,
     AgentUntrustedContentGateService,
     {
       provide: 'AGENT_BRANDS_SERVICE',

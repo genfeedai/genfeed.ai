@@ -1,4 +1,5 @@
 import {
+  buildBrandVoiceText,
   buildStrategyPrompt,
   buildVisualIdentityPrompt,
   buildVoicePromptSections,
@@ -157,5 +158,15 @@ describe('brand prompt section contributions', () => {
       );
     }
     expect(value).toEqual(before);
+  });
+
+  it('renders the resolved voice as text for voice-string inputs', () => {
+    expect(buildBrandVoiceText(context())).toBe('');
+    expect(
+      buildBrandVoiceText({
+        ...context(),
+        voice: { tone: 'warm', sampleOutput: 'Hello there' },
+      }),
+    ).toBe('## Brand Voice\n- Tone: warm\n\n## Voice Example\nHello there');
   });
 });

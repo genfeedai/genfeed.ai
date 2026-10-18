@@ -30,6 +30,7 @@ describe('ContentExecutionService', () => {
   let mockReviewablePostsService: Record<string, ReturnType<typeof vi.fn>>;
   let mockSkillExecutorService: Record<string, ReturnType<typeof vi.fn>>;
   let mockContentOrchestrationService: Record<string, ReturnType<typeof vi.fn>>;
+  let mockContextAssemblyService: Record<string, ReturnType<typeof vi.fn>>;
   let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
 
   const orgId = 'test-object-id';
@@ -65,6 +66,15 @@ describe('ContentExecutionService', () => {
       generateAndPublish: vi.fn(),
     };
 
+    mockContextAssemblyService = {
+      assembleContext: vi.fn().mockResolvedValue({
+        brandId,
+        brandName: 'Acme',
+        layersUsed: ['brandIdentity'],
+        voice: { tone: 'warm' },
+      }),
+    };
+
     mockLogger = {
       error: vi.fn(),
       log: vi.fn(),
@@ -77,6 +87,7 @@ describe('ContentExecutionService', () => {
       mockReviewablePostsService as never,
       mockSkillExecutorService as never,
       mockContentOrchestrationService as never,
+      mockContextAssemblyService as never,
       mockLogger as unknown as LoggerService,
     );
   });
@@ -394,6 +405,68 @@ describe('ContentExecutionService', () => {
       );
     });
 
+    it('gives the skill the brand voice resolved from assembled brand context', async () => {
+      mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([
+        makeItem(),
+      ]);
+      mockSkillExecutorService.execute.mockResolvedValue({
+        draft: {
+          confidence: 0.8,
+          content: 'hi',
+          mediaUrls: [],
+          metadata: {},
+          type: 'text',
+        },
+        source: 'skill',
+      });
+
+      await executePlanAtomically(orgId, brandId, planId, userId);
+
+      expect(mockContextAssemblyService.assembleContext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId,
+          layers: expect.objectContaining({
+            brandGuidance: true,
+            brandIdentity: true,
+            ragContext: false,
+          }),
+          organizationId: orgId,
+        }),
+      );
+      expect(mockSkillExecutorService.execute).toHaveBeenCalledWith(
+        'content-writing',
+        expect.objectContaining({ brandVoice: '## Brand Voice\n- Tone: warm' }),
+        expect.anything(),
+        userId,
+      );
+    });
+
+    it('passes an empty voice when the brand has no resolvable context', async () => {
+      mockContextAssemblyService.assembleContext.mockResolvedValue(null);
+      mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([
+        makeItem(),
+      ]);
+      mockSkillExecutorService.execute.mockResolvedValue({
+        draft: {
+          confidence: 0.8,
+          content: 'hi',
+          mediaUrls: [],
+          metadata: {},
+          type: 'text',
+        },
+        source: 'skill',
+      });
+
+      await executePlanAtomically(orgId, brandId, planId, userId);
+
+      expect(mockSkillExecutorService.execute).toHaveBeenCalledWith(
+        'content-writing',
+        expect.objectContaining({ brandVoice: '' }),
+        expect.anything(),
+        userId,
+      );
+    });
+
     it('should create a canonical reviewable post with correct fields', async () => {
       const item = makeItem({ platforms: ['twitter'], skillSlug: 'seo-blog' });
       mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
@@ -505,11 +578,13 @@ describe('ContentExecutionService', () => {
         expect.objectContaining({
           brandId,
           organizationId: orgId,
-          personaId: brandId,
           platforms: pipelineItem.platforms,
           publishMode: 'none',
         }),
       );
+      expect(
+        mockContentOrchestrationService.generateAndPublish.mock.calls[0][0],
+      ).not.toHaveProperty('personaId');
     });
 
     it('should create a reviewable post with mediaUrls from pipeline steps', async () => {

@@ -135,6 +135,41 @@ describe('buildContentPipelineWorkflowDefinition', () => {
     }
   });
 
+  it('scopes a brand-only run to the brand and requires no persona', () => {
+    const graph = buildContentPipelineWorkflowDefinition({
+      brandId: 'brand-1',
+      idempotencyKey: 'plan-item-1',
+      organizationId: 'org-1',
+      publishMode: 'none',
+      steps: [{ model: ImageTaskModel.FAL, type: 'text-to-image' }],
+      userId: 'user-1',
+    });
+
+    expect(graph.canonicalId).toBe('content-pipeline:brand-1:plan-item-1');
+    const contextNode = graph.definition.nodes?.find(
+      (node) => node.id === 'resolve-context',
+    );
+    const config = contextNode?.data.config as Record<string, unknown>;
+    expect(config).not.toHaveProperty('personaId');
+    const action = getActionDefinition('content.pipeline.resolve-context');
+    const contract = compileActionContract('content.pipeline.resolve-context', {
+      inputSchema: (action?.inputSchema ?? {}) as Readonly<
+        Record<string, unknown>
+      >,
+      outputSchema: (action?.outputSchema ?? {}) as Readonly<
+        Record<string, unknown>
+      >,
+    });
+    expect(() =>
+      contract.validateInput(buildActionExecutionInput(config, {}), {
+        nodeId: 'resolve-context',
+        runId: 'run',
+        workflowId: graph.canonicalId,
+        workflowVersionId: 'v1',
+      }),
+    ).not.toThrow();
+  });
+
   it('rejects an empty graph instead of creating a pass-through workflow', () => {
     expect(() =>
       buildContentPipelineWorkflowDefinition({

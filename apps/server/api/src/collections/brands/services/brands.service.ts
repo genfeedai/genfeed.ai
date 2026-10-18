@@ -747,6 +747,13 @@ export class BrandsService extends BaseService<
       );
     }
 
+    await this.defaultRecurringContentService.installContentEngineOnOptIn({
+      organizationId: orgId,
+      previousAgentConfig: currentConfig,
+      principal,
+      updatedAgentConfig: updatedConfig,
+    });
+
     return updatedBrand;
   }
 

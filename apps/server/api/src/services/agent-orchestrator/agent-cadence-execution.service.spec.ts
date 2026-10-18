@@ -5,6 +5,8 @@ import type { PreparedAgentTurnState } from '@api/services/agent-orchestrator/ag
 import {
   ActivitySource,
   AgentStrategyRunStatus,
+  PersistedReviewDecision,
+  PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
@@ -73,6 +75,21 @@ function setup() {
     getOrganizationCreditsBalance: vi.fn().mockResolvedValue(20),
     deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
   };
+  const media = {
+    quote: vi.fn().mockResolvedValue({
+      isAvailable: true,
+      brandId: 'brand',
+      constraint: { model: 'image-model' },
+      credits: 4,
+      kind: 'image',
+      modelKey: 'image-model',
+    }),
+    generate: vi.fn().mockResolvedValue({
+      isGenerated: true,
+      ingredientId: 'image',
+      mediaUrl: 'https://cdn.example/image.png',
+    }),
+  };
   const service = Reflect.construct(AgentCadenceExecutionService, [
     strategies,
     autopilot,
@@ -80,6 +97,7 @@ function setup() {
     posts,
     optimizers,
     credits,
+    media,
   ]) as AgentCadenceExecutionService;
   const input = {
     creditBudget: 10,
@@ -99,6 +117,7 @@ function setup() {
     input,
     optimizers,
     credits,
+    media,
   };
 }
 describe('active cadence workflow execution', () => {
@@ -244,7 +263,7 @@ describe('active cadence workflow execution', () => {
       'organization',
     );
   });
-  it.each([{ format: 'image' }, { platform: 'unsupported' }])(
+  it.each([{ format: 'carousel' }, { platform: 'unsupported' }])(
     'holds unsupported work without paid dispatch (%j)',
     async (change) => {
       const s = setup();
@@ -252,10 +271,169 @@ describe('active cadence workflow execution', () => {
         async ({ draftGenerator }) => draftGenerator({ ...s.input, ...change }),
       );
       await expect(s.service.tryExecute(state)).rejects.toThrow();
+      expect(s.media.quote).not.toHaveBeenCalled();
       expect(s.text.generateContent).not.toHaveBeenCalled();
       expect(s.posts.create).not.toHaveBeenCalled();
     },
   );
+  it('dispatches an image opportunity within budget and adopts an image draft', async () => {
+    const s = setup();
+    let generated: Awaited<ReturnType<CadenceDraftGenerator>> | undefined;
+    s.autopilot.executeQueuedRun.mockImplementation(
+      async ({ draftGenerator }) => {
+        generated = await draftGenerator({ ...s.input, format: 'image' });
+        return { summary: 'Replenished' };
+      },
+    );
+    expect((await s.service.tryExecute(state))?.creditsUsed).toBe(
+      GENERATE_CONTENT_TEXT_CREDITS + 4,
+    );
+    expect(s.media.quote).toHaveBeenCalledWith(
+      'image',
+      expect.stringContaining('Topic'),
+      { brandId: 'brand', organizationId: 'organization', userId: 'user' },
+    );
+    expect(s.text.generateContent).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ creditBudget: 10 - 4 }),
+    );
+    expect(s.media.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ credits: 4, modelKey: 'image-model' }),
+      expect.stringContaining('Useful content'),
+      expect.objectContaining({
+        organizationId: 'organization',
+        runId: state.executionId,
+        sourceActionId: 'opportunity:image',
+        strategyId: 'strategy',
+        userId: 'user',
+      }),
+    );
+    expect(s.posts.patchOneWhere).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'draft', organizationId: 'organization' }),
+      expect.objectContaining({
+        category: PostCategory.IMAGE,
+        targetAttachments: ['https://cdn.example/image.png'],
+        ingredientLinks: expect.objectContaining({
+          createMany: {
+            data: [
+              {
+                ingredientId: 'image',
+                organizationId: 'organization',
+                position: 0,
+              },
+            ],
+            skipDuplicates: true,
+          },
+        }),
+      }),
+      [],
+    );
+    expect(generated?.draft).toBeDefined();
+    expect(generated?.creditsUsed).toBe(GENERATE_CONTENT_TEXT_CREDITS + 4);
+    // The image gate evaluates the asset itself, not caption analytics.
+    expect(generated?.evaluateQuality).toBeUndefined();
+    expect(s.strategies.recordRun).toHaveBeenCalledWith(
+      'strategy',
+      expect.objectContaining({
+        contentGenerated: 1,
+        creditsUsed: GENERATE_CONTENT_TEXT_CREDITS + 4,
+      }),
+      'organization',
+    );
+  });
+  it('holds an over-budget media opportunity with its quote before any spend', async () => {
+    const s = setup();
+    s.media.quote.mockResolvedValue({
+      isAvailable: true,
+      brandId: 'brand',
+      constraint: {},
+      credits: 30,
+      kind: 'video',
+      modelKey: 'video-model',
+    });
+    let generated: Awaited<ReturnType<CadenceDraftGenerator>> | undefined;
+    s.autopilot.executeQueuedRun.mockImplementation(
+      async ({ draftGenerator }) => {
+        generated = await draftGenerator({ ...s.input, format: 'video' });
+        return { summary: 'Held' };
+      },
+    );
+    await s.service.tryExecute(state);
+    expect(generated).toEqual({
+      creditsUsed: 0,
+      heldReason: expect.stringContaining('video quote of 30 credits'),
+    });
+    expect(s.text.generateContent).not.toHaveBeenCalled();
+    expect(s.media.generate).not.toHaveBeenCalled();
+  });
+  it('holds media without an authoritative quote and never dispatches', async () => {
+    const s = setup();
+    s.media.quote.mockResolvedValue({
+      isAvailable: false,
+      reason: 'No authoritative image quote is available.',
+    });
+    let generated: Awaited<ReturnType<CadenceDraftGenerator>> | undefined;
+    s.autopilot.executeQueuedRun.mockImplementation(
+      async ({ draftGenerator }) => {
+        generated = await draftGenerator({ ...s.input, format: 'image' });
+        return { summary: 'Held' };
+      },
+    );
+    await s.service.tryExecute(state);
+    expect(generated).toEqual({
+      creditsUsed: 0,
+      heldReason: 'No authoritative image quote is available.',
+    });
+    expect(s.text.generateContent).not.toHaveBeenCalled();
+  });
+  it('holds unbranded media without quoting', async () => {
+    const s = setup();
+    s.strategies.findOneById.mockResolvedValue({
+      ...s.strategy,
+      brandId: null,
+    });
+    let generated: Awaited<ReturnType<CadenceDraftGenerator>> | undefined;
+    s.autopilot.executeQueuedRun.mockImplementation(
+      async ({ draftGenerator }) => {
+        generated = await draftGenerator({ ...s.input, format: 'image' });
+        return { summary: 'Held' };
+      },
+    );
+    await s.service.tryExecute({
+      ...state,
+      request: { ...state.request, brandId: undefined },
+    });
+    expect(generated?.heldReason).toContain('requires a brand');
+    expect(s.media.quote).not.toHaveBeenCalled();
+  });
+  it('rejects the paid caption draft and holds when media generation fails', async () => {
+    const s = setup();
+    s.media.generate.mockResolvedValue({
+      isGenerated: false,
+      reason: 'The image generation did not complete (timeout).',
+    });
+    let generated: Awaited<ReturnType<CadenceDraftGenerator>> | undefined;
+    s.autopilot.executeQueuedRun.mockImplementation(
+      async ({ draftGenerator }) => {
+        generated = await draftGenerator({ ...s.input, format: 'image' });
+        return { summary: 'Held' };
+      },
+    );
+    expect((await s.service.tryExecute(state))?.creditsUsed).toBe(
+      GENERATE_CONTENT_TEXT_CREDITS,
+    );
+    expect(generated?.draft).toBeUndefined();
+    expect(generated?.heldReason).toContain('did not complete');
+    expect(s.posts.patchOneWhere).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        category: PostCategory.TEXT,
+        reviewDecision: PersistedReviewDecision.REJECTED,
+        reviewFeedback: 'The image generation did not complete (timeout).',
+      }),
+      [],
+    );
+  });
   it('does not dispatch below the authoritative text cost', async () => {
     const s = setup();
     s.autopilot.executeQueuedRun.mockImplementation(

@@ -173,14 +173,13 @@ export class ContentOrchestrationService implements OnModuleInit {
     runReferences: PipelineConfig['runReferences'];
   }> {
     const input = this.normalizeActionInput(request.input);
-    const personaId = this.requireString(input.personaId, 'personaId');
     const brandId = this.requireString(input.brandId, 'brandId');
     const publishMode = this.readPublishMode(input.publishMode);
     const persona =
       publishMode === 'none'
         ? undefined
         : await this.getPersonaOrFail(
-            personaId,
+            this.requireString(input.personaId, 'personaId'),
             request.context.organizationId,
           );
     const configuredReferences = Array.isArray(input.runReferences)
@@ -215,9 +214,10 @@ export class ContentOrchestrationService implements OnModuleInit {
     const globalPrompt = this.optionalString(input.prompt);
 
     // Only a persona-autopilot run (publishMode other than 'none') acts as the
-    // persona itself. Brand content-plan runs pass the brand id as personaId
-    // and must admit every asset they feed to a provider, including canonical
-    // internal media URLs (#6040).
+    // persona itself. Brand content-plan runs carry no persona and must admit
+    // every asset they feed to a provider, including canonical internal media
+    // URLs (#6040).
+    const personaAttribute = this.optionalString(input.personaId);
     let admittedPersonaId: string | undefined;
     if (this.readPublishMode(input.publishMode) === 'none') {
       admittedPersonaId = await this.admitCharacters({
@@ -231,10 +231,9 @@ export class ContentOrchestrationService implements OnModuleInit {
     const result = await Sentry.startSpan(
       {
         attributes: {
-          'pipeline.persona_id': this.requireString(
-            input.personaId,
-            'personaId',
-          ),
+          ...(personaAttribute
+            ? { 'pipeline.persona_id': personaAttribute }
+            : {}),
           'pipeline.step.index': stepIndex,
           'pipeline.step.model': step.model,
           'pipeline.step.type': step.type,

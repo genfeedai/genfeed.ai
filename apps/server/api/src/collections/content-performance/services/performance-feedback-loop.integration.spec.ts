@@ -244,6 +244,13 @@ function setup() {
     {} as never,
     store.prisma as never,
     {} as never,
+    // Passes the brief through, so the test reads what the loop fed it.
+    {
+      enhance: async (input: { prompt: string }) => ({
+        enhancedPrompt: input.prompt,
+        status: 'applied',
+      }),
+    } as never,
     logger as never,
   );
   const proactive = new AgentProactiveToolHandler(
@@ -369,7 +376,7 @@ describe('performance feedback loop across two collection cycles', () => {
 
     const firstPrompt = await f.nextPersonaPrompt();
     expect(firstPrompt).toBe(
-      'Create a engaging video about: craft. Observed feedback: 1 prior posts about this topic averaged 100.00 performance score.',
+      'Persona: Founder. Tone: engaging. Topic: craft. Observed feedback: 1 prior posts about this topic averaged 100.00 performance score.',
     );
     const firstAnalysis = await f.analyze();
     expect(firstAnalysis).toMatchObject({

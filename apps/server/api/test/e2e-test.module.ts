@@ -367,6 +367,7 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
       ensureDefaultBundle: () =>
         Promise.resolve({ isConfigured: false, items: [] }),
       getStatus: () => Promise.resolve({ isConfigured: false, items: [] }),
+      installContentEngineOnOptIn: () => Promise.resolve(),
     },
   },
   {

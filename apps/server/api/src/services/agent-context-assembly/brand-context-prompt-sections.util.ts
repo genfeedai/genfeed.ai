@@ -121,6 +121,21 @@ export function buildVoicePromptSections(
   return sections;
 }
 
+/**
+ * The brand's resolved voice as plain text for generation inputs that take a
+ * voice string (skill contexts), rendered from the same sections the agent's
+ * system prompt uses.
+ */
+export function buildBrandVoiceText(context: AssembledBrandContext): string {
+  return buildVoicePromptSections(context)
+    .map((section) =>
+      [section.header, section.instructions, section.content]
+        .filter(Boolean)
+        .join('\n'),
+    )
+    .join('\n\n');
+}
+
 export function buildStrategyPrompt(
   context: AssembledBrandContext,
 ): BrandContextContribution | null {

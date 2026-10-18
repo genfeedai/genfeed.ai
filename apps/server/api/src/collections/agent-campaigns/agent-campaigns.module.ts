@@ -8,6 +8,7 @@ import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { UsersModule } from '@api/collections/users/users.module';
+import { AutonomousProducerInstallModule } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
 import { Module } from '@nestjs/common';
@@ -17,6 +18,7 @@ import { Module } from '@nestjs/common';
   exports: [AgentCampaignsService, AgentCampaignExecutionService],
   imports: [
     AgentStrategiesModule,
+    AutonomousProducerInstallModule,
     QueuesModule,
     UsersModule,
     AgentRuntimeModule,

@@ -94,44 +94,12 @@ export class AgentStrategyAutopilotService {
         'Configured cadence requires the billable workflow draft generator.',
       );
 
-    // Prefer bound deterministic workflow when the strategy has a workflow pin.
-    const preferredWorkflowId =
-      typeof strategy.preferredWorkflowId === 'string'
-        ? strategy.preferredWorkflowId.trim()
-        : '';
-    const preferredTemplateId =
-      typeof strategy.preferredWorkflowTemplateId === 'string'
-        ? strategy.preferredWorkflowTemplateId.trim()
-        : '';
-
-    if (
-      this.workflowRunService &&
-      !cadencePolicy.separate &&
-      (preferredWorkflowId || preferredTemplateId)
-    ) {
-      try {
-        const topic =
-          Array.isArray(strategy.topics) && strategy.topics[0]
-            ? String(strategy.topics[0])
-            : strategy.label;
-        const workflowResult = await this.workflowRunService.run(
-          input.strategyId,
-          input.organizationId,
-          input.userId,
-          { topic: topic || undefined },
-        );
-        return {
-          contentGenerated: 1,
-          creditsUsed: 0,
-          summary: `Workflow-backed autopilot started execution ${workflowResult.executionId} on workflow ${workflowResult.workflowId}.`,
-        };
-      } catch (error) {
-        // Fall through to skill/opportunity path if workflow fill fails.
-        this.logger?.warn('Workflow-backed autopilot failed; using skills', {
-          error,
-          strategyId: input.strategyId,
-        });
-      }
+    if (!cadencePolicy.separate) {
+      const workflowResult = await this.tryRunPreferredWorkflow(
+        strategy,
+        input,
+      );
+      if (workflowResult) return workflowResult;
     }
 
     const pacing = this.planningService.computeBudgetPacingState(strategy);
@@ -154,7 +122,12 @@ export class AgentStrategyAutopilotService {
       opportunities.length,
     );
     const selected = this.planningService
-      .selectOpportunities(strategy, opportunities, pacing)
+      .selectOpportunities(
+        strategy,
+        opportunities,
+        pacing,
+        cadencePolicy.separate,
+      )
       .slice(0, remainingSlots);
 
     if (selected.length === 0) {
@@ -223,6 +196,54 @@ export class AgentStrategyAutopilotService {
       creditsUsed,
       summary: `Autopilot processed ${selected.length} opportunities and generated ${generatedCount} content items.`,
     };
+  }
+
+  /**
+   * Prefer the bound deterministic workflow when the strategy has a workflow
+   * pin. Returns null when there is no pin or the workflow fill fails, so the
+   * caller falls through to the skill/opportunity path.
+   */
+  private async tryRunPreferredWorkflow(
+    strategy: AgentStrategyDocument,
+    input: { organizationId: string; strategyId: string; userId: string },
+  ): Promise<ExecuteRunResult | null> {
+    const preferredWorkflowId =
+      typeof strategy.preferredWorkflowId === 'string'
+        ? strategy.preferredWorkflowId.trim()
+        : '';
+    const preferredTemplateId =
+      typeof strategy.preferredWorkflowTemplateId === 'string'
+        ? strategy.preferredWorkflowTemplateId.trim()
+        : '';
+    if (
+      !this.workflowRunService ||
+      !(preferredWorkflowId || preferredTemplateId)
+    )
+      return null;
+
+    try {
+      const topic =
+        Array.isArray(strategy.topics) && strategy.topics[0]
+          ? String(strategy.topics[0])
+          : strategy.label;
+      const workflowResult = await this.workflowRunService.run(
+        input.strategyId,
+        input.organizationId,
+        input.userId,
+        { topic: topic || undefined },
+      );
+      return {
+        contentGenerated: 1,
+        creditsUsed: 0,
+        summary: `Workflow-backed autopilot started execution ${workflowResult.executionId} on workflow ${workflowResult.workflowId}.`,
+      };
+    } catch (error) {
+      this.logger?.warn('Workflow-backed autopilot failed; using skills', {
+        error,
+        strategyId: input.strategyId,
+      });
+      return null;
+    }
   }
 
   private async resolveRunSlots(

@@ -18,7 +18,7 @@ function toSerializableConfig(config: PipelineConfigV2) {
   return {
     brandId: config.brandId,
     organizationId: config.organizationId,
-    personaId: config.personaId,
+    ...(config.personaId ? { personaId: config.personaId } : {}),
     ...(config.platforms ? { platforms: config.platforms } : {}),
     ...(config.prompt ? { prompt: config.prompt } : {}),
     publishMode: config.publishMode ?? 'final',
@@ -104,7 +104,7 @@ export function buildContentPipelineWorkflowDefinition(
     config.idempotencyKey ?? contentHash.replace('sha256:v1:', '');
 
   return {
-    canonicalId: `content-pipeline:${config.personaId}:${identity}`,
+    canonicalId: `content-pipeline:${config.personaId ?? config.brandId}:${identity}`,
     definition,
     description:
       'Generates, persists, and publishes one action-backed content pipeline.',

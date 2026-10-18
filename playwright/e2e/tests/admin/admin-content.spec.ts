@@ -8,7 +8,6 @@ test.describe('Admin Content', () => {
   const routes = [
     APP_ROUTES.ADMIN.CONTENT.POSTS,
     `${APP_ROUTES.ADMIN.CONTENT.POSTS}/mock-id`,
-    APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST,
     APP_ROUTES.ADMIN.CONTENT.GENERATIONS,
     `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/image`,
   ];
@@ -18,13 +17,6 @@ test.describe('Admin Content', () => {
       await assertRouteRenders(adminPage, route);
     });
   }
-
-  test('prompts list stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST);
-    await tryClick(adminPage, '[data-testid="content-prompts-surface"] button');
-    await tryClick(adminPage, 'button');
-    await expect(adminPage.locator('body')).toBeVisible();
-  });
 
   test('posts list responds to clicks', async ({ adminPage }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.CONTENT.POSTS);

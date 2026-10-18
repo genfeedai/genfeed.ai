@@ -1,4 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
+import { isContentEngineOptedIn } from '@api/collections/workflows/autonomous-producers/content-engine-opt-in.util';
 import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import {
   computeNextRunAtOrThrow,
@@ -95,6 +97,7 @@ export class DefaultRecurringContentService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly moduleRef: ModuleRef,
+    private readonly autonomousProducerInstallService: AutonomousProducerInstallService,
   ) {}
 
   async getStatus(
@@ -320,6 +323,32 @@ export class DefaultRecurringContentService {
         });
       }
     }
+  }
+
+  /**
+   * Turning the content engine on is its explicit opt-in: install its
+   * workflow so it runs without a manual catalog step. Only an authenticated
+   * caller opts in; system writes (no principal) never install, and a config
+   * that was already opted in does not reinstall.
+   */
+  async installContentEngineOnOptIn(input: {
+    organizationId: string;
+    previousAgentConfig: unknown;
+    principal?: WorkflowSchedulePrincipal | null;
+    updatedAgentConfig: unknown;
+  }): Promise<void> {
+    if (
+      !input.principal ||
+      isContentEngineOptedIn(input.previousAgentConfig) ||
+      !isContentEngineOptedIn(input.updatedAgentConfig)
+    ) {
+      return;
+    }
+    await this.autonomousProducerInstallService.installOnOptIn({
+      organizationId: input.organizationId,
+      principal: input.principal,
+      producer: 'contentEngine',
+    });
   }
 
   /**

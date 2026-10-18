@@ -2,10 +2,12 @@ import type { AgentStrategyDocument } from '@api/collections/agent-strategies/sc
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import type {
+  ImageEvaluationResult,
   OptimizerAnalysisResult,
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import type { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
 
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
@@ -245,4 +247,56 @@ export function scoreTextPublishGate(
       readability: Number(analysis.breakdown?.readability ?? 0),
     },
   };
+}
+
+export function scoreImagePublishGate(
+  strategy: Pick<AgentStrategyDocument, 'publishPolicy'>,
+  evaluation: ImageEvaluationResult,
+): PublishGateResult {
+  const technicalOverall = Number(
+    evaluation?.scores?.technical?.overall ?? evaluation?.overallScore ?? 0,
+  );
+  const brandOverall = Number(
+    evaluation?.scores?.brand?.overall ?? evaluation?.overallScore ?? 0,
+  );
+  const engagementOverall = Number(
+    evaluation?.scores?.engagement?.overall ?? evaluation?.overallScore ?? 0,
+  );
+  const overallScore = Number(evaluation?.overallScore ?? 0);
+  const isApproved =
+    overallScore >= (strategy.publishPolicy?.minImageScore ?? 75);
+
+  return {
+    decision: isApproved ? 'approved' : 'hold',
+    overallScore,
+    reasons: isApproved
+      ? ['Image cleared the autopilot quality gate.']
+      : ['Image quality score did not meet the publish threshold.'],
+    revisionInstructions: isApproved
+      ? []
+      : [
+          'Improve composition and scroll-stop strength.',
+          'Increase brand fit and reduce visible generation artifacts.',
+        ],
+    scoreBreakdown: {
+      artifactRisk: technicalOverall,
+      brandFit: brandOverall,
+      composition: technicalOverall,
+      lightingContrast: technicalOverall,
+      overlayLegibility: technicalOverall,
+      scrollStopStrength: engagementOverall,
+    },
+  };
+}
+
+/** Newsletter platforms review as newsletters; every other text as a post. */
+export function resolveReviewTurboRunItemFormat(
+  platform?: string,
+): ReviewTurboRunItemFormat {
+  const normalizedPlatform = platform?.toLowerCase();
+  return normalizedPlatform === 'beehiiv' ||
+    normalizedPlatform === 'substack' ||
+    normalizedPlatform === 'email'
+    ? 'newsletter'
+    : 'post';
 }

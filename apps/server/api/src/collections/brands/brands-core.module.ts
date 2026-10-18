@@ -16,6 +16,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { SystemBrandService } from '@api/collections/brands/services/system-brand.service';
 import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
+import { AutonomousProducerInstallModule } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.module';
 import { CommonModule } from '@api/common/common.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -45,6 +46,7 @@ import { Module } from '@nestjs/common';
     SystemBrandService,
   ],
   imports: [
+    AutonomousProducerInstallModule,
     BrandAccessModule,
     HeyGenModule,
     CommonModule,

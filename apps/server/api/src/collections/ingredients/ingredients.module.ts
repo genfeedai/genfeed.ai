@@ -11,11 +11,13 @@ Workflow execution, state management, and cross-content type operations.
  */
 
 import { FoldersModule } from '@api/collections/folders/folders.module';
+import { AdminGenerationReviewsController } from '@api/collections/ingredients/controllers/admin-generation-reviews.controller';
 import { IngredientPerceptionController } from '@api/collections/ingredients/controllers/ingredient-perception.controller';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
 import { IngredientsTagsController } from '@api/collections/ingredients/controllers/ingredients-tags.controller';
+import { AdminGenerationReviewsService } from '@api/collections/ingredients/services/admin-generation-reviews.service';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
@@ -33,6 +35,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
+    AdminGenerationReviewsController,
     IngredientsController,
     IngredientsOperationsController,
     IngredientsRelationshipsController,
@@ -59,6 +62,7 @@ import { Module } from '@nestjs/common';
     ReplicateModule,
   ],
   providers: [
+    AdminGenerationReviewsService,
     AssetAccessGuard,
     CleanExportAccessGuard,
     IngredientCharacterFilterService,

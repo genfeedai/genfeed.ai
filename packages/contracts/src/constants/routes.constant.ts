@@ -56,8 +56,6 @@ export const APP_ROUTES = {
       INGREDIENTS: '/admin/content/ingredients',
       INGREDIENTS_VIDEOS: '/admin/content/ingredients?assetType=videos',
       POSTS: '/admin/content/posts',
-      PROMPTS: '/admin/content/prompts',
-      PROMPTS_LIST: '/admin/content/prompts/list',
       TEMPLATES: '/admin/content/templates',
     },
     FOLDERS: '/admin/folders',
