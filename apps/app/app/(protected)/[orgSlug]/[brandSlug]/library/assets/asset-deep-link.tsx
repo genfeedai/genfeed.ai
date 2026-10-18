@@ -3,6 +3,7 @@
 import { useIngredientOverlay } from '@contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePageScope } from '@hooks/navigation/use-page-scope/use-page-scope';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -15,6 +16,9 @@ export default function AssetDeepLink() {
   const translate = useTranslations('pages.library.assetDeepLink');
   const assetId = useSearchParams().get('asset');
   const { brandId, isReady, organizationId } = useBrand();
+  // The organization Library spans every brand, so only a brand page pins the
+  // linked asset to one.
+  const isBrandScoped = usePageScope() !== 'org';
   const { openIngredientOverlay } = useIngredientOverlay();
   const getService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
@@ -33,7 +37,7 @@ export default function AssetDeepLink() {
       const key = `${organizationId}:${brandId}:${assetId}`;
       if (openedKey.current === key) return;
       if (
-        !brandId ||
+        (isBrandScoped && !brandId) ||
         !organizationId ||
         !/^[A-Za-z0-9_-]{1,200}$/.test(assetId)
       ) {
@@ -58,7 +62,7 @@ export default function AssetDeepLink() {
         if (
           ingredient.id !== assetId ||
           ingredient.isDeleted ||
-          ingredientBrandId !== brandId ||
+          (isBrandScoped && ingredientBrandId !== brandId) ||
           ingredientOrganizationId !== organizationId
         ) {
           setState('error');
@@ -83,6 +87,7 @@ export default function AssetDeepLink() {
     brandId,
     getService,
     isReady,
+    isBrandScoped,
     openIngredientOverlay,
     organizationId,
   ]);

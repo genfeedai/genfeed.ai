@@ -114,6 +114,13 @@ describe('useIngredientsFilters', () => {
     expect(result.current.isActionsEnabled).toBe(false);
   });
 
+  it('isActionsEnabled is true for ORGANIZATION scope, like a brand', () => {
+    const { result } = renderHook(() =>
+      useIngredientsFilters({ scope: PageScope.ORGANIZATION, type: 'videos' }),
+    );
+    expect(result.current.isActionsEnabled).toBe(true);
+  });
+
   it('isActionsEnabled is true for BRAND scope', () => {
     const { result } = renderHook(() =>
       useIngredientsFilters({ scope: PageScope.BRAND, type: 'images' }),

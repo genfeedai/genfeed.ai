@@ -27,6 +27,7 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type PlatformTenantScopeArm,
+  platformOrTenantScope,
   withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
@@ -195,6 +196,7 @@ export class TemplatesService {
       platforms?: string[];
       scope?: string;
       isFeatured?: boolean;
+      includeSystem?: boolean;
       search?: string;
       sort?: 'popular';
       limit?: number;
@@ -217,8 +219,10 @@ export class TemplatesService {
     if (filters?.platforms?.length) {
       where.platforms = { hasSome: filters.platforms };
     }
+    // Platform + organization rows are one `OR`, so the search nests under `AND`.
+    const isSystemIncluded = Boolean(filters?.includeSystem && organization);
     if (filters?.search) {
-      where.OR = [
+      const searchMatch: Prisma.TemplateWhereInput[] = [
         { label: { contains: filters.search, mode: 'insensitive' } },
         {
           config: {
@@ -228,6 +232,8 @@ export class TemplatesService {
           },
         },
       ];
+      if (isSystemIncluded) where.AND = [{ OR: searchMatch }];
+      else where.OR = searchMatch;
     }
 
     // tenant-scope-ignore: organizationScope names the organization or the platform null with tenant proof; isDeleted is false
@@ -238,7 +244,9 @@ export class TemplatesService {
         filters?.sort === 'popular' ? (filters.limit ?? 10) : filters?.limit,
       where: {
         ...where,
-        ...this.organizationScope(organization),
+        ...(isSystemIncluded
+          ? platformOrTenantScope(organization)
+          : this.organizationScope(organization)),
         isDeleted: false,
       },
     });
@@ -283,8 +291,9 @@ export class TemplatesService {
    * Find one template
    */
   async findOne(id: string, organization?: string): Promise<Template> {
+    // Platform templates are readable by every tenant, like getPromptByKey.
     const where = {
-      ...this.organizationScope(organization),
+      ...platformOrTenantScope(organization),
       id,
       isDeleted: false,
     };

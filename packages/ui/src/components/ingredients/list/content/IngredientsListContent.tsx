@@ -633,29 +633,29 @@ export default function IngredientsListContent({
     },
     [revealInspector, setSelectedAsset],
   );
+  // A brand and the organization (all brands) are the same Library workspace:
+  // selecting an asset opens the detail panel. Only superadmin keeps the
+  // modal/lightbox flow.
+  const isWorkspaceScope = scope !== PageScope.SUPERADMIN;
   const handleSeeDetails = useCallback(
     (ingredient: IIngredient) => {
-      if (scope === PageScope.BRAND) {
+      if (isWorkspaceScope) {
         inspectIngredient(ingredient);
         return;
       }
       onSeeDetails(ingredient);
     },
-    [inspectIngredient, onSeeDetails, scope],
+    [inspectIngredient, isWorkspaceScope, onSeeDetails],
   );
 
   const handleMediaClick = useCallback(
     (ingredient: IIngredient) => {
-      if (scope === PageScope.SUPERADMIN) {
+      if (!isWorkspaceScope) {
         return;
       }
-      if (scope === PageScope.BRAND) {
-        inspectIngredient(ingredient);
-        return;
-      }
-      openIngredientPreview(ingredient);
+      inspectIngredient(ingredient);
     },
-    [inspectIngredient, openIngredientPreview, scope],
+    [inspectIngredient, isWorkspaceScope],
   );
 
   const handleToggleSelection = useCallback(
@@ -671,29 +671,14 @@ export default function IngredientsListContent({
 
   const handleViewIngredient = useCallback(
     (ingredient: IIngredient) => {
-      if (scope === PageScope.BRAND) {
+      if (isWorkspaceScope) {
         handleMediaClick(ingredient);
-        return;
-      }
-
-      if (singularType === IngredientCategory.AVATAR) {
-        onOpenIngredientModal(ModalEnum.INGREDIENT, ingredient);
-        return;
-      }
-
-      if (scope === PageScope.ORGANIZATION && onOpenLightbox(ingredient)) {
         return;
       }
 
       onOpenIngredientModal(ModalEnum.INGREDIENT, ingredient);
     },
-    [
-      handleMediaClick,
-      onOpenIngredientModal,
-      onOpenLightbox,
-      scope,
-      singularType,
-    ],
+    [handleMediaClick, isWorkspaceScope, onOpenIngredientModal],
   );
 
   const tableActions = useMemo(
@@ -711,7 +696,7 @@ export default function IngredientsListContent({
             ? translateActions('remixThisVideo')
             : 'Add to Storyboard',
         isVisible: (ingredient: IIngredient) =>
-          scope === PageScope.BRAND &&
+          isWorkspaceScope &&
           isActionsEnabled &&
           storyboardEntry.canCreateFromAsset(ingredient),
         isDisabled: (ingredient: IIngredient) =>
@@ -730,7 +715,7 @@ export default function IngredientsListContent({
       isActionsEnabled,
       onReprompt,
       translateRetry,
-      scope,
+      isWorkspaceScope,
       storyboardEntry.canCreateFromAsset,
       storyboardEntry.createFromAsset,
       storyboardEntry.pendingAssetId,
@@ -785,7 +770,7 @@ export default function IngredientsListContent({
           onSelectionChange={onSelectionChange}
           getItemId={(ingredient: IIngredient) => ingredient.id}
           actions={tableActions}
-          onRowClick={scope === PageScope.BRAND ? handleMediaClick : undefined}
+          onRowClick={isWorkspaceScope ? handleMediaClick : undefined}
           isHeaderPinned
           getGroupHeading={
             timeGroups
@@ -917,9 +902,7 @@ export default function IngredientsListContent({
                 onSelectionChange={onSelectionChange}
                 getItemId={(ingredient: IIngredient) => ingredient.id}
                 actions={tableActions}
-                onRowClick={
-                  scope === PageScope.BRAND ? handleMediaClick : undefined
-                }
+                onRowClick={isWorkspaceScope ? handleMediaClick : undefined}
               />
             </section>
           ) : null}
@@ -940,7 +923,7 @@ export default function IngredientsListContent({
         onSelectionChange={onSelectionChange}
         getItemId={(ingredient: IIngredient) => ingredient.id}
         actions={tableActions}
-        onRowClick={scope === PageScope.BRAND ? handleMediaClick : undefined}
+        onRowClick={isWorkspaceScope ? handleMediaClick : undefined}
       />
     );
   }, [
@@ -979,7 +962,7 @@ export default function IngredientsListContent({
     onPublishIngredient,
     nonVisualIngredients,
     selectedIngredientIds,
-    scope,
+    isWorkspaceScope,
     singularType,
     tableActions,
     translate,

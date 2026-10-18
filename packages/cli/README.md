@@ -433,6 +433,7 @@ genfeed admin pricing approve <model>             # preview the pending rates
 genfeed admin pricing approve <model> --yes       # approve them
 genfeed admin seed articles --owner-email you@x.com --brand-slug genfeed   # dry run
 genfeed admin seed articles --owner-email you@x.com --brand-slug genfeed --yes
+genfeed admin seed templates [--yes]                                      # platform (system) templates
 genfeed admin seed workflows --brand-id <id> [--yes]                      # --all-brands for every brand
 genfeed admin brand show                          # system brand kit
 genfeed admin brand update <revision> --file draft.json --updated-at <iso>

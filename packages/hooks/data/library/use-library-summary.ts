@@ -22,7 +22,8 @@ export interface UseLibrarySummaryReturn {
 
 /**
  * Library sidebar counters — per-shelf counts, starred/trashed totals, and
- * total storage bytes for the active brand.
+ * total storage bytes for the active brand, or every brand on the organization
+ * Library.
  *
  * `IngredientsService` has no client method for `GET /ingredients/summary`
  * yet, so this mirrors the raw-fetch idiom already used by
@@ -30,7 +31,7 @@ export interface UseLibrarySummaryReturn {
  */
 export function useLibrarySummary(): UseLibrarySummaryReturn {
   const collectionScope = useCollectionScope();
-  const { brandId } = collectionScope;
+  const { brandId, pageScope } = collectionScope;
   const isFetchReady = isCollectionFetchReady(collectionScope);
   const { getToken } = useAuthIdentity();
   const [summary, setSummary] = useState<ILibrarySummary | null>(null);
@@ -67,6 +68,8 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
         );
         if (brandId) {
           url.searchParams.set('brandId', brandId);
+        } else if (pageScope === 'org') {
+          url.searchParams.set('allBrands', 'true');
         }
 
         const response = await fetch(url.toString(), {
@@ -116,7 +119,7 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
     return () => {
       controller.abort();
     };
-  }, [brandId, getToken, isFetchReady, reloadToken]);
+  }, [brandId, getToken, isFetchReady, pageScope, reloadToken]);
 
   return { summary, isLoading, error, refresh };
 }
