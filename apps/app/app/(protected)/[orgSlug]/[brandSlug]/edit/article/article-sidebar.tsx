@@ -15,6 +15,7 @@ export default function ArticleSidebar({
   delivery,
 }: ArticleSidebarProps) {
   const isPublished = form.status === ArticleStatus.PUBLISHED;
+  const seoScore = article?.seoScore ?? article?.seoBreakdown?.score;
   const facts = article
     ? [
         formatEnumLabel(form.status),
@@ -58,10 +59,11 @@ export default function ArticleSidebar({
 
       {article && (
         <InspectorSection
+          key={isPublished ? 'published' : 'draft'}
           title="SEO"
           summary={
-            typeof article.seoScore === 'number'
-              ? `${Math.round(article.seoScore)}/100`
+            typeof seoScore === 'number'
+              ? `${Math.round(seoScore)}/100`
               : 'Not scored'
           }
           isDefaultOpen={!isPublished}

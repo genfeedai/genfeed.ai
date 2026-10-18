@@ -407,6 +407,30 @@ describe('ArticleDetail', () => {
     expect(handleScoreSeo).toHaveBeenCalledTimes(1);
   });
 
+  it('falls back to the scorecard score in the SEO summary', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        id: 'article-1',
+        label: 'SEO Article',
+        seoBreakdown: { score: 64, suggestions: [] },
+        status: 'draft',
+      },
+      form: {
+        category: 'blog',
+        content: '',
+        label: 'SEO Article',
+        status: 'draft',
+        summary: '',
+        tags: '',
+      },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByTestId('article-seo')).toHaveTextContent('64/100');
+  });
+
   it('shows the cover image above the editor when the article has one', () => {
     useArticleDetailMock.mockReturnValue({
       ...defaultArticleDetailState(),
