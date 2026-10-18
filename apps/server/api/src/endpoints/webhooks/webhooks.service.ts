@@ -3,6 +3,7 @@ import {
   ASSET_ORIGIN_GENERATION_PENDING,
 } from '@api/collections/assets/constants/asset-origin.constant';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -162,6 +163,36 @@ export class WebhooksService {
     });
   }
 
+  /**
+   * Puts an ingredient the stuck-ingredient cron failed back in PROCESSING so a
+   * late successful provider result can finalize it. Only the cron's own
+   * timeout marker qualifies; a provider-confirmed failure never reopens.
+   */
+  private async reopenTimedOutGeneration(
+    ingredient: NonNullable<Awaited<ReturnType<IngredientsService['findOne']>>>,
+  ): Promise<boolean> {
+    if (
+      ingredient.status !== IngredientStatus.FAILED ||
+      ingredient.generationError !== INGREDIENT_PROCESSING_TIMEOUT_ERROR
+    ) {
+      return false;
+    }
+
+    const reopened = await this.ingredientsService.patchAll(
+      {
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+        id: ingredient.id.toString(),
+        ...(ingredient.organizationId
+          ? { organizationId: ingredient.organizationId }
+          : {}),
+        isDeleted: false,
+        status: IngredientStatus.FAILED,
+      },
+      { generationError: null, status: IngredientStatus.PROCESSING },
+    );
+    return reopened.modifiedCount === 1;
+  }
+
   private async finalizeWebhookMedia(input: {
     categoryValue: IngredientCategory;
     ingredientId: string;
@@ -177,7 +208,12 @@ export class WebhooksService {
     const current = await this.ingredientsService.findOne({
       id: input.ingredientId,
     });
-    if (!current || current.status !== IngredientStatus.PROCESSING) {
+    if (current && (await this.reopenTimedOutGeneration(current))) {
+      this.loggerService.log(
+        `${logContext} provider finished after the processing timeout, recovering`,
+        { ingredientId: input.ingredientId },
+      );
+    } else if (!current || current.status !== IngredientStatus.PROCESSING) {
       this.loggerService.log(
         `${logContext} skipping finalize — generation is no longer in progress`,
         {
@@ -414,11 +450,27 @@ export class WebhooksService {
     }
 
     if (ingredient.status !== IngredientStatus.PROCESSING) {
-      if (ingredient.status === IngredientStatus.FAILED)
+      if (ingredient.status === IngredientStatus.FAILED) {
         await this.generationSettlement.releaseOutput(
           ingredientId,
           ingredient.organizationId,
         );
+        // The provider confirmed the failure the cron only guessed at, and the
+        // hold is gone, so a later success callback must not reopen it.
+        if (ingredient.generationError === INGREDIENT_PROCESSING_TIMEOUT_ERROR)
+          await this.ingredientsService.patchAll(
+            {
+              generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+              id: ingredient.id.toString(),
+              ...(ingredient.organizationId
+                ? { organizationId: ingredient.organizationId }
+                : {}),
+              isDeleted: false,
+              status: IngredientStatus.FAILED,
+            },
+            { generationError: errorMessage ?? 'Generation failed' },
+          );
+      }
       return;
     }
     const claimed = await this.ingredientsService.patchAll(
