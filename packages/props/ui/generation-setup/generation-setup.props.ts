@@ -140,6 +140,33 @@ export interface GenerationSetupFieldRowProps {
   source: GenerationSetupSource;
 }
 
+export interface GenerationSetupSummaryInput {
+  autoLabel: string;
+  capabilities: StudioPlaygroundCapabilities;
+  formatDuration: (seconds: number) => string;
+  inputControls?: CrunInputControls;
+  lookOptions: GenerationSetupLookOptions;
+  models: readonly IModel[];
+  setup: GenerationSetup;
+}
+
+export interface GenerationSetupSummary {
+  hasLookFields: boolean;
+  hasOutputFields: boolean;
+  modelLabel: string;
+  outputLabel: string;
+  selectedModel?: IModel;
+}
+
+/**
+ * Advanced mode lays the main setup sections out as toolbar chips, each
+ * opening its own section, instead of nesting them in the setup menu.
+ */
+export type GenerationSetupSectionChipsProps = Omit<
+  GenerationSetupCustomizePanelProps,
+  'initialSection' | 'onBack'
+>;
+
 export interface GenerationSetupFrontDoorProps {
   activeSection?: GenerationSetupCustomizeSectionId;
   onCloseSection?: () => void;

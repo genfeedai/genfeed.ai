@@ -1136,6 +1136,7 @@ export class ProactiveAgentRuntimeFixture {
           () => this.prisma.workflowExecution.deleteMany({ where }),
           () => this.prisma.workflow.deleteMany({ where }),
           () => this.prisma.credential.deleteMany({ where }),
+          () => this.prisma.organizationSetting.deleteMany({ where }),
           () =>
             this.prisma.brand.deleteMany({
               where: { ...where, id: { notIn: retention.brandIds } },

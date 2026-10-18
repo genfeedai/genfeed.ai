@@ -1,6 +1,13 @@
 import type { ApprovedGenerationQuoteConstraint } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
+/**
+ * What a trusted proactive turn may do with a text post. `draft-only` keeps it
+ * in review; `publish-gate` lets `evaluateAgentPublishPolicy` decide, because
+ * the agent opted into earned auto-publish.
+ */
+export type ProactiveTextPostGrant = 'draft-only' | 'publish-gate';
+
 export type AgentMutationAuthorization =
   | {
       kind: 'execute';

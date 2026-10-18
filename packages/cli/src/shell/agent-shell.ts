@@ -56,7 +56,7 @@ function shortId(value?: string): string {
 function shellPrompt(state: AgentShellState): string {
   const mode = state.pendingInputRequest ? 'input' : 'chat';
   const threadLabel = state.threadId ? `thread:${shortId(state.threadId)}` : 'thread:new';
-  return chalk.hex('#7C3AED')('gf') + chalk.dim(` [${threadLabel} | ${mode}] > `);
+  return chalk.hex('#EDEDED')('gf') + chalk.dim(` [${threadLabel} | ${mode}] > `);
 }
 
 function printShellHelp(): void {

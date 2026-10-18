@@ -277,7 +277,10 @@ function proactiveAuthorizationFixture() {
       mode: 'manual',
       status: 'active',
     },
-    strategy: { config: { autonomyMode: 'SUPERVISED', isEnabled: true } },
+    strategy: {
+      config: { autonomyMode: 'SUPERVISED', isEnabled: true },
+      policies: {} as Record<string, unknown>,
+    },
   };
   const tx = {
     workflowExecution: {
@@ -766,6 +769,89 @@ describe('persisted supervised proactive text-draft authorization', () => {
       expect(decision.kind).toBe('return');
       expect(f.transaction).not.toHaveBeenCalled();
       expect(f.approvals.createPending).toHaveBeenCalledOnce();
+    },
+  );
+});
+
+describe('earned auto-publish proactive text posts (#7338)', () => {
+  function autoPublishFixture() {
+    const f = proactiveAuthorizationFixture();
+    f.context.autonomyMode = AgentAutonomyMode.AUTO_PUBLISH;
+    f.data.execution.result.inputValues.request.autonomyMode = 'AUTO_PUBLISH';
+    f.data.strategy.config.autonomyMode = 'AUTO_PUBLISH';
+    return f;
+  }
+
+  it('runs an opted-in auto-publish turn through the publish gate without a card', async () => {
+    const f = autoPublishFixture();
+    f.data.strategy.policies = { publishPolicy: { autoPublishEnabled: true } };
+
+    expect(await f.authorize()).toEqual({ kind: 'execute' });
+    expect(f.approvals.createPending).not.toHaveBeenCalled();
+    expect(f.preparePost).not.toHaveBeenCalled();
+    expect(f.tx.agentStrategy.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { config: true, policies: true } }),
+    );
+  });
+
+  it('lets a supervised turn that opted in reach the gate, so a graduated platform can publish', async () => {
+    const f = proactiveAuthorizationFixture();
+    f.data.strategy.policies = { publishPolicy: { autoPublishEnabled: true } };
+
+    expect(await f.authorize()).toEqual({ kind: 'execute' });
+    expect(f.approvals.createPending).not.toHaveBeenCalled();
+  });
+
+  it('keeps an auto-publish turn draft-only while the agent has not opted in', async () => {
+    const f = autoPublishFixture();
+    f.data.strategy.policies = { publishPolicy: { autoPublishEnabled: false } };
+
+    expect(await f.authorize()).toEqual({
+      kind: 'execute',
+      constraint: 'proactive-text-draft-only',
+    });
+    expect(f.approvals.createPending).not.toHaveBeenCalled();
+  });
+
+  const mismatches: Array<
+    [string, (f: ReturnType<typeof autoPublishFixture>) => void]
+  > = [
+    [
+      'a supervised stored agent',
+      (f) => {
+        f.data.strategy.config.autonomyMode = 'SUPERVISED';
+      },
+    ],
+    [
+      'a supervised frozen request',
+      (f) => {
+        f.data.execution.result.inputValues.request.autonomyMode = 'SUPERVISED';
+      },
+    ],
+    [
+      'an agent with no stored mode',
+      (f) => {
+        delete (f.data.strategy.config as { autonomyMode?: string })
+          .autonomyMode;
+      },
+    ],
+  ];
+  it.each(mismatches)(
+    'fails closed for an auto-publish turn against %s',
+    async (_name, corrupt) => {
+      const f = autoPublishFixture();
+      f.data.strategy.policies = {
+        publishPolicy: { autoPublishEnabled: true },
+      };
+      corrupt(f);
+      expect(await f.authorize()).toMatchObject({
+        kind: 'return',
+        result: {
+          success: false,
+          error: 'Proactive text drafts require a trusted proactive execution.',
+        },
+      });
+      expect(f.approvals.createPending).not.toHaveBeenCalled();
     },
   );
 });
