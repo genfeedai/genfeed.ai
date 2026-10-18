@@ -62,6 +62,8 @@ export * from '@serializers/configs/content/publish-approval.config';
 export * from '@serializers/configs/content/recurrence-rule.config';
 export * from '@serializers/configs/content/release-attachment.config';
 export * from '@serializers/configs/content/release-group.config';
+export * from '@serializers/configs/content/review-inbox-decision.config';
+export * from '@serializers/configs/content/review-inbox-item.config';
 export * from '@serializers/configs/content/rss-source.config';
 export * from '@serializers/configs/content/schedule.config';
 export * from '@serializers/configs/content/speech-transcription.config';

@@ -1,4 +1,8 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createPublishingApprovalsRoute,
+} from '@genfeedai/contracts/constants';
+import { buildReviewInboxItemId } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -203,7 +207,7 @@ export function approvalPendingToolResult(
   estimate?: McpApprovalCostEstimate,
   canResolveApproval = false,
 ): McpToolErrorResult {
-  return mcpToolErrorResult({
+  const result = mcpToolErrorResult({
     code: 'approval_pending',
     approvalId: approval.id,
     toolName: approval.toolName,
@@ -220,6 +224,22 @@ export function approvalPendingToolResult(
       approvalCostNote(estimate),
     nextStepUrl: nextStepUrl('approval_pending'),
   });
+  // Display text stays free of ids; the structured link opens this exact
+  // approval in the Genfeed review inbox (#7340).
+  return {
+    ...result,
+    structuredContent: {
+      ...result.structuredContent,
+      nextStepUrl: appUrl(
+        createPublishingApprovalsRoute({
+          approval: buildReviewInboxItemId({
+            approvalId: approval.id,
+            kind: 'mcp_approval',
+          }),
+        }),
+      ),
+    },
+  };
 }
 
 function constraintMessage(constraints: unknown): string | undefined {

@@ -9,6 +9,7 @@ import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
 import { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { RouterModule } from '@api/services/router/router.module';
@@ -23,6 +24,6 @@ import { Module } from '@nestjs/common';
     RouterModule,
     ByokModule,
   ],
-  providers: [McpApprovalsService, McpApprovalPricingService],
+  providers: [McpApprovalsService, McpApprovalPricingService, RolesGuard],
 })
 export class McpApprovalsModule {}

@@ -38,6 +38,7 @@ import {
   WorkflowActorMembershipVerifier,
 } from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
+import { WorkflowReviewGateFeedbackService } from '@api/collections/workflows/services/workflow-review-gate-feedback.service';
 import {
   AgentScopeContextService,
   resolveNestedActionOrigin,
@@ -112,6 +113,8 @@ export class WorkflowExecutorService {
     private readonly generationBilling?: WorkflowGenerationBillingService,
     @Optional()
     private readonly admissionPlan?: WorkflowGenerationAdmissionPlanService,
+    @Optional()
+    private readonly reviewGateFeedback?: WorkflowReviewGateFeedbackService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -631,7 +634,7 @@ export class WorkflowExecutorService {
     approved: boolean,
     rejectionReason?: string,
   ): Promise<ReviewGateApprovalResult> {
-    return this.reviewGateService.submitReviewGateApproval(
+    const result = await this.reviewGateService.submitReviewGateApproval(
       workflowId,
       executionId,
       userId,
@@ -640,6 +643,18 @@ export class WorkflowExecutorService {
       approved,
       rejectionReason,
     );
+    // Every human gate decision lands here (the timeout sweep resolves through
+    // resolveTimedOutReviewGate), so only people teach the autonomy streak and
+    // the harness, and only once the gate is actually resolved.
+    await this.reviewGateFeedback?.recordDecision({
+      executionId,
+      isApproved: result.status === 'approved',
+      nodeId,
+      organizationId,
+      rejectionReason: result.rejectionReason,
+      userId,
+    });
+    return result;
   }
 
   /**

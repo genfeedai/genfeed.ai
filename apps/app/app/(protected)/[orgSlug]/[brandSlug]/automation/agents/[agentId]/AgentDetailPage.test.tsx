@@ -25,6 +25,10 @@ vi.mock('./AgentActivitySection', () => ({
   default: () => <div data-testid="agent-activity-section" />,
 }));
 
+vi.mock('./AgentLatestReport', () => ({
+  default: () => <div data-testid="agent-latest-report" />,
+}));
+
 const openConversation = vi.hoisted(() => vi.fn());
 
 vi.mock('../open-content-agent-conversation', () => ({
@@ -401,5 +405,11 @@ describe('AgentDetailPage', () => {
     render(<AgentDetailPage agentId="strategy-1" />);
 
     expect(screen.getByTestId('agent-activity-section')).toBeInTheDocument();
+  });
+
+  it('shows the latest report on the agent home', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(screen.getByTestId('agent-latest-report')).toBeInTheDocument();
   });
 });

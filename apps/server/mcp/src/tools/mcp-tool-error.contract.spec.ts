@@ -241,13 +241,19 @@ describe('MCP tool error contract', () => {
     });
 
     expect(result.isError).toBe(true);
+    const inboxUrl = appUrl(
+      `${APP_ROUTES.PUBLISHING.REVIEW}&approval=mcp_approval%3Aapr-1`,
+    );
     expect(result.structuredContent).toMatchObject({
       code: 'approval_pending',
-      nextStepUrl: appUrl(APP_ROUTES.PUBLISHING.REVIEW),
+      nextStepUrl: inboxUrl,
     });
     expect(result.structuredContent.message).toContain('requires approval');
     expect(result.structuredContent.approvalId).toBe('apr-1');
     expect(result.content[0].text).not.toContain('apr-1');
+    expect(result.content[0].text).toContain(
+      `Continue in Genfeed: ${appUrl(APP_ROUTES.PUBLISHING.REVIEW)}`,
+    );
     expect(result.structuredContent).not.toHaveProperty('retryAfterSeconds');
     expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
   });

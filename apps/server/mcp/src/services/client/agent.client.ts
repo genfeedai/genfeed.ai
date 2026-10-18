@@ -152,6 +152,25 @@ export class AgentClient {
   }
 
   /**
+   * Claim an APPROVED approval for its single execution (an atomic fence on
+   * the API: unclaimed and without an outcome). Direct-dispatch tools have no
+   * other fence, so they claim before running; `false` means another caller
+   * already ran or is running it.
+   */
+  claimApprovalExecution(approvalId: string): Promise<boolean> {
+    return this.base.request(
+      `claiming approval ${approvalId}`,
+      async (http) => {
+        const response = await http.post(
+          `/mcp-approvals/${encodeURIComponent(approvalId)}/claim`,
+        );
+        return response.data?.data?.isClaimed === true;
+      },
+      this.base.failWithDetail('Failed to claim approval'),
+    );
+  }
+
+  /**
    * Attach the tool execution result (or error) to an already-APPROVED approval.
    * Called after the approval has been atomically claimed via {@link resolveApproval}
    * and the tool has run, so the audit record reflects the outcome.

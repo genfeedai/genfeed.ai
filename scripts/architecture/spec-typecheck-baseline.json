@@ -7883,30 +7883,6 @@
     {
       "code": 2550,
       "count": 1,
-      "file": "packages/agent/src/components/AgentActivityFeed.tsx",
-      "fingerprint": "d0e80b4fff082fb0ff98",
-      "message": "Property 'toSorted' does not exist on type '(IAgentStrategyRunHistoryItem | AgentStrategyRun)[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
-      "workspace": "ui"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentActivityFeed.tsx",
-      "fingerprint": "aabb61dfb9778d751984",
-      "message": "Parameter 'run' implicitly has an 'any' type.",
-      "workspace": "ui"
-    },
-    {
-      "code": 7006,
-      "count": 2,
-      "file": "packages/agent/src/components/AgentActivityFeed.tsx",
-      "fingerprint": "e87bdcea53eaf8d1cd6f",
-      "message": "Parameter 'a' implicitly has an 'any' type.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2550,
-      "count": 1,
       "file": "packages/agent/src/components/agent-thread-list.helpers.ts",
       "fingerprint": "01a21103e97329910cad",
       "message": "Property 'toSorted' does not exist on type '{ brandId: string | null; label: string; threads: AgentThread[]; }[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
