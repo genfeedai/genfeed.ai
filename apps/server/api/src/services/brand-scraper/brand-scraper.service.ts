@@ -233,20 +233,7 @@ export class BrandScraperService {
     try {
       const normalizedUrl = this.normalizeUrl(url);
 
-      const response = await this.fetchWithRetry(normalizedUrl, {
-        headers: {
-          Accept: 'text/html,application/xhtml+xml',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'User-Agent': BROWSER_USER_AGENT,
-        },
-        redirect: 'follow',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch LinkedIn page: ${response.status}`);
-      }
-
-      const html = await response.text();
+      const html = await this.fetchSocialHtml(normalizedUrl, 'LinkedIn page');
       const $ = cheerio.load(html);
 
       const result: LinkedInScrapedData = {
@@ -308,20 +295,7 @@ export class BrandScraperService {
     try {
       const normalizedUrl = this.normalizeUrl(url);
 
-      const response = await this.fetchWithRetry(normalizedUrl, {
-        headers: {
-          Accept: 'text/html,application/xhtml+xml',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'User-Agent': BROWSER_USER_AGENT,
-        },
-        redirect: 'follow',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch X profile: ${response.status}`);
-      }
-
-      const html = await response.text();
+      const html = await this.fetchSocialHtml(normalizedUrl, 'X profile');
       const $ = cheerio.load(html);
 
       // Extract handle from URL
@@ -504,6 +478,39 @@ export class BrandScraperService {
     });
 
     return merged;
+  }
+
+  private async fetchSocialHtml(
+    url: string,
+    label: 'LinkedIn page' | 'X profile',
+  ): Promise<string> {
+    const budget: WebsiteFetchBudget = {
+      deadlineAt: performance.now() + WEBSITE_TIMEOUT_MS,
+    };
+    const response = await this.fetchWithRetry(
+      url,
+      {
+        headers: {
+          Accept: 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': BROWSER_USER_AGENT,
+        },
+        redirect: 'follow',
+      },
+      budget,
+    );
+    try {
+      if (!response.ok)
+        throw new Error(`Failed to fetch ${label}: ${response.status}`);
+      return await this.readWebsiteBody(
+        response,
+        budget,
+        undefined,
+        MAX_HTML_BYTES,
+      );
+    } finally {
+      await this.releaseWebsiteResponse(response);
+    }
   }
 
   /**

@@ -367,12 +367,12 @@ describe('S3Service', () => {
     });
 
     it('throws with the parsed error detail on a non-ok response', async () => {
-      safeFetchMock.mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-        text: async () => JSON.stringify({ message: 'missing object' }),
-      });
+      safeFetchMock.mockResolvedValue(
+        new Response(JSON.stringify({ message: 'missing object' }), {
+          status: 404,
+          statusText: 'Not Found',
+        }),
+      );
 
       await expect(
         service.downloadFromUrl(
@@ -383,12 +383,12 @@ describe('S3Service', () => {
     });
 
     it('falls back to raw text when the error body is not JSON', async () => {
-      safeFetchMock.mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: 'Server Error',
-        text: async () => 'plain text error',
-      });
+      safeFetchMock.mockResolvedValue(
+        new Response('plain text error', {
+          status: 500,
+          statusText: 'Server Error',
+        }),
+      );
 
       await expect(
         service.downloadFromUrl(
@@ -396,6 +396,242 @@ describe('S3Service', () => {
           'videos/broken.mp4',
         ),
       ).rejects.toThrow('plain text error');
+    });
+
+    it.each([undefined, '1', '65536'])(
+      'discards oversized error bytes with content-length %s and releases the body',
+      async (length) => {
+        const cancel = vi.fn();
+        let source: ReadableStreamDefaultController<Uint8Array> | undefined;
+        const response = new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              source = controller;
+              controller.enqueue(new Uint8Array(65_537).fill(120));
+            },
+            cancel,
+          }),
+          {
+            headers: length ? { 'content-length': length } : {},
+            status: 500,
+            statusText: 'Server Error',
+          },
+        );
+        safeFetchMock.mockResolvedValue(response);
+        const outcome = service
+          .downloadFromUrl(
+            'https://example.com/broken.mp4',
+            'videos/broken.mp4',
+          )
+          .catch((error: unknown) => error);
+        try {
+          for (let turn = 0; turn < 20; turn++) await Promise.resolve();
+          expect(cancel).toHaveBeenCalledOnce();
+          expect(response.body?.locked).toBe(false);
+        } finally {
+          // Also settle the old unbounded implementation during the RED run.
+          if (!cancel.mock.calls.length) source?.close();
+          await outcome;
+        }
+        expect(await outcome).toEqual(
+          new Error(
+            'Failed to download from https://example.com/broken.mp4: 500 Server Error - Server Error',
+          ),
+        );
+        expect(pipelineMock).not.toHaveBeenCalled();
+        expect(fs.createWriteStream).not.toHaveBeenCalled();
+      },
+    );
+
+    it('accepts exactly 64 KiB of complete error text and releases its reader', async () => {
+      const text = 'a'.repeat(65_536);
+      const response = new Response(text, { status: 500 });
+      safeFetchMock.mockResolvedValue(response);
+      await expect(
+        service.downloadFromUrl(
+          'https://example.com/broken.mp4',
+          'videos/broken.mp4',
+        ),
+      ).rejects.toThrow(` - ${text}`);
+      expect(response.body?.locked).toBe(false);
+    });
+
+    it.each([false, true])(
+      'bounds an unfinished error body with one absolute deadline (progress=%s)',
+      async (progress) => {
+        vi.useFakeTimers();
+        let source: ReadableStreamDefaultController<Uint8Array> | undefined;
+        const cancel = vi.fn();
+        const response = new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              source = controller;
+            },
+            cancel,
+          }),
+          { status: 503, statusText: 'Unavailable' },
+        );
+        safeFetchMock.mockResolvedValue(response);
+        let settled: unknown;
+        const outcome = service
+          .downloadFromUrl(
+            'https://example.com/broken.mp4',
+            'videos/broken.mp4',
+          )
+          .catch((error: unknown) => {
+            settled = error;
+            return error;
+          });
+        try {
+          await vi.advanceTimersByTimeAsync(0);
+          await vi.advanceTimersByTimeAsync(9_999);
+          expect(settled).toBeUndefined();
+          if (progress) source?.enqueue(new TextEncoder().encode('partial'));
+          await vi.advanceTimersByTimeAsync(1);
+          expect(settled).toEqual(
+            new Error(
+              'Failed to download from https://example.com/broken.mp4: 503 Unavailable - Unavailable',
+            ),
+          );
+          expect(cancel).toHaveBeenCalledOnce();
+          expect(response.body?.locked).toBe(false);
+          expect(vi.getTimerCount()).toBe(0);
+          expect(pipelineMock).not.toHaveBeenCalled();
+          expect(fs.createWriteStream).not.toHaveBeenCalled();
+        } finally {
+          if (!cancel.mock.calls.length) source?.close();
+          await outcome;
+          vi.useRealTimers();
+        }
+      },
+    );
+
+    it.each(['reject', 'pending'])(
+      'does not wait for or expose %s cancellation after an oversized error',
+      async (cancellation) => {
+        let source: ReadableStreamDefaultController<Uint8Array> | undefined;
+        const cancel = vi.fn(() =>
+          cancellation === 'reject'
+            ? Promise.reject(new Error('private cancellation failure'))
+            : new Promise<void>(() => undefined),
+        );
+        const response = new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              source = controller;
+              controller.enqueue(new Uint8Array(65_537).fill(120));
+            },
+            cancel,
+          }),
+          { status: 500, statusText: 'Server Error' },
+        );
+        safeFetchMock.mockResolvedValue(response);
+        let settled: unknown;
+        const outcome = service
+          .downloadFromUrl(
+            'https://example.com/broken.mp4',
+            'videos/broken.mp4',
+          )
+          .catch((error: unknown) => {
+            settled = error;
+            return error;
+          });
+        try {
+          for (let turn = 0; turn < 20; turn++) await Promise.resolve();
+          expect(cancel).toHaveBeenCalledOnce();
+          expect(settled).toEqual(
+            new Error(
+              'Failed to download from https://example.com/broken.mp4: 500 Server Error - Server Error',
+            ),
+          );
+          expect(response.body?.locked).toBe(false);
+        } finally {
+          if (!cancel.mock.calls.length) source?.close();
+          await outcome;
+        }
+      },
+    );
+
+    it('counts UTF-8 bytes rather than characters before retaining an error body', async () => {
+      const response = new Response('é'.repeat(32_769), {
+        status: 500,
+        statusText: 'Server Error',
+      });
+      safeFetchMock.mockResolvedValue(response);
+      const error = await service
+        .downloadFromUrl('https://example.com/broken.mp4', 'videos/broken.mp4')
+        .catch((error: unknown) => error);
+      expect(error).toEqual(
+        new Error(
+          'Failed to download from https://example.com/broken.mp4: 500 Server Error - Server Error',
+        ),
+      );
+      expect(response.body?.locked).toBe(false);
+    });
+
+    it('preserves split UTF-8 JSON detail and its precedence over message', async () => {
+      const bytes = new TextEncoder().encode(
+        JSON.stringify({
+          errors: [{ detail: 'missing café ☕' }],
+          message: 'fallback',
+        }),
+      );
+      const response = new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            for (const byte of bytes) controller.enqueue(Uint8Array.of(byte));
+            controller.close();
+          },
+        }),
+        { status: 404 },
+      );
+      safeFetchMock.mockResolvedValue(response);
+      await expect(
+        service.downloadFromUrl(
+          'https://example.com/broken.mp4',
+          'videos/broken.mp4',
+        ),
+      ).rejects.toThrow('missing café ☕');
+      expect(response.body?.locked).toBe(false);
+    });
+
+    it.each([null, ''])(
+      'preserves a complete empty error body %s',
+      async (body) => {
+        const response = new Response(body, { status: 500 });
+        safeFetchMock.mockResolvedValue(response);
+        const error = await service
+          .downloadFromUrl(
+            'https://example.com/broken.mp4',
+            'videos/broken.mp4',
+          )
+          .catch((error: unknown) => error);
+        expect(error).toEqual(
+          new Error(
+            'Failed to download from https://example.com/broken.mp4: 500  - ',
+          ),
+        );
+        expect(response.body?.locked ?? false).toBe(false);
+      },
+    );
+
+    it('uses the HTTP status when reading the error body fails', async () => {
+      const response = new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.error(new Error('private upstream failure'));
+          },
+        }),
+        { status: 503, statusText: 'Unavailable' },
+      );
+      safeFetchMock.mockResolvedValue(response);
+      await expect(
+        service.downloadFromUrl(
+          'https://example.com/broken.mp4',
+          'videos/broken.mp4',
+        ),
+      ).rejects.toThrow('503 Unavailable - Unavailable');
+      expect(response.body?.locked).toBe(false);
     });
   });
 
