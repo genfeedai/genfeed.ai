@@ -1,0 +1,35 @@
+name: Notify release
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  notify:
+    if: ${{ !github.event.release.prerelease && !github.event.release.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Notify webhooks
+        env:
+          RELEASE_WATCH_URL: ${{ secrets.RELEASE_WATCH_WEBHOOK_URL }}
+          RELEASE_WATCH_AUTH: ${{ secrets.RELEASE_WATCH_WEBHOOK_AUTH }}
+          QA_URL: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_URL }}
+          QA_AUTH: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_AUTH }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.event.release.tag_name }}
+          SHA: ${{ github.sha }}
+          URL: ${{ github.event.release.html_url }}
+          PUBLISHED_AT: ${{ github.event.release.published_at }}
+        run: |
+          payload=$(jq -n --arg repo "$REPO" --arg tag "$TAG" --arg sha "$SHA" --arg url "$URL" --arg at "$PUBLISHED_AT" \
+            '{event:"release.published", repository:$repo, tag:$tag, sha:$sha, url:$url, published_at:$at}')
+          send() {
+            [ -z "$1" ] && { echo "skip: $3 not configured"; return 0; }
+            curl -fsS --retry 3 --max-time 20 -X POST "$1" -H "$2" -H 'Content-Type: application/json' -d "$payload" >/dev/null \
+              && echo "sent: $3" || echo "::warning::failed to notify $3"
+          }
+          send "$RELEASE_WATCH_URL" "$RELEASE_WATCH_AUTH" "release-watch"
+          send "$QA_URL" "$QA_AUTH" "qa-post-deploy"
