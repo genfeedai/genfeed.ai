@@ -1,7 +1,6 @@
 import type { Platform } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ReplyBotConfig } from '@genfeedai/models/automation/reply-bot-config.model';
-import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -9,12 +8,7 @@ import {
 
 export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.REPLY_BOT_CONFIGS,
-      token,
-      ReplyBotConfig,
-      ReplyBotConfigSerializer,
-    );
+    super(API_ENDPOINTS.REPLY_BOT_CONFIGS, token, ReplyBotConfig);
   }
 
   public static getInstance(token: string): ReplyBotConfigsService {

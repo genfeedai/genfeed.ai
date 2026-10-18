@@ -106,6 +106,23 @@ describe('SocialUrlHelper', () => {
     });
   });
 
+  describe('isTikTokPublishId', () => {
+    it('detects publish ids', () => {
+      expect(
+        SocialUrlHelper.isTikTokPublishId('v_pub_url~v2-1.7697905849796380694'),
+      ).toBe(true);
+      expect(SocialUrlHelper.isTikTokPublishId('v_inbox_file~v2.123')).toBe(
+        true,
+      );
+    });
+
+    it('does not flag real video ids', () => {
+      expect(SocialUrlHelper.isTikTokPublishId('7697906382447578390')).toBe(
+        false,
+      );
+    });
+  });
+
   describe('buildTikTokUrl', () => {
     it('builds URL with username', () => {
       expect(SocialUrlHelper.buildTikTokUrl('789', 'creator')).toBe(

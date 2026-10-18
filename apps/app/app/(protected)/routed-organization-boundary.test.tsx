@@ -56,7 +56,7 @@ describe('RoutedOrganizationBoundary', () => {
       'min-h-dvh',
       'bg-background',
     );
-    expect(document.querySelector('.genfeed-loader-root')).toBeTruthy();
+    expect(document.querySelector('.genfeed-spinner')).toBeTruthy();
   });
 
   it('shows a switching loader without mounting tenant content', () => {

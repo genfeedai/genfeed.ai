@@ -4,12 +4,7 @@ import type {
   IAgentStrategyRunHistoryItem,
   IBrand,
 } from '@genfeedai/contracts/interfaces';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
-
-const agentStrategySerializer: IServiceSerializer<AgentStrategy> = {
-  serialize: (data) => data,
-};
 
 export interface AgentStrategyBudgetCap {
   creditBudget: number;
@@ -257,12 +252,7 @@ export class AgentStrategiesService extends BaseService<
   Partial<CreateAgentStrategyInput>
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.AGENT_STRATEGIES,
-      token,
-      AgentStrategy,
-      agentStrategySerializer,
-    );
+    super(API_ENDPOINTS.AGENT_STRATEGIES, token, AgentStrategy);
   }
 
   public static getInstance(token: string): AgentStrategiesService {

@@ -4,7 +4,6 @@ import {
 } from '@genfeedai/client/models';
 import type { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import { KnowledgeSpaceSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
@@ -23,12 +22,7 @@ export class KnowledgeSpacesService extends BaseService<
   { title?: string }
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.KNOWLEDGE_SPACES,
-      token,
-      KnowledgeSpace,
-      KnowledgeSpaceSerializer,
-    );
+    super(API_ENDPOINTS.KNOWLEDGE_SPACES, token, KnowledgeSpace);
   }
 
   public static getInstance(token: string): KnowledgeSpacesService {

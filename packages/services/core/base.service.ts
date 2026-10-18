@@ -1,9 +1,6 @@
 import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
-import type {
-  IHttpError,
-  IServiceSerializer,
-} from '@genfeedai/contracts/interfaces/utils/error.interface';
+import type { IHttpError } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -65,7 +62,6 @@ export abstract class BaseService<
     endpoint: string,
     token: string,
     public readonly model: new (partial: Partial<T>) => T,
-    readonly _serializer: IServiceSerializer<T>,
   ) {
     // Automatically construct full URL from EnvironmentService.apiEndpoint + endpoint
     super(`${EnvironmentService.apiEndpoint}${endpoint}`, token);

@@ -1724,6 +1724,9 @@ model Setting {
   // Rail order the member arranged, over every rail app (core and secondary).
   // Empty means the default order. Unlisted apps follow in default order.
   railAppOrder                     String[]                   @default([])
+  // Core apps the member took off the rail. They stay reachable from the
+  // More menu until pinned back. Empty keeps every core app on the rail.
+  hiddenAppIds                     String[]                   @default([])
   // The app the member lands on after login. Null falls back to the
   // organization default, then Workspace.
   homeAppId                        String?

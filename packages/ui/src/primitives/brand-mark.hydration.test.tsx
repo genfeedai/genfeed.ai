@@ -1,5 +1,5 @@
 import { act } from '@testing-library/react';
-import Spinner from '@ui/primitives/spinner';
+import BrandLoader from '@ui/feedback/brand-loader/BrandLoader';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -31,8 +31,8 @@ describe('BrandMark hydration', () => {
     document.head.innerHTML = '';
   });
 
-  it('hydrates the protected-shell spinner when a browser extension adds style siblings', async () => {
-    const tree = <Spinner aria-hidden="true" className="size-6" />;
+  it('hydrates the brand loader when a browser extension adds style siblings', async () => {
+    const tree = <BrandLoader className="size-6" />;
     const container = document.createElement('div');
     container.innerHTML = renderToString(tree);
     document.body.append(container);

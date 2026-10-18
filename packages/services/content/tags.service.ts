@@ -6,16 +6,16 @@ import type {
   ITagColorSwatch,
 } from '@genfeedai/contracts/interfaces';
 import { Tag } from '@genfeedai/models/content/tag.model';
-import { TagSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
 import { logger } from '@services/core/logger.service';
+import { serializeRequest } from '@services/core/request-serializers';
 
 export class TagsService extends BaseService<Tag> {
   constructor(token: string) {
-    super(API_ENDPOINTS.TAGS, token, Tag, TagSerializer);
+    super(API_ENDPOINTS.TAGS, token, Tag);
   }
 
   public static getInstance(token: string): TagsService {
@@ -92,7 +92,7 @@ export class TagsService extends BaseService<Tag> {
     const url = 'POST /tags';
     try {
       // Serialize the data before sending - note: no entity field sent to backend
-      const data = TagSerializer.serialize({
+      const data = await serializeRequest('TagSerializer', {
         category,
         label,
       });
@@ -132,7 +132,7 @@ export class TagsService extends BaseService<Tag> {
     const url = `PATCH /tags/${tagId}`;
     try {
       // Serialize the data before sending
-      const serializedData = TagSerializer.serialize({ label });
+      const serializedData = await serializeRequest('TagSerializer', { label });
       return await this.instance
         .patch(tagId, serializedData)
         .then((res) => res.data)

@@ -97,6 +97,9 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     webhookName: string,
   ): Promise<WebhookClient | null> {
     if (!channelId) {
+      this.loggerService.warn(
+        `No Discord channel ID is set for the "${webhookName}" webhook. Set it in Admin > Platform settings.`,
+      );
       return null;
     }
 
@@ -304,6 +307,12 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
         channelId:
           (await this.runtimeSettings.get()).discordChannelIdPosts ?? undefined,
         name: 'POSTS',
+      },
+      {
+        channelId:
+          (await this.runtimeSettings.get()).discordChannelIdModels ??
+          undefined,
+        name: 'MODELS',
       },
       {
         channelId:

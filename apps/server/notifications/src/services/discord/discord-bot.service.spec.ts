@@ -71,6 +71,7 @@ describe('DiscordBotService', () => {
       get: vi.fn().mockImplementation((key: string) => {
         const config: Record<string, string> = {
           DISCORD_BOT_TOKEN: 'test-bot-token',
+          DISCORD_CHANNEL_ID_MODELS: 'channel-models-321',
           DISCORD_CHANNEL_ID_POSTS: 'channel-posts-123',
           DISCORD_CHANNEL_ID_STUDIO: 'channel-studio-456',
           DISCORD_CHANNEL_ID_USERS: 'channel-users-789',
@@ -664,10 +665,11 @@ describe('DiscordBotService', () => {
       const result = await service.getAllConfiguredChannels();
 
       expect(result.success).toBe(true);
-      expect(result.channels).toHaveLength(3);
+      expect(result.channels).toHaveLength(4);
       expect(result.channels[0].name).toBe('POSTS');
-      expect(result.channels[1].name).toBe('STUDIO');
-      expect(result.channels[2].name).toBe('USERS');
+      expect(result.channels[1].name).toBe('MODELS');
+      expect(result.channels[2].name).toBe('STUDIO');
+      expect(result.channels[3].name).toBe('USERS');
     });
 
     it('should test each configured channel', async () => {
@@ -678,7 +680,7 @@ describe('DiscordBotService', () => {
 
       await service.getAllConfiguredChannels();
 
-      expect(mockClient.channels.fetch).toHaveBeenCalledTimes(3);
+      expect(mockClient.channels.fetch).toHaveBeenCalledTimes(4);
     });
   });
 });

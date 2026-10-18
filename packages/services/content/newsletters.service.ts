@@ -5,10 +5,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Newsletter } from '@genfeedai/models/content/newsletter.model';
 import {
-  buildSerializer,
-  newsletterSerializerConfig,
-} from '@genfeedai/serializers';
-import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
@@ -53,14 +49,9 @@ export interface UpdateNewsletterRequest {
   topic?: string;
 }
 
-const { NewsletterSerializer } = buildSerializer(
-  'client',
-  newsletterSerializerConfig,
-);
-
 export class NewslettersService extends BaseService<Newsletter> {
   constructor(token: string) {
-    super('/newsletters', token, Newsletter, NewsletterSerializer);
+    super('/newsletters', token, Newsletter);
   }
 
   public static getInstance(token: string): NewslettersService {

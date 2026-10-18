@@ -1,7 +1,10 @@
 'use client';
 
 import type { SkillSurface } from '@genfeedai/contracts';
-import type { PromptCommand } from '@genfeedai/props/prompt-bars/prompt-command.props';
+import type {
+  PromptCommand,
+  PromptCommandContext,
+} from '@genfeedai/props/prompt-bars/prompt-command.props';
 import { extractRequestedSkillSlugs } from '@helpers/content/prompt-command.helper';
 import { useSurfaceSkillCommands } from '@hooks/data/skills/use-surface-skill-commands';
 import type { AnyExtension } from '@tiptap/core';
@@ -31,7 +34,17 @@ export interface UsePromptCommandExtensionReturn {
     content: string;
     skillSlugs: string[];
   };
+  /**
+   * Registers what the page has loaded (presets, saved looks) ahead of the
+   * catalog. Stable identity; a later call replaces the earlier one.
+   */
+  setContext: (context: PromptCommandContext | null) => void;
 }
+
+const EMPTY_CONTEXT: PromptCommandContext = {
+  commands: [],
+  onSelect: () => undefined,
+};
 
 /**
  * Wires the shared `/` palette into any TipTap composer.
@@ -58,15 +71,35 @@ export function usePromptCommandExtension({
     ...new Set([...skillSlugs, ...(recognizedSkillSlugs ?? [])]),
   ];
 
+  const contextRef = useRef<PromptCommandContext>(EMPTY_CONTEXT);
+
   const extraExtensions = useMemo(
     () => [
       PromptCommands.configure({
-        getItems: (query) => filterPromptCommands(commandsRef.current, query),
-        onSelect: insertPromptCommandText,
+        getItems: (query) =>
+          filterPromptCommands(
+            [...contextRef.current.commands, ...commandsRef.current],
+            query,
+          ),
+        onSelect: (selection) => {
+          if (selection.item.kind !== 'preset') {
+            insertPromptCommandText(selection);
+            return;
+          }
+          selection.editor.chain().focus().deleteRange(selection.range).run();
+          contextRef.current.onSelect(
+            selection.item,
+            selection.editor.getText(),
+          );
+        },
       }),
     ],
     [],
   );
+
+  const setContext = useCallback((context: PromptCommandContext | null) => {
+    contextRef.current = context ?? EMPTY_CONTEXT;
+  }, []);
 
   const resolveSubmit = useCallback(
     (prompt: string) =>
@@ -74,5 +107,5 @@ export function usePromptCommandExtension({
     [],
   );
 
-  return { commands, extraExtensions, resolveSubmit };
+  return { commands, extraExtensions, resolveSubmit, setContext };
 }

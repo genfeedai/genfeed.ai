@@ -4,18 +4,12 @@ import type {
   IHarnessProfile,
 } from '@genfeedai/contracts/interfaces';
 import { HarnessProfile } from '@genfeedai/models/ai/harness-profile.model';
-import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
 
 export class HarnessProfilesService extends BaseService<HarnessProfile> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.HARNESS_PROFILES,
-      token,
-      HarnessProfile,
-      HarnessProfileSerializer,
-    );
+    super(API_ENDPOINTS.HARNESS_PROFILES, token, HarnessProfile);
   }
 
   public static getInstance(token: string): HarnessProfilesService {

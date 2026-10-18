@@ -21,11 +21,13 @@ export default function PromptBarToolbar({
         density === 'compact' ? 'min-h-8' : 'min-h-9',
         className,
       )}
+      data-prompt-bar-toolbar=""
       data-testid="prompt-bar-toolbar"
     >
       <div
         aria-label={leadingLabel}
         className="flex min-w-0 flex-1 flex-wrap items-center gap-1"
+        data-prompt-bar-leading=""
         role="group"
       >
         {leading}

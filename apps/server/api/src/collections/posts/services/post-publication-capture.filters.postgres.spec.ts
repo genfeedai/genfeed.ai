@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   extensionPublicationAnalyticsDiscoveryFilter,
+  OWNED_INBOX_POST_ORDER_BY,
   publicYoutubeInboxPostFilter,
 } from '@api/collections/posts/services/post-publication-capture.filters';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -68,6 +69,8 @@ describe.skipIf(!connectionString)(
         foreign?: boolean;
         future?: boolean;
         publishedAt?: Date;
+        status?: string;
+        state?: TargetExecutionState;
         analytics?: boolean;
         publicInbox?: boolean;
       } = {},
@@ -87,8 +90,8 @@ describe.skipIf(!connectionString)(
           platform: 'youtube',
           externalId: `V${String(++token).padStart(10, '0')}`,
           source: options.source === undefined ? 'extension' : options.source,
-          status: 'public',
-          targetExecutionState: TargetExecutionState.PUBLISHED,
+          status: options.status ?? 'public',
+          targetExecutionState: options.state ?? TargetExecutionState.PUBLISHED,
           targetSettings: settings,
           isAnalyticsEnabled: options.enabled ?? true,
           visibility: options.visibility ?? null,
@@ -188,6 +191,21 @@ describe.skipIf(!connectionString)(
         { extensionCapture: { version: 1 } },
         { visibility: 'public', analytics: true },
       );
+      // Published through the post lifecycle: `status` keeps its draft default.
+      await add(
+        'lifecycle-published',
+        {},
+        { source: null, status: 'draft', analytics: true, publicInbox: true },
+      );
+      await add(
+        'lifecycle-unpublished',
+        {},
+        {
+          source: null,
+          state: TargetExecutionState.SCHEDULED,
+          status: 'draft',
+        },
+      );
       await add('foreign', {}, { foreign: true });
       await add('deleted', {}, { deleted: true });
       await add('future', {}, { future: true });
@@ -284,7 +302,7 @@ describe.skipIf(!connectionString)(
           publicYoutubeInboxPostFilter({ id: credentialId, brandId }),
         ),
         take: 20,
-        orderBy: { publishedAt: 'desc' },
+        orderBy: OWNED_INBOX_POST_ORDER_BY,
         select: { id: true },
       });
       // The future legacy row is still a legitimate public-inbox row: that consumer has no analytics due-date predicate.

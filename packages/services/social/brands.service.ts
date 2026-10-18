@@ -37,7 +37,6 @@ import { Image } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { Link } from '@genfeedai/models/social/link.model';
-import { BrandSerializer } from '@genfeedai/serializers';
 import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -89,7 +88,7 @@ function readRememberedRelocationRequest(
 
 export class BrandsService extends BaseService<Brand> {
   constructor(token: string) {
-    super(API_ENDPOINTS.BRANDS, token, Brand, BrandSerializer);
+    super(API_ENDPOINTS.BRANDS, token, Brand);
   }
 
   public static getInstance(token: string): BrandsService {
