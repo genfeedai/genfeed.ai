@@ -281,6 +281,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@pages/studio/playground/components/StudioPlaygroundComposer', () => ({
   default: (props: {
+    notice?: ReactNode;
     onResetSettings: () => void;
     onSubmit: () => void;
     prompt: string;
@@ -288,6 +289,7 @@ vi.mock('@pages/studio/playground/components/StudioPlaygroundComposer', () => ({
     mocks.composer(props);
     return (
       <div data-testid="studio-composer">
+        {props.notice}
         <span>{props.prompt || 'Empty composer'}</span>
         <button type="button" onClick={props.onSubmit}>
           Generate
@@ -1009,9 +1011,9 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-results')).not.toContainElement(
       screen.getByPlaceholderText('searchPlaceholder'),
     );
-    expect(
-      screen.getByTestId('studio-playground-starter-ideas'),
-    ).toBeInTheDocument();
+    // Starter ideas belong to the empty state only; they never dock over
+    // the gallery once the brand has generations.
+    expect(screen.queryByTestId('studio-playground-starter-ideas')).toBeNull();
   });
 
   it('removes a deleted asset from the current-session job queue', () => {
@@ -2935,7 +2937,7 @@ describe('StudioPlaygroundWorkspace', () => {
       );
     });
 
-    it('saves the composer shortly after a change and shows the save status', async () => {
+    it('saves the composer shortly after a change without a saved label', async () => {
       render(<StudioPlaygroundWorkspace />);
       await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
 
@@ -2952,11 +2954,7 @@ describe('StudioPlaygroundWorkspace', () => {
           expect.anything(),
         ),
       );
-      await waitFor(() =>
-        expect(screen.getByTestId('studio-draft-status')).toHaveTextContent(
-          'draft.saved',
-        ),
-      );
+      expect(screen.queryByTestId('studio-draft-status')).toBeNull();
     });
 
     it('keeps the composer usable and retries when a save fails', async () => {
@@ -2976,9 +2974,7 @@ describe('StudioPlaygroundWorkspace', () => {
         timeout: 4000,
       });
       await waitFor(() =>
-        expect(screen.getByTestId('studio-draft-status')).toHaveTextContent(
-          'draft.saved',
-        ),
+        expect(screen.queryByTestId('studio-draft-status')).toBeNull(),
       );
     });
 

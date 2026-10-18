@@ -100,6 +100,30 @@ describe('IngredientsService', () => {
     );
   });
 
+  it('surfaces the API reason when the watermarked export is refused', async () => {
+    http.post.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        isAxiosError: true,
+        response: {
+          data: new Blob([
+            JSON.stringify({
+              errors: [
+                { detail: 'Configure a watermark in brand settings first' },
+              ],
+            }),
+          ]),
+          status: 400,
+        },
+      }),
+    );
+
+    await expect(service.downloadWatermarked('image-1')).rejects.toMatchObject({
+      message: 'Configure a watermark in brand settings first',
+      name: 'WatermarkExportError',
+    });
+    expect(saveDownloadBlob).not.toHaveBeenCalled();
+  });
+
   describe('constructor model mapping', () => {
     const cases: Array<[string, unknown]> = [
       ['avatars', Avatar],

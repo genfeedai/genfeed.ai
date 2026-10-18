@@ -1,4 +1,7 @@
-import type { AdminModelPricingReport } from '@genfeedai/contracts/interfaces';
+import type {
+  AdminModelPricingReport,
+  ModelPricingFixResult,
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -35,5 +38,17 @@ export class AdminModelPricingService extends HTTPBaseService {
       { expectedPendingVersion },
     );
     return deserializeResource<AdminModelPricingReport>(response.data);
+  }
+
+  /**
+   * Approve pending provider rates and queue price imports for the given models
+   * (every model that needs it when none are given).
+   */
+  async fixPricing(modelIds?: string[]): Promise<ModelPricingFixResult> {
+    const response = await this.instance.post<ModelPricingFixResult>(
+      'fix',
+      modelIds?.length ? { modelIds } : {},
+    );
+    return response.data;
   }
 }

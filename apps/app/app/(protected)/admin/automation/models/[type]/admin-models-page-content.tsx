@@ -5,6 +5,7 @@ import ModelsList from '@pages/models/list/models-list';
 import type { AdminModelsPageContentProps } from '@props/admin/models.props';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import FixPricingButton from './fix-pricing-button';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
 import ModelPricingDetails, {
   ModelPricingToolbar,
@@ -37,6 +38,7 @@ export default function AdminModelsPageContent({
           <ModelPricingDetails modelId={model.id} />
         ) : undefined
       }
+      renderCostAction={(model) => <FixPricingButton model={model} />}
       renderToolbar={(models) => <ModelPricingToolbar models={models} />}
     />
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type {
   AdminModelPricingRow,
@@ -15,13 +15,9 @@ import type {
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelPricingService } from '@services/admin/model-pricing.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import AdminDownloadButton from '@ui/layout/admin-page-shell/AdminDownloadButton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import {
-  SHELL_ICON_BUTTON_CLASS,
-  SHELL_ICON_CLASS,
-} from '@ui-constants/shell-chrome.constant';
-import { Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import {
@@ -407,32 +403,23 @@ export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
     [report, models],
   );
   return (
-    <div className="flex items-center gap-1">
-      <Button
-        ariaLabel={t('export')}
-        tooltip={t('export')}
-        size={ButtonSize.ICON}
-        className={SHELL_ICON_BUTTON_CLASS}
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
-        disabled={!report || !!error || isFetching}
-        onClick={() => {
-          if (!report) return;
-          const blob = new Blob([exportModelPricingCsv({ ...report, rows })], {
-            type: 'text/csv;charset=utf-8',
-          });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          URL.revokeObjectURL(url);
-        }}
-      >
-        <Download className={SHELL_ICON_CLASS} />
-      </Button>
-    </div>
+    <AdminDownloadButton
+      label={t('export')}
+      isDisabled={!report || !!error || isFetching}
+      onClick={() => {
+        if (!report) return;
+        const blob = new Blob([exportModelPricingCsv({ ...report, rows })], {
+          type: 'text/csv;charset=utf-8',
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }}
+    />
   );
 }

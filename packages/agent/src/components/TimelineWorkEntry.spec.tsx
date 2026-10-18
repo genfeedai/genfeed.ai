@@ -76,7 +76,7 @@ describe('TimelineWorkEntry', () => {
       />,
     );
     expect(
-      runningContainer.querySelector('output.genfeed-loader-root'),
+      runningContainer.querySelector('output.genfeed-spinner'),
     ).toBeTruthy();
 
     const { container: stoppedContainer } = render(
@@ -85,9 +85,7 @@ describe('TimelineWorkEntry', () => {
         stopActiveAnimation
       />,
     );
-    expect(
-      stoppedContainer.querySelector('output.genfeed-loader-root'),
-    ).toBeNull();
+    expect(stoppedContainer.querySelector('output.genfeed-spinner')).toBeNull();
   });
 
   it('shows a sentence instead of the tool JSON', () => {

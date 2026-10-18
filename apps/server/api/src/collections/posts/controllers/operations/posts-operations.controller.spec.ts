@@ -1536,6 +1536,34 @@ Tweet 3: Tech innovation is changing the world.`,
       }
     });
 
+    it('keeps the original failure as the cause of the 500 so it reaches Sentry', async () => {
+      const original = new Error('AI service unavailable');
+      mockReplicateService.generateTextCompletionSync.mockRejectedValueOnce(
+        original,
+      );
+
+      const failure = await generationController
+        .enhancePost(mockRequest, postId, enhancePostDto, mockUser)
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).cause).toBe(original);
+    });
+
+    it('passes client errors from the service through instead of turning them into a 500', async () => {
+      const clientError = new HttpException('Template not found', 404);
+      mockTemplatesService.getRenderedPrompt.mockRejectedValueOnce(clientError);
+
+      await expect(
+        generationController.enhancePost(
+          mockRequest,
+          postId,
+          enhancePostDto,
+          mockUser,
+        ),
+      ).rejects.toBe(clientError);
+    });
+
     it('should use platform-specific system prompt', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,

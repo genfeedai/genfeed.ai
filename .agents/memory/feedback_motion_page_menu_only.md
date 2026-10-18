@@ -25,6 +25,11 @@ then chose a product-wide sweep over a local fix.
   an explicit user instruction.
 - A new loader that must keep moving uses `animate-spin`, `animate-pulse`,
   `animate-shimmer`, a `genfeed-loader-*` class, or `role="progressbar"`.
+  A custom keyframe loader under any other class name is frozen by the policy
+  (the Refresh button spokes were, until renamed `genfeed-loader-refresh-*`).
+- Small busy states (`Spinner`, `Button` loading, overlays) are a plain
+  rotating ring (`animate-spin`); the animated G mark stays on `BrandLoader`
+  and full-page loaders only.
 - JS-driven motion (motion/react, animated icons) is not stopped by the CSS
   policy; keep it out of elements. `useHoverAnimatedIcon` stays only in page
   menu components.

@@ -12,7 +12,7 @@ import {
   type IngredientMediaSource,
   resolveIngredientMediaUrl,
 } from '@libs/media/media-url.util';
-import { safeFetch } from '@libs/security/destination-guard';
+import { downloadBounded } from '@libs/security/bounded-download';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -60,58 +60,21 @@ export class WhisperService {
         return false;
       }
     });
-    const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(new Error('Media download timeout')),
-      MEDIA_DOWNLOAD_TIMEOUT_MS,
-    );
-    try {
-      const response = await safeFetch(
-        input,
-        { signal: controller.signal },
-        configuredOrigin
-          ? { allowedOrigins: [destination.origin], allowPrivateNetwork: true }
-          : { allowPrivateNetwork: false },
-      );
-      if (!response.ok || !response.body) {
-        await response.body?.cancel().catch(() => undefined);
-        throw new Error('Media download is unavailable');
-      }
-      const declared = Number(response.headers.get('content-length'));
-      if (Number.isFinite(declared) && declared > MAX_FILE_SIZE) {
-        await response.body.cancel().catch(() => undefined);
-        throw new Error('Media download exceeds the size limit');
-      }
-      const reader = response.body.getReader();
-      const chunks: Buffer[] = [];
-      let total = 0;
-      let complete = false;
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            complete = true;
-            return Buffer.concat(chunks, total);
-          }
-          total += value.byteLength;
-          if (total > MAX_FILE_SIZE) {
-            throw new Error('Media download exceeds the size limit');
-          }
-          chunks.push(Buffer.from(value));
-        }
-      } finally {
-        try {
-          if (!complete) await reader.cancel().catch(() => undefined);
-        } finally {
-          reader.releaseLock();
-        }
-      }
-    } catch (error: unknown) {
-      if (controller.signal.aborted) throw new Error('Media download timeout');
-      throw error;
-    } finally {
-      clearTimeout(timeout);
-    }
+    const { data } = await downloadBounded(input, {
+      createError: (reason) =>
+        new Error(
+          reason === 'too-large'
+            ? 'Media download exceeds the size limit'
+            : 'Media download is unavailable',
+        ),
+      deadlineMs: MEDIA_DOWNLOAD_TIMEOUT_MS,
+      destination: configuredOrigin
+        ? { allowedOrigins: [destination.origin], allowPrivateNetwork: true }
+        : { allowPrivateNetwork: false },
+      maxBytes: MAX_FILE_SIZE,
+      timeoutError: new Error('Media download timeout'),
+    });
+    return data;
   }
 
   private async convertVideoToAudio(

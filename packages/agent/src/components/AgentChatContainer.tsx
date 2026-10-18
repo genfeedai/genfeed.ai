@@ -31,6 +31,7 @@ import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
 import { AlertCategory } from '@genfeedai/contracts';
 import { ONBOARDING_GREETING } from '@genfeedai/contracts/constants';
+import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import Alert from '@ui/feedback/alert/Alert';
 import {
   type ReactElement,
@@ -131,6 +132,15 @@ export function AgentChatContainer({
     onCreateFollowUpTasks,
     onSelectIngredient,
     workspacePlanningTaskId,
+  });
+  const composerOverlayRef = useMemo(
+    () => ({ current: composerOverlayElement }),
+    [composerOverlayElement],
+  );
+  const composerResting = usePromptBarResting({
+    composerRef: composerOverlayRef,
+    isEnabled: !isReadOnly && !container.error,
+    scrollRef: container.scrollContainerRef,
   });
   // Debounce non-connected chrome so nest-fast-dev / Next HMR restarts do not
   // thrash the composer status stack into overflow-hidden parents.
@@ -435,6 +445,8 @@ export function AgentChatContainer({
         onKeepWaiting={container.handleKeepWaiting}
         onStopAndRetry={container.handleStopAndRetry}
         onOverlayElement={setComposerOverlayElement}
+        isResting={composerResting.isResting}
+        onExpandResting={composerResting.expand}
         creditsAvailable={creditsRemaining}
         onMoveFollowUp={container.followUpQueue.move}
         onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}

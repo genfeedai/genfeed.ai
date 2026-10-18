@@ -36,6 +36,8 @@ export interface ModelsListProps {
   onPricingDetails?: (model: IModel) => void;
   renderExpandedRow?: (model: IModel) => ReactNode | undefined;
   renderToolbar?: (models: IModel[]) => ReactNode;
+  /** Admin only: a control beside a model's cost, e.g. "Fix pricing". */
+  renderCostAction?: (model: IModel) => ReactNode;
   beforeList?: ReactNode;
   onRefresh?: () => Promise<unknown>;
   scope?: PageScope;

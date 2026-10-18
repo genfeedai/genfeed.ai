@@ -45,6 +45,10 @@ import {
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,
 } from '@genfeedai/pricing';
+import type {
+  PromptBarContextGroup,
+  PromptBarContextItem,
+} from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
 import type { StudioPlaygroundComposerProps } from '@genfeedai/props/studio/studio-playground.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
@@ -82,10 +86,10 @@ import {
   listStudioPlaygroundTypeConfigs,
   resolveStudioPlaygroundCapabilities,
 } from '@pages/studio/playground/utils/studio-playground-types';
+import { buildStudioPresetCommands } from '@pages/studio/playground/utils/studio-prompt-commands';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
-import GenerationSetupPresetsPopover from '@ui/dropdowns/generation-setup/GenerationSetupPresetsPopover';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
 import {
   applyGenerationSetupPreset,
@@ -110,6 +114,7 @@ import {
 } from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
+import PromptBarContextRow from '@ui/prompt-bars/components/context-row/PromptBarContextRow';
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
 import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
@@ -118,10 +123,10 @@ import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSen
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { WandSparkles } from 'lucide-react';
+import { Bookmark, ImageIcon, Video, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
@@ -130,6 +135,9 @@ const PROMPT_PLACEHOLDER = 'Describe what you want to generate…';
 /** Debounce window before a prompt edit re-runs the recommendation engine. */
 const RECOMMENDATION_DEBOUNCE_MS = 400;
 
+/** Built-in presets offered in the context row while the prompt is empty. */
+const CONTEXT_PRESET_LIMIT = 3;
+
 /**
  * The single Studio composer. The asset type is state on this row rather than
  * a route segment, so switching Image → Video keeps the prompt and only swaps
@@ -137,6 +145,7 @@ const RECOMMENDATION_DEBOUNCE_MS = 400;
  */
 export default function StudioPlaygroundComposer({
   attachedAssets,
+  contextGroups,
   crunQuote,
   isCrunRestoreBlocked = false,
   crunReferenceCount,
@@ -150,12 +159,16 @@ export default function StudioPlaygroundComposer({
   isLoadingModels,
   isTranscribing,
   isUploading,
+  isResting = false,
   models,
+  notice,
+  onExpand,
   onAddFiles,
   onCancelEnhancePrompt,
   onEnhancePrompt,
   onOpenLibrary,
   onPromptChange,
+  onPromptCommandContextChange,
   onPromptDocumentChange,
   onRemoveAttachedAsset,
   onResetSettings,
@@ -260,7 +273,10 @@ export default function StudioPlaygroundComposer({
   // references stay available either way.
   const { isAdvancedMode, setAdvancedMode } = useAdvancedModePreference();
   const { presets: presetCatalog } = usePromptBarContext();
-  const systemPresets = resolveStudioSystemPresets(presetCatalog, type);
+  const systemPresets = useMemo(
+    () => resolveStudioSystemPresets(presetCatalog, type),
+    [presetCatalog, type],
+  );
   const isModelChoiceVisible = capabilities.hasModelSelection && isAdvancedMode;
   // Auto: the user picks only the output type; routing picks the rest.
   const isAutoView = capabilities.hasModelSelection && !isAdvancedMode;
@@ -603,7 +619,7 @@ export default function StudioPlaygroundComposer({
   );
 
   const handleApplySystemPreset = useCallback(
-    (preset: StudioSystemPreset) => {
+    (preset: StudioSystemPreset, currentPrompt: string = prompt) => {
       const values: Partial<GenerationSetupValues> = {
         ...preset.values,
         type: preset.type,
@@ -633,7 +649,7 @@ export default function StudioPlaygroundComposer({
         values,
         defaults,
       );
-      if (!prompt.trim()) onPromptChange(preset.prompt);
+      if (!currentPrompt.trim()) onPromptChange(preset.prompt);
     },
     [
       scope,
@@ -653,6 +669,97 @@ export default function StudioPlaygroundComposer({
     },
     [deleteLook],
   );
+
+  // Presets and saved looks live in the `/` menu and in the row above the
+  // prompt, not behind a toolbar button.
+  const presetsLabel = translateSetup('presets');
+  const savedLooksLabel = translate('composerContext.savedLooks');
+  const presetCommands = useMemo(
+    () =>
+      buildStudioPresetCommands(systemPresets, presets, {
+        presets: presetsLabel,
+        savedLooks: savedLooksLabel,
+      }),
+    [systemPresets, presets, presetsLabel, savedLooksLabel],
+  );
+  const presetHandlersRef = useRef({
+    applyLook: handleApplyPreset,
+    applySystemPreset: handleApplySystemPreset,
+  });
+  presetHandlersRef.current = {
+    applyLook: handleApplyPreset,
+    applySystemPreset: handleApplySystemPreset,
+  };
+  useEffect(() => {
+    if (!onPromptCommandContextChange) return;
+    onPromptCommandContextChange({
+      commands: presetCommands.commands,
+      onSelect: (command, promptText) => {
+        const target = presetCommands.targets.get(command.name);
+        if (target?.systemPreset) {
+          presetHandlersRef.current.applySystemPreset(
+            target.systemPreset,
+            promptText,
+          );
+        } else if (target?.look) {
+          presetHandlersRef.current.applyLook(target.look);
+        }
+      },
+    });
+    return () => onPromptCommandContextChange(null);
+  }, [onPromptCommandContextChange, presetCommands]);
+
+  const pinnedPresetId = setup.presetId;
+  const pinnedSystemPreset = systemPresets.find(
+    (preset) => studioSystemPresetId(preset.key) === pinnedPresetId,
+  );
+  const pinnedLook = presets.find((look) => look.id === pinnedPresetId);
+  const pinnedLabel = pinnedSystemPreset?.label ?? pinnedLook?.label;
+  const isContextSuggestionVisible =
+    isPromptEmpty && attachedAssets.length === 0;
+  const presetGroupItems: PromptBarContextItem[] = [
+    ...(pinnedLabel
+      ? [
+          {
+            icon: pinnedLook ? (
+              <Bookmark className="size-3.5" />
+            ) : pinnedSystemPreset?.type === 'video' ? (
+              <Video className="size-3.5" />
+            ) : (
+              <ImageIcon className="size-3.5" />
+            ),
+            id: `pinned-${pinnedPresetId}`,
+            isPressed: true,
+            label: pinnedLabel,
+            onRemove: handleClearPreset,
+            onSelect: () => undefined,
+            removeLabel: translateSetup('unpinPreset'),
+          },
+        ]
+      : []),
+    ...(isContextSuggestionVisible && !pinnedLabel
+      ? systemPresets.slice(0, CONTEXT_PRESET_LIMIT).map((preset) => ({
+          ariaLabel: translateSetup('applyPreset', { label: preset.label }),
+          icon:
+            preset.type === 'video' ? (
+              <Video className="size-3.5" />
+            ) : (
+              <ImageIcon className="size-3.5" />
+            ),
+          id: preset.key,
+          label: preset.label,
+          onSelect: () => handleApplySystemPreset(preset),
+        }))
+      : []),
+  ];
+  const contextRowGroups: PromptBarContextGroup[] = contextGroups?.selection
+    ? [contextGroups.selection]
+    : [
+        { id: 'presets', items: presetGroupItems },
+        ...(isContextSuggestionVisible && contextGroups?.recent
+          ? [contextGroups.recent]
+          : []),
+      ];
 
   const modelLabel = !isModelChoiceVisible
     ? undefined
@@ -853,16 +960,25 @@ export default function StudioPlaygroundComposer({
 
   return (
     <PromptBarComposer
+      banner={notice}
+      isResting={isResting}
+      onExpand={onExpand}
       beforeBody={
-        attachedAssets.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 px-3 pb-1 pt-3">
-            <PromptBarAttachedAssetsTray
-              assets={attachedAssets}
-              translate={translateAssets}
-              onRemoveAttachedAsset={onRemoveAttachedAsset}
-            />
-          </div>
-        ) : null
+        <>
+          {attachedAssets.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 px-3 pb-1 pt-3">
+              <PromptBarAttachedAssetsTray
+                assets={attachedAssets}
+                translate={translateAssets}
+                onRemoveAttachedAsset={onRemoveAttachedAsset}
+              />
+            </div>
+          ) : null}
+          <PromptBarContextRow
+            ariaLabel={translate('composerContext.ariaLabel')}
+            groups={contextRowGroups}
+          />
+        </>
       }
       className={cn(isDragActive && 'ring-1 ring-primary/40')}
       data-expanded="true"
@@ -1071,7 +1187,9 @@ export default function StudioPlaygroundComposer({
         leading={
           <>
             <GenerationSetupPopover
-              showPresets={false}
+              // Applying lives in `/` and the context row; saving and
+              // deleting looks stays in the setup popover.
+              showPresets={type === 'image' || type === 'video'}
               showEnhancementSettings={type === 'image' || type === 'video'}
               align="start"
               isIconOnly
@@ -1124,19 +1242,6 @@ export default function StudioPlaygroundComposer({
               <PromptBarReferenceControls
                 density="compact"
                 sources={referenceSources}
-              />
-            ) : null}
-            {type === 'image' || type === 'video' ? (
-              <GenerationSetupPresetsPopover
-                systemPresets={systemPresets}
-                onApplySystemPreset={handleApplySystemPreset}
-                isPresetsLoading={isPresetsLoading}
-                onApplyPreset={handleApplyPreset}
-                onClearPreset={handleClearPreset}
-                onDeletePreset={handleDeletePreset}
-                onSavePreset={handleSavePreset}
-                presets={presets}
-                setup={setupForComposer}
               />
             ) : null}
             {capabilities.hasIdentity ? (

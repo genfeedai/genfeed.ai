@@ -24,6 +24,7 @@ collaboration, and governance layer.
 | Managed inference credits                     | Optional explicit Cloud API bridge | Yes                           |
 | Skill model and local skill attachment        | Yes                                | Yes, with governance          |
 | Routine engine and workflow-backed scheduling | Yes                                | Yes, with hosted operations   |
+| Autonomous agent runs                         | Yes                                | Yes, with hosted operations   |
 | Personal feedback memory and retrieval        | Yes                                | Yes, plus governed org memory |
 | Team review queue, comments, approvals        | No                                 | Yes                           |
 | Skill promotion from feedback                 | No                                 | Yes                           |
