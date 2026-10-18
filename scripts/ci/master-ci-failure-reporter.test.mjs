@@ -824,6 +824,7 @@ test('the tracker consumes the aggregate and cannot be closed by the CI gate alo
   assert.doesNotMatch(tracker, /needs\.tests-gate/);
   assert.match(tracker, /group: master-ci-failure-tracker/);
   assert.match(tracker, /cancel-in-progress: false/);
+  assert.match(tracker, /continue-on-error: true/);
   assert.match(tracker, /issues: write/);
   assert.match(
     tracker,

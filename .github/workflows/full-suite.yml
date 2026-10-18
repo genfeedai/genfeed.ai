@@ -177,6 +177,9 @@ jobs:
     name: Master CI failure tracker
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Reporting is best-effort: release.yml calls this workflow as verify-suite,
+    # so a tracker API error must not turn a green suite red and block a release.
+    continue-on-error: true
     concurrency:
       group: master-ci-failure-tracker
       cancel-in-progress: false
