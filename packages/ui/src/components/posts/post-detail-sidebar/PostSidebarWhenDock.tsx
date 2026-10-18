@@ -3,7 +3,6 @@
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PostSidebarWhenDockProps } from '@genfeedai/props/components/post-detail-sidebar.props';
-import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
@@ -61,21 +60,8 @@ export default function PostSidebarWhenDock({
   if (isPublished) {
     return (
       <div className={DOCK_CLASS_NAME} data-testid="post-when-dock">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold">{translate('published')}</h3>
-          {post.publicationDate ? (
-            <p className="text-xs text-muted-foreground">
-              <ClientDateTime
-                value={post.publicationDate}
-                format={(date) =>
-                  date.toLocaleString('en-US', {
-                    timeZone: browserTimezone,
-                  })
-                }
-              />
-            </p>
-          ) : null}
-        </div>
+        {/* The publish time already shows in the destination header. */}
+        <h3 className="text-sm font-semibold">{translate('published')}</h3>
         {post.url ? (
           <Button
             asChild
