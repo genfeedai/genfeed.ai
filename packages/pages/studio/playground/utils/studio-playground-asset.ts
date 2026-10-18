@@ -3,6 +3,10 @@ import type {
   AgentContentMentionItem,
   IIngredient,
 } from '@genfeedai/contracts/interfaces';
+import {
+  isImageIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import type {
   StudioPlaygroundAssetFacts,
   StudioPlaygroundJob,
@@ -73,6 +77,24 @@ export function isStudioImageContinuationSource(
         !ingredient.organizationId ||
         ingredient.organizationId === organizationId) &&
       ingredient.category === IngredientCategory.IMAGE &&
+      STUDIO_REFERENCE_READY_STATUSES.has(ingredient.status),
+  );
+}
+
+export function isStudioTransformSource(
+  ingredient: IIngredient | null | undefined,
+  brandId: string | null | undefined,
+  organizationId: string | null | undefined,
+): ingredient is IIngredient {
+  return Boolean(
+    brandId &&
+      ingredient &&
+      ingredient.brandId === brandId &&
+      !ingredient.isDeleted &&
+      (!organizationId ||
+        !ingredient.organizationId ||
+        ingredient.organizationId === organizationId) &&
+      (isImageIngredient(ingredient) || isVideoIngredient(ingredient)) &&
       STUDIO_REFERENCE_READY_STATUSES.has(ingredient.status),
   );
 }

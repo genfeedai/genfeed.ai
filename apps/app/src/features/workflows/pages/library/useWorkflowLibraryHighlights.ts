@@ -55,17 +55,26 @@ export function useWorkflowLibraryHighlights() {
         if (controller.signal.aborted) return;
         const ids = settings.favoriteWorkflowIds ?? [];
         setFavoriteIds(ids);
-        const results = await Promise.allSettled(
-          ids.map(async (id) => {
-            const workflows = await getWorkflows();
-            const workflow = await workflows.get(id);
-            return { ...workflow, nodeCount: workflow.nodes.length };
-          }),
+        if (ids.length === 0) {
+          setFavorites({ items: [], isLoading: false, hasError: false });
+          return;
+        }
+        const workflows = await getWorkflows();
+        if (controller.signal.aborted) return;
+        const visibleWorkflows = await workflows.listByIds(
+          ids,
+          controller.signal,
         );
         if (!controller.signal.aborted) {
-          const items = results.flatMap((result) =>
-            result.status === 'fulfilled' ? [result.value] : [],
+          const byId = new Map(
+            visibleWorkflows.map((workflow) => [workflow.id, workflow]),
           );
+          const items = ids.flatMap((id) => {
+            const workflow = byId.get(id);
+            return workflow
+              ? [{ ...workflow, nodeCount: workflow.nodes.length }]
+              : [];
+          });
           setFavorites({ items, isLoading: false, hasError: false });
         }
       } catch {

@@ -53,6 +53,7 @@ describe('WorkflowCrudController', () => {
     findAll: vi.fn(),
     findMutableOwnedOrThrow: vi.fn(),
     findOwnedOrThrow: vi.fn(),
+    findVisibleByIds: vi.fn(),
     findVisibleOrThrow: vi.fn(),
     getWorkflowStatistics: vi.fn(),
     patch: vi.fn(),
@@ -132,6 +133,29 @@ describe('WorkflowCrudController', () => {
   });
 
   describe('findAll', () => {
+    it('serializes a visible IDs batch without applying the default list or widening flags', async () => {
+      mockWorkflowsService.findVisibleByIds.mockResolvedValue([mockWorkflow]);
+      const result = await controller.findAll(mockRequest, mockUser, {
+        ids: [workflowId],
+        brandId,
+        isDeleted: true,
+        referencable: true,
+        limit: 1,
+        page: 2,
+      } as WorkflowQueryDto);
+      expect(
+        mockWorkflowsService.findVisibleByIds,
+      ).toHaveBeenCalledExactlyOnceWith([workflowId], {
+        organizationId,
+        userId,
+        brandId,
+      });
+      expect(mockWorkflowsService.findAll).not.toHaveBeenCalled();
+      expect(result.data).toEqual([
+        expect.objectContaining({ id: workflowId, type: 'workflow' }),
+      ]);
+    });
+
     it('should widen the where clause when query.referencable is truthy', async () => {
       mockWorkflowsService.findAll.mockResolvedValue({
         docs: [],

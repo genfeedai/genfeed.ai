@@ -1,16 +1,25 @@
 import { describe, expect, it } from 'vitest';
+import { type McpToolOutput, toMcpTools } from '../adapters/to-mcp-tool';
+import type {
+  CanonicalToolDefinition,
+  ToolRequiredRole,
+} from '../interfaces/tool-definition.interface';
 import { CLAUDE_MCP_TOOL_NAMES } from './mcp-access-modes';
-import { getToolsForSurface } from './tool-registry';
+import {
+  ALL_TOOLS,
+  getToolsForRole,
+  getToolsForSurface,
+} from './tool-registry';
 import {
   DEFAULT_MCP_PROFILE_TOOLSETS,
   DIRECTORY_MCP_PROFILE_TOOLSETS,
 } from './toolset-profiles';
-import { getToolsForToolsets } from './toolsets';
+import { getToolsForToolsets, TOOLSET_NAMES } from './toolsets';
 
 interface DescribedTool {
   description?: string;
   name: string;
-  parameters?: unknown;
+  inputSchema?: unknown;
 }
 
 function collectTexts(tool: DescribedTool): string[] {
@@ -22,7 +31,7 @@ function collectTexts(tool: DescribedTool): string[] {
       else walk(child);
     }
   };
-  walk(tool.parameters);
+  walk(tool.inputSchema);
   return texts;
 }
 
@@ -30,9 +39,9 @@ function collectTexts(tool: DescribedTool): string[] {
 function danglingReferences(tools: readonly DescribedTool[]): string[] {
   // `generate` is also a plain verb ("what to generate"), so it cannot be
   // matched by name; its tool references are checked by review.
-  const catalog = getToolsForSurface('mcp')
-    .map((tool) => tool.name)
-    .filter((name) => name !== 'generate');
+  const catalog = ALL_TOOLS.map((tool) => tool.name).filter(
+    (name) => name !== 'generate',
+  );
   const listed = new Set(tools.map((tool) => tool.name));
   return tools.flatMap((tool) =>
     catalog
@@ -46,38 +55,50 @@ function danglingReferences(tools: readonly DescribedTool[]): string[] {
   );
 }
 
+function projectedView(
+  tools: CanonicalToolDefinition[],
+  role: ToolRequiredRole,
+): McpToolOutput[] {
+  const allowed = new Set<string>(
+    getToolsForRole('mcp', role).map((tool) => tool.name),
+  );
+  return toMcpTools(tools).filter((tool) => allowed.has(tool.name));
+}
+
+const VIEWS = [
+  {
+    name: 'default profile',
+    tools: getToolsForToolsets('mcp', [...DEFAULT_MCP_PROFILE_TOOLSETS]),
+  },
+  {
+    name: 'directory profile',
+    tools: getToolsForToolsets('mcp', [...DIRECTORY_MCP_PROFILE_TOOLSETS]),
+  },
+  { name: 'full profile', tools: getToolsForSurface('mcp') },
+  ...TOOLSET_NAMES.map((toolset) => ({
+    name: `toolset ${toolset}`,
+    tools: getToolsForToolsets('mcp', [toolset]),
+  })),
+];
+const ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
+
 describe('MCP tool descriptions only name tools on the same connection (#7177)', () => {
-  it('holds for the bare URL (default profile)', () => {
-    expect(
-      danglingReferences(
-        getToolsForToolsets('mcp', [...DEFAULT_MCP_PROFILE_TOOLSETS]),
-      ),
-    ).toEqual([]);
-  });
+  describe.each(ROLES)('%s role', (role) => {
+    it.each(VIEWS)('holds for the projected $name', ({ tools }) => {
+      expect(danglingReferences(projectedView(tools, role))).toEqual([]);
+    });
 
-  it('holds for the directory profile', () => {
-    expect(
-      danglingReferences(
-        getToolsForToolsets('mcp', [...DIRECTORY_MCP_PROFILE_TOOLSETS]),
-      ),
-    ).toEqual([]);
-  });
-
-  it('holds for the Claude connector', () => {
-    expect(
-      danglingReferences(
-        getToolsForSurface('mcp').filter((tool) =>
-          CLAUDE_MCP_TOOL_NAMES.has(tool.name),
-        ),
-      ),
-    ).toEqual([]);
+    it('holds for the projected Claude connector', () => {
+      const tools = getToolsForSurface('mcp').filter((tool) =>
+        CLAUDE_MCP_TOOL_NAMES.has(tool.name),
+      );
+      expect(danglingReferences(projectedView(tools, role))).toEqual([]);
+    });
   });
 
   it('never states a client-specific limit as a fact about every client', () => {
-    const offenders = getToolsForSurface('mcp')
-      .filter((tool) =>
-        /\bthe Claude connector\b/i.test(tool.description ?? ''),
-      )
+    const offenders = toMcpTools(getToolsForSurface('mcp'))
+      .filter((tool) => /\bthe Claude connector\b/i.test(tool.description))
       .map((tool) => tool.name);
     expect(offenders).toEqual([]);
   });

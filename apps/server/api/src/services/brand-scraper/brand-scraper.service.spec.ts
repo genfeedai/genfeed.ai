@@ -1,4 +1,5 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { MAX_HTML_BYTES } from '@api/services/brand-scraper/brand-scraper-http.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -145,6 +146,239 @@ describe('BrandScraperService', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  describe.each([
+    {
+      method: 'scrapeLinkedIn' as const,
+      url: 'https://linkedin.com/company/acme',
+    },
+    { method: 'scrapeXProfile' as const, url: 'https://x.com/acme' },
+  ])('bounded social HTML: $method', ({ method, url }) => {
+    function fakeClock(): void {
+      vi.useFakeTimers();
+      vi.spyOn(performance, 'now').mockImplementation(() => Date.now());
+    }
+
+    function openResponse(status = 200, location?: string) {
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const cancel = vi.fn();
+      const body = new ReadableStream<Uint8Array>({
+        cancel,
+        start(value) {
+          controller = value;
+        },
+      });
+      return {
+        cancel,
+        close: () => {
+          if (!cancel.mock.calls.length) controller.close();
+        },
+        enqueue: (bytes: Uint8Array) => controller.enqueue(bytes),
+        response: new Response(body, {
+          headers: location ? { location } : { 'content-type': 'text/html' },
+          status,
+        }),
+      };
+    }
+
+    it('rejects an oversized body even with a misleading small length', async () => {
+      fetchMock.mockResolvedValue(
+        new Response(' '.repeat(MAX_HTML_BYTES + 1), {
+          headers: { 'content-length': '1' },
+        }),
+      );
+      await expect(service[method](url)).rejects.toThrow('html_size_limit');
+    });
+
+    it('counts UTF-8 bytes rather than JavaScript characters', async () => {
+      fetchMock.mockResolvedValue(
+        makeResponse('é'.repeat(MAX_HTML_BYTES / 2 + 1)),
+      );
+      await expect(service[method](url)).rejects.toThrow('html_size_limit');
+    });
+
+    it('accepts HTML exactly at the existing byte limit', async () => {
+      const html = makeHtml({ ogTitle: 'Boundary company' });
+      fetchMock.mockResolvedValue(
+        makeResponse(
+          html + ' '.repeat(MAX_HTML_BYTES - Buffer.byteLength(html)),
+        ),
+      );
+      const result = await service[method](url);
+      expect(result).toMatchObject(
+        method === 'scrapeLinkedIn'
+          ? { companyName: 'Boundary company' }
+          : { displayName: 'Boundary company' },
+      );
+    });
+
+    it('preserves UTF-8 metadata split across response chunks', async () => {
+      const bytes = new TextEncoder().encode(makeHtml({ ogTitle: 'Café 🚀' }));
+      const emoji = bytes.indexOf(0xf0);
+      fetchMock.mockResolvedValue(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(bytes.slice(0, emoji + 1));
+              controller.enqueue(bytes.slice(emoji + 1));
+              controller.close();
+            },
+          }),
+        ),
+      );
+      const result = await service[method](url);
+      expect(result).toMatchObject(
+        method === 'scrapeLinkedIn'
+          ? { companyName: 'Café 🚀' }
+          : { displayName: 'Café 🚀' },
+      );
+    });
+
+    it('cancels a still-open stream as soon as its byte limit is exceeded', async () => {
+      fakeClock();
+      const controlled = openResponse();
+      controlled.enqueue(new Uint8Array(MAX_HTML_BYTES + 1));
+      fetchMock.mockResolvedValue(controlled.response);
+      const observed = service[method](url).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      try {
+        await vi.advanceTimersByTimeAsync(0);
+        expect(controlled.cancel).toHaveBeenCalledOnce();
+        expect(await observed).toMatchObject({ message: 'html_size_limit' });
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        controlled.close();
+        await observed;
+      }
+    });
+
+    it('releases a rejected status response without reading its body', async () => {
+      fakeClock();
+      const controlled = openResponse(403);
+      fetchMock.mockResolvedValue(controlled.response);
+      try {
+        await expect(service[method](url)).rejects.toThrow('403');
+        expect(controlled.cancel).toHaveBeenCalledOnce();
+        expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        controlled.close();
+      }
+    });
+
+    it('releases the fetch controller and timer after successful extraction', async () => {
+      fakeClock();
+      fetchMock.mockResolvedValue(makeResponse(makeHtml()));
+      await service[method](url);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('stops a stalled body within the existing fetch attempt timeout', async () => {
+      fakeClock();
+      const controlled = openResponse();
+      fetchMock.mockResolvedValue(controlled.response);
+      let settled = false;
+      const observed = service[method](url).then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        },
+      );
+      try {
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect(settled).toBe(true);
+        expect(controlled.cancel).toHaveBeenCalledOnce();
+        expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        controlled.close();
+        await observed;
+      }
+    });
+
+    it('cancels a redirect body before fetching its validated destination', async () => {
+      fakeClock();
+      const controlled = openResponse(302, '/next');
+      fetchMock
+        .mockResolvedValueOnce(controlled.response)
+        .mockResolvedValueOnce(makeResponse(makeHtml()));
+      try {
+        await service[method](url);
+        expect(controlled.cancel).toHaveBeenCalledOnce();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        controlled.close();
+      }
+    });
+
+    it('rejects a Retry-After beyond the remaining operation budget promptly', async () => {
+      fakeClock();
+      fetchMock
+        .mockResolvedValueOnce(make429Response('120'))
+        .mockResolvedValueOnce(makeResponse(makeHtml()));
+      let settled = false;
+      const observed = service[method](url).then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        },
+      );
+      try {
+        await vi.advanceTimersByTimeAsync(0);
+        expect(settled).toBe(true);
+        expect(fetchMock).toHaveBeenCalledOnce();
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        await vi.advanceTimersByTimeAsync(120_000);
+        await observed;
+      }
+    });
+
+    it('shares the operation deadline across redirects and final body reading', async () => {
+      fakeClock();
+      const controlled = openResponse();
+      let calls = 0;
+      fetchMock.mockImplementation(
+        () =>
+          new Promise<Response>((resolve) => {
+            setTimeout(
+              () =>
+                resolve(
+                  ++calls <= 5 ? makeRedirect('/next') : controlled.response,
+                ),
+              9999,
+            );
+          }),
+      );
+      let settled = false;
+      const observed = service[method](url).then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        },
+      );
+      try {
+        await vi.advanceTimersByTimeAsync(60_000);
+        expect(settled).toBe(true);
+        expect(controlled.cancel).toHaveBeenCalledOnce();
+        expect(fetchMock).toHaveBeenCalledTimes(6);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        controlled.close();
+        await observed;
+      }
+    });
   });
 
   describe('bounded website stylesheet enrichment', () => {

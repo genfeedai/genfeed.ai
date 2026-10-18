@@ -118,6 +118,25 @@ describe('useStudioPlaygroundAssetActions', () => {
     mocks.patch.mockResolvedValue(undefined);
   });
 
+  it('forwards the workspace transform owner without replacing its callbacks', () => {
+    const transformActions = {
+      getAvailability: () => ({ isAvailable: true }),
+      isUpscaling: false,
+      isExtending: false,
+      onUpscale: vi.fn(),
+      onExtend: vi.fn(),
+    };
+    const { result } = renderHook(() =>
+      useStudioPlaygroundAssetActions({
+        onAttachReference: vi.fn(),
+        onInspectIngredient: vi.fn(),
+        onRefresh: vi.fn(),
+        transformActions,
+      }),
+    );
+    expect(result.current.transformActions).toBe(transformActions);
+  });
+
   it('reconnects gallery assets to details, publishing, and the composer', () => {
     const onAttachReference = vi.fn();
     const onInspectIngredient = vi.fn();

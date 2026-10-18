@@ -1,0 +1,6 @@
+{
+  "platformsCell": {
+    "connected": "{platform}: posts as @{handle}",
+    "notConnected": "{platform}: no account connected yet"
+  }
+}

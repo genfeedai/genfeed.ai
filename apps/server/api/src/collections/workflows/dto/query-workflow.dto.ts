@@ -1,8 +1,16 @@
+import { MAX_WORKFLOW_QUERY_IDS } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsIn, IsOptional } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsOptional,
+} from 'class-validator';
 
 /**
  * Query params for `GET /workflows`.
@@ -17,6 +25,24 @@ import { IsBoolean, IsIn, IsOptional } from 'class-validator';
  * `POST /workflows { templateId, sourceType: "system-catalog" }` (#2176).
  */
 export class WorkflowQueryDto extends BaseQueryDto {
+  @ApiProperty({
+    description:
+      'Fetch up to 50 explicit workflow IDs with individual-read visibility. Use repeated query keys; missing, inaccessible and deleted workflows are omitted. Pagination and list-widening flags do not apply.',
+    isArray: true,
+    maxItems: MAX_WORKFLOW_QUERY_IDS,
+    required: false,
+    type: String,
+  })
+  @Transform(({ value }) =>
+    value === undefined ? undefined : Array.isArray(value) ? value : [value],
+  )
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_WORKFLOW_QUERY_IDS)
+  @ArrayUnique()
+  @IsEntityId({ each: true })
+  readonly ids?: string[];
+
   @IsEntityId()
   @IsOptional()
   @ApiProperty({

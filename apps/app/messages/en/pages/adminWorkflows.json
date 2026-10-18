@@ -1,0 +1,34 @@
+{
+  "actions": {
+    "delete": "Delete",
+    "more": "Actions for {label}",
+    "moveDown": "Move {label} down",
+    "moveUp": "Move {label} up",
+    "pin": "Pin to Featured",
+    "retry": "Retry",
+    "unpin": "Unpin",
+    "unpinNamed": "Unpin {label} from Featured"
+  },
+  "created": "Created:",
+  "deleted": "Workflow deleted",
+  "description": "Create multi-step automation pipelines for content generation and publishing",
+  "empty": "No workflows found",
+  "errors": {
+    "delete": "Failed to delete the workflow",
+    "featured": "Failed to update the featured status",
+    "load": "Failed to load workflows"
+  },
+  "featured": {
+    "badge": "Featured",
+    "description": "Every organization sees these workflows, in this order, in the Featured row of its templates page. Only the name, description, thumbnail and graph are shared; using one copies it into that organization.",
+    "loadError": "Featured workflows could not be loaded.",
+    "pinned": "Pinned to Featured",
+    "position": "Position {position}",
+    "reordered": "Featured order saved",
+    "title": "Featured",
+    "unpinned": "Removed from Featured"
+  },
+  "listTitle": "Automation Workflows",
+  "title": "Workflows",
+  "untitled": "Untitled workflow"
+}

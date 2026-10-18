@@ -13,14 +13,17 @@ const pagesMessages = JSON.parse(
   readFileSync(
     join(
       dirname(fileURLToPath(import.meta.url)),
-      '../../../../apps/app/messages/en/pages.json',
+      '../../../../apps/app/messages/en/pages/articles.json',
     ),
     'utf8',
   ),
 );
 function IntlWrapper({ children }: PropsWithChildren) {
   return (
-    <NextIntlClientProvider locale="en" messages={{ pages: pagesMessages }}>
+    <NextIntlClientProvider
+      locale="en"
+      messages={{ pages: { articles: pagesMessages } }}
+    >
       {children}
     </NextIntlClientProvider>
   );

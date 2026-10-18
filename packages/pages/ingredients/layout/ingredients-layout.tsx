@@ -31,7 +31,7 @@ export default function IngredientsLayout({
   defaultType,
   hideTypeTabs,
 }: IngredientsLayoutProps) {
-  const translateUpload = useTranslations('library.browser.toolbar');
+  const translateUpload = useTranslations('pages.library.browser.toolbar');
   const search = useSearchParams()?.toString() ?? '';
   const typeHref = (type: string) =>
     createFilterHref(

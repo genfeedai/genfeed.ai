@@ -1,19 +1,12 @@
-'use client';
-
-import RemixBriefInspector from '@app-components/research/remix/RemixBriefInspector';
-import ResearchWorkspaceSurfaceAdapter from '@app-components/research/work-surface/ResearchWorkspaceSurfaceAdapter';
-import { DiscoveryRemixProvider } from '@pages/research/remix/DiscoveryRemixProvider';
-import { ResearchWorkSurfaceProvider } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
+import messages from '@app-i18n/page-scopes/discovery';
 import type { LayoutProps } from '@props/layout/layout.props';
+import LayoutContent from './layout-client';
 
-export default function DiscoveryLayout({ children }: LayoutProps) {
+export default function PageIntlLayout({ children }: LayoutProps) {
   return (
-    <ResearchWorkSurfaceProvider>
-      <DiscoveryRemixProvider>
-        <ResearchWorkspaceSurfaceAdapter />
-        <RemixBriefInspector />
-        {children}
-      </DiscoveryRemixProvider>
-    </ResearchWorkSurfaceProvider>
+    <AppPageIntlProvider pages={messages}>
+      <LayoutContent>{children}</LayoutContent>
+    </AppPageIntlProvider>
   );
 }

@@ -4,6 +4,9 @@ import { render, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { translationNamespaceSpy } = vi.hoisted(() => ({
+  translationNamespaceSpy: vi.fn(),
+}));
 const replaceSpy = vi.fn();
 let mockSearchParams = new URLSearchParams();
 
@@ -85,7 +88,10 @@ vi.mock('@ui/layout/container/Container', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => ({ upload: 'Upload' })[key] ?? key,
+  useTranslations: (namespace: string) => {
+    translationNamespaceSpy(namespace);
+    return (key: string) => ({ upload: 'Upload' })[key] ?? key;
+  },
 }));
 
 vi.mock('next/navigation', () => ({
@@ -103,8 +109,22 @@ vi.mock('next/navigation', () => ({
 describe('IngredientsLayout', () => {
   beforeEach(() => {
     replaceSpy.mockReset();
+    translationNamespaceSpy.mockClear();
     mockSearchParams = new URLSearchParams();
     window.history.replaceState({}, '', '/library/videos');
+  });
+
+  it('uses the canonical catalog namespace for upload actions', () => {
+    render(
+      <IngredientsLayout
+        defaultType="videos"
+        hideTypeTabs
+        scope={PageScope.BRAND}
+      />,
+    );
+    expect(translationNamespaceSpy).toHaveBeenCalledWith(
+      'pages.library.browser.toolbar',
+    );
   });
 
   it('keeps default video statuses out of the URL on mount', async () => {

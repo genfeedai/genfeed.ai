@@ -1,0 +1,166 @@
+{
+  "actionInspector": {
+    "account": "Account",
+    "accounts": "Accounts",
+    "brand": "Brand",
+    "close": "Close configuration",
+    "connectAccounts": "Connect X or LinkedIn for this brand to choose accounts.",
+    "minScore": "Minimum score",
+    "minScorePlaceholder": "Hold below this score",
+    "noStrategy": "No strategy",
+    "selectAccount": "Select an account",
+    "selectAccounts": "Select connected accounts",
+    "selectBrand": "Select a brand",
+    "selectTimezone": "Select a timezone",
+    "strategy": "Strategy",
+    "timezone": "Timezone",
+    "topics": "Topics",
+    "topicsPlaceholder": "One topic per line"
+  },
+  "actionNode": {
+    "brand": "Brand",
+    "configured": "Configured",
+    "inputsToConfigure": "{count, plural, one {# input · Select to configure} other {# inputs · Select to configure}}",
+    "items": "{count, plural, one {# item} other {# items}}",
+    "moreValues": "+{count} more values",
+    "noConfigurationRequired": "No configuration required",
+    "notSet": "Not set",
+    "off": "Off",
+    "on": "On",
+    "selectBrand": "Select a brand",
+    "unavailableDescription": "This node references an action that is no longer available.",
+    "unavailableTitle": "Unavailable action"
+  },
+  "nodePalette": {
+    "image": {
+      "description": "Pick an image from the library",
+      "label": "Image"
+    },
+    "video": {
+      "description": "Pick a video from the library",
+      "label": "Video"
+    }
+  },
+  "templates": {
+    "actions": {
+      "copying": "Copying…",
+      "install": "Install",
+      "installing": "Installing…",
+      "tryAgain": "Try again",
+      "useTemplate": "Use template",
+      "viewDetails": "View details"
+    },
+    "cadences": {
+      "dailyEvening": "Every day at 6:00 PM",
+      "dailyMorning": "Every day at 9:00 AM",
+      "dailyNoon": "Every day at noon",
+      "mondaysMorning": "Mondays at 9:00 AM",
+      "monthlyFirst": "Monthly on the 1st at 9:00 AM",
+      "twiceDaily": "Twice daily (9:00 AM and 6:00 PM)",
+      "weekdaysMorning": "Weekdays at 9:00 AM"
+    },
+    "categories": {
+      "adAutomation": "Ads",
+      "ads": "Ads",
+      "agents": "Agents",
+      "all": "All categories",
+      "analytics": "Analytics",
+      "automation": "Automation",
+      "batch": "Batch",
+      "campaigns": "Campaigns",
+      "content": "Content",
+      "editing": "Editing",
+      "entertainment": "Entertainment",
+      "generation": "Generation",
+      "integration": "Integration",
+      "launch": "Launch",
+      "library": "Library",
+      "product": "Product",
+      "realEstate": "Real Estate",
+      "routines": "Routines",
+      "social": "Social Media",
+      "system": "System",
+      "trends": "Trends",
+      "video": "Video"
+    },
+    "category": "Category",
+    "clearFilters": "Clear filters",
+    "emptyCatalog": "No workflow templates are available yet.",
+    "errors": {
+      "bootstrap": "Failed to install workflow template",
+      "copyFeatured": "Failed to copy the featured workflow",
+      "install": "Failed to install system workflow",
+      "load": "Templates could not be loaded.",
+      "loadCatalog": "Official workflows could not be loaded.",
+      "loadFeatured": "Featured workflows could not be loaded.",
+      "loadTemplates": "Starter templates could not be loaded."
+    },
+    "exampleOutput": {
+      "imageAlt": "Example output from {name}",
+      "videoLabel": "Example output video from {name}"
+    },
+    "noMatches": "No workflows match these filters.",
+    "retry": "Retry",
+    "schedule": "Schedule",
+    "scheduled": "Scheduled",
+    "searchPlaceholder": "Search templates...",
+    "sections": {
+      "all": "All templates",
+      "browseByType": "Browse by type",
+      "featured": "Featured"
+    },
+    "source": "Source",
+    "sources": {
+      "all": "All sources",
+      "available": "Available",
+      "installed": "Installed"
+    },
+    "templateCount": "{count, plural, one {# template} other {# templates}}",
+    "untitledWorkflow": "Untitled workflow"
+  },
+  "actionSchema": {
+    "invalidJson": "Enter valid JSON.",
+    "noConfigurableInputs": "This action has no configurable inputs.",
+    "required": "(required)",
+    "select": "Select…",
+    "separateValues": "Separate values with commas"
+  },
+  "castPrompt": {
+    "action": "Action",
+    "cameraMovement": "Camera movement",
+    "preset": "Preset",
+    "startFrameReference": "Start-frame reference",
+    "subject": "Subject",
+    "vocabularyLibrary": "Vocabulary library"
+  },
+  "status": {
+    "activeRuns": "Active Runs",
+    "creditEstimate": "{credits} credits",
+    "estimatedCost": "Estimated workflow cost in credits",
+    "running": "Running",
+    "viewCostBreakdown": "View cost breakdown"
+  },
+  "videoQa": {
+    "connectVideo": "Connect a video to inspect",
+    "contactSheet": "Render contact sheet",
+    "contactSheetAlt": "Video QA contact sheet",
+    "duration": "Duration: {value}",
+    "fail": "Fail",
+    "inspect": "Inspect video",
+    "inspecting": "Inspecting...",
+    "loudness": "{value} LUFS",
+    "loudnessNa": "Loudness: n/a",
+    "loudnessTarget": "Loudness target (LUFS)",
+    "pass": "Pass",
+    "resolutionFallback": "Resolution: —"
+  },
+  "edgeToolbar": {
+    "deleteEdge": "Delete edge",
+    "pauseEdge": "Pause edge",
+    "resumeEdge": "Resume edge"
+  },
+  "surfaceInspector": {
+    "executionNotFound": "Execution Not Found",
+    "executionNotFoundDescription": "The execution run you're looking for doesn't exist."
+  }
+}
