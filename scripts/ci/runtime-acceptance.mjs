@@ -541,7 +541,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '59da379349805420f2b6c41eaf3b695c30c96fdfd12e6c66a228fa0fd984faad',
+        'a707f63df074ce86e63f802934bd9593ca2ae17276c1bcbed23a827b855ab407',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
