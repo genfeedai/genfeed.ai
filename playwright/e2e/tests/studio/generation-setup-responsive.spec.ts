@@ -150,24 +150,38 @@ test.describe('touch generation setup', () => {
     });
     const trigger = page.getByRole('button', { name: /^Generation setup:/ });
     await expect(trigger).toBeVisible();
-    const target = await trigger.evaluate((element) => {
-      const b = element.getBoundingClientRect();
-      const pseudo = getComputedStyle(element, '::after');
-      return {
-        x: b.x,
-        y: b.y,
-        width: b.width,
-        height: b.height,
-        hitWidth: b.width - parseFloat(pseudo.left) - parseFloat(pseudo.right),
-        hitHeight:
-          b.height - parseFloat(pseudo.top) - parseFloat(pseudo.bottom),
-      };
-    });
-    expect(target.width).toBeGreaterThanOrEqual(32);
-    expect(target.height).toBeGreaterThanOrEqual(32);
-    expect(target.hitWidth).toBeGreaterThanOrEqual(44);
-    expect(target.hitHeight).toBeGreaterThanOrEqual(44);
-    await page.touchscreen.tap(target.x + target.width / 2, target.y - 5);
-    await expect(setupDialog(page)).toBeVisible();
+    // The prompt bar settles after first paint (editor and context row load),
+    // and a tap before hydration is lost, so measure and tap together and
+    // retry until the popover opens.
+    await expect(async () => {
+      const target = await trigger.evaluate((element) => {
+        const b = element.getBoundingClientRect();
+        const pseudo = getComputedStyle(element, '::after');
+        const x = b.x + b.width / 2;
+        // Inside the 6px that `::after` extends above the 32px icon.
+        const y = b.y - 3;
+        const hit = document.elementFromPoint(x, y);
+        return {
+          width: b.width,
+          height: b.height,
+          hitWidth:
+            b.width - parseFloat(pseudo.left) - parseFloat(pseudo.right),
+          hitHeight:
+            b.height - parseFloat(pseudo.top) - parseFloat(pseudo.bottom),
+          isHitOnTrigger: hit !== null && element.contains(hit),
+          x,
+          y,
+        };
+      });
+      expect(target.width).toBeGreaterThanOrEqual(32);
+      expect(target.height).toBeGreaterThanOrEqual(32);
+      expect(target.hitWidth).toBeGreaterThanOrEqual(44);
+      expect(target.hitHeight).toBeGreaterThanOrEqual(44);
+      // An ancestor clipping the pseudo-element would hand the tap to
+      // whatever sits above the button instead.
+      expect(target.isHitOnTrigger).toBe(true);
+      await page.touchscreen.tap(target.x, target.y);
+      await expect(setupDialog(page)).toBeVisible({ timeout: 3000 });
+    }).toPass({ timeout: 20_000 });
   });
 });

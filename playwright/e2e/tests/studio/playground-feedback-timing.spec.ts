@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { brandPath } from '@e2e/utils/app-chrome';
 import {
   APP_ROUTES,
+  FLUX_3_EDIT_CONTRACT_VERSION,
   FLUX_3_IMAGE_CONTRACT_VERSION,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
@@ -15,6 +16,9 @@ const pixel = Buffer.from(
   'base64',
 );
 const model = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE;
+// The inspector's "Edit image" action is enabled only when the catalog has an
+// image-edit model (#7244), so the fixture catalog carries one next to FLUX.3.
+const editModel = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
 const count = 20;
 
 function percentile95(samples: number[]): number {
@@ -84,7 +88,10 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
   await page.route('**/v1/auth/bootstrap**', (r) => {
     const b = buildProtectedAppBootstrapPayload();
     return r.fulfill({
-      json: { ...b, settings: { ...b.settings, enabledModelIds: [model] } },
+      json: {
+        ...b,
+        settings: { ...b.settings, enabledModelIds: [model, editModel] },
+      },
     });
   });
   await page.route('**/v1/models**', (r) =>
@@ -107,8 +114,25 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
               reviewedProviderContractVersion: FLUX_3_IMAGE_CONTRACT_VERSION,
             },
           },
+          {
+            id: 'feedback-edit-model',
+            type: 'models',
+            attributes: {
+              key: editModel,
+              label: 'FLUX.3 Edit',
+              provider: 'replicate',
+              category: 'image-edit',
+              isDefault: false,
+              isActive: true,
+              isDeleted: false,
+              cost: 8,
+              maxOutputs: 1,
+              maxReferences: 10,
+              reviewedProviderContractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+            },
+          },
         ],
-        meta: { totalCount: 1 },
+        meta: { totalCount: 2 },
       },
     }),
   );
