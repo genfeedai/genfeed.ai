@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   getUsers: vi.fn(),
   settings: vi.fn(),
   save: vi.fn(),
-  get: vi.fn(),
+  listByIds: vi.fn(),
   mostUsed: vi.fn(),
   error: vi.fn(),
 }));
@@ -64,11 +64,11 @@ beforeEach(() => {
     patchMeFavoriteWorkflowIds: mocks.save,
   });
   mocks.getWorkflows.mockResolvedValue({
-    get: mocks.get,
+    listByIds: mocks.listByIds,
     listMostUsed: mocks.mostUsed,
   });
   mocks.settings.mockResolvedValue({ favoriteWorkflowIds: ['favorite-1'] });
-  mocks.get.mockResolvedValue(workflow);
+  mocks.listByIds.mockResolvedValue([workflow]);
   mocks.mostUsed.mockResolvedValue([{ ...workflow, executionCount: 25 }]);
   mocks.save.mockResolvedValue({ favoriteWorkflowIds: [] });
 });
@@ -77,7 +77,10 @@ describe('workflow library highlights', () => {
   it('loads persisted favorites independently of the current list page and asks for org top five', async () => {
     const { result } = renderHook(() => useWorkflowLibraryHighlights());
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
-    expect(mocks.get).toHaveBeenCalledWith('favorite-1');
+    expect(mocks.listByIds).toHaveBeenCalledExactlyOnceWith(
+      ['favorite-1'],
+      expect.any(AbortSignal),
+    );
     expect(result.current.favorites.items[0]).toMatchObject({
       id: 'favorite-1',
       nodeCount: 0,
@@ -90,10 +93,7 @@ describe('workflow library highlights', () => {
     mocks.settings.mockResolvedValue({
       favoriteWorkflowIds: ['favorite-1', 'inaccessible'],
     });
-    mocks.get.mockImplementation(async (id: string) => {
-      if (id === 'inaccessible') throw new Error('Not found');
-      return workflow;
-    });
+    mocks.listByIds.mockResolvedValue([workflow]);
     mocks.save.mockResolvedValue({ favoriteWorkflowIds: ['favorite-1'] });
     const { result } = renderHook(() => useWorkflowLibraryHighlights());
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
@@ -117,13 +117,16 @@ describe('workflow library highlights', () => {
     ]);
   });
 
-  it('keeps saved ids editable when workflow service access fails', async () => {
-    mocks.getWorkflows.mockRejectedValue(new Error('Unavailable'));
+  it('reports a batch failure and retries without losing saved ids', async () => {
+    mocks.listByIds.mockRejectedValueOnce(new Error('Unavailable'));
     const { result } = renderHook(() => useWorkflowLibraryHighlights());
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
-    expect(result.current.favorites.hasError).toBe(false);
+    expect(result.current.favorites.hasError).toBe(true);
     expect(result.current.favorites.items).toEqual([]);
     expect(result.current.favoriteIds).toEqual(['favorite-1']);
+    act(() => result.current.reload());
+    await waitFor(() => expect(result.current.favorites.items).toHaveLength(1));
+    expect(result.current.favorites.hasError).toBe(false);
   });
 
   it('reports a settings read failure and prevents overwriting unknown favorites', async () => {
@@ -184,11 +187,61 @@ describe('workflow library highlights', () => {
       finishOld?.({ favoriteWorkflowIds: ['old-org-workflow'] }),
     );
     expect(result.current.favoriteIds).toEqual([]);
-    expect(mocks.get).not.toHaveBeenCalledWith('old-org-workflow');
+    expect(mocks.listByIds).not.toHaveBeenCalled();
   });
 
+  it('loads 50 favorites in one request and restores saved order while omitting absent rows', async () => {
+    const ids = Array.from({ length: 50 }, (_, index) => `favorite-${index}`);
+    mocks.settings.mockResolvedValue({ favoriteWorkflowIds: ids });
+    mocks.listByIds.mockResolvedValue([
+      { ...workflow, id: ids[49] },
+      { ...workflow, id: ids[0] },
+    ]);
+    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
+    expect(mocks.listByIds).toHaveBeenCalledExactlyOnceWith(
+      ids,
+      expect.any(AbortSignal),
+    );
+    expect(result.current.favorites.items.map((item) => item.id)).toEqual([
+      ids[0],
+      ids[49],
+    ]);
+    expect(result.current.favoriteIds).toEqual(ids);
+  });
+
+  it.each(['organizationId', 'brandId'] as const)(
+    'aborts the batch and ignores late rows after a %s change',
+    async (key) => {
+      let finishOld: ((value: (typeof workflow)[]) => void) | undefined;
+      mocks.listByIds.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishOld = resolve;
+          }),
+      );
+      const { result, rerender } = renderHook(() =>
+        useWorkflowLibraryHighlights(),
+      );
+      await waitFor(() => expect(mocks.listByIds).toHaveBeenCalledOnce());
+      const signal = mocks.listByIds.mock.calls[0][1] as AbortSignal;
+      mocks.scope = { ...mocks.scope, [key]: 'new-scope' };
+      mocks.settings.mockResolvedValue({ favoriteWorkflowIds: [] });
+      rerender();
+      await waitFor(() =>
+        expect(result.current.favorites.isLoading).toBe(false),
+      );
+      expect(signal.aborted).toBe(true);
+      await act(async () => finishOld?.([workflow]));
+      expect(result.current.favorites.items).toEqual([]);
+      expect(result.current.favoriteIds).toEqual([]);
+    },
+  );
+
   it('filters favorites to the current brand without changing org usage', async () => {
-    mocks.get.mockResolvedValue({ ...workflow, brandId: 'another-brand' });
+    mocks.listByIds.mockResolvedValue([
+      { ...workflow, brandId: 'another-brand' },
+    ]);
     const { result } = renderHook(() => useWorkflowLibraryHighlights());
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     expect(result.current.favorites.items).toEqual([]);

@@ -1,0 +1,17 @@
+{
+  "apply": "Apply",
+  "applySelected": "Apply Selected Fields",
+  "description": "Scan the brand site and apply proposed profile fields.",
+  "empty": "Empty",
+  "importSelectedAssets": "Import Selected Assets",
+  "noProposal": "No proposal",
+  "replaceExisting": "Replace existing logo/banner",
+  "replaceExistingAria": "Replace existing logo and banner",
+  "select": "Select",
+  "socialUrls": "Social URLs",
+  "socialUrlsPlaceholder": "Social URLs (optional, comma-separated)",
+  "sourceEvidence": "Source evidence",
+  "title": "Brand Kit Review",
+  "websiteUrl": "Website URL",
+  "websiteUrlPlaceholder": "https://example.com"
+}

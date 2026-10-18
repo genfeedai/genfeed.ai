@@ -27,6 +27,13 @@ describe('assertSafeWebhookUrl — scheme', () => {
     ).rejects.toThrow('HTTPS');
   });
 
+  it('accepts public IPv6 literals without DNS lookup', async () => {
+    await expect(
+      assertSafeWebhookUrl('https://[2606:4700:4700::1111]/hook'),
+    ).resolves.toBeUndefined();
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+  });
+
   it('accepts https:// URLs pointing to a public IPv4 literal', async () => {
     await expect(
       assertSafeWebhookUrl('https://1.1.1.1/webhook'),
@@ -66,6 +73,10 @@ describe('assertSafeWebhookUrl — blocked IPv4 literals', () => {
 describe('assertSafeWebhookUrl — blocked IPv6 literals', () => {
   const blocked = [
     'https://[::1]/hook',
+    'https://[::]/hook',
+    'https://[::ffff:127.0.0.1]/hook',
+    'https://[::ffff:7f00:1]/hook',
+    'https://[64:ff9b::a00:1]/hook',
     'https://[fe80::1]/hook',
     'https://[fc00::1]/hook',
     'https://[fd00::1]/hook',
@@ -135,12 +146,58 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
     ).rejects.toThrow('private or reserved');
   });
 
+  it('rejects embedded credentials before DNS lookup', async () => {
+    const url = new URL('https://hooks.example.com/hook');
+    url.username = 'test-user';
+    url.password = 'test-password';
+    await expect(assertSafeWebhookUrl(url.href)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks DNS answers containing hexadecimal mapped loopback', async () => {
+    dnsLookupMock.mockResolvedValue([
+      { address: '93.184.216.34', family: 4 },
+      { address: '::ffff:7f00:1', family: 6 },
+    ]);
+    await expect(
+      createSafeWebhookHttpsAgent('https://hooks.example.com/hook'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('supports all-address lookups without resolving DNS again', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const agent = await createSafeWebhookHttpsAgent(
+      'https://hooks.example.com/hook',
+    );
+    try {
+      await new Promise<void>((resolve, reject) => {
+        agent.options.lookup?.(
+          'hooks.example.com',
+          { all: true },
+          (error, addresses) => {
+            if (error) return reject(error);
+            expect(addresses).toEqual([
+              { address: '93.184.216.34', family: 4 },
+            ]);
+            resolve();
+          },
+        );
+      });
+      expect(dnsLookupMock).toHaveBeenCalledTimes(1);
+    } finally {
+      agent.destroy();
+    }
+  });
+
   it('pins the validated address for webhook requests', async () => {
     dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
 
     const agent = await createSafeWebhookHttpsAgent(
       'https://hooks.example.com/webhook',
     );
+    dnsLookupMock.mockResolvedValue([{ address: '127.0.0.1', family: 4 }]);
     const lookup = agent.options.lookup;
 
     expect(lookup).toBeTypeOf('function');

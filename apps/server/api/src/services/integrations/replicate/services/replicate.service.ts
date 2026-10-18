@@ -376,6 +376,24 @@ export class ReplicateService {
     }
   }
 
+  public async getTraining(
+    id: string,
+    apiKeyOverride?: string,
+  ): Promise<unknown> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      this.loggerService.log(`${url} started`, { id });
+
+      const client = this.getClientForRequest(apiKeyOverride);
+      const res = await client.trainings.get(id);
+
+      return res;
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
   public async cancelPrediction(
     id: string,
     apiKeyOverride?: string,

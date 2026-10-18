@@ -115,6 +115,7 @@ export class ReplicateWebhookVerificationService {
    */
   async resolveTrustedPayload(
     payload: ReplicateWebhookPayload,
+    resourceKind: 'prediction' | 'training' = 'prediction',
   ): Promise<ReplicateWebhookPayload | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -128,10 +129,13 @@ export class ReplicateWebhookVerificationService {
 
     let prediction: unknown;
     try {
-      prediction = await this.replicateService.getPrediction(payload.id);
+      prediction =
+        resourceKind === 'training'
+          ? await this.replicateService.getTraining(payload.id)
+          : await this.replicateService.getPrediction(payload.id);
     } catch (error: unknown) {
       this.loggerService.warn(
-        `${url} prediction re-fetch failed, deferring untrusted payload`,
+        `${url} ${resourceKind} re-fetch failed, deferring untrusted payload`,
         { error, predictionId: payload.id },
       );
       return null;
@@ -139,7 +143,7 @@ export class ReplicateWebhookVerificationService {
 
     if (!isPredictionRecord(prediction) || prediction.id !== payload.id) {
       this.loggerService.warn(
-        `${url} prediction re-fetch returned a mismatched record`,
+        `${url} ${resourceKind} re-fetch returned a mismatched record`,
         { predictionId: payload.id },
       );
       return null;
@@ -147,7 +151,7 @@ export class ReplicateWebhookVerificationService {
 
     if (typeof prediction.status !== 'string') {
       this.loggerService.warn(
-        `${url} prediction re-fetch returned an invalid status`,
+        `${url} ${resourceKind} re-fetch returned an invalid status`,
         { predictionId: payload.id },
       );
       return null;

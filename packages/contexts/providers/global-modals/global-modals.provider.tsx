@@ -295,6 +295,7 @@ export function usePostRepurposeModal(): Pick<
 
 export function GlobalModalsProvider({
   children,
+  renderModal,
 }: GlobalModalsProviderProps): ReactNode {
   const state = useGlobalModalsState();
   const pathname = usePathname();
@@ -346,7 +347,7 @@ export function GlobalModalsProvider({
   return (
     <GlobalModalsContext.Provider value={contextValue}>
       {children}
-      <GlobalModalsRenderer {...state} />
+      <GlobalModalsRenderer {...state} renderModal={renderModal} />
     </GlobalModalsContext.Provider>
   );
 }

@@ -243,51 +243,48 @@ export class PlatformWorkflowSchedulesService {
   }
 
   /**
-   * Organizations (within this sweep page) where the owner or a member has a
-   * session active since `activeSince` and that can start Discovery work.
-   * Activity is one batched read per page; the module check only runs for
-   * active organizations.
+   * The database resolves owner/member session existence within this page;
+   * only organization IDs return, regardless of membership or session counts.
+   * Discovery admission retains the page's original organization order.
    */
   private async findActiveDiscoveryOrganizationIds(
-    organizations: ReadonlyArray<{ id: string; userId: string }>,
+    organizations: ReadonlyArray<{ id: string }>,
     activeSince: Date,
   ): Promise<Set<string>> {
     if (organizations.length === 0) return new Set();
-    const members = await this.prisma.member.findMany({
+    const activeOrganizations = await this.prisma.organization.findMany({
       where: {
-        organizationId: { in: organizations.map((org) => org.id) },
+        id: { in: organizations.map((organization) => organization.id) },
         isDeleted: false,
+        OR: [
+          {
+            user: {
+              is: { sessions: { some: { updatedAt: { gte: activeSince } } } },
+            },
+          },
+          {
+            members: {
+              some: {
+                isDeleted: false,
+                user: {
+                  is: {
+                    sessions: { some: { updatedAt: { gte: activeSince } } },
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
-      select: { organizationId: true, userId: true },
+      select: { id: true },
+      take: organizations.length,
     });
-    const userIdsByOrganization = new Map<string, Set<string>>();
-    for (const organization of organizations) {
-      userIdsByOrganization.set(
-        organization.id,
-        new Set([organization.userId]),
-      );
-    }
-    for (const member of members) {
-      userIdsByOrganization.get(member.organizationId)?.add(member.userId);
-    }
-    const sessions = await this.prisma.session.findMany({
-      where: {
-        userId: {
-          in: [
-            ...new Set(
-              [...userIdsByOrganization.values()].flatMap((ids) => [...ids]),
-            ),
-          ],
-        },
-        updatedAt: { gte: activeSince },
-      },
-      distinct: ['userId'],
-      select: { userId: true },
-    });
-    const activeUserIds = new Set(sessions.map((session) => session.userId));
+    const activeOrganizationIds = new Set(
+      activeOrganizations.map((organization) => organization.id),
+    );
     const eligible = new Set<string>();
-    for (const [organizationId, userIds] of userIdsByOrganization) {
-      if (![...userIds].some((userId) => activeUserIds.has(userId))) continue;
+    for (const { id: organizationId } of organizations) {
+      if (!activeOrganizationIds.has(organizationId)) continue;
       if (await this.moduleAccess.canStartWork(organizationId, 'discovery')) {
         eligible.add(organizationId);
       }

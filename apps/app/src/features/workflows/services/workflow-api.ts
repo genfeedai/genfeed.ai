@@ -131,6 +131,26 @@ export class WorkflowApiService extends HTTPBaseService {
     return page.items;
   }
 
+  async listByIds(
+    ids: readonly string[],
+    signal?: AbortSignal,
+  ): Promise<CloudWorkflowData[]> {
+    if (ids.length === 0) return [];
+
+    try {
+      const response = await this.instance.get<JsonApiResponseDocument>('', {
+        params: { ids },
+        signal,
+      });
+      return deserializeCollection<CloudWorkflowData>(response.data).map(
+        (workflow) => this.normalizeWorkflowData(workflow),
+      );
+    } catch (error) {
+      logger.error('Failed to list workflows by IDs', { error });
+      throw error;
+    }
+  }
+
   /**
    * The active organization's most-run workflows, ordered by execution count
    * then most recent run (GET /workflows/most-used, limit 1–12).
