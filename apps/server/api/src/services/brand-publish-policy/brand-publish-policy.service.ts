@@ -10,6 +10,7 @@ import { PostCategory, TargetExecutionState } from '@genfeedai/contracts';
 import {
   BRAND_PUBLISH_POLICY_LIMITS,
   type BrandPolicyEvaluationInput,
+  createDefaultBrandPublishPolicy,
   evaluateBrandPublishPolicyRules,
   needsBrandPolicyJudge,
   parseBrandPublishPolicy,
@@ -76,7 +77,7 @@ export interface BrandPolicyEvaluationOptions {
 
 interface EffectiveBrandPolicy {
   guardrails: string[];
-  policy: IBrandPublishPolicy | null;
+  policy: IBrandPublishPolicy;
 }
 
 function readStrings(value: unknown): string[] {
@@ -169,12 +170,9 @@ export class BrandPublishPolicyService {
       judgeViolations: [],
       passedChecks: [...(facts.passedChecks ?? [])],
       policy,
-      usage: policy
-        ? await this.countUsage(db, facts, policy)
-        : { postsInDay: 0, postsInWeek: 0 },
+      usage: await this.countUsage(db, facts, policy),
     };
     if (
-      !policy ||
       !options.isJudgeEnabled ||
       (!needsBrandPolicyJudge(policy) && guardrails.length === 0) ||
       evaluateBrandPublishPolicyRules(input).length > 0
@@ -284,8 +282,10 @@ export class BrandPublishPolicyService {
         })
       : null;
     const content = readRecord(revision?.content);
-    const policy = parseBrandPublishPolicy(content.policy);
-    if (!policy) return { guardrails: [], policy: null };
+    // A brand that has not approved a Policy runs under the default one.
+    const policy =
+      parseBrandPublishPolicy(content.policy) ??
+      createDefaultBrandPublishPolicy();
 
     const brand = await db.brand.findFirst({
       select: { agentConfig: true },

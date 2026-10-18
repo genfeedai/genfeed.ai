@@ -135,15 +135,16 @@ describe('BrandPublishPolicyService', () => {
     );
   });
 
-  it('reports no Policy when none is approved or the stored one is invalid', async () => {
+  it('judges by the default Policy when none is approved or the stored one is invalid', async () => {
     for (const stored of [null, 'invalid'] as const) {
       const input = await makeService(makeDb(stored)).buildEvaluation(FACTS, {
         isJudgeEnabled: true,
       });
-      expect(input.policy).toBeNull();
-      expect(evaluateBrandPublishPolicyRules(input)).toEqual([
-        expect.objectContaining({ rule: 'policy_not_approved' }),
-      ]);
+      expect(input.policy).toMatchObject({
+        ...createDefaultBrandPublishPolicy(),
+        bannedPhrases: ['synergy', 'game changer'],
+      });
+      expect(evaluateBrandPublishPolicyRules(input)).toEqual([]);
     }
   });
 

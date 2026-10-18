@@ -429,16 +429,14 @@ describe('AutonomousPublishPolicyService', () => {
       });
     });
 
-    it('keeps every draft in review while the brand has no approved Policy', async () => {
+    it('judges a draft by the default Policy while the brand has no approved Policy', async () => {
       db.brandOsRevision.findFirst.mockResolvedValue(null);
       const { result } = await service.resolveForPost({
         organizationId: 'org-1',
         postId: 'post-1',
       });
-      expect(result.decision).toBe(AgentPublishDecision.DENIED);
-      expect(result.policyViolations).toEqual([
-        expect.objectContaining({ rule: 'policy_not_approved' }),
-      ]);
+      expect(result.decision).toBe(AgentPublishDecision.PERMITTED);
+      expect(result.policyViolations).toBeUndefined();
       expect(db.brandOsRevision.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({

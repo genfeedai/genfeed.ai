@@ -34,7 +34,6 @@ export const brandPublishDraftFormatValues = [
   'video',
 ] as const;
 export const brandPolicyRuleValues = [
-  'policy_not_approved',
   'platform_requires_review',
   'format_requires_review',
   'video_always_reviewed',
@@ -138,7 +137,11 @@ export const brandPolicyViolationSchema: z.ZodType<IBrandPolicyViolation> =
     rule: z.enum(brandPolicyRuleValues),
   });
 
-/** A starting Policy: nothing banned, text and image earn autonomy, video reviewed. */
+/**
+ * The Policy a brand runs under until it approves its own: nothing banned, no
+ * caps, text and image earn autonomy, video reviewed. A brand with no approved
+ * Policy is judged by this one, so workflows and MCP keep publishing.
+ */
 export function createDefaultBrandPublishPolicy(
   timezone = 'UTC',
 ): IBrandPublishPolicy {
@@ -166,14 +169,11 @@ export function parseBrandPublishPolicy(
 }
 
 /** True when banned topics, banned claims or caption moderation need the judge. */
-export function needsBrandPolicyJudge(
-  policy: IBrandPublishPolicy | null,
-): boolean {
-  return Boolean(
-    policy &&
-      (policy.bannedTopics.length > 0 ||
-        policy.bannedClaims.length > 0 ||
-        policy.requiredChecks.includes('moderation')),
+export function needsBrandPolicyJudge(policy: IBrandPublishPolicy): boolean {
+  return (
+    policy.bannedTopics.length > 0 ||
+    policy.bannedClaims.length > 0 ||
+    policy.requiredChecks.includes('moderation')
   );
 }
 
@@ -306,7 +306,7 @@ export function resolveBrandPolicyWindows(
 
 export const brandPolicyEvaluationInputSchema = z.strictObject({
   /** The approved Policy; null when the brand has none. */
-  policy: brandPublishPolicySchema.nullable(),
+  policy: brandPublishPolicySchema,
   draft: z.strictObject({
     format: z.enum(brandPublishDraftFormatValues),
     platform: z.string(),
@@ -332,8 +332,7 @@ export type BrandPolicyEvaluationInput = z.infer<
 >;
 
 /**
- * The deterministic rules a draft breaks, in a stable order: missing Policy,
- * video, autonomy, banned phrases, caps, quiet hours, score, receipt checks.
+ * The deterministic rules a draft breaks, in a stable order: video, autonomy, banned phrases, caps, quiet hours, score, receipt checks.
  * The judge's findings are not included; the gate appends them.
  */
 export function evaluateBrandPublishPolicyRules(
@@ -341,21 +340,12 @@ export function evaluateBrandPublishPolicyRules(
 ): IBrandPolicyViolation[] {
   const { draft, policy } = input;
   const violations: IBrandPolicyViolation[] = [];
-  if (!policy) {
-    violations.push({
-      detail:
-        'This brand has no approved Policy, so every autonomous draft stays in review.',
-      rule: 'policy_not_approved',
-    });
-  }
   if (draft.format === 'video') {
     violations.push({
       detail: 'Video is always reviewed by a member before it publishes.',
       rule: 'video_always_reviewed',
     });
   }
-  if (!policy) return violations;
-
   if (policy.autonomy.platforms[draft.platform] === 'review') {
     violations.push({
       detail: `The Policy requires review for every ${draft.platform} post.`,

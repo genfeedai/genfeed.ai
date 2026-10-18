@@ -13,7 +13,7 @@ import {
 import type { IBrandPublishPolicy } from '../../src/interfaces/organization/brand-publish-policy.interface';
 
 function input(
-  policy: IBrandPublishPolicy | null,
+  policy: IBrandPublishPolicy,
   draft: Partial<BrandPolicyEvaluationInput['draft']> = {},
   rest: Partial<Omit<BrandPolicyEvaluationInput, 'draft' | 'policy'>> = {},
 ): BrandPolicyEvaluationInput {
@@ -125,15 +125,11 @@ describe('quiet hours and windows', () => {
 });
 
 describe('evaluateBrandPublishPolicyRules', () => {
-  it('holds every draft while the brand has no approved Policy', () => {
-    expect(rules(input(null))).toEqual(['policy_not_approved']);
+  it('passes a clean text draft under the default Policy', () => {
+    expect(rules(input(createDefaultBrandPublishPolicy()))).toEqual([]);
   });
 
   it('always reviews video, whatever the Policy says', () => {
-    expect(rules(input(null, { format: 'video' }))).toEqual([
-      'policy_not_approved',
-      'video_always_reviewed',
-    ]);
     expect(
       rules(input(createDefaultBrandPublishPolicy(), { format: 'video' })),
     ).toEqual(['video_always_reviewed']);
@@ -202,7 +198,6 @@ describe('evaluateBrandPublishPolicyRules', () => {
 describe('needsBrandPolicyJudge', () => {
   it('runs the judge only for topics, claims or caption moderation', () => {
     const policy = createDefaultBrandPublishPolicy();
-    expect(needsBrandPolicyJudge(null)).toBe(false);
     expect(needsBrandPolicyJudge(policy)).toBe(false);
     expect(needsBrandPolicyJudge({ ...policy, bannedPhrases: ['x'] })).toBe(
       false,

@@ -49,7 +49,6 @@ export interface IBrandPublishPolicy {
 }
 
 export type BrandPolicyRule =
-  | 'policy_not_approved'
   | 'platform_requires_review'
   | 'format_requires_review'
   | 'video_always_reviewed'

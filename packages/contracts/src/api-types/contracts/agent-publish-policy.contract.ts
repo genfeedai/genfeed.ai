@@ -24,8 +24,8 @@ export const agentPublishPolicyInputSchema = z.object({
   mediaAssessment: agentPublishMediaAssessmentSchema.optional(),
   /**
    * The brand Policy and the draft it judges (#7339). Every unattended path
-   * passes it; a brand with no approved Policy passes `policy: null`, which
-   * holds the draft. It is absent only for a publish a member confirmed.
+   * passes it; a brand with no approved Policy is judged by the default one.
+   * It is absent only for a publish a member confirmed.
    */
   brandPolicy: brandPolicyEvaluationInputSchema.optional(),
 });
@@ -105,8 +105,8 @@ export function applyMediaAssessmentToPublishPolicy(
  * The single publish gate. Auto-publish is permitted only when autonomy is
  * AUTO_PUBLISH and both the brand and the destination channel have opted in.
  * SUPERVISED always requires human approval. A blocking media assessment or
- * any broken brand Policy rule (no approved Policy, video, caps, quiet hours,
- * banned content, score, required checks) turns an otherwise permitted
+ * any broken brand Policy rule (video, caps, quiet hours, banned content,
+ * score, required checks) turns an otherwise permitted
  * auto-publish into review-required; neither can permit anything.
  */
 export function evaluateAgentPublishPolicy(

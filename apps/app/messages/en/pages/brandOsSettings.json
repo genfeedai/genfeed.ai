@@ -191,7 +191,7 @@
   "policy": {
     "title": "Publishing Policy",
     "description": "What this brand's agents may publish without a member. It takes effect when this revision is approved; until then every autonomous draft waits for review. A member's approval always overrides it.",
-    "none": "This revision has no Policy, so every autonomous draft waits for review.",
+    "none": "This revision has no Policy, so the default applies: video is reviewed, text and image earn autonomy, and nothing is banned or capped.",
     "add": "Add a Policy",
     "remove": "Remove Policy",
     "formatsTitle": "Autonomy by format",

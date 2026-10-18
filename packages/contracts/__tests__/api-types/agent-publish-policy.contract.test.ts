@@ -151,17 +151,6 @@ describe('evaluateAgentPublishPolicy with the brand Policy (#7339)', () => {
     expect(result.policyViolations).toBeUndefined();
   });
 
-  it('holds every draft while the brand has no approved Policy', () => {
-    const result = evaluateAgentPublishPolicy({
-      ...permitted,
-      brandPolicy: brandPolicy({ policy: null }),
-    });
-    expect(result.decision).toBe(AgentPublishDecision.DENIED);
-    expect(result.policyViolations?.map((v) => v.rule)).toEqual([
-      'policy_not_approved',
-    ]);
-  });
-
   it('routes video to review regardless of autonomy and streak', () => {
     for (const autonomyMode of Object.values(AgentAutonomyMode)) {
       const result = evaluateAgentPublishPolicy({
@@ -195,9 +184,9 @@ describe('evaluateAgentPublishPolicy with the brand Policy (#7339)', () => {
     const result = evaluateAgentPublishPolicy({
       ...permitted,
       autonomyMode: AgentAutonomyMode.SUPERVISED,
-      brandPolicy: brandPolicy({ policy: null }),
+      brandPolicy: brandPolicy({}, { format: 'video' }),
     });
     expect(result.reason).toBe('Autonomy mode requires human approval.');
-    expect(result.policyViolations?.[0]?.rule).toBe('policy_not_approved');
+    expect(result.policyViolations?.[0]?.rule).toBe('video_always_reviewed');
   });
 });

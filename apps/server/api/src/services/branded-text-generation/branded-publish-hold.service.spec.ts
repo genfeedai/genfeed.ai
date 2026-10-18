@@ -23,7 +23,6 @@ const FACTS: BrandPolicyDraftFacts = {
 /** A stub of the brand Policy reader: an approved default Policy, plus judge findings. */
 function makePolicy(input: {
   format?: BrandPolicyDraftFacts['format'];
-  hasPolicy?: boolean;
   judgeViolations?: IBrandPolicyViolation[];
 }) {
   return {
@@ -40,8 +39,7 @@ function makePolicy(input: {
         },
         judgeViolations: input.judgeViolations ?? [],
         passedChecks: [],
-        policy:
-          input.hasPolicy === false ? null : createDefaultBrandPublishPolicy(),
+        policy: createDefaultBrandPublishPolicy(),
         usage: { postsInDay: 0, postsInWeek: 0 },
       }),
     ),
@@ -302,23 +300,6 @@ describe('BrandedPublishHoldService', () => {
         [expect.objectContaining({ rule: 'video_always_reviewed' })],
         undefined,
       );
-    });
-
-    it('holds every policy-bound publish while the brand has no approved Policy', async () => {
-      const { service } = makeService({
-        policy: makePolicy({ hasPolicy: false }),
-      });
-
-      await expect(
-        service.assertPostPublishable({
-          ...scope,
-          isHumanApproval: false,
-          isPolicyBound: true,
-        }),
-      ).rejects.toMatchObject({
-        reason: 'policy_violation',
-        violations: [expect.objectContaining({ rule: 'policy_not_approved' })],
-      });
     });
 
     it('clears recorded violations once a policy-bound publish passes', async () => {
