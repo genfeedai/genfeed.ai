@@ -19,13 +19,11 @@ function build() {
   const prisma = {} as never;
   const cache = { invalidateByTags: vi.fn().mockResolvedValue(2) };
   const platformTemplates = {
-    reconcileCatalog: vi
-      .fn()
-      .mockResolvedValue({
-        keys: ['content.video.default'],
-        unchanged: 3,
-        written: 1,
-      }),
+    reconcileCatalog: vi.fn().mockResolvedValue({
+      keys: ['content.video.default'],
+      unchanged: 3,
+      written: 1,
+    }),
   };
   return {
     cache,
