@@ -93,8 +93,7 @@ describe('ServicesService OAuth request contract', () => {
     expect(baseServiceConstructor).toHaveBeenCalledWith(
       '/services/threads',
       'token',
-      expect.anything(),
-      expect.anything(),
+      expect.any(Function),
     );
     expect(mockInstance.get).toHaveBeenCalledWith('connect-readiness');
   });

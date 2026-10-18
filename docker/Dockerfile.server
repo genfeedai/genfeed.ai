@@ -50,7 +50,7 @@ FROM toolchain AS pruner
 # Keep this exact version aligned with the root turbo devDependency. The
 # resulting /pruned/json tree contains both the reduced workspace manifests and
 # the matching pruned bun.lock, so subsequent installs can be frozen.
-RUN bun add --global turbo@2.10.7
+RUN bun add --global turbo@2.11.8
 
 WORKDIR /ctx
 

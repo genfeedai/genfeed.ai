@@ -825,6 +825,34 @@ describe('WorkflowExecutionQueueService', () => {
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
+    it('reports the enqueue as accepted when a worker already failed the freshly added job', async () => {
+      mockQueue.add.mockResolvedValueOnce({
+        failedReason: 'Social inbox sync requires organizationId',
+        getState: vi.fn().mockResolvedValue('failed'),
+        id: 'social-inbox-sync-1',
+      });
+      const input = {
+        actionType: 'social.inbox.sync.x-comments',
+        canonicalId: 'social.inbox.sync.x-comments',
+        organizationId: 'org-1',
+        source: 'social-inbox-sync-api',
+        userId: 'user-1',
+      };
+
+      await expect(
+        service.queueSystemWorkflow(input, 'social-inbox-sync-1', {
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        }),
+      ).resolves.toBe('social-inbox-sync-1');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('failed before enqueue returned'),
+        expect.objectContaining({
+          failedReason: 'Social inbox sync requires organizationId',
+        }),
+      );
+    });
+
     it('fails loudly instead of silently when the enqueued job lands unclaimable (#5162)', async () => {
       mockQueue.add.mockResolvedValueOnce({
         getState: vi.fn().mockResolvedValue('unknown'),

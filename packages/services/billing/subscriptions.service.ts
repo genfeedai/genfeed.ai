@@ -6,18 +6,12 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { Subscription } from '@genfeedai/models/billing/subscription.model';
-import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import type { AxiosRequestConfig } from 'axios';
 
 export class SubscriptionsService extends BaseService<Subscription> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.SUBSCRIPTIONS,
-      token,
-      Subscription,
-      SubscriptionSerializer,
-    );
+    super(API_ENDPOINTS.SUBSCRIPTIONS, token, Subscription);
   }
 
   public static getInstance(token: string): SubscriptionsService {

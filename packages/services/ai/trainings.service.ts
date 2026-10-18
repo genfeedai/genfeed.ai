@@ -1,7 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Training } from '@genfeedai/models/ai/training.model';
 import { Image } from '@genfeedai/models/ingredients/image.model';
-import { TrainingSerializer } from '@genfeedai/serializers';
 import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
@@ -10,7 +9,7 @@ import {
 
 export class TrainingsService extends BaseService<Training> {
   constructor(token: string) {
-    super(API_ENDPOINTS.TRAININGS, token, Training, TrainingSerializer);
+    super(API_ENDPOINTS.TRAININGS, token, Training);
   }
 
   public static getInstance(token: string): TrainingsService {

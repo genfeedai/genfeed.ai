@@ -1,4 +1,7 @@
-import { publicYoutubeInboxPostFilter } from '@api/collections/posts/services/post-publication-capture.filters';
+import {
+  OWNED_INBOX_POST_ORDER_BY,
+  publicYoutubeInboxPostFilter,
+} from '@api/collections/posts/services/post-publication-capture.filters';
 import { TWITTER_DM_REASON } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
@@ -2165,7 +2168,7 @@ describe('SocialInboxService', () => {
       );
 
       expect(context.prisma.post.findMany).toHaveBeenCalledWith({
-        orderBy: { publishedAt: 'desc' },
+        orderBy: OWNED_INBOX_POST_ORDER_BY,
         take: 20,
         where: {
           organizationId: 'org-1',

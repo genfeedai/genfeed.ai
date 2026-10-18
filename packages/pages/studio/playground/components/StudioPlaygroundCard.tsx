@@ -616,6 +616,7 @@ export default function StudioPlaygroundCard({
               className="relative z-10"
               detail={job.error}
               isCancelling={isCancelling}
+              isStacked
               onCancel={
                 job.ingredientId && assetActions.onCancelGeneration
                   ? () => void cancelGeneration()

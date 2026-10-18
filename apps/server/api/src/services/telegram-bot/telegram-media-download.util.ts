@@ -1,5 +1,4 @@
-import type { ReadableStreamDefaultReader } from 'node:stream/web';
-import { safeFetch } from '@libs/security/destination-guard';
+import { downloadBounded } from '@libs/security/bounded-download';
 import type { Api } from 'grammy';
 
 // Telegram's cloud Bot API uses MAX_DOWNLOAD_FILE_SIZE = 20 << 20.
@@ -33,10 +32,6 @@ export class TelegramMediaDownloadError extends Error {
   }
 }
 
-function cancelUnusedBody(response: Response): void {
-  void response.body?.cancel().catch(() => undefined);
-}
-
 export function toTelegramAbortSignal(
   signal: AbortSignal,
 ): NonNullable<Parameters<Api['getFile']>[1]> {
@@ -48,80 +43,35 @@ export async function downloadTelegramMedia(
   botToken: string | undefined,
   getFile: (signal: AbortSignal) => Promise<TelegramFileMetadata>,
 ): Promise<TelegramMediaDownload> {
-  const controller = new AbortController();
-  const timeoutError = new TelegramMediaDownloadError('timeout');
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const expired = new Promise<never>((_resolve, reject) => {
-    timeout = setTimeout(() => {
-      controller.abort(timeoutError);
-      reject(timeoutError);
-    }, 120_000);
-  });
-  let response: Response | undefined;
-  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
-  let complete = false;
+  let filePath = '';
   try {
     if (!botToken) throw new TelegramMediaDownloadError('failed');
-    const file = await Promise.race([getFile(controller.signal), expired]);
-    controller.signal.throwIfAborted();
-    if (file.file_size !== undefined && file.file_size > MAX_DOWNLOAD_BYTES)
-      throw new TelegramMediaDownloadError('too-large');
-    const filePath = file.file_path;
-    if (!filePath) throw new TelegramMediaDownloadError('unavailable');
-    const sourceUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
-    const pending = safeFetch(
-      sourceUrl,
-      { signal: controller.signal },
-      {
-        allowedSchemes: ['https:'],
-        allowedOrigins: ['https://api.telegram.org'],
+    const { data, headers } = await downloadBounded(
+      async ({ race, signal }) => {
+        const file = await race(getFile(signal));
+        signal.throwIfAborted();
+        if (file.file_size !== undefined && file.file_size > MAX_DOWNLOAD_BYTES)
+          throw new TelegramMediaDownloadError('too-large');
+        if (!file.file_path)
+          throw new TelegramMediaDownloadError('unavailable');
+        filePath = file.file_path;
+        return `https://api.telegram.org/file/bot${botToken}/${filePath}`;
       },
-    ).then((download) => {
-      if (controller.signal.aborted) {
-        cancelUnusedBody(download);
-        controller.signal.throwIfAborted();
-      }
-      return download;
-    });
-    response = await Promise.race([pending, expired]);
-    if (!response.ok || !response.body)
-      throw new TelegramMediaDownloadError('failed', response.status);
-    if (Number(response.headers.get('content-length')) > MAX_DOWNLOAD_BYTES)
-      throw new TelegramMediaDownloadError('too-large');
-    reader = response.body.getReader();
-    const chunks: Buffer[] = [];
-    let bytes = 0;
-    for (;;) {
-      const { done, value } = await Promise.race([reader.read(), expired]);
-      if (done) {
-        complete = true;
-        return {
-          data: Buffer.concat(chunks, bytes),
-          contentType: response.headers.get('content-type'),
-          filePath,
-        };
-      }
-      bytes += value.byteLength;
-      if (bytes > MAX_DOWNLOAD_BYTES)
-        throw new TelegramMediaDownloadError('too-large');
-      chunks.push(Buffer.from(value));
-    }
+      {
+        createError: (reason, response) =>
+          new TelegramMediaDownloadError(reason, response?.status),
+        deadlineMs: 120_000,
+        destination: {
+          allowedOrigins: ['https://api.telegram.org'],
+          allowedSchemes: ['https:'],
+        },
+        maxBytes: MAX_DOWNLOAD_BYTES,
+        timeoutError: new TelegramMediaDownloadError('timeout'),
+      },
+    );
+    return { contentType: headers.get('content-type'), data, filePath };
   } catch (error: unknown) {
-    if (
-      controller.signal.aborted &&
-      controller.signal.reason instanceof TelegramMediaDownloadError
-    )
-      throw controller.signal.reason;
     if (error instanceof TelegramMediaDownloadError) throw error;
     throw new TelegramMediaDownloadError('failed');
-  } finally {
-    if (timeout) clearTimeout(timeout);
-    controller.abort();
-    if (reader) {
-      if (!complete) void reader.cancel().catch(() => undefined);
-      reader.releaseLock();
-    } else if (response) {
-      cancelUnusedBody(response);
-    }
   }
 }

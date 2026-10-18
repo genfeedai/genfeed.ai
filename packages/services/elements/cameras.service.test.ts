@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ElementCamera } from '@genfeedai/models/elements/camera.model';
-import { CameraSerializer } from '@genfeedai/serializers';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockConstructor = vi.hoisted(() => vi.fn());
@@ -12,7 +11,10 @@ vi.mock('@services/core/base.service', () => {
       mockConstructor(...args);
     }
 
-    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+    static getDataServiceInstance<TArgs extends unknown[], TService>(
+      ServiceClass: new (...args: TArgs) => TService,
+      ...args: TArgs
+    ): TService {
       mockGetDataServiceInstance(ServiceClass, ...args);
       return new ServiceClass(...args);
     }
@@ -30,14 +32,13 @@ describe('CamerasService', () => {
     vi.clearAllMocks();
   });
 
-  it('passes correct arguments to BaseService', () => {
+  it('passes the endpoint, token and model without an eager serializer', () => {
     new CamerasService(token);
 
     expect(mockConstructor).toHaveBeenCalledWith(
       API_ENDPOINTS.CAMERAS,
       token,
       ElementCamera,
-      CameraSerializer,
     );
   });
 

@@ -36,11 +36,6 @@ import { Brand } from '@genfeedai/models/organization/brand.model';
 import { Member } from '@genfeedai/models/organization/member.model';
 import { Organization } from '@genfeedai/models/organization/organization.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
-import {
-  MemberInvitationSerializer,
-  OrganizationSerializer,
-  OrganizationSettingSerializer,
-} from '@genfeedai/serializers';
 import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
@@ -48,6 +43,7 @@ import {
 } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeCollection } from '@services/core/json-api';
+import { serializeRequest } from '@services/core/request-serializers';
 
 const ORGANIZATION_LIST_PAGE_SIZE = 100;
 
@@ -79,12 +75,7 @@ export class OrganizationsService extends BaseService<Organization> {
     null;
 
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.ORGANIZATIONS,
-      token,
-      Organization,
-      OrganizationSerializer,
-    );
+    super(API_ENDPOINTS.ORGANIZATIONS, token, Organization);
   }
 
   public static getInstance(token: string): OrganizationsService {
@@ -221,7 +212,7 @@ export class OrganizationsService extends BaseService<Organization> {
     id: string,
     data: Partial<IOrganizationSetting>,
   ): Promise<IOrganizationSetting> {
-    const body = OrganizationSettingSerializer.serialize(data);
+    const body = await serializeRequest('OrganizationSettingSerializer', data);
     return await this.instance
       .patch<JsonApiResponseDocument>(`/${id}/settings`, body)
       .then(
@@ -281,7 +272,7 @@ export class OrganizationsService extends BaseService<Organization> {
     id: string,
     data: IMemberInvitation,
   ): Promise<IMemberInvitation> {
-    const body = MemberInvitationSerializer.serialize(data);
+    const body = await serializeRequest('MemberInvitationSerializer', data);
 
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/members`, body)

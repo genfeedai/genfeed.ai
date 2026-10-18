@@ -1,4 +1,3 @@
-import type { StudioSystemPreset } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import type {
   FormDropdownOption,
   IModel,
@@ -169,19 +168,6 @@ export interface GenerationSetupPresetsSectionProps {
   onSavePreset: (label: string) => void;
   presets: readonly IStudioLook[];
   setup: GenerationSetup;
-}
-
-export interface GenerationSetupPresetsPopoverProps
-  extends GenerationSetupPresetsSectionProps {
-  onClearPreset: () => void;
-  systemPresets?: readonly StudioSystemPreset[];
-  onApplySystemPreset?: (preset: StudioSystemPreset) => void;
-}
-
-export interface GenerationSetupPresetPreviewProps {
-  preset: StudioSystemPreset;
-  isAnimated?: boolean;
-  isCompact?: boolean;
 }
 
 export interface GenerationSetupOptionPickerProps {

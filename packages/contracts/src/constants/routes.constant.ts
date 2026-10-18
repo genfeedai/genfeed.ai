@@ -638,6 +638,10 @@ export function createOrganizationAppRoute(
   return `/${orgSlug}/~${normalizeScopedRoutePath(toOrganizationScopePath(path))}`;
 }
 
+/**
+ * Settings that only exist under `/:org/:brand/settings/*` — there is no
+ * org-level `/:org/~/settings/...` page for them.
+ */
 const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.AGENT,
   APP_ROUTES.SETTINGS.PUBLISHING,
@@ -650,6 +654,14 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   '/settings/brand-kit',
   '/library/references',
 ] as const;
+
+export function isBrandOnlySettingsPath(pathname: string): boolean {
+  const path = pathname.split(/[?#]/u)[0] ?? pathname;
+
+  return BRAND_ONLY_SETTINGS_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+}
 
 function workspaceSurfacePath(pathname: string): string {
   const parts = pathname.split('/').filter(Boolean);
@@ -665,13 +677,7 @@ function toOrganizationScopePath(brandScopedPath: string): string {
     ? brandScopedPath
     : `/${brandScopedPath}`;
 
-  for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
-    if (path.split(/[?#]/u)[0] === prefix || path.startsWith(`${prefix}/`)) {
-      return APP_ROUTES.SETTINGS.BRANDS;
-    }
-  }
-
-  return path;
+  return isBrandOnlySettingsPath(path) ? APP_ROUTES.SETTINGS.BRANDS : path;
 }
 
 /**

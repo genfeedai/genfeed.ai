@@ -291,6 +291,28 @@ describe('PostDetailSidebar', () => {
     expect(screen.getByTestId('evaluation-row')).toBeInTheDocument();
   });
 
+  it('keeps Checks collapsed once a post is published', () => {
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            id: 'post-1',
+            platform: 'tiktok',
+            publicationDate: '2026-03-10T10:00:00.000Z',
+            status: PostStatus.PRIVATE,
+          } as never
+        }
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /^Checks/ })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(screen.queryByTestId('evaluation-row')).not.toBeInTheDocument();
+  });
+
   it('disables publishing until TikTok settings report ready', () => {
     tiktokState.isReady = false;
     const onTikTokReadinessChange = vi.fn();

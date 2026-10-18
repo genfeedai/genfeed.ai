@@ -4,7 +4,6 @@ import type {
   CampaignType,
 } from '@genfeedai/contracts';
 import { CampaignTargetType } from '@genfeedai/contracts';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -123,9 +122,6 @@ export class OutreachCampaign implements ICampaign {
 /**
  * Campaign serializer - identity transform
  */
-const outreachCampaignSerializer: IServiceSerializer<OutreachCampaign> = {
-  serialize: (data) => data,
-};
 
 /**
  * Campaign target model for frontend
@@ -167,12 +163,7 @@ export interface CampaignTarget {
 
 export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
   constructor(token: string) {
-    super(
-      '/outreach-campaigns',
-      token,
-      OutreachCampaign,
-      outreachCampaignSerializer,
-    );
+    super('/outreach-campaigns', token, OutreachCampaign);
   }
 
   public static getInstance(token: string): OutreachCampaignsService {

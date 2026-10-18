@@ -135,7 +135,6 @@ function MasonryVideoTile({
       className={cn(
         'relative block w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
-        video.aspectRatio,
         isSelected && 'ring-2 ring-primary',
         isFleetNsfwLocked && 'cursor-not-allowed',
         isFormatCompatible ? '' : 'opacity-50',

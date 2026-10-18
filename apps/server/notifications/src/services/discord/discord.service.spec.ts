@@ -157,7 +157,7 @@ describe('DiscordService', () => {
       await expect(service.status()).resolves.toEqual({
         isBotConfigured: true,
         isBotReady: false,
-        missingChannels: ['deployments', 'posts', 'studio'],
+        missingChannels: ['deployments', 'models', 'posts', 'studio'],
       });
     });
 

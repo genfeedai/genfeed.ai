@@ -1,11 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Link } from '@genfeedai/models/social/link.model';
-import { LinkSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class LinksService extends BaseService<Link> {
   constructor(token: string) {
-    super(API_ENDPOINTS.LINKS, token, Link, LinkSerializer);
+    super(API_ENDPOINTS.LINKS, token, Link);
   }
 
   public static getInstance(token: string): LinksService {

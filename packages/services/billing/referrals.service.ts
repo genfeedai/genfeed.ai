@@ -5,7 +5,6 @@ import type {
   IReferralProgram,
 } from '@genfeedai/contracts/interfaces';
 import { ReferralProgram } from '@genfeedai/models/billing/referral-program.model';
-import { ReferralProgramSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
@@ -15,12 +14,7 @@ import {
 
 export class ReferralsService extends BaseService<ReferralProgram> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.REFERRALS,
-      token,
-      ReferralProgram,
-      ReferralProgramSerializer,
-    );
+    super(API_ENDPOINTS.REFERRALS, token, ReferralProgram);
   }
 
   public static getInstance(token: string): ReferralsService {

@@ -11,7 +11,6 @@ import type {
   UpdateSocialSourceInput,
 } from '@genfeedai/contracts/interfaces';
 import { SocialSource } from '@genfeedai/models/social/social-source.model';
-import { SocialSourceSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
 
@@ -21,12 +20,7 @@ export class SocialSourcesService extends BaseService<
   UpdateSocialSourceInput
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.SOCIAL_SOURCES,
-      token,
-      SocialSource,
-      SocialSourceSerializer,
-    );
+    super(API_ENDPOINTS.SOCIAL_SOURCES, token, SocialSource);
   }
 
   public static getInstance(token: string): SocialSourcesService {

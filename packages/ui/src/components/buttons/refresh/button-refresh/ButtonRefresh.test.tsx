@@ -47,20 +47,20 @@ describe('ButtonRefresh', () => {
     const refreshing = screen.getByRole('button', { name: 'Refresh' });
     expect(refreshing.querySelector('.lucide-refresh-cw')).toBeNull();
     expect(
-      refreshing.querySelectorAll('.gen-refresh-spinner-spoke'),
+      refreshing.querySelectorAll('.genfeed-loader-refresh-spoke'),
     ).toHaveLength(8);
     expect(refreshing.querySelector('svg')).toHaveAttribute(
       'aria-hidden',
       'true',
     );
     expect(refreshing).toHaveAttribute('aria-busy', 'true');
-    expect(refreshing.querySelector('.genfeed-loader-root')).toBeNull();
+    expect(refreshing.querySelector('.genfeed-spinner')).toBeNull();
     expect(refreshing.querySelector('output')).toBeNull();
 
     rerender(<ButtonRefresh onClick={vi.fn()} isRefreshing={false} />);
 
     expect(idle.querySelector('.lucide-refresh-cw')).toBeTruthy();
-    expect(idle.querySelector('.gen-refresh-spinner-spoke')).toBeNull();
+    expect(idle.querySelector('.genfeed-loader-refresh-spoke')).toBeNull();
     expect(idle).toHaveAttribute('aria-busy', 'false');
   });
 });

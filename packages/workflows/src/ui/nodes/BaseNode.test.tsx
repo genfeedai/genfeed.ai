@@ -464,7 +464,7 @@ describe('BaseNode', () => {
       );
 
       // Check for processing indicator: loader mark, node-processing wrapper, or any SVG
-      const spinner = document.querySelector('.genfeed-loader-root');
+      const spinner = document.querySelector('.genfeed-spinner');
       const processingNode = document.querySelector('.node-processing');
       const svgIcon = document.querySelector('svg');
       expect(spinner ?? processingNode ?? svgIcon).toBeTruthy();
