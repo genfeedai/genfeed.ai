@@ -300,13 +300,9 @@ export class VideoGenerationPreparationService {
         )
       : undefined;
 
-    let promptParams: Record<string, unknown>;
-    let templateUsed: string | undefined;
-    let templateVersion: number | undefined;
-    if (compiledDispatch) {
-      promptParams = compiledDispatch as unknown as Record<string, unknown>;
-    } else {
-      const built = await this.buildPromptParams({
+    const { promptParams, templateUsed, templateVersion } =
+      await this.resolvePromptParams({
+        compiledDispatch,
         endFrameUrl,
         height,
         promptText: generationHarness.enhancedPrompt,
@@ -314,10 +310,6 @@ export class VideoGenerationPreparationService {
         resolved,
         width,
       });
-      promptParams = built.promptParams;
-      templateUsed = built.templateUsed;
-      templateVersion = built.templateVersion;
-    }
     if (nativeVideoReferences)
       promptParams.video_urls = nativeVideoReferences.map(
         (reference) => reference.url,
@@ -530,6 +522,24 @@ export class VideoGenerationPreparationService {
       generationHarness.originalPrompt = request.generationOriginalPrompt;
     }
     return generationHarness;
+  }
+
+  private async resolvePromptParams(params: {
+    compiledDispatch?: Record<string, unknown>;
+    endFrameUrl?: string;
+    height: number;
+    promptText: string;
+    referenceImageUrls: string[];
+    resolved: ResolvedVideoGenerationRequest;
+    width: number;
+  }): Promise<{
+    promptParams: Record<string, unknown>;
+    templateUsed?: string;
+    templateVersion?: number;
+  }> {
+    const { compiledDispatch, ...buildParams } = params;
+    if (compiledDispatch) return { promptParams: compiledDispatch };
+    return this.buildPromptParams(buildParams);
   }
 
   private async buildPromptParams(params: {
