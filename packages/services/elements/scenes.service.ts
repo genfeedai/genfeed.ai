@@ -1,11 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ElementScene } from '@genfeedai/models/elements/scene.model';
-import { SceneSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class ScenesService extends BaseService<ElementScene> {
   constructor(token: string) {
-    super(API_ENDPOINTS.SCENES, token, ElementScene, SceneSerializer);
+    super(API_ENDPOINTS.SCENES, token, ElementScene);
   }
 
   public static getInstance(token: string): ScenesService {

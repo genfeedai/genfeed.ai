@@ -269,4 +269,55 @@ describe('rail pin persistence', () => {
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
     expect(result.current.homeAppId).toBeNull();
   });
+
+  it('hides a core app by toggling it, and shows it again', async () => {
+    mocks.findMeSettings.mockResolvedValue({ hiddenAppIds: ['analytics'] });
+    const { result } = renderHook(useRailPreferences);
+    await waitFor(() =>
+      expect(result.current.hiddenAppIds).toEqual(['analytics']),
+    );
+
+    act(() => result.current.togglePin('library'));
+    expect(result.current.hiddenAppIds).toEqual(['analytics', 'library']);
+    await waitFor(() =>
+      expect(mocks.patchMeSettings).toHaveBeenLastCalledWith({
+        hiddenAppIds: ['analytics', 'library'],
+      }),
+    );
+
+    act(() => result.current.togglePin('analytics'));
+    await waitFor(() =>
+      expect(mocks.patchMeSettings).toHaveBeenLastCalledWith({
+        hiddenAppIds: ['library'],
+      }),
+    );
+    expect(result.current.pinnedAppIds).toEqual([]);
+  });
+
+  it('drops saved hidden ids that are not core apps', async () => {
+    mocks.findMeSettings.mockResolvedValue({
+      hiddenAppIds: ['turbo', 'agent', 'bogus', 'agent'],
+    });
+    const { result } = renderHook(useRailPreferences);
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+    expect(result.current.hiddenAppIds).toEqual(['agent']);
+  });
+
+  it('resets the order and hidden apps together', async () => {
+    mocks.findMeSettings.mockResolvedValue({
+      hiddenAppIds: ['library'],
+      railAppOrder: ['agent', 'workspace'],
+    });
+    const { result } = renderHook(useRailPreferences);
+    await waitFor(() =>
+      expect(result.current.hiddenAppIds).toEqual(['library']),
+    );
+
+    act(() => result.current.resetRail());
+    expect(result.current.hiddenAppIds).toEqual([]);
+    expect(result.current.railAppOrder).toEqual([]);
+    await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(2));
+    expect(mocks.patchMeSettings).toHaveBeenCalledWith({ hiddenAppIds: [] });
+    expect(mocks.patchMeSettings).toHaveBeenCalledWith({ railAppOrder: [] });
+  });
 });

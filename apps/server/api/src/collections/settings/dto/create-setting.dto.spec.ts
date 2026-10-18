@@ -48,6 +48,26 @@ describe('CreateSettingDto', () => {
     });
   });
 
+  describe('hiddenAppIds', () => {
+    async function hiddenAppIdsErrorsFor(hiddenAppIds: unknown) {
+      const dto = plainToInstance(CreateSettingDto, { hiddenAppIds });
+      const errors = await validate(dto);
+
+      return errors.filter((error) => error.property === 'hiddenAppIds');
+    }
+
+    it('accepts core app ids', async () => {
+      expect(await hiddenAppIdsErrorsFor(['library', 'analytics'])).toEqual([]);
+      expect(await hiddenAppIdsErrorsFor([])).toEqual([]);
+    });
+
+    it('rejects secondary apps, unknown ids and duplicates', async () => {
+      expect(await hiddenAppIdsErrorsFor(['turbo'])).toHaveLength(1);
+      expect(await hiddenAppIdsErrorsFor(['studio'])).toHaveLength(1);
+      expect(await hiddenAppIdsErrorsFor(['agent', 'agent'])).toHaveLength(1);
+    });
+  });
+
   describe('railAppOrder', () => {
     it('accepts core and secondary app ids in any order', async () => {
       expect(

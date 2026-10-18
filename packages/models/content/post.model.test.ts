@@ -45,8 +45,11 @@ vi.mock('@genfeedai/helpers', () => ({
     buildInstagramUrl: (id: string) => `https://instagram.com/p/${id}`,
     buildLinkedInUrl: (id: string) =>
       `https://linkedin.com/feed/update/urn:li:share:${id}`,
+    buildProfileUrl: (_platform: string, handle?: string) =>
+      handle ? `https://www.tiktok.com/@${handle}` : undefined,
     buildTikTokUrl: (id: string, username: string) =>
       `https://tiktok.com/@${username}/video/${id}`,
+    isTikTokPublishId: (id: string) => /^v_[a-z_]+~/i.test(id),
     buildTwitterUrl: (id: string, username: string) =>
       `https://x.com/${username}/status/${id}`,
     buildYoutubeUrl: (id: string) => `https://youtube.com/watch?v=${id}`,
@@ -371,6 +374,17 @@ describe('Post', () => {
       expect(post.postUrl).toBe('https://tiktok.com/@user123/video/video123');
     });
 
+    it('should not build a video URL from a TikTok publish id', () => {
+      const post = createPost({
+        credential: createCredential({ externalHandle: 'user123' }),
+        externalId: 'v_pub_url~v2-1.7697905849796380694',
+        id: 'post-123',
+        platform: CredentialPlatform.TIKTOK,
+      });
+
+      expect(post.postUrl).toBe('https://www.tiktok.com/@user123');
+    });
+
     it('should build Twitter URL with username', () => {
       const post = createPost({
         credential: createCredential({ externalHandle: 'user123' }),
@@ -546,6 +560,18 @@ describe('Post', () => {
         expect(post.platformUrl).toBe(
           'https://tiktok.com/@user123/video/video123',
         );
+      });
+
+      it('should link a TikTok publish id to the profile, not a video', () => {
+        const post = createPost({
+          credential: createCredential({ externalHandle: 'user123' }),
+          externalId: 'v_pub_url~v2-1.7697905849796380694',
+          id: 'post-123',
+          platform: CredentialPlatform.TIKTOK,
+          status: PostStatus.PRIVATE,
+        });
+
+        expect(post.platformUrl).toBe('https://www.tiktok.com/@user123');
       });
 
       it('should build Instagram URL for PUBLIC', () => {

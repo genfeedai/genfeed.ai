@@ -1,7 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Bot } from '@genfeedai/models/automation/bot.model';
 import { LivestreamSession } from '@genfeedai/models/automation/livestream-session.model';
-import { BotSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -10,7 +9,7 @@ import { deserializeResource } from '@services/core/json-api';
 
 export class BotsService extends BaseService<Bot> {
   constructor(token: string) {
-    super(API_ENDPOINTS.BOTS, token, Bot, BotSerializer);
+    super(API_ENDPOINTS.BOTS, token, Bot);
   }
 
   public static getInstance(token: string): BotsService {

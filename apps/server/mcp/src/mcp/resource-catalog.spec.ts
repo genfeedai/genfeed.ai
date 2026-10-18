@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  isPublicMcpResourceUri,
   MCP_RESOURCES,
   McpResourceUri,
   PUBLIC_MCP_RESOURCES,
@@ -52,6 +53,22 @@ describe('MCP resource catalog', () => {
       uri: McpResourceUri.AGENT_GUIDE,
     });
     expect(MCP_RESOURCES[0]).toEqual(PUBLIC_MCP_RESOURCES[0]);
+  });
+
+  it('treats the card view of any build as public and nothing look-alike', () => {
+    expect(isPublicMcpResourceUri(McpResourceUri.CONTENT_CARDS)).toBe(true);
+    expect(
+      isPublicMcpResourceUri('ui://genfeed/content-cards-v5-0123456789ab.html'),
+    ).toBe(true);
+    for (const uri of [
+      'ui://genfeed/content-cards-v5-xyz.html',
+      'ui://genfeed/content-cards-v5-0123456789ab.html/../x',
+      'ui://genfeed/other-v5-0123456789ab.html',
+      'genfeed://analytics/videos',
+      undefined,
+    ]) {
+      expect(isPublicMcpResourceUri(uri)).toBe(false);
+    }
   });
 
   /**

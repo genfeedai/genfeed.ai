@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { WATERMARK_EXPORT_ERROR_NAME } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IngredientDownloadButtonProps } from '@genfeedai/props/content/quick-actions.props';
@@ -45,9 +46,20 @@ export default function IngredientDownloadButton({
       } else {
         await onDownloadOriginal();
       }
-    } catch {
+    } catch (error) {
+      // The API says why a watermark export was refused (no watermark set up,
+      // brand missing, ...); show that instead of a generic failure, and keep
+      // the toast up long enough to read.
+      const reason =
+        watermark &&
+        error instanceof Error &&
+        error.name === WATERMARK_EXPORT_ERROR_NAME
+          ? error.message
+          : null;
       NotificationsService.getInstance().error(translate('errorTitle'), {
-        description: translate(watermark ? 'watermarkError' : 'error'),
+        description:
+          reason ?? translate(watermark ? 'watermarkError' : 'error'),
+        duration: 10_000,
       });
     } finally {
       inFlight.current = false;

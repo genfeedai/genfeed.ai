@@ -13,7 +13,6 @@ import type {
   CreatePersonaFromSheetInput,
   GrantableOrganization,
 } from '@genfeedai/contracts/interfaces';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeResource,
@@ -41,10 +40,6 @@ export class Persona {
   }
 }
 
-const personaSerializer: IServiceSerializer<Persona> = {
-  serialize: (data) => data,
-};
-
 function toCharacterListItems(rows: Persona[]): BrandCharacterListItem[] {
   return rows.map((row) => ({
     availabilityMode: row.availabilityMode,
@@ -71,7 +66,7 @@ export class PersonasService extends BaseService<
   Partial<Persona>
 > {
   constructor(token: string) {
-    super('/personas', token, Persona, personaSerializer);
+    super('/personas', token, Persona);
   }
 
   public static getInstance(token: string): PersonasService {

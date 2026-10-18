@@ -11,12 +11,12 @@ const messagesUnread = vi.hoisted(() => ({
   spy: vi.fn(),
 }));
 const preferences = vi.hoisted(() => ({
-  setHomeAppId: vi.fn(),
+  resetRail: vi.fn(),
   setRailAppOrder: vi.fn(),
   togglePin: vi.fn(),
 }));
 const savedPreferences = vi.hoisted(() => ({
-  homeAppId: null as string | null,
+  hiddenAppIds: ['library'] as string[],
   railAppOrder: ['library', 'agent'] as string[],
 }));
 vi.mock('@/components/shell/rail-preferences.provider', () => ({
@@ -257,8 +257,9 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('exploreHref');
     // The member's order and pins flow in and out through the shared context.
     expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
-      onHomeAppChange: preferences.setHomeAppId,
+      hiddenAppIds: ['library'],
       onRailAppOrderChange: preferences.setRailAppOrder,
+      onResetRail: preferences.resetRail,
       onTogglePin: preferences.togglePin,
       railAppOrder: ['library', 'agent'],
     });
@@ -274,8 +275,6 @@ describe('AppProtectedRail', () => {
       };
       render(<AppProtectedRail orgSlug="acme" />);
       expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
-        homeAppId: null,
-        organizationHomeAppId: 'agent',
         railAppOrder: ['analytics', 'agent'],
       });
     });
@@ -289,19 +288,6 @@ describe('AppProtectedRail', () => {
       render(<AppProtectedRail orgSlug="acme" />);
       expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
         railAppOrder: ['library'],
-      });
-    });
-
-    it("passes the member's home app alongside the organization's", () => {
-      savedPreferences.homeAppId = 'library';
-      brandContextState.settings = {
-        ...brandContextState.settings,
-        defaultHomeAppId: 'agent',
-      };
-      render(<AppProtectedRail orgSlug="acme" />);
-      expect(appRailSpy.mock.lastCall?.[0]).toMatchObject({
-        homeAppId: 'library',
-        organizationHomeAppId: 'agent',
       });
     });
   });
@@ -320,7 +306,7 @@ describe('AppProtectedRail', () => {
   });
 
   beforeEach(() => {
-    savedPreferences.homeAppId = null;
+    savedPreferences.hiddenAppIds = ['library'];
     savedPreferences.railAppOrder = ['library', 'agent'];
     brandContextState.settings = {
       hasOrganizationBilling: true,

@@ -12,7 +12,6 @@ import type {
   SocialMessageQuery,
   SocialSuggestedReply,
 } from '@genfeedai/contracts/interfaces';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import {
@@ -20,22 +19,13 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
 
-const socialConversationSerializer: IServiceSerializer<SocialConversation> = {
-  serialize: (data) => data,
-};
-
 export class SocialMessagesService extends BaseService<
   SocialConversationModel,
   SocialActionInput,
   Partial<SocialConversation>
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.MESSAGES,
-      token,
-      SocialConversationModel,
-      socialConversationSerializer,
-    );
+    super(API_ENDPOINTS.MESSAGES, token, SocialConversationModel);
   }
 
   public static getInstance(token: string): SocialMessagesService {

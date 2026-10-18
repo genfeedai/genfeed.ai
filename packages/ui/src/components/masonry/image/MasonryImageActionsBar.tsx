@@ -10,6 +10,7 @@ import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
+import MasonryUnavailableActions from '@ui/masonry/shared/MasonryUnavailableActions';
 import { getMasonryActionsBarClassName } from '@ui/masonry/shared/masonry-actions-visibility';
 import type { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';
@@ -22,6 +23,8 @@ type ImageActionHandlers = ReturnType<typeof useIngredientActions>['handlers'];
 type MasonryImageActionsBarProps = {
   image: IImage;
   isActionsEnabled: boolean;
+  /** Failed or still generating: there is no asset to act on yet. */
+  isUnavailable?: boolean;
   isSelected: boolean;
   showActions: boolean;
   actionStates: MasonryActionStates;
@@ -182,6 +185,7 @@ function QuickActionsWrapper({
 export default function MasonryImageActionsBar({
   image,
   isActionsEnabled,
+  isUnavailable = false,
   isSelected,
   showActions,
   actionStates,
@@ -219,6 +223,13 @@ export default function MasonryImageActionsBar({
         <div className="flex-shrink-0 flex items-center gap-2">
           {onVoteIngredient ? (
             <VoteButton image={image} onVote={onVoteIngredient} />
+          ) : isUnavailable ? (
+            <MasonryUnavailableActions
+              isDeleting={actionStates.isDeleting}
+              onDelete={() => void handlers.handleDelete(image)}
+              onMouseEnter={handleQuickActionsMouseEnter}
+              onMouseLeave={handleQuickActionsMouseLeave}
+            />
           ) : (
             <QuickActionsWrapper
               image={image}

@@ -20,7 +20,6 @@ import type {
   TrendSourceItem,
   TrendsResponse,
 } from '@genfeedai/props/trends/trends-page.props';
-import { TrendSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
@@ -30,7 +29,7 @@ import {
 
 export class TrendsService extends BaseService<Trend> {
   constructor(token: string) {
-    super(API_ENDPOINTS.TRENDS, token, Trend, TrendSerializer);
+    super(API_ENDPOINTS.TRENDS, token, Trend);
   }
 
   public static getInstance(token: string): TrendsService {

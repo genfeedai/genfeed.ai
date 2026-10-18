@@ -4,6 +4,7 @@ import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/uti
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { DEFAULT_POST_ENHANCEMENT_PROMPT } from '@api/collections/posts/constants/post-enhancement-default-prompt.constant';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
@@ -20,6 +21,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -32,6 +34,7 @@ import type {
   PostDraftGenerationInput,
   PostDraftGenerationResult,
 } from '@genfeedai/contracts/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -64,6 +67,7 @@ export class PostGenerationService {
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
     private readonly templatesService: TemplatesService,
+    private readonly logger: LoggerService,
   ) {}
 
   /**
@@ -184,16 +188,31 @@ export class PostGenerationService {
       platformSystemPromptMap[platform.toLowerCase()] ||
       SystemPromptKey.DEFAULT;
 
-    const prompt = await this.templatesService.getRenderedPrompt(
-      PromptTemplateKey.POST_ENHANCEMENT,
-      {
-        currentDescription,
-        platform,
-        tone: dto.tone || 'professional',
-        userRequest: dto.prompt,
-      },
-      identity.organizationId,
-    );
+    const promptVariables = {
+      currentDescription,
+      platform,
+      tone: dto.tone || 'professional',
+      userRequest: dto.prompt,
+    };
+    let prompt: string;
+    try {
+      prompt = await this.templatesService.getRenderedPrompt(
+        PromptTemplateKey.POST_ENHANCEMENT,
+        promptVariables,
+        identity.organizationId,
+      );
+    } catch (error: unknown) {
+      if (!(error instanceof NotFoundException)) {
+        throw error;
+      }
+      this.logger.warn(
+        `Prompt template ${PromptTemplateKey.POST_ENHANCEMENT} is missing; using the built-in rewrite prompt`,
+      );
+      prompt = this.templatesService.renderPrompt(
+        DEFAULT_POST_ENHANCEMENT_PROMPT,
+        promptVariables,
+      );
+    }
 
     // Use PromptBuilderService to build prompt with templates and brand context
     const { input } = await this.promptBuilderService.buildPrompt(

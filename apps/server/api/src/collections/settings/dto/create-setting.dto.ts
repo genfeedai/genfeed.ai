@@ -6,6 +6,7 @@ import {
   TrendNotificationFrequency,
 } from '@genfeedai/contracts';
 import {
+  CORE_APP_IDS,
   DEFAULT_LOCALE,
   DEFAULT_THEME,
   NATIVE_SECONDARY_APP_IDS,
@@ -259,6 +260,23 @@ export class CreateSettingDto {
     type: [String],
   })
   readonly railAppOrder?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(CORE_APP_IDS.length)
+  @ArrayUnique()
+  @IsIn(CORE_APP_IDS, { each: true })
+  @ApiProperty({
+    default: [],
+    description:
+      'Core apps the member took off the rail. They stay in the rail More menu until pinned back. Empty keeps every core app on the rail.',
+    enum: CORE_APP_IDS,
+    isArray: true,
+    maxItems: CORE_APP_IDS.length,
+    required: false,
+    type: [String],
+  })
+  readonly hiddenAppIds?: string[];
 
   @IsOptional()
   @IsIn(RAIL_APP_IDS)

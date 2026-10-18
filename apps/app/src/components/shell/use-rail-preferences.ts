@@ -1,8 +1,10 @@
 'use client';
 
 import {
+  isCoreAppId,
   isNativeSecondaryAppId,
   isRailAppId,
+  normalizeHiddenAppIds,
   normalizeRailAppOrder,
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -10,6 +12,7 @@ import { UsersService } from '@services/organization/users.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface RailPreferenceValues {
+  hiddenAppIds: string[];
   homeAppId: string | null;
   pinnedAppIds: string[];
   railAppOrder: string[];
@@ -27,6 +30,7 @@ type RailPreferenceEdit = <Field extends RailPreferenceField>(
 ) => void;
 
 const FIELDS: readonly RailPreferenceField[] = [
+  'hiddenAppIds',
   'pinnedAppIds',
   'railAppOrder',
   'homeAppId',
@@ -37,6 +41,8 @@ const NORMALIZERS: {
     value: unknown,
   ) => RailPreferenceValues[Field];
 } = {
+  hiddenAppIds: (value) =>
+    normalizeHiddenAppIds(Array.isArray(value) ? value : []),
   homeAppId: (value) => (isRailAppId(value) ? value : null),
   pinnedAppIds: (value) => [
     ...new Set(
@@ -48,7 +54,12 @@ const NORMALIZERS: {
 };
 
 function emptyValues(): RailPreferenceValues {
-  return { homeAppId: null, pinnedAppIds: [], railAppOrder: [] };
+  return {
+    hiddenAppIds: [],
+    homeAppId: null,
+    pinnedAppIds: [],
+    railAppOrder: [],
+  };
 }
 
 function toggledIds(ids: readonly string[], appId: string): string[] {
@@ -58,8 +69,8 @@ function toggledIds(ids: readonly string[], appId: string): string[] {
 }
 
 /**
- * The signed-in user's rail preferences: which secondary apps are pinned, the
- * order of the rail, and the home app. They live on their settings row and
+ * The signed-in user's rail preferences: which secondary apps are pinned, which
+ * core apps are hidden, the order of the rail, and the home app. They live on their settings row and
  * share one read. `isLoaded` turns true once the read settles, failed or not,
  * so callers can wait for saved preferences before acting on defaults.
  * `onSaveError` fires when a save fails, so the caller can tell the member.
@@ -81,6 +92,7 @@ export function useRailPreferences({
     let desired = emptyValues();
     let confirmed = emptyValues();
     const revision: Record<RailPreferenceField, number> = {
+      hiddenAppIds: 0,
       homeAppId: 0,
       pinnedAppIds: 0,
       railAppOrder: 0,
@@ -123,7 +135,8 @@ export function useRailPreferences({
             if (controller.signal.aborted) return;
             if (submittedRevision === revision[field]) {
               // A failed order stays on screen; the next change sends the whole
-              // order again. Pins and the home app return to the saved value.
+              // order again. Pins, hidden apps and the home app return to the
+              // saved value.
               if (field !== 'railAppOrder') {
                 desired = { ...desired, [field]: confirmed[field] };
               }
@@ -163,6 +176,7 @@ export function useRailPreferences({
         const settings = await users.findMeSettings(controller.signal);
         if (controller.signal.aborted) return;
         confirmed = {
+          hiddenAppIds: NORMALIZERS.hiddenAppIds(settings.hiddenAppIds),
           homeAppId: NORMALIZERS.homeAppId(settings.homeAppId),
           pinnedAppIds: NORMALIZERS.pinnedAppIds(settings.pinnedAppIds),
           railAppOrder: NORMALIZERS.railAppOrder(settings.railAppOrder),
@@ -193,13 +207,23 @@ export function useRailPreferences({
     };
   }, [getUsers]);
 
+  // A secondary app is pinned by listing it; a core app is always on the rail
+  // until it is listed as hidden, so pinning it back removes that entry.
   const togglePin = useCallback((appId: string) => {
-    if (!isNativeSecondaryAppId(appId)) return;
-    editRef.current('pinnedAppIds', (ids) => toggledIds(ids, appId));
+    if (isCoreAppId(appId)) {
+      editRef.current('hiddenAppIds', (ids) => toggledIds(ids, appId));
+    } else if (isNativeSecondaryAppId(appId)) {
+      editRef.current('pinnedAppIds', (ids) => toggledIds(ids, appId));
+    }
   }, []);
 
   const setRailAppOrder = useCallback((order: readonly string[]) => {
     editRef.current('railAppOrder', () => [...order]);
+  }, []);
+
+  const resetRail = useCallback(() => {
+    editRef.current('railAppOrder', () => []);
+    editRef.current('hiddenAppIds', () => []);
   }, []);
 
   const setHomeAppId = useCallback((appId: string | null) => {
@@ -207,10 +231,12 @@ export function useRailPreferences({
   }, []);
 
   return {
+    hiddenAppIds: values.hiddenAppIds,
     homeAppId: values.homeAppId,
     isLoaded,
     pinnedAppIds: values.pinnedAppIds,
     railAppOrder: values.railAppOrder,
+    resetRail,
     setHomeAppId,
     setRailAppOrder,
     togglePin,

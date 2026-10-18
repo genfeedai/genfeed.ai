@@ -130,3 +130,43 @@ describe('PromptCommandList', () => {
     expect(command).toHaveBeenCalledWith(ITEMS[0]);
   });
 });
+
+describe('PromptCommandList groups', () => {
+  it('heads each run of commands with its group once', () => {
+    render(
+      <PromptCommandList
+        command={vi.fn()}
+        items={[
+          {
+            description: 'Wide banner',
+            group: 'Presets',
+            kind: 'preset',
+            label: 'Banner',
+            name: 'banner',
+          },
+          {
+            description: 'Square portrait',
+            group: 'Presets',
+            kind: 'preset',
+            label: 'Profile picture',
+            name: 'profile-picture',
+          },
+          {
+            description: 'warm linen',
+            group: 'Saved looks',
+            iconKey: 'look',
+            kind: 'preset',
+            label: 'Warm linen',
+            name: 'warm-linen',
+          },
+          ITEMS[2],
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText('Presets')).toHaveLength(1);
+    expect(screen.getAllByText('Saved looks')).toHaveLength(1);
+    expect(screen.getByText('/warm-linen')).toBeInTheDocument();
+    expect(screen.getByText('/model-selector')).toBeInTheDocument();
+  });
+});
