@@ -2055,7 +2055,8 @@
   "libraryRetry": {
     "genericFailureReason": "Generation failed.",
     "retry": "Retry",
-    "retryAriaLabel": "Retry generation"
+    "retryAriaLabel": "Retry generation",
+    "moveToTrash": "Move to Trash"
   },
   "articleDetail": {
     "loadingTitle": "Loading article…",

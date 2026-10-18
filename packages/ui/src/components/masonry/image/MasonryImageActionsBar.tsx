@@ -10,11 +10,12 @@ import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
+import MasonryUnavailableActions from '@ui/masonry/shared/MasonryUnavailableActions';
 import { getMasonryActionsBarClassName } from '@ui/masonry/shared/masonry-actions-visibility';
 import type { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
-import { ThumbsUp, Trash2 } from 'lucide-react';
+import { ThumbsUp } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
 type ImageActionHandlers = ReturnType<typeof useIngredientActions>['handlers'];
@@ -223,24 +224,12 @@ export default function MasonryImageActionsBar({
           {onVoteIngredient ? (
             <VoteButton image={image} onVote={onVoteIngredient} />
           ) : isUnavailable ? (
-            <div
-              role="presentation"
-              className="quick-actions-wrapper flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
+            <MasonryUnavailableActions
+              isDeleting={actionStates.isDeleting}
+              onDelete={() => void handlers.handleDelete(image)}
               onMouseEnter={handleQuickActionsMouseEnter}
               onMouseLeave={handleQuickActionsMouseLeave}
-            >
-              <Button
-                ariaLabel="Move to Trash"
-                tooltip="Move to Trash"
-                icon={<Trash2 />}
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.SM}
-                isDisabled={actionStates.isDeleting}
-                onClick={() => void handlers.handleDelete(image)}
-              />
-            </div>
+            />
           ) : (
             <QuickActionsWrapper
               image={image}

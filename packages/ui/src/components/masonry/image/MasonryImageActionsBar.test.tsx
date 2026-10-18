@@ -9,6 +9,12 @@ const mocks = vi.hoisted(() => ({
   quickActions: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: (props: Record<string, unknown>) => {
     mocks.quickActions(props);
