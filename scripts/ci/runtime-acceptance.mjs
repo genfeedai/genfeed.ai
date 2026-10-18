@@ -1148,6 +1148,8 @@ const AGENT_TITLES = [
     'accepts a lost enqueue response without counting a failure and never replays a failed slot',
     'refuses a zero budget and preserves archived strategy threads',
     'serializes approval against expiry and never publishes an expired draft',
+    'schedules an AUTO_PUBLISH agent text draft on a graduated platform without a review card',
+    'uses the organization autonomy default for an agent with no mode of its own',
   ].map((title) => `isolated PostgreSQL/Redis proactive runtime ${title}`),
 ];
 export const REQUIRED = {
@@ -5831,7 +5833,7 @@ export async function execution(identity, env) {
           [
             {
               file: 'test/integration/proactive-agent-runs.integration.spec.ts',
-              count: 6,
+              count: 8,
               titles: AGENT_TITLES,
             },
           ],
