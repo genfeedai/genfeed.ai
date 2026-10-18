@@ -7,6 +7,7 @@ import { ContentPlansModule } from '@api/collections/content-plans/content-plans
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SocialSourcesModule } from '@api/collections/social-sources/social-sources.module';
 import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
+import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
@@ -25,6 +26,7 @@ import { Module } from '@nestjs/common';
   imports: [
     AdPerformanceModule,
     AdWatchedAdvertisersCoreModule,
+    AgentContextAssemblyModule,
     ContentPerformanceModule,
     ContentPlansModule,
     ContentPlanItemsModule,

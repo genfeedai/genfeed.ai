@@ -38,10 +38,10 @@ const BASE_PROPERTIES = {
   scheduledDate: STRING_SCHEMA,
   userId: STRING_SCHEMA,
 } as const;
+// `personaId` is present only when the run publishes as a persona.
 const BASE_REQUIRED = [
   'brandId',
   'organizationId',
-  'personaId',
   'publishMode',
   'userId',
 ] as const;
