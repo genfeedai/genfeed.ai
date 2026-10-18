@@ -27,7 +27,19 @@ export interface AuthResult {
   role?: McpRole;
   isApiKey?: boolean;
   error?: string;
+  /**
+   * The identity check itself failed (timeout, network, upstream 5xx), so the
+   * token was never judged. Callers answer 503 + `Retry-After`, never a 401:
+   * a 401 makes an MCP client discard a perfectly good connection and ask the
+   * user to authorize again.
+   */
+  isUnavailable?: boolean;
+  /** Seconds the upstream asked callers to wait (e.g. its `Retry-After`). */
+  retryAfterSeconds?: number;
 }
+
+/** How long a client should wait before retrying a transient auth failure. */
+export const AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS = 5;
 
 /** Short-lived identity cache to avoid a /auth/whoami hop on every MCP call. */
 const WHOAMI_CACHE_TTL_MS = 60_000;
@@ -145,18 +157,27 @@ export class AuthService {
       return { error: 'Invalid token', valid: false };
     } catch (error: unknown) {
       const errorObj = error as {
-        response?: { status?: number };
+        response?: { headers?: Record<string, unknown>; status?: number };
         message?: string;
       };
 
-      if (errorObj?.response?.status === 401) {
+      const status = errorObj?.response?.status;
+      if (status === 401 || status === 403) {
         this.logger.warn('Invalid bearer token');
         return { error: 'Invalid bearer token', valid: false };
       }
 
       this.logger.error('Authentication check error:', errorObj.message);
+      const upstreamRetryAfter = Number(
+        errorObj?.response?.headers?.['retry-after'],
+      );
       return {
         error: 'Auth service temporarily unavailable',
+        isUnavailable: true,
+        retryAfterSeconds:
+          Number.isFinite(upstreamRetryAfter) && upstreamRetryAfter > 0
+            ? Math.ceil(upstreamRetryAfter)
+            : AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS,
         valid: false,
       };
     }

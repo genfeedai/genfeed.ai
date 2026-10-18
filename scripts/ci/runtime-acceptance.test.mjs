@@ -6368,7 +6368,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '59da379349805420f2b6c41eaf3b695c30c96fdfd12e6c66a228fa0fd984faad',
+    'a707f63df074ce86e63f802934bd9593ca2ae17276c1bcbed23a827b855ab407',
   );
 });
 

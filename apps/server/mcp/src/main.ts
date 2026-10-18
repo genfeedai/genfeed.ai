@@ -25,7 +25,10 @@ import {
   resolvePublicMcpResource,
 } from '@mcp/mcp/setup-page';
 import { registerWellKnownRoutes } from '@mcp/mcp/well-known-routes';
-import { AuthService } from '@mcp/services/auth.service';
+import {
+  AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS,
+  AuthService,
+} from '@mcp/services/auth.service';
 import {
   applyRateLimitHeaders,
   RateLimitService,
@@ -171,6 +174,24 @@ async function main(): Promise<void> {
     }
 
     const authResult = await authService.authenticateRequest(token);
+
+    // The identity check failed, not the token: a 401 here would make the
+    // client drop a good connection and ask the user to authorize again.
+    if (authResult.isUnavailable) {
+      res.setHeader(
+        'Retry-After',
+        `${authResult.retryAfterSeconds ?? AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS}`,
+      );
+      res.status(503).json({
+        error: {
+          code: -32002,
+          message: 'Genfeed could not verify your connection. Retry shortly.',
+        },
+        id: null,
+        jsonrpc: '2.0',
+      });
+      return;
+    }
 
     if (
       !authResult.valid ||

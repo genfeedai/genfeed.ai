@@ -12,6 +12,7 @@ import type {
   IBrandKitDraftField,
   IBrandOsExportState,
   IBrandOsRevision,
+  IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -37,6 +38,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
 import BrandOsIdentityPreview from './BrandOsIdentityPreview';
+import BrandOsPolicyEditor from './BrandOsPolicyEditor';
 import BrandOsRevisionFields from './BrandOsRevisionFields';
 
 const AUTO_SAVE_DELAY_MS = 1500;
@@ -348,6 +350,19 @@ export default function BrandOsSettingsCard({
             fields: { ...current.fields, [key]: { ...field, ...update } },
           }
         : current;
+    });
+    setNotice(null);
+  }
+
+  function changePolicy(policy: IBrandPublishPolicy | undefined) {
+    if (!hasCurrentScope || !canManage || pendingRef.current) return;
+    clearAcknowledgement();
+    setContent((current) => {
+      if (!current) return current;
+      const next = { ...current };
+      if (policy) next.policy = policy;
+      else Reflect.deleteProperty(next, 'policy');
+      return next;
     });
     setNotice(null);
   }
@@ -732,6 +747,17 @@ export default function BrandOsSettingsCard({
                   acknowledgementRef.current = checked ? binding : null;
                   setAcknowledgement(checked ? binding : null);
                 }}
+              />
+            )}
+            {content && (
+              <BrandOsPolicyEditor
+                policy={content.policy}
+                isDisabled={
+                  !canManage ||
+                  busy ||
+                  selected?.status === BrandOsRevisionStatus.SUPERSEDED
+                }
+                onChange={changePolicy}
               />
             )}
             {!content && (

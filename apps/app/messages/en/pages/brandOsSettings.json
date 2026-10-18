@@ -187,5 +187,47 @@
   "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below.",
   "chooseFont": "Choose a font",
   "reviewIdentityFields": "Review identity fields",
-  "verify": "Verify"
+  "verify": "Verify",
+  "policy": {
+    "title": "Publishing Policy",
+    "description": "What this brand's agents may publish without a member. It takes effect when this revision is approved; until then the brand's approved Policy applies, or the default one. A member's approval always overrides it.",
+    "none": "This revision has no Policy, so the default applies: video is reviewed, text and image earn autonomy, and nothing is banned or capped.",
+    "add": "Add a Policy",
+    "remove": "Remove Policy",
+    "formatsTitle": "Autonomy by format",
+    "formatLabel": "Autonomy for {format}",
+    "formats": {
+      "text": "Text",
+      "image": "Image",
+      "video": "Video"
+    },
+    "videoAlwaysReviewed": "Always reviewed",
+    "platformsTitle": "Autonomy by platform",
+    "platformLabel": "Autonomy on {platform}",
+    "autonomy": {
+      "earned": "Auto-publish after the approval streak",
+      "review": "Always review"
+    },
+    "maxPostsPerDay": "Max unattended posts per day",
+    "maxPostsPerWeek": "Max unattended posts per week",
+    "noLimit": "No limit",
+    "minQualityScore": "Minimum quality score (0-100)",
+    "noMinimum": "No minimum",
+    "timezone": "Timezone (IANA, e.g. Europe/Paris)",
+    "invalidTimezone": "Unknown timezone. The Policy keeps its last valid timezone.",
+    "quietHours": "Quiet hours (no unattended posts)",
+    "quietStart": "Quiet hours start",
+    "quietEnd": "Quiet hours end",
+    "bannedTopics": "Banned topics (one per line)",
+    "bannedClaims": "Banned claims (one per line)",
+    "bannedPhrases": "Banned phrases (one per line)",
+    "judgeNote": "Banned phrases are matched exactly. Banned topics and claims are checked by a model before an unattended publish, and a draft is held when it cannot be checked.",
+    "requiredChecksTitle": "Required checks",
+    "requiredChecks": {
+      "moderation": "Caption moderation",
+      "brand_validation": "Brand validation passed",
+      "fact_check": "Fact check passed"
+    },
+    "invalid": "This Policy cannot be saved yet: {error}"
+  }
 }

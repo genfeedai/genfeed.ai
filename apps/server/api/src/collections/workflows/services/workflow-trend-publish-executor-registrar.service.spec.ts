@@ -1,11 +1,15 @@
 import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
+import { BrandPublishPolicyService } from '@api/services/brand-publish-policy/brand-publish-policy.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { createDefaultBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
+import type { IBrandPublishPolicy } from '@genfeedai/contracts/interfaces';
 import {
   createExecutableActionNode,
   type INodeExecutor,
@@ -60,6 +64,10 @@ function runPublishNode(
     undefined,
     postsService as never,
     fanoutService as never,
+    undefined,
+    options.prisma
+      ? new BrandPublishPolicyService(options.prisma as PrismaService)
+      : undefined,
   ).register(engine);
 
   return engine.getExecutor('genfeedAction')?.(
@@ -194,16 +202,24 @@ describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
   function fixture(
     receipts: { id: string; mode: string; state: string }[],
     hasApprovedKit = false,
+    policy: IBrandPublishPolicy = createDefaultBrandPublishPolicy(),
   ) {
     const prisma = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      brand: { findFirst: vi.fn().mockResolvedValue({ agentConfig: {} }) },
       brandOsRevision: {
         findFirst: vi
           .fn()
-          .mockResolvedValue(hasApprovedKit ? { id: 'rev-1' } : null),
+          .mockResolvedValue(
+            hasApprovedKit ? { content: { policy }, id: 'rev-1' } : null,
+          ),
       },
       brandedGenerationReceipt: {
         findMany: vi.fn().mockResolvedValue(receipts),
       },
+      ingredient: { findMany: vi.fn().mockResolvedValue([]) },
+      post: { count: vi.fn().mockResolvedValue(0) },
+      profile: { findMany: vi.fn().mockResolvedValue([]) },
     };
     const postsService = {
       create: vi.fn().mockResolvedValue({ id: 'post-1' }),
@@ -269,8 +285,8 @@ describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
     expect(result.status).toBe('scheduled');
   });
 
-  it('schedules text no receipt ever produced', async () => {
-    const { fanoutService, postsService, prisma } = fixture([]);
+  it('schedules text no receipt ever produced under an approved Policy', async () => {
+    const { fanoutService, postsService, prisma } = fixture([], true);
 
     const result = (await runPublishNode(postsService, fanoutService, {
       prisma,
@@ -279,6 +295,43 @@ describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
 
     expect(result.status).toBe('scheduled');
     expect(result).not.toHaveProperty('holdReason');
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
+  });
+
+  it('schedules clean text under the default Policy while the brand has no approved Policy (#7339)', async () => {
+    const { fanoutService, postsService, prisma } = fixture([]);
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    );
+    expect(result).not.toHaveProperty('holdReason');
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
+  });
+
+  it('holds text that breaks the approved Policy', async () => {
+    const { fanoutService, postsService, prisma } = fixture([], true, {
+      ...createDefaultBrandPublishPolicy(),
+      bannedPhrases: ['launch'],
+    });
+
+    const result = (await runPublishNode(postsService, fanoutService, {
+      prisma,
+      schedule: SCHEDULED,
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      holdReason: 'policy_violation',
+      status: 'held',
+    });
+    const recorded = prisma.$executeRaw.mock.calls[0]?.slice(1) ?? [];
+    expect(String(recorded[0])).toContain('banned_phrase');
   });
 
   it('does not look at receipts when nothing is scheduled', async () => {

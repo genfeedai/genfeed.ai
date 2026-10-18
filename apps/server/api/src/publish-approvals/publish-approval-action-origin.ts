@@ -47,6 +47,17 @@ export function isInteractiveApprovalOrigin(
   return origin === ActionOrigin.UI;
 }
 
+/**
+ * Origins whose publishes the brand Policy binds at the approval (#7339): a
+ * workflow or an MCP client publishing without a member in the app. Agent
+ * runs are bound earlier, where the agent decides to publish.
+ */
+export function isPolicyBoundApprovalOrigin(
+  origin: ReturnType<typeof normalizeActionOrigin>,
+): boolean {
+  return origin === ActionOrigin.WORKFLOW || origin === ActionOrigin.MCP;
+}
+
 export function restoreApprovalProvenance(
   provenance: Record<string, unknown>,
   actorUserId: string,

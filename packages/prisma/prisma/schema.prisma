@@ -1774,7 +1774,7 @@ model OrganizationSetting {
   webhookDeliveryStatus          Json?
   quotaYoutube                   Int               @default(5)
   quotaTiktok                    Int               @default(1)
-  quotaTwitter                   Int               @default(5)
+  quotaTwitter                   Int               @default(15)
   quotaInstagram                 Int               @default(5)
   enabledModelIds                String[]          @default([])
   subscriptionTier               String?
@@ -2932,6 +2932,9 @@ learningCheckpoints ContentLearningCheckpoint[]
   reviewFeedback                 String?
   reviewedAt                     DateTime?
   reviewEvents                   Json               @default("[]")
+  // Brand Policy rules (#7339) this draft broke at its last unattended
+  // evaluation, shown on its review item. Empty when it broke none.
+  policyViolations               Json               @default("[]")
   publishApprovalId              String?            @unique(map: "posts_publishApprovalId_key")
   publishApproval                PublishApproval?   @relation("active_publish_approval", fields: [publishApprovalId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   publishApprovals               PublishApproval[]  @relation("post_publish_approvals")

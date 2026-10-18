@@ -217,6 +217,67 @@ describe('QuotaService', () => {
     expect(blockedResult.currentCount).toBe(48);
   });
 
+  it('counts a 5-post X thread published today as one post', async () => {
+    const credential = makeCredential('TWITTER');
+    const organization = makeOrganization();
+    const thread = [
+      { id: 'root', parentId: null },
+      { id: 'child-1', parentId: 'root' },
+      { id: 'child-2', parentId: 'root' },
+      { id: 'child-3', parentId: 'root' },
+      { id: 'child-4', parentId: 'root' },
+    ];
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaTwitter: 15,
+    });
+    mockPostsService.count.mockImplementationOnce(
+      async (_organizationId: string, where: { parentId?: string | null }) =>
+        thread.filter(
+          (post) => where.parentId === undefined || post.parentId === null,
+        ).length,
+    );
+
+    const result = await service.checkQuota(credential, organization);
+
+    expect(result).toEqual({
+      allowed: true,
+      currentCount: 1,
+      dailyLimit: 15,
+      platform: CredentialPlatform.TWITTER,
+    });
+    expect(mockPostsService.count).toHaveBeenCalledWith(
+      organization.id.toString(),
+      expect.objectContaining({
+        credentialId: credential.id.toString(),
+        parentId: null,
+        platform: CredentialPlatform.TWITTER,
+      }),
+    );
+  });
+
+  it('allows the 15th X post of the day and blocks the 16th', async () => {
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaTwitter: 15,
+    });
+    mockPostsService.count.mockResolvedValueOnce(14);
+    const allowed = await service.checkQuota(
+      makeCredential('TWITTER'),
+      makeOrganization(),
+    );
+    expect(allowed.allowed).toBe(true);
+
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaTwitter: 15,
+    });
+    mockPostsService.count.mockResolvedValueOnce(15);
+    const blocked = await service.checkQuota(
+      makeCredential('TWITTER'),
+      makeOrganization(),
+    );
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.dailyLimit).toBe(15);
+  });
+
   it('should not block publishing on unmapped platforms in verifyQuota', async () => {
     const org = makeOrganization();
     mockOrganizationsService.findOne.mockResolvedValueOnce(org);

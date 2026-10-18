@@ -3,8 +3,10 @@ import { buildAgentReviewActivity } from '@api/services/notifications/workflow-n
 import {
   AgentAutonomyMode,
   AgentPublishDecision,
+  PostCategory,
   ReviewDecision,
 } from '@genfeedai/contracts';
+import { createDefaultBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const reviewActivity = { key: 'agent-review-changed' };
@@ -36,8 +38,15 @@ describe('AutonomousPublishPolicyService', () => {
     credential: { findFirst: vi.fn(), findMany: vi.fn() },
     persona: { findFirst: vi.fn() },
     agentPublishAudit: { create: vi.fn() },
+    brandOsRevision: { findFirst: vi.fn() },
+    ingredient: { findMany: vi.fn() },
+    profile: { findMany: vi.fn() },
+    $executeRaw: vi.fn(),
     $queryRaw: vi.fn(),
   };
+  const approvedPolicy = (policy = createDefaultBrandPublishPolicy()) => ({
+    content: { policy },
+  });
   let service: AutonomousPublishPolicyService;
   const decision = (postId = 'post-1') => ({
     organizationId: 'org-1',
@@ -70,6 +79,10 @@ describe('AutonomousPublishPolicyService', () => {
       id: 'credential-1',
       platform: 'INSTAGRAM',
     });
+    db.brandOsRevision.findFirst.mockResolvedValue(approvedPolicy());
+    db.ingredient.findMany.mockResolvedValue([]);
+    db.profile.findMany.mockResolvedValue([]);
+    db.$executeRaw.mockResolvedValue(0);
     service = new AutonomousPublishPolicyService(
       db as never,
       activityRecorder as never,
@@ -405,5 +418,121 @@ describe('AutonomousPublishPolicyService', () => {
         })
       ).result.decision,
     ).toBe(AgentPublishDecision.PERMITTED);
+  });
+  describe('brand Policy (#7339)', () => {
+    beforeEach(() => {
+      db.agentStrategy.findFirst.mockResolvedValue({
+        id: 'strategy-1',
+        isActive: true,
+        config: { autonomyMode: AgentAutonomyMode.AUTO_PUBLISH },
+        policies,
+      });
+    });
+
+    it('judges a draft by the default Policy while the brand has no approved Policy', async () => {
+      db.brandOsRevision.findFirst.mockResolvedValue(null);
+      const { result } = await service.resolveForPost({
+        organizationId: 'org-1',
+        postId: 'post-1',
+      });
+      expect(result.decision).toBe(AgentPublishDecision.PERMITTED);
+      expect(result.policyViolations).toBeUndefined();
+      expect(db.brandOsRevision.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+            status: 'APPROVED',
+          }),
+        }),
+      );
+      expect(db.$executeRaw).toHaveBeenCalledTimes(1);
+    });
+
+    it('routes a video draft to review whatever the streak and autonomy mode', async () => {
+      db.post.findFirst.mockResolvedValue({
+        ...post,
+        category: PostCategory.VIDEO,
+      });
+      const { result } = await service.resolveForPost({
+        organizationId: 'org-1',
+        postId: 'post-1',
+      });
+      expect(result.decision).toBe(AgentPublishDecision.DENIED);
+      expect(result.policyViolations).toEqual([
+        expect.objectContaining({ rule: 'video_always_reviewed' }),
+      ]);
+    });
+
+    it('treats attached video media as a video draft', async () => {
+      db.ingredient.findMany
+        .mockResolvedValueOnce([{ id: 'asset-1' }])
+        .mockResolvedValueOnce([{ category: 'VIDEO' }]);
+      const { result } = await service.resolveForPost({
+        organizationId: 'org-1',
+        postId: 'post-1',
+      });
+      expect(result.policyViolations).toEqual([
+        expect.objectContaining({ rule: 'video_always_reviewed' }),
+      ]);
+    });
+
+    it('holds a draft with a banned phrase from the Policy or the brand voice', async () => {
+      db.brand.findFirst.mockResolvedValue({
+        agentConfig: {
+          autoPublish: { enabled: true },
+          voice: { bannedPhrases: ['caption'] },
+        },
+      });
+      const { result } = await service.resolveForPost({
+        organizationId: 'org-1',
+        postId: 'post-1',
+      });
+      expect(result.decision).toBe(AgentPublishDecision.DENIED);
+      expect(result.reason).toContain('Brand Policy requires review');
+      expect(result.policyViolations).toEqual([
+        expect.objectContaining({ rule: 'banned_phrase' }),
+      ]);
+    });
+
+    it('holds an unscored draft and permits a scored one above the minimum', async () => {
+      db.brandOsRevision.findFirst.mockResolvedValue(
+        approvedPolicy({
+          ...createDefaultBrandPublishPolicy(),
+          minQualityScore: 70,
+        }),
+      );
+      const unscored = await service.resolveForPost({
+        organizationId: 'org-1',
+        postId: 'post-1',
+      });
+      expect(unscored.result.policyViolations).toEqual([
+        expect.objectContaining({ rule: 'min_quality_score' }),
+      ]);
+      const scored = await service.resolveForPost({
+        organizationId: 'org-1',
+        postId: 'post-1',
+        qualityScore: 82,
+      });
+      expect(scored.result.decision).toBe(AgentPublishDecision.PERMITTED);
+      expect(scored.result.policyViolations).toBeUndefined();
+    });
+
+    it('holds a Policy that needs the judge when no judge is wired', async () => {
+      db.brandOsRevision.findFirst.mockResolvedValue(
+        approvedPolicy({
+          ...createDefaultBrandPublishPolicy(),
+          bannedTopics: ['politics'],
+        }),
+      );
+      const { result } = await service.resolveForPost({
+        organizationId: 'org-1',
+        postId: 'post-1',
+      });
+      expect(result.policyViolations).toEqual([
+        expect.objectContaining({ rule: 'policy_judge_unavailable' }),
+      ]);
+    });
   });
 });

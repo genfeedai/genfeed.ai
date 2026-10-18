@@ -82,7 +82,11 @@ export async function pinApprovedDrafts(input: {
     );
     if (input.autonomous) {
       const policy = await input.autonomousPublishPolicy.resolveForPost(
-        { organizationId: input.orgId, postId },
+        {
+          organizationId: input.orgId,
+          postId,
+          qualityScore: item?.gateOverallScore,
+        },
         input.transaction,
       );
       if (

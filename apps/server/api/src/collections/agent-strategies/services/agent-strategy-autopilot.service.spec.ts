@@ -10,6 +10,7 @@ import {
   Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { createDefaultBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constants';
 
 describe('AgentStrategyAutopilotService', () => {
@@ -57,10 +58,8 @@ describe('AgentStrategyAutopilotService', () => {
     postsPerWeek: 3,
     publishPolicy: {
       autoPublishEnabled: true,
-      brandSafetyMode: 'standard',
       minImageScore: 75,
       minPostScore: 70,
-      videoAutopublishEnabled: false,
     },
     rankingPolicy: {
       costEfficiencyWeight: 0.15,
@@ -187,6 +186,15 @@ describe('AgentStrategyAutopilotService', () => {
         findMany: vi.fn().mockResolvedValue([]),
       },
       persona: { findFirst: vi.fn().mockResolvedValue(null) },
+      // The brand's approved Brand OS Policy (#7339), opening text to the streak.
+      brandOsRevision: {
+        findFirst: vi.fn().mockResolvedValue({
+          content: { policy: createDefaultBrandPublishPolicy() },
+        }),
+      },
+      ingredient: { findMany: vi.fn().mockResolvedValue([]) },
+      profile: { findMany: vi.fn().mockResolvedValue([]) },
+      $executeRaw: vi.fn().mockResolvedValue(0),
     };
     const autonomousPublishPolicy = new AutonomousPublishPolicyService(
       policyDb as never,
@@ -374,6 +382,72 @@ describe('AgentStrategyAutopilotService', () => {
     expectReviewHandoffWithoutScheduling(
       deps,
       'Autonomy mode requires human approval.',
+    );
+  });
+
+  it('routes a draft below the brand Policy minimum score to review (#7339)', async () => {
+    const deps = createService();
+    deps.policyDb.brandOsRevision.findFirst.mockResolvedValue({
+      content: {
+        policy: { ...createDefaultBrandPublishPolicy(), minQualityScore: 99 },
+      },
+    });
+    queueStrongTextDraft(deps);
+
+    await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expectReviewHandoffWithoutScheduling(deps, 'Brand Policy requires review');
+    expect(deps.policyDb.$executeRaw).toHaveBeenCalled();
+  });
+
+  it('auto-publishes a draft whose gate score meets the brand Policy minimum (#7339)', async () => {
+    const deps = createService();
+    deps.policyDb.brandOsRevision.findFirst.mockResolvedValue({
+      content: {
+        policy: { ...createDefaultBrandPublishPolicy(), minQualityScore: 50 },
+      },
+    });
+    queueStrongTextDraft(deps);
+
+    await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expect(
+      deps.turboRunService.createManualReviewTurboRun,
+    ).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({ credentialId }),
+    );
+  });
+
+  it('auto-publishes under the default Policy while the brand has no approved Policy (#7339)', async () => {
+    const deps = createService();
+    deps.policyDb.brandOsRevision.findFirst.mockResolvedValue(null);
+    queueStrongTextDraft(deps);
+
+    await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expect(
+      deps.turboRunService.createManualReviewTurboRun,
+    ).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({ credentialId }),
     );
   });
 

@@ -1402,9 +1402,8 @@ export async function seedLearningRuntimeScenario(
         externalId: `owned-account-${credentialId}`,
         isConnected: true,
         accessToken: services.crypto.encrypt('learning-runtime-owned-token'),
-        accessTokenSecret: services.crypto.encrypt(
-          'learning-runtime-owned-secret',
-        ),
+        accessTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        refreshToken: services.crypto.encrypt('learning-runtime-owned-refresh'),
       },
     });
     const account = await services.accounts.ensure(

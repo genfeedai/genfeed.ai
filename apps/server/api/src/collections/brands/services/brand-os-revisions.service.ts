@@ -2,6 +2,7 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { parseBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import type {
   IBrandKitDraft,
   IBrandOsRevision,
@@ -219,7 +220,12 @@ export class BrandOsRevisionsService {
       await this.lockBrand(tx, organizationId, brandId);
       if (!isGenfeedDefaultKitDraft(normalized))
         await this.retireDefaultKitRows(tx, organizationId, brandId);
-      return this.createDraft(tx, organizationId, brandId, normalized);
+      return this.createDraft(
+        tx,
+        organizationId,
+        brandId,
+        await this.withApprovedPolicy(tx, organizationId, brandId, normalized),
+      );
     };
     return transaction ? write(transaction) : this.prisma.$transaction(write);
   }
@@ -463,6 +469,31 @@ export class BrandOsRevisionsService {
     });
   }
 
+  /**
+   * A new draft that brings no Policy keeps the approved one (#7339), so
+   * approving a fresh scan never drops the brand's publishing guardrails.
+   */
+  private async withApprovedPolicy(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    brandId: string,
+    content: IBrandKitDraft,
+  ): Promise<IBrandKitDraft> {
+    if (content.policy !== undefined) return content;
+    const approved = await tx.brandOsRevision.findFirst({
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
+        status: BrandOsRevisionStatus.APPROVED,
+      },
+    });
+    const policy = parseBrandPublishPolicy(
+      (approved?.content as unknown as IBrandKitDraft | undefined)?.policy,
+    );
+    return policy ? { ...content, policy } : content;
+  }
+
   private async createDraft(
     tx: Prisma.TransactionClient,
     organizationId: string,
@@ -679,6 +710,11 @@ export class BrandOsRevisionsService {
       }
     }
     const normalized = structuredClone(content);
+    if (content.policy !== undefined) {
+      const policy = parseBrandPublishPolicy(content.policy);
+      if (!policy) throw new BadRequestException('Invalid Brand OS Policy');
+      normalized.policy = policy;
+    }
     for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
       const field = normalized.fields[owner.key];
       if (field) {

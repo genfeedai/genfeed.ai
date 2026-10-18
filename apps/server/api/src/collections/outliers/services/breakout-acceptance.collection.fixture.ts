@@ -183,6 +183,9 @@ export function buildCollectionHarness(
   const tweets: CollectionHarness['tweets'] = new Map();
   let providerCalls = 0;
   const twitter: ServerTwitterAnalytics = {
+    getValidCredential: async () => ({
+      accessToken: EncryptionUtil.encrypt('acceptance-x-token'),
+    }),
     getMediaAnalyticsBatch: async (ids) => {
       providerCalls += 1;
       const wanted = new Map(

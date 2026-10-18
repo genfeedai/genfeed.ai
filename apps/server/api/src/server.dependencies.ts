@@ -6,7 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
-import type { Prisma, PrismaClient } from '@genfeedai/prisma';
+import type { Credential, Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
 export type {
@@ -81,10 +81,16 @@ export interface ServerLogger {
 }
 
 export interface ServerTwitterAnalytics {
+  /** Returns the credential, refreshing its OAuth2 token only when it is about to expire. */
+  getValidCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+  ): Promise<Pick<Credential, 'accessToken'>>;
+  /** `accessToken` is the decrypted OAuth2 user token of the posts' author. */
   getMediaAnalyticsBatch(
     tweetIds: string[],
     accessToken: string,
-    accessTokenSecret?: string,
   ): Promise<Map<string, unknown>>;
 }
 

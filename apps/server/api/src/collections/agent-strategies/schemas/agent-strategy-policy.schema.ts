@@ -2,13 +2,6 @@ export const AGENT_STRATEGY_GOAL_PROFILES = ['reach_traffic'] as const;
 export type AgentStrategyGoalProfile =
   (typeof AGENT_STRATEGY_GOAL_PROFILES)[number];
 
-export const AGENT_STRATEGY_BRAND_SAFETY_MODES = [
-  'standard',
-  'strict',
-] as const;
-export type AgentStrategyBrandSafetyMode =
-  (typeof AGENT_STRATEGY_BRAND_SAFETY_MODES)[number];
-
 export const AGENT_STRATEGY_OPPORTUNITY_SOURCE_TYPES = [
   'trend',
   'event',
@@ -67,8 +60,6 @@ export interface AgentStrategyPublishPolicy {
   autoPublishEnabled: boolean;
   minPostScore: number;
   minImageScore: number;
-  videoAutopublishEnabled: boolean;
-  brandSafetyMode: AgentStrategyBrandSafetyMode;
 }
 
 export interface AgentStrategyReportingPolicy {

@@ -102,7 +102,6 @@ export class TwitterService {
       this.configService.get('TWITTER_BEARER_TOKEN'),
     );
     this.analyticsService = new TwitterAnalyticsService(
-      this.configService,
       this.loggerService,
       this.responseMapper,
       () => this.twitterClient,
@@ -912,38 +911,28 @@ export class TwitterService {
   /**
    * Get analytics for any Twitter media (tweets with text, images, or videos)
    * @param tweetId The ID of the tweet
-   * @param accessToken Optional user access token for private metrics
-   * @param accessTokenSecret Optional user access token secret
+   * @param accessToken Decrypted OAuth2 user access token; enables the
+   * account-owned private metrics (impressions, organic metrics)
    * @returns Analytics data including views, likes, comments, retweets, bookmarks, quotes
    */
   public async getMediaAnalytics(
     tweetId: string,
     accessToken?: string,
-    accessTokenSecret?: string,
   ): Promise<TwitterAnalyticsResult> {
-    return this.analyticsService.getMediaAnalytics(
-      tweetId,
-      accessToken,
-      accessTokenSecret,
-    );
+    return this.analyticsService.getMediaAnalytics(tweetId, accessToken);
   }
 
   /**
    * Get analytics for multiple Twitter media in a single batch request
    * @param tweetIds Array of tweet IDs (max 100 per request)
-   * @param accessToken Optional user access token for private metrics
-   * @param accessTokenSecret Optional user access token secret
+   * @param accessToken Decrypted OAuth2 user access token; enables the
+   * account-owned private metrics (impressions, organic metrics)
    * @returns Map of tweetId to analytics data
    */
   public async getMediaAnalyticsBatch(
     tweetIds: string[],
     accessToken?: string,
-    accessTokenSecret?: string,
   ): Promise<Map<string, TwitterAnalyticsResult>> {
-    return this.analyticsService.getMediaAnalyticsBatch(
-      tweetIds,
-      accessToken,
-      accessTokenSecret,
-    );
+    return this.analyticsService.getMediaAnalyticsBatch(tweetIds, accessToken);
   }
 }

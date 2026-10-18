@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { AgentAutonomyMode, AgentPublishDecision } from '../..';
+import type { IBrandPolicyViolation } from '../../interfaces/organization/brand-publish-policy.interface';
+import {
+  brandPolicyEvaluationInputSchema,
+  evaluateBrandPublishPolicyRules,
+} from './brand-publish-policy.contract';
 
 export const AGENT_PUBLISH_POLICY_NAME = 'autonomy-brand-channel';
 
@@ -17,6 +22,12 @@ export const agentPublishPolicyInputSchema = z.object({
   brandAllowsAutoPublish: z.boolean(),
   channelAllowsAutoPublish: z.boolean(),
   mediaAssessment: agentPublishMediaAssessmentSchema.optional(),
+  /**
+   * The brand Policy and the draft it judges (#7339). Every unattended path
+   * passes it; a brand with no approved Policy is judged by the default one.
+   * It is absent only for a publish a member confirmed.
+   */
+  brandPolicy: brandPolicyEvaluationInputSchema.optional(),
 });
 
 export type AgentPublishMediaAssessment = z.infer<
@@ -31,8 +42,36 @@ export interface AgentPublishPolicyResult {
   decision: AgentPublishDecision;
   /** Why media forced review, for the publish card; absent when it did not. */
   mediaAssessmentReasons?: string[];
+  /** The brand Policy rules the draft broke, for the review item; absent when none. */
+  policyViolations?: IBrandPolicyViolation[];
   policyName: typeof AGENT_PUBLISH_POLICY_NAME;
   reason: string;
+}
+
+/**
+ * Tighten a decision with the brand Policy (#7339), the same way as a media
+ * assessment: any violation turns PERMITTED into DENIED, never the reverse.
+ * The violations are kept on a denial too, so the reviewer sees them.
+ */
+export function applyBrandPolicyToPublishPolicy(
+  result: AgentPublishPolicyResult,
+  violations: readonly IBrandPolicyViolation[],
+): AgentPublishPolicyResult {
+  if (violations.length === 0) {
+    return result;
+  }
+  const policyViolations = [...violations];
+  if (result.decision === AgentPublishDecision.DENIED) {
+    return { ...result, policyViolations };
+  }
+  return {
+    ...result,
+    decision: AgentPublishDecision.DENIED,
+    policyViolations,
+    reason: `Brand Policy requires review: ${policyViolations
+      .map((violation) => violation.detail)
+      .join(' ')}`,
+  };
 }
 
 /**
@@ -63,18 +102,29 @@ export function applyMediaAssessmentToPublishPolicy(
 }
 
 /**
- * Auto-publish is permitted only when autonomy is AUTO_PUBLISH and both the
- * brand and the destination channel have opted in. SUPERVISED always requires
- * human approval. A blocking media assessment turns an otherwise permitted
- * auto-publish into review-required; it can never permit anything.
+ * The single publish gate. Auto-publish is permitted only when autonomy is
+ * AUTO_PUBLISH and both the brand and the destination channel have opted in.
+ * SUPERVISED always requires human approval. A blocking media assessment or
+ * any broken brand Policy rule (video, caps, quiet hours, banned content,
+ * score, required checks) turns an otherwise permitted
+ * auto-publish into review-required; neither can permit anything.
  */
 export function evaluateAgentPublishPolicy(
   input: AgentPublishPolicyInput,
 ): AgentPublishPolicyResult {
   const parsed = agentPublishPolicyInputSchema.parse(input);
-  return applyMediaAssessmentToPublishPolicy(
-    evaluateAutonomyBrandChannel(parsed),
-    parsed.mediaAssessment,
+  const violations = parsed.brandPolicy
+    ? [
+        ...evaluateBrandPublishPolicyRules(parsed.brandPolicy),
+        ...parsed.brandPolicy.judgeViolations,
+      ]
+    : [];
+  return applyBrandPolicyToPublishPolicy(
+    applyMediaAssessmentToPublishPolicy(
+      evaluateAutonomyBrandChannel(parsed),
+      parsed.mediaAssessment,
+    ),
+    violations,
   );
 }
 

@@ -5941,6 +5941,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'persona',
       'personaId',
       'platform',
+      'policyViolations',
       'promptUsed',
       'publicationDate',
       'publishApproval',

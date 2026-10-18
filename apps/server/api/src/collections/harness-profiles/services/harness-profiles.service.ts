@@ -68,6 +68,30 @@ export interface HarnessProfileServerFields {
   positioning?: IExpertPositioningScore;
 }
 
+/** The harness profile rows of a brand; callers add the tenant scope. */
+export function harnessProfileBrandFilter(brandId: string) {
+  return {
+    AND: [
+      { data: { equals: brandId, path: ['brandId'] } },
+      { data: { equals: HARNESS_PROFILE_TYPE, path: ['profileType'] } },
+    ],
+  };
+}
+
+/** The brand's active profile: the active default, else any active one, else the newest. */
+export function pickActiveHarnessProfile<
+  TProfile extends { isDefault: boolean; status: HarnessProfileStatus },
+>(profiles: readonly TProfile[]): TProfile | null {
+  return (
+    profiles.find(
+      (profile) => profile.isDefault && profile.status === 'active',
+    ) ??
+    profiles.find((profile) => profile.status === 'active') ??
+    profiles[0] ??
+    null
+  );
+}
+
 export interface HarnessProfileContributionResult {
   contribution: ContentHarnessContribution;
   profileId: string;
@@ -263,17 +287,7 @@ export class HarnessProfilesService {
   ): Promise<HarnessProfileDocument[]> {
     const profiles = await this.prisma.profile.findMany({
       orderBy: { updatedAt: 'desc' },
-      where: scopedWhere(organizationId, {
-        AND: [
-          { data: { equals: brandId, path: ['brandId'] } },
-          {
-            data: {
-              equals: HARNESS_PROFILE_TYPE,
-              path: ['profileType'],
-            },
-          },
-        ],
-      }),
+      where: scopedWhere(organizationId, harnessProfileBrandFilter(brandId)),
     });
 
     const normalized = profiles.map((profile) =>
@@ -293,14 +307,8 @@ export class HarnessProfilesService {
     organizationId: string,
     brandId: string,
   ): Promise<HarnessProfileDocument | null> {
-    const profiles = await this.findForBrand(organizationId, brandId);
-    return (
-      profiles.find(
-        (profile) => profile.isDefault && profile.status === 'active',
-      ) ??
-      profiles.find((profile) => profile.status === 'active') ??
-      profiles[0] ??
-      null
+    return pickActiveHarnessProfile(
+      await this.findForBrand(organizationId, brandId),
     );
   }
 

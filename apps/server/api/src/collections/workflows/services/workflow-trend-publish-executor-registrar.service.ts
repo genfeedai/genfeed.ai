@@ -12,6 +12,10 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import {
+  BrandPublishPolicyService,
+  resolveBrandPolicyDraftFormat,
+} from '@api/services/brand-publish-policy/brand-publish-policy.service';
 import { BrandedPublishHoldService } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -74,6 +78,8 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     private readonly postAccountFanoutService?: PostAccountFanoutService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
+    @Optional()
+    private readonly brandPublishPolicy?: BrandPublishPolicyService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -438,12 +444,54 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     );
   }
 
+  /**
+   * Text a branded receipt did not clear (#5786), or that breaks the brand
+   * Policy on any destination (#7339), is saved as a draft, never scheduled
+   * unattended: a member approves it in the app first.
+   */
+  private async findTextPublishHold(
+    publishHold: BrandedPublishHoldService | undefined,
+    input: {
+      brandId: string;
+      caption: string;
+      ingredients: string[];
+      organizationId: string;
+      platforms: readonly string[];
+      scheduledFor: Date;
+    },
+  ) {
+    const receiptHold = await publishHold?.findHoldForText(
+      input.organizationId,
+      input.brandId,
+      input.caption,
+    );
+    if (receiptHold || !this.brandPublishPolicy) return receiptHold ?? null;
+    const categories = await this.brandPublishPolicy.readIngredientCategories(
+      input.organizationId,
+      input.ingredients,
+    );
+    return (
+      (await publishHold?.findPolicyHoldForText(
+        {
+          brandId: input.brandId,
+          format: resolveBrandPolicyDraftFormat(null, categories),
+          organizationId: input.organizationId,
+          publishAt: input.scheduledFor,
+          text: input.caption,
+        },
+        input.platforms,
+      )) ?? null
+    );
+  }
+
   private registerPublishExecutor(engine: WorkflowEngine): void {
     const postsService = this.postsService;
     const fanoutService = this.postAccountFanoutService;
-    const publishHold = this.prismaService
-      ? new BrandedPublishHoldService(this.prismaService)
-      : undefined;
+    const brandPublishPolicy = this.brandPublishPolicy;
+    const publishHold =
+      this.prismaService && brandPublishPolicy
+        ? new BrandedPublishHoldService(this.prismaService, brandPublishPolicy)
+        : undefined;
     const executor = createPublishExecutor(
       async ({
         brandId,
@@ -466,16 +514,20 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           };
         }
 
-        // Text a branded receipt did not clear is saved as a draft, never
-        // scheduled unattended: a member approves it or the brand gets an
-        // approved kit first (#5786).
+        const ingredients = this.helper.extractPublishIngredientIds(media);
         const hold = scheduledFor
-          ? await publishHold?.findHoldForText(organizationId, brandId, caption)
+          ? await this.findTextPublishHold(publishHold, {
+              brandId,
+              caption,
+              ingredients,
+              organizationId,
+              platforms,
+              scheduledFor,
+            })
           : null;
         const scheduledSlot = hold ? null : scheduledFor;
         const postIds: string[] = [];
         const publishedPlatforms: SocialPlatform[] = [];
-        const ingredients = this.helper.extractPublishIngredientIds(media);
 
         // A brand may hold several accounts on one platform, so a publish node
         // expands into one post per connected account. They share a groupId so
@@ -534,6 +586,12 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           });
 
           postIds.push(post.id.toString());
+          if (hold?.reason === 'policy_violation')
+            await brandPublishPolicy?.recordViolations(
+              organizationId,
+              post.id.toString(),
+              hold.violations,
+            );
 
           const publishedPlatform = target.platform as SocialPlatform;
           if (!publishedPlatforms.includes(publishedPlatform)) {

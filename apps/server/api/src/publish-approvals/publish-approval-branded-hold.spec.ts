@@ -131,27 +131,59 @@ const approve = (service: PublishApprovalsService) =>
 
 describe('PublishApprovalsService branded publish hold', () => {
   it.each([
-    [ActionOrigin.UI, true],
-    [ActionOrigin.WORKFLOW, false],
-    [ActionOrigin.AGENT, false],
-    [ActionOrigin.MCP, false],
-    [ActionOrigin.API, false],
-    [ActionOrigin.UNKNOWN, false],
+    [ActionOrigin.UI, true, false],
+    [ActionOrigin.WORKFLOW, false, true],
+    [ActionOrigin.AGENT, false, false],
+    [ActionOrigin.MCP, false, true],
+    [ActionOrigin.API, false, false],
+    [ActionOrigin.UNKNOWN, false, false],
   ])(
-    'asks the hold about a %s approval (human: %s)',
-    async (origin, isHuman) => {
+    'asks the hold about a %s approval (human: %s, Policy bound: %s)',
+    async (origin, isHuman, isPolicyBound) => {
       const hold = makeHold();
       const { service } = createService(hold);
 
       await runWithActionOrigin({ origin }, () => approve(service));
 
-      expect(hold.assertPostPublishable).toHaveBeenCalledWith({
-        isHumanApproval: isHuman,
-        organizationId: 'org-1',
-        postId: 'post-1',
-      });
+      expect(hold.assertPostPublishable).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isHumanApproval: isHuman,
+          isPolicyBound,
+          organizationId: 'org-1',
+          postId: 'post-1',
+        }),
+      );
     },
   );
+
+  it('mints no approval for a workflow post the brand Policy holds (#7339)', async () => {
+    const { publishApproval, service } = createService(
+      makeHold(
+        new BrandedPublishHoldException({
+          brandId: 'brand-1',
+          reason: 'policy_violation',
+          violations: [
+            {
+              detail: 'Video is always reviewed.',
+              rule: 'video_always_reviewed',
+            },
+          ],
+        }),
+      ),
+    );
+
+    const error = await runWithActionOrigin(
+      { origin: ActionOrigin.WORKFLOW },
+      () => approve(service),
+    ).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(BrandedPublishHoldException);
+    expect((error as BrandedPublishHoldException).getResponse()).toMatchObject({
+      code: 'brand_policy_held',
+      violations: [expect.objectContaining({ rule: 'video_always_reviewed' })],
+    });
+    expect(publishApproval.create).not.toHaveBeenCalled();
+  });
 
   it('mints no approval for a held post', async () => {
     const { publishApproval, service } = createService(makeHold(veto()));
@@ -214,21 +246,26 @@ describe('PublishApprovalsService branded publish hold', () => {
       });
 
     it.each([
-      ['ui', true],
-      ['workflow', false],
-      ['unknown', false],
-    ])('reads the recorded %s origin as human: %s', async (origin, isHuman) => {
-      const hold = makeHold();
-      const { service } = claimFixture(origin, hold);
+      ['ui', true, false],
+      ['workflow', false, true],
+      ['mcp', false, true],
+      ['unknown', false, false],
+    ])(
+      'reads the recorded %s origin as human: %s, Policy bound: %s',
+      async (origin, isHuman, isPolicyBound) => {
+        const hold = makeHold();
+        const { service } = claimFixture(origin, hold);
 
-      await claim(service).catch(() => undefined);
+        await claim(service).catch(() => undefined);
 
-      expect(hold.assertPostPublishable).toHaveBeenCalledWith({
-        isHumanApproval: isHuman,
-        organizationId: 'org-1',
-        postId: 'post-1',
-      });
-    });
+        expect(hold.assertPostPublishable).toHaveBeenCalledWith({
+          isHumanApproval: isHuman,
+          isPolicyBound,
+          organizationId: 'org-1',
+          postId: 'post-1',
+        });
+      },
+    );
 
     it('never claims the lease for a held post', async () => {
       const { publishApproval, service } = claimFixture(

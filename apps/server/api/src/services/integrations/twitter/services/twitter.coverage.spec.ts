@@ -22,7 +22,7 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
  *   - sendCommentReplyDm (error propagation)
  *   - uploadMedia (single image success, multi-image success, >4 images error, error propagation)
  *   - postTweet (success, with reply, error propagation)
- *   - getMediaAnalytics (user-client path, video media type, rate-limit 429 path,
+ *   - getMediaAnalytics (OAuth2 user-client path, video media type, rate-limit 429 path,
  *                        rate-limit with rateLimit property, non-rate-limit error)
  *   - getMediaAnalyticsBatch (empty ids, >100 ids, success with media, rate-limit, error)
  *   - getTweetById (bearer success, incomplete response, error)
@@ -1122,10 +1122,11 @@ describe('TwitterService (coverage)', () => {
   // ── getMediaAnalytics ─────────────────────────────────────────────────────
 
   describe('getMediaAnalytics', () => {
-    it('uses user-client path when accessToken + accessTokenSecret provided', async () => {
+    it('uses an OAuth2 user client with private metrics when accessToken provided', async () => {
       mockV2Get.mockResolvedValue({
         data: [
           {
+            id: 'tid',
             public_metrics: {
               bookmark_count: 3,
               like_count: 10,
@@ -1137,12 +1138,17 @@ describe('TwitterService (coverage)', () => {
         ],
       });
 
-      const result = await service.getMediaAnalytics(
-        'tid',
-        'user-at',
-        'user-ats',
-      );
+      const result = await service.getMediaAnalytics('tid', 'user-at');
 
+      expect(TwitterApi).toHaveBeenCalledWith('user-at');
+      expect(mockV2Get).toHaveBeenCalledOnce();
+      expect(mockV2Get).toHaveBeenCalledWith(
+        'tweets',
+        expect.objectContaining({
+          'tweet.fields':
+            'public_metrics,non_public_metrics,organic_metrics,attachments',
+        }),
+      );
       expect(result.likes).toBe(10);
       expect(result.retweets).toBe(4);
     });
@@ -1365,7 +1371,7 @@ describe('TwitterService (coverage)', () => {
       expect(analytics?.views).toBe(5000);
     });
 
-    it('uses user-client when accessToken + accessTokenSecret provided', async () => {
+    it('uses an OAuth2 user client when accessToken provided', async () => {
       mockV2Get.mockResolvedValue({
         data: [
           {
@@ -1381,12 +1387,9 @@ describe('TwitterService (coverage)', () => {
         ],
       });
 
-      const result = await service.getMediaAnalyticsBatch(
-        ['x1'],
-        'user-at',
-        'user-ats',
-      );
+      const result = await service.getMediaAnalyticsBatch(['x1'], 'user-at');
 
+      expect(TwitterApi).toHaveBeenCalledWith('user-at');
       expect(result.size).toBe(1);
     });
 

@@ -873,7 +873,7 @@ export class AgentStrategyAutopilotExecutionService {
     userId: string,
     qualityContext?: Pick<
       FinalizeOpportunityInput,
-      'evaluateQuality' | 'platform'
+      'evaluateQuality' | 'gate' | 'platform'
     >,
   ): Promise<{ policyReason?: string; postIds: string[]; scheduled: boolean }> {
     const createdPostIds: string[] = [];
@@ -917,6 +917,9 @@ export class AgentStrategyAutopilotExecutionService {
         credentialId: target.credentialId,
         organizationId,
         platform: target.platform,
+        postId: draftId,
+        postCategory: PostCategory.TEXT,
+        qualityScore: qualityContext?.gate.overallScore,
         strategyId: getStrategyId(strategy),
       });
       if (policy.result.decision !== AgentPublishDecision.PERMITTED) {

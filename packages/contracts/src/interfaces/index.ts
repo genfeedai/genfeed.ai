@@ -278,6 +278,7 @@ export * from './organization/brand-kit.interface';
 export * from './organization/brand-os-export.interface';
 export * from './organization/brand-os-revision.interface';
 export * from './organization/brand-profile.interface';
+export * from './organization/brand-publish-policy.interface';
 export * from './organization/brand-voice-corpus.interface';
 export * from './organization/brand-voice-failure.interface';
 export * from './organization/byok-key-entry.interface';

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { AgentAutonomyMode, AgentPublishDecision } from '../../src';
 import { evaluateAgentPublishPolicy } from '../../src/api-types/contracts/agent-publish-policy.contract';
+import {
+  type BrandPolicyEvaluationInput,
+  createDefaultBrandPublishPolicy,
+} from '../../src/api-types/contracts/brand-publish-policy.contract';
 
 describe('evaluateAgentPublishPolicy', () => {
   it('denies SUPERVISED even when brand and channel opt in', () => {
@@ -108,5 +112,81 @@ describe('evaluateAgentPublishPolicy with a media assessment (#4881)', () => {
     expect(result.reason).toBe(
       'Media review required: Moderation flagged violence.; Vision flagged artifacts.',
     );
+  });
+});
+
+describe('evaluateAgentPublishPolicy with the brand Policy (#7339)', () => {
+  const permitted = {
+    autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+    brandAllowsAutoPublish: true,
+    channelAllowsAutoPublish: true,
+  };
+  function brandPolicy(
+    overrides: Partial<BrandPolicyEvaluationInput> = {},
+    draft: Partial<BrandPolicyEvaluationInput['draft']> = {},
+  ): BrandPolicyEvaluationInput {
+    return {
+      draft: {
+        format: 'text',
+        platform: 'x',
+        publishAt: '2026-10-19T12:00:00.000Z',
+        qualityScore: null,
+        text: 'Shipping the new release today.',
+        ...draft,
+      },
+      judgeViolations: [],
+      passedChecks: [],
+      policy: createDefaultBrandPublishPolicy(),
+      usage: { postsInDay: 0, postsInWeek: 0 },
+      ...overrides,
+    };
+  }
+
+  it('permits a clean draft under an approved Policy', () => {
+    const result = evaluateAgentPublishPolicy({
+      ...permitted,
+      brandPolicy: brandPolicy(),
+    });
+    expect(result.decision).toBe(AgentPublishDecision.PERMITTED);
+    expect(result.policyViolations).toBeUndefined();
+  });
+
+  it('routes video to review regardless of autonomy and streak', () => {
+    for (const autonomyMode of Object.values(AgentAutonomyMode)) {
+      const result = evaluateAgentPublishPolicy({
+        ...permitted,
+        autonomyMode,
+        brandPolicy: brandPolicy({}, { format: 'video' }),
+      });
+      expect(result.decision).toBe(AgentPublishDecision.DENIED);
+      expect(result.policyViolations?.map((v) => v.rule)).toContain(
+        'video_always_reviewed',
+      );
+    }
+  });
+
+  it('appends the judge findings and names them in the reason', () => {
+    const result = evaluateAgentPublishPolicy({
+      ...permitted,
+      brandPolicy: brandPolicy({
+        judgeViolations: [
+          { detail: 'Discusses elections.', rule: 'banned_topic' },
+        ],
+      }),
+    });
+    expect(result.decision).toBe(AgentPublishDecision.DENIED);
+    expect(result.reason).toBe(
+      'Brand Policy requires review: Discusses elections.',
+    );
+  });
+
+  it('keeps the violations on a supervised denial for the reviewer', () => {
+    const result = evaluateAgentPublishPolicy({
+      ...permitted,
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
+      brandPolicy: brandPolicy({}, { format: 'video' }),
+    });
+    expect(result.reason).toBe('Autonomy mode requires human approval.');
+    expect(result.policyViolations?.[0]?.rule).toBe('video_always_reviewed');
   });
 });

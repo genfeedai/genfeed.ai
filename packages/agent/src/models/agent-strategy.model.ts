@@ -28,10 +28,8 @@ export interface BudgetPolicyConfig {
 
 export interface PublishPolicyConfig {
   autoPublishEnabled: boolean;
-  brandSafetyMode: 'standard' | 'strict';
   minImageScore: number;
   minPostScore: number;
-  videoAutopublishEnabled: boolean;
 }
 
 export interface ReportingPolicyConfig {

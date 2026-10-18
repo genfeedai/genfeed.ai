@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   settings: {
     quotaInstagram: 5,
     quotaTiktok: 1,
-    quotaTwitter: 5,
+    quotaTwitter: 15,
     quotaYoutube: 5,
   } as Record<string, unknown>,
 }));
@@ -90,7 +90,7 @@ describe('OrganizationPublishingCapsCard', () => {
     mocks.settings = {
       quotaInstagram: 5,
       quotaTiktok: 1,
-      quotaTwitter: 5,
+      quotaTwitter: 15,
       quotaYoutube: 5,
     };
     mocks.patchSettings.mockResolvedValue({});
@@ -106,10 +106,10 @@ describe('OrganizationPublishingCapsCard', () => {
     expect(screen.getByText('Daily publishing caps')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Max published posts per connected account per UTC day. 0 = no cap.',
+        'Max published posts per connected account per UTC day. A thread counts as one post. 0 = no cap.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('X')).toHaveValue(5);
+    expect(screen.getByLabelText('X')).toHaveValue(15);
     expect(screen.getByLabelText('Instagram')).toHaveValue(5);
     expect(screen.getByLabelText('YouTube')).toHaveValue(5);
     expect(screen.getByLabelText('TikTok')).toHaveValue(1);

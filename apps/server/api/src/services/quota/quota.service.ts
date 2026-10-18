@@ -67,8 +67,9 @@ export class QuotaService {
   }
 
   /**
-   * Check if a credential has remaining quota for posting today
-   * Counts posts created today in the Posts collection
+   * Check if a credential has remaining quota for posting today.
+   * Counts published root posts created today: a thread counts as one post, so its
+   * children (`parentId` set) are excluded.
    */
   async checkQuota(
     credential: CredentialDocument,
@@ -128,6 +129,7 @@ export class QuotaService {
           lte: endOfDay,
         },
         credentialId: credential.id.toString(),
+        parentId: null,
         platform,
         ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
       },

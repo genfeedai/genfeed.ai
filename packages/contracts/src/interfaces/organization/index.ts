@@ -3,6 +3,7 @@ export * from './brand-interview.interface';
 export * from './brand-kit.interface';
 export * from './brand-os-export.interface';
 export * from './brand-os-revision.interface';
+export * from './brand-publish-policy.interface';
 export * from './byok-key-entry.interface';
 export * from './byok-provider-status.interface';
 export * from './byok-resolution-result.interface';

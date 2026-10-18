@@ -44,8 +44,9 @@ export interface PublishOutput {
   platforms: SocialPlatform[];
   scheduledFor: Date | null;
   /**
-   * `held`: the text came from a brand receipt nobody cleared, so the posts were
-   * saved as drafts instead of scheduled; `holdReason` says why.
+   * `held`: the text came from a brand receipt nobody cleared, or breaks the
+   * brand Policy, so the posts were saved as drafts instead of scheduled;
+   * `holdReason` says why and each held post records the Policy violations.
    */
   status: 'queued' | 'scheduled' | 'published' | 'held';
   holdReason?: string;

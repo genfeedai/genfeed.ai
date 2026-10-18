@@ -8,9 +8,13 @@ describe('AutonomousPublishPolicyService organization autonomy default', () => {
   const db = {
     agentStrategy: { findFirst: vi.fn() },
     brand: { findFirst: vi.fn() },
+    // No approved Brand OS revision: the default Policy applies.
+    brandOsRevision: { findFirst: vi.fn() },
     credential: { findFirst: vi.fn(), findMany: vi.fn() },
     organizationSetting: { findFirst: vi.fn() },
+    ingredient: { findMany: vi.fn() },
     persona: { findFirst: vi.fn() },
+    profile: { findMany: vi.fn() },
   };
   const target = {
     brandId: 'brand-1',
@@ -40,6 +44,9 @@ describe('AutonomousPublishPolicyService organization autonomy default', () => {
       id: 'credential-1',
       platform: 'LINKEDIN',
     });
+    db.brandOsRevision.findFirst.mockResolvedValue(null);
+    db.ingredient.findMany.mockResolvedValue([]);
+    db.profile.findMany.mockResolvedValue([]);
     db.organizationSetting.findFirst.mockResolvedValue({
       agentPolicy: { autonomyDefault: AgentAutonomyMode.AUTO_PUBLISH },
     });

@@ -1,4 +1,3 @@
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { TwitterApi } from 'twitter-api-v2';
@@ -17,43 +16,48 @@ interface TwitterApiErrorShape {
   rateLimitWaitMs?: number;
 }
 
+/** Readable by any client, including the app-only bearer. */
+const PUBLIC_METRIC_FIELDS = 'public_metrics';
+
+/**
+ * `non_public_metrics` and `organic_metrics` need a user-context token and only
+ * cover the authenticating account's own posts from the last 30 days.
+ */
+const USER_CONTEXT_METRIC_FIELDS =
+  'public_metrics,non_public_metrics,organic_metrics';
+
 export class TwitterAnalyticsService {
   constructor(
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly responseMapper: TwitterResponseMapper,
     private readonly resolveDefaultClient: () => TwitterApi,
   ) {}
 
+  /**
+   * @param accessToken Decrypted OAuth2 user access token. Without one the app
+   * bearer is used and only public metrics are requested.
+   */
   async getMediaAnalytics(
     tweetId: string,
     accessToken?: string,
-    accessTokenSecret?: string,
   ): Promise<TwitterAnalyticsResult> {
     const url = `TwitterService ${CallerUtil.getCallerName()}`;
 
     try {
-      const client = this.resolveClient(accessToken, accessTokenSecret);
-      const fields = 'public_metrics,non_public_metrics,organic_metrics';
-      const response = await client.v2.get('tweets', {
-        expansions: 'attachments.media_keys',
-        ids: tweetId,
-        'media.fields': `${fields},type`,
-        'tweet.fields': `${fields},attachments`,
-      });
-
-      return this.responseMapper.mapAnalytics(
-        response as unknown as TwitterAnalyticsResponse,
-      );
+      const response = await this.fetchTweetMetrics([tweetId], accessToken);
+      return this.responseMapper.mapAnalytics(response);
     } catch (error: unknown) {
       this.handleError(url, error);
     }
   }
 
+  /**
+   * @param accessToken Decrypted OAuth2 user access token. Without one the app
+   * bearer is used and only public metrics are requested.
+   */
   async getMediaAnalyticsBatch(
     tweetIds: string[],
     accessToken?: string,
-    accessTokenSecret?: string,
   ): Promise<Map<string, TwitterAnalyticsResult>> {
     const url = `TwitterService ${CallerUtil.getCallerName()}`;
     if (tweetIds.length === 0) {
@@ -64,18 +68,9 @@ export class TwitterAnalyticsService {
     }
 
     try {
-      const client = this.resolveClient(accessToken, accessTokenSecret);
-      const fields = 'public_metrics,non_public_metrics,organic_metrics';
-      const response = await client.v2.get('tweets', {
-        expansions: 'attachments.media_keys',
-        ids: tweetIds.join(','),
-        'media.fields': `${fields},type`,
-        'tweet.fields': `${fields},attachments`,
-      });
+      const response = await this.fetchTweetMetrics(tweetIds, accessToken);
       this.loggerService.log('Twitter API  client.v2.get tweets', response);
-      const results = this.responseMapper.mapAnalyticsBatch(
-        response as unknown as TwitterAnalyticsResponse,
-      );
+      const results = this.responseMapper.mapAnalyticsBatch(response);
       this.loggerService.log(
         `${url} success - fetched analytics for ${results.size} tweets`,
       );
@@ -85,20 +80,61 @@ export class TwitterAnalyticsService {
     }
   }
 
-  private resolveClient(
+  private async fetchTweetMetrics(
+    tweetIds: string[],
     accessToken?: string,
-    accessTokenSecret?: string,
-  ): TwitterApi {
-    if (!accessToken || !accessTokenSecret) {
-      return this.resolveDefaultClient();
+  ): Promise<TwitterAnalyticsResponse> {
+    if (!accessToken) {
+      return this.requestTweetMetrics(
+        this.resolveDefaultClient(),
+        tweetIds,
+        PUBLIC_METRIC_FIELDS,
+      );
     }
 
-    return new TwitterApi({
-      // @ts-expect-error TS2769 -- twitter-api-v2 accepts OAuth 1.0a fields.
-      accessSecret: accessTokenSecret,
-      accessToken,
-      appKey: this.configService.get('TWITTER_CONSUMER_KEY'),
-      appSecret: this.configService.get('TWITTER_CONSUMER_SECRET'),
+    // OAuth2 user-context bearer: the only client X serves private metrics to.
+    const client = new TwitterApi(accessToken);
+    const response = await this.requestTweetMetrics(
+      client,
+      tweetIds,
+      USER_CONTEXT_METRIC_FIELDS,
+    );
+
+    // X leaves a post out of `data` when it refuses the private fields for it
+    // (older than 30 days, or not the account's own). Those posts still have
+    // public metrics, so request them again without the private fields.
+    const returnedIds = new Set((response.data ?? []).map((tweet) => tweet.id));
+    const missingIds = tweetIds.filter((id) => !returnedIds.has(id));
+    if (missingIds.length === 0) {
+      return response;
+    }
+
+    const fallback = await this.requestTweetMetrics(
+      client,
+      missingIds,
+      PUBLIC_METRIC_FIELDS,
+    );
+    return {
+      data: [...(response.data ?? []), ...(fallback.data ?? [])],
+      includes: {
+        media: [
+          ...(response.includes?.media ?? []),
+          ...(fallback.includes?.media ?? []),
+        ],
+      },
+    };
+  }
+
+  private requestTweetMetrics(
+    client: TwitterApi,
+    tweetIds: string[],
+    fields: string,
+  ): Promise<TwitterAnalyticsResponse> {
+    return client.v2.get<TwitterAnalyticsResponse>('tweets', {
+      expansions: 'attachments.media_keys',
+      ids: tweetIds.join(','),
+      'media.fields': `${fields},type`,
+      'tweet.fields': `${fields},attachments`,
     });
   }
 

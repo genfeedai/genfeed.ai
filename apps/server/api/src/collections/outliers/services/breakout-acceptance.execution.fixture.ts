@@ -77,8 +77,9 @@ import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summar
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ModelCategory } from '@genfeedai/contracts';
+import { createDefaultBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import { PrismaClient } from '@genfeedai/prisma';
+import { PrismaClient, toPrismaJson } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 /** An OpenRouter text model id the production eligibility check accepts. */
@@ -126,6 +127,8 @@ export async function seedApprovedBrandIdentity(
         brandId: world.brandId,
         generationRules: rules,
         organizationId: world.organizationId,
+        // The approved Policy (#7339) opens text to the earned streak.
+        policy: toPrismaJson(createDefaultBrandPublishPolicy()),
         fields: {
           description: {
             currentValue: 'Clear tools for creative teams.',

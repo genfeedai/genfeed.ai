@@ -6,6 +6,7 @@ import type {
   IBrandKitDraftField,
   IBrandKitFieldOwner,
   IBrandOsRevision,
+  IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
 import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { ReactNode } from 'react';
@@ -63,6 +64,22 @@ export interface BrandOsGenerationRulesReviewProps {
   isDisabled: boolean;
   showAcknowledgement: boolean;
   onAcknowledgedChange: (acknowledged: boolean) => void;
+}
+
+export interface BrandOsPolicyEditorProps {
+  /** The revision's Policy section; absent while the brand has none. */
+  policy?: IBrandPublishPolicy;
+  isDisabled: boolean;
+  /** Called with the edited Policy, or `undefined` to remove the section. */
+  onChange: (policy: IBrandPublishPolicy | undefined) => void;
+}
+
+export interface BrandOsPolicyListFieldProps {
+  label: string;
+  values: readonly string[];
+  maxEntries: number;
+  isDisabled: boolean;
+  onChange: (values: string[]) => void;
 }
 
 export interface BrandKitRevisionWorkspace {

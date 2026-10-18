@@ -1,6 +1,8 @@
 import { PublishApprovalsController } from '@api/collections/publish-approvals/controllers/publish-approvals.controller';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
+import { BrandPublishPolicyModule } from '@api/services/brand-publish-policy/brand-publish-policy.module';
+import { BrandPublishPolicyService } from '@api/services/brand-publish-policy/brand-publish-policy.service';
 import { BrandedPublishHoldService } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { MediaAssessmentModule } from '@api/services/media-assessment/media-assessment.module';
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
@@ -11,7 +13,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [PublishApprovalsController],
   exports: [PublishApprovalsService],
-  imports: [MediaAssessmentModule],
+  imports: [BrandPublishPolicyModule, MediaAssessmentModule],
   providers: [
     AgentArtifactReferenceService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
@@ -22,6 +24,7 @@ import { Module } from '@nestjs/common';
         AgentArtifactReferenceService,
         LoggerService,
         MediaAssessmentService,
+        BrandPublishPolicyService,
       ],
       provide: PublishApprovalsService,
       useFactory: (
@@ -29,13 +32,14 @@ import { Module } from '@nestjs/common';
         artifactReferenceService: AgentArtifactReferenceService,
         logger: LoggerService,
         mediaGate: MediaAssessmentService,
+        brandPublishPolicy: BrandPublishPolicyService,
       ) =>
         new PublishApprovalsService(
           prisma,
           artifactReferenceService,
           logger,
           mediaGate,
-          new BrandedPublishHoldService(prisma),
+          new BrandedPublishHoldService(prisma, brandPublishPolicy),
         ),
     },
   ],
