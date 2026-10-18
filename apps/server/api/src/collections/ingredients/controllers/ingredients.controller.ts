@@ -10,6 +10,7 @@ import {
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { resolveAllBrandsFilter } from '@api/collections/ingredients/utils/library-brand-scope.util';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -54,7 +55,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -90,67 +90,26 @@ export class IngredientsController {
   ) {}
 
   /**
-   * Brand axis of a Library read. An organization-level view passes
-   * `allBrands` so the list spans every brand the caller may access instead of
-   * collapsing to the session brand; an explicit `brandId` still narrows it.
+   * Brand axis of a Library read. `allBrands` (organization view) spans every
+   * brand the caller may access; an explicit `brandId` still narrows it.
    */
-  private async resolveLibraryBrandFilter(
+  private resolveLibraryBrandFilter(
     query: IngredientsQueryDto,
     tenant: ReturnType<typeof CollectionFilterUtil.resolveListOrganizationId>,
     user: User,
     request: Request,
-  ): Promise<string | Record<string, unknown> | undefined> {
+  ) {
     if (tenant.isOrganizationOverride) {
       return tenant.brandId;
     }
-
-    if (query.allBrands && !query.brandId) {
-      return this.resolveAllBrandsFilter(
-        tenant.organizationId,
-        user,
-        getIsSuperAdmin(user, request),
-      );
-    }
-
-    return CollectionFilterUtil.buildAuthorizedBrandFilter(
-      query.brandId,
-      user,
-      getIsSuperAdmin(user, request),
-    );
-  }
-
-  /**
-   * `allBrands` widens the list only as far as the caller's brand access:
-   * owners, admins, self-hosted installs and superadmins see every brand; a
-   * member assigned to specific brands (or none) sees only those.
-   */
-  private async resolveAllBrandsFilter(
-    organizationId: string,
-    user: User,
-    isSuperAdmin: boolean,
-  ): Promise<Record<string, unknown> | undefined> {
-    if (isSuperAdmin) {
-      return undefined;
-    }
-
-    const userId = user.userId || user.id;
-    if (!userId || !organizationId || !this.brandAccess) {
-      throw new ForbiddenException({
-        detail: 'Access denied to this organization',
-        title: 'Forbidden',
-      });
-    }
-
-    // API-key identity travels with the actor so a key's role cap applies.
-    const { brandIds } = await this.brandAccess.resolve({
-      apiKeyId: user.apiKeyId,
-      isApiKey: user.isApiKey,
-      organizationId,
-      scopes: user.scopes,
-      userId,
-    });
-
-    return brandIds === undefined ? undefined : { in: brandIds };
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    return query.allBrands && !query.brandId
+      ? resolveAllBrandsFilter(this.brandAccess, tenant, user, isSuperAdmin)
+      : CollectionFilterUtil.buildAuthorizedBrandFilter(
+          query.brandId,
+          user,
+          isSuperAdmin,
+        );
   }
 
   /**
