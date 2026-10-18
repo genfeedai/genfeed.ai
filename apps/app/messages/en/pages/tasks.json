@@ -1,0 +1,59 @@
+{
+  "inspector": {
+    "openFullPage": "Open full page",
+    "description": "Description",
+    "comments": "Comments ({count})",
+    "noComments": "No comments yet.",
+    "status": "Status",
+    "priority": "Priority",
+    "tabs": {
+      "details": "Details",
+      "activity": "Activity",
+      "records": "Records"
+    }
+  },
+  "status": {
+    "backlog": "Backlog",
+    "blocked": "Blocked",
+    "cancelled": "Cancelled",
+    "done": "Done",
+    "failed": "Failed",
+    "inProgress": "In Progress",
+    "inReview": "In Review",
+    "todo": "To Do",
+    "dismissed": "Dismissed",
+    "changesRequested": "Changes Requested"
+  },
+  "priority": {
+    "critical": "Critical",
+    "high": "High",
+    "low": "Low",
+    "medium": "Medium"
+  },
+  "list": {
+    "assigned": "Assigned",
+    "noTasksKanban": "No tasks",
+    "openTaskError": "Could not open task.",
+    "updateTaskError": "Could not update task. Please try again.",
+    "allStatuses": "All Statuses",
+    "listView": "List view",
+    "kanbanView": "Kanban view",
+    "title": "Tasks",
+    "noMatchingTasks": "No matching tasks",
+    "noTasksYet": "No tasks yet",
+    "noMatchingTasksDescription": "Try a different status, or clear the filter to see every task.",
+    "noTasksYetDescription": "Create a task to start tracking work in this workspace.",
+    "newTask": "New Task",
+    "taskColumn": "Task",
+    "statusColumn": "Status",
+    "priorityColumn": "Priority",
+    "statusForTask": "Status for {title}",
+    "priorityForTask": "Priority for {title}",
+    "createTaskTitle": "Create Task",
+    "creating": "Creating...",
+    "titleLabel": "Title",
+    "descriptionLabel": "Description",
+    "taskTitlePlaceholder": "Task title",
+    "descriptionPlaceholder": "Optional description"
+  }
+}

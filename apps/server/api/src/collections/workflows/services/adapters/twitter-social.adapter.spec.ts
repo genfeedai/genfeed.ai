@@ -5,6 +5,15 @@ import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { isSelfHostedDeployment } = vi.hoisted(() => ({
+  isSelfHostedDeployment: vi.fn(() => false),
+}));
+
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  isSelfHostedDeployment,
+}));
+
 const organizationId = testId('org');
 
 describe('TwitterSocialAdapter', () => {
@@ -32,6 +41,7 @@ describe('TwitterSocialAdapter', () => {
   };
 
   beforeEach(() => {
+    isSelfHostedDeployment.mockReturnValue(false);
     mockTwitterService = {
       getFollowers: vi.fn().mockResolvedValue([]),
       getMediaAnalyticsBatch: vi.fn().mockResolvedValue(new Map()),
@@ -105,9 +115,36 @@ describe('TwitterSocialAdapter', () => {
         undefined,
         {},
         undefined,
+        'external',
       );
       expect(result.replyId).toBe('tweet_123');
       expect(result.replyUrl).toContain('tweet_123');
+    });
+
+    it('trusts the configured media origin on self-hosted installs', async () => {
+      isSelfHostedDeployment.mockReturnValue(true);
+      const publisher = adapter.createReplyPublisher();
+      await publisher({
+        mediaUrl: 'http://localhost:9000/media/image.jpg',
+        organizationId: organizationId,
+        platform: 'twitter',
+        postId: 'tweet_original',
+        text: 'Nice tweet!',
+        userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
+      });
+
+      expect(mockTwitterService.uploadMedia).toHaveBeenCalledWith(
+        organizationId,
+        'brand1',
+        ['http://localhost:9000/media/image.jpg'],
+        'Nice tweet!',
+        'image/jpeg',
+        undefined,
+        {},
+        undefined,
+        'publisher',
+      );
     });
 
     it('should reply with text-only via postTweet', async () => {

@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   DmSender,
@@ -114,6 +115,10 @@ export class TwitterSocialAdapter {
           undefined,
           {},
           credentialId,
+          // Single-tenant installs serve media from private storage; trust the
+          // configured media origin there. SaaS keeps raw workflow URLs
+          // public-only so one tenant cannot read another's stored media.
+          isSelfHostedDeployment() ? 'publisher' : 'external',
         );
         return {
           replyId: tweetId,

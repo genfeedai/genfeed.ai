@@ -85,6 +85,33 @@ const FORBIDDEN_REDIRECT_SCHEMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Whether `requested` is a registered redirect. Loopback http redirects match
+ * on everything but the port (RFC 8252 §7.3): native clients such as Codex bind
+ * an ephemeral port per login and register the portless URI.
+ */
+function isRegisteredRedirectUri(
+  registered: readonly string[],
+  requested: string,
+): boolean {
+  if (registered.includes(requested)) {
+    return true;
+  }
+  const target = new URL(requested);
+  if (target.protocol !== 'http:' || !isLoopback(target.hostname)) {
+    return false;
+  }
+  return registered.some((entry) => {
+    const candidate = new URL(entry);
+    return (
+      candidate.protocol === 'http:' &&
+      candidate.hostname === target.hostname &&
+      candidate.pathname === target.pathname &&
+      candidate.search === target.search
+    );
+  });
+}
+
+/**
  * Accepts https, loopback http (RFC 8252 §7.3), and any native-app
  * private-use scheme (RFC 8252 §7.1). Reverse-domain schemes are recommended
  * but not required: Cursor's MCP client — which Grok Bot runs on — registers
@@ -190,7 +217,9 @@ export class OAuthClientService {
       } catch {
         throw oauthError('invalid_request', 'Invalid redirect URI');
       }
-      if (!client.redirectUris.includes(normalizedRedirectUri)) {
+      if (
+        !isRegisteredRedirectUri(client.redirectUris, normalizedRedirectUri)
+      ) {
         throw oauthError('invalid_request', 'Unregistered redirect URI');
       }
     }

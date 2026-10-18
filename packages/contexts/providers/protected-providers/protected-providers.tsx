@@ -14,6 +14,7 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
+import type { GlobalModalRenderer } from '@genfeedai/props/modals/global-modals.props';
 import { AccessStateProvider } from '@providers/access-state/access-state.provider';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ElementsProvider from '@providers/elements/elements.provider';
@@ -30,6 +31,7 @@ export interface ProtectedProvidersProps extends LayoutProps {
   includeAssetSelectionProvider?: boolean;
   includeApiStatusCheck?: boolean;
   initialBootstrap?: ProtectedBootstrapData | null;
+  renderModal?: GlobalModalRenderer;
   additionalProviders?: (children: ReactNode) => ReactNode;
 }
 
@@ -127,6 +129,7 @@ export default function ProtectedProviders({
   includeApiStatusCheck = true,
   initialBootstrap,
   additionalProviders,
+  renderModal,
 }: ProtectedProvidersProps): ReactNode {
   const isDesktop = useIsDesktopClient();
   let content: ReactNode = children;
@@ -142,7 +145,7 @@ export default function ProtectedProviders({
   // `useBrand()` falls back to its default context and the personal preference
   // still applies.
   content = (
-    <GlobalModalsProvider>
+    <GlobalModalsProvider renderModal={renderModal}>
       <ThemePreferenceSync />
       {content}
     </GlobalModalsProvider>

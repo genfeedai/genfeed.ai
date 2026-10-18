@@ -144,6 +144,36 @@ describe('WorkflowApiService', () => {
     });
   });
 
+  it('fetches a batch once with repeated IDs, cancellation and normalized graphs', async () => {
+    const signal = new AbortController().signal;
+    mocks.get.mockResolvedValueOnce({
+      data: { data: [workflow({ nodes: null, edges: null })] },
+    });
+    await expect(
+      service().listByIds(['workflow-1', 'workflow-2'], signal),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: 'workflow-1', nodes: [], edges: [] }),
+    ]);
+    expect(mocks.get).toHaveBeenCalledOnce();
+    const [path, config] = mocks.get.mock.calls[0];
+    expect(path).toBe('');
+    expect(config.signal).toBe(signal);
+    expect(config.params).toEqual({ ids: ['workflow-1', 'workflow-2'] });
+  });
+
+  it('propagates batch failures so Favorites can retry', async () => {
+    const error = new Error('Unavailable');
+    mocks.get.mockRejectedValueOnce(error);
+    await expect(service().listByIds(['workflow-1'])).rejects.toBe(error);
+  });
+
+  it('does not fetch the unfiltered collection for empty favorites', async () => {
+    await expect(
+      service().listByIds([], new AbortController().signal),
+    ).resolves.toEqual([]);
+    expect(mocks.get).not.toHaveBeenCalled();
+  });
+
   it('detects canonical immutable system workflow summaries', () => {
     expect(
       isCanonicalSystemWorkflow({

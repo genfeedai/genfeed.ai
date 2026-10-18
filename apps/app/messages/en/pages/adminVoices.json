@@ -1,0 +1,16 @@
+{
+  "unknown": "Unknown",
+  "featured": "Featured",
+  "notDefault": "Not default selectable",
+  "inactive": "Inactive",
+  "actions": "Actions for {name}",
+  "activate": "Activate",
+  "deactivate": "Deactivate",
+  "enableDefault": "Enable default selection",
+  "disableDefault": "Disable default selection",
+  "feature": "Mark featured",
+  "unfeature": "Remove featured",
+  "loadError": "Failed to load voice catalog",
+  "retry": "Retry",
+  "empty": "No voices found"
+}

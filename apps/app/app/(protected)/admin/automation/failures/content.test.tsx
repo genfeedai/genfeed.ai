@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import pages from '../../../../../messages/en/pages.json';
+import pages from '../../../../../messages/en/pages';
 import AgentFailuresPage from './content';
 import '@testing-library/jest-dom/vitest';
 
