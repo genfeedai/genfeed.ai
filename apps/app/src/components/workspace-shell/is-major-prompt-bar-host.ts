@@ -19,6 +19,9 @@ export function isMajorPromptBarHost(normalizedPathname: string): boolean {
     // Children only: `/studio/clips` and `/studio/storyboard` are run lists,
     // while `/new` and `/:id` open the source or brief composer.
     normalizedPathname.startsWith(`${APP_ROUTES.STUDIO.CLIPS}/`) ||
-    normalizedPathname.startsWith(`${APP_ROUTES.STUDIO.STORYBOARD}/`)
+    normalizedPathname.startsWith(`${APP_ROUTES.STUDIO.STORYBOARD}/`) ||
+    // Children only: `/publishing/posts` is the Posts desk list; a post page
+    // docks the post composer bar.
+    normalizedPathname.startsWith(`${APP_ROUTES.PUBLISHING.POSTS}/`)
   );
 }

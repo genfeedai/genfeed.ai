@@ -55,6 +55,9 @@ describe('AgentArchivedComposerBar', () => {
     );
 
     expect(screen.getByText('This thread is archived.')).toBeInTheDocument();
+    expect(screen.getByTestId('agent-archived-composer-bar')).toHaveAttribute(
+      'data-prompt-bar-composer',
+    );
     expect(
       screen.getByRole('button', { name: 'Unarchive thread' }),
     ).toBeInTheDocument();

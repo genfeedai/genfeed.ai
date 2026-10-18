@@ -4,6 +4,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import { ArchiveRestore } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -55,11 +56,8 @@ export function AgentArchivedComposerBar({
       showTopFade={false}
       zIndex={40}
     >
-      <div
-        className={cn(
-          'flex w-full min-w-0 flex-col gap-2 rounded-xl border border-border',
-          'bg-background-secondary/95 p-3 shadow-sm backdrop-blur-sm',
-        )}
+      <PromptBarComposer
+        bodyClassName="flex min-w-0 flex-col gap-2"
         data-testid="agent-archived-composer-bar"
       >
         <Alert
@@ -90,7 +88,7 @@ export function AgentArchivedComposerBar({
             {error}
           </p>
         ) : null}
-      </div>
+      </PromptBarComposer>
     </PromptBarContainer>
   );
 

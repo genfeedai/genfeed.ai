@@ -1,5 +1,7 @@
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import type { ReactElement } from 'react';
 
 type AgentConversationSkeletonProps = {
@@ -52,19 +54,23 @@ export function AgentConversationSkeleton({
         showTopFade={false}
         zIndex={40}
       >
-        <div className="rounded-md border border-foreground/[0.08] bg-background/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-          <Skeleton className="mb-4 h-5 w-28 rounded-full bg-foreground/[0.04]" />
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-8 rounded-full bg-foreground/[0.04]" />
-              <Skeleton className="h-4 w-40 rounded-full bg-foreground/[0.04]" />
-            </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-4 w-16 rounded-full bg-foreground/[0.04]" />
-              <Skeleton className="size-8 rounded-full bg-foreground/[0.04]" />
-            </div>
-          </div>
-        </div>
+        <PromptBarComposer>
+          <Skeleton className="my-2 h-5 w-28 rounded-full bg-foreground/[0.04]" />
+          <PromptBarToolbar
+            leading={
+              <>
+                <Skeleton className="size-8 rounded-full bg-foreground/[0.04]" />
+                <Skeleton className="h-4 w-40 rounded-full bg-foreground/[0.04]" />
+              </>
+            }
+            trailing={
+              <>
+                <Skeleton className="h-4 w-16 rounded-full bg-foreground/[0.04]" />
+                <Skeleton className="size-9 rounded-full bg-foreground/[0.04]" />
+              </>
+            }
+          />
+        </PromptBarComposer>
       </PromptBarContainer>
     </div>
   );

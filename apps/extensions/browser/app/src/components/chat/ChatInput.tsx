@@ -4,16 +4,12 @@ import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces
 import type { ChatInputProps } from '@genfeedai/props/extension/extension-library.props';
 import PromptBarAttachedAssetsTray from '@ui/components/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/components/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarSendButton from '@ui/components/prompt-bars/components/toolbar/PromptBarSendButton';
+import PromptBarToolbar from '@ui/components/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditorView from '@ui/components/prompt-editor/PromptEditorView';
 import { Button } from '@ui/primitives/button';
-import { Textarea } from '@ui/primitives/textarea';
-import { ArrowUp, FolderOpen } from 'lucide-react';
-import {
-  type KeyboardEvent,
-  type ReactElement,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { FolderOpen } from 'lucide-react';
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import { LibraryAttachmentActions } from '~components/chat/LibraryAttachmentActions';
 import {
   type LibraryAsset,
@@ -54,7 +50,6 @@ export function ChatInput({
     ? `${snapshot.userId}:${snapshot.organizationId}:${snapshot.brandId}:${snapshot.revision}`
     : '';
   const isReady = workspaceState.status === 'ready' && Boolean(brandId);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scopeRef = useRef(scopeKey);
   scopeRef.current = isReady ? scopeKey : '';
   const request = useRef<AbortController | null>(null);
@@ -67,12 +62,25 @@ export function ChatInput({
     request.current?.abort();
     generation.current += 1;
   };
-  useEffect(() => {
-    if (suggestedPrompt) {
-      setValue(suggestedPrompt);
-      textareaRef.current?.focus();
-    }
-  }, [suggestedPrompt]);
+  // The editor applies a seed once per id, fills the draft and focuses itself.
+  const suggestedSeed = useMemo(
+    () =>
+      suggestedPrompt
+        ? {
+            content: {
+              content: [
+                {
+                  content: [{ text: suggestedPrompt, type: 'text' }],
+                  type: 'paragraph',
+                },
+              ],
+              type: 'doc',
+            },
+            id: suggestedPrompt,
+          }
+        : null,
+    [suggestedPrompt],
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: Actual scope resets clear all drafts and references; refreshing retains them.
   useEffect(() => {
     if (
@@ -207,16 +215,6 @@ export function ChatInput({
       setIsSending(false);
     }
   }
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (
-      event.key === 'Enter' &&
-      !event.shiftKey &&
-      !event.nativeEvent.isComposing
-    ) {
-      event.preventDefault();
-      void handleSend();
-    }
-  }
   function openLibrary() {
     if (isReady) closeLibrary(true);
   }
@@ -256,50 +254,46 @@ export function ChatInput({
           ) : undefined
         }
       >
-        <Textarea
-          ref={textareaRef}
-          aria-label="Conversation prompt"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={handleKeyDown}
+        <PromptEditorView
+          key={brandId ? 'brand' : 'no-brand'}
+          ariaLabel="Conversation prompt"
+          className="min-h-6 min-w-0 w-full [&_.ProseMirror]:min-h-6"
+          documentSeed={suggestedSeed}
+          isDisabled={isDisabled}
+          onSubmit={() => void handleSend()}
+          onValueChange={setValue}
           placeholder={
             brandId
               ? 'What would you like to create?'
               : 'Select your brand to start creating'
           }
-          disabled={isDisabled}
-          rows={3}
-          className="min-h-24 max-h-48 w-full resize-none border-0 bg-transparent px-1 py-2 text-sm leading-6 shadow-none focus-visible:ring-0"
+          value={value}
         />
-        <div className="flex items-center justify-between gap-2 pt-1 pb-1">
-          <Button
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-            icon={<FolderOpen className="size-4" />}
-            onClick={openLibrary}
-            isDisabled={!brandId || isDisabled}
-            ariaLabel="Attach from Library"
-            size={ButtonSize.SM}
-          >
-            Library
-          </Button>
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.ICON}
-            className="rounded-full"
-            icon={<ArrowUp className="size-4" />}
-            onClick={() => void handleSend()}
-            isDisabled={isDisabled || !brandId || !value.trim()}
-            ariaLabel="Send message"
-          />
-        </div>
+        <PromptBarToolbar
+          density="compact"
+          leading={
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+              icon={<FolderOpen className="size-4" />}
+              onClick={openLibrary}
+              isDisabled={!brandId || isDisabled}
+              ariaLabel="Attach from Library"
+              size={ButtonSize.SM}
+            >
+              Library
+            </Button>
+          }
+          trailing={
+            <PromptBarSendButton
+              ariaLabel="Send message"
+              density="compact"
+              isDisabled={isDisabled || !brandId || !value.trim()}
+              onClick={() => void handleSend()}
+            />
+          }
+        />
       </PromptBarComposer>
-      <p className="mt-2 text-center text-2xs text-muted-foreground">
-        {assets.length
-          ? `${assets.length} Library ${assets.length === 1 ? 'reference' : 'references'} attached`
-          : 'Create in your brand voice, wherever you browse'}
-      </p>
       <ContentLibraryPicker
         title="Your Library"
         description="Attach generated or uploaded assets as references for this message."
@@ -320,7 +314,6 @@ export function ChatInput({
                 : [...current, asset],
             );
             closeLibrary(false);
-            textareaRef.current?.focus();
           }
         }}
         footer={

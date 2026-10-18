@@ -16,6 +16,13 @@ describe('isMajorPromptBarHost', () => {
     );
   });
 
+  it('treats a post page as a host but not the Posts desk', () => {
+    expect(isMajorPromptBarHost(`${APP_ROUTES.PUBLISHING.POSTS}/post-1`)).toBe(
+      true,
+    );
+    expect(isMajorPromptBarHost(APP_ROUTES.PUBLISHING.POSTS)).toBe(false);
+  });
+
   it('keeps the agent bubble on Studio and edit routes without a prompt bar', () => {
     expect(isMajorPromptBarHost(APP_ROUTES.STUDIO.ROOT)).toBe(false);
     expect(isMajorPromptBarHost(APP_ROUTES.STUDIO.CLIPS)).toBe(false);

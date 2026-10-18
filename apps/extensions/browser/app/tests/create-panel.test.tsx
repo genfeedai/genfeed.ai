@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreatePanel } from '~components/create/CreatePanel';
 import { useBrandStore } from '~store/use-brand-store';
 import { usePlatformStore } from '~store/use-platform-store';
+import { typeInPrompt } from './prompt-editor.helper';
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
@@ -60,12 +61,7 @@ describe('Content Engine exact publication integration', () => {
   });
   it('preserves generate, draft and explicit manual Insert with inert mocks', async () => {
     render(<CreatePanel onStartChat={() => undefined} />);
-    fireEvent.change(
-      screen.getByPlaceholderText('Write a prompt for generated content…'),
-      {
-        target: { value: 'Original topic' },
-      },
-    );
+    await typeInPrompt('Generation prompt', 'Original topic');
     fireEvent.click(screen.getByRole('button', { name: 'Run Generate' }));
     await waitFor(() =>
       expect(

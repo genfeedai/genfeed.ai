@@ -40,6 +40,16 @@ export default defineConfig({
           '../../../../packages/helpers/src',
         ),
         '@hooks': path.resolve(extensionAppDir, './src/hooks'),
+        // The editor and prompt bars import each other through `@ui/prompt-*`,
+        // which tsconfig resolves via its `components/*` fallback.
+        '@ui/prompt-bars': path.resolve(
+          extensionAppDir,
+          '../../../../packages/ui/src/components/prompt-bars',
+        ),
+        '@ui/prompt-editor': path.resolve(
+          extensionAppDir,
+          '../../../../packages/ui/src/components/prompt-editor',
+        ),
         '@ui': path.resolve(extensionAppDir, '../../../../packages/ui/src'),
         '~': path.resolve(extensionAppDir, './src'),
         '~components': path.resolve(extensionAppDir, './src/components'),

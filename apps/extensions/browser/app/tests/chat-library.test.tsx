@@ -11,6 +11,7 @@ import { ChatInput } from '~components/chat/ChatInput';
 import { loadLibraryAssets } from '~services/library.service';
 import { handoffLibraryAsset } from '~services/library-handoff.service';
 import { useWorkspaceStore } from '~store/use-workspace-store';
+import { typeInPrompt } from './prompt-editor.helper';
 
 vi.mock('~services/library-handoff.service', () => ({
   handoffLibraryAsset: vi.fn(),
@@ -98,10 +99,7 @@ describe('shared extension composer and Library picker', () => {
     expect(screen.getByTestId('prompt-bar-composer')).not.toBeNull();
     await attach();
     expect(screen.getByAltText('Launch image')).not.toBeNull();
-    fireEvent.change(
-      screen.getByRole('textbox', { name: 'Conversation prompt' }),
-      { target: { value: 'Use this image in a post' } },
-    );
+    await typeInPrompt('Conversation prompt', 'Use this image in a post');
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
     await waitFor(() =>
       expect(onSend).toHaveBeenCalledWith('Use this image in a post', [
@@ -112,15 +110,43 @@ describe('shared extension composer and Library picker', () => {
       expect(screen.queryByAltText('Launch image')).toBeNull(),
     );
   });
+  it('keeps every word inside the shared bar and sends on Enter', async () => {
+    const onSend = vi.fn().mockResolvedValue(true);
+    render(<ChatInput onSend={onSend} />);
+    const composer = screen.getByTestId('prompt-bar-composer');
+    expect(screen.queryByText(/Create in your brand voice/)).toBeNull();
+    expect(composer.querySelector('[data-prompt-bar-toolbar]')).not.toBeNull();
+    await typeInPrompt('Conversation prompt', 'Draft a launch post');
+    fireEvent.keyDown(
+      screen.getByRole('textbox', { name: 'Conversation prompt' }),
+      { key: 'Enter' },
+    );
+    await waitFor(() =>
+      expect(onSend).toHaveBeenCalledWith('Draft a launch post', []),
+    );
+  });
+  it('fills the editor with the suggested prompt', async () => {
+    render(
+      <ChatInput
+        onSend={vi.fn()}
+        suggestedPrompt="Write a reply in my brand voice."
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('textbox', { name: 'Conversation prompt' }),
+      ).toHaveTextContent('Write a reply in my brand voice.'),
+    );
+  });
   it('keeps the draft and assets after a failed send and permits removal', async () => {
     const onSend = vi.fn().mockResolvedValue(false);
     render(<ChatInput onSend={onSend} />);
     await attach();
+    await typeInPrompt('Conversation prompt', 'Try this');
     const prompt = screen.getByRole('textbox', { name: 'Conversation prompt' });
-    fireEvent.change(prompt, { target: { value: 'Try this' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
     await waitFor(() => expect(onSend).toHaveBeenCalled());
-    expect((prompt as HTMLTextAreaElement).value).toBe('Try this');
+    expect(prompt).toHaveTextContent('Try this');
     fireEvent.click(
       screen.getByRole('button', { name: 'Remove Launch image' }),
     );
@@ -221,10 +247,7 @@ it('failed page2 retries page2 and deduplicates results while retaining selected
 it('pauses requests/actions during refreshing and retains drafts/references', async () => {
   render(<ChatInput onSend={vi.fn()} />);
   await attach();
-  fireEvent.change(
-    screen.getByRole('textbox', { name: 'Conversation prompt' }),
-    { target: { value: 'Retained draft' } },
-  );
+  await typeInPrompt('Conversation prompt', 'Retained draft');
   act(() => setWorkspace('brand-1', 1, 'refreshing'));
   expect(screen.getByAltText('Launch image')).toBeInTheDocument();
   expect(
@@ -232,7 +255,7 @@ it('pauses requests/actions during refreshing and retains drafts/references', as
   ).toBeDisabled();
   expect(
     screen.getByRole('textbox', { name: 'Conversation prompt' }),
-  ).toHaveValue('Retained draft');
+  ).toHaveTextContent('Retained draft');
 });
 it('explicit attachment handoff reports started, preserves references and never automatically opens after failure', async () => {
   render(<ChatInput onSend={vi.fn()} />);

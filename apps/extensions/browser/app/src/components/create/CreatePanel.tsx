@@ -1,4 +1,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import PromptBarComposer from '@ui/components/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarSendButton from '@ui/components/prompt-bars/components/toolbar/PromptBarSendButton';
+import PromptBarToolbar from '@ui/components/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditorView from '@ui/components/prompt-editor/PromptEditorView';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useMemo, useState } from 'react';
@@ -250,23 +254,32 @@ function GenerateSection({
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         1. Generate
       </p>
-      <Textarea
-        value={generatePrompt}
-        onChange={(event) => onPromptChange(event.target.value)}
-        placeholder="Write a prompt for generated content…"
-        className="min-h-20 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
-      />
-      <Button
-        type="button"
-        variant={ButtonVariant.DEFAULT}
-        disabled={isRunning || !generatePrompt.trim()}
-        onClick={onGenerate}
-        className="mt-2 w-full text-xs"
-      >
-        {isRunning && currentAction === 'generate'
-          ? 'Running Generate…'
-          : 'Run Generate'}
-      </Button>
+      <PromptBarComposer density="compact">
+        <PromptEditorView
+          ariaLabel="Generation prompt"
+          className="min-h-6 min-w-0 w-full [&_.ProseMirror]:min-h-6"
+          isDisabled={isRunning}
+          onSubmit={() => {
+            if (!isRunning && generatePrompt.trim()) onGenerate();
+          }}
+          onValueChange={onPromptChange}
+          placeholder="Write a prompt for generated content…"
+          value={generatePrompt}
+        />
+        <PromptBarToolbar
+          density="compact"
+          leading={null}
+          trailing={
+            <PromptBarSendButton
+              ariaLabel="Run Generate"
+              density="compact"
+              isDisabled={isRunning || !generatePrompt.trim()}
+              isLoading={isRunning && currentAction === 'generate'}
+              onClick={onGenerate}
+            />
+          }
+        />
+      </PromptBarComposer>
     </section>
   );
 }

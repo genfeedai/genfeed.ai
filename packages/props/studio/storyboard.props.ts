@@ -1,5 +1,4 @@
-import type { StoryboardFrame } from '@genfeedai/client/schemas';
-import type { IngredientFormat, VideoTransition } from '@genfeedai/contracts';
+import type { VideoTransition } from '@genfeedai/contracts';
 import type {
   BrandRemixDraftEdits,
   BrandRemixRunView,
@@ -17,15 +16,11 @@ import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contra
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import type {
-  IImage,
   IIngredient,
   StoryboardRunRecipe,
   StoryboardRunSelectOption,
 } from '@genfeedai/contracts/interfaces';
-import type { IStoryboardMergeSettings } from '@genfeedai/contracts/interfaces/components/storyboard.interface';
-import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 import type { ReactNode, Ref } from 'react';
-import type { MergeProgressStep } from './merge.props';
 
 export interface StoryboardWorkspaceReference {
   readonly id: string;
@@ -52,39 +47,6 @@ export interface TransitionSelectorProps {
   className?: string;
   dropdownDirection?: 'up' | 'down' | 'left' | 'right';
   isFullWidth?: boolean;
-}
-
-export interface StoryboardSceneRowProps {
-  frame: StoryboardFrame;
-  isBusy: boolean;
-  onChange: (frameId: string, patch: Partial<StoryboardFrame>) => void;
-  onRemove: (frameId: string) => void;
-  onRetry: (frameId: string) => void;
-}
-
-export interface StoryboardMergeSettingsPanelProps {
-  isDisabled: boolean;
-  settings: IStoryboardMergeSettings;
-  onChange: (patch: Partial<IStoryboardMergeSettings>) => void;
-}
-
-export interface StoryboardMergeProgressPanelProps {
-  overallProgress: number;
-  steps: MergeProgressStep[];
-  onDismiss: () => void;
-}
-
-export interface StoryboardPanelProps {
-  cameraMovementPreset: CameraMovementPreset;
-  customCameraPrompt: string;
-  format: IngredientFormat;
-  frames: IImage[];
-  hasInterpolationModel: boolean;
-  onCameraMovementPresetChange: (preset: CameraMovementPreset) => void;
-  onClear: () => void;
-  onCustomCameraPromptChange: (prompt: string) => void;
-  onFramesChange: (frames: IImage[]) => void;
-  onGenerate: () => void;
 }
 
 /** Scene-pipeline commands a storyboard run exposes to its shot editor. */

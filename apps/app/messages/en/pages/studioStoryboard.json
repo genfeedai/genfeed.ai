@@ -196,13 +196,6 @@
     "shotNameFor": "Name for shot {ordinal}",
     "shotNamePlaceholder": "Name this shot"
   },
-  "frameSequence": {
-    "clear": "Clear",
-    "generate": "Generate transitions",
-    "needsInterpolationModel": "Select an interpolation-capable video model",
-    "needsTwoFrames": "Select at least two frames",
-    "summary": "{frames, plural, one {# frame} other {# frames}} / {transitions, plural, one {# transition} other {# transitions}}"
-  },
   "onboarding": {
     "description": "From a one-line idea or an existing video.",
     "otherWaysTitle": "Or start another way",
