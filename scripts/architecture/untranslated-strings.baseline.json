@@ -37,7 +37,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/new/WorkflowNewPageClient.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/edit/article/article-detail-header.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/edit/article/article-edit-form.tsx": 10,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/edit/article/article-sidebar.tsx": 6,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/edit/article/article-sidebar.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/edit/artifact-editor-shell.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/content.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/newsletter-context-review.tsx": 7,
