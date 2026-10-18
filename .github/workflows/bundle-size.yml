@@ -78,14 +78,93 @@ jobs:
       - name: Build ${{ matrix.app }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: bunx turbo run build --filter=@genfeedai/${{ matrix.app }}
+          BUNDLE_APP: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          if [ "$BUNDLE_APP" = "app" ]; then
+            bunx turbo run build --filter='@genfeedai/app^...' --concurrency=1
+            bun run packages/services/scripts/request-serializer-build-receipt.ts .bundle-size/request-serializers-build.json
+            cp packages/serializers/dist/request-runtime.provenance.json .bundle-size/request-serializers-package.json
+            GENFEED_REQUEST_SERIALIZER_PROOF=1 NODE_OPTIONS=--max-old-space-size=6144 bun run --cwd apps/app analyze
+          else
+            bunx turbo run build --filter="@genfeedai/$BUNDLE_APP"
+          fi
 
       - name: Collect first-load JS manifest
+        env:
+          BUNDLE_APP: ${{ matrix.app }}
         run: |
-          bun run scripts/collect-bundle-manifest.ts \
-            --app ${{ matrix.app }} \
-            --dist apps/${{ matrix.app }}/.next \
-            --out .bundle-size/head.json
+          set -euo pipefail
+          if [ "$BUNDLE_APP" = "app" ]; then
+            bun run scripts/collect-bundle-manifest.ts \
+              --app app --dist apps/app/.next --out .bundle-size/head.json --include-chunks
+            cp .bundle-size/head.json .bundle-size/request-serializers-initial.json
+          else
+            bun run scripts/collect-bundle-manifest.ts \
+              --app "$BUNDLE_APP" --dist "apps/$BUNDLE_APP/.next" --out .bundle-size/head.json
+          fi
+
+      - name: Restore baseline
+        id: baseline_cache
+        if: github.event_name != 'push'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bundle-size/baseline.json
+          key: bundle-baseline-${{ matrix.app }}-${{ github.event.pull_request.base.sha }}
+          restore-keys: |
+            bundle-baseline-${{ matrix.app }}-
+
+      - name: Retain serializer comparison baseline
+        if: matrix.app == 'app' && github.event_name != 'push'
+        env:
+          BUNDLE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BUNDLE_SOURCE_SHA: ${{ github.sha }}
+          BUNDLE_REQUESTED_CACHE_KEY: bundle-baseline-app-${{ github.event.pull_request.base.sha }}
+          BUNDLE_MATCHED_CACHE_KEY: ${{ steps.baseline_cache.outputs.cache-matched-key }}
+          BUNDLE_EXACT_CACHE_HIT: ${{ steps.baseline_cache.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+          const baselineAvailable = existsSync('.bundle-size/baseline.json');
+          mkdirSync('.bundle-size', { recursive: true });
+          if (baselineAvailable) copyFileSync('.bundle-size/baseline.json', '.bundle-size/request-serializers-baseline.json');
+          const baseSha = process.env.BUNDLE_BASE_SHA ?? '';
+          const requestedCacheKey = process.env.BUNDLE_REQUESTED_CACHE_KEY ?? '';
+          const matchedCacheKey = process.env.BUNDLE_MATCHED_CACHE_KEY ?? '';
+          const exactCacheHit = process.env.BUNDLE_EXACT_CACHE_HIT === 'true';
+          const eligibleForSameBaseComparison = baselineAvailable && exactCacheHit && /^[a-f0-9]{40}$/.test(baseSha) && requestedCacheKey === `bundle-baseline-app-${baseSha}` && matchedCacheKey === requestedCacheKey;
+          writeFileSync('.bundle-size/request-serializers-baseline-identity.json', JSON.stringify({ schemaVersion: 1, app: 'app', sourceSha: process.env.BUNDLE_SOURCE_SHA ?? '', baseSha, requestedCacheKey, matchedCacheKey, exactCacheHit, baselineAvailable, eligibleForSameBaseComparison }, null, 2) + '\n');
+          NODE
+
+      - name: Verify deferred request serializers
+        id: serializer_proof
+        if: matrix.app == 'app'
+        run: |
+          set -euo pipefail
+          mkdir -p .bundle-size
+          BUNDLE_INDEX=0
+          BUNDLE_STATUS=0
+          bun run packages/services/scripts/request-serializer-build-receipt.ts \
+            .bundle-size/request-serializers-input.json --finalize-input || BUNDLE_STATUS=$?
+          for BUNDLE_ROUTE in '/login' '/[orgSlug]/[brandSlug]/workspace/overview' '/[orgSlug]/[brandSlug]/library/assets' '/[orgSlug]/[brandSlug]/publishing/posts'; do
+            (cd apps/app && bunx next analyze export --route "$BUNDLE_ROUTE") > .bundle-size/request-serializers.graph.jsonl
+            bun run packages/services/scripts/request-serializer-bundle.ts \
+              .bundle-size/request-serializers.graph.jsonl \
+              ".bundle-size/request-serializers-$BUNDLE_INDEX.json" "$BUNDLE_ROUTE" || BUNDLE_STATUS=$?
+            BUNDLE_INDEX=$((BUNDLE_INDEX + 1))
+          done
+          exit "$BUNDLE_STATUS"
+
+      - name: Upload request serializer proof
+        if: ${{ !cancelled() && (steps.serializer_proof.outcome == 'success' || steps.serializer_proof.outcome == 'failure') && matrix.app == 'app' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: request-serializer-proof-app
+          path: .bundle-size/request-serializers-*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
 
       # A push to master publishes the baseline the next pull request compares
       # against. Keyed by SHA because cache entries are immutable; the prefix
@@ -102,15 +181,6 @@ jobs:
         with:
           path: .bundle-size/baseline.json
           key: bundle-baseline-${{ matrix.app }}-${{ github.sha }}
-
-      - name: Restore baseline
-        if: github.event_name != 'push'
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .bundle-size/baseline.json
-          key: bundle-baseline-${{ matrix.app }}-${{ github.event.pull_request.base.sha }}
-          restore-keys: |
-            bundle-baseline-${{ matrix.app }}-
 
       - name: Render report
         if: github.event_name != 'push'

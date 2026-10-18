@@ -2,7 +2,9 @@ import { SocialInboxService } from '@api/collections/social-inbox/services/socia
 import {
   buildSocialInboxSyncWorkflowDefinition,
   SOCIAL_INBOX_SYNC_ACTION_IDS,
+  type SocialInboxSyncConversationType,
   type SocialInboxSyncInput,
+  type SocialInboxSyncPlatform,
   type SocialInboxSyncResult,
 } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
@@ -18,6 +20,18 @@ import {
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
+const SOCIAL_INBOX_SYNC_SURFACES: ReadonlyArray<
+  readonly [SocialInboxSyncPlatform, SocialInboxSyncConversationType]
+> = [
+  [Platform.YOUTUBE, SocialConversationType.COMMENT],
+  [Platform.INSTAGRAM, SocialConversationType.COMMENT],
+  [Platform.INSTAGRAM, SocialConversationType.DM],
+  [Platform.TWITTER, SocialConversationType.COMMENT],
+  [Platform.TWITTER, SocialConversationType.DM],
+  [Platform.LINKEDIN, SocialConversationType.COMMENT],
+  [Platform.LINKEDIN, SocialConversationType.DM],
+];
+
 @Injectable()
 export class SocialInboxSyncWorkflowService implements OnModuleInit {
   constructor(
@@ -27,12 +41,14 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.workflowRunner.registerWorkflow(
-      buildSocialInboxSyncWorkflowDefinition(
-        Platform.YOUTUBE,
-        SocialConversationType.COMMENT,
-      ),
-    );
+    // The worker resolves a queued job by canonicalId, so every surface that
+    // `enqueue` can address needs its own definition. An unregistered one fails
+    // the job as "Unknown system workflow" before it ingests anything.
+    for (const [platform, conversationType] of SOCIAL_INBOX_SYNC_SURFACES) {
+      this.workflowRunner.registerWorkflow(
+        buildSocialInboxSyncWorkflowDefinition(platform, conversationType),
+      );
+    }
     this.workflowRunner.registerAction(
       SOCIAL_INBOX_SYNC_ACTION_IDS.VALIDATE,
       (request) => this.validateAction(request),

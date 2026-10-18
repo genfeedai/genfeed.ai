@@ -126,6 +126,39 @@ describe('PublicBrandsController', () => {
     expect(controller).toBeDefined();
   });
 
+  describe('findPublicBrands', () => {
+    it('applies the requested limit as the page size', async () => {
+      brandsService.findAll.mockResolvedValue({ docs: [mockBrand] } as never);
+
+      await controller.findPublicBrands(mockReq, undefined, '3');
+
+      expect(brandsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ isDeleted: false }),
+        }),
+        expect.objectContaining({ limit: 3, page: 1, pagination: true }),
+      );
+    });
+
+    it('caps the limit at 100 and falls back to 10 for junk input', async () => {
+      brandsService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findPublicBrands(mockReq, undefined, '5000');
+      await controller.findPublicBrands(mockReq, undefined, 'abc');
+
+      expect(brandsService.findAll).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({ limit: 100 }),
+      );
+      expect(brandsService.findAll).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({ limit: 10 }),
+      );
+    });
+  });
+
   describe('findBySlug', () => {
     it('queries an exact case-insensitive slug and excludes deleted brands', async () => {
       brandsService.findOneBySlug.mockResolvedValue(

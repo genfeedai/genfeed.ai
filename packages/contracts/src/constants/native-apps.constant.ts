@@ -31,6 +31,12 @@ export const CORE_APP_IDS = [
 
 export type CoreAppId = (typeof CORE_APP_IDS)[number];
 
+export function isCoreAppId(value: unknown): value is CoreAppId {
+  return (
+    typeof value === 'string' && CORE_APP_IDS.some((appId) => appId === value)
+  );
+}
+
 export const NATIVE_APP_CONTEXTUAL_ENTRIES = [
   'edit',
   'clip',
@@ -128,6 +134,13 @@ export function normalizeRailAppOrder(
   ids: readonly unknown[] | null | undefined,
 ): string[] {
   return [...new Set((ids ?? []).filter(isRailAppId))];
+}
+
+/** Known core app ids in stored order, without duplicates. */
+export function normalizeHiddenAppIds(
+  ids: readonly unknown[] | null | undefined,
+): CoreAppId[] {
+  return [...new Set((ids ?? []).filter(isCoreAppId))];
 }
 
 /** The app home falls back to when nothing chosen is available. */

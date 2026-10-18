@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import SettingsHomeAppCard from './settings-home-app-card';
 
 type ExtendedSettingPatch = Partial<ISetting>;
 
@@ -243,6 +244,8 @@ export default function SettingsProfilePage() {
           </SelectContent>
         </Select>
       </Card>
+
+      <SettingsHomeAppCard />
 
       <Card
         description={translate('settings.profile.agentMode.description')}

@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Asset } from '@genfeedai/models/ingredients/asset.model';
-import { AssetSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -8,7 +7,7 @@ import {
 
 export class AssetsService extends BaseService<Asset> {
   constructor(token: string) {
-    super(API_ENDPOINTS.ASSETS, token, Asset, AssetSerializer);
+    super(API_ENDPOINTS.ASSETS, token, Asset);
   }
 
   public static getInstance(token: string): AssetsService {

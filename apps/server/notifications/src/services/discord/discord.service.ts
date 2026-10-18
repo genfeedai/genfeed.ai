@@ -46,6 +46,7 @@ export class DiscordService {
     const settings = await this.runtimeSettings.get();
     const channels = {
       deployments: settings.discordChannelIdDeployments,
+      models: settings.discordChannelIdModels,
       posts: settings.discordChannelIdPosts,
       studio: settings.discordChannelIdStudio,
       users: settings.discordChannelIdUsers,

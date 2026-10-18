@@ -4,7 +4,6 @@ import type {
   UpdatePostingSetInput,
 } from '@genfeedai/contracts/interfaces';
 import { PostingSet } from '@genfeedai/models/content/posting-set.model';
-import { PostingSetSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class PostingSetsService extends BaseService<
@@ -13,7 +12,7 @@ export class PostingSetsService extends BaseService<
   UpdatePostingSetInput
 > {
   constructor(token: string) {
-    super(API_ENDPOINTS.POSTING_SETS, token, PostingSet, PostingSetSerializer);
+    super(API_ENDPOINTS.POSTING_SETS, token, PostingSet);
   }
 
   public static getInstance(token: string): PostingSetsService {

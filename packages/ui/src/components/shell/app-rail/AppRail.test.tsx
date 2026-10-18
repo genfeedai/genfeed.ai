@@ -5,7 +5,14 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import type { AppRailProps } from '@genfeedai/props/ui/app-rail.props';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1890,7 +1897,7 @@ describe('AppRail', () => {
       ).toBeNull();
     });
 
-    it('reorders, unpins and resets from the customize dialog', () => {
+    it('opens an item menu on right click with move and unpin', () => {
       const onRailAppOrderChange = vi.fn();
       const onTogglePin = vi.fn();
       render(
@@ -1898,36 +1905,118 @@ describe('AppRail', () => {
           orgSlug="acme"
           onRailAppOrderChange={onRailAppOrderChange}
           onTogglePin={onTogglePin}
-          pinnedAppIds={['playground']}
         />,
       );
 
-      fireEvent.click(screen.getByTestId('app-rail-more'));
-      fireEvent.click(screen.getByTestId('app-rail-customize-open'));
-      expect(screen.getByTestId('app-rail-customize')).toBeInTheDocument();
+      expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'), {
+        clientX: 40,
+        clientY: 120,
+      });
+      expect(screen.getByTestId('app-rail-item-menu')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Move Agent up' }));
+      fireEvent.click(screen.getByTestId('app-rail-item-menu-move-up'));
       expect(onRailAppOrderChange).toHaveBeenLastCalledWith([
         'agent',
         'workspace',
         'library',
         'publishing',
         'analytics',
-        'playground',
       ]);
-      expect(
-        screen.getByRole('button', { name: 'Move Workspace up' }),
-      ).toBeDisabled();
-      // Core apps cannot leave the rail; pinned ones can.
-      expect(
-        screen.queryByRole('button', { name: 'Unpin Agent' }),
-      ).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Unpin Playground' }));
-      expect(onTogglePin).toHaveBeenCalledWith('playground');
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Reset to default order' }),
+      expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
+
+      // Core apps unpin too: they wait in More until pinned back.
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-library'));
+      fireEvent.click(screen.getByTestId('app-rail-item-menu-unpin'));
+      expect(onTogglePin).toHaveBeenCalledWith('library');
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Library removed from your rail.',
       );
-      expect(onRailAppOrderChange).toHaveBeenLastCalledWith([]);
+    });
+
+    it('returns focus to the rail item after the menu closes', async () => {
+      render(<AppRail orgSlug="acme" onRailAppOrderChange={vi.fn()} />);
+
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
+      fireEvent.click(screen.getByTestId('app-rail-item-menu-move-down'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('app-rail-item-agent')).toHaveFocus(),
+      );
+    });
+
+    it('disables move up on the first item and move down on the last', () => {
+      render(<AppRail orgSlug="acme" onRailAppOrderChange={vi.fn()} />);
+
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-workspace'));
+      expect(screen.getByTestId('app-rail-item-menu-move-up')).toHaveAttribute(
+        'data-disabled',
+      );
+      fireEvent.keyDown(document.activeElement ?? document.body, {
+        key: 'Escape',
+      });
+
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-analytics'));
+      expect(
+        screen.getByTestId('app-rail-item-menu-move-down'),
+      ).toHaveAttribute('data-disabled');
+    });
+
+    it('offers only the handlers it was given in the item menu', () => {
+      const { unmount } = render(
+        <AppRail orgSlug="acme" onRailAppOrderChange={vi.fn()} />,
+      );
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
+      expect(screen.getByTestId('app-rail-item-menu-move-down')).toBeVisible();
+      expect(screen.queryByTestId('app-rail-item-menu-unpin')).toBeNull();
+      unmount();
+
+      render(<AppRail onTogglePin={vi.fn()} orgSlug="acme" />);
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
+      expect(screen.getByTestId('app-rail-item-menu-unpin')).toBeVisible();
+      expect(screen.queryByTestId('app-rail-item-menu-move-up')).toBeNull();
+    });
+
+    it('leaves the browser menu alone with nothing to offer', () => {
+      render(<AppRail orgSlug="acme" />);
+
+      const wasNotCancelled = fireEvent.contextMenu(
+        screen.getByTestId('app-rail-slot-agent'),
+      );
+      expect(wasNotCancelled).toBe(true);
+      expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
+    });
+
+    it('moves a hidden core app into More and numbers shortcuts without it', () => {
+      clientSurface.isDesktop = true;
+      const onTogglePin = vi.fn();
+      render(
+        <AppRail
+          hiddenAppIds={['agent']}
+          onTogglePin={onTogglePin}
+          orgSlug="acme"
+        />,
+      );
+
+      expect(screen.queryByTestId('app-rail-item-agent')).toBeNull();
+      expect(
+        within(screen.getByTestId('app-rail-slot-library')).getByTestId(
+          'rail-tooltip',
+        ),
+      ).toHaveTextContent('⌘ 2');
+      fireEvent.click(screen.getByTestId('app-rail-more'));
+      expect(screen.getByTestId('app-rail-more-item-agent')).toBeVisible();
+      fireEvent.click(screen.getByTestId('app-rail-more-pin-agent'));
+      expect(onTogglePin).toHaveBeenCalledWith('agent');
+    });
+
+    it('resets the rail from More', () => {
+      const onResetRail = vi.fn();
+      render(<AppRail onResetRail={onResetRail} orgSlug="acme" />);
+
+      fireEvent.click(screen.getByTestId('app-rail-more'));
+      fireEvent.click(screen.getByTestId('app-rail-reset'));
+      expect(onResetRail).toHaveBeenCalledTimes(1);
     });
 
     it('reports where a moved app came from and landed', () => {
@@ -1981,40 +2070,13 @@ describe('AppRail', () => {
       });
     });
 
-    it('offers the home picker in the customize dialog only with a handler', () => {
-      const { unmount } = render(
-        <AppRail
-          orgSlug="acme"
-          onRailAppOrderChange={vi.fn()}
-          organizationHomeAppId="agent"
-        />,
-      );
-      fireEvent.click(screen.getByTestId('app-rail-more'));
-      fireEvent.click(screen.getByTestId('app-rail-customize-open'));
-      expect(screen.queryByTestId('app-rail-home')).not.toBeInTheDocument();
-      unmount();
-
-      render(
-        <AppRail
-          homeAppId="library"
-          onHomeAppChange={vi.fn()}
-          onRailAppOrderChange={vi.fn()}
-          orgSlug="acme"
-          organizationHomeAppId="agent"
-        />,
-      );
-      fireEvent.click(screen.getByTestId('app-rail-more'));
-      fireEvent.click(screen.getByTestId('app-rail-customize-open'));
-      expect(screen.getByTestId('app-rail-home')).toBeInTheDocument();
-      expect(screen.getByTestId('app-rail-home-select')).toBeInTheDocument();
-    });
-
     it('freezes reordering and More during the onboarding hold', () => {
       render(
         <AppRail
           orgSlug="acme"
           isNavigationSuspended
           onRailAppOrderChange={vi.fn()}
+          onResetRail={vi.fn()}
         />,
       );
 
@@ -2022,6 +2084,8 @@ describe('AppRail', () => {
       expect(
         screen.getByTestId('app-rail-slot-agent').getAttribute('draggable'),
       ).toBeNull();
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
+      expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
     });
   });
 });

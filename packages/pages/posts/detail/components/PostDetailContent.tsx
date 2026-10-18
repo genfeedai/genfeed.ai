@@ -237,10 +237,15 @@ export default function PostDetailContent({
   if (viewMode === 'preview') {
     return (
       <ThreadPreviewPanel
-        parent={{ content: descriptionDraft, id: post.id }}
+        parent={{
+          content: descriptionDraft,
+          id: post.id,
+          media: selectedIngredients,
+        }}
         replies={threadChildren.map((c) => ({
           content: c.description || '',
           id: c.id,
+          media: (c.ingredients ?? []) as IIngredient[],
         }))}
       />
     );

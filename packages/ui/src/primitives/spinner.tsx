@@ -1,6 +1,5 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import BrandMark from '@ui/primitives/brand-mark';
 import type { ComponentPropsWithoutRef } from 'react';
 import { spinnerVariants } from './spinner.variants';
 
@@ -26,7 +25,10 @@ export default function Spinner({
       aria-label={ariaLabel}
       {...props}
     >
-      <BrandMark />
+      <span
+        aria-hidden="true"
+        className="block size-full animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none"
+      />
     </output>
   );
 }

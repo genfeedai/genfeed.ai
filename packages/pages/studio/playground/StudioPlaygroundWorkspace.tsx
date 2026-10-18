@@ -45,6 +45,7 @@ import type {
 import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { isAutoStudioModelKey } from '@genfeedai/pricing';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
+import type { PromptBarContextItem } from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
@@ -56,6 +57,7 @@ import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
+import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
@@ -113,6 +115,7 @@ import {
   recipeFromIngredient,
   recipeFromRepromptData,
   settingsPatchFromRecipe,
+  studioAssetAccessibleLabel,
   studioIngredientAccessibleLabel,
 } from '@pages/studio/playground/utils/studio-playground-recipe';
 import {
@@ -159,7 +162,15 @@ import {
 } from '@ui/primitives/select';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
-import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
+import {
+  ImageIcon,
+  ImagePlus,
+  LayoutGrid,
+  RotateCcw,
+  Rows3,
+  Sparkles,
+  Video,
+} from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -186,6 +197,8 @@ interface StudioContentReference {
  */
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
+/** Recent images offered as "More like" in the composer while it is empty. */
+const COMPOSER_RECENT_LIMIT = 4;
 const EMPTY_ATTACHMENTS: AttachmentItem[] = [];
 
 // Auto defers to the router, which can pick a start/end-frame model, so a
@@ -280,6 +293,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const {
     extraExtensions: promptCommandExtensions,
     resolveSubmit: resolvePromptCommands,
+    setContext: setPromptCommandContext,
   } = usePromptCommandExtension({
     surface: SkillSurface.STUDIO,
     recognizedSkillSlugs,
@@ -362,6 +376,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   // The epoch also fences A → B → A changes without reviving the old selection.
   const focusedScopeKey = `${crunRestoreScope}:${crunRestoreEpochRef.current}`;
   const galleryScrollRef = useRef<HTMLDivElement>(null);
+  const composerDockRef = useRef<HTMLDivElement>(null);
+  const composerResting = usePromptBarResting({
+    composerRef: composerDockRef,
+    scrollRef: galleryScrollRef,
+  });
   const galleryPositionRef = useRef(0);
   const focusReturnRef = useRef<HTMLElement | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
@@ -940,8 +959,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     !isLoadingGallery &&
     galleryJobs.length === 0 &&
     prompt.trim().length === 0;
-  const showDockedStarterIdeas =
-    !galleryError && !isLoadingGallery && !showEmptyStarterIdeas;
   const starterOffering = starterOfferingKind(selectedBrand);
   const revealInspector = useContextSidebar()?.reveal;
   const handleInspectIngredient = useCallback(
@@ -2390,6 +2407,102 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     [handleAttachGeneratedReference],
   );
 
+  const translateInspectorActions = useTranslations(
+    'common.videoCreativeActions.inspector',
+  );
+  const composerContextGroups = useMemo(() => {
+    const selection: PromptBarContextItem[] = [];
+    if (selectedJob && !isFocusedPreview) {
+      const mention = studioJobToContentMention(selectedJob);
+      const isImage = selectedJob.type === 'image' && selectedJob.ingredient;
+      selection.push({
+        icon: <ImageIcon className="size-3.5" />,
+        id: `selected-${selectedJob.id}`,
+        isIconOnly: Boolean(mention?.thumbnailUrl && isImage),
+        label: studioAssetAccessibleLabel(selectedJob),
+        onRemove: handleCloseInspector,
+        onSelect: handleOpenFocusedPreview,
+        removeLabel: translate('composerContext.clearSelection'),
+        thumbnailUrl: isImage ? mention?.thumbnailUrl : undefined,
+      });
+      if (isImage && selectedJob.ingredient) {
+        const ingredient = selectedJob.ingredient;
+        selection.push(
+          {
+            icon: <Sparkles className="size-3.5" />,
+            id: 'variation',
+            label: translateInspectorActions('createVariation'),
+            onSelect: () => handleRemixJob(selectedJob),
+          },
+          {
+            icon: <Video className="size-3.5" />,
+            id: 'animate',
+            label: translateInspectorActions('animate'),
+            onSelect: () => assetActions.onConvertToVideo(ingredient),
+          },
+        );
+      }
+      if (canUseGeneratedReference(selectedJob)) {
+        selection.push({
+          icon: <ImagePlus className="size-3.5" />,
+          id: 'reference',
+          label: translate('useAsReference'),
+          onSelect: () => handleUseGeneratedReference(selectedJob),
+        });
+      }
+    }
+    const recent: PromptBarContextItem[] =
+      type === 'image'
+        ? visibleJobs
+            .flatMap((job) => {
+              if (job.type !== 'image' || !job.ingredient) return [];
+              const thumbnailUrl = studioJobToContentMention(job)?.thumbnailUrl;
+              return thumbnailUrl ? [{ job, thumbnailUrl }] : [];
+            })
+            .slice(0, COMPOSER_RECENT_LIMIT)
+            .map(({ job, thumbnailUrl }) => ({
+              ariaLabel: translate('composerContext.moreLikeAria', {
+                name: studioAssetAccessibleLabel(job),
+              }),
+              id: `recent-${job.id}`,
+              isIconOnly: true,
+              label: studioAssetAccessibleLabel(job),
+              onSelect: () => handleRemixJob(job),
+              thumbnailUrl,
+            }))
+        : [];
+    return {
+      recent: {
+        id: 'recent',
+        items: recent,
+        label: translate('composerContext.moreLike'),
+      },
+      selection: selection.length
+        ? { id: 'selection', items: selection }
+        : undefined,
+    };
+  }, [
+    assetActions,
+    canUseGeneratedReference,
+    handleCloseInspector,
+    handleOpenFocusedPreview,
+    handleRemixJob,
+    handleUseGeneratedReference,
+    isFocusedPreview,
+    selectedJob,
+    translate,
+    translateInspectorActions,
+    type,
+    visibleJobs,
+  ]);
+
+  const remixableVideos = attachments.filter(
+    (attachment: AttachmentItem) =>
+      attachment.kind === 'video' &&
+      attachment.status === UploadStatus.COMPLETED &&
+      attachment.ingredientId,
+  );
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <MasonryConfirmBridge key={crunRestoreScope} {...transformConfirmation} />
@@ -2490,9 +2603,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           <div
             ref={galleryScrollRef}
             tabIndex={-1}
-            className={`relative z-0 h-full overflow-auto px-3 py-3 sm:px-4 sm:py-4 ${
-              showDockedStarterIdeas ? 'pb-72' : 'pb-40'
-            }`}
+            className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
           >
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
               {isFocusedPreview && selectedJob ? (
@@ -2598,74 +2709,59 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             className="px-5 pb-5"
             layoutMode="surface-fixed"
             maxWidth="4xl"
-            topContent={
-              showDockedStarterIdeas ? (
-                <StudioPlaygroundStarterIdeas
-                  character={pickStarterCharacter(characterMentions)}
-                  isDocked
-                  offeringKind={starterOffering}
-                  onSelect={handleStarterIdea}
-                  productReference={pickStarterProductReference(
-                    selectedBrand?.references,
-                  )}
-                />
-              ) : null
-            }
             zIndex={40}
           >
-            <div {...(capabilities.hasReferences ? dragHandlers : {})}>
-              {draftSaveStatus === 'idle' ? null : (
-                <p
-                  aria-live="polite"
-                  className={`mb-1 text-right text-2xs ${
-                    draftSaveStatus === 'error' || draftSaveStatus === 'failed'
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'
-                  }`}
-                  data-draft-status={draftSaveStatus}
-                  data-testid="studio-draft-status"
-                  role="status"
-                >
-                  {draftSaveStatus === 'saving'
-                    ? translate('draft.saving')
-                    : draftSaveStatus === 'error'
-                      ? translate('draft.saveFailed')
-                      : draftSaveStatus === 'failed'
-                        ? translate('draft.saveRejected')
-                        : translate('draft.saved')}
-                </p>
-              )}
-              {attachments
-                .filter(
-                  (attachment: AttachmentItem) =>
-                    attachment.kind === 'video' &&
-                    attachment.status === UploadStatus.COMPLETED &&
-                    attachment.ingredientId,
-                )
-                .map((attachment: AttachmentItem) => (
-                  <Button
-                    ariaLabel={`${translateActions('remixThisVideo')}: ${attachment.name}`}
-                    className="mb-2 mr-2"
-                    key={attachment.id}
-                    label={translateActions('remixThisVideo')}
-                    onClick={() => {
-                      if (attachment.ingredientId)
-                        void storyboardEntry.createFromUploadAssetId(
-                          attachment.ingredientId,
-                        );
-                    }}
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
-                    withWrapper={false}
-                  />
-                ))}
-              {crunRestoreStatus === 'failed' ? (
-                <Label role="alert">
-                  {translate('crun.referenceUnavailable')}
-                </Label>
-              ) : null}
+            <div
+              ref={composerDockRef}
+              {...(capabilities.hasReferences ? dragHandlers : {})}
+            >
               <StudioPlaygroundComposer
+                notice={
+                  draftSaveStatus === 'error' ||
+                  draftSaveStatus === 'failed' ||
+                  crunRestoreStatus === 'failed' ||
+                  remixableVideos.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2 px-3.5 py-2">
+                      {draftSaveStatus === 'error' ||
+                      draftSaveStatus === 'failed' ? (
+                        <p
+                          aria-live="polite"
+                          className="text-xs text-destructive"
+                          data-draft-status={draftSaveStatus}
+                          data-testid="studio-draft-status"
+                          role="status"
+                        >
+                          {draftSaveStatus === 'error'
+                            ? translate('draft.saveFailed')
+                            : translate('draft.saveRejected')}
+                        </p>
+                      ) : null}
+                      {crunRestoreStatus === 'failed' ? (
+                        <Label role="alert">
+                          {translate('crun.referenceUnavailable')}
+                        </Label>
+                      ) : null}
+                      {remixableVideos.map((attachment: AttachmentItem) => (
+                        <Button
+                          ariaLabel={`${translateActions('remixThisVideo')}: ${attachment.name}`}
+                          key={attachment.id}
+                          label={translateActions('remixThisVideo')}
+                          onClick={() => {
+                            if (attachment.ingredientId)
+                              void storyboardEntry.createFromUploadAssetId(
+                                attachment.ingredientId,
+                              );
+                          }}
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                          withWrapper={false}
+                        />
+                      ))}
+                    </div>
+                  ) : null
+                }
                 attachedAssets={attachedAssets}
+                contextGroups={composerContextGroups}
                 crunQuote={crunModel ? crunQuote : undefined}
                 isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
                 crunReferenceCount={crunPreparedIntent.referenceIds.length}
@@ -2676,6 +2772,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 isDragActive={capabilities.hasReferences && dragState.isActive}
                 isEnhancingPrompt={isEnhancingPrompt}
                 isListening={isListening}
+                isResting={composerResting.isResting}
+                onExpand={composerResting.expand}
                 isLoadingModels={isLoadingModels}
                 isTranscribing={isTranscribing}
                 isUploading={isUploading}
@@ -2684,6 +2782,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 onCancelEnhancePrompt={cancelEnhance}
                 onEnhancePrompt={handleEnhancePrompt}
                 onOpenLibrary={handleOpenLibrary}
+                onPromptCommandContextChange={setPromptCommandContext}
                 onPromptChange={(value) => {
                   clearCrunRestore();
                   setPrompt(value);

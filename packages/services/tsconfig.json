@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "paths": {
+      "@request-serializers-built": [
+        "../serializers/dist/request-runtime.d.ts"
+      ],
       "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
       "@genfeedai/config": ["../config/src/index.ts"],
@@ -17,6 +20,9 @@
         "../contracts/src/interfaces/index.ts"
       ],
       "@genfeedai/contracts/interfaces/*": ["../contracts/src/interfaces/*"],
+      "@genfeedai/serializers/request-runtime": [
+        "../serializers/dist/request-runtime.d.ts"
+      ],
       "@genfeedai/serializers": ["../serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../serializers/src/*"],
       "@genfeedai/contracts/types": ["../contracts/src/types/index.ts"],

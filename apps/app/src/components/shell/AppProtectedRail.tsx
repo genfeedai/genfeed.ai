@@ -77,10 +77,10 @@ function AppProtectedRailContent({
     new URLSearchParams(searchParams.toString()),
   );
   const {
-    homeAppId,
+    hiddenAppIds,
     pinnedAppIds,
     railAppOrder,
-    setHomeAppId,
+    resetRail,
     setRailAppOrder,
     togglePin,
   } = useRailPreferencesContext();
@@ -144,12 +144,11 @@ function AppProtectedRailContent({
       isNavigationSuspended={isAgentOnboardingPathname(pathname)}
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
-      homeAppId={homeAppId}
-      onHomeAppChange={setHomeAppId}
+      hiddenAppIds={hiddenAppIds}
       onNavigate={onNavigate}
       onRailAppOrderChange={setRailAppOrder}
+      onResetRail={resetRail}
       onTogglePin={togglePin}
-      organizationHomeAppId={settings?.defaultHomeAppId}
       orgSlug={effectiveOrgSlug}
       pinnedAppIds={pinnedAppIds}
       railAppOrder={effectiveRailAppOrder}

@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Preset } from '@genfeedai/models/elements/preset.model';
-import { PresetSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -8,7 +7,7 @@ import {
 
 export class PresetsService extends BaseService<Preset> {
   constructor(token: string) {
-    super(API_ENDPOINTS.PRESETS, token, Preset, PresetSerializer);
+    super(API_ENDPOINTS.PRESETS, token, Preset);
   }
 
   public static getInstance(token: string): PresetsService {

@@ -1,13 +1,8 @@
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
 
 export interface CreateTaskCommentInput {
   body: string;
 }
-
-const taskCommentSerializer: IServiceSerializer<TaskComment> = {
-  serialize: (data) => data,
-};
 
 export class TaskComment {
   id!: string;
@@ -35,12 +30,7 @@ export class TaskCommentsService extends BaseService<
   Partial<CreateTaskCommentInput>
 > {
   constructor(token: string, taskId: string) {
-    super(
-      `/tasks/${taskId}/comments`,
-      token,
-      TaskComment,
-      taskCommentSerializer,
-    );
+    super(`/tasks/${taskId}/comments`, token, TaskComment);
   }
 
   public static getInstanceForTask(

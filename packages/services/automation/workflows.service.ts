@@ -1,15 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { Workflow } from '@genfeedai/models/automation/workflow.model';
 import { BaseService } from '@services/core/base.service';
 
-const workflowSerializer: IServiceSerializer<Workflow> = {
-  serialize: (data) => data,
-};
-
 export class WorkflowsService extends BaseService<Workflow> {
   constructor(token: string) {
-    super(API_ENDPOINTS.WORKFLOWS, token, Workflow, workflowSerializer);
+    super(API_ENDPOINTS.WORKFLOWS, token, Workflow);
   }
 
   public static getInstance(token: string): WorkflowsService {

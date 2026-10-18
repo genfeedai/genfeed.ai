@@ -103,8 +103,8 @@ import {
 } from '@mcp/tools/workflow-status.tool';
 import { cardResource } from '@mcp/ui/card-app';
 import {
+  isContentCardsUri,
   MCP_CARD_RESOURCE_HASH,
-  MCP_CARD_RESOURCE_URI,
   withCardMetadata,
 } from '@mcp/ui/card-data';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
@@ -896,11 +896,11 @@ export class ToolRegistryService implements OnModuleInit {
     this.logger.debug(`Reading resource: ${uri}`);
 
     try {
-      switch (uri) {
-        case MCP_CARD_RESOURCE_URI:
-          return {
-            contents: [
-              cardResource(
+      if (isContentCardsUri(uri)) {
+        return {
+          contents: [
+            {
+              ...cardResource(
                 [
                   this.configService?.get('GENFEEDAI_CDN_URL') ||
                     'https://cdn.genfeed.ai',
@@ -910,8 +910,13 @@ export class ToolRegistryService implements OnModuleInit {
                 ],
                 `${new URL(SATOSHI_FONT_RESOURCE_PATH, getPublicMcpUrl()).href}?v=${MCP_CARD_RESOURCE_HASH}`,
               ),
-            ],
-          };
+              uri,
+            },
+          ],
+        };
+      }
+
+      switch (uri) {
         case McpResourceUri.AGENT_GUIDE:
           return this.requestAccessMode === 'claude'
             ? markdownResource(

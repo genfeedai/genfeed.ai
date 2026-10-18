@@ -1,14 +1,12 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IPaginatedResponse,
-  SocialReplyCampaign,
   SocialReplyCampaignInput,
   SocialReplyCampaignPatch,
   SocialReplyCampaignQuery,
   SocialReplyCampaignRecipient,
   SocialReplyCampaignRecipientQuery,
 } from '@genfeedai/contracts/interfaces';
-import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
 import { SocialReplyCampaignRecipientModel } from '@genfeedai/models/social/social-reply-campaign-recipient.model';
 import {
@@ -23,22 +21,13 @@ export type SocialReplyCampaignTransition =
   | 'resume'
   | 'start';
 
-const socialReplyCampaignSerializer: IServiceSerializer<SocialReplyCampaign> = {
-  serialize: (data) => data,
-};
-
 export class SocialReplyCampaignsService extends BaseService<
   SocialReplyCampaignModel,
   SocialReplyCampaignInput,
   SocialReplyCampaignPatch
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.MESSAGE_CAMPAIGNS,
-      token,
-      SocialReplyCampaignModel,
-      socialReplyCampaignSerializer,
-    );
+    super(API_ENDPOINTS.MESSAGE_CAMPAIGNS, token, SocialReplyCampaignModel);
   }
 
   public static getInstance(token: string): SocialReplyCampaignsService {

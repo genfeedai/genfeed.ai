@@ -14,11 +14,6 @@ import type {
   SplitFrameResult,
   SplitResponse,
 } from '@genfeedai/props/studio/contact-sheet.props';
-import {
-  ImageEditingRequestSerializer,
-  ImageEditSerializer,
-  ImageGenerationSerializer,
-} from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 import {
@@ -26,6 +21,7 @@ import {
   parseCrunQuoteResponse,
 } from '@services/core/crun-quote-response';
 import { EnvironmentService } from '@services/core/environment.service';
+import { serializeRequest } from '@services/core/request-serializers';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
@@ -57,7 +53,7 @@ export class ImagesService extends IngredientsService<Image> {
       | ImageGenerationPayload
       | (CrunImageQuoteRequest & { crunQuoteId: string }),
   ) {
-    const data = ImageGenerationSerializer.serialize(body);
+    const data = await serializeRequest('ImageGenerationSerializer', body);
     const config: AxiosRequestConfig & IHttpRequestOptions = {
       handlesErrorResponse: isExpectedCrunQuoteConflict,
     };
@@ -77,7 +73,7 @@ export class ImagesService extends IngredientsService<Image> {
   }
 
   public async postEdit(id: string, body: ImageEditingPayload) {
-    const data = ImageEditingRequestSerializer.serialize(body);
+    const data = await serializeRequest('ImageEditingRequestSerializer', body);
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/edit`, data)
       .then((res) => this.mapOne(res.data));
@@ -85,7 +81,7 @@ export class ImagesService extends IngredientsService<Image> {
 
   public async postUpscale(id: string, data: IImageEditParams) {
     // Serialize the data to JSON API format
-    const serializedData = ImageEditSerializer.serialize(data);
+    const serializedData = await serializeRequest('ImageEditSerializer', data);
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/upscale`, serializedData)
       .then((res) => this.mapOne(res.data));
@@ -93,7 +89,7 @@ export class ImagesService extends IngredientsService<Image> {
 
   public async postReframe(id: string, data: IImageEditParams) {
     // Serialize the data to JSON API format
-    const serializedData = ImageEditSerializer.serialize(data);
+    const serializedData = await serializeRequest('ImageEditSerializer', data);
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/reframe`, serializedData)
       .then((res) => this.mapOne(res.data));

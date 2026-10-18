@@ -197,6 +197,29 @@ describe('StudioPlaygroundCard', () => {
     expect(preview.className).toContain('blur-2xl');
   });
 
+  it('stacks the in-flight label, timer and cancel instead of one cramped row', () => {
+    const { container } = render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          ingredientId: 'ingredient-1',
+          status: IngredientStatus.PROCESSING,
+          type: 'video' as const,
+          url: '',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        onUseAsReference={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    const status = container.querySelector('[data-generation-status]');
+    expect(status).toHaveClass('text-center');
+    expect(status?.firstElementChild).toHaveClass('flex-col');
+  });
+
   it('uses asset identity when a legacy row has no recorded original intent', () => {
     render(
       <StudioPlaygroundCard

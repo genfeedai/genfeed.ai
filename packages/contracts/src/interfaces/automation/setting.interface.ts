@@ -43,6 +43,11 @@ export interface ISetting extends IBaseEntity {
    */
   railAppOrder?: string[];
   /**
+   * Core apps the member took off the rail. They stay in the More menu until
+   * pinned back; empty keeps every core app on the rail.
+   */
+  hiddenAppIds?: string[];
+  /**
    * The app the member lands on after login. Null or unset falls back to the
    * organization default, then Workspace.
    */

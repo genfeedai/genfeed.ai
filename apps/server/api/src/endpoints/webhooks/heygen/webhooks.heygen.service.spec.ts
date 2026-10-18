@@ -175,6 +175,25 @@ describe('HeygenWebhookService', () => {
     );
   });
 
+  it('should keep processing the callback when the notification call fails', async () => {
+    const body: HeygenWebhookPayload = {
+      callback_id: testId('metadata'),
+      event_data: { video_id: 'video-1' },
+      event_type: 'video_completed',
+    };
+
+    deps.microservicesService.notifyWebhook.mockRejectedValueOnce(
+      new Error('Request failed with status code 404'),
+    );
+    deps.metadataService.findOne.mockResolvedValue({ id: body.callback_id });
+    deps.metadataService.patch.mockResolvedValue({});
+    deps.clipResultsService.findOne.mockResolvedValue(null);
+
+    await expect(service.handleCallback(body)).resolves.not.toThrow();
+
+    expect(deps.metadataService.patch).toHaveBeenCalled();
+  });
+
   it('should use "unknown" as event_type when not provided', async () => {
     const body: HeygenWebhookPayload = {
       callback_id: testId('metadata'),
