@@ -9,13 +9,15 @@ import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfac
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { RouterService } from '@services/ai/router.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const STUDIO_ESTIMATE_DEBOUNCE_MS = 400;
 
 interface EstimateRecord {
   fingerprint: string;
+  ownerEpoch: number;
   quote: AgentGenerationQuote;
 }
 
@@ -31,34 +33,55 @@ export function useStudioGenerationEstimate(
   const getRouterService = useAuthedService((token: string) =>
     RouterService.getInstance(token),
   );
-  const { orgId, userId } = useAuthIdentity();
+  const { orgId, userId, sessionId } = useAuthIdentity();
   const [record, setRecord] = useState<EstimateRecord | null>(null);
   // The quote is org-priced, so the scope is part of the identity: switching
   // organization drops the cached answer instead of showing it as current.
   const fingerprint = request
-    ? JSON.stringify([userId ?? null, orgId ?? null, request])
+    ? JSON.stringify([
+        userId ?? null,
+        orgId ?? null,
+        sessionId ?? null,
+        EnvironmentService.apiEndpoint,
+        request,
+      ])
     : null;
+  const ownerRef = useRef({ fingerprint, epoch: 0 });
+  if (ownerRef.current.fingerprint !== fingerprint)
+    ownerRef.current = { fingerprint, epoch: ownerRef.current.epoch + 1 };
+  const owner = ownerRef.current;
 
   useEffect(() => {
     if (!fingerprint) return;
     // The fingerprint is the request, so equal settings never re-request.
-    const [, , body]: [unknown, unknown, AgentGenerationQuoteRequest] =
-      JSON.parse(fingerprint);
+    const [, , , , body]: [
+      unknown,
+      unknown,
+      unknown,
+      unknown,
+      AgentGenerationQuoteRequest,
+    ] = JSON.parse(fingerprint);
     const controller = new AbortController();
+    const canApply = () =>
+      !controller.signal.aborted && ownerRef.current === owner;
     const timer = setTimeout(() => {
       void (async () => {
         try {
+          if (!canApply()) return;
           const service = await getRouterService();
+          if (!canApply()) return;
           const quote = await service.estimateGenerationCredits(
             body,
             controller.signal,
           );
-          if (!controller.signal.aborted) setRecord({ fingerprint, quote });
+          if (canApply())
+            setRecord({ fingerprint, ownerEpoch: owner.epoch, quote });
         } catch (error: unknown) {
-          if (controller.signal.aborted) return;
+          if (!canApply()) return;
           logger.error('Studio generation estimate failed', error);
           setRecord({
             fingerprint,
+            ownerEpoch: owner.epoch,
             quote: {
               credits: null,
               isAvailable: false,
@@ -73,9 +96,13 @@ export function useStudioGenerationEstimate(
       clearTimeout(timer);
       controller.abort();
     };
-  }, [fingerprint, getRouterService]);
+  }, [fingerprint, getRouterService, owner]);
 
-  if (!fingerprint || record?.fingerprint !== fingerprint)
+  if (
+    !fingerprint ||
+    record?.fingerprint !== fingerprint ||
+    record.ownerEpoch !== owner.epoch
+  )
     return { credits: null, status: 'loading' };
   const { credits, isAvailable, unavailableReason } = record.quote;
   if (isAvailable && typeof credits === 'number' && Number.isFinite(credits))

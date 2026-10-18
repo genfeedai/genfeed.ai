@@ -1,0 +1,111 @@
+{
+  "title": "Motion",
+  "description": "Create animated visuals from a prompt or React source, then export them to your Library.",
+  "newProject": "New project",
+  "projects": "Visual projects",
+  "loading": "Loading…",
+  "moreProjects": "More projects",
+  "history": "Revision history",
+  "olderRevisions": "Older revisions",
+  "revision": "Revision {number}",
+  "cost": "{consumed} of {maximum} credits used",
+  "preview": "Preview frame {number}",
+  "output": "Output {number}",
+  "videoOutput": "Rendered video",
+  "openLibrary": "Open in Library",
+  "download": "Download media",
+  "viewSource": "View retained source",
+  "retainedSource": "Retained source (read only)",
+  "downloadSource": "Download TSX",
+  "cancel": "Cancel current revision",
+  "compose": "Create a visual",
+  "revise": "Revise this visual",
+  "label": "Project name",
+  "inputMode": "Input method",
+  "prompt": "Prompt",
+  "source": "React source",
+  "props": "Props JSON",
+  "model": "Authoring and inspection model",
+  "organizationDefault": "Organization default",
+  "unverifiedVision": "Vision support for this model is unverified. Inspection may fail; any consumed work still costs credits.",
+  "width": "Width",
+  "height": "Height",
+  "fps": "Frames per second",
+  "durationFrames": "Duration in frames",
+  "libraryAssets": "Library source assets",
+  "libraryHint": "Select up to 12 of your latest 50 Library assets. Reference them with staticFile(\"assets/ASSET_ID\").",
+  "outputs": "Output formats",
+  "frames": "Still frames, separated by commas",
+  "limits": "Up to 30 seconds, 1920×1080 pixels, 24 or 30 fps, and 8 outputs. Prompt revisions inherit the previous settings and output selection.",
+  "sourceHint": "Export a named VisualComposition component. React and Remotion are available. Direct source is retained exactly and never automatically repaired.",
+  "getQuote": "Review generation quote",
+  "quoteExport": "Review export quote",
+  "quoteRetry": "Review retry quote",
+  "reviewQuote": "Approve the cost ceiling",
+  "authoring": "Authoring and repairs",
+  "inspection": "Visual inspection",
+  "rendering": "Sandbox rendering",
+  "maximum": "Maximum credits",
+  "billingHint": "The ceiling reserves the maximum. Actual authoring, inspection and rendering work is charged even if you cancel or an output fails. Unused credits are released. Retry is a new invocation; check prior uncertainty diagnostics first.",
+  "acknowledge": "I approve up to {maximum} credits for this request.",
+  "confirm": "Confirm and start",
+  "submitting": "Submitting…",
+  "invalidFrames": "Enter integer frame numbers separated by commas.",
+  "outputLimit": "Choose between 1 and 8 outputs.",
+  "invalidProps": "Props must be a JSON object.",
+  "failed": "The request failed.",
+  "staleRevision": "This project changed elsewhere. Reload the latest revision, then try again.",
+  "reloadRevision": "Reload latest revision",
+  "selectBrand": "Select a brand first.",
+  "selectProject": "Select a project first.",
+  "unavailable": "The isolated renderer is unavailable. Contact your operator.",
+  "openEditor": "Open in Editor",
+  "loadSource": "Load source for editing",
+  "loadProps": "Load props for editing",
+  "exportOutputs": "Separate export settings",
+  "inheritedOutputs": "Prompt, source and props revisions keep these outputs:",
+  "rendererProvenance": "· {model} · Remotion {version}",
+  "onboarding": {
+    "title": "Describe it, preview it, export it",
+    "description": "Motion turns a prompt into an animated video or still frames you can drop into your Library. Pick a preset to fill in the form, then edit it your way.",
+    "presetsTitle": "Start with a preset",
+    "presetsDescription": "A preset only fills in the form. You review a credit quote and confirm it before anything is rendered."
+  },
+  "presets": {
+    "listAria": "Motion presets",
+    "use": "Use this preset",
+    "applied": "Applied",
+    "useAria": "Fill the form with the {title} preset",
+    "appliedStatus": "Preset applied. Review the prompt below, then get a quote.",
+    "seconds": "{seconds}s",
+    "shelfTitle": "Start from a preset",
+    "seeAll": "See all presets",
+    "showFewer": "Show fewer",
+    "items": {
+      "kineticQuote": {
+        "title": "Kinetic quote card",
+        "description": "A punchy quote that lands word by word on a bold background."
+      },
+      "statCounter": {
+        "title": "Animated stat counter",
+        "description": "A headline number that counts up with a label and progress bar."
+      },
+      "lowerThird": {
+        "title": "Lower-third title",
+        "description": "A name and title that slide over a video and back out."
+      },
+      "featureCallouts": {
+        "title": "Feature callout reel",
+        "description": "Three feature cards that take turns, ending on a call to action."
+      },
+      "logoReveal": {
+        "title": "Logo reveal sting",
+        "description": "A short, crisp reveal that settles into a wordmark and tagline."
+      },
+      "barChart": {
+        "title": "Animated bar chart",
+        "description": "Five bars that grow in sequence, with the leader highlighted."
+      }
+    }
+  }
+}

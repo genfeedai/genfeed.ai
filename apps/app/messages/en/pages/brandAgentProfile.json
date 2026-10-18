@@ -1,0 +1,47 @@
+{
+  "prompting": {
+    "addSeed": "Add seed",
+    "addStarter": "Add starter",
+    "angle": "Angle",
+    "audience": "Audience",
+    "description": "Reusable prompt seeds and the conversation starters shown in the agent prompt bar. The agent can also write these.",
+    "empty": "No prompt seeds or starters yet. Generate the brand voice or add one.",
+    "formats": "Preferred formats",
+    "intent": "Intent",
+    "intents": {
+      "analyze": "Analyze",
+      "create": "Create",
+      "plan": "Plan"
+    },
+    "label": "Label",
+    "prompt": "Prompt",
+    "remove": "Remove",
+    "seedsTitle": "Prompt seeds",
+    "startersTitle": "Conversation starters",
+    "title": "Prompt seeds and starters",
+    "topic": "Topic"
+  },
+  "topics": {
+    "label": "Topics",
+    "placeholder": "product launches, hiring, ops"
+  },
+  "generateErrorTitle": "Failed to generate your brand voice",
+  "generateSuccess": "Brand voice generated and saved",
+  "saveErrorTitle": "Failed to save your brand voice",
+  "corpus": {
+    "learnedFrom": "Learned from {label}.",
+    "thinTitle": "Brand voice saved, but it will not sound like you yet",
+    "evidence": "Voice evidence: {label}",
+    "notEnoughPosts": "Not enough of your own posts yet"
+  },
+  "failures": {
+    "brandNotFound": "We could not find this brand. Refresh the page and try again.",
+    "emptyOutput": "The model returned nothing to work with. Try again, or add a website, description, or audience to the brand first.",
+    "generic": "Something went wrong. Please try again.",
+    "incompleteProfile": "The generated profile was missing key details. Try again, or add a website, description, or audience to the brand first.",
+    "malformedOutput": "The model returned a profile we could not read. Try again — this usually clears on the next attempt.",
+    "saveFailed": "Your changes were not saved. Check your connection and try again.",
+    "sourceRequired": "Add a website URL or brand details before generating.",
+    "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
+  }
+}

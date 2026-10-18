@@ -7,7 +7,7 @@ export async function readMetaAdImageBytes(imageUrl: string): Promise<string> {
     { allowedSchemes: ['https:'] },
   );
   if (!download.ok || !download.body) {
-    await download.body?.cancel();
+    void download.body?.cancel().catch(() => undefined);
     throw new Error('The ad image could not be downloaded.');
   }
   const contentType = download.headers
@@ -21,7 +21,7 @@ export async function readMetaAdImageBytes(imageUrl: string): Promise<string> {
     !['image/jpeg', 'image/png'].includes(contentType) ||
     Number(download.headers.get('content-length')) > maxBytes
   ) {
-    await download.body.cancel();
+    void download.body.cancel().catch(() => undefined);
     throw new Error(
       'Meta ad images must be JPEG or PNG and no larger than 30 MB.',
     );
@@ -29,18 +29,25 @@ export async function readMetaAdImageBytes(imageUrl: string): Promise<string> {
   const reader = download.body.getReader();
   const chunks: Buffer[] = [];
   let byteCount = 0;
+  let complete = false;
   try {
     for (;;) {
       const chunk = await reader.read();
-      if (chunk.done) break;
+      if (chunk.done) {
+        complete = true;
+        break;
+      }
       byteCount += chunk.value.byteLength;
       if (byteCount > maxBytes)
         throw new Error('Meta ad image exceeds the 30 MB limit.');
       chunks.push(Buffer.from(chunk.value));
     }
   } finally {
-    await reader.cancel();
-    reader.releaseLock();
+    try {
+      if (!complete) void reader.cancel().catch(() => undefined);
+    } finally {
+      reader.releaseLock();
+    }
   }
   if (byteCount === 0) throw new Error('Meta ad image is empty.');
   return Buffer.concat(chunks).toString('base64');

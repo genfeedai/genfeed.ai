@@ -1,0 +1,6 @@
+{
+  "unavailable": {
+    "description": "We could not load the workspace settings. Try again to continue.",
+    "title": "Workspace settings unavailable"
+  }
+}

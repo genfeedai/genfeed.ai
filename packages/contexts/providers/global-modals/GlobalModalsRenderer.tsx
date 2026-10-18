@@ -1,6 +1,10 @@
 'use client';
 
 import type { SubscriptionTier } from '@genfeedai/contracts';
+import type {
+  GlobalModalRenderer,
+  GlobalModalsProviderProps,
+} from '@genfeedai/props/modals/global-modals.props';
 import {
   LazyBrandOverlay,
   LazyIngredientOverlay,
@@ -20,9 +24,13 @@ import {
 import { ModalUpgradePrompt } from '@ui/modals';
 import type { useGlobalModalsState } from './useGlobalModalsState';
 
-type GlobalModalsRendererProps = ReturnType<typeof useGlobalModalsState>;
+type GlobalModalsRendererProps = ReturnType<typeof useGlobalModalsState> &
+  Pick<GlobalModalsProviderProps, 'renderModal'>;
+
+const renderUnwrappedModal: GlobalModalRenderer = (_kind, children) => children;
 
 export default function GlobalModalsRenderer({
+  renderModal = renderUnwrappedModal,
   brandOverlayData,
   brandOverlayTrigger,
   closeBrandOverlay,
@@ -67,217 +75,245 @@ export default function GlobalModalsRenderer({
     <>
       {/* Mounted only while open, like the other modals: rendering it closed
           still downloads its chunk on every protected page. */}
-      {publishIngredients.length > 0 && (
-        <LazyModalPostBatch
-          key={openTrigger}
-          ingredient={publishIngredient || undefined}
-          ingredients={
-            publishIngredients.length > 1 ? publishIngredients : undefined
-          }
-          credentials={credentials}
-          onConfirm={closePublishModal}
-          isOpen
-          openKey={openTrigger}
-        />
-      )}
+      {publishIngredients.length > 0 &&
+        renderModal(
+          'postBatch',
+          <LazyModalPostBatch
+            key={openTrigger}
+            ingredient={publishIngredient || undefined}
+            ingredients={
+              publishIngredients.length > 1 ? publishIngredients : undefined
+            }
+            credentials={credentials}
+            onConfirm={closePublishModal}
+            isOpen
+            openKey={openTrigger}
+          />,
+        )}
 
-      {currentConfirm && (
-        <LazyModalConfirm
-          key={currentConfirm.id}
-          label={currentConfirm.label}
-          message={currentConfirm.message}
-          confirmLabel={currentConfirm.confirmLabel}
-          cancelLabel={currentConfirm.cancelLabel}
-          isError={currentConfirm.isError}
-          isOpen={Boolean(currentConfirm)}
-          openKey={currentConfirm.id}
-          onClose={closeConfirm}
-          onConfirm={async () => {
-            await currentConfirm.onConfirm();
-            closeConfirm();
-          }}
-        >
-          {currentConfirm.children}
-        </LazyModalConfirm>
-      )}
+      {currentConfirm &&
+        renderModal(
+          'confirm',
+          <LazyModalConfirm
+            key={currentConfirm.id}
+            label={currentConfirm.label}
+            message={currentConfirm.message}
+            confirmLabel={currentConfirm.confirmLabel}
+            cancelLabel={currentConfirm.cancelLabel}
+            isError={currentConfirm.isError}
+            isOpen={Boolean(currentConfirm)}
+            openKey={currentConfirm.id}
+            onClose={closeConfirm}
+            onConfirm={async () => {
+              await currentConfirm.onConfirm();
+              closeConfirm();
+            }}
+          >
+            {currentConfirm.children}
+          </LazyModalConfirm>,
+        )}
 
-      {uploadConfig && (
-        <LazyModalUpload
-          key={uploadTrigger}
-          isOpen={Boolean(uploadConfig)}
-          openKey={uploadTrigger}
-          category={uploadConfig.category}
-          parentId={uploadConfig.parentId}
-          parentModel={uploadConfig.parentModel}
-          width={uploadConfig.width}
-          height={uploadConfig.height}
-          isResizeEnabled={uploadConfig.isResizeEnabled}
-          isMultiple={uploadConfig.isMultiple}
-          maxFiles={uploadConfig.maxFiles}
-          initialFiles={uploadConfig.initialFiles}
-          autoSubmit={uploadConfig.autoSubmit}
-          onComplete={(ingredients) => {
-            uploadConfig.onComplete?.(ingredients);
-            closeUpload();
-          }}
-        />
-      )}
+      {uploadConfig &&
+        renderModal(
+          'upload',
+          <LazyModalUpload
+            key={uploadTrigger}
+            isOpen={Boolean(uploadConfig)}
+            openKey={uploadTrigger}
+            category={uploadConfig.category}
+            parentId={uploadConfig.parentId}
+            parentModel={uploadConfig.parentModel}
+            width={uploadConfig.width}
+            height={uploadConfig.height}
+            isResizeEnabled={uploadConfig.isResizeEnabled}
+            isMultiple={uploadConfig.isMultiple}
+            maxFiles={uploadConfig.maxFiles}
+            initialFiles={uploadConfig.initialFiles}
+            autoSubmit={uploadConfig.autoSubmit}
+            onComplete={(ingredients) => {
+              uploadConfig.onComplete?.(ingredients);
+              closeUpload();
+            }}
+          />,
+        )}
 
-      {galleryConfig && (
-        <LazyModalGallery
-          isOpen={galleryConfig.isOpen}
-          category={galleryConfig.category}
-          title={galleryConfig.title}
-          selectedId={galleryConfig.selectedId}
-          format={galleryConfig.format}
-          isFormatFilterEnabled={galleryConfig.isFormatFilterEnabled}
-          isNoneAllowed={galleryConfig.isNoneAllowed}
-          maxSelectableItems={galleryConfig.maxSelectableItems}
-          accountReference={galleryConfig.accountReference}
-          onSelectAccountReference={galleryConfig.onSelectAccountReference}
-          selectedReferences={galleryConfig.selectedReferences}
-          onClose={closeGallery}
-          onSelect={(items) => {
-            galleryConfig.onSelect(items);
-            closeGallery();
-          }}
-        />
-      )}
+      {galleryConfig &&
+        renderModal(
+          'gallery',
+          <LazyModalGallery
+            isOpen={galleryConfig.isOpen}
+            category={galleryConfig.category}
+            title={galleryConfig.title}
+            selectedId={galleryConfig.selectedId}
+            format={galleryConfig.format}
+            isFormatFilterEnabled={galleryConfig.isFormatFilterEnabled}
+            isNoneAllowed={galleryConfig.isNoneAllowed}
+            maxSelectableItems={galleryConfig.maxSelectableItems}
+            accountReference={galleryConfig.accountReference}
+            onSelectAccountReference={galleryConfig.onSelectAccountReference}
+            selectedReferences={galleryConfig.selectedReferences}
+            onClose={closeGallery}
+            onSelect={(items) => {
+              galleryConfig.onSelect(items);
+              closeGallery();
+            }}
+          />,
+        )}
 
-      {ingredientOverlayData?.ingredient && (
-        <LazyIngredientOverlay
-          key={ingredientOverlayTrigger}
-          isOpen={Boolean(ingredientOverlayData.ingredient)}
-          openKey={ingredientOverlayTrigger}
-          ingredient={ingredientOverlayData.ingredient}
-          onConfirm={() => {
-            ingredientOverlayData.onConfirm?.();
-          }}
-          onClose={closeIngredientOverlay}
-        />
-      )}
+      {ingredientOverlayData?.ingredient &&
+        renderModal(
+          'ingredient',
+          <LazyIngredientOverlay
+            key={ingredientOverlayTrigger}
+            isOpen={Boolean(ingredientOverlayData.ingredient)}
+            openKey={ingredientOverlayTrigger}
+            ingredient={ingredientOverlayData.ingredient}
+            onConfirm={() => {
+              ingredientOverlayData.onConfirm?.();
+            }}
+            onClose={closeIngredientOverlay}
+          />,
+        )}
 
-      {exportConfig && (
-        <LazyModalExport
-          isOpen={Boolean(exportConfig)}
-          onExport={(format, fields) => {
-            exportConfig.onExport(format, fields);
-            closeExport();
-          }}
-        />
-      )}
+      {exportConfig &&
+        renderModal(
+          'export',
+          <LazyModalExport
+            isOpen={Boolean(exportConfig)}
+            onExport={(format, fields) => {
+              exportConfig.onExport(format, fields);
+              closeExport();
+            }}
+          />,
+        )}
 
-      {credentialData && (
-        <LazyModalCredential
-          key={credentialTrigger}
-          isOpen={Boolean(credentialData)}
-          openKey={credentialTrigger}
-          credential={credentialData.credential}
-          onConfirm={() => {
-            credentialData.onConfirm();
-            closeCredentialModal();
-          }}
-        />
-      )}
+      {credentialData &&
+        renderModal(
+          'credential',
+          <LazyModalCredential
+            key={credentialTrigger}
+            isOpen={Boolean(credentialData)}
+            openKey={credentialTrigger}
+            credential={credentialData.credential}
+            onConfirm={() => {
+              credentialData.onConfirm();
+              closeCredentialModal();
+            }}
+          />,
+        )}
 
-      {promptConfig && (
-        <LazyModalPrompt
-          isOpen={Boolean(promptConfig)}
-          originalPrompt={promptConfig.originalPrompt}
-          enhancedPrompt={promptConfig.enhancedPrompt}
-          style={promptConfig.style}
-          mood={promptConfig.mood}
-          camera={promptConfig.camera}
-          onUsePrompt={(promptData) => {
-            promptConfig.onConfirm(promptData.text);
-            closePromptModal();
-          }}
-        />
-      )}
+      {promptConfig &&
+        renderModal(
+          'prompt',
+          <LazyModalPrompt
+            isOpen={Boolean(promptConfig)}
+            originalPrompt={promptConfig.originalPrompt}
+            enhancedPrompt={promptConfig.enhancedPrompt}
+            style={promptConfig.style}
+            mood={promptConfig.mood}
+            camera={promptConfig.camera}
+            onUsePrompt={(promptData) => {
+              promptConfig.onConfirm(promptData.text);
+              closePromptModal();
+            }}
+          />,
+        )}
 
-      {metadataConfig && (
-        <LazyModalMetadata
-          isOpen={Boolean(metadataConfig)}
-          ingredientId={metadataConfig.ingredientId}
-          ingredientCategory={metadataConfig.ingredientCategory}
-          metadata={metadataConfig.metadata}
-          scope={metadataConfig.scope}
-          folder={metadataConfig.folder}
-          onConfirm={metadataConfig.onConfirm}
-        />
-      )}
+      {metadataConfig &&
+        renderModal(
+          'metadata',
+          <LazyModalMetadata
+            isOpen={Boolean(metadataConfig)}
+            ingredientId={metadataConfig.ingredientId}
+            ingredientCategory={metadataConfig.ingredientCategory}
+            metadata={metadataConfig.metadata}
+            scope={metadataConfig.scope}
+            folder={metadataConfig.folder}
+            onConfirm={metadataConfig.onConfirm}
+          />,
+        )}
 
-      {brandOverlayData && (
-        <LazyBrandOverlay
-          key={brandOverlayTrigger}
-          isOpen={Boolean(brandOverlayData)}
-          openKey={brandOverlayTrigger}
-          brand={brandOverlayData.brand}
-          initialView={brandOverlayData.initialView}
-          onConfirm={handleBrandOverlayConfirm}
-          onClose={closeBrandOverlay}
-        />
-      )}
+      {brandOverlayData &&
+        renderModal(
+          'brand',
+          <LazyBrandOverlay
+            key={brandOverlayTrigger}
+            isOpen={Boolean(brandOverlayData)}
+            openKey={brandOverlayTrigger}
+            brand={brandOverlayData.brand}
+            initialView={brandOverlayData.initialView}
+            onConfirm={handleBrandOverlayConfirm}
+            onClose={closeBrandOverlay}
+          />,
+        )}
 
-      {postMetadataOverlayData?.post && (
-        <LazyPostMetadataOverlay
-          post={postMetadataOverlayData.post}
-          onConfirm={() => {
-            postMetadataOverlayData.onConfirm?.();
-            closePostMetadataOverlay();
-          }}
-          onClose={closePostMetadataOverlay}
-        />
-      )}
+      {postMetadataOverlayData?.post &&
+        renderModal(
+          'postMetadata',
+          <LazyPostMetadataOverlay
+            post={postMetadataOverlayData.post}
+            onConfirm={() => {
+              postMetadataOverlayData.onConfirm?.();
+              closePostMetadataOverlay();
+            }}
+            onClose={closePostMetadataOverlay}
+          />,
+        )}
 
-      {generateIllustrationConfig && (
-        <LazyModalGenerateIllustration
-          key={generateIllustrationTrigger}
-          isOpen={Boolean(generateIllustrationConfig)}
-          openKey={generateIllustrationTrigger}
-          postId={generateIllustrationConfig.postId}
-          initialPrompt={generateIllustrationConfig.initialPrompt}
-          platform={generateIllustrationConfig.platform}
-          onConfirm={(imageId) => {
-            generateIllustrationConfig.onConfirm(imageId);
-            closeGenerateIllustration();
-          }}
-          onClose={closeGenerateIllustration}
-        />
-      )}
+      {generateIllustrationConfig &&
+        renderModal(
+          'illustration',
+          <LazyModalGenerateIllustration
+            key={generateIllustrationTrigger}
+            isOpen={Boolean(generateIllustrationConfig)}
+            openKey={generateIllustrationTrigger}
+            postId={generateIllustrationConfig.postId}
+            initialPrompt={generateIllustrationConfig.initialPrompt}
+            platform={generateIllustrationConfig.platform}
+            onConfirm={(imageId) => {
+              generateIllustrationConfig.onConfirm(imageId);
+              closeGenerateIllustration();
+            }}
+            onClose={closeGenerateIllustration}
+          />,
+        )}
 
       <ModalUpgradePrompt
         currentTier={settings?.subscriptionTier as SubscriptionTier | undefined}
       />
       <ModalUpgradePrompt reason="credits" />
 
-      {postRemixData && (
-        <LazyModalPostRemix
-          key={postRemixTrigger}
-          isOpen={Boolean(postRemixData)}
-          openKey={postRemixTrigger}
-          post={postRemixData.post}
-          onSubmit={async (description, label) => {
-            await postRemixData.onSubmit(description, label);
-            closePostRemixModal();
-          }}
-          onClose={closePostRemixModal}
-        />
-      )}
+      {postRemixData &&
+        renderModal(
+          'postRemix',
+          <LazyModalPostRemix
+            key={postRemixTrigger}
+            isOpen={Boolean(postRemixData)}
+            openKey={postRemixTrigger}
+            post={postRemixData.post}
+            onSubmit={async (description, label) => {
+              await postRemixData.onSubmit(description, label);
+              closePostRemixModal();
+            }}
+            onClose={closePostRemixModal}
+          />,
+        )}
 
-      {postRepurposeData && (
-        <LazyModalPostRepurpose
-          key={postRepurposeTrigger}
-          isOpen={Boolean(postRepurposeData)}
-          openKey={postRepurposeTrigger}
-          source={postRepurposeData.source}
-          onSubmit={async (platform, mode) => {
-            await postRepurposeData.onSubmit(platform, mode);
-            closePostRepurposeModal();
-          }}
-          onClose={closePostRepurposeModal}
-        />
-      )}
+      {postRepurposeData &&
+        renderModal(
+          'postRepurpose',
+          <LazyModalPostRepurpose
+            key={postRepurposeTrigger}
+            isOpen={Boolean(postRepurposeData)}
+            openKey={postRepurposeTrigger}
+            source={postRepurposeData.source}
+            onSubmit={async (platform, mode) => {
+              await postRepurposeData.onSubmit(platform, mode);
+              closePostRepurposeModal();
+            }}
+            onClose={closePostRepurposeModal}
+          />,
+        )}
     </>
   );
 }

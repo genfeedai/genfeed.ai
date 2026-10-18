@@ -120,6 +120,28 @@ export interface GlobalModalsContextValue {
   closePostRepurposeModal: () => void;
 }
 
+export type GlobalModalKind =
+  | 'postBatch'
+  | 'confirm'
+  | 'upload'
+  | 'gallery'
+  | 'ingredient'
+  | 'export'
+  | 'credential'
+  | 'prompt'
+  | 'metadata'
+  | 'brand'
+  | 'postMetadata'
+  | 'illustration'
+  | 'postRemix'
+  | 'postRepurpose';
+
+export type GlobalModalRenderer = (
+  kind: GlobalModalKind,
+  children: ReactNode,
+) => ReactNode;
+
 export interface GlobalModalsProviderProps {
+  renderModal?: GlobalModalRenderer;
   children: ReactNode;
 }

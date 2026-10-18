@@ -110,6 +110,15 @@ const mocks = vi.hoisted(() => ({
     onUseAsVideoReference: vi.fn(),
   },
   assetActionsHook: vi.fn(),
+  transformHook: vi.fn(),
+  confirmBridge: vi.fn(),
+  transformActions: {
+    getAvailability: vi.fn(() => ({ isAvailable: true })),
+    isUpscaling: false,
+    isExtending: false,
+    onUpscale: vi.fn(),
+    onExtend: vi.fn(),
+  },
   attachments: vi.fn(),
   clearAttachments: vi.fn(),
   getDraft: vi.fn(),
@@ -339,6 +348,25 @@ vi.mock('@ui/prompt-editor/use-prompt-command-extension', () => ({
     extraExtensions: mocks.promptCommandExtensions,
     resolveSubmit: mocks.resolvePromptCommands,
   }),
+}));
+
+vi.mock(
+  '@pages/studio/playground/hooks/useStudioPlaygroundTransformActions',
+  () => ({
+    useStudioPlaygroundTransformActions: (params: unknown) => {
+      mocks.transformHook(params);
+      return {
+        transformActions: mocks.transformActions,
+        confirmation: { upscaleConfirmData: null, extendConfirmData: null },
+      };
+    },
+  }),
+);
+vi.mock('@ui/masonry/shared/MasonryConfirmBridge', () => ({
+  default: (props: unknown) => {
+    mocks.confirmBridge(props);
+    return <div data-testid="workspace-transform-confirmation" />;
+  },
 }));
 
 vi.mock(
@@ -704,6 +732,29 @@ describe('StudioPlaygroundWorkspace', () => {
       type: 'image',
       updateSettings: vi.fn(),
     });
+  });
+
+  it('uses one actor-scoped transform owner and one existing confirmation bridge for the workspace', async () => {
+    await renderLoaded();
+    expect(mocks.transformHook).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        scopeKey: expect.stringContaining('identity-1'),
+      }),
+    );
+    expect(mocks.assetActionsHook).toHaveBeenLastCalledWith(
+      expect.objectContaining({ transformActions: mocks.transformActions }),
+    );
+    expect(
+      screen.getAllByTestId('workspace-transform-confirmation'),
+    ).toHaveLength(1);
+    expect(mocks.confirmBridge).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        upscaleConfirmData: null,
+        extendConfirmData: null,
+      }),
+    );
   });
 
   it('offers Remix on completed video uploads while preserving their attachment and the composer', () => {

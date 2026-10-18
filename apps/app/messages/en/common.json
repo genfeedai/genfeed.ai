@@ -303,6 +303,12 @@
       }
     }
   },
+  "onboarding": {
+    "error": {
+      "title": "Onboarding Error",
+      "description": "Something went wrong during setup. Please try again."
+    }
+  },
   "agentCampaign": {
     "agentStrategies": "Agents",
     "agents": {
@@ -2342,6 +2348,21 @@
     }
   },
   "videoCreativeActions": {
+    "inspector": {
+      "generateAgain": "Generate again",
+      "createVariation": "Create variation",
+      "animate": "Animate",
+      "upscale": "Upscale",
+      "extend": "Extend video",
+      "editor": "Open in editor",
+      "availability": {
+        "sourceUnavailable": "This source is unavailable in the current workspace and brand.",
+        "modelUnavailable": "A supported model is unavailable. Refresh models before continuing.",
+        "priceUnavailable": "A current price is unavailable. Refresh models before continuing.",
+        "catalogLoading": "Model availability is loading.",
+        "pending": "This operation is already in progress."
+      }
+    },
     "extend": {
       "continuationPromptLabel": "Continuation prompt",
       "continuationPromptPlaceholder": "Describe what happens next…",

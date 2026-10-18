@@ -47,6 +47,114 @@ describe('downloadPublicMedia', () => {
     ).rejects.toThrow('Destination blocked');
     expect(guardedFetch).toHaveBeenCalledTimes(1);
   });
+
+  it('cancels unread failed responses without replacing the download error', async () => {
+    const body = new ReadableStream<Uint8Array>();
+    const cancel = vi
+      .spyOn(body, 'cancel')
+      .mockRejectedValue(new Error('cancel failed'));
+    guardedFetch.mockResolvedValue(new Response(body, { status: 503 }));
+
+    await expect(
+      downloadPublicMedia('https://cdn.example.com/audio.wav', 10),
+    ).rejects.toThrow('Media download failed');
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(body.locked).toBe(false);
+  });
+
+  it('preserves a read failure and releases the reader when cancellation rejects', async () => {
+    const transferError = new Error('transfer interrupted');
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(transferError);
+      },
+    });
+    const response = new Response(body);
+    const reader = body.getReader();
+    vi.spyOn(body, 'getReader').mockReturnValue(reader);
+    const cancel = vi
+      .spyOn(reader, 'cancel')
+      .mockRejectedValue(new Error('secondary cancel failure'));
+    const release = vi.spyOn(reader, 'releaseLock');
+    guardedFetch.mockResolvedValue(response);
+
+    await expect(
+      downloadPublicMedia('https://cdn.example.com/audio.wav', 10),
+    ).rejects.toBe(transferError);
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(release).toHaveBeenCalledOnce();
+    expect(body.locked).toBe(false);
+  });
+
+  it('preserves the size limit error and releases an incomplete reader', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+      },
+    });
+    const response = new Response(body);
+    const reader = body.getReader();
+    vi.spyOn(body, 'getReader').mockReturnValue(reader);
+    const cancel = vi
+      .spyOn(reader, 'cancel')
+      .mockRejectedValue(new Error('secondary cancel failure'));
+    const release = vi.spyOn(reader, 'releaseLock');
+    guardedFetch.mockResolvedValue(response);
+
+    await expect(
+      downloadPublicMedia('https://cdn.example.com/audio.wav', 2),
+    ).rejects.toThrow('Media download exceeds size limit');
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(release).toHaveBeenCalledOnce();
+    expect(body.locked).toBe(false);
+  });
+
+  it('releases completed readers without cancelling a successful download', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('audio'));
+        controller.close();
+      },
+    });
+    const response = new Response(body);
+    const reader = body.getReader();
+    vi.spyOn(body, 'getReader').mockReturnValue(reader);
+    const cancel = vi
+      .spyOn(reader, 'cancel')
+      .mockRejectedValue(new Error('completed body cannot cancel'));
+    const release = vi.spyOn(reader, 'releaseLock');
+    guardedFetch.mockResolvedValue(response);
+
+    await expect(
+      downloadPublicMedia('https://cdn.example.com/audio.wav', 10),
+    ).resolves.toEqual(Buffer.from('audio'));
+
+    expect(cancel).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledOnce();
+    expect(body.locked).toBe(false);
+  });
+
+  it('retains the download error for responses without a body', async () => {
+    guardedFetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(
+      downloadPublicMedia('https://cdn.example.com/audio.wav', 10),
+    ).rejects.toThrow('Media download failed');
+  });
+
+  it('does not wait for a failed response cancellation to settle', async () => {
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    const body = new ReadableStream<Uint8Array>({ cancel });
+    guardedFetch.mockResolvedValue(new Response(body, { status: 503 }));
+
+    await expect(
+      downloadPublicMedia('https://cdn.example.com/audio.wav', 10),
+    ).rejects.toThrow('Media download failed');
+    expect(cancel).toHaveBeenCalledOnce();
+  }, 500);
 });
 
 describe('configured private storage downloads', () => {

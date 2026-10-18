@@ -221,7 +221,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Finalize a presigned media upload. Returns assetId and, when available, the hosted URL. Pass assetId as create_scheduled_release media[].assetId or as create_post contentId / ingredientId. Pass the hosted URL as create_post mediaUrls.',
+      'Finalize a presigned media upload. Returns assetId and, when available, the hosted URL. Use assetId to attach media to a scheduled release, or use the hosted URL to attach media to a post draft.',
     name: 'complete_media_upload',
     parameters: {
       properties: {
