@@ -43,7 +43,7 @@ export class TrendFetchService {
   /**
    * Apify bills per actor run, so this TTL is a spend control, not a freshness
    * knob. It deduplicates retries and manual refreshes inside a six-hour window,
-   * while the canonical twelve-hour schedule still obtains a fresh dataset.
+   * while the canonical daily schedule still obtains a fresh dataset.
    */
   private readonly GLOBAL_TRENDS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
   /**

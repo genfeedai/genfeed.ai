@@ -153,7 +153,7 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH]: {
-    pattern: '0 15 0,12 * * *',
+    pattern: '0 15 0 * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.INGREDIENT_METADATA_REFRESH]: {
