@@ -13,7 +13,7 @@ import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const SUPERADMIN: ContentScope = 'superadmin';
@@ -41,59 +41,8 @@ export function useTagsList({
 
   const { openConfirm } = useConfirmModal();
 
-  const { replace } = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
-
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
-
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      setAdminBrand(brandId);
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   const filters = externalFilters ?? {
     format: '',
@@ -301,8 +250,6 @@ export function useTagsList({
     adminOrg,
     canEditTag,
     filteredAndSortedTags,
-    handleAdminBrandChange,
-    handleAdminOrgChange,
     handleDeleteTag,
     handleToggleActive,
     isLoading,

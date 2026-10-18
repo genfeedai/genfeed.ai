@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config';
 const repoPath = (path: string) =>
   fileURLToPath(new URL(`../../${path}`, import.meta.url));
 const contractsSource = repoPath('packages/contracts/src');
+const harnessSource = repoPath('packages/harness/src');
 const helpersSource = repoPath('packages/helpers/src');
 const pricingSource = repoPath('packages/pricing/src');
 
@@ -18,6 +19,10 @@ export default defineConfig({
       {
         find: /^@genfeedai\/contracts\/(.*)$/,
         replacement: `${contractsSource}/$1`,
+      },
+      {
+        find: /^@genfeedai\/harness$/,
+        replacement: `${harnessSource}/index.ts`,
       },
       {
         find: /^@genfeedai\/helpers$/,

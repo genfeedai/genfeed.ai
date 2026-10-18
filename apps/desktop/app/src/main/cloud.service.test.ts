@@ -343,7 +343,7 @@ describe('DesktopCloudService', () => {
       expect(init?.method).toBe('POST');
       return new Response(
         JSON.stringify({
-          message: 'Proactive run queued. It will execute shortly.',
+          message: 'Agent run queued. It will execute shortly.',
         }),
         {
           headers: { 'content-type': 'application/json' },
@@ -394,7 +394,7 @@ describe('DesktopCloudService', () => {
 
     await expect(service.runAgent('agent-1')).resolves.toEqual({
       data: {
-        message: 'Proactive run queued. It will execute shortly.',
+        message: 'Agent run queued. It will execute shortly.',
         runId: '',
         status: 'pending',
       },

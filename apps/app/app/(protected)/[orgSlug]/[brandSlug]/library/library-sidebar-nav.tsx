@@ -4,7 +4,6 @@ import {
   LIBRARY_ASSET_ROUTES,
   LIBRARY_PLACE_MENU_ITEMS,
 } from '@app-config/library-menu-items.config';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   LIBRARY_SHELF_ORDER,
   ModalEnum,
@@ -24,6 +23,7 @@ import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-con
 import { matchesMenuSearchParams } from '@helpers/navigation/menu-route-match.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { FoldersService } from '@services/content/folders.service';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -69,11 +69,11 @@ export default function LibrarySidebarNav() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { replace } = useRouter();
-  const { brandId, organizationId } = useBrand();
+  const { brandId, organizationId } = useCollectionScope();
   const { href } = useOrgUrl();
   const notifications = NotificationsService.getInstance();
   const selectedFolderId = searchParams.get('folder');
-  const folderScope = getLibraryFolderScope(normalizedPathname);
+  const folderScope = getLibraryFolderScope(brandId);
   const folderOwnerId = getLibraryFolderOwnerId(
     folderScope,
     brandId,

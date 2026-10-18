@@ -2,6 +2,7 @@ import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requ
 import type {
   AgentChatRequest,
   AgentGenerationSettings,
+  AgentRunBriefTargets,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   type AgentInitiatingPrincipal,
@@ -117,6 +118,23 @@ function projectStringList(value: unknown, path: string): string[] | undefined {
   return value.length > 0 ? (value as string[]) : undefined;
 }
 
+function projectAgentBrief(value: unknown): AgentRunBriefTargets | undefined {
+  if (value === undefined) return undefined;
+  const brief = readRecord(value);
+  if (brief !== value) {
+    throw new Error('request.agentBrief must be an object');
+  }
+  return {
+    platforms:
+      projectStringList(
+        brief.platforms ?? [],
+        'request.agentBrief.platforms',
+      ) ?? [],
+    topics:
+      projectStringList(brief.topics ?? [], 'request.agentBrief.topics') ?? [],
+  };
+}
+
 function projectKnowledgeSelection(
   value: unknown,
 ): KnowledgeSelection | undefined {
@@ -193,9 +211,11 @@ export function projectAgentTurnRequest(
   ) {
     throw new Error(`Unsupported agent mode: ${agentMode}`);
   }
+  const agentBrief = projectAgentBrief(request.agentBrief);
   return {
     content,
     threadId,
+    ...(agentBrief ? { agentBrief } : {}),
     ...(creditBudget !== undefined
       ? { creditBudget: creditBudget as number }
       : {}),

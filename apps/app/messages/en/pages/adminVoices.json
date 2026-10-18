@@ -12,5 +12,14 @@
   "unfeature": "Remove featured",
   "loadError": "Failed to load voice catalog",
   "retry": "Retry",
-  "empty": "No voices found"
+  "empty": "No voices found",
+  "searchPlaceholder": "Search by name or external ID",
+  "providerLabel": "Provider",
+  "providerAll": "All providers",
+  "providerElevenLabs": "ElevenLabs",
+  "providerHeyGen": "HeyGen",
+  "syncElevenLabs": "Sync ElevenLabs",
+  "syncHeyGen": "Sync HeyGen",
+  "syncProvider": "Sync provider",
+  "syncAll": "Sync All"
 }

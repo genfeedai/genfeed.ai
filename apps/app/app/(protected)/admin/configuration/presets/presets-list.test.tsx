@@ -333,9 +333,6 @@ describe('PresetsList', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Presets' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Reusable generation settings and defaults.'),
-    ).toBeInTheDocument();
     expect(screen.getByText('Launch Video')).toBeInTheDocument();
     expect(screen.getByText('Image Preset')).toBeInTheDocument();
     expect(screen.getByText('Aspect: 9:16')).toBeInTheDocument();

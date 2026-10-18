@@ -70,31 +70,6 @@ vi.mock('@services/elements/camera-movements.service', () => ({
   },
 }));
 
-vi.mock('@ui/content/admin-filters/AdminOrgBrandFilter', () => ({
-  default: ({
-    brand,
-    onBrandChange,
-    onOrganizationChange,
-    organization,
-  }: {
-    brand: string;
-    onBrandChange: (value: string) => void;
-    onOrganizationChange: (value: string) => void;
-    organization: string;
-  }) => (
-    <section>
-      <div>Admin org: {organization || 'none'}</div>
-      <div>Admin brand: {brand || 'none'}</div>
-      <button type="button" onClick={() => onOrganizationChange('org-2')}>
-        Pick Org
-      </button>
-      <button type="button" onClick={() => onBrandChange('brand-2')}>
-        Pick Brand
-      </button>
-    </section>
-  ),
-}));
-
 vi.mock('@ui/display/table/Table', () => ({
   default: ({
     actions,
@@ -230,14 +205,12 @@ describe('CameraMovementsList', () => {
     mockMovements();
   });
 
-  it('loads superadmin camera movements and syncs admin filters to the URL', async () => {
+  it('loads superadmin camera movements and reads the admin filters from the URL', async () => {
     render(<CameraMovementsList scope={PageScope.SUPERADMIN} />);
 
     expect(screen.getByText('Loading camera movements')).toBeInTheDocument();
     expect(await screen.findByText('Slow Push')).toBeInTheDocument();
     expect(screen.getByText('Crane Up')).toBeInTheDocument();
-    expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
-    expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
 
     expect(mocks.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -245,18 +218,6 @@ describe('CameraMovementsList', () => {
         organization: 'org-1',
         page: 2,
       }),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/elements/camera-movements?organization=org-2',
-      { scroll: false },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Brand' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/elements/camera-movements?organization=org-1&brand=brand-2',
-      { scroll: false },
     );
   });
 
@@ -343,7 +304,6 @@ describe('CameraMovementsList', () => {
     render(<CameraMovementsList scope={PageScope.BRAND} />);
 
     await screen.findByText('Slow Push');
-    expect(screen.queryByText('Admin org: org-1')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit Slow Push' })).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Delete Slow Push' }),

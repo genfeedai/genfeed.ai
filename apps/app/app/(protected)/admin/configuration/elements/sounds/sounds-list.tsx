@@ -14,20 +14,13 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SoundsService } from '@services/elements/sounds.service';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-} from 'react';
+import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';
@@ -58,10 +51,6 @@ function soundsListReducer(
     }
     case 'SET_SELECTED_SOUND':
       return { ...state, selectedSound: action.sound };
-    case 'SET_ADMIN_ORG':
-      return { ...state, adminOrg: action.orgId, adminBrand: '' };
-    case 'SET_ADMIN_BRAND':
-      return { ...state, adminBrand: action.brandId };
     default:
       return state;
   }
@@ -81,73 +70,22 @@ function SoundsListContent({
     useCallback((token: string) => SoundsService.getInstance(token), []),
   );
 
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
 
   const [state, dispatch] = useReducer(soundsListReducer, undefined, () => ({
     sounds: [],
     fetchStatus: 'loading' as FetchStatus,
     updatingIds: new Set<string>(),
     selectedSound: null,
-    adminOrg: parsedSearchParams.get('organization') || '',
-    adminBrand: parsedSearchParams.get('brand') || '',
   }));
 
-  const {
-    sounds,
-    fetchStatus,
-    updatingIds,
-    selectedSound,
-    adminOrg,
-    adminBrand,
-  } = state;
+  const { sounds, fetchStatus, updatingIds, selectedSound } = state;
+
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   // Derive isLoading from fetchStatus instead of storing it in separate state
   const isLoading = fetchStatus === 'loading';
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      dispatch({ type: 'SET_ADMIN_ORG', orgId });
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      dispatch({ type: 'SET_ADMIN_BRAND', brandId });
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
 
   // Use refs for callback props to prevent unnecessary re-renders
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -316,17 +254,6 @@ function SoundsListContent({
 
   return (
     <>
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<Sound>
         items={sounds}
         columns={columns}

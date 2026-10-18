@@ -142,6 +142,8 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
 COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
 COPY packages/ packages/
+# The serializers build runs this script from the repository root.
+COPY scripts/build-request-serializers.ts scripts/build-request-serializers.ts
 COPY apps/server/ apps/server/
 # Standalone MCP previews consume the shared UI host catalog during bundling.
 COPY apps/app/messages/en/ui.json apps/app/messages/en/ui.json

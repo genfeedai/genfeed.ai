@@ -86,31 +86,6 @@ vi.mock('@tanstack/react-query', () => ({
   }) => mocks.useQuery(options),
 }));
 
-vi.mock('@ui/content/admin-filters/AdminOrgBrandFilter', () => ({
-  default: ({
-    brand,
-    onBrandChange,
-    onOrganizationChange,
-    organization,
-  }: {
-    brand: string;
-    onBrandChange: (value: string) => void;
-    onOrganizationChange: (value: string) => void;
-    organization: string;
-  }) => (
-    <section>
-      <div>Admin org: {organization || 'none'}</div>
-      <div>Admin brand: {brand || 'none'}</div>
-      <button type="button" onClick={() => onOrganizationChange('org-2')}>
-        Pick Org
-      </button>
-      <button type="button" onClick={() => onBrandChange('brand-2')}>
-        Pick Brand
-      </button>
-    </section>
-  ),
-}));
-
 vi.mock('@ui/display/table/Table', () => ({
   default: ({
     actions,
@@ -255,13 +230,11 @@ describe('LightingsList', () => {
     mockLightings();
   });
 
-  it('loads superadmin lightings and syncs admin filters to the URL', async () => {
+  it('loads superadmin lightings and reads the admin filters from the URL', async () => {
     render(<LightingsList scope={PageScope.SUPERADMIN} />);
 
     expect(screen.getByText('Softbox')).toBeInTheDocument();
     expect(screen.getByText('Golden Hour')).toBeInTheDocument();
-    expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
-    expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(mocks.findAll).toHaveBeenCalledWith(
@@ -272,18 +245,6 @@ describe('LightingsList', () => {
         }),
       );
     });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/elements/lightings?organization=org-2',
-      { scroll: false },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Brand' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/elements/lightings?organization=org-1&brand=brand-2',
-      { scroll: false },
-    );
   });
 
   it('opens edit and delete flows with the clicked lighting', async () => {
@@ -380,7 +341,6 @@ describe('LightingsList', () => {
     );
 
     expect(screen.getByText('No lightings found')).toBeInTheDocument();
-    expect(screen.queryByText('Admin org: org-1')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit Softbox' })).toBeNull();
     expect(registerRefresh).toHaveBeenCalled();
 

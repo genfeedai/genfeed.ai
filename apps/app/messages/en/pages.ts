@@ -7,6 +7,7 @@ import adminGenerations from './pages/adminGenerations.json';
 import adminModelPricing from './pages/adminModelPricing.json';
 import adminOrganizationReleases from './pages/adminOrganizationReleases.json';
 import adminTemplates from './pages/adminTemplates.json';
+import adminTrainings from './pages/adminTrainings.json';
 import adminUsers from './pages/adminUsers.json';
 import adminVoices from './pages/adminVoices.json';
 import adminWorkflows from './pages/adminWorkflows.json';
@@ -75,6 +76,7 @@ const pages = {
   adminModelPricing,
   adminOrganizationReleases,
   adminTemplates,
+  adminTrainings,
   adminUsers,
   adminVoices,
   adminWorkflows,

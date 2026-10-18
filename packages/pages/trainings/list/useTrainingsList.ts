@@ -12,8 +12,8 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import { getErrorMessage } from '@utils/error/error-handler.util';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type TrainingStatusUpdate = {
@@ -31,14 +31,6 @@ export function useTrainingsList({
   onRefreshRegister,
 }: UseTrainingsListParams) {
   const { isSignedIn } = useAuthIdentity();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
   const { brandId } = useCollectionScope();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
@@ -52,52 +44,10 @@ export function useTrainingsList({
     null,
   );
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      setAdminBrand(brandId);
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
+  // Admin org/brand filter (superadmin only) lives in the page subbar and is
+  // stored in the URL; the list only reads it.
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   // Track if component is mounted to avoid calling callbacks during initial render
   const isMountedRef = useRef(false);
@@ -302,8 +252,6 @@ export function useTrainingsList({
     adminOrg,
     adminBrand,
     handleRefresh,
-    handleAdminOrgChange,
-    handleAdminBrandChange,
     handleToggleActive,
     openTrainingModal,
     openDeleteConfirmation,

@@ -5,7 +5,7 @@ import { useAgentChatStore } from '@genfeedai/agent';
 import { useCallback } from 'react';
 
 export function buildContentAgentSetupPrompt(brandId: string): string {
-  return `Set up a content agent for this brand. Ask what it should publish, where, and how often, and whether it may publish on its own. Then save it with save_content_agent. Brand id: ${brandId}.`;
+  return `Help me hire an agent to create recurring content for this brand. Ask what it should publish, where, and how often, and whether it may publish on its own. Then save it with save_content_agent. Brand id: ${brandId}.`;
 }
 
 export function buildContentAgentUpdatePrompt(input: {

@@ -53,7 +53,7 @@ function makeApi(overrides: ApiOverrides = {}): AgentStrategyApiService {
 async function renderConfig(api: AgentStrategyApiService) {
   const view = render(<AgentStrategyConfig apiService={api} />);
   await waitFor(() => {
-    expect(screen.getByText('Autopilot Configuration')).toBeInTheDocument();
+    expect(screen.getByText('Agent settings')).toBeInTheDocument();
   });
   return view;
 }
@@ -97,9 +97,7 @@ describe('AgentStrategyConfig', () => {
       makeApi({ getStrategies: vi.fn().mockResolvedValue([]) }),
     );
 
-    expect(
-      screen.getByRole('button', { name: 'Create Strategy' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create agent' })).toBeDisabled();
   });
 
   it('adds a topic, ignores duplicates and removes it again', async () => {
@@ -211,7 +209,7 @@ describe('AgentStrategyConfig', () => {
         target: { value: 'Fresh plan' },
       },
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Create Strategy' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create agent' }));
 
     await waitFor(() => {
       expect(createStrategy).toHaveBeenCalled();

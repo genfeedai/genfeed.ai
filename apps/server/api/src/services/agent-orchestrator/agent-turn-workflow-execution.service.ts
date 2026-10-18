@@ -257,6 +257,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       throw new Error(ARCHIVED_THREAD_WRITE_ERROR);
     }
     if (
+      request.agentBrief !== undefined ||
       request.creditBudget !== undefined ||
       request.autonomyMode !== undefined ||
       request.source === 'proactive'
@@ -289,7 +290,8 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
         metadata.strategyId !== strategy.id ||
         (metadata.source === 'proactive' &&
           (request.source !== 'proactive' ||
-            thread.agentStrategyId !== strategy.id))
+            thread.agentStrategyId !== strategy.id)) ||
+        (request.agentBrief !== undefined && request.source !== 'proactive')
       ) {
         throw new Error(
           'Agent execution limits require a trusted internal scoped strategy',
@@ -505,8 +507,10 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       organizationId: state.organizationId,
     });
     // Name the thread from its first intent only. Counted before this turn's
-    // user message is persisted; an empty seed disables model retitling.
+    // user message is persisted; an empty seed disables model retitling. An
+    // agent's own conversation keeps the agent's name, so it is never retitled.
     const isFirstTurn =
+      request.source !== 'proactive' &&
       (await this.agentMessagesService.countMessages(state.threadId)) === 0;
     const seedTitle = isFirstTurn
       ? String(thread?.title ?? buildSeedThreadTitle(request.content))
@@ -605,6 +609,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       ...(initiatingPrincipal ? { initiatingPrincipal } : {}),
       ...(state.request.requestedSkillSlugs?.length
         ? { requestedSkillSlugs: state.request.requestedSkillSlugs }
+        : {}),
+      ...(state.request.agentBrief
+        ? { agentBrief: state.request.agentBrief }
         : {}),
       ...(state.request.creditBudget !== undefined
         ? { creditBudget: state.request.creditBudget }

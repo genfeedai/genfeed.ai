@@ -19,7 +19,7 @@ import { VoicesService } from '@services/ingredients/voices.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionView from '@ui/collection/CollectionView';
 import Alert from '@ui/feedback/alert/Alert';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Volume2 } from 'lucide-react';
@@ -27,7 +27,12 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 
 import VoiceCatalogCard from './voice-catalog-card';
-import VoicesCatalogControls from './voices-catalog-controls';
+import {
+  VoicesCatalogFilters,
+  VoicesCatalogSearch,
+  VoicesSyncAllButton,
+  VoicesSyncMenu,
+} from './voices-catalog-controls';
 
 const initialState: VoicesLibraryState = {
   voices: [],
@@ -172,30 +177,44 @@ export default function VoicesLibraryPage() {
   );
 
   return (
-    <Container
-      description="Superadmin catalog for importing and curating DB-backed provider voices."
+    <AdminPageShell
+      title="Voice Library"
       icon={Volume2}
-      label="Voice Library"
-      moduleChrome
-      right={
-        <VoicesCatalogControls
-          view={view}
-          onViewChange={setView}
-          isSyncingAll={isSyncingAll}
-          providerFilter={providerFilter}
+      onRefresh={() => void loadVoices()}
+      isRefreshing={isLoading}
+      search={
+        <VoicesCatalogSearch
           search={search}
-          syncingProvider={syncingProvider}
+          onSearchChange={(s) => dispatch({ type: 'SET_SEARCH', search: s })}
+        />
+      }
+      filters={
+        <VoicesCatalogFilters
+          providerFilter={providerFilter}
+          view={view}
           onProviderFilterChange={(pf) =>
             dispatch({ type: 'SET_PROVIDER_FILTER', providerFilter: pf })
           }
-          onSearchChange={(s) => dispatch({ type: 'SET_SEARCH', search: s })}
+          onViewChange={setView}
+        />
+      }
+      dropdowns={
+        <VoicesSyncMenu
+          isSyncingAll={isSyncingAll}
+          syncingProvider={syncingProvider}
+          onSync={handleSync}
+        />
+      }
+      primaryAction={
+        <VoicesSyncAllButton
+          isSyncingAll={isSyncingAll}
+          syncingProvider={syncingProvider}
           onSync={handleSync}
         />
       }
     >
       <WorkspaceSurface
         framed={hasError || view === ViewType.LIST}
-        title="Catalog Voices"
         tone="muted"
         data-testid="voices-library-results-surface"
       >
@@ -237,6 +256,6 @@ export default function VoicesLibraryPage() {
           />
         )}
       </WorkspaceSurface>
-    </Container>
+    </AdminPageShell>
   );
 }

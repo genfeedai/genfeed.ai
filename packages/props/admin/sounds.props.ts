@@ -34,8 +34,6 @@ export interface SoundsListState {
   fetchStatus: SoundFetchStatus;
   updatingIds: Set<string>;
   selectedSound: Sound | null;
-  adminOrg: string;
-  adminBrand: string;
 }
 
 export type SoundsListAction =
@@ -44,6 +42,4 @@ export type SoundsListAction =
   | { type: 'FETCH_FINALLY' }
   | { type: 'ADD_UPDATING_ID'; id: string }
   | { type: 'REMOVE_UPDATING_ID'; id: string }
-  | { type: 'SET_SELECTED_SOUND'; sound: Sound | null }
-  | { type: 'SET_ADMIN_ORG'; orgId: string }
-  | { type: 'SET_ADMIN_BRAND'; brandId: string };
+  | { type: 'SET_SELECTED_SOUND'; sound: Sound | null };

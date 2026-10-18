@@ -11,7 +11,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentProps } from '@props/layout/content.props';
 import { EmptyState } from '@ui/card/EmptyState';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
@@ -51,11 +50,7 @@ export default function TrainingsList({
     isLoading,
     error,
     selectedTraining,
-    adminOrg,
-    adminBrand,
     handleRefresh,
-    handleAdminOrgChange,
-    handleAdminBrandChange,
     handleToggleActive,
     openTrainingModal,
     openDeleteConfirmation,
@@ -109,17 +104,6 @@ export default function TrainingsList({
 
   return (
     <>
-      {scope === PageScope.SUPERADMIN ? (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      ) : null}
-
       <AppTable<ITraining>
         error={
           error

@@ -33,7 +33,7 @@ export default function IngredientsLayoutToolbar({
   return (
     <div className="flex w-full min-w-0 items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
-        {scope === PageScope.BRAND ? <LibraryAssetTypeFilter /> : null}
+        {scope !== PageScope.SUPERADMIN ? <LibraryAssetTypeFilter /> : null}
       </div>
 
       <div className="flex shrink-0 items-center gap-2">

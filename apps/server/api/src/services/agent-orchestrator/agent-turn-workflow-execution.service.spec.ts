@@ -293,10 +293,50 @@ describe('trusted proactive turn limits and memory routing', () => {
       ['feedback'],
       undefined,
       'proactive',
-      'Agent',
+      '',
       expect.any(String),
       undefined,
     );
+  });
+  it('carries the agent brief targets into the turn context', async () => {
+    const { service, stream } = setup();
+    const agentBrief = { platforms: ['linkedin', 'tiktok'], topics: ['craft'] };
+    const prepared = await service.prepare(
+      { ...request, agentBrief },
+      workflowContext,
+    );
+    expect(prepared.state.request.agentBrief).toEqual(agentBrief);
+    await service.execute(prepared.state);
+    expect(stream.runStreamLoop.mock.calls[0][0]).toMatchObject({
+      agentBrief,
+      creditBudget: 5,
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
+    });
+  });
+  it('rejects agent brief targets outside a trusted proactive run', async () => {
+    const { service } = setup('campaign');
+    await expect(
+      service.prepare(
+        {
+          ...request,
+          source: 'agent',
+          agentBrief: { platforms: ['linkedin'], topics: [] },
+        },
+        workflowContext,
+      ),
+    ).rejects.toThrow('trusted internal');
+    await expect(
+      service.prepare(
+        { ...request, agentBrief: { platforms: [''] } },
+        workflowContext,
+      ),
+    ).rejects.toThrow('non-empty strings');
+  });
+  it("keeps the agent's name on its conversation instead of retitling it", async () => {
+    const { service, stream } = setup('proactive', 0);
+    const prepared = await service.prepare(request, workflowContext);
+    await service.execute(prepared.state);
+    expect(stream.runStreamLoop.mock.calls[0][10]).toBe('');
   });
   it('preserves ordinary interactive routing', async () => {
     const { service, plan, turboRun, recurring, prisma } = setup('api');

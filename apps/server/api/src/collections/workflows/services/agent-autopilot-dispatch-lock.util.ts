@@ -6,6 +6,7 @@ import type {
   AgentStrategySnapshot,
   AgentWorkflowHandoffContext,
 } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
+import type { ProactiveRunBrief } from '@api/collections/workflows/services/agent-run-brief.util';
 import { PROACTIVE_AGENT_TURN_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { scopedWhere } from '@api/index';
@@ -56,11 +57,11 @@ type ProactiveDispatchContext = {
     config: AgentStrategyConfig,
     ownership: ProactiveDispatchOwnership,
   ): Promise<number | null>;
-  buildSyntheticUserMessage(
+  buildRunBrief(
     strategy: AgentStrategySnapshot,
     remainingBudget: number,
     snapshot: AgentStrategyPerformanceSnapshot,
-  ): Promise<string>;
+  ): Promise<ProactiveRunBrief>;
   resolveStrategyThread(
     strategy: AgentStrategySnapshot,
     ownership: ProactiveDispatchOwnership,
@@ -284,7 +285,7 @@ async function enqueueNewProactiveDispatch(
       'weekly',
     );
   ownership.assertOwned();
-  const objective = await context.buildSyntheticUserMessage(
+  const brief = await context.buildRunBrief(
     strategy,
     remainingBudget,
     performanceSnapshot,
@@ -302,7 +303,8 @@ async function enqueueNewProactiveDispatch(
       idempotencyKey: dispatchId,
       inputValues: {
         request: {
-          content: objective,
+          content: brief.content,
+          agentBrief: brief.targets,
           source: 'proactive',
           creditBudget: remainingBudget,
           strategyId,
@@ -316,7 +318,7 @@ async function enqueueNewProactiveDispatch(
       },
       metadata: {
         ...(context.buildExecutionMetadata(strategy, workflowHandoff) ?? {}),
-        label: `Proactive: ${strategy.label}`,
+        label: `Agent run · ${strategy.label ?? strategyId}`,
         performanceSnapshot,
         dispatchId,
         ...(strategy.brandId ? { brandId: strategy.brandId } : {}),

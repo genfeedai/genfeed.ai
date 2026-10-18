@@ -173,6 +173,8 @@ FROM base AS builder
 COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
 COPY packages/ packages/
+# The serializers build runs this script from the repository root.
+COPY scripts/build-request-serializers.ts scripts/build-request-serializers.ts
 
 # Copy server-level configs needed before service source
 COPY apps/server/nest-cli.json apps/server/nest-cli.json

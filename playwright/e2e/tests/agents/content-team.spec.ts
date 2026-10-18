@@ -44,11 +44,11 @@ test.describe('Agents — Content Team', () => {
     ).toBeVisible();
   });
 
-  test('Add agent query opens the setup conversation', async ({
+  test('Add agent query opens the hire conversation', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
-      `${brandPath(APP_ROUTES.AUTOMATION.AGENTS)}?add=library`,
+      `${brandPath(APP_ROUTES.AUTOMATION.AGENTS)}?add=custom`,
       {
         waitUntil: 'domcontentloaded',
       },
@@ -56,7 +56,9 @@ test.describe('Agents — Content Team', () => {
 
     const dock = authenticatedPage.getByTestId('agent-dock');
     await expect(dock).toBeVisible();
-    await expect(dock).toContainText('Set up a content agent for this brand.');
+    await expect(dock).toContainText(
+      'Help me hire an agent to create recurring content for this brand.',
+    );
     await expect(dock).toContainText('save_content_agent');
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.has('add'))
@@ -67,6 +69,33 @@ test.describe('Agents — Content Team', () => {
         name: 'Add agent',
       }),
     ).toHaveCount(0);
+  });
+
+  test('marketplace query opens the one-click agent marketplace', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(
+      `${brandPath(APP_ROUTES.AUTOMATION.AGENTS)}?add=library`,
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
+
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        exact: true,
+        name: 'Add agent',
+      }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', {
+        exact: true,
+        name: 'Hire from chat',
+      }),
+    ).toBeVisible();
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).searchParams.has('add'))
+      .toBe(false);
   });
 
   test('new Program query opens the Creator Studio Program template', async ({

@@ -21,7 +21,7 @@ export function AgentStrategyHeader({
     <div className="flex items-center justify-between">
       <div>
         <h2 className="text-sm font-semibold text-foreground">
-          Autopilot Configuration
+          Agent settings
         </h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Configure how the AI agent creates and manages content automatically.

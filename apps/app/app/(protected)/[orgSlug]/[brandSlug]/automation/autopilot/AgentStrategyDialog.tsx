@@ -61,7 +61,7 @@ export default function AgentStrategyDialog({
                 className="text-sm font-medium text-foreground"
                 htmlFor="strategy-label"
               >
-                {translate('policyLabel')}
+                {translate('agentName')}
               </label>
               <Input
                 id="strategy-label"
@@ -272,7 +272,7 @@ export default function AgentStrategyDialog({
               onClick={() => onOpenChange(false)}
             />
             <Button
-              label="Save schedule"
+              label={translate('save')}
               type="submit"
               variant={ButtonVariant.DEFAULT}
               isDisabled={

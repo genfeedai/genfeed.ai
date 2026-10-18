@@ -64,8 +64,7 @@ export function useIngredientsFilters({
   const formatFilter =
     filters.format && filters.format !== 'all' ? filters.format : undefined;
 
-  const isActionsEnabled =
-    scope !== PageScope.SUPERADMIN && scope !== PageScope.ORGANIZATION;
+  const isActionsEnabled = scope !== PageScope.SUPERADMIN;
 
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 

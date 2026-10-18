@@ -1,6 +1,5 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import {
   ButtonVariant,
   IngredientCategory,
@@ -12,8 +11,9 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { useElementsContext } from '@providers/elements/elements.context';
 import ElementsProvider from '@providers/elements/elements.provider';
+import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { ELEMENT_LABELS } from '@ui-constants/element.constant';
 import { Plus, Tag } from 'lucide-react';
@@ -126,11 +126,10 @@ function ElementsLayoutContent({ children }: LayoutProps) {
   };
 
   return (
-    <Container
-      label={currentElement.label}
-      description={currentElement.description}
+    <AdminPageShell
+      title={currentElement.label}
       icon={Tag}
-      headerTabs={{
+      tabs={{
         fullWidth: false,
         tabs: Object.keys(ELEMENT_LABELS).reduce<
           Array<{ href: string; label: string }>
@@ -144,50 +143,46 @@ function ElementsLayoutContent({ children }: LayoutProps) {
           return tabs;
         }, []),
       }}
-      refresh={
-        <ButtonRefresh
-          onClick={() => {
-            void refetch();
+      onRefresh={() => {
+        void refetch();
+      }}
+      isRefreshing={isRefreshing}
+      filters={
+        <FiltersButton
+          filters={filters}
+          visibleFilters={filterConfig.visibleFilters}
+          filterOptions={filterConfig.filterOptions}
+          onFiltersChange={(nextFilters: IFiltersState) => {
+            setFilters(nextFilters);
+            if (searchParams.has('page')) {
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete('page');
+              const queryString = params.toString();
+              router.replace(
+                queryString ? `${pathname}?${queryString}` : pathname,
+                { scroll: false },
+              );
+            }
           }}
-          isRefreshing={isRefreshing}
         />
       }
-      right={
-        <div className="flex items-center gap-2">
-          <FiltersButton
-            filters={filters}
-            visibleFilters={filterConfig.visibleFilters}
-            filterOptions={filterConfig.filterOptions}
-            onFiltersChange={(nextFilters: IFiltersState) => {
-              setFilters(nextFilters);
-              if (searchParams.has('page')) {
-                const params = new URLSearchParams(searchParams.toString());
-                params.delete('page');
-                const queryString = params.toString();
-                router.replace(
-                  queryString ? `${pathname}?${queryString}` : pathname,
-                  { scroll: false },
-                );
-              }
+      dropdowns={<AdminOrgBrandUrlFilter />}
+      primaryAction={
+        filterConfig.addButtonLabel && filterConfig.modalId ? (
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => {
+              openModal(filterConfig.modalId);
             }}
-          />
-
-          {filterConfig.addButtonLabel && filterConfig.modalId && (
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => {
-                openModal(filterConfig.modalId);
-              }}
-            >
-              <Plus />
-              {filterConfig.addButtonLabel}
-            </Button>
-          )}
-        </div>
+          >
+            <Plus />
+            {filterConfig.addButtonLabel}
+          </Button>
+        ) : undefined
       }
     >
       {children}
-    </Container>
+    </AdminPageShell>
   );
 }
 

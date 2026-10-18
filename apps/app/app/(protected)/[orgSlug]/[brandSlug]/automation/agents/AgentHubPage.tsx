@@ -49,6 +49,7 @@ import {
   CirclePause,
   CirclePlay,
   Play,
+  Store,
   UserPlus,
   Users,
   Workflow,
@@ -57,6 +58,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import AddAgentDialog from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';
 import {
@@ -66,6 +68,9 @@ import {
 
 /** Per-viewer list/grid preference key for this collection. */
 const AGENT_HUB_SURFACE = 'automation.agents';
+
+/** `?add=library` opens the marketplace; any other value opens the conversation. */
+const MARKETPLACE_ADD_INTENT = 'library';
 
 /** Cadence for refreshing agent run state while the tab is in front. */
 const AGENT_HUB_POLL_INTERVAL_MS = 30_000;
@@ -363,6 +368,7 @@ export default function AgentHubPage() {
     useState<AgentStrategyWorkflowBinding | null>(null);
   const [isLoadingBinding, setIsLoadingBinding] = useState(false);
   const [isSubmittingWorkflow, setIsSubmittingWorkflow] = useState(false);
+  const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false);
   const addIntent = searchParams.get('add');
   const openContentAgentConversation = useOpenContentAgentConversation();
 
@@ -371,7 +377,11 @@ export default function AgentHubPage() {
       return;
     }
 
-    openContentAgentConversation(buildContentAgentSetupPrompt(brandId));
+    if (addIntent === MARKETPLACE_ADD_INTENT) {
+      setIsMarketplaceOpen(true);
+    } else {
+      openContentAgentConversation(buildContentAgentSetupPrompt(brandId));
+    }
     router.replace(pathname, { scroll: false });
   }, [addIntent, brandId, openContentAgentConversation, pathname, router]);
 
@@ -499,13 +509,22 @@ export default function AgentHubPage() {
       icon={Users}
       right={
         isEmpty ? undefined : (
-          <Button
-            icon={<UserPlus className="size-4" />}
-            isDisabled={!isBrandReady || !brandId}
-            label="Add agent"
-            onClick={handleOpenAddAgent}
-            variant={ButtonVariant.DEFAULT}
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              icon={<Store className="size-4" />}
+              isDisabled={!isBrandReady || !brandId}
+              label={translate('browseMarketplace')}
+              onClick={() => setIsMarketplaceOpen(true)}
+              variant={ButtonVariant.SECONDARY}
+            />
+            <Button
+              icon={<UserPlus className="size-4" />}
+              isDisabled={!isBrandReady || !brandId}
+              label="Add agent"
+              onClick={handleOpenAddAgent}
+              variant={ButtonVariant.DEFAULT}
+            />
+          </div>
         )
       }
     >
@@ -520,13 +539,22 @@ export default function AgentHubPage() {
               {translate('empty.description')}
             </p>
           </div>
-          <Button
-            label="Add your first agent"
-            variant={ButtonVariant.DEFAULT}
-            icon={<UserPlus className="size-4" />}
-            isDisabled={!isBrandReady || !brandId}
-            onClick={handleOpenAddAgent}
-          />
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              label="Add your first agent"
+              variant={ButtonVariant.DEFAULT}
+              icon={<UserPlus className="size-4" />}
+              isDisabled={!isBrandReady || !brandId}
+              onClick={handleOpenAddAgent}
+            />
+            <Button
+              icon={<Store className="size-4" />}
+              isDisabled={!isBrandReady || !brandId}
+              label={translate('browseMarketplace')}
+              onClick={() => setIsMarketplaceOpen(true)}
+              variant={ButtonVariant.SECONDARY}
+            />
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-8">
@@ -612,6 +640,12 @@ export default function AgentHubPage() {
           </CollectionSection>
         </div>
       )}
+
+      <AddAgentDialog
+        isOpen={isMarketplaceOpen}
+        onCreated={refresh}
+        onOpenChange={setIsMarketplaceOpen}
+      />
 
       <AgentWorkflowRunDialog
         strategy={selectedStrategy}

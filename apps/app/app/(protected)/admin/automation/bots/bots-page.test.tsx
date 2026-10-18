@@ -54,11 +54,6 @@ describe('BotsPage shell-first loading', () => {
     render(<BotsPage />);
 
     expect(screen.getByRole('heading', { name: 'Bots' })).toBeVisible();
-    expect(
-      screen.getByText(
-        'Manage automation bots for X/Twitter, Twitch, and YouTube',
-      ),
-    ).toBeVisible();
     expect(screen.getByTestId('automation-bots-surface')).toBeVisible();
     expect(screen.queryByText('No bots yet')).not.toBeInTheDocument();
 
