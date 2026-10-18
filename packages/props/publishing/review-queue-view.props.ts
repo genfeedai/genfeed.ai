@@ -6,6 +6,7 @@ import type {
   ReviewFilterCounts,
   ReviewStatusFilter,
 } from '@props/publishing/review-filters.props';
+import type { ReviewInboxApprovalsState } from '@props/publishing/review-inbox-approvals.props';
 import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrite-progress.props';
 
 export interface ReviewQueueViewProps {
@@ -14,6 +15,8 @@ export interface ReviewQueueViewProps {
   activeTurboRun: ITurboRunSummary | null;
   activeTurboRunError: Error | null;
   activeTurboRunId: string | null;
+  /** Workflow review gates and MCP approvals beside the Turbo run drafts. */
+  approvals: ReviewInboxApprovalsState;
   turboRunList: ITurboRunSummary[];
   turboRunsError: Error | null;
   canDiscardTurboRun: boolean;

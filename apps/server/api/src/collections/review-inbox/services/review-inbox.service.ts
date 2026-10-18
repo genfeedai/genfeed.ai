@@ -20,7 +20,10 @@ import {
   type IReviewInboxItemPreview,
 } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus, WorkflowExecutionStatus } from '@genfeedai/prisma';
-import { isRecord } from '@genfeedai/utils/data/extract.util';
+import {
+  isRecord,
+  readNonBlankStringOrNull as readString,
+} from '@genfeedai/utils/data/extract.util';
 import { HttpException, Injectable } from '@nestjs/common';
 
 /** Each source is capped so one noisy producer cannot flood the inbox. */
@@ -45,10 +48,6 @@ const CAPTION_ARGUMENT_KEYS = [
   'title',
 ] as const;
 const MEDIA_ARGUMENT_KEYS = ['mediaUrl', 'imageUrl', 'videoUrl'] as const;
-
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null;
-}
 
 function excerpt(value: string | null): string | null {
   if (!value) return null;

@@ -11,7 +11,6 @@ const baseInput = {
   isApproved: true,
   nodeId: 'gate-1',
   organizationId: 'org-1',
-  reviewedCaption: 'Reviewed caption',
   userId: 'user-1',
 };
 
@@ -90,7 +89,7 @@ describe('WorkflowReviewGateFeedbackService', () => {
     );
     expect(harness.recordReviewDecision).toHaveBeenCalledWith({
       brandId: 'brand-1',
-      content: 'Reviewed caption',
+      content: 'Post caption',
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       reason: 'Too salesy',

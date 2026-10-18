@@ -13,8 +13,6 @@ export interface WorkflowReviewGateDecisionInput {
   /** The human reviewer. Automatic (timeout) resolutions never reach here. */
   userId: string;
   isApproved: boolean;
-  /** The caption the gate showed the reviewer, when it had one. */
-  reviewedCaption: string | null;
   rejectionReason?: string;
 }
 
@@ -108,10 +106,12 @@ export class WorkflowReviewGateFeedbackService {
     if (input.isApproved || !this.harnessReviewFeedback) return;
     const brandIds = [...new Set(gatedPosts.map((post) => post.brandId))];
     for (const brandId of brandIds) {
-      const content =
-        input.reviewedCaption ??
-        gatedPosts.find((post) => post.brandId === brandId)?.description ??
-        '';
+      // The gated post's caption is the content the reviewer turned down.
+      const content = gatedPosts
+        .filter((post) => post.brandId === brandId)
+        .map((post) => post.description)
+        .filter(Boolean)
+        .join('\n\n');
       await this.harnessReviewFeedback.recordReviewDecision({
         brandId,
         content,

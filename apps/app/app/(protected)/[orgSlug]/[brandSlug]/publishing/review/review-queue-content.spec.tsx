@@ -14,6 +14,18 @@ import ReviewQueueContent from './review-queue-content';
 import { useReviewQueueContent } from './useReviewQueueContent';
 
 const mocks = vi.hoisted(() => ({
+  approvals: {
+    decidingItemId: null,
+    error: null,
+    highlightedItemId: null,
+    isHighlightedItemMissing: false,
+    isLoading: false,
+    items: [],
+    onDecide: vi.fn(),
+    onSourceFilterChange: vi.fn(),
+    refresh: vi.fn(),
+    sourceFilters: [],
+  },
   getTurboRunsService: vi.fn(),
   loggerError: vi.fn(),
   notificationError: vi.fn(),
@@ -39,6 +51,15 @@ type ConfirmConfig = {
   message?: string;
   onConfirm: () => void | Promise<void>;
 };
+
+vi.mock('./useReviewInboxApprovals', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./useReviewInboxApprovals')>()),
+  useReviewInboxApprovals: () => mocks.approvals,
+}));
+
+vi.mock('./components/ReviewSourceFilters', () => ({
+  default: () => <div>Source filters</div>,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getTurboRunsService,
@@ -348,6 +369,8 @@ describe('ReviewQueueContent', () => {
     searchParamsState.delete('run');
     searchParamsState.delete('filter');
     searchParamsState.delete('item');
+    mocks.approvals.items = [];
+    mocks.approvals.sourceFilters = [];
   });
 
   function mockReviewQueries({
@@ -1013,6 +1036,56 @@ describe('ReviewQueueContent', () => {
         'Bulk approve failed',
         expect.any(Error),
       );
+    });
+  });
+
+  describe('workflow and MCP approvals (#7340)', () => {
+    const gate = {
+      actionSummary: 'Continue Weekly posts with the output waiting',
+      approvalId: null,
+      brandId: 'brand-1',
+      brandLabel: 'Acme',
+      estimatedCredits: null,
+      executionId: 'exec-1',
+      expiresAt: null,
+      id: 'workflow_review_gate:exec-1:gate-1',
+      isResolvable: true,
+      kind: 'workflow_review_gate',
+      nodeId: 'gate-1',
+      preview: { caption: null, mediaUrl: null },
+      reasons: [],
+      requestedAt: '2026-10-01T00:00:00.000Z',
+      source: 'workflow',
+      sourceLabel: 'Weekly posts',
+      status: 'pending',
+      toolName: null,
+      workflowId: 'wf-1',
+    };
+
+    it('shows pending approvals even when no Turbo run is waiting', () => {
+      mocks.approvals.items = [gate] as never;
+      mockReviewQueries({ turboRunList: [] });
+
+      render(<ReviewQueueContent />);
+
+      expect(screen.getByTestId('review-inbox-approvals')).toBeInTheDocument();
+      expect(
+        screen.getByText('Continue Weekly posts with the output waiting'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('No review work waiting'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides the agent drafts when the source filter leaves agents out', () => {
+      mocks.approvals.items = [gate] as never;
+      mocks.approvals.sourceFilters = ['workflow'] as never;
+      mockReviewQueries();
+
+      render(<ReviewQueueContent />);
+
+      expect(screen.getByTestId('review-inbox-approvals')).toBeInTheDocument();
+      expect(screen.queryByText('Review Grid')).not.toBeInTheDocument();
     });
   });
 });

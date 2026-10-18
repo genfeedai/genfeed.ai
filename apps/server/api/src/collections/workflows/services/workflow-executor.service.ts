@@ -153,10 +153,6 @@ export class WorkflowExecutorService {
             workflowLabel: input.workflowLabel,
           },
         ),
-      this.reviewGateFeedback
-        ? (input) =>
-            this.reviewGateFeedback?.recordDecision(input) ?? Promise.resolve()
-        : undefined,
     );
     this.nodeProgressTracker = new WorkflowNodeProgressTrackerService(
       this.progressService,
@@ -638,7 +634,7 @@ export class WorkflowExecutorService {
     approved: boolean,
     rejectionReason?: string,
   ): Promise<ReviewGateApprovalResult> {
-    return this.reviewGateService.submitReviewGateApproval(
+    const result = await this.reviewGateService.submitReviewGateApproval(
       workflowId,
       executionId,
       userId,
@@ -647,6 +643,18 @@ export class WorkflowExecutorService {
       approved,
       rejectionReason,
     );
+    // Every human gate decision lands here (the timeout sweep resolves through
+    // resolveTimedOutReviewGate), so only people teach the autonomy streak and
+    // the harness, and only once the gate is actually resolved.
+    await this.reviewGateFeedback?.recordDecision({
+      executionId,
+      isApproved: result.status === 'approved',
+      nodeId,
+      organizationId,
+      rejectionReason: result.rejectionReason,
+      userId,
+    });
+    return result;
   }
 
   /**
