@@ -1,6 +1,13 @@
 export interface IContentTemplate {
   id: string;
   name: string;
+  /** What the API serializes as the template title; `name` is the legacy field. */
+  label?: string;
+  /** Unique key of a prompt template, e.g. `content.video.default`. */
+  key?: string;
+  purpose?: 'content' | 'prompt';
+  /** Set on an organization template; platform (system) templates have none. */
+  organization?: unknown;
   description: string;
   category: TemplateCategory;
   industry: TemplateIndustry[];

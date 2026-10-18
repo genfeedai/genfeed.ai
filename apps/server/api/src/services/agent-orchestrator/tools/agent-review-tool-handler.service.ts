@@ -1,3 +1,4 @@
+import { ReviewInboxService } from '@api/collections/review-inbox/services/review-inbox.service';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
@@ -8,7 +9,11 @@ import {
   TurboRunItemStatus,
 } from '@genfeedai/contracts';
 import { createPublishingApprovalsRoute } from '@genfeedai/contracts/constants';
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentToolResult,
+  AgentUiAction,
+  IReviewInboxItem,
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
@@ -20,6 +25,8 @@ export class AgentReviewToolHandler {
   constructor(
     @Optional()
     private readonly turboRunService?: TurboRunService,
+    @Optional()
+    private readonly reviewInbox?: ReviewInboxService,
   ) {}
 
   async listReviewQueue(
@@ -190,19 +197,26 @@ export class AgentReviewToolHandler {
       };
     }
 
-    const inbox = await this.turboRunService.getReviewInboxSummary(
-      ctx.organizationId,
-      ctx.brandId,
-      limit,
-    );
+    const [inbox, reviewGates] = await Promise.all([
+      this.turboRunService.getReviewInboxSummary(
+        ctx.organizationId,
+        ctx.brandId,
+        limit,
+      ),
+      this.listDecidableReviewGates(ctx, limit),
+    ]);
 
     const recentItems = inbox.recentItems ?? [];
     const readyCount = inbox.readyCount ?? 0;
     const pendingCount = inbox.pendingCount ?? 0;
+    const gateSummary =
+      reviewGates.length > 0
+        ? ` ${reviewGates.length} workflow review ${reviewGates.length === 1 ? 'gate is' : 'gates are'} waiting for a decision.`
+        : '';
     const summaryText =
-      readyCount === 0 && pendingCount === 0
+      readyCount === 0 && pendingCount === 0 && reviewGates.length === 0
         ? 'Nothing is waiting for review right now.'
-        : `Review inbox: ${readyCount} ready for review, ${pendingCount} still generating${hadInvalidTurboRunId ? ' (ignored an invalid Turbo run id from the model and loaded the full queue).' : '.'}`;
+        : `Review inbox: ${readyCount} ready for review, ${pendingCount} still generating${hadInvalidTurboRunId ? ' (ignored an invalid Turbo run id from the model and loaded the full queue).' : '.'}${gateSummary}`;
 
     const outcomeBullets = recentItems.slice(0, 4).map((item) => {
       const platformLabel = formatPlatformLabel(item.platform);
@@ -234,9 +248,11 @@ export class AgentReviewToolHandler {
           summary: item.summary,
         })),
         rejectedCount: inbox.rejectedCount,
+        reviewGateCount: reviewGates.length,
         scope: ctx.brandId ? 'brand' : 'organization',
       },
       nextActions: [
+        ...this.buildReviewGateCard(ctx, reviewGates),
         {
           id: `review-inbox-${ctx.brandId ?? ctx.organizationId}`,
           outcomeBullets:
@@ -257,6 +273,51 @@ export class AgentReviewToolHandler {
       ],
       success: true,
     };
+  }
+
+  /**
+   * Workflow review gates this member may decide, for the chat's review gate
+   * card. Never fails the inbox listing: without them the card is skipped.
+   */
+  private async listDecidableReviewGates(
+    ctx: ToolExecutionContext,
+    limit: number,
+  ): Promise<IReviewInboxItem[]> {
+    if (!this.reviewInbox) return [];
+    try {
+      const gates = await this.reviewInbox.listPendingReviewGatesForMember({
+        brandId: ctx.brandId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+      return gates.slice(0, limit);
+    } catch {
+      return [];
+    }
+  }
+
+  private buildReviewGateCard(
+    ctx: ToolExecutionContext,
+    gates: IReviewInboxItem[],
+  ): AgentUiAction[] {
+    if (gates.length === 0) return [];
+    return [
+      {
+        description:
+          'Approve to let each run continue, or reject to stop it. Every decision resolves the gate once.',
+        id: `review-gates-${ctx.brandId ?? ctx.organizationId}`,
+        items: gates.map((gate) => ({
+          id: gate.id,
+          previewUrl: gate.preview.mediaUrl ?? undefined,
+          title: gate.preview.caption ?? gate.actionSummary,
+          type: [gate.sourceLabel, gate.brandLabel]
+            .filter((value): value is string => Boolean(value))
+            .join(' · '),
+        })),
+        title: 'Workflow review gates',
+        type: 'review_gate_card',
+      },
+    ];
   }
 
   async reviewTurboItems(

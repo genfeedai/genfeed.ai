@@ -66,6 +66,15 @@ export class TemplatesQueryDto {
   isFeatured?: string;
 
   @ApiProperty({
+    description:
+      'Also return the platform (system) templates alongside the organization templates',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  includeSystem?: string;
+
+  @ApiProperty({
     description: 'Search query',
     required: false,
   })

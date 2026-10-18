@@ -328,7 +328,37 @@
     },
     "approvalQueue": {
       "title": "Approval queue",
-      "description": "Drafts from generated batches that are waiting for a human decision."
+      "description": "Drafts from generated batches that are waiting for a human decision.",
+      "sourceBadge": "Agent"
+    },
+    "inbox": {
+      "title": "Waiting on you",
+      "description": "Workflow review gates and MCP client requests that need an approve or reject.",
+      "loadFailed": "Unable to load workflow and MCP approvals",
+      "highlightMissing": "That request was already resolved, or it is not visible to you.",
+      "columns": {
+        "source": "Source",
+        "brand": "Brand",
+        "request": "What it wants to do",
+        "status": "Status"
+      },
+      "sources": {
+        "agent": "Agent",
+        "workflow": "Workflow",
+        "mcpClient": "MCP client"
+      },
+      "allSources": "All sources",
+      "emptyFilteredTitle": "Nothing from these sources",
+      "emptyFilteredDescription": "No request from the selected sources needs a decision. Try All sources.",
+      "organizationWide": "All brands",
+      "pending": "Pending",
+      "credits": "{count, plural, one {# credit} other {# credits}}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Approved",
+      "mcpApproved": "Approved. The MCP client runs it the next time it asks.",
+      "rejected": "Rejected",
+      "decisionFailed": "Could not save this decision."
     }
   }
 }

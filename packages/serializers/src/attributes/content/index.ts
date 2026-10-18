@@ -61,6 +61,8 @@ export * from '@serializers/attributes/content/publish-approval.attributes';
 export * from '@serializers/attributes/content/recurrence-rule.attributes';
 export * from '@serializers/attributes/content/release-attachment.attributes';
 export * from '@serializers/attributes/content/release-group.attributes';
+export * from '@serializers/attributes/content/review-inbox-decision.attributes';
+export * from '@serializers/attributes/content/review-inbox-item.attributes';
 export * from '@serializers/attributes/content/rss-source.attributes';
 export * from '@serializers/attributes/content/schedule.attributes';
 export * from '@serializers/attributes/content/speech-transcription.attributes';

@@ -1066,6 +1066,109 @@ describe('WorkflowExecutorService', () => {
     expect(engineAdapter.executeNode).not.toHaveBeenCalled();
   });
 
+  describe('review gate decision feedback (#7340)', () => {
+    function buildWithFeedback() {
+      const reviewGateFeedback = { recordDecision: vi.fn() };
+      const withFeedback = new WorkflowExecutorService(
+        prisma as never,
+        logger as never,
+        engineAdapter as never,
+        executionsService as never,
+        websocketService as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        reviewGateFeedback as never,
+      );
+      const gate = (
+        withFeedback as unknown as {
+          reviewGateService: {
+            submitReviewGateApproval: (...args: unknown[]) => unknown;
+          };
+        }
+      ).reviewGateService;
+      return { gate, reviewGateFeedback, withFeedback };
+    }
+
+    it('records a human decision once the gate is resolved', async () => {
+      const { gate, reviewGateFeedback, withFeedback } = buildWithFeedback();
+      vi.spyOn(gate, 'submitReviewGateApproval').mockResolvedValue({
+        approvedAt: '2026-10-01T00:00:00.000Z',
+        approvedBy: 'user-1',
+        executionId: 'exec-1',
+        nodeId: 'gate-1',
+        rejectionReason: 'Off brand',
+        status: 'rejected',
+      });
+
+      await withFeedback.submitReviewGateApproval(
+        'wf-1',
+        'exec-1',
+        'user-1',
+        'org-1',
+        'gate-1',
+        false,
+        'Off brand',
+      );
+
+      expect(reviewGateFeedback.recordDecision).toHaveBeenCalledTimes(1);
+      expect(reviewGateFeedback.recordDecision).toHaveBeenCalledWith({
+        executionId: 'exec-1',
+        isApproved: false,
+        nodeId: 'gate-1',
+        organizationId: 'org-1',
+        rejectionReason: 'Off brand',
+        userId: 'user-1',
+      });
+    });
+
+    it('records nothing when the gate was not resolved', async () => {
+      const { gate, reviewGateFeedback, withFeedback } = buildWithFeedback();
+      vi.spyOn(gate, 'submitReviewGateApproval').mockRejectedValue(
+        new Error('Review gate for node gate-1 was already resolved'),
+      );
+
+      await expect(
+        withFeedback.submitReviewGateApproval(
+          'wf-1',
+          'exec-1',
+          'user-1',
+          'org-1',
+          'gate-1',
+          true,
+        ),
+      ).rejects.toThrow('already resolved');
+      expect(reviewGateFeedback.recordDecision).not.toHaveBeenCalled();
+    });
+
+    it('never records a timeout resolution', async () => {
+      const { gate, reviewGateFeedback, withFeedback } = buildWithFeedback();
+      const resolveTimeout = vi
+        .spyOn(
+          gate as unknown as {
+            resolveTimedOutReviewGate: (...args: unknown[]) => unknown;
+          },
+          'resolveTimedOutReviewGate',
+        )
+        .mockResolvedValue(null);
+
+      await withFeedback.resolveTimedOutReviewGate(
+        'wf-1',
+        'exec-1',
+        'org-1',
+        'gate-1',
+      );
+
+      expect(resolveTimeout).toHaveBeenCalled();
+      expect(reviewGateFeedback.recordDecision).not.toHaveBeenCalled();
+    });
+  });
+
   describe('continueExistingExecution (#2359)', () => {
     const triggerEvent = {
       data: { source: 'retry' },

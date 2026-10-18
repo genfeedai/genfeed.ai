@@ -52,6 +52,17 @@ export interface WorkflowsSeedSummary {
   updated: number;
 }
 
+export interface TemplatesSeedInput {
+  dryRun: boolean;
+}
+
+export interface TemplatesSeedSummary {
+  dryRun: boolean;
+  keys: string[];
+  unchanged: number;
+  written: number;
+}
+
 export interface PricingReportFilter {
   /** Keep only models that need an operator (red and orange). */
   isAttentionOnly?: boolean;
@@ -93,6 +104,10 @@ export async function syncProviderPrices(provider: PriceSyncProvider): Promise<Q
 
 export function seedArticles(input: ArticlesSeedInput): Promise<ArticlesSeedSummary> {
   return adminPost<ArticlesSeedSummary>('/admin/seeds/articles', input);
+}
+
+export function seedTemplates(input: TemplatesSeedInput): Promise<TemplatesSeedSummary> {
+  return adminPost<TemplatesSeedSummary>('/admin/seeds/templates', input);
 }
 
 export function seedWorkflows(input: WorkflowsSeedInput): Promise<WorkflowsSeedSummary> {

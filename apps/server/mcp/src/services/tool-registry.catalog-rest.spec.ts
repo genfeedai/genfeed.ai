@@ -91,6 +91,7 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 function build() {
   const client = {
     attachApprovalResult: vi.fn().mockResolvedValue({ id: 'apr-1' }),
+    claimApprovalExecution: vi.fn().mockResolvedValue(true),
     createApproval: vi
       .fn()
       .mockImplementation((toolName: string) =>

@@ -42,6 +42,73 @@ describe('review result follow-ups', () => {
     );
   });
 
+  it('adds a decidable review gate card for pending workflow gates', async () => {
+    const listPendingReviewGatesForMember = vi.fn().mockResolvedValue([
+      {
+        actionSummary: 'Continue Weekly posts with the output waiting',
+        brandLabel: 'Acme',
+        id: 'workflow_review_gate:exec-1:gate-1',
+        preview: { caption: 'Launch caption', mediaUrl: null },
+        sourceLabel: 'Weekly posts',
+      },
+    ]);
+    const handler = new AgentReviewToolHandler(
+      {
+        getReviewInboxSummary: vi.fn().mockResolvedValue({
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+        }),
+      } as never,
+      { listPendingReviewGatesForMember } as never,
+    );
+
+    const result = await handler.listReviewQueue({}, ctx);
+
+    expect(listPendingReviewGatesForMember).toHaveBeenCalledWith({
+      brandId: undefined,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(result.data).toMatchObject({ reviewGateCount: 1 });
+    expect(result.nextActions?.[0]).toMatchObject({
+      items: [
+        {
+          id: 'workflow_review_gate:exec-1:gate-1',
+          title: 'Launch caption',
+          type: 'Weekly posts · Acme',
+        },
+      ],
+      type: 'review_gate_card',
+    });
+    expect(result.nextActions?.[1]?.summaryText).toContain(
+      '1 workflow review gate is waiting for a decision.',
+    );
+  });
+
+  it('still lists the inbox when review gates cannot be loaded', async () => {
+    const handler = new AgentReviewToolHandler(
+      {
+        getReviewInboxSummary: vi.fn().mockResolvedValue({
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+        }),
+      } as never,
+      {
+        listPendingReviewGatesForMember: vi
+          .fn()
+          .mockRejectedValue(new Error('Brand access denied')),
+      } as never,
+    );
+
+    const result = await handler.listReviewQueue({}, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.nextActions).toHaveLength(1);
+    expect(result.nextActions?.[0]?.type).toBe('completion_summary_card');
+  });
+
   it('counts the entire filtered batch before pagination and excludes unfinished and failed items from ready', async () => {
     const handler = new AgentReviewToolHandler({
       getTurboRun: vi.fn().mockResolvedValue({

@@ -110,6 +110,7 @@ function build() {
     attachApprovalResult: vi
       .fn()
       .mockResolvedValue({ id: 'apr-1', status: 'APPROVED' }),
+    claimApprovalExecution: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn().mockResolvedValue({
       id: 'apr-1',
       status: 'PENDING',
@@ -296,6 +297,14 @@ describe('ToolRegistryService — approval queue', () => {
       structuredContent: { approvalId: 'apr-1', code: 'approval_pending' },
     });
     expect(result.content[0].text).not.toContain('apr-1');
+    // The structured link opens this exact approval in the review inbox.
+    expect(result).toMatchObject({
+      structuredContent: {
+        nextStepUrl: expect.stringContaining(
+          '/publishing/posts?view=approvals&approval=mcp_approval%3Aapr-1',
+        ),
+      },
+    });
   });
 
   it('queues Instagram remix creation instead of executing it immediately', async () => {
@@ -412,6 +421,70 @@ describe('ToolRegistryService — approval queue', () => {
       'apr-1',
       expect.objectContaining({ content: expect.any(Array) }),
     );
+    // The API fences agent-executor runs itself; the MCP claim is not taken.
+    expect(client.claimApprovalExecution).not.toHaveBeenCalled();
+  });
+
+  describe('repeating a call a reviewer approved in the review inbox', () => {
+    it('runs the approved agent-executor action once instead of re-queueing', async () => {
+      const { client, registry } = build();
+      client.createApproval.mockResolvedValue({
+        arguments: { content: 'hello', scheduledAt: '2030-01-01' },
+        id: 'apr-1',
+        result: null,
+        status: McpApprovalStatus.APPROVED,
+        toolName: 'create_post',
+      });
+
+      const result = (await registry.handleToolCall({
+        arguments: { content: 'hello', scheduledAt: '2030-01-01' },
+        name: 'create_post',
+      })) as { isError?: boolean };
+
+      expect(result.isError).toBeFalsy();
+      expect(client.executeAgentTool).toHaveBeenCalledWith(
+        'create_post',
+        { content: 'hello', scheduledAt: '2030-01-01' },
+        { approvedApprovalId: 'apr-1' },
+      );
+      expect(client.attachApprovalResult).toHaveBeenCalledWith(
+        'apr-1',
+        expect.any(Object),
+      );
+    });
+
+    it('keeps reporting a pending approval until a reviewer approves it', async () => {
+      const { client, registry } = build();
+
+      const result = (await registry.handleToolCall({
+        arguments: { content: 'hello', scheduledAt: '2030-01-01' },
+        name: 'create_post',
+      })) as { isError?: boolean; structuredContent?: { code?: string } };
+
+      expect(result.structuredContent?.code).toBe('approval_pending');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
+    it('does not run a direct-dispatch action another caller already claimed', async () => {
+      const { client, registry } = build();
+      const args = { runId: 'run-1', expectedRevision: 2, action: 'cancel' };
+      client.createApproval.mockResolvedValue({
+        arguments: args,
+        id: 'apr-1',
+        result: null,
+        status: McpApprovalStatus.APPROVED,
+        toolName: 'control_remix_generation',
+      });
+      client.claimApprovalExecution.mockResolvedValue(false);
+
+      const result = (await registry.handleToolCall({
+        arguments: args,
+        name: 'control_remix_generation',
+      })) as { isError?: boolean };
+
+      expect(result.isError).toBe(true);
+      expect(client.controlRemixGeneration).not.toHaveBeenCalled();
+    });
   });
 
   it('approving a queued gated tool executes it directly without re-queuing another approval', async () => {
@@ -504,6 +577,7 @@ describe('ToolRegistryService — approval queue', () => {
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBe(true);
+    expect(client.claimApprovalExecution).toHaveBeenCalledWith('apr-1');
     expect(client.attachApprovalResult).toHaveBeenCalledWith(
       'apr-1',
       expect.objectContaining({ error: expect.stringContaining('boom') }),
@@ -576,13 +650,14 @@ describe('ToolRegistryService — approval queue', () => {
       );
     });
 
-    it('never retries a direct-dispatch approval whose claim was lost', async () => {
+    it('runs a direct-dispatch approval approved in the review inbox once', async () => {
       const { client, registry } = build();
+      const args = { runId: 'run-1', expectedRevision: 2, action: 'cancel' };
       client.resolveApproval.mockRejectedValue(
         new Error('Approval already resolved'),
       );
       client.getApproval.mockResolvedValue({
-        arguments: { runId: 'run-1', expectedRevision: 2, action: 'cancel' },
+        arguments: args,
         id: 'apr-1',
         result: null,
         status: 'APPROVED',
@@ -594,8 +669,34 @@ describe('ToolRegistryService — approval queue', () => {
         name: 'resolve_approval',
       })) as { isError?: boolean };
 
+      expect(result.isError).toBeFalsy();
+      expect(client.claimApprovalExecution).toHaveBeenCalledWith('apr-1');
+      expect(client.controlRemixGeneration).toHaveBeenCalledTimes(1);
+    });
+
+    it('never runs a direct-dispatch approval whose execution claim was lost', async () => {
+      const { client, registry } = build();
+      client.resolveApproval.mockRejectedValue(
+        new Error('Approval already resolved'),
+      );
+      client.getApproval.mockResolvedValue({
+        arguments: { runId: 'run-1', expectedRevision: 2, action: 'cancel' },
+        id: 'apr-1',
+        result: null,
+        status: 'APPROVED',
+        toolName: 'control_remix_generation',
+      });
+      client.claimApprovalExecution.mockResolvedValue(false);
+
+      const result = (await registry.handleToolCall({
+        arguments: { approvalId: 'apr-1', decision: 'approve' },
+        name: 'resolve_approval',
+      })) as { isError?: boolean; content: { text: string }[] };
+
       expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('already run');
       expect(client.controlRemixGeneration).not.toHaveBeenCalled();
+      expect(client.attachApprovalResult).not.toHaveBeenCalled();
     });
 
     it('does not re-run an approval whose outcome was already recorded', async () => {

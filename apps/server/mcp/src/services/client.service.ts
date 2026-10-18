@@ -253,6 +253,10 @@ export class ClientService {
     return this.agent.resolveApproval(approvalId, decision, result);
   }
 
+  claimApprovalExecution(approvalId: string): Promise<boolean> {
+    return this.agent.claimApprovalExecution(approvalId);
+  }
+
   attachApprovalResult(
     approvalId: string,
     result: Record<string, unknown>,
