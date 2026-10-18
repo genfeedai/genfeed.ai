@@ -17,9 +17,8 @@ import { AdminPlatformSettingsService } from '@services/admin/platform-settings.
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -202,16 +201,13 @@ export default function AdminFlagsPage() {
   }
 
   return (
-    <Container
-      label={translate('title')}
-      description={translate('description')}
+    <AdminPageShell
+      title={translate('title')}
       icon={ToggleRight}
-      moduleChrome
-      refresh={
-        <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
-      }
+      onRefresh={handleRefresh}
+      isRefreshing={isRefreshing}
     >
       {renderContent()}
-    </Container>
+    </AdminPageShell>
   );
 }

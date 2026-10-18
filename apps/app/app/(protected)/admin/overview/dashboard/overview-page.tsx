@@ -10,12 +10,11 @@ import type {
   StatsGridProps,
 } from '@props/admin/dashboard.props';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
@@ -291,13 +290,10 @@ export default function OverviewPage() {
   // Breadcrumb owns identity (Admin / Dashboard). No second page title,
   // no hr dividers, no page-only dots — stack surfaces like workspace home.
   return (
-    <Container
-      label="Dashboard"
-      titleVisibility="sr-only"
-      moduleChrome
-      refresh={
-        <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
-      }
+    <AdminPageShell
+      title="Dashboard"
+      onRefresh={() => refresh()}
+      isRefreshing={isRefreshing}
     >
       <div className="flex w-full flex-col gap-5">
         <KPISection
@@ -326,6 +322,6 @@ export default function OverviewPage() {
           <LeaderboardCard data={leaderboard} isLoading={isLoading} />
         </div>
       </div>
-    </Container>
+    </AdminPageShell>
   );
 }

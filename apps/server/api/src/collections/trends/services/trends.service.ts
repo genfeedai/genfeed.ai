@@ -449,7 +449,13 @@ export class TrendsService {
     const hydratedTrends =
       await this.trendSourcePreviewService.precomputeTrendSourcePreview(
         trends,
-        { force: true, writeScope: { organizationId: null } },
+        {
+          force: true,
+          // The refresh that created these trends already spent the batch's
+          // live previews on the most viral ones; this pass only hydrates.
+          maxLiveFetches: 0,
+          writeScope: { organizationId: null },
+        },
       );
     await this.trendReferenceCorpusService.syncTrendReferences(
       hydratedTrends.map((trend) =>
