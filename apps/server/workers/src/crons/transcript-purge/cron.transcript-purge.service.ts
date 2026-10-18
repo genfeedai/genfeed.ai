@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { TRANSCRIPT_PURGE_RETENTION_DAYS } from '@workers/crons/transcript-purge/transcript-purge.constants';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const THREAD_PURGE_BATCH_SIZE = 500;
 const EMPTY_JSON = {} as Prisma.InputJsonValue;
 
 const EXPIRED_THREAD_WIPE = {
@@ -135,92 +136,101 @@ export class CronTranscriptPurgeService {
       isDeleted: true,
       updatedAt: { lt: cutoff },
     });
-    const expiredThreadIds = (
-      await this.prisma.agentThread.findMany({
-        select: { id: true },
-        where: expiredRow,
-      })
-    ).map((row) => row.id);
-    const expiredThreadChildren =
-      expiredThreadIds.length > 0
-        ? {
-            organizationId,
-            threadId: { in: expiredThreadIds },
-          }
-        : null;
-
-    const [
-      expiredThreads,
-      expiredMessages,
-      threadMessages,
-      expiredEvents,
-      threadEvents,
-      expiredSnapshots,
-      threadSnapshots,
-      expiredContexts,
-      threadContexts,
-    ] = await this.prisma.$transaction(
-      (tx) =>
-        Promise.all([
-          tx.agentThread.updateMany({
-            data: EXPIRED_THREAD_WIPE,
-            where: expiredRow,
-          }),
+    return this.prisma.$transaction(
+      async (tx) => {
+        const [
+          expiredMessages,
+          expiredEvents,
+          expiredSnapshots,
+          expiredContexts,
+        ] = await Promise.all([
           tx.agentMessage.updateMany({
             data: EXPIRED_MESSAGE_WIPE,
             where: expiredRow,
           }),
-          expiredThreadChildren
-            ? tx.agentMessage.updateMany({
-                data: EXPIRED_MESSAGE_WIPE,
-                where: expiredThreadChildren,
-              })
-            : noRows,
           tx.agentThreadEvent.updateMany({
             data: { data: Prisma.DbNull },
             where: expiredRow,
           }),
-          expiredThreadChildren
-            ? tx.agentThreadEvent.updateMany({
-                data: { data: Prisma.DbNull },
-                where: expiredThreadChildren,
-              })
-            : noRows,
           tx.agentThreadSnapshot.updateMany({
             data: { data: EMPTY_JSON },
             where: expiredRow,
           }),
-          expiredThreadChildren
-            ? tx.agentThreadSnapshot.updateMany({
-                data: { data: EMPTY_JSON },
-                where: expiredThreadChildren,
-              })
-            : noRows,
           tx.threadContextState.updateMany({
             data: { data: EMPTY_JSON },
             where: expiredRow,
           }),
-          expiredThreadChildren
-            ? tx.threadContextState.updateMany({
-                data: { data: EMPTY_JSON },
-                where: expiredThreadChildren,
-              })
-            : noRows,
-        ]),
+        ]);
+        const totals = {
+          agentMessages: expiredMessages.count,
+          agentThreadEvents: expiredEvents.count,
+          agentThreadSnapshots: expiredSnapshots.count,
+          agentThreads: 0,
+          threadContextStates: expiredContexts.count,
+        };
+        let afterId: string | undefined;
+
+        while (true) {
+          const threads = await tx.agentThread.findMany({
+            orderBy: { id: 'asc' },
+            select: { id: true },
+            take: THREAD_PURGE_BATCH_SIZE,
+            where: {
+              ...expiredRow,
+              ...(afterId ? { id: { gt: afterId } } : {}),
+            },
+          });
+          if (threads.length === 0) break;
+
+          const threadIds = threads.map((thread) => thread.id);
+          const expiredThreadChildren = {
+            organizationId,
+            threadId: { in: threadIds },
+          };
+          const [
+            expiredThreads,
+            threadMessages,
+            threadEvents,
+            threadSnapshots,
+            threadContexts,
+          ] = await Promise.all([
+            tx.agentThread.updateMany({
+              data: EXPIRED_THREAD_WIPE,
+              where: { ...expiredRow, id: { in: threadIds } },
+            }),
+            tx.agentMessage.updateMany({
+              data: EXPIRED_MESSAGE_WIPE,
+              where: expiredThreadChildren,
+            }),
+            tx.agentThreadEvent.updateMany({
+              data: { data: Prisma.DbNull },
+              where: expiredThreadChildren,
+            }),
+            tx.agentThreadSnapshot.updateMany({
+              data: { data: EMPTY_JSON },
+              where: expiredThreadChildren,
+            }),
+            tx.threadContextState.updateMany({
+              data: { data: EMPTY_JSON },
+              where: expiredThreadChildren,
+            }),
+          ]);
+          totals.agentMessages += threadMessages.count;
+          totals.agentThreadEvents += threadEvents.count;
+          totals.agentThreadSnapshots += threadSnapshots.count;
+          totals.agentThreads += expiredThreads.count;
+          totals.threadContextStates += threadContexts.count;
+
+          if (threads.length < THREAD_PURGE_BATCH_SIZE) break;
+          afterId = threads[threads.length - 1].id;
+        }
+
+        return totals;
+      },
       { maxWait: 10_000, timeout: 180_000 },
     );
-
-    return {
-      agentMessages: expiredMessages.count + threadMessages.count,
-      agentThreadEvents: expiredEvents.count + threadEvents.count,
-      agentThreadSnapshots: expiredSnapshots.count + threadSnapshots.count,
-      agentThreads: expiredThreads.count,
-      threadContextStates: expiredContexts.count + threadContexts.count,
-    };
   }
 }
-
-const noRows = Promise.resolve({ count: 0 });
 
 function emptyTotals(): TranscriptPurgeTotals {
   return {
