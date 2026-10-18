@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import type { Prisma } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 
 type ListTenant = ReturnType<
@@ -39,7 +40,28 @@ export async function resolveAllBrandsFilter(
     userId,
   });
 
-  return brandIds === undefined ? undefined : { in: brandIds };
+  // Unbranded assets are organization-shared, so a restricted member keeps
+  // them alongside their assigned brands.
+  return brandIds === undefined
+    ? undefined
+    : { OR: [{ brandId: { in: brandIds } }, { brandId: null }] };
+}
+
+/**
+ * A resolved Library brand scope as a `where` clause: a brand id or `{ in }`
+ * predicate narrows `brandId`; an `OR` branch (restricted all-brands) is
+ * already a complete clause.
+ */
+export function libraryBrandWhere(
+  scope: string | Record<string, unknown> | undefined,
+): Prisma.IngredientWhereInput {
+  if (!scope) {
+    return {};
+  }
+  if (typeof scope === 'object' && 'OR' in scope) {
+    return scope as Prisma.IngredientWhereInput;
+  }
+  return { brandId: scope } as Prisma.IngredientWhereInput;
 }
 
 /**

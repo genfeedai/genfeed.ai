@@ -11,6 +11,7 @@ import {
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
+  libraryBrandWhere,
   libraryCacheIdentity,
   resolveAllBrandsFilter,
 } from '@api/collections/ingredients/utils/library-brand-scope.util';
@@ -49,7 +50,6 @@ import type {
   ILibrarySummary,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -201,7 +201,7 @@ export class IngredientsController {
         isDeleted: QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted),
         AND: [
           { organizationId: tenant.organizationId },
-          brandId ? { brandId } : {},
+          libraryBrandWhere(brandId),
           categoryFilter,
           // A selected shelf owns the status axis outright.
           LibraryShelfUtil.buildShelfFilter(query.shelf),
@@ -280,7 +280,7 @@ export class IngredientsController {
       user,
       request,
     );
-    const brandFilter: Prisma.IngredientWhereInput = brandId ? { brandId } : {};
+    const brandFilter = libraryBrandWhere(brandId);
 
     return this.ingredientsService.getLibrarySummary(
       tenant.organizationId,

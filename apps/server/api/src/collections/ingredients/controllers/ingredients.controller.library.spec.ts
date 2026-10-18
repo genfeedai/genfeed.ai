@@ -314,7 +314,7 @@ describe('IngredientsController — Library axes', () => {
 
       const [aggregate] = ingredientsService.findAll.mock.calls[0];
       expect(andBranches(aggregate)).toContainEqual({
-        brandId: { in: assigned },
+        OR: [{ brandId: { in: assigned } }, { brandId: null }],
       });
       expect(brandAccess.resolve).toHaveBeenCalledWith(
         expect.objectContaining({ organizationId, userId }),
@@ -347,7 +347,9 @@ describe('IngredientsController — Library axes', () => {
       );
 
       const [aggregate] = ingredientsService.findAll.mock.calls[0];
-      expect(andBranches(aggregate)).toContainEqual({ brandId: { in: [] } });
+      expect(andBranches(aggregate)).toContainEqual({
+        OR: [{ brandId: { in: [] } }, { brandId: null }],
+      });
     });
 
     it('lets a superadmin span every brand without a membership lookup', async () => {
@@ -711,7 +713,7 @@ describe('IngredientsController — Library axes', () => {
       );
     });
 
-    it('counts only assigned brands for a restricted member under allBrands', async () => {
+    it('counts assigned brands and unbranded assets for a restricted member under allBrands', async () => {
       brandAccess.resolve.mockResolvedValueOnce({ brandIds: [brandId] });
 
       await controller.getSummary(
@@ -722,7 +724,7 @@ describe('IngredientsController — Library axes', () => {
 
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
-        { brandId: { in: [brandId] } },
+        { OR: [{ brandId: { in: [brandId] } }, { brandId: null }] },
       );
     });
 
