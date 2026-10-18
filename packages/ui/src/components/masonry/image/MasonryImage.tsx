@@ -276,6 +276,7 @@ function MasonryImageTile({
         <MasonryImageActionsBar
           image={image}
           isActionsEnabled={isActionsEnabled}
+          isUnavailable={isProcessing || isFailed}
           isSelected={isSelected}
           showActions={showActions}
           actionStates={

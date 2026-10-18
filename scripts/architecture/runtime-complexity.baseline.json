@@ -84,7 +84,7 @@
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts"
   },
   {
-    "actual": 1459,
+    "actual": 1457,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
@@ -102,7 +102,7 @@
     "symbol": "PublicYoutubeClipsService.onModuleInit"
   },
   {
-    "actual": 164,
+    "actual": 159,
     "file": "apps/server/api/src/endpoints/webhooks/heygen/webhooks.heygen.service.ts",
     "metric": "method-lines",
     "symbol": "HeygenWebhookService.handleCallback"

@@ -77,7 +77,7 @@ export class Post extends BasePost {
         return SocialUrlHelper.buildYoutubeUrl(this.externalId);
 
       case CredentialPlatform.TIKTOK:
-        return SocialUrlHelper.buildTikTokUrl(this.externalId, username);
+        return this.buildTikTokPostUrl(username) ?? '';
 
       case CredentialPlatform.TWITTER:
         if (!username) {
@@ -96,6 +96,27 @@ export class Post extends BasePost {
       default:
         return '';
     }
+  }
+
+  /**
+   * TikTok withholds the public video id for private posts, so `externalId`
+   * can still be the upload's publish id. That is not a video URL; fall back
+   * to the creator's profile instead of building a dead `/video/` link.
+   */
+  private buildTikTokPostUrl(username: string): string | null {
+    const externalId = this.externalId;
+    if (!externalId) {
+      return null;
+    }
+
+    if (SocialUrlHelper.isTikTokPublishId(externalId)) {
+      return (
+        SocialUrlHelper.buildProfileUrl(CredentialPlatform.TIKTOK, username) ??
+        null
+      );
+    }
+
+    return SocialUrlHelper.buildTikTokUrl(externalId, username);
   }
 
   private get isPublished(): boolean {
@@ -145,7 +166,7 @@ export class Post extends BasePost {
 
     switch (this.platform) {
       case CredentialPlatform.TIKTOK:
-        return SocialUrlHelper.buildTikTokUrl(this.externalId, username);
+        return this.buildTikTokPostUrl(username);
 
       case CredentialPlatform.INSTAGRAM: {
         const instagramId = this.externalShortcode || this.externalId;

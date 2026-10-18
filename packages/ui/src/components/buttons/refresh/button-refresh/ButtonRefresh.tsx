@@ -10,19 +10,22 @@ import {
 } from '@ui-constants/shell-chrome.constant';
 import { RefreshCw } from 'lucide-react';
 
+// The `genfeed-loader-` prefix opts the spokes out of the product motion
+// policy (packages/styles/motion-policy.css); any other class name has its
+// animation collapsed to 0.01ms and the spinner reads as frozen.
 const SPOKE_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 const SPINNER_STYLES = `
-  .gen-refresh-spinner-spoke {
-    animation: gen-refresh-spinner-fade 1s linear infinite;
+  .genfeed-loader-refresh-spoke {
+    animation: genfeed-loader-refresh-fade 1s linear infinite;
   }
 
-  @keyframes gen-refresh-spinner-fade {
+  @keyframes genfeed-loader-refresh-fade {
     0%, 100% { opacity: 1; }
     80% { opacity: 0.2; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .gen-refresh-spinner-spoke { animation: none; opacity: 0.65; }
+    .genfeed-loader-refresh-spoke { animation: none; opacity: 0.65; }
   }
 `;
 
@@ -45,7 +48,7 @@ function RefreshSpinner() {
         {SPOKE_ANGLES.map((angle, index) => (
           <line
             key={angle}
-            className="gen-refresh-spinner-spoke"
+            className="genfeed-loader-refresh-spoke"
             style={{ animationDelay: `${index * 0.125 - 1}s` }}
             transform={`rotate(${angle} 12 12)`}
             x1="12"

@@ -7,6 +7,7 @@ import {
   isWorkflowEdgeActive,
   isWorkflowNodeReachable,
   type NodeExecutionResult,
+  resolveConditionBranchOutput,
   topologicalSort,
 } from '@genfeedai/workflows/engine';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
@@ -65,6 +66,16 @@ export class WorkflowExecutionGraphService {
       }
 
       const handleKey = edge.targetHandle ?? edge.source;
+      const branch = resolveConditionBranchOutput(
+        edge.sourceHandle,
+        sourceOutput,
+      );
+      if (branch.isBranch) {
+        if (branch.isTaken) {
+          this.addInput(inputs, handleKey, branch.value);
+        }
+        continue;
+      }
       const sourceKey = edge.sourceHandle ?? edge.targetHandle;
       if (
         edge.sourceHandle !== undefined &&

@@ -8,7 +8,6 @@ import type {
   MemberAppsResponse,
 } from '@genfeedai/contracts/interfaces';
 import { Member } from '@genfeedai/models/organization/member.model';
-import { MemberSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -16,7 +15,7 @@ import {
 
 export class MembersService extends BaseService<Member> {
   constructor(token: string) {
-    super(API_ENDPOINTS.MEMBERS, token, Member, MemberSerializer);
+    super(API_ENDPOINTS.MEMBERS, token, Member);
   }
 
   public static getInstance(token: string): MembersService {

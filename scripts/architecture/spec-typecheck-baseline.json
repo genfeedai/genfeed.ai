@@ -7441,14 +7441,6 @@
       "workspace": "services"
     },
     {
-      "code": 2561,
-      "count": 1,
-      "file": "packages/services/core/base.service.test.ts",
-      "fingerprint": "9bcdeac574869a0b89a7",
-      "message": "Object literal may only specify known properties, but 'deserialize' does not exist in type 'IServiceSerializer<TestModel>'. Did you mean to write 'serialize'?",
-      "workspace": "services"
-    },
-    {
       "code": 2554,
       "count": 2,
       "file": "packages/services/core/brand-commands.service.test.ts",

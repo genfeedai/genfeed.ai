@@ -917,7 +917,7 @@ describe('TiktokService', () => {
         oauthTokenHash: '',
       });
 
-      (httpService.get as Mock).mockReturnValue(
+      (httpService.post as Mock).mockReturnValue(
         of({
           data: {
             data: {
@@ -943,7 +943,16 @@ describe('TiktokService', () => {
         testId('credential'),
       );
 
-      expect(httpService.get).toHaveBeenCalled();
+      expect(httpService.post).toHaveBeenCalledWith(
+        expect.stringContaining('/video/query/'),
+        { filters: { video_ids: ['v'] } },
+        expect.objectContaining({
+          params: {
+            fields: 'id,like_count,comment_count,view_count,share_count',
+          },
+        }),
+      );
+      expect(httpService.get).not.toHaveBeenCalled();
       expect(res).toMatchObject({
         averageWatchTime: undefined,
         comments: 1,

@@ -1,3 +1,4 @@
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 
 vi.mock('@api/collections/evaluations/services/evaluations.service', () => ({
@@ -417,6 +418,60 @@ describe('WebhooksService', () => {
       expect(generationBilling.settleOutput).not.toHaveBeenCalled();
     });
 
+    it('recovers an ingredient the timeout cron failed when the provider finishes late', async () => {
+      const timedOut = {
+        ...mockVideoIngredientDoc,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+        metadataId: mockMetadataId.toString(),
+        status: IngredientStatus.FAILED,
+      };
+      ingredientsService.findOne
+        .mockResolvedValueOnce(timedOut)
+        .mockResolvedValueOnce(timedOut)
+        .mockResolvedValue(mockVideoIngredientDoc);
+      ingredientsService.patchAll.mockResolvedValue({ modifiedCount: 1 });
+      metadataService.findOne.mockResolvedValue(mockVideoMetadataDoc);
+
+      await service.processMediaForIngredient(
+        mockIngredientId.toString(),
+        IngredientCategory.AVATAR,
+        'https://example.com/avatar.mp4',
+        'provider-video-1',
+      );
+
+      expect(ingredientsService.patchAll).toHaveBeenNthCalledWith(
+        1,
+        {
+          generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+          id: mockIngredientId.toString(),
+          isDeleted: false,
+          organizationId: mockOrgId,
+          status: IngredientStatus.FAILED,
+        },
+        { generationError: null, status: IngredientStatus.PROCESSING },
+      );
+      expect(mediaUploadService.uploadAndUpdateMetadata).toHaveBeenCalled();
+      expect(generationBilling.settleOutput).toHaveBeenCalled();
+    });
+
+    it('does not reopen a failed ingredient the provider confirmed failed', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockVideoIngredientDoc,
+        generationError: 'Generation failed',
+        status: IngredientStatus.FAILED,
+      });
+
+      await service.processMediaForIngredient(
+        mockIngredientId.toString(),
+        IngredientCategory.AVATAR,
+        'https://example.com/avatar.mp4',
+        'provider-video-1',
+      );
+
+      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
+      expect(mediaUploadService.uploadAndUpdateMetadata).not.toHaveBeenCalled();
+    });
+
     it('should process video from webhook successfully', async () => {
       metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
         ingredient: mockVideoIngredientDoc,
@@ -730,6 +785,45 @@ describe('WebhooksService', () => {
       );
       expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
       expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
+    });
+
+    it('makes a timeout failure final once the provider confirms the failure', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredientDoc,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+        status: IngredientStatus.FAILED,
+      });
+
+      await service.handleFailedGenerationForIngredient(
+        mockIngredientId.toString(),
+        errorMessage,
+      );
+
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+          status: IngredientStatus.FAILED,
+        }),
+        { generationError: errorMessage },
+      );
+    });
+
+    it('never stores the timeout marker as a confirmed failure reason', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredientDoc,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+        status: IngredientStatus.FAILED,
+      });
+
+      await service.handleFailedGenerationForIngredient(
+        mockIngredientId.toString(),
+        INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      );
+
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        expect.anything(),
+        { generationError: 'Generation failed' },
+      );
     });
 
     it.each(['already-failed', 'lost-failure-CAS'])(

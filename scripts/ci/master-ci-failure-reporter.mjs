@@ -1,19 +1,12 @@
 /**
- * Master push Tests Gate tracker (#2510).
- *
- * A red `master` used to be visible only in the Actions tab: the heavy tier
- * and the Tests Gate were skipped on push events entirely, and once they ran
- * there was still nothing pointing at a failure. This reporter mirrors the
- * release E2E tracker contract:
+ * Full Suite aggregate tracker for the current default-branch SHA (#5884).
  *
  * Failure path: one open tracker (comment on repeat reds), found by the
- * `master-ci-failure` label OR the title prefix
- * `🚨 Tests Gate failed on master push`. GitHub can silently drop create-time
- * labels, which orphaned 42 unlabeled duplicates and made label-only lookup
- * file a new issue every red push. Title-prefix fallback plus a separate
- * addLabels call keeps the canonical tracker (#3798) as the only open one.
+ * `master-ci-failure` label or title prefix. Retain the former Tests Gate
+ * title for existing unlabeled trackers: GitHub can drop create-time labels.
+ * A separate addLabels call preserves deduplication.
  * Native issue Priority P0 via the shared board triage.
- * Success path: close every open Tests Gate tracker — labeled or unlabeled
+ * Success path: close every open aggregate tracker — labeled or unlabeled
  * title-prefix — with a green comment so a recovered trunk cannot keep a
  * stale P0 on the board. Auto-close is scoped to this workflow: a nightly
  * Playwright tracker that also carries `master-ci-failure` (#4579 / #4689)
@@ -29,8 +22,7 @@ import { RELEASE_E2E_FAILURE_LABEL } from './release-e2e-failure-reporter.mjs';
 import { SCHEDULED_FAILURE_MARKER } from './scheduled-failure-tracker.mjs';
 
 export const MASTER_CI_FAILURE_LABEL = 'master-ci-failure';
-export const MASTER_CI_FAILURE_TITLE_PREFIX =
-  '🚨 Tests Gate failed on master push';
+export const MASTER_CI_FAILURE_TITLE_PREFIX = '🚨 Full Suite failed on master';
 
 export const FOREIGN_MASTER_CI_TRACKER_LABELS = [
   COVERAGE_FAILURE_LABEL,
@@ -47,7 +39,10 @@ function issueLabelNames(issue) {
 
 function hasMasterCiFailureTitle(issue) {
   const title = typeof issue.title === 'string' ? issue.title : '';
-  return title.startsWith(MASTER_CI_FAILURE_TITLE_PREFIX);
+  return (
+    title.startsWith(MASTER_CI_FAILURE_TITLE_PREFIX) ||
+    title.startsWith('🚨 Tests Gate failed on master push')
+  );
 }
 
 function issueBody(issue) {
@@ -104,9 +99,8 @@ function mergeTrackerIssue(existing, incoming) {
 }
 
 /**
- * Open Tests Gate trackers: labeled `master-ci-failure` and/or titled with
- * `🚨 Tests Gate failed on master push`. Sorted by issue number so resolve
- * and canonical-pick are deterministic. Trackers owned by another workflow
+ * Open aggregate trackers, including earlier Tests Gate titles. Sorted by
+ * issue number so resolve and canonical-pick are deterministic. Trackers owned by another workflow
  * are excluded even when they also carry this label.
  *
  * @returns {Promise<Array<{ issue: object, isLabeled: boolean }>>}
@@ -179,27 +173,95 @@ export async function ensureMasterCiFailureLabel(github, { owner, repo }) {
       repo,
       name: MASTER_CI_FAILURE_LABEL,
       color: 'b60205',
-      description: 'Tests Gate is failing on master push CI',
+      description: 'Full Suite aggregate verification is failing on master',
     });
   }
 }
 
 /**
- * Build the issue / comment body for a red master push.
+ * Build the issue / comment body for a red Full Suite aggregate.
  * @param {{ date: string, sha: string, headline: string, runUrl: string }} input
  */
-export function buildMasterCiFailureBody({ date, sha, headline, runUrl }) {
+export function buildMasterCiFailureBody({
+  date,
+  sha,
+  headline,
+  runUrl,
+  results = {},
+}) {
   return [
-    `**Tests Gate failed on a \`master\` push** on \`${date}\`.`,
+    `**Full Suite failed on \`master\`** on \`${date}\`.`,
     ``,
     `- Commit: \`${sha}\` — ${headline}`,
     `- Failed run: ${runUrl}`,
-    `- The run's Tests Gate step summary names the exact job(s) that went red.`,
+    `- Aggregate gates: ${Object.entries(results)
+      .map(([name, result]) => `${name}=${result}`)
+      .join(', ')}`,
+    `- The run's Master SHA Verdict includes CI, build, E2E and requested connected acceptance.`,
     ``,
     `The trunk is red: every branch cut from \`master\` inherits this failure.`,
     `Automation sets native issue **Priority = P0** (Priority is structured issue metadata, not a label).`,
-    `This tracker closes automatically on the next green master push.`,
+    `This tracker closes automatically on a complete green Full Suite verdict for the current master SHA.`,
   ].join('\n');
+}
+
+export async function updateMasterCiFailureFromVerdict({
+  github,
+  projectGithub = github,
+  owner,
+  repo,
+  defaultBranch,
+  sha,
+  verdict,
+  results,
+  date,
+  headline,
+  runUrl,
+  core = console,
+}) {
+  if (
+    !['success', 'failure'].includes(verdict) ||
+    Object.values(results).includes('cancelled')
+  ) {
+    return { action: 'ignored', reason: 'incomplete-verification' };
+  }
+
+  const { data } = await github.rest.git.getRef({
+    owner,
+    repo,
+    ref: `heads/${defaultBranch}`,
+  });
+  if (data.object.sha !== sha) {
+    core.info?.('Ignoring Full Suite verdict for a stale or nontrunk SHA');
+    return { action: 'ignored', reason: 'not-current-trunk' };
+  }
+
+  if (verdict === 'failure') {
+    return reportMasterCiFailure({
+      github,
+      projectGithub,
+      owner,
+      repo,
+      body: buildMasterCiFailureBody({ date, sha, headline, runUrl, results }),
+      date,
+      core,
+    });
+  }
+
+  return resolveMasterCiFailure({
+    github,
+    owner,
+    repo,
+    body: [
+      `**Full Suite is green on \`master\`** on \`${date}\`.`,
+      '',
+      `- Commit: \`${sha}\` — ${headline}`,
+      `- Green run: ${runUrl}`,
+      '',
+      'Closing automatically after complete aggregate verification at the current master SHA.',
+    ].join('\n'),
+    core,
+  });
 }
 
 async function commentAndTriageExistingTracker(
@@ -218,7 +280,7 @@ async function commentAndTriageExistingTracker(
     issueNumber,
     label: MASTER_CI_FAILURE_LABEL,
   });
-  // Re-assert P0 every red push so backlog drift cannot deprioritize it.
+  // Re-assert P0 every red aggregate so backlog drift cannot deprioritize it.
   await triageCiFailureOnProject(projectGithub, {
     owner,
     repo,
@@ -322,7 +384,7 @@ export async function resolveMasterCiFailure({
     });
     closed.push(issue.number);
     core.info?.(
-      `Closed master-ci-failure issue #${issue.number} after green push`,
+      `Closed master-ci-failure issue #${issue.number} after green Full Suite`,
     );
   }
 

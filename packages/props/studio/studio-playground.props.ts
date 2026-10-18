@@ -1,8 +1,10 @@
 import type { IngredientFormat, ViewType } from '@genfeedai/contracts';
+import type { StudioSystemPreset } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import type {
   HeyGenGender,
   IIngredient,
   IModel,
+  IStudioLook,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
 import type {
@@ -14,13 +16,18 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import type { CharacterMentionSubmitResult } from '@genfeedai/helpers/content/character-mention.util';
 import type { MasonryTransformActions } from '@genfeedai/props/content/masonry.props';
+import type { PromptBarContextGroup } from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
+import type {
+  PromptCommand,
+  PromptCommandContext,
+} from '@genfeedai/props/prompt-bars/prompt-command.props';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type {
   PromptBarAttachedAsset,
   UseCrunGenerationQuoteReturn,
 } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioPlaygroundFilter = StudioPlaygroundType | 'all';
@@ -42,6 +49,27 @@ export interface StudioIdentityVoiceRowProps {
   source: string;
 }
 
+export interface StudioPresetCommandLabels {
+  presets: string;
+  savedLooks: string;
+}
+
+/** What a `/` preset command applies: a built-in preset or a saved look. */
+export interface StudioPresetCommandTarget {
+  look?: IStudioLook;
+  systemPreset?: StudioSystemPreset;
+}
+
+export interface StudioPresetCommands {
+  commands: PromptCommand[];
+  targets: ReadonlyMap<string, StudioPresetCommandTarget>;
+}
+
+export interface StudioPlaygroundComposerContextGroups {
+  recent?: PromptBarContextGroup;
+  selection?: PromptBarContextGroup;
+}
+
 export interface StudioPlaygroundComposerProps {
   isCrunRestoreBlocked?: boolean;
   crunQuote?: UseCrunGenerationQuoteReturn;
@@ -49,19 +77,31 @@ export interface StudioPlaygroundComposerProps {
   crunStartFrameId?: string;
   crunEndFrameId?: string;
   attachedAssets: PromptBarAttachedAsset[];
+  /**
+   * Page context for the row above the prompt: the selected asset and its
+   * actions replace the presets; recent assets follow them.
+   */
+  contextGroups?: StudioPlaygroundComposerContextGroups;
   documentSeed?: PromptEditorDocumentSeed | null;
   extraExtensions?: readonly AnyExtension[];
   isDragActive?: boolean;
   isEnhancingPrompt?: boolean;
   isListening: boolean;
   isLoadingModels: boolean;
+  /** One-line resting bar while the gallery scrolls under it. */
+  isResting?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
   models: readonly IModel[];
+  /** Status or recovery notice pinned inside the composer shell, never above it. */
+  notice?: ReactNode;
+  onExpand?: () => void;
   onAddFiles: (files: File[], role?: StudioPlaygroundReferenceRole) => void;
   onCancelEnhancePrompt?: () => void;
   onEnhancePrompt?: () => void;
   onOpenLibrary: (role?: StudioPlaygroundReferenceRole) => void;
+  /** Hands this type's presets and saved looks to the shared `/` menu. */
+  onPromptCommandContextChange?: (context: PromptCommandContext | null) => void;
   onPromptChange: (value: string) => void;
   onPromptDocumentChange?: (document: JSONContent) => void;
   onRemoveAttachedAsset: (assetId: string) => void;
@@ -196,7 +236,6 @@ export interface StudioPlaygroundStarterCharacterCandidate
 export interface StudioPlaygroundStarterIdeasProps {
   character?: StudioPlaygroundStarterCharacter;
   isDisabled?: boolean;
-  isDocked?: boolean;
   offeringKind?: 'physical' | 'service' | 'software' | 'unknown';
   onSelect: (selection: StudioPlaygroundStarterSelection) => void;
   productReference?: StudioPlaygroundStarterProductReference;

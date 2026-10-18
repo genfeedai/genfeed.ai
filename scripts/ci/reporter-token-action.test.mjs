@@ -12,7 +12,7 @@ function readRepoFile(relativePath) {
 
 const ACTION = readRepoFile('.github/actions/reporter-token/action.yml');
 const REPORTER_WORKFLOWS = [
-  'ci.yml',
+  'full-suite.yml',
   'coverage.yml',
   'e2e-selfhosted-release.yml',
   'e2e.yml',
@@ -75,7 +75,9 @@ test('every failure reporter mints its token from the Genfeed bot App', () => {
     );
     assert.match(
       workflow,
-      /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \}\}/u,
+      fileName === 'full-suite.yml'
+        ? /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \|\| github\.token \}\}/u
+        : /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \}\}/u,
       fileName,
     );
   }

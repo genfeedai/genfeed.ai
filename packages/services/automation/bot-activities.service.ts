@@ -1,7 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { IBotActivityStats } from '@genfeedai/contracts/interfaces';
 import { BotActivity } from '@genfeedai/models/automation/bot-activity.model';
-import { BotActivitySerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -21,12 +20,7 @@ export interface BotActivitiesQuery {
 
 export class BotActivitiesService extends BaseService<BotActivity> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.BOT_ACTIVITIES,
-      token,
-      BotActivity,
-      BotActivitySerializer,
-    );
+    super(API_ENDPOINTS.BOT_ACTIVITIES, token, BotActivity);
   }
 
   public static getInstance(token: string): BotActivitiesService {

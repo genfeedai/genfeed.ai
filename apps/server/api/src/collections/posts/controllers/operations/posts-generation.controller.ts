@@ -397,6 +397,10 @@ export class PostsGenerationController {
 
       return serializeSingle(request, this.serializer, resultPost);
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       const errorMessage = generationFailureMessage(error, 'Unknown error');
       const errorStack = error instanceof Error ? error.stack : undefined;
 
@@ -405,6 +409,7 @@ export class PostsGenerationController {
         errorMessage || 'Failed to enhance post content',
         'Enhancement failed',
         HttpStatus.INTERNAL_SERVER_ERROR,
+        error,
       );
     }
   }

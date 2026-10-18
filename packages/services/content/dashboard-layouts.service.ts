@@ -1,7 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { PersistedDashboardLayoutDocument } from '@genfeedai/contracts/interfaces';
 import { DashboardLayout } from '@genfeedai/models/content/dashboard-layout.model';
-import { DashboardLayoutSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -18,12 +17,7 @@ export interface UpsertDashboardLayoutBody {
 
 export class DashboardLayoutsService extends BaseService<DashboardLayout> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.DASHBOARD_LAYOUTS,
-      token,
-      DashboardLayout,
-      DashboardLayoutSerializer,
-    );
+    super(API_ENDPOINTS.DASHBOARD_LAYOUTS, token, DashboardLayout);
   }
 
   public static getInstance(token: string): DashboardLayoutsService {

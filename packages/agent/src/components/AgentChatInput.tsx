@@ -85,6 +85,9 @@ interface AgentChatInputProps {
   density?: 'compact' | 'default' | 'dock';
   /** Joins the composer to an expandable mode/settings strip above it. */
   isTopAttached?: boolean;
+  /** One-line resting bar while the page scrolls under it. */
+  isResting?: boolean;
+  onExpandResting?: () => void;
   /** Unused by this component directly; forwarded by some hosts for parity. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
@@ -129,6 +132,8 @@ export function AgentChatInput({
   clearAllAttachments,
   density = 'default',
   isTopAttached = false,
+  isResting = false,
+  onExpandResting,
   willQueueFollowUp = false,
   knowledgeSelection,
   knowledgeSection,
@@ -260,6 +265,8 @@ export function AgentChatInput({
         )}
         data-testid="agent-chat-input-shell"
         density={isCompact ? 'compact' : 'default'}
+        isResting={isResting}
+        onExpand={onExpandResting}
         onPointerDown={handleShellPointerDown}
       >
         <PromptEditor

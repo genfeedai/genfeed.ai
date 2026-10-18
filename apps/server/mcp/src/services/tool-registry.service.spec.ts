@@ -1194,6 +1194,19 @@ describe('ToolRegistryService', () => {
     expect(clientService.getOrganizationAnalytics).not.toHaveBeenCalled();
   });
 
+  it('handleResourceRead serves the current card view for a URI from an earlier build', async () => {
+    const stale = 'ui://genfeed/content-cards-v5-0123456789ab.html';
+    const result = (await service.handleResourceRead({ uri: stale })) as {
+      contents: { mimeType: string; text: string; uri: string }[];
+    };
+
+    expect(result.contents[0]).toMatchObject({
+      mimeType: 'text/html;profile=mcp-app',
+      uri: stale,
+    });
+    expect(result.contents[0].text).toContain('Genfeed content');
+  });
+
   it('handleResourceRead returns org analytics', async () => {
     await service.handleResourceRead({
       uri: 'genfeed://analytics/organization',

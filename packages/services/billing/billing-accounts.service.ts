@@ -1,7 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { IBillingAccountSnapshot } from '@genfeedai/contracts/interfaces';
 import { BillingAccount } from '@genfeedai/models/billing/billing-account.model';
-import { BillingAccountSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeResource,
@@ -10,12 +9,7 @@ import {
 
 export class BillingAccountsService extends BaseService<BillingAccount> {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.BILLING_ACCOUNTS,
-      token,
-      BillingAccount,
-      BillingAccountSerializer,
-    );
+    super(API_ENDPOINTS.BILLING_ACCOUNTS, token, BillingAccount);
   }
 
   public static getInstance(token: string): BillingAccountsService {

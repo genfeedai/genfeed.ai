@@ -6,7 +6,6 @@ import type {
   UpsertSocialWarmupSignalInput,
 } from '@genfeedai/contracts/interfaces';
 import { SocialWarmupEnrollment } from '@genfeedai/models/social/social-warmup-enrollment.model';
-import { SocialWarmupEnrollmentSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
 
@@ -19,7 +18,6 @@ export class SocialWarmupEnrollmentsService extends BaseService<
       API_ENDPOINTS.SOCIAL_WARMUP_ENROLLMENTS,
       token,
       SocialWarmupEnrollment,
-      SocialWarmupEnrollmentSerializer,
     );
   }
 

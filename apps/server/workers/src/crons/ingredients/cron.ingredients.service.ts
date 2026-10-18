@@ -1,4 +1,5 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -46,7 +47,7 @@ export class CronIngredientsService {
   private static readonly LOCK_TTL_SECONDS = 600;
   /** Persisted so status readers (e.g. MCP get_job_status) see why it failed. */
   private static readonly PROCESSING_TIMEOUT_FAILURE = {
-    generationError: 'Processing timed out',
+    generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
     status: IngredientStatus.FAILED,
   } as const;
 
@@ -214,7 +215,7 @@ export class CronIngredientsService {
             key: keys.failed,
             value: JSON.stringify({
               ...parsedValue,
-              error: 'Processing timed out',
+              error: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
               ingredientId,
             }),
           });

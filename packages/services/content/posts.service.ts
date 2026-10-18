@@ -19,7 +19,6 @@ import type {
   SocialGenerationFormat,
 } from '@genfeedai/contracts/interfaces';
 import { Post } from '@genfeedai/models/content/post.model';
-import { PostSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -74,7 +73,7 @@ export class PostsService extends BaseService<
   }
 
   constructor(token: string) {
-    super(API_ENDPOINTS.POSTS, token, Post, PostSerializer);
+    super(API_ENDPOINTS.POSTS, token, Post);
   }
 
   public static getInstance(token: string): PostsService {

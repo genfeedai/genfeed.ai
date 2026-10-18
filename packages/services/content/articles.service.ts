@@ -12,7 +12,6 @@ import type {
   ArticleTrafficPeriod,
 } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import { Article } from '@genfeedai/models/content/article.model';
-import { ArticleSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -75,7 +74,7 @@ export interface ArticleReviewRubric {
 
 export class ArticlesService extends BaseService<Article> {
   constructor(token: string) {
-    super(API_ENDPOINTS.ARTICLES, token, Article, ArticleSerializer);
+    super(API_ENDPOINTS.ARTICLES, token, Article);
   }
 
   public static getInstance(token: string): ArticlesService {

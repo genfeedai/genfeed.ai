@@ -188,12 +188,17 @@ export const CLAIMABLE_JOB_STATES = new Set<string>([
  * States a freshly added `system-run` job may report right after `add()`.
  * The reservation guarantees `add()` created new work, so `completed` means
  * a worker already claimed and finished it within this call — a success, not
- * a silently reused stale job. `CLAIMABLE_JOB_STATES` stays narrower because
- * the PENDING-run reconcile must still treat a completed job as unclaimable.
+ * a silently reused stale job. `failed` is the same race: a non-transient
+ * failure is terminal on its first attempt, so a fast worker can fail the job
+ * before `getState` runs. The worker owns that outcome and records it on the
+ * execution; the enqueue itself succeeded. `CLAIMABLE_JOB_STATES` stays
+ * narrower because the PENDING-run reconcile must still treat a completed or
+ * failed job as unclaimable.
  */
 const ENQUEUED_JOB_STATES = new Set<string>([
   ...CLAIMABLE_JOB_STATES,
   'completed',
+  'failed',
 ]);
 
 function requireQueueJobId(
@@ -442,6 +447,17 @@ export class WorkflowExecutionQueueService {
       );
       return undefined;
     });
+    if (resultingState === 'failed') {
+      this.logger.warn(
+        `${this.logContext} system workflow job failed before enqueue returned`,
+        {
+          canonicalId: input.canonicalId,
+          failedReason: job.failedReason,
+          jobId: queuedJobId,
+          organizationId: input.organizationId,
+        },
+      );
+    }
     if (resultingState && !ENQUEUED_JOB_STATES.has(resultingState)) {
       this.logger.error(
         `${this.logContext} system workflow job was not queued for pickup after enqueue — a worker will never claim it`,

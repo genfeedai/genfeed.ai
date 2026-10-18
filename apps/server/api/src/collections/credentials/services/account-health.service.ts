@@ -59,7 +59,18 @@ export interface ScheduledPublishGate {
   summary: AccountHealthSummary;
 }
 
+type AccountHealthEnrollment = Prisma.SocialWarmupEnrollmentGetPayload<{
+  include: { events: true; signals: true };
+}>;
+
+type AccountHealthEvidence = {
+  enrollment: AccountHealthEnrollment | null;
+  publishedPosts: number;
+  recentFailures: number;
+};
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const HEALTH_ASSESSMENT_CONCURRENCY = 4;
 
 const WARMUP_PLATFORMS = new Set<CredentialPlatform>([
   CredentialPlatform.INSTAGRAM,
@@ -171,32 +182,103 @@ export class AccountHealthService {
       where: scopedWhere(organizationId, { brandId, isConnected: true }),
     });
 
-    return Promise.all(
-      credentials.map((credential) =>
-        this.assessCredentialHealth({
-          brandId,
-          credentialId: credential.id,
-          organizationId,
+    if (credentials.length === 0) return [];
+
+    const credentialIds = credentials.map((credential) => credential.id);
+    const accountWhere = scopedWhere(organizationId, {
+      credentialId: { in: credentialIds },
+    });
+    const evidenceScope = scopedWhere(organizationId, { brandId });
+    const since = new Date(Date.now() - 30 * MS_PER_DAY);
+    const [publishedPosts, recentFailures, enrollments] = await Promise.all([
+      this.prisma.post.groupBy({
+        _count: { _all: true },
+        by: ['credentialId'],
+        where: scopedWhere(organizationId, {
+          credentialId: { in: credentialIds },
+          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
         }),
-      ),
+      }),
+      this.prisma.post.groupBy({
+        _count: { _all: true },
+        by: ['credentialId'],
+        where: scopedWhere(organizationId, {
+          createdAt: { gte: since },
+          credentialId: { in: credentialIds },
+          ...postExecutionStateReadFilter(TargetExecutionState.FAILED),
+        }),
+      }),
+      this.prisma.socialWarmupEnrollment.findMany({
+        include: {
+          events: { where: evidenceScope },
+          signals: { where: evidenceScope },
+        },
+        where: { ...accountWhere, brandId },
+      }),
+    ]);
+    const publishedByCredential = new Map(
+      publishedPosts.map((row) => [row.credentialId, row._count._all]),
     );
+    const failuresByCredential = new Map(
+      recentFailures.map((row) => [row.credentialId, row._count._all]),
+    );
+    const enrollmentByCredential = new Map(
+      enrollments.map((enrollment) => [enrollment.credentialId, enrollment]),
+    );
+    const summaries: AccountHealthSummary[] = [];
+    for (
+      let index = 0;
+      index < credentials.length;
+      index += HEALTH_ASSESSMENT_CONCURRENCY
+    ) {
+      const batch = credentials.slice(
+        index,
+        index + HEALTH_ASSESSMENT_CONCURRENCY,
+      );
+      summaries.push(
+        ...(await Promise.all(
+          batch.map((credential) =>
+            this.assessLoadedCredentialHealth(
+              credential,
+              { brandId, credentialId: credential.id, organizationId },
+              {
+                enrollment: enrollmentByCredential.get(credential.id) ?? null,
+                publishedPosts: publishedByCredential.get(credential.id) ?? 0,
+                recentFailures: failuresByCredential.get(credential.id) ?? 0,
+              },
+            ),
+          ),
+        )),
+      );
+    }
+    return summaries;
   }
 
   async assessCredentialHealth(
     params: AssessAccountHealthParams,
   ): Promise<AccountHealthSummary> {
     const credential = await this.findCredential(params);
+    const evidence = await this.loadEvidence(credential, params.organizationId);
+    return this.assessLoadedCredentialHealth(credential, params, evidence);
+  }
+
+  private async assessLoadedCredentialHealth(
+    credential: Credential,
+    params: AssessAccountHealthParams,
+    evidence: AccountHealthEvidence,
+  ): Promise<AccountHealthSummary> {
     const platform = requireDomainCredentialPlatform(credential.platform);
     const thresholds = this.mergeThresholds(
       platform,
       params.request?.thresholds,
       credential.warmupThresholds,
     );
-    const { enrollment, signals } = await this.buildSignals(
+    const signals = this.buildSignals(
       credential,
-      params.organizationId,
+      evidence,
       params.request?.signals,
     );
+    const { enrollment } = evidence;
     const journey = this.evaluateJourney(credential, enrollment);
     const summary = this.createSummary(
       credential,
@@ -382,34 +464,10 @@ export class AccountHealthService {
     };
   }
 
-  private async buildSignals(
+  private async loadEvidence(
     credential: Credential,
-    // Credential.organizationId is nullable in the schema; the caller always
-    // resolves the credential inside a known organization, so scope on that.
     organizationId: string,
-    overrides: Partial<AccountHealthSignals> | undefined,
-  ): Promise<{
-    enrollment: {
-      blueprintId: string;
-      blueprintVersion: number;
-      events?: Array<{
-        action: string;
-        itemId: string;
-        occurredAt: Date | string;
-      }>;
-      isCredentialConnected?: boolean;
-      reconnect?: { reason?: string };
-      signals: Array<{
-        evidence?: unknown;
-        key: string;
-        source: string;
-        status: string;
-      }>;
-      startedAt: Date;
-      state: string;
-    } | null;
-    signals: AccountHealthSignals;
-  }> {
+  ): Promise<AccountHealthEvidence> {
     const since = new Date(Date.now() - 30 * MS_PER_DAY);
     const [publishedPosts, recentFailures, enrollment] = await Promise.all([
       this.prisma.post.count({
@@ -428,10 +486,14 @@ export class AccountHealthService {
       this.prisma.socialWarmupEnrollment.findFirst({
         include: {
           events: {
-            where: { isDeleted: false },
+            where: scopedWhere(organizationId, {
+              ...(credential.brandId ? { brandId: credential.brandId } : {}),
+            }),
           },
           signals: {
-            where: { isDeleted: false },
+            where: scopedWhere(organizationId, {
+              ...(credential.brandId ? { brandId: credential.brandId } : {}),
+            }),
           },
         },
         where: scopedWhere(organizationId, {
@@ -441,6 +503,14 @@ export class AccountHealthService {
       }),
     ]);
 
+    return { enrollment, publishedPosts, recentFailures };
+  }
+
+  private buildSignals(
+    credential: Credential,
+    { enrollment, publishedPosts, recentFailures }: AccountHealthEvidence,
+    overrides: Partial<AccountHealthSignals> | undefined,
+  ): AccountHealthSignals {
     const accountAge = resolveSocialWarmupAccountAge(
       enrollment?.signals.map(socialWarmupSignalRecordFromStorage) ?? [],
     );
@@ -456,40 +526,19 @@ export class AccountHealthService {
     ].filter((value) => readString(value)).length;
 
     return {
-      enrollment,
-      signals: {
-        accountAgeDays: accountAge.accountAgeDays,
-        accountAgeSource: accountAge.accountAgeSource,
-        accountAgeStatus: accountAge.accountAgeStatus,
-        connectedDays,
-        profileSignals: readNumber(overrides?.profileSignals, profileSignals),
-        publishedPosts: readNumber(overrides?.publishedPosts, publishedPosts),
-        recentFailures: readNumber(overrides?.recentFailures, recentFailures),
-      },
+      accountAgeDays: accountAge.accountAgeDays,
+      accountAgeSource: accountAge.accountAgeSource,
+      accountAgeStatus: accountAge.accountAgeStatus,
+      connectedDays,
+      profileSignals: readNumber(overrides?.profileSignals, profileSignals),
+      publishedPosts: readNumber(overrides?.publishedPosts, publishedPosts),
+      recentFailures: readNumber(overrides?.recentFailures, recentFailures),
     };
   }
 
   private evaluateJourney(
     credential: Credential,
-    enrollment: {
-      blueprintId: string;
-      blueprintVersion: number;
-      events?: Array<{
-        action: string;
-        itemId: string;
-        occurredAt: Date | string;
-      }>;
-      isCredentialConnected?: boolean;
-      reconnect?: { reason?: string };
-      signals: Array<{
-        evidence?: unknown;
-        key: string;
-        source: string;
-        status: string;
-      }>;
-      startedAt: Date;
-      state: string;
-    } | null,
+    enrollment: AccountHealthEnrollment | null,
   ): SocialWarmupJourneyEvaluation | undefined {
     if (!enrollment?.blueprintId || !enrollment.blueprintVersion) {
       return undefined;

@@ -92,10 +92,33 @@ describe('IngredientDownloadButton', () => {
     await waitFor(() =>
       expect(notifyError).toHaveBeenCalledWith('errorTitle', {
         description: 'watermarkError',
+        duration: 10_000,
       }),
     );
     expect(original).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'original' })).toBeEnabled();
+  });
+
+  it('shows the reason the API gave when a watermark export is refused', async () => {
+    const refused = new Error('Configure a watermark in brand settings first');
+    refused.name = 'WatermarkExportError';
+    downloadWatermarked.mockRejectedValue(refused);
+    render(
+      <IngredientDownloadButton
+        ingredientId="image-1"
+        onDownloadOriginal={vi.fn()}
+      />,
+    );
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+      button: 0,
+    });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'branded' }));
+    await waitFor(() =>
+      expect(notifyError).toHaveBeenCalledWith('errorTitle', {
+        description: 'Configure a watermark in brand settings first',
+        duration: 10_000,
+      }),
+    );
   });
 
   it('renders a single trigger that opens the dropdown in compact mode', async () => {

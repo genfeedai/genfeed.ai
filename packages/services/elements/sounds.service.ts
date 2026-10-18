@@ -1,11 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Sound } from '@genfeedai/models/ingredients/sound.model';
-import { SoundSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class SoundsService extends BaseService<Sound> {
   constructor(token: string) {
-    super(API_ENDPOINTS.SOUNDS, token, Sound, SoundSerializer);
+    super(API_ENDPOINTS.SOUNDS, token, Sound);
   }
 
   public static getInstance(token: string): SoundsService {
