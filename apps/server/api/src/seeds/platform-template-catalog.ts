@@ -4,13 +4,15 @@ import {
   TemplateCategory,
 } from '@genfeedai/contracts';
 
-export interface PlatformTemplateVariable {
+// A type alias, not an interface: it is written to a Prisma Json column, and
+// only aliases carry the implicit index signature `InputJsonObject` needs.
+export type PlatformTemplateVariable = {
   description: string;
   label: string;
   name: string;
   required: boolean;
   type: 'text';
-}
+};
 
 export interface PlatformTemplateDefinition {
   category: TemplateCategory;
