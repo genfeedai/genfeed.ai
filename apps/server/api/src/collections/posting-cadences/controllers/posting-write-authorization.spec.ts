@@ -43,6 +43,9 @@ describe('posting write authorization', () => {
     isIpAllowed: vi.fn().mockReturnValue(true),
     isMcpOAuthSession: vi.fn().mockReturnValue(false),
     resolveActionOrigin: vi.fn(),
+    resolveEffectiveOrganizationId: vi
+      .fn()
+      .mockResolvedValue(apiKey.organizationId),
     updateLastUsed: vi.fn(),
   };
   const guard = new ApiKeyAuthGuard(apiKeysService as never, new Reflector());
