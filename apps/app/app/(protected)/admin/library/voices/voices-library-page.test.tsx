@@ -34,12 +34,18 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    leading,
+    refresh,
     right,
   }: {
     children: ReactNode;
+    leading?: ReactNode;
+    refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
+      {leading}
+      {refresh}
       {right}
       {children}
     </main>
@@ -120,17 +126,19 @@ describe('admin voice collection', () => {
     const user = userEvent.setup();
     const first = render(<VoicesLibraryPage />);
     await screen.findByText('Voice 0');
-    fireEvent.change(
-      screen.getByPlaceholderText('Search by name or external ID'),
-      { target: { value: 'Ada' } },
-    );
+    fireEvent.change(screen.getByPlaceholderText('searchPlaceholder'), {
+      target: { value: 'Ada' },
+    });
     await waitFor(() =>
       expect(mocks.service.findCatalog).toHaveBeenLastCalledWith({
         provider: undefined,
         search: 'Ada',
       }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Sync ElevenLabs' }));
+    await user.click(screen.getByRole('button', { name: /syncProvider/ }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'syncElevenLabs' }),
+    );
     await waitFor(() =>
       expect(mocks.service.importCatalogVoices).toHaveBeenCalledWith([
         VoiceProvider.ELEVENLABS,

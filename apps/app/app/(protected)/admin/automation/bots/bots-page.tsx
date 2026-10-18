@@ -1,6 +1,5 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { BotStatus, formatEnumLabel } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot } from '@models/automation/bot.model';
@@ -11,7 +10,7 @@ import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Bot as BotIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -84,20 +83,13 @@ export default function BotsPage() {
   }, [loadBots]);
 
   return (
-    <Container
-      label="Bots"
-      description="Manage automation bots for X/Twitter, Twitch, and YouTube"
+    <AdminPageShell
+      title="Bots"
       icon={BotIcon}
-      moduleChrome
-      refresh={
-        <ButtonRefresh
-          onClick={() => loadBots(true)}
-          isRefreshing={isRefreshing}
-        />
-      }
+      onRefresh={() => loadBots(true)}
+      isRefreshing={isRefreshing}
     >
       <WorkspaceSurface
-        title="Automation Bots"
         framed={false}
         tone="muted"
         data-testid="automation-bots-surface"
@@ -170,6 +162,6 @@ export default function BotsPage() {
           )}
         </div>
       </WorkspaceSurface>
-    </Container>
+    </AdminPageShell>
   );
 }

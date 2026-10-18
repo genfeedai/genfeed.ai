@@ -1,3 +1,4 @@
+import { translateFromCatalog } from '@app-tests/next-intl.stub';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,6 +30,22 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => mocks.notificationsService),
+  },
+}));
+
+/** Stable translator per namespace, like next-intl's memoized hook. */
+const translators = vi.hoisted(
+  () => new Map<string, ReturnType<typeof translateFromCatalog>>(),
+);
+
+vi.mock('next-intl', () => ({
+  useTranslations: (namespace: string) => {
+    let translator = translators.get(namespace);
+    if (!translator) {
+      translator = translateFromCatalog(namespace);
+      translators.set(namespace, translator);
+    }
+    return translator;
   },
 }));
 

@@ -1,6 +1,5 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   getSystemWorkflowMetadata,
@@ -20,7 +19,7 @@ import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
@@ -311,17 +310,11 @@ export default function WorkflowsPage() {
   }
 
   return (
-    <Container
-      label={translate('title')}
-      description={translate('description')}
+    <AdminPageShell
+      title={translate('title')}
       icon={ClipboardList}
-      moduleChrome
-      refresh={
-        <ButtonRefresh
-          onClick={() => void loadWorkflows(true)}
-          isRefreshing={isRefreshing}
-        />
-      }
+      onRefresh={() => void loadWorkflows(true)}
+      isRefreshing={isRefreshing}
     >
       {isLoading ? (
         <div className="grid gap-4">
@@ -437,6 +430,6 @@ export default function WorkflowsPage() {
           </WorkspaceSurface>
         </div>
       )}
-    </Container>
+    </AdminPageShell>
   );
 }
