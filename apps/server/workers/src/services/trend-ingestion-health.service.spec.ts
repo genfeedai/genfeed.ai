@@ -97,13 +97,13 @@ describe('TrendIngestionHealthService', () => {
   it('retains the earliest incident baseline without spreading a large outage into function arguments', async () => {
     const { service, recorder } = setup();
     const missed = {
-      baseline: new Date('2026-09-28T12:15:00.000Z'),
+      baseline: new Date('2026-09-29T00:15:00.000Z'),
       isMissed: true,
       successAt: null,
     };
     const evaluated = Array.from({ length: 150_000 }, () => missed);
     evaluated[75_000] = { ...missed, baseline: enrollment };
-    const now = new Date('2026-09-30T00:15:00.000Z');
+    const now = new Date('2026-10-02T00:15:00.000Z');
 
     // biome-ignore lint/complexity/useLiteralKeys: Isolate the private incident phase without running the quadratic sweep.
     await service['reconcileIncident']({
@@ -127,7 +127,7 @@ describe('TrendIngestionHealthService', () => {
 
   it('waits for two closed scheduled windows, emits actionable alerts once, and deduplicates continued failure', async () => {
     const { service, recorder, events, prisma } = setup();
-    await service.checkMissedWindows(new Date('2026-09-28T12:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
     expect(prisma.$transaction).toHaveBeenCalledOnce();
     expect(prisma.notificationEvent.upsert).toHaveBeenCalledWith({
       create: expect.objectContaining({
@@ -145,9 +145,9 @@ describe('TrendIngestionHealthService', () => {
       select: { occurredAt: true },
       where: { id: 'enrollment', isDeleted: false, organizationId: null },
     });
-    await service.checkMissedWindows(new Date('2026-09-29T00:14:59.999Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:14:59.998Z'));
     expect(recorder.dispatch).not.toHaveBeenCalled();
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     expect(events.size).toBe(15);
     expect(recorder.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -170,7 +170,7 @@ describe('TrendIngestionHealthService', () => {
       }),
     );
     const keys = [...events.keys()];
-    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect([...events.keys()]).toEqual(keys);
   });
 
@@ -183,27 +183,27 @@ describe('TrendIngestionHealthService', () => {
     'treats %s as successful and emits one recovery per incident before rearming',
     async (outcome) => {
       const { service, events, health } = setup();
-      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
       const receipt: TrendRefreshHealth = {
-        completedAt: '2026-09-29T01:00:00.000Z',
+        completedAt: '2026-09-30T01:45:00.000Z',
         dataset: 'trends',
-        lastAttemptAt: '2026-09-29T00:59:00.000Z',
-        lastSuccessfulRefreshAt: '2026-09-29T01:00:00.000Z',
+        lastAttemptAt: '2026-09-30T01:43:00.000Z',
+        lastSuccessfulRefreshAt: '2026-09-30T01:45:00.000Z',
         outcome,
         platform: 'youtube',
         reason: null,
         scope: 'global',
       };
       health.getHealth.mockResolvedValue([receipt]);
-      await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
       expect(
         [...events.keys()].filter((key) => key.endsWith('/recovered')),
       ).toHaveLength(1);
-      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-02T00:15:00.000Z'));
       expect(
         [...events.keys()].filter((key) => key.endsWith('/recovered')),
       ).toHaveLength(1);
-      await service.checkMissedWindows(new Date('2026-09-30T12:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-03T00:15:00.000Z'));
       expect(
         [...events.keys()].filter(
           (key) =>
@@ -224,17 +224,17 @@ describe('TrendIngestionHealthService', () => {
     ]);
     health.getHealth.mockResolvedValue([
       {
-        completedAt: '2026-09-28T23:00:00.000Z',
+        completedAt: '2026-09-29T21:45:00.000Z',
         dataset: 'trends',
-        lastAttemptAt: '2026-09-28T23:00:00.000Z',
-        lastSuccessfulRefreshAt: '2026-09-28T23:00:00.000Z',
+        lastAttemptAt: '2026-09-29T21:45:00.000Z',
+        lastSuccessfulRefreshAt: '2026-09-29T21:45:00.000Z',
         outcome: 'fallback_available',
         platform: 'youtube',
         reason: 'native_failed',
         scope: 'global',
       },
     ]);
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     expect(
       [...events.keys()].some(
         (key) =>
@@ -259,13 +259,13 @@ describe('TrendIngestionHealthService', () => {
         scope: 'global',
       },
     ]);
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     expect(
       [...events.keys()].some((key) =>
         key.startsWith('trend-ingestion-health/youtube/trends/missed/'),
       ),
     ).toBe(false);
-    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect(
       [...events.keys()].filter((key) =>
         key.startsWith('trend-ingestion-health/youtube/trends/missed/'),
@@ -291,7 +291,7 @@ describe('TrendIngestionHealthService', () => {
       inFlight -= 1;
       return [];
     });
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     expect(health.getHealth).toHaveBeenCalledTimes(51);
     expect(peak).toBeLessThanOrEqual(HEALTH_LOOKUP_CONCURRENCY);
     expect(peak).toBeGreaterThan(1);
@@ -307,7 +307,7 @@ describe('TrendIngestionHealthService', () => {
       })),
     );
     health.getHealth.mockResolvedValue([]);
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     const scoped = [...events.keys()].filter((key) =>
       key.startsWith('trend-ingestion-health/youtube/trends/scoped/missed/'),
     );
@@ -315,7 +315,7 @@ describe('TrendIngestionHealthService', () => {
     const calls = JSON.stringify(recorder.dispatch.mock.calls);
     expect(calls).toContain('30 of 30 connected tenant scopes');
     expect(calls).not.toContain('org-1');
-    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect(
       [...events.keys()].filter((key) => key.includes('/scoped/missed/')),
     ).toEqual(scoped);
@@ -323,13 +323,13 @@ describe('TrendIngestionHealthService', () => {
 
   it('keeps one incident key while staggered scopes partially recover', async () => {
     const { service, health, prisma, events } = setup();
-    const later = new Date('2026-09-28T12:15:00.000Z');
+    const later = new Date('2026-09-29T00:15:00.000Z');
     prisma.credential.findMany.mockResolvedValue([
       { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
       { createdAt: later, organizationId: 'org-b', platform: 'YOUTUBE' },
     ]);
     health.getHealth.mockResolvedValue([]);
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     const scopedKeys = () =>
       [...events.keys()].filter((key) => key.includes('/scoped/missed/'));
     expect(scopedKeys()).toHaveLength(1);
@@ -340,10 +340,10 @@ describe('TrendIngestionHealthService', () => {
           input.organizationId === 'org-a'
             ? [
                 {
-                  completedAt: '2026-09-29T00:20:00.000Z',
+                  completedAt: '2026-09-30T00:25:00.000Z',
                   dataset: 'trends',
-                  lastAttemptAt: '2026-09-29T00:20:00.000Z',
-                  lastSuccessfulRefreshAt: '2026-09-29T00:20:00.000Z',
+                  lastAttemptAt: '2026-09-30T00:25:00.000Z',
+                  lastSuccessfulRefreshAt: '2026-09-30T00:25:00.000Z',
                   outcome: 'native_available',
                   platform: 'youtube',
                   reason: null,
@@ -353,7 +353,7 @@ describe('TrendIngestionHealthService', () => {
             : [],
         ),
     );
-    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect(scopedKeys()).toHaveLength(1);
   });
 
@@ -366,22 +366,22 @@ describe('TrendIngestionHealthService', () => {
     };
     prisma.credential.findMany.mockResolvedValue([credential]);
     health.getHealth.mockResolvedValue([]);
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     const outageKeys = () =>
       [...events.keys()].filter(
         (key) => key.includes('/scoped/missed/') && !key.endsWith('/recovered'),
       );
     expect(outageKeys()).toHaveLength(1);
     prisma.credential.findMany.mockResolvedValue([]);
-    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect(
       [...events.keys()].filter((key) => key.endsWith('/recovered')),
     ).toHaveLength(1);
     prisma.credential.findMany.mockResolvedValue([
-      { ...credential, createdAt: new Date('2026-09-29T13:00:00.000Z') },
+      { ...credential, createdAt: new Date('2026-10-01T01:45:00.000Z') },
     ]);
-    await service.checkMissedWindows(new Date('2026-09-30T12:15:00.000Z'));
-    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-03T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-04T00:15:00.000Z'));
     expect(outageKeys()).toHaveLength(2);
   });
 
@@ -394,11 +394,11 @@ describe('TrendIngestionHealthService', () => {
     };
     prisma.credential.findMany.mockResolvedValue([credential]);
     health.getHealth.mockResolvedValue([]);
-    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
-    prisma.credential.findMany.mockResolvedValue([]);
-    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
-    prisma.credential.findMany.mockResolvedValue([credential]);
     await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+    prisma.credential.findMany.mockResolvedValue([]);
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
+    prisma.credential.findMany.mockResolvedValue([credential]);
+    await service.checkMissedWindows(new Date('2026-10-02T00:15:00.000Z'));
     expect(
       [...events.keys()].filter(
         (key) => key.includes('/scoped/missed/') && !key.endsWith('/recovered'),
@@ -408,10 +408,10 @@ describe('TrendIngestionHealthService', () => {
 
   describe('while the global refresh is healthy', () => {
     const globalHealthy: TrendRefreshHealth = {
-      completedAt: '2026-09-30T00:00:00.000Z',
+      completedAt: '2026-10-01T23:45:00.000Z',
       dataset: 'trends',
-      lastAttemptAt: '2026-09-30T00:00:00.000Z',
-      lastSuccessfulRefreshAt: '2026-09-30T00:00:00.000Z',
+      lastAttemptAt: '2026-10-01T23:45:00.000Z',
+      lastSuccessfulRefreshAt: '2026-10-01T23:45:00.000Z',
       outcome: 'native_available',
       platform: 'youtube',
       reason: null,
@@ -429,7 +429,7 @@ describe('TrendIngestionHealthService', () => {
 
     it('alerts for tenant B failing after tenant A, and recovers each scope on its own', async () => {
       const { service, health, prisma, events, recorder } = setup();
-      const laterConnected = new Date('2026-09-28T12:15:00.000Z');
+      const laterConnected = new Date('2026-09-29T00:15:00.000Z');
       prisma.credential.findMany.mockResolvedValue([
         { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
         {
@@ -442,9 +442,9 @@ describe('TrendIngestionHealthService', () => {
         (input: { organizationId?: string } = {}) =>
           Promise.resolve(input.organizationId ? [] : [globalHealthy]),
       );
-      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
       expect(scopeKeys(events)).toHaveLength(1);
-      await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
       expect(scopeKeys(events)).toHaveLength(2);
       expect([...events.keys()].some((key) => key.includes('/scoped/'))).toBe(
         false,
@@ -463,7 +463,7 @@ describe('TrendIngestionHealthService', () => {
                 : [globalHealthy],
           ),
       );
-      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-02T00:15:00.000Z'));
       expect(
         [...events.keys()].filter((key) => key.endsWith('/recovered')),
       ).toHaveLength(1);
@@ -474,7 +474,7 @@ describe('TrendIngestionHealthService', () => {
             input.organizationId ? [scopedHealthy] : [globalHealthy],
           ),
       );
-      await service.checkMissedWindows(new Date('2026-09-30T12:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-03T00:15:00.000Z'));
       expect(
         [...events.keys()].filter((key) => key.endsWith('/recovered')),
       ).toHaveLength(2);
@@ -485,7 +485,7 @@ describe('TrendIngestionHealthService', () => {
       prisma.credential.findMany.mockResolvedValue([
         { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
         {
-          createdAt: new Date('2026-09-28T12:15:00.000Z'),
+          createdAt: new Date('2026-09-29T00:15:00.000Z'),
           organizationId: 'org-b',
           platform: 'YOUTUBE',
         },
@@ -495,8 +495,8 @@ describe('TrendIngestionHealthService', () => {
         (input: { organizationId?: string } = {}) =>
           Promise.resolve(input.organizationId ? [] : [globalHealthy]),
       );
-      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
-      await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
       expect(
         [...events.keys()].some((key) =>
           key.startsWith('trend-ingestion-health/youtube/videos/missed/'),
@@ -517,11 +517,11 @@ describe('TrendIngestionHealthService', () => {
         (input: { organizationId?: string } = {}) =>
           Promise.resolve(input.organizationId ? [] : [globalHealthy]),
       );
-      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
       expect(scopeKeys(events)).toHaveLength(1);
       // Global goes stale: scope folds into the aggregate incident.
       health.getHealth.mockResolvedValue([]);
-      await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-04T00:15:00.000Z'));
       const aggregate = () =>
         [...events.keys()].filter(
           (key) =>
@@ -542,12 +542,12 @@ describe('TrendIngestionHealthService', () => {
               : [
                   {
                     ...globalHealthy,
-                    lastSuccessfulRefreshAt: '2026-10-01T12:00:00.000Z',
+                    lastSuccessfulRefreshAt: '2026-10-04T23:45:00.000Z',
                   },
                 ],
           ),
       );
-      await service.checkMissedWindows(new Date('2026-10-01T12:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-10-05T00:15:00.000Z'));
       expect(
         [...events.keys()].filter(
           (key) => key.includes('/scoped/') && key.endsWith('/recovered'),

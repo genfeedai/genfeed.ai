@@ -1,4 +1,5 @@
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
+import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type {
   KnowledgeReceipt,
   KnowledgeRetrievalCitation,
@@ -15,6 +16,19 @@ export type BrandMemoryHit = {
   metadata?: Record<string, unknown> | null;
   relevance: number;
   source?: string | null;
+};
+
+/** Metadata stamped on every entry the winner promotion writes. */
+export const PERFORMANCE_WINNER_KIND = 'performance_winner';
+export const PERFORMANCE_WINNER_SOURCE = 'harness-winner-promotion';
+
+export type PerformanceWinnerHit = {
+  content: string;
+  engagementRate?: number;
+  /** Stable layer identity for the snapshot brief receipt. */
+  id: string;
+  platform?: string;
+  postId: string;
 };
 
 const HARNESS_KIND_BY_PURPOSE: Record<
@@ -102,12 +116,50 @@ function normalizeHarnessKind(
     case 'brand_example':
     case 'brand_voice':
     case 'evaluation_rubric':
-    case 'performance_winner':
+    case PERFORMANCE_WINNER_KIND:
     case 'persona_signal':
       return raw;
     default:
-      return 'performance_winner';
+      return PERFORMANCE_WINNER_KIND;
   }
+}
+
+/**
+ * A promoted performance winner carries no Knowledge citation — its evidence
+ * is the measured post it came from. Only entries the winner promotion wrote
+ * (kind, source and post id all present) qualify; any other uncited memory
+ * stays excluded from the immutable snapshot brief.
+ */
+export function readPerformanceWinnerHit(
+  hit: BrandMemoryHit,
+): PerformanceWinnerHit | null {
+  const metadata = hit.metadata ?? {};
+  const kind = hit.kind ?? metadata.kind;
+  const postId = typeof metadata.postId === 'string' ? metadata.postId : '';
+  const content = hit.content.trim();
+  const id = `performance-winner:${postId}`;
+  if (
+    hit.citation ||
+    kind !== PERFORMANCE_WINNER_KIND ||
+    metadata.source !== PERFORMANCE_WINNER_SOURCE ||
+    !content ||
+    !postId.trim() ||
+    !learningContractIdSchema.safeParse(id).success
+  ) {
+    return null;
+  }
+  return {
+    content: content.slice(0, 500),
+    ...(typeof metadata.engagementRate === 'number' &&
+    Number.isFinite(metadata.engagementRate)
+      ? { engagementRate: metadata.engagementRate }
+      : {}),
+    id,
+    ...(typeof metadata.platform === 'string'
+      ? { platform: metadata.platform }
+      : {}),
+    postId,
+  };
 }
 
 function isCitation(value: unknown): value is KnowledgeRetrievalCitation {
