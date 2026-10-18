@@ -4,7 +4,10 @@ import {
   type TagBulkAction,
   VoteEntityModel,
 } from '@genfeedai/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import {
+  API_ENDPOINTS,
+  WATERMARK_EXPORT_ERROR_NAME,
+} from '@genfeedai/contracts/constants';
 import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
@@ -56,6 +59,30 @@ type IngredientModelConstructorMap = {
   musics: typeof Music;
   ingredients: typeof Ingredient;
 };
+
+/**
+ * A `responseType: 'blob'` request buries the API's JSON error body inside a
+ * Blob, so the reason (for example "Configure a watermark in brand settings
+ * first") never reaches the caller. Unwrap it into the error message.
+ */
+async function readExportErrorDetail(error: unknown): Promise<string | null> {
+  if (!axios.isAxiosError(error)) return null;
+  const data: unknown = error.response?.data;
+  if (!(data instanceof Blob)) return null;
+  try {
+    const body: unknown = JSON.parse(await data.text());
+    if (typeof body !== 'object' || body === null) return null;
+    const { detail, errors, message } = body as {
+      detail?: unknown;
+      errors?: Array<{ detail?: unknown }>;
+      message?: unknown;
+    };
+    const reason = detail ?? errors?.[0]?.detail ?? message;
+    return typeof reason === 'string' && reason.trim() ? reason : null;
+  } catch {
+    return null;
+  }
+}
 
 /** The bulk tag endpoint answers plain JSON; tolerate a JSON API wrapper too. */
 function isBulkTagResult(
@@ -123,11 +150,20 @@ export class IngredientsService<
   }
 
   public async downloadWatermarked(id: string): Promise<void> {
-    const response = await this.instance.post<Blob>(
-      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/export-file`,
-      { watermark: true },
-      { responseType: 'blob', timeout: 600_000 },
-    );
+    let response: Awaited<ReturnType<typeof this.instance.post<Blob>>>;
+    try {
+      response = await this.instance.post<Blob>(
+        `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/export-file`,
+        { watermark: true },
+        { responseType: 'blob', timeout: 600_000 },
+      );
+    } catch (error) {
+      const detail = await readExportErrorDetail(error);
+      if (!detail) throw error;
+      const exportError = new Error(detail, { cause: error });
+      exportError.name = WATERMARK_EXPORT_ERROR_NAME;
+      throw exportError;
+    }
     const header = response.headers?.['content-disposition'];
     saveDownloadBlob(
       response.data,
