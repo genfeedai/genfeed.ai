@@ -26,7 +26,11 @@ import {
   formatHarnessBrief,
   type PersonaSource,
 } from '@api/services/harness/harness-brief.util';
-import { brandMemoryHitsToHarnessSources } from '@api/services/harness/harness-context-sources.util';
+import {
+  brandMemoryHitsToHarnessSources,
+  type PerformanceWinnerHit,
+  readPerformanceWinnerHit,
+} from '@api/services/harness/harness-context-sources.util';
 import {
   retrieveSelectedKnowledge,
   SELECTED_KNOWLEDGE_PASSAGE_BUDGET,
@@ -135,6 +139,43 @@ function captureSnapshotBriefResolution(
   ]);
   const result = compileSnapshotBriefResolution(...args);
   return [result, result.status === 'resolved' ? recipe : null];
+}
+
+/**
+ * A promoted winner rides the knowledge layer with its measured post as the
+ * identity, so branded generation sees what performed instead of dropping it
+ * for lacking a Knowledge citation. The content stays untrusted brand data.
+ */
+function performanceWinnerStage(
+  winner: PerformanceWinnerHit,
+): SnapshotContextStage {
+  return [
+    {
+      kind: 'knowledge',
+      id: winner.id,
+      status: 'not_applicable',
+      evidenceIds: [],
+      omittedIds: [],
+    },
+    [
+      {
+        header: '',
+        content: JSON.stringify({
+          content: winner.content,
+          performanceWinner: {
+            postId: winner.postId,
+            ...(winner.platform ? { platform: winner.platform } : {}),
+            ...(winner.engagementRate !== undefined
+              ? { engagementRate: winner.engagementRate }
+              : {}),
+          },
+        }),
+        untrusted: true,
+        isAtomic: true,
+      },
+    ],
+    [[winner.id]],
+  ];
 }
 
 /**
@@ -567,6 +608,12 @@ export class HarnessGenerationService {
         learningContractIdSchema.safeParse(citation.versionId).success &&
         learningContractIdSchema.safeParse(citation.sourceId).success;
       if (!valid || (explicit && !sourceIds.includes(citation.sourceId))) {
+        const winner = explicit ? null : readPerformanceWinnerHit(hit);
+        if (winner) {
+          if (!groups.has(winner.id))
+            groups.set(winner.id, performanceWinnerStage(winner));
+          continue;
+        }
         if (explicit) return unavailable();
         omitted = true;
         continue;

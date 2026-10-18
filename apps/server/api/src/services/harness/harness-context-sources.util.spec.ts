@@ -1,6 +1,7 @@
 import {
   brandMemoryHitsToHarnessSources,
   collectKnowledgeReceipts,
+  readPerformanceWinnerHit,
 } from '@api/services/harness/harness-context-sources.util';
 import {
   KnowledgeSourceKind,
@@ -96,5 +97,46 @@ describe('brandMemoryHitsToHarnessSources', () => {
       { ...citation, excerpt: 'Plans start at $29', relevance: 0.9 },
     ]);
     expect(collectKnowledgeReceipts(undefined)).toEqual([]);
+  });
+});
+
+describe('readPerformanceWinnerHit', () => {
+  const metadata = {
+    engagementRate: 6,
+    kind: 'performance_winner',
+    platform: 'instagram',
+    postId: 'post-1',
+    source: 'harness-winner-promotion',
+  };
+
+  it('reads a promoted winner with its post identity', () => {
+    expect(
+      readPerformanceWinnerHit({
+        content: '  Winning post: Show the craft  ',
+        metadata,
+        relevance: 0.9,
+      }),
+    ).toEqual({
+      content: 'Winning post: Show the craft',
+      engagementRate: 6,
+      id: 'performance-winner:post-1',
+      platform: 'instagram',
+      postId: 'post-1',
+    });
+  });
+
+  it.each([
+    ['another source', { ...metadata, source: 'manual' }],
+    ['no post id', { ...metadata, postId: undefined }],
+    ['a control character in the post id', { ...metadata, postId: 'p\u0000' }],
+    ['another kind', { ...metadata, kind: 'brand_voice' }],
+  ])('rejects an entry with %s', (_label, candidate) => {
+    expect(
+      readPerformanceWinnerHit({
+        content: 'Winning post',
+        metadata: candidate,
+        relevance: 0.9,
+      }),
+    ).toBeNull();
   });
 });
