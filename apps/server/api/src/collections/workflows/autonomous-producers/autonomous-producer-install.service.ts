@@ -1,8 +1,10 @@
 import type { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { SYSTEM_WORKFLOW_CATALOG } from '@api/collections/workflows/workflows.tokens';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -18,9 +20,17 @@ export const AUTONOMOUS_PRODUCER_TEMPLATES = {
 
 export type AutonomousProducer = keyof typeof AUTONOMOUS_PRODUCER_TEMPLATES;
 
+/** The roles `POST /workflows` requires to install a system-catalog workflow. */
+const PRODUCER_INSTALL_ROLES: readonly MemberRole[] = [
+  MemberRole.OWNER,
+  MemberRole.ADMIN,
+  MemberRole.CREATOR,
+];
+
 export type AutonomousProducerInstallOutcome =
   | 'installed'
   | 'kept'
+  | 'unauthorized'
   | 'unavailable';
 
 /**
@@ -31,6 +41,8 @@ export type AutonomousProducerInstallOutcome =
  * Any existing row for the template, including a paused or soft-deleted one,
  * is the tenant's own control and is kept exactly as it is, never re-enabled.
  * A failed install is logged and never fails the opt-in that triggered it.
+ * Only a principal allowed to install catalog workflows directly (owner,
+ * admin or creator) installs them; anyone else's opt-in saves without one.
  */
 @Injectable()
 export class AutonomousProducerInstallService {
@@ -48,7 +60,15 @@ export class AutonomousProducerInstallService {
     producer: AutonomousProducer;
   }): Promise<Record<string, AutonomousProducerInstallOutcome>> {
     const outcomes: Record<string, AutonomousProducerInstallOutcome> = {};
+    const canInstall = await this.canInstallCatalogWorkflows(
+      input.organizationId,
+      input.principal,
+    );
     for (const canonicalId of AUTONOMOUS_PRODUCER_TEMPLATES[input.producer]) {
+      if (!canInstall) {
+        outcomes[canonicalId] = 'unauthorized';
+        continue;
+      }
       outcomes[canonicalId] = await this.installTemplate(
         canonicalId,
         input.organizationId,
@@ -56,6 +76,26 @@ export class AutonomousProducerInstallService {
       );
     }
     return outcomes;
+  }
+
+  private async canInstallCatalogWorkflows(
+    organizationId: string,
+    principal: WorkflowSchedulePrincipal,
+  ): Promise<boolean> {
+    const member = await this.prisma.member.findFirst({
+      select: { role: { select: { key: true } } },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId,
+        userId: principal.userId,
+      },
+    });
+    const roleKey = member?.role?.key as MemberRole | undefined;
+    if (!roleKey) return false;
+    return PRODUCER_INSTALL_ROLES.includes(
+      resolveApiKeyEffectiveMemberRole(principal, roleKey),
+    );
   }
 
   private async installTemplate(

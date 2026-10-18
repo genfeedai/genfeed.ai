@@ -3,12 +3,22 @@ import {
   AutonomousProducerInstallService,
 } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import { SYSTEM_WORKFLOW_CATALOG } from '@api/collections/workflows/workflows.tokens';
+import { MemberRole } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 const principal = { organizationId: 'org-1', userId: 'user-1' };
 
-function setup(options: { hasCatalog?: boolean } = {}) {
-  const prisma = { workflow: { findFirst: vi.fn().mockResolvedValue(null) } };
+function setup(options: { hasCatalog?: boolean; role?: MemberRole } = {}) {
+  const prisma = {
+    member: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({
+          role: { key: options.role ?? MemberRole.CREATOR },
+        }),
+    },
+    workflow: { findFirst: vi.fn().mockResolvedValue(null) },
+  };
   const catalog = { install: vi.fn().mockResolvedValue({ id: 'workflow-1' }) };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const moduleRef = {
@@ -73,6 +83,45 @@ describe('AutonomousProducerInstallService', () => {
         organizationId: 'org-1',
       },
     });
+  });
+
+  it('installs nothing for a member who cannot install catalog workflows', async () => {
+    const s = setup({ role: MemberRole.USER });
+
+    const outcomes = await s.service.installOnOptIn({
+      organizationId: 'org-1',
+      principal,
+      producer: 'campaigns',
+    });
+
+    expect(outcomes).toEqual({
+      'agent-campaign-orchestration': 'unauthorized',
+      'agent-campaign-trigger-evaluation': 'unauthorized',
+    });
+    expect(s.catalog.install).not.toHaveBeenCalled();
+    expect(s.prisma.member.findFirst).toHaveBeenCalledWith({
+      select: { role: { select: { key: true } } },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    });
+  });
+
+  it('installs nothing for a principal with no active membership', async () => {
+    const s = setup();
+    s.prisma.member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      s.service.installOnOptIn({
+        organizationId: 'org-1',
+        principal,
+        producer: 'contentEngine',
+      }),
+    ).resolves.toEqual({ 'content-engine-production': 'unauthorized' });
+    expect(s.catalog.install).not.toHaveBeenCalled();
   });
 
   it('never fails the opt-in when the install cannot happen', async () => {
