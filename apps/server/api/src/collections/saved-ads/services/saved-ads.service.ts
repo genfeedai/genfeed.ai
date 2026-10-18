@@ -16,7 +16,7 @@ import type {
   UnsaveSavedAdInput,
   UpdateSavedAdNoteInput,
 } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, type SavedAd, toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_SAVE_CONCURRENCY = 4;
@@ -224,14 +224,7 @@ export class SavedAdsService {
     };
 
     if (existingSnapshot) {
-      return this.prisma.savedAd.update({
-        data: { ...data, userId: existingSnapshot.userId },
-        where: scopedWhere(organizationId, {
-          brandId: input.brandId,
-          id: existingSnapshot.id,
-          isDeleted: true,
-        }),
-      });
+      return this.restoreSnapshot(existingSnapshot, data);
     }
     try {
       return await this.prisma.savedAd.create({ data });
@@ -251,15 +244,43 @@ export class SavedAdsService {
         });
         if (winner && !winner.isDeleted) return winner;
         if (winner) {
-          return this.prisma.savedAd.update({
-            data: { ...data, userId: winner.userId },
-            where: scopedWhere(organizationId, {
-              brandId: input.brandId,
-              id: winner.id,
-              isDeleted: true,
-            }),
-          });
+          return this.restoreSnapshot(winner, data);
         }
+      }
+      throw error;
+    }
+  }
+
+  private async restoreSnapshot(
+    existing: Pick<SavedAd, 'id' | 'userId'>,
+    data: Prisma.SavedAdUncheckedCreateInput,
+  ) {
+    try {
+      return await this.prisma.savedAd.update({
+        data: { ...data, userId: existing.userId },
+        where: scopedWhere(data.organizationId, {
+          brandId: data.brandId,
+          id: existing.id,
+          isDeleted: true,
+        }),
+      });
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'P2025'
+      ) {
+        const winner = await this.prisma.savedAd.findFirst({
+          where: {
+            brandId: data.brandId,
+            isDeleted: false,
+            organizationId: data.organizationId,
+            platform: data.platform,
+            sourceAdId: data.sourceAdId,
+          },
+        });
+        if (winner && !winner.isDeleted) return winner;
       }
       throw error;
     }

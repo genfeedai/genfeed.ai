@@ -2,6 +2,7 @@ import type { AdsResearchService } from '@api/endpoints/ads-research/ads-researc
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SavedAdsService } from './saved-ads.service';
 
@@ -348,6 +349,246 @@ describe('SavedAdsService', () => {
     expect(
       (prisma.savedAd.update as ReturnType<typeof vi.fn>).mock.calls[0][0].data,
     ).not.toHaveProperty('note');
+  });
+
+  describe.each([
+    { afterCreateConflict: false, path: 'existing tombstone' },
+    { afterCreateConflict: true, path: 'unique-create recovery tombstone' },
+  ])('$path restoration', ({ afterCreateConflict }) => {
+    const input = {
+      adId: 'client-record',
+      brandId: 'brand-1',
+      platform: AdsPlatform.GOOGLE,
+      source: 'public',
+    } as const;
+    const tombstone = {
+      brandId: 'brand-1',
+      id: 'saved-1',
+      isDeleted: true,
+      note: 'Keep the original note',
+      organizationId: 'org-1',
+      platform: AdsPlatform.META,
+      sourceAdId: 'canonical-source',
+      userId: 'original-owner',
+    };
+    const winner = {
+      ...tombstone,
+      capturedAt: new Date('2026-10-01T12:00:00Z'),
+      isDeleted: false,
+      metrics: { impressions: 123 },
+      title: 'Persisted winner metadata',
+    };
+    const activeWhere = {
+      brandId: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      platform: AdsPlatform.META,
+      sourceAdId: 'canonical-source',
+    };
+    const restoreError = Object.assign(new Error('Snapshot changed'), {
+      code: 'P2025',
+    });
+
+    beforeEach(() => {
+      adsResearch.getAdDetail.mockResolvedValue({
+        body: 'Creative from the losing request',
+        explanation: 'Provider detail',
+        id: 'server-record',
+        metrics: {},
+        platform: AdsPlatform.META,
+        sourceId: 'canonical-source',
+        title: 'Newly fetched metadata',
+        usagePolicy: 'remix_allowed',
+      });
+      (prisma.savedAd.create as ReturnType<typeof vi.fn>).mockRejectedValue(
+        Object.assign(new Error('Identity already exists'), { code: 'P2002' }),
+      );
+    });
+
+    it.each(['separate requests', 'duplicate batch'] as const)(
+      'returns the concurrent active winner for %s',
+      async (mode) => {
+        let initialReads = 0;
+        let tombstoneReads = 0;
+        let restoreWrites = 0;
+        let releaseTombstones = () => {};
+        const tombstonesReady = new Promise<void>((resolve) => {
+          releaseTombstones = resolve;
+        });
+        (
+          prisma.savedAd.findFirst as ReturnType<typeof vi.fn>
+        ).mockImplementation(async ({ where }: Prisma.SavedAdFindFirstArgs) => {
+          if (where?.isDeleted === false) {
+            expect(where).toEqual(activeWhere);
+            return winner;
+          }
+          expect(where).toEqual({
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            OR: [{ isDeleted: false }, { isDeleted: true }],
+            platform: AdsPlatform.META,
+            sourceAdId: 'canonical-source',
+          });
+          if (afterCreateConflict && initialReads++ < 2) return null;
+          tombstoneReads += 1;
+          if (tombstoneReads === 2) releaseTombstones();
+          await tombstonesReady;
+          return tombstone;
+        });
+        (prisma.savedAd.update as ReturnType<typeof vi.fn>).mockImplementation(
+          async ({ data, where }: Prisma.SavedAdUpdateArgs) => {
+            expect(tombstoneReads).toBe(2);
+            expect(where).toEqual({
+              brandId: 'brand-1',
+              id: 'saved-1',
+              isDeleted: true,
+              organizationId: 'org-1',
+            });
+            expect(data.userId).toBe('original-owner');
+            expect(data).not.toHaveProperty('note');
+            restoreWrites += 1;
+            if (restoreWrites === 1) return winner;
+            throw restoreError;
+          },
+        );
+
+        const result =
+          mode === 'duplicate batch'
+            ? await service.saveMany('org-1', 'new-owner', [input, input])
+            : (
+                await Promise.all([
+                  service.saveMany('org-1', 'new-owner-a', [input]),
+                  service.saveMany('org-1', 'new-owner-b', [input]),
+                ])
+              ).flat();
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toBe(winner);
+        expect(result[1]).toBe(winner);
+        expect(result[1]).toMatchObject({
+          capturedAt: winner.capturedAt,
+          metrics: winner.metrics,
+          note: 'Keep the original note',
+          title: 'Persisted winner metadata',
+          userId: 'original-owner',
+        });
+        expect(prisma.savedAd.findFirst).toHaveBeenCalledTimes(
+          afterCreateConflict ? 5 : 3,
+        );
+        expect(prisma.savedAd.update).toHaveBeenCalledTimes(2);
+        expect(prisma.savedAd.create).toHaveBeenCalledTimes(
+          afterCreateConflict ? 2 : 0,
+        );
+        expect(prisma.brand.findMany).toHaveBeenCalledTimes(
+          mode === 'duplicate batch' ? 1 : 2,
+        );
+        expect(prisma.credential.findMany).not.toHaveBeenCalled();
+        expect(adsResearch.getAdDetail).toHaveBeenCalledTimes(2);
+        expect(files.uploadToS3).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      { candidate: null, reason: 'absent' },
+      { candidate: { ...winner, isDeleted: true }, reason: 'still deleted' },
+      {
+        candidate: { ...winner, organizationId: 'other-org' },
+        reason: 'other organization',
+      },
+      {
+        candidate: { ...winner, brandId: 'other-brand' },
+        reason: 'other brand',
+      },
+      {
+        candidate: { ...winner, platform: AdsPlatform.GOOGLE },
+        reason: 'client platform',
+      },
+      {
+        candidate: { ...winner, sourceAdId: 'client-record' },
+        reason: 'client identity',
+      },
+    ])(
+      'rethrows the original restore failure when the winner is $reason',
+      async ({ candidate }) => {
+        const findFirst = prisma.savedAd.findFirst as ReturnType<typeof vi.fn>;
+        if (afterCreateConflict) findFirst.mockResolvedValueOnce(null);
+        findFirst
+          .mockResolvedValueOnce(tombstone)
+          .mockImplementationOnce(({ where }: Prisma.SavedAdFindFirstArgs) => {
+            expect(where).toEqual(activeWhere);
+            return candidate &&
+              candidate.organizationId === where?.organizationId &&
+              candidate.brandId === where.brandId &&
+              candidate.platform === where.platform &&
+              candidate.sourceAdId === where.sourceAdId &&
+              candidate.isDeleted === where.isDeleted
+              ? candidate
+              : null;
+          });
+        (prisma.savedAd.update as ReturnType<typeof vi.fn>).mockRejectedValue(
+          restoreError,
+        );
+
+        await expect(
+          service.saveMany('org-1', 'new-owner', [input]),
+        ).rejects.toBe(restoreError);
+
+        expect(findFirst).toHaveBeenLastCalledWith({ where: activeWhere });
+        expect(findFirst).toHaveBeenCalledTimes(afterCreateConflict ? 3 : 2);
+        expect(prisma.savedAd.update).toHaveBeenCalledOnce();
+        expect(adsResearch.getAdDetail).toHaveBeenCalledOnce();
+        expect(files.uploadToS3).not.toHaveBeenCalled();
+      },
+    );
+
+    it('propagates non-P2025 update errors without a winner lookup', async () => {
+      const failure = Object.assign(new Error('Connection failed'), {
+        code: 'P1001',
+      });
+      const findFirst = prisma.savedAd.findFirst as ReturnType<typeof vi.fn>;
+      if (afterCreateConflict) findFirst.mockResolvedValueOnce(null);
+      findFirst.mockResolvedValueOnce(tombstone);
+      (prisma.savedAd.update as ReturnType<typeof vi.fn>).mockRejectedValue(
+        failure,
+      );
+
+      await expect(
+        service.saveMany('org-1', 'new-owner', [input]),
+      ).rejects.toBe(failure);
+
+      expect(findFirst).toHaveBeenCalledTimes(afterCreateConflict ? 2 : 1);
+    });
+
+    it('propagates a failed winner query instead of reporting success', async () => {
+      const failure = new Error('Winner query failed');
+      const findFirst = prisma.savedAd.findFirst as ReturnType<typeof vi.fn>;
+      if (afterCreateConflict) findFirst.mockResolvedValueOnce(null);
+      findFirst.mockResolvedValueOnce(tombstone).mockRejectedValueOnce(failure);
+      (prisma.savedAd.update as ReturnType<typeof vi.fn>).mockRejectedValue(
+        restoreError,
+      );
+
+      await expect(
+        service.saveMany('org-1', 'new-owner', [input]),
+      ).rejects.toBe(failure);
+
+      expect(findFirst).toHaveBeenLastCalledWith({ where: activeWhere });
+    });
+
+    it('keeps successful restoration at its existing read count', async () => {
+      const findFirst = prisma.savedAd.findFirst as ReturnType<typeof vi.fn>;
+      if (afterCreateConflict) findFirst.mockResolvedValueOnce(null);
+      findFirst.mockResolvedValueOnce(tombstone);
+      (prisma.savedAd.update as ReturnType<typeof vi.fn>).mockResolvedValue(
+        winner,
+      );
+
+      const [result] = await service.saveMany('org-1', 'new-owner', [input]);
+
+      expect(result).toBe(winner);
+      expect(findFirst).toHaveBeenCalledTimes(afterCreateConflict ? 2 : 1);
+      expect(prisma.savedAd.update).toHaveBeenCalledOnce();
+    });
   });
 
   it('returns the concurrent winner after a unique-key race', async () => {
