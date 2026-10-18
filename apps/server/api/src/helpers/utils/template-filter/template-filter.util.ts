@@ -59,6 +59,7 @@ export const TemplateFilterUtil = {
       platforms?: string | string[];
       scope?: string;
       isFeatured?: string | boolean;
+      includeSystem?: string | boolean;
       search?: string;
       sort?: 'popular';
       limit?: number;
@@ -117,6 +118,13 @@ export const TemplateFilterUtil = {
     if (query.isFeatured !== undefined) {
       filters.isFeatured = TemplateFilterUtil.parseFeaturedFilter(
         query.isFeatured,
+      );
+    }
+
+    // Platform templates alongside the organization's own
+    if (query.includeSystem !== undefined) {
+      filters.includeSystem = TemplateFilterUtil.parseFeaturedFilter(
+        query.includeSystem,
       );
     }
 

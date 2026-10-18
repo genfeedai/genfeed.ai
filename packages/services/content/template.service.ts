@@ -54,6 +54,10 @@ export class TemplateService extends BaseService<IContentTemplate> {
           params.scope = filter.scope.toString();
         }
 
+        if (filter.includeSystem !== undefined) {
+          params.includeSystem = filter.includeSystem.toString();
+        }
+
         if (filter.search) {
           params.search = filter.search;
         }

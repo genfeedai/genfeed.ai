@@ -108,5 +108,17 @@ describe('TemplateFilterUtil', () => {
         TemplateFilterUtil.buildTemplateFilters({ isFeatured: false }),
       ).toMatchObject({ isFeatured: false });
     });
+
+    it('parses includeSystem from the query string', () => {
+      expect(
+        TemplateFilterUtil.buildTemplateFilters({ includeSystem: 'true' }),
+      ).toMatchObject({ includeSystem: true });
+      expect(
+        TemplateFilterUtil.buildTemplateFilters({ includeSystem: 'false' }),
+      ).toMatchObject({ includeSystem: false });
+      expect(TemplateFilterUtil.buildTemplateFilters({})).not.toHaveProperty(
+        'includeSystem',
+      );
+    });
   });
 });

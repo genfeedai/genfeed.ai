@@ -1,5 +1,6 @@
 import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
+import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import { ReferenceDataSyncService } from '@api/seeds/reference-data-sync.service';
 import { SkillCatalogSeedService } from '@api/seeds/skill-catalog-seed.service';
 import { StudioElementSeedService } from '@api/seeds/studio-element-seed.service';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     ModelCatalogSeedService,
+    PlatformTemplateSeedService,
     ReferenceDataSyncService,
     SkillCatalogSeedService,
     StudioElementSeedService,

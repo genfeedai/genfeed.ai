@@ -71,4 +71,26 @@ describe('TemplateDetail shell-first loading', () => {
     expect(screen.getByTestId('template-detail-shell')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Template' })).toBeVisible();
   });
+
+  it('renders a seeded system template written in the API shape', async () => {
+    mocks.getTemplate.mockResolvedValueOnce({
+      category: 'video',
+      content: '{{{prompt}}}',
+      description: 'Default video prompt',
+      id: 'template-1',
+      isActive: true,
+      key: 'content.video.default',
+      label: 'Video default',
+      variables: null,
+    });
+
+    render(<TemplateDetail templateId="template-1" />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Video default' }),
+    ).toBeVisible();
+    expect(screen.getByText('content.video.default')).toBeVisible();
+    expect(screen.getByText('{{{prompt}}}')).toBeVisible();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
 });

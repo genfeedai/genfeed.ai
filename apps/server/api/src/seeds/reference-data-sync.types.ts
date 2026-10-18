@@ -1,5 +1,6 @@
 export type ReferenceDataDomainName =
   | 'models'
+  | 'platform-templates'
   | 'rates'
   | 'skills'
   | 'studio-presets'
