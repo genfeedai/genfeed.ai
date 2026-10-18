@@ -80,6 +80,7 @@ export default function ReviewQueueView({
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
   const translate = useTranslations('pages.publishing.review.approvalQueue');
+  const translateInbox = useTranslations('pages.publishing.review.inbox');
   // Rows the operator tapped, as opposed to the first item the queue picks
   // for them: only a tap opens the mobile drawer, and every tap reveals it.
   const [rowTap, setRowTap] = useState<{
@@ -207,7 +208,30 @@ export default function ReviewQueueView({
     <ReviewInboxApprovalsSection approvals={approvals} />
   );
 
+  // An error, a missing deep-linked row or a row to decide all render in the
+  // approvals section; with none of them it would render nothing.
+  const hasApprovalsContent =
+    approvals.items.length > 0 ||
+    approvals.isHighlightedItemMissing ||
+    approvals.error !== null;
+
   if (!isTurboQueueVisible) {
+    if (approvals.isLoading) {
+      return <Loading />;
+    }
+    if (!hasApprovalsContent) {
+      return (
+        <Card
+          variant={CardVariant.DEFAULT}
+          icon={ClipboardCheck}
+          label={translateInbox('emptyFilteredTitle')}
+          description={translateInbox('emptyFilteredDescription')}
+          bodyClassName="items-center py-12 text-center"
+          iconWrapperClassName="bg-muted text-muted-foreground"
+          className="max-w-xl mx-auto"
+        />
+      );
+    }
     return approvalsSection;
   }
 
@@ -232,7 +256,10 @@ export default function ReviewQueueView({
   }
 
   if (turboRunList.length === 0) {
-    if (approvals.items.length > 0 || approvals.isHighlightedItemMissing) {
+    if (approvals.isLoading) {
+      return <Loading />;
+    }
+    if (hasApprovalsContent) {
       return approvalsSection;
     }
     return (

@@ -407,6 +407,40 @@ export class McpApprovalsService extends BaseService<
     });
   }
 
+  /**
+   * Record the outcome of an execution the caller ran. The same actors who may
+   * claim an approval may record its outcome: an owner or admin, or the
+   * requester redeeming one a reviewer granted in the app. A requester may only
+   * write the outcome of a run that was actually claimed.
+   */
+  async attachResultForActor(
+    id: string,
+    organizationId: string,
+    userId: string,
+    isReviewer: boolean,
+    result: Record<string, unknown>,
+  ): Promise<void> {
+    const approval = await this.findOwned(id, organizationId);
+    if (isReviewer) {
+      await this.attachResult(id, organizationId, result);
+      return;
+    }
+    if (approval.userId !== userId) {
+      throw new ForbiddenException(
+        'Only the requester or an organization owner or admin can record this result',
+      );
+    }
+    await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        status: McpApprovalStatus.APPROVED,
+        executionClaimedAt: { not: null },
+        result: { equals: Prisma.DbNull },
+      }),
+      data: { executedAt: new Date(), result },
+    });
+  }
+
   async findOwned(
     id: string,
     organizationId: string,

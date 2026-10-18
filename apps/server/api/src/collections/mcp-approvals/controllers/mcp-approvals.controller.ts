@@ -193,17 +193,11 @@ export class McpApprovalsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<{ data: { id: string; isClaimed: boolean } }> {
-    const isReviewer = await this.rolesGuard
-      .assertRoles(Object.assign(req, { user }), [
-        MemberRole.OWNER,
-        MemberRole.ADMIN,
-      ])
-      .catch(() => false);
     const isClaimed = await this.service.claimExecutionForActor(
       id,
       user.organizationId,
       user.userId ?? user.id,
-      isReviewer,
+      await this.isReviewer(req, user),
     );
     return { data: { id, isClaimed } };
   }
@@ -211,18 +205,26 @@ export class McpApprovalsController {
   @Post(':id/result')
   @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({
     summary: 'Attach the execution result to an approved MCP approval',
   })
   @ApiResponse({ description: 'Result attached', status: HttpStatus.OK })
   async attachResult(
+    @Req() req: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: AttachMcpApprovalResultDto,
   ): Promise<{ data: McpApprovalResponse }> {
     const organization = user.organizationId;
-    await this.service.attachResult(id, organization, dto.result);
+    // Whoever may claim the run may record its outcome (#7340): otherwise a
+    // requester's inbox-approved run stays claimed with no result forever.
+    await this.service.attachResultForActor(
+      id,
+      organization,
+      user.userId ?? user.id,
+      await this.isReviewer(req, user),
+      dto.result,
+    );
 
     const approval = await this.service.findOne(
       scopedWhere(organization, { id }),
@@ -233,5 +235,14 @@ export class McpApprovalsController {
     }
 
     return { data: this.toResponse(approval) };
+  }
+
+  private isReviewer(req: Request, user: User): Promise<boolean> {
+    return this.rolesGuard
+      .assertRoles(Object.assign(req, { user }), [
+        MemberRole.OWNER,
+        MemberRole.ADMIN,
+      ])
+      .catch(() => false);
   }
 }

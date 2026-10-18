@@ -39,7 +39,6 @@ export function ReviewGateCard({
   const items = (action.items ?? []) as ReviewItem[];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
-  const [submittedCount, setSubmittedCount] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [partialCount, setPartialCount] = useState(0);
@@ -86,7 +85,6 @@ export function ReviewGateCard({
           );
           landed.push(id);
         }
-        setSubmittedCount(ids.length);
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
         setPartialCount(landed.length);
@@ -109,13 +107,16 @@ export function ReviewGateCard({
   const handleApprove = useCallback(() => submit('approve'), [submit]);
   const handleReject = useCallback(() => submit('reject'), [submit]);
 
-  if (submittedCount !== null) {
+  // Done only once every item has a decision; until then the card stays open
+  // and counts every item resolved so far, across batches.
+  const resolvedCount = resolvedIds.size;
+  if (resolvedCount > 0 && pendingItems.length === 0) {
     return (
       <div className="border border-success/20  bg-success/10  p-4 my-2">
         <div className="flex items-center gap-2 text-success ">
           <Check className="size-5" />
           <span className="text-sm font-medium">
-            {translate('submitted', { count: submittedCount })}
+            {translate('submitted', { count: resolvedCount })}
           </span>
         </div>
       </div>
@@ -177,6 +178,12 @@ export function ReviewGateCard({
           </label>
         ))}
       </div>
+
+      {resolvedCount > 0 && !error && (
+        <p className="text-xs text-success mt-3" role="status">
+          {translate('submitted', { count: resolvedCount })}
+        </p>
+      )}
 
       {pendingItems.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">

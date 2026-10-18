@@ -4,6 +4,11 @@ import type {
   ReviewInboxItemSource,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { ReviewInboxApprovalsState } from '@props/publishing/review-inbox-approvals.props';
 import { ReviewInboxService } from '@services/content/review-inbox.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
@@ -13,8 +18,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
-
-export const REVIEW_INBOX_QUERY_KEY = ['review-inbox'] as const;
 
 /** Turbo run drafts are agent work, so they show for the Agent source. */
 export function isAgentSourceVisible(
@@ -42,6 +45,9 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
   const getReviewInboxService = useAuthedService((token: string) =>
     ReviewInboxService.getInstance(token),
   );
+  const collectionScope = useCollectionScope();
+  const { brandId, organizationId } = collectionScope;
+  const isScopeReady = isCollectionFetchReady(collectionScope);
   const highlightedItemId = useSearchParams().get('approval');
   const [sourceFilters, setSourceFilters] = useState<ReviewInboxItemSource[]>(
     [],
@@ -51,16 +57,19 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
   const {
     data: rawItems,
     error,
-    isLoading,
+    isLoading: isQueryLoading,
     refetch,
   } = useQuery({
+    enabled: isScopeReady,
     queryFn: async ({ signal }) => {
       const service = await getReviewInboxService();
-      return service.getPendingItems(signal);
+      return service.getPendingItems(toBrandListParams({ brandId }), signal);
     },
-    queryKey: REVIEW_INBOX_QUERY_KEY,
+    // The page's own org and brand, so a brand switch never shows a stale inbox.
+    queryKey: ['review-inbox', organizationId, brandId],
   });
 
+  const isLoading = !isScopeReady || isQueryLoading;
   const data = useMemo(
     () => (Array.isArray(rawItems) ? rawItems : []),
     [rawItems],

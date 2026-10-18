@@ -19,7 +19,11 @@ import {
   type IReviewInboxItem,
   type IReviewInboxItemPreview,
 } from '@genfeedai/contracts/interfaces';
-import { McpApprovalStatus, WorkflowExecutionStatus } from '@genfeedai/prisma';
+import {
+  McpApprovalStatus,
+  Prisma,
+  WorkflowExecutionStatus,
+} from '@genfeedai/prisma';
 import {
   isRecord,
   readNonBlankStringOrNull as readString,
@@ -211,6 +215,14 @@ export class ReviewInboxService {
       take: REVIEW_INBOX_SOURCE_LIMIT,
       where: scopedWhere(organizationId, {
         completedAt: null,
+        // Only runs paused at a gate, so other RUNNING runs never use up the
+        // cap; the parse below still validates what the gate recorded.
+        NOT: {
+          result: {
+            equals: Prisma.AnyNull,
+            path: ['metadata', 'pendingApproval', 'nodeId'],
+          },
+        },
         status: WorkflowExecutionStatus.RUNNING,
         workflow: {
           is: {

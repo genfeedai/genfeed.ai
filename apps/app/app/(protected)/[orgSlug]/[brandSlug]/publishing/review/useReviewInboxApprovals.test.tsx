@@ -14,8 +14,24 @@ const fixture = vi.hoisted(() => ({
   getPendingItems: vi.fn(),
   notificationError: vi.fn(),
   notificationSuccess: vi.fn(),
+  scope: {
+    brandId: 'brand-1' as string | undefined,
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand' as 'brand' | 'org',
+  },
   searchParams: new URLSearchParams(),
 }));
+
+vi.mock(
+  '@hooks/navigation/use-collection-scope/use-collection-scope',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@hooks/navigation/use-collection-scope/use-collection-scope')
+    >()),
+    useCollectionScope: () => fixture.scope,
+  }),
+);
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
@@ -107,6 +123,12 @@ describe('useReviewInboxApprovals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     fixture.searchParams = new URLSearchParams();
+    fixture.scope = {
+      brandId: 'brand-1',
+      isReady: true,
+      organizationId: 'org-1',
+      pageScope: 'brand',
+    };
     fixture.getPendingItems.mockResolvedValue([gate, approval]);
     fixture.decide.mockResolvedValue({ status: 'approved' });
   });
@@ -118,11 +140,28 @@ describe('useReviewInboxApprovals', () => {
 
     await waitFor(() => expect(result.current.items).toHaveLength(2));
     expect(fixture.getPendingItems).toHaveBeenCalledWith(
+      { brandId: 'brand-1' },
       expect.any(AbortSignal),
     );
 
     act(() => result.current.onSourceFilterChange(['workflow']));
     expect(result.current.items).toEqual([gate]);
+  });
+
+  it('waits for the page brand before loading the inbox', async () => {
+    fixture.scope = {
+      brandId: undefined,
+      isReady: true,
+      organizationId: 'org-1',
+      pageScope: 'brand',
+    };
+    const { result } = renderHook(() => useReviewInboxApprovals(), {
+      wrapper,
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    await Promise.resolve();
+    expect(fixture.getPendingItems).not.toHaveBeenCalled();
   });
 
   it('resolves one row, tells MCP reviewers the client still has to run it, and reloads', async () => {

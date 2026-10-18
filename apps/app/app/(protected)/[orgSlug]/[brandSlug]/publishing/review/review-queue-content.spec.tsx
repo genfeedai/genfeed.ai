@@ -371,6 +371,8 @@ describe('ReviewQueueContent', () => {
     searchParamsState.delete('item');
     mocks.approvals.items = [];
     mocks.approvals.sourceFilters = [];
+    mocks.approvals.error = null;
+    mocks.approvals.isLoading = false;
   });
 
   function mockReviewQueries({
@@ -1072,6 +1074,40 @@ describe('ReviewQueueContent', () => {
       expect(
         screen.getByText('Continue Weekly posts with the output waiting'),
       ).toBeInTheDocument();
+      expect(
+        screen.queryByText('No review work waiting'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows an empty state when the source filter matches nothing', () => {
+      mocks.approvals.sourceFilters = ['mcp_client'] as never;
+      mockReviewQueries();
+
+      render(<ReviewQueueContent />);
+
+      expect(screen.getByText('emptyFilteredTitle')).toBeInTheDocument();
+      expect(screen.queryByText('Review Grid')).not.toBeInTheDocument();
+    });
+
+    it('waits for approvals before calling an empty queue empty', () => {
+      mocks.approvals.isLoading = true;
+      mockReviewQueries({ turboRunList: [] });
+
+      render(<ReviewQueueContent />);
+
+      expect(screen.getByText('Loading…')).toBeInTheDocument();
+      expect(
+        screen.queryByText('No review work waiting'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('surfaces an approvals load failure instead of an empty queue', () => {
+      mocks.approvals.error = new Error('inbox down') as never;
+      mockReviewQueries({ turboRunList: [] });
+
+      render(<ReviewQueueContent />);
+
+      expect(screen.getByText('loadFailed')).toBeInTheDocument();
       expect(
         screen.queryByText('No review work waiting'),
       ).not.toBeInTheDocument();

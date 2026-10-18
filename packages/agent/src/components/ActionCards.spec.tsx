@@ -119,6 +119,29 @@ describe('ReviewGateCard', () => {
     ]);
   });
 
+  it('stays open for pending items and counts decisions across batches', async () => {
+    const api = makeApi();
+    render(<ReviewGateCard action={makeAction()} apiService={api} />);
+
+    fireEvent.click(screen.getAllByRole('checkbox')[0] as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /approve \(1\)/i }));
+
+    expect(
+      await screen.findByText(/review submitted for 1 item/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Post B')).toBeInTheDocument();
+    expect(screen.queryByText('Post A')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('checkbox')[0] as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /reject \(1\)/i }));
+
+    expect(
+      await screen.findByText(/review submitted for 2 items/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Post B')).not.toBeInTheDocument();
+    expect(api.resolveReviewInboxItem).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps unresolved items selectable when one decision fails', async () => {
     const api = makeApi(
       vi

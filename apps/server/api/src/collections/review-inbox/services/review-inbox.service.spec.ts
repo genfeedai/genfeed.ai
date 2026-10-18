@@ -7,6 +7,7 @@ import type {
 } from '@api/helpers/guards/roles/roles.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
+import { Prisma } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -191,6 +192,12 @@ describe('ReviewInboxService', () => {
       const where = prisma.workflowExecution.findMany.mock.calls[0][0].where;
       expect(where).toMatchObject({
         isDeleted: false,
+        NOT: {
+          result: {
+            equals: Prisma.AnyNull,
+            path: ['metadata', 'pendingApproval', 'nodeId'],
+          },
+        },
         organizationId: 'org-1',
         status: 'RUNNING',
       });

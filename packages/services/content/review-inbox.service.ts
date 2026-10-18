@@ -3,6 +3,7 @@ import type {
   IReviewInboxDecisionRequest,
   IReviewInboxDecisionResult,
   IReviewInboxItem,
+  IReviewInboxListQuery,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -29,9 +30,17 @@ export class ReviewInboxService extends HTTPBaseService {
     return HTTPBaseService.getBaseServiceInstance(ReviewInboxService, token);
   }
 
-  async getPendingItems(signal?: AbortSignal): Promise<IReviewInboxItem[]> {
+  /**
+   * `brandId` selects the brand the page shows; the API's selected-tenant read
+   * scope honours it and falls back to the session brand without it.
+   */
+  async getPendingItems(
+    query: IReviewInboxListQuery,
+    signal?: AbortSignal,
+  ): Promise<IReviewInboxItem[]> {
     try {
       const response = await this.instance.get<JsonApiResponseDocument>('', {
+        params: query,
         signal,
       });
       return deserializeCollection<IReviewInboxItem>(response.data);

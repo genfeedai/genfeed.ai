@@ -51,6 +51,11 @@ export interface IReviewInboxItem {
   estimatedCredits: number | null;
 }
 
+/** `GET /review-inbox` query: the brand the page shows, when it has one. */
+export interface IReviewInboxListQuery {
+  brandId?: string;
+}
+
 export interface IReviewInboxDecisionRequest {
   itemId: string;
   decision: ReviewInboxDecision;

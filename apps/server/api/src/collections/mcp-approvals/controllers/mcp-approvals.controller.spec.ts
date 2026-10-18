@@ -34,7 +34,7 @@ describe('McpApprovalsController', () => {
   let controller: McpApprovalsController;
 
   const mockServiceMethods = {
-    attachResult: vi.fn(),
+    attachResultForActor: vi.fn(),
     claimExecutionForActor: vi.fn(),
     createPending: vi.fn(),
     findByOrganization: vi.fn(),
@@ -275,24 +275,30 @@ describe('McpApprovalsController', () => {
   });
 
   describe('POST /:id/result', () => {
+    const request = { body: {}, params: {} } as never;
+
     it('attaches result then returns the refreshed approval, org-scoped', async () => {
+      rolesGuard.assertRoles.mockResolvedValue(true);
       const withResult = {
         ...fakeApproval,
         status: 'APPROVED',
         result: { output: 42 },
       };
-      mockServiceMethods.attachResult.mockResolvedValue(undefined);
+      mockServiceMethods.attachResultForActor.mockResolvedValue(undefined);
       mockServiceMethods.findOne.mockResolvedValue(withResult);
 
       const result = await controller.attachResult(
+        request,
         mockUser as never,
         'approval-1',
         { result: { output: 42 } },
       );
 
-      expect(mockServiceMethods.attachResult).toHaveBeenCalledWith(
+      expect(mockServiceMethods.attachResultForActor).toHaveBeenCalledWith(
         'approval-1',
         'org-abc',
+        'user-xyz',
+        true,
         { output: 42 },
       );
       expect(mockServiceMethods.findOne).toHaveBeenCalledWith({
@@ -306,12 +312,31 @@ describe('McpApprovalsController', () => {
       });
     });
 
+    it('lets a requester below admin record the outcome of their own run', async () => {
+      rolesGuard.assertRoles.mockRejectedValue(new Error('Roles - Forbidden'));
+      mockServiceMethods.attachResultForActor.mockResolvedValue(undefined);
+      mockServiceMethods.findOne.mockResolvedValue(fakeApproval);
+
+      await controller.attachResult(request, mockUser as never, 'approval-1', {
+        result: { output: 1 },
+      });
+
+      expect(mockServiceMethods.attachResultForActor).toHaveBeenCalledWith(
+        'approval-1',
+        'org-abc',
+        'user-xyz',
+        false,
+        { output: 1 },
+      );
+    });
+
     it('throws NotFoundException when the approval is gone after the write', async () => {
-      mockServiceMethods.attachResult.mockResolvedValue(undefined);
+      rolesGuard.assertRoles.mockResolvedValue(true);
+      mockServiceMethods.attachResultForActor.mockResolvedValue(undefined);
       mockServiceMethods.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.attachResult(mockUser as never, 'missing', {
+        controller.attachResult(request, mockUser as never, 'missing', {
           result: {},
         }),
       ).rejects.toThrow(NotFoundException);

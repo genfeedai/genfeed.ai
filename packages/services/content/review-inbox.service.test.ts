@@ -71,10 +71,15 @@ describe('ReviewInboxService', () => {
       },
     });
 
-    await expect(service.getPendingItems(controller.signal)).resolves.toEqual([
+    await expect(
+      service.getPendingItems({ brandId: 'brand-1' }, controller.signal),
+    ).resolves.toEqual([
       { id: 'mcp_approval:apr-1', kind: 'mcp_approval', source: 'mcp_client' },
     ]);
-    expect(mockGet).toHaveBeenCalledWith('', { signal: controller.signal });
+    expect(mockGet).toHaveBeenCalledWith('', {
+      params: { brandId: 'brand-1' },
+      signal: controller.signal,
+    });
   });
 
   it('posts one decision and returns its result', async () => {

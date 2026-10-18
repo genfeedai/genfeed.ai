@@ -348,6 +348,8 @@
         "mcpClient": "MCP client"
       },
       "allSources": "All sources",
+      "emptyFilteredTitle": "Nothing from these sources",
+      "emptyFilteredDescription": "No request from the selected sources needs a decision. Try All sources.",
       "organizationWide": "All brands",
       "pending": "Pending",
       "credits": "{count, plural, one {# credit} other {# credits}}",
