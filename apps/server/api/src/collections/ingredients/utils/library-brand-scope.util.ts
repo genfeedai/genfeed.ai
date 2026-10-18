@@ -47,9 +47,10 @@ export async function resolveAllBrandsFilter(
  * results depend on the caller's API-key role cap, so a session and a scoped
  * key of the same user must never share a cached payload.
  */
-export function libraryCacheIdentity(
-  user: Pick<User, 'apiKeyId' | 'isApiKey' | 'scopes'> | undefined,
-): string {
+export function libraryCacheIdentity(requestUser: object | undefined): string {
+  const user = requestUser as
+    | Pick<User, 'apiKeyId' | 'isApiKey' | 'scopes'>
+    | undefined;
   if (!user?.isApiKey) {
     return 'session';
   }
