@@ -170,12 +170,9 @@ export function usePostsList({
   );
   const status = statusProp;
 
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  // The admin organization / brand filter lives in the subbar and the URL.
+  const adminOrg = parsedSearchParams.get('organization') || '';
+  const adminBrand = parsedSearchParams.get('brand') || '';
 
   const { openIngredientOverlay } = useIngredientOverlay();
   const { openConfirmDelete } = useConfirmDeleteModal();
@@ -242,44 +239,6 @@ export function usePostsList({
   }, [searchQueryParam, sortQueryParam, status]);
 
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
-
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      setAdminBrand(brandId);
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
 
   const filterSearch = filters.search;
   const filterStatus = Array.isArray(filters.status)
@@ -976,8 +935,6 @@ export function usePostsList({
     filterSort,
     filters,
     findAllPosts,
-    handleAdminBrandChange,
-    handleAdminOrgChange,
     handleFiltersChange,
     handleSearchChange,
     handleGenerate,

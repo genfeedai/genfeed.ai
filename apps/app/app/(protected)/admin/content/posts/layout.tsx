@@ -1,18 +1,18 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
 import { Platform } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { getPostPlatformTabs } from '@helpers/content/posts.helper';
+import PostsPlatformSelect from '@pages/posts/list/components/PostsPlatformSelect';
 import type {
   PostsLayoutAction,
   PostsLayoutState,
 } from '@props/admin/posts.props';
-import Container from '@ui/layout/container/Container';
+import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -94,7 +94,6 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     filtersNode,
     leadingNode,
     exportNode,
-    viewToggleNode,
     scheduleActionsNode,
   } = state;
 
@@ -112,19 +111,27 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
       ? platformParam
       : 'all';
 
-  const handleTabChange = useCallback(
-    (tab: string) => {
-      if (tab === activeTab) {
+  const handlePlatformChange = useCallback(
+    (platform: string) => {
+      if (platform === activeTab) {
         return;
       }
 
-      if (tab === 'all') {
-        push(APP_ROUTES.ADMIN.CONTENT.POSTS);
+      const params = new URLSearchParams(searchParamsString);
+      if (platform === 'all') {
+        params.delete('platform');
       } else {
-        push(`${APP_ROUTES.ADMIN.CONTENT.POSTS}?platform=${tab}`);
+        params.set('platform', platform);
       }
+      params.delete('page');
+      const queryString = params.toString();
+      push(
+        queryString
+          ? `${APP_ROUTES.ADMIN.CONTENT.POSTS}?${queryString}`
+          : APP_ROUTES.ADMIN.CONTENT.POSTS,
+      );
     },
-    [push, activeTab],
+    [push, activeTab, searchParamsString],
   );
 
   const handleRefresh = useCallback(() => {
@@ -200,44 +207,32 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     );
   }
 
-  const listActions = (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">
-      {filtersNode}
-      {scheduleActionsNode}
-    </div>
-  );
-
+  // Subbar order: refresh, download, dropdowns (organization first), CTA.
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
-      <Container
-        label="Posts"
-        description="View and manage published content across all connected accounts"
+      <AdminPageShell
+        title="Posts"
         icon={Newspaper}
-        titleVisibility="sr-only"
-        headerTabs={
-          isListRoute
-            ? {
-                activeTab,
-                fullWidth: false,
-                onTabChange: handleTabChange,
-                tabs: getPostPlatformTabs(),
-              }
-            : undefined
+        search={leadingNode}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+        download={exportNode}
+        dropdowns={
+          isListRoute ? (
+            <>
+              <AdminOrgBrandUrlFilter />
+              <PostsPlatformSelect
+                value={activeTab}
+                onChange={handlePlatformChange}
+              />
+              {filtersNode}
+            </>
+          ) : undefined
         }
-        leading={leadingNode}
-        refresh={
-          <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
-        }
-        iconActions={
-          <>
-            {viewToggleNode}
-            {exportNode}
-          </>
-        }
-        right={listActions}
+        primaryAction={scheduleActionsNode}
       >
         {children}
-      </Container>
+      </AdminPageShell>
     </PostsLayoutContext.Provider>
   );
 }
