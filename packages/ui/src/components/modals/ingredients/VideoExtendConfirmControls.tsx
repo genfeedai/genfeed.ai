@@ -10,15 +10,10 @@ import {
   getVideoExtendDurationOptions,
   getVideoExtendQuote,
 } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/video-extend-admission.util';
-import FormControl from '@ui/primitives/field';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -93,6 +88,15 @@ export default function VideoExtendConfirmControls({
     return null;
   }
 
+  const modelSelectOptions = modelOptions.map((option) => ({
+    label: option.label,
+    value: option.key,
+  }));
+  const durationSelectOptions = durationOptions.map((seconds) => ({
+    label: translate('durationSeconds', { seconds }),
+    value: String(seconds),
+  }));
+
   const handleModelChange = (nextModelKey: string) => {
     const nextModel = modelOptions.find(
       (option) => option.key === nextModelKey,
@@ -105,51 +109,46 @@ export default function VideoExtendConfirmControls({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-border p-4">
-      <FormControl label={translate('continuationPromptLabel')}>
-        <Textarea
-          name="video-extension-prompt"
+    <div className="space-y-3">
+      <PromptBarComposer
+        data-testid="video-extend-composer"
+        density="compact"
+        beforeBody={
+          <p className="px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
+            {translate('continuationPromptLabel')}
+          </p>
+        }
+      >
+        <PromptEditor
+          ariaLabel={translate('continuationPromptLabel')}
           value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
           placeholder={translate('continuationPromptPlaceholder')}
-          className="min-h-20"
+          onValueChange={setPrompt}
+          className="min-h-16"
         />
-      </FormControl>
-
-      <div className="grid grid-cols-2 gap-3">
-        <FormControl label={translate('generationModelLabel')}>
-          <Select value={model.key} onValueChange={handleModelChange}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {modelOptions.map((option) => (
-                <SelectItem key={option.key} value={option.key}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormControl>
-
-        <FormControl label={translate('newClipDurationLabel')}>
-          <Select
-            value={String(duration)}
-            onValueChange={(value) => setDuration(Number(value))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {durationOptions.map((seconds) => (
-                <SelectItem key={seconds} value={String(seconds)}>
-                  {translate('durationSeconds', { seconds })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormControl>
-      </div>
+        <PromptBarToolbar
+          density="compact"
+          leading={
+            <>
+              <PromptBarCompactSelect
+                ariaLabel={translate('generationModelLabel')}
+                density="compact"
+                options={modelSelectOptions}
+                value={model.key}
+                onChange={handleModelChange}
+              />
+              <PromptBarCompactSelect
+                ariaLabel={translate('newClipDurationLabel')}
+                density="compact"
+                options={durationSelectOptions}
+                value={String(duration)}
+                onChange={(value) => setDuration(Number(value))}
+              />
+            </>
+          }
+          trailing={null}
+        />
+      </PromptBarComposer>
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
         {translate('summary', {

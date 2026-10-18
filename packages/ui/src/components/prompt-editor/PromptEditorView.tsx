@@ -17,6 +17,7 @@ function PromptEditorView({
   editorClassName,
   extraExtensions,
   initialContent,
+  isAutoFocused = false,
   isDisabled = false,
   onDocumentChange,
   onSubmit,
@@ -42,6 +43,7 @@ function PromptEditorView({
   const appliedSeedIdRef = useRef<string | null>(null);
 
   const ownedEditor = useEditor({
+    autofocus: isAutoFocused ? 'end' : false,
     content: initialContent ?? value ?? '',
     editable: !isDisabled,
     editorProps: {

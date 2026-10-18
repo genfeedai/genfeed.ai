@@ -33,6 +33,17 @@ beforeAll(() => {
 });
 
 describe('PromptEditorView', () => {
+  it('focuses itself on mount only when asked', async () => {
+    const { unmount } = render(<PromptEditorView ariaLabel="Plain" value="" />);
+    const plain = await screen.findByRole('textbox', { name: 'Plain' });
+    expect(plain).not.toHaveFocus();
+    unmount();
+
+    render(<PromptEditorView ariaLabel="Focused" isAutoFocused value="" />);
+    const focused = await screen.findByRole('textbox', { name: 'Focused' });
+    await waitFor(() => expect(focused).toHaveFocus());
+  });
+
   it('replaces the document when a starter seed arrives', async () => {
     const onValueChange = vi.fn();
     const onDocumentChange = vi.fn();

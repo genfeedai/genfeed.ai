@@ -22,6 +22,36 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-workspace' }),
 }));
+// The TipTap editor needs a real DOM layout; a textarea keeps these tests on
+// the generator's own behaviour.
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    ariaLabel,
+    value,
+    isDisabled,
+    onValueChange,
+    onSubmit,
+  }: {
+    ariaLabel?: string;
+    value?: string;
+    isDisabled?: boolean;
+    onValueChange?: (value: string) => void;
+    onSubmit?: () => void;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      value={value}
+      disabled={isDisabled}
+      onChange={(event) => onValueChange?.(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          onSubmit?.();
+        }
+      }}
+    />
+  ),
+}));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -75,6 +105,39 @@ describe('PostDraftGenerator', () => {
       prompt: 'Product launch',
       requestKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
     });
+  });
+  it('labels the prompt and generates from the keyboard once there is text', async () => {
+    const onGenerate = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <PostDraftGenerator
+        platform={Platform.TWITTER}
+        onGenerate={onGenerate}
+      />,
+    );
+    const prompt = screen.getByRole('textbox', {
+      name: 'What do you want to post about?',
+    });
+    await user.type(prompt, '{Enter}');
+    expect(mocks.generateDraftText).not.toHaveBeenCalled();
+    await user.type(prompt, 'Product launch{Enter}');
+    await waitFor(() => expect(onGenerate).toHaveBeenCalledTimes(1));
+    expect(mocks.generateDraftText).toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: 'Product launch' }),
+    );
+  });
+  it('keeps the prompt and send button disabled while the host is disabled', async () => {
+    render(
+      <PostDraftGenerator
+        platform={Platform.TWITTER}
+        isDisabled
+        onGenerate={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Generate draft' }),
+    ).toBeDisabled();
   });
   it('links the saved draft to its receipt and says it is provisional', async () => {
     const user = userEvent.setup();

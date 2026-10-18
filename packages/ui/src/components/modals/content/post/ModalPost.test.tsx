@@ -70,6 +70,28 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', async () => {
     },
   };
 });
+// The TipTap prompt editor needs a real DOM layout; a textarea keeps this test
+// on the modal flow.
+vi.mock('@ui/prompt-editor/PromptEditor', async () => {
+  const { Textarea } = await import('@ui/primitives/textarea');
+  return {
+    default: ({
+      ariaLabel,
+      value,
+      onValueChange,
+    }: {
+      ariaLabel?: string;
+      value?: string;
+      onValueChange?: (value: string) => void;
+    }) => (
+      <Textarea
+        aria-label={ariaLabel}
+        value={value}
+        onChange={(event) => onValueChange?.(event.target.value)}
+      />
+    ),
+  };
+});
 vi.mock('@ui/editors/LazyRichTextEditor', async () => {
   const { Textarea } = await import('@ui/primitives/textarea');
   return {

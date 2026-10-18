@@ -14,6 +14,8 @@ export interface PromptEditorProps {
   editorClassName?: string;
   extraExtensions?: readonly AnyExtension[];
   initialContent?: JSONContent | string;
+  /** Puts the caret at the end once the editor mounts (dialogs that open on the prompt). */
+  isAutoFocused?: boolean;
   isDisabled?: boolean;
   onDocumentChange?: (document: JSONContent) => void;
   onSubmit?: () => void;

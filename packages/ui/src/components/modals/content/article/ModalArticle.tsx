@@ -30,13 +30,23 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { SelectField } from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
-import { Sparkles } from 'lucide-react';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { type ChangeEvent, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+
+const ARTICLE_COUNT_OPTIONS = [
+  { label: '1 Article', value: '1' },
+  { label: '2 Articles', value: '2' },
+  { label: '3 Articles', value: '3' },
+  { label: '4 Articles', value: '4' },
+];
 
 export default function ModalArticle({
   onConfirm,
@@ -208,6 +218,20 @@ export default function ModalArticle({
   const count = form.watch('count');
   const countNumber =
     typeof count === 'string' ? parseInt(count, 10) : count || 1;
+  const generateLabel = `Generate ${countNumber} Article${countNumber > 1 ? 's' : ''}`;
+  const isSubmitDisabled =
+    isSubmitting ||
+    (useAI
+      ? !form.watch('prompt')?.trim() || !form.watch('count')
+      : !form.watch('label')?.trim() || !form.watch('content')?.trim());
+
+  // The send control and Enter in the editor go through the form so the
+  // in-flight state and validation match the footer's Create button.
+  const submitFromPrompt = () => {
+    if (!isSubmitDisabled) {
+      formRef.current?.requestSubmit();
+    }
+  };
 
   return (
     <Modal id={ModalEnum.ARTICLE} title="Create New Article">
@@ -225,31 +249,53 @@ export default function ModalArticle({
         {useAI ? (
           <>
             {/* AI Generation Fields */}
-            <FormControl label="Article Idea">
-              <Textarea
-                name="prompt"
-                control={form.control}
-                onChange={updateModalArticle}
+            <PromptBarComposer
+              data-testid="article-prompt-composer"
+              density="compact"
+              beforeBody={
+                <p className="px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
+                  Article Idea
+                </p>
+              }
+            >
+              <PromptEditor
+                ariaLabel="Article Idea"
+                isAutoFocused
+                value={form.watch('prompt') ?? ''}
+                isDisabled={isSubmitting}
                 placeholder="Describe what you want to write about… (e.g., 'AI in healthcare', 'Latest trends in web development')"
-                isRequired={true}
-                isDisabled={isSubmitting}
-                onKeyDown={processKeyDownModalArticle}
+                onValueChange={(value) =>
+                  form.setValue('prompt', value, { shouldValidate: true })
+                }
+                onSubmit={submitFromPrompt}
+                className="min-h-16"
               />
-            </FormControl>
-
-            <FormControl label="Number of Articles">
-              <SelectField
-                name="count"
-                control={form.control}
-                isDisabled={isSubmitting}
-                placeholder="Select number of articles"
-              >
-                <option value="1">1 Article</option>
-                <option value="2">2 Articles</option>
-                <option value="3">3 Articles</option>
-                <option value="4">4 Articles</option>
-              </SelectField>
-            </FormControl>
+              <PromptBarToolbar
+                density="compact"
+                leading={
+                  <PromptBarCompactSelect
+                    ariaLabel="Number of Articles"
+                    density="compact"
+                    isDisabled={isSubmitting}
+                    options={ARTICLE_COUNT_OPTIONS}
+                    value={count || '1'}
+                    onChange={(value) =>
+                      form.setValue('count', value, { shouldValidate: true })
+                    }
+                  />
+                }
+                trailing={
+                  <PromptBarSendButton
+                    ariaLabel={generateLabel}
+                    density="compact"
+                    isDisabled={isSubmitDisabled}
+                    isLoading={isSubmitting}
+                    onClick={submitFromPrompt}
+                    tooltip={generateLabel}
+                  />
+                }
+              />
+            </PromptBarComposer>
           </>
         ) : (
           <>
@@ -297,35 +343,24 @@ export default function ModalArticle({
             isLoading={isSubmitting}
           />
 
-          <Button
-            type="submit"
-            label={
-              isSubmitting ? (
-                <span className="inline-flex items-center gap-2">
-                  <Spinner size={ComponentSize.XS} />
-                  <span>{useAI ? 'Generating…' : 'Creating…'}</span>
-                </span>
-              ) : useAI ? (
-                <span className="inline-flex items-center gap-2">
-                  <Sparkles className="size-4" />
-                  <span>
-                    Generate {countNumber} Article{countNumber > 1 ? 's' : ''}
+          {useAI ? null : (
+            <Button
+              type="submit"
+              label={
+                isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner size={ComponentSize.XS} />
+                    <span>Creating…</span>
                   </span>
-                </span>
-              ) : (
-                'Create'
-              )
-            }
-            variant={ButtonVariant.DEFAULT}
-            isLoading={isSubmitting}
-            isDisabled={
-              isSubmitting ||
-              (useAI
-                ? !form.watch('prompt')?.trim() || !form.watch('count')
-                : !form.watch('label')?.trim() ||
-                  !form.watch('content')?.trim())
-            }
-          />
+                ) : (
+                  'Create'
+                )
+              }
+              variant={ButtonVariant.DEFAULT}
+              isLoading={isSubmitting}
+              isDisabled={isSubmitDisabled}
+            />
+          )}
         </ModalActions>
       </Form>
     </Modal>

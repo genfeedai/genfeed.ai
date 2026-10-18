@@ -12,7 +12,6 @@ import {
 } from '@genfeedai/contracts';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import type { ModalBrandGenerateProps } from '@genfeedai/props/modals/modal.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
@@ -21,10 +20,11 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
-import { Textarea } from '@ui/primitives/textarea';
-import { ArrowUp } from 'lucide-react';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
@@ -55,8 +55,9 @@ export default function ModalBrandGenerate({
     resolver: standardSchemaResolver(brandGenerateSchema),
   });
 
-  const formRef = useFocusFirstInput<HTMLFormElement>();
-  const hasPrompt = form.watch('prompt').trim().length > 0;
+  const formRef = useRef<HTMLFormElement>(null);
+  const prompt = form.watch('prompt');
+  const hasPrompt = prompt.trim().length > 0;
 
   const closeAccountGenerateModal = useCallback(() => {
     closeModal(ModalEnum.BRAND_GENERATE);
@@ -94,6 +95,15 @@ export default function ModalBrandGenerate({
     submitModalBrandGenerate(),
   );
 
+  // The send control and Enter in the editor both go through the form so
+  // validation and the in-flight guard stay in one place.
+  const submitFromPrompt = () => {
+    if (isSubmitting || !hasPrompt) {
+      return;
+    }
+    formRef.current?.requestSubmit();
+  };
+
   return (
     <Modal
       id={ModalEnum.BRAND_GENERATE}
@@ -101,15 +111,42 @@ export default function ModalBrandGenerate({
       size="md"
     >
       <Form ref={formRef} onSubmit={onSubmit}>
-        <FormControl label={translate(`${type}.label`)}>
-          <Textarea
-            name="prompt"
-            control={form.control}
-            placeholder={translate(`${type}.placeholder`)}
+        <PromptBarComposer
+          data-testid="brand-generate-composer"
+          density="compact"
+          beforeBody={
+            <p className="px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
+              {translate(`${type}.label`)}
+            </p>
+          }
+        >
+          <PromptEditor
+            ariaLabel={translate(`${type}.label`)}
+            isAutoFocused
+            value={prompt}
             isDisabled={isSubmitting}
-            rows={4}
+            placeholder={translate(`${type}.placeholder`)}
+            onValueChange={(value) =>
+              form.setValue('prompt', value, { shouldValidate: true })
+            }
+            onSubmit={submitFromPrompt}
+            className="min-h-24"
           />
-        </FormControl>
+          <PromptBarToolbar
+            density="compact"
+            leading={null}
+            trailing={
+              <PromptBarSendButton
+                ariaLabel={translate('generate')}
+                density="compact"
+                isDisabled={isSubmitting || !hasPrompt}
+                isLoading={isSubmitting}
+                onClick={submitFromPrompt}
+                tooltip={translate('generate')}
+              />
+            }
+          />
+        </PromptBarComposer>
 
         <ModalActions>
           <Button
@@ -117,14 +154,6 @@ export default function ModalBrandGenerate({
             variant={ButtonVariant.SECONDARY}
             onClick={closeAccountGenerateModal}
             isLoading={isSubmitting}
-          />
-
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            icon={<ArrowUp />}
-            type="submit"
-            label={translate('generate')}
-            isDisabled={isSubmitting || !hasPrompt}
           />
         </ModalActions>
       </Form>
