@@ -669,6 +669,37 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
     });
   }
 
+  it("hands a proactive run's configured targets to the tool executor", async () => {
+    const agentBrief = { platforms: ['linkedin'], topics: ['craft'] };
+    await runner.executeToolRound({
+      allowedToolNames: new Set(['generate_turbo_content']),
+      assistantContent: null,
+      context: { agentBrief, organizationId: 'org-1', userId: 'user-1' },
+      generationPriority: RouterPriority.BALANCED,
+      messages: [{ content: 'Run the agent', role: 'user' }],
+      model: 'test-model',
+      policy: { organizationId: 'org-1' } as never,
+      source: 'proactive',
+      state: createState(),
+      threadId: 'thread-1',
+      toolCalls: [
+        {
+          function: {
+            arguments: '{"count":3}',
+            name: 'generate_turbo_content',
+          },
+          id: 'tool-1',
+          type: 'function',
+        },
+      ],
+    });
+    expect(executeTool).toHaveBeenCalledOnce();
+    expect(executeTool.mock.calls[0][2]).toMatchObject({
+      agentBrief,
+      isProactive: true,
+    });
+  });
+
   it('recovers a legacy per-kind name onto generate with the type and prompt filled from aliases', async () => {
     await round({
       allowed: ['generate'],

@@ -310,9 +310,11 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
         topics: ['craft'],
         postsPerWeek: 4,
       },
+      performanceStatus: 'insufficient_data',
       weeklyPerformance: snapshot,
     });
     expect(dispatch.inputValues.request).toMatchObject({
+      agentBrief: { platforms: ['instagram'], topics: ['craft'] },
       source: 'proactive',
       creditBudget: 20,
       autonomyMode: AgentAutonomyMode.SUPERVISED,
@@ -321,6 +323,44 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       expectedContextVersion: 1,
     });
     expect(dispatch.metadata.performanceSnapshot).toEqual(snapshot);
+    expect(dispatch.metadata.label).toBe('Agent run · Agent');
+  });
+  it('reports measured performance and takes brand topics when the agent sets none', async () => {
+    const { service, runner, row, performance, snapshot } = setup({
+      dailyCreditBudget: 20,
+      platforms: ['instagram', 'tiktok'],
+      topics: [],
+    });
+    const measured = {
+      ...snapshot,
+      impressions: 1200,
+      clicks: 30,
+      sampling: {
+        limit: 250,
+        matchedPosts: 3,
+        matchedMeasurements: 3,
+        postsSampled: 3,
+        measurementsSampled: 3,
+        truncated: false,
+      },
+    };
+    performance.getPerformanceSnapshot.mockResolvedValueOnce(measured);
+    await service.dispatchProactiveStrategy({ item: row });
+    const dispatch = runner.enqueueWorkflow.mock.calls[0][0];
+    const content = String(dispatch.inputValues.request.content);
+    const brief = JSON.parse(
+      content
+        .split('<agent_brief_json>\n')[1]
+        .split('\n</agent_brief_json>')[0],
+    );
+    expect(brief.performanceStatus).toBe('measured');
+    expect(brief.weeklyPerformance).toEqual(measured);
+    expect(dispatch.metadata.performanceSnapshot).toEqual(measured);
+    expect(dispatch.inputValues.request.agentBrief).toEqual({
+      platforms: ['instagram', 'tiktok'],
+      topics: ['design'],
+    });
+    expect(content).not.toContain('twitter');
   });
   it('uses the persisted revision of an existing scoped strategy thread', async () => {
     const { service, runner, prisma, row } = setup({ dailyCreditBudget: 20 });
@@ -376,6 +416,9 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     expect(content).toContain(
       'request configuration and do not generate or publish',
     );
+    expect(
+      runner.enqueueWorkflow.mock.calls[0][0].inputValues.request.agentBrief,
+    ).toEqual({ platforms: [], topics: ['design'] });
   });
   it.each([
     { isDeleted: true, status: 'active', brandId: 'brand', userId: 'owner' },

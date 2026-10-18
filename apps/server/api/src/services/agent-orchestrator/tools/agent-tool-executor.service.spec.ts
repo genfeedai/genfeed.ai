@@ -7537,4 +7537,24 @@ describe('capped tool quote boundary', () => {
       error: expect.stringContaining('quote unavailable'),
     });
   });
+  it('refuses proactive generation for an agent without configured platforms before dispatch', async () => {
+    const service = Object.create(
+      AgentToolExecutorService.prototype,
+    ) as AgentToolExecutorService;
+    const result = await service.executeTool(
+      'generate_turbo_content',
+      { count: 3 },
+      {
+        agentBrief: { platforms: [], topics: ['craft'] },
+        isProactive: true,
+        organizationId: 'org',
+        userId: 'user',
+      },
+    );
+    expect(result).toMatchObject({
+      success: false,
+      creditsUsed: 0,
+      error: expect.stringContaining('no platforms configured'),
+    });
+  });
 });
