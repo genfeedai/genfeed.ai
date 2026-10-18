@@ -57,6 +57,13 @@ export class TrendFetchService {
    * that returns nothing (or is failing) is re-scraped at full rate forever.
    */
   private readonly EMPTY_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes
+  /**
+   * Apify trend scrapes take no organization or brand input, so every scope
+   * buys the same dataset. One shared entry per platform means a refresh in
+   * any org reuses it instead of paying for its own identical run.
+   */
+  private readonly APIFY_TRENDS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
+  private readonly APIFY_EMPTY_TRENDS_TTL_SECONDS = 60 * 60; // 1 hour
   private readonly PERSONALIZED_TWITTER_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes, matches the inspiration-spec ephemeral cache pattern
   private readonly CACHE_PREFIX = 'trends';
   private readonly GLOBAL_TREND_DOCUMENT_TTL_MINUTES = 48 * 60;
@@ -232,14 +239,14 @@ export class TrendFetchService {
     nativeReason: 'native_empty' | 'native_failed',
   ): Promise<TrendData[]> {
     try {
-      const apifyTrends = await this.apifyService.getTwitterTrends({
-        limit: 20,
-      });
+      const apifyTrends = await this.getSharedApifyTrends('twitter', () =>
+        this.apifyService.getTwitterTrends({ limit: 20 }),
+      );
       recordTrendProviderOutcome(
         apifyTrends.length ? 'fallback_available' : 'fallback_empty',
         nativeReason,
       );
-      return this.toTrendDataArray(apifyTrends);
+      return apifyTrends;
     } catch (error: unknown) {
       recordTrendProviderOutcome(
         'fallback_failed',
@@ -390,8 +397,8 @@ export class TrendFetchService {
         }));
       },
       async () =>
-        this.toTrendDataArray(
-          await this.apifyService.getRedditTrends({ limit: 20 }),
+        this.getSharedApifyTrends('reddit', () =>
+          this.apifyService.getRedditTrends({ limit: 20 }),
         ),
       allowApifyFallback,
     );
@@ -486,8 +493,8 @@ export class TrendFetchService {
         }));
       },
       async () =>
-        this.toTrendDataArray(
-          await this.apifyService.getYouTubeTrends({ limit: 20 }),
+        this.getSharedApifyTrends('youtube', () =>
+          this.apifyService.getYouTubeTrends({ limit: 20 }),
         ),
       allowApifyFallback,
     );
@@ -523,11 +530,37 @@ export class TrendFetchService {
         }));
       },
       async () =>
-        this.toTrendDataArray(
-          await this.apifyService.getPinterestTrends({ limit: 20 }),
+        this.getSharedApifyTrends('pinterest', () =>
+          this.apifyService.getPinterestTrends({ limit: 20 }),
         ),
       allowApifyFallback,
     );
+  }
+
+  /**
+   * Run an Apify trend scrape at most once per platform per TTL across every
+   * organization and brand. A scrape that throws is not cached, so the caller's
+   * failure handling and the account-limit breaker still see the error.
+   */
+  private async getSharedApifyTrends(
+    platform: string,
+    scrape: () => Promise<ApifyTrendItem[]>,
+  ): Promise<TrendData[]> {
+    const cacheKey = `${this.CACHE_PREFIX}:apify-fallback:${platform}`;
+    const cached = await this.cacheService.get<TrendData[]>(cacheKey);
+    if (cached) {
+      this.loggerService.debug(`Shared Apify trends cache hit for ${platform}`);
+      return cached;
+    }
+
+    const trends = this.toTrendDataArray(await scrape());
+    await this.cacheService.set(cacheKey, trends, {
+      tags: ['trends', `trends:${platform}`],
+      ttl: trends.length
+        ? this.APIFY_TRENDS_TTL_SECONDS
+        : this.APIFY_EMPTY_TRENDS_TTL_SECONDS,
+    });
+    return trends;
   }
 
   private async fetchNativeFirst(
@@ -582,9 +615,9 @@ export class TrendFetchService {
     brandId?: string,
     allowApifyFallback = true,
   ): Promise<TrendData[]> {
-    const fallback = async () =>
-      this.toTrendDataArray(
-        await this.apifyService.getInstagramTrends({ limit: 20 }),
+    const fallback = () =>
+      this.getSharedApifyTrends('instagram', () =>
+        this.apifyService.getInstagramTrends({ limit: 20 }),
       );
 
     if (!organizationId || !brandId) {
@@ -633,9 +666,9 @@ export class TrendFetchService {
     brandId?: string,
     allowApifyFallback = true,
   ): Promise<TrendData[]> {
-    const fallback = async () =>
-      this.toTrendDataArray(
-        await this.apifyService.getTikTokTrends({ limit: 20 }),
+    const fallback = () =>
+      this.getSharedApifyTrends('tiktok', () =>
+        this.apifyService.getTikTokTrends({ limit: 20 }),
       );
 
     if (!organizationId || !brandId) {
