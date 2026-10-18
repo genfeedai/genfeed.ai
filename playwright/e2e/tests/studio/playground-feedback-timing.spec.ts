@@ -162,6 +162,7 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
   await page.getByRole('button', { name: /^Generation setup:/ }).click();
   await page.getByRole('button', { name: 'Advanced', exact: true }).click();
   await page
+    .getByRole('dialog')
     .getByRole('button', { name: 'Configure Model', exact: true })
     .click();
   await page.getByRole('option').filter({ hasText: 'FLUX.3' }).first().click();

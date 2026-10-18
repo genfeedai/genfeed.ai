@@ -468,12 +468,14 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await promptEditor.click();
     await authenticatedPage.keyboard.type('A lighthouse at dawn, drone orbit');
 
+    // A successful save is silent (#7285): wait for the autosave to reach the
+    // draft store instead of a status label, and only failures show one.
+    await expect
+      .poll(() => draftStore.saved())
+      .toMatchObject({ prompt: 'A lighthouse at dawn, drone orbit' });
     await expect(
       authenticatedPage.getByTestId('studio-draft-status'),
-    ).toHaveText('Draft saved');
-    expect(draftStore.saved()).toMatchObject({
-      prompt: 'A lighthouse at dawn, drone orbit',
-    });
+    ).toHaveCount(0);
 
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 

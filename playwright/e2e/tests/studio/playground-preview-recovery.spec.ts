@@ -349,6 +349,7 @@ test('a rejected submit keeps the prompt for another attempt', async ({
   await page.getByRole('button', { name: /^Generation setup:/ }).click();
   await page.getByRole('button', { name: 'Advanced', exact: true }).click();
   await page
+    .getByRole('dialog')
     .getByRole('button', { name: 'Configure Model', exact: true })
     .click();
   await page.getByRole('option').filter({ hasText: 'FLUX.3' }).first().click();

@@ -416,7 +416,10 @@ async function openGenerationSetup(page: Page, summary: string) {
   await setup.click();
 }
 async function openConfiguration(page: Page, section: string) {
+  // The Advanced chips in the prompt bar share these names; the setup
+  // dialog's rows are the ones that open a section.
   await page
+    .getByRole('dialog')
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }
@@ -432,7 +435,9 @@ async function closeGenerationSetup(page: Page) {
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   await expect(
-    page.getByRole('button', { name: 'Configure Output', exact: true }),
+    page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Configure Output', exact: true }),
   ).toHaveCount(0);
 }
 async function expectSubmitTooltip(page: Page, statusName: string) {

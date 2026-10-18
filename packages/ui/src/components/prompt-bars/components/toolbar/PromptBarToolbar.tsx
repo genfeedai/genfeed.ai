@@ -6,7 +6,9 @@ import type { ReactElement } from 'react';
  * The one prompt-bar toolbar row shared by Agent and Studio: tools on the
  * left, setup and submission on the right. Surfaces only fill the slots.
  * The row never wraps: submission keeps its size and the tools scroll
- * sideways when they run out of room.
+ * sideways when they run out of room. The scroller keeps 6px of vertical
+ * padding (cancelled by the negative margin) so the 44px touch targets that
+ * 32px icon buttons extend with `::after` are not clipped by its overflow.
  */
 export default function PromptBarToolbar({
   className,
@@ -28,7 +30,7 @@ export default function PromptBarToolbar({
     >
       <div
         aria-label={leadingLabel}
-        className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-my-1.5 flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         data-prompt-bar-leading=""
         role="group"
       >

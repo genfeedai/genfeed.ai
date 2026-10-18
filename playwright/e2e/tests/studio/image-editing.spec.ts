@@ -229,6 +229,7 @@ for (const { model, editing } of [
     await page.getByRole('button', { name: /^Generation setup:/ }).click();
     await page.getByRole('button', { name: 'Advanced', exact: true }).click();
     await page
+      .getByRole('dialog')
       .getByRole('button', { name: 'Configure Model', exact: true })
       .click();
     await page

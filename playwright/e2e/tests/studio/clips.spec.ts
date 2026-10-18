@@ -320,11 +320,9 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.waitForLoadState('networkidle');
 
     await expect(authenticatedPage).toHaveURL(new RegExp(CLIPS_URL));
-    await expect(authenticatedPage.getByLabel(/youtube url/i)).toBeVisible();
-    await expect(authenticatedPage.locator('#youtube-url')).toHaveAttribute(
-      'type',
-      'url',
-    );
+    const youtubeUrl = authenticatedPage.getByLabel(/youtube url/i);
+    await expect(youtubeUrl).toBeVisible();
+    await expect(youtubeUrl).toHaveAttribute('type', 'url');
     await expect(authenticatedPage.locator('#max-clips')).toHaveCount(0);
     await expect(authenticatedPage.locator('#min-virality')).toHaveCount(0);
     await expect(

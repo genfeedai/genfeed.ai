@@ -113,7 +113,7 @@ test('Motion reviews exact output cost and retains source on a revision conflict
   ).toBeVisible();
   await expect(
     page.getByRole('textbox', { name: 'Prompt', exact: true }),
-  ).toHaveValue('Animate a title');
+  ).toHaveText('Animate a title');
   expect(submitted).toBe(1);
   await page
     .getByRole('textbox', { name: 'Prompt', exact: true })

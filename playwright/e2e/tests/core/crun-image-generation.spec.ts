@@ -334,7 +334,10 @@ async function openGenerationSetup(page: Page, summary: string) {
   await setup.click();
 }
 async function openConfiguration(page: Page, section: string) {
+  // The Advanced chips in the prompt bar share these names; the setup
+  // dialog's rows are the ones that open a section.
   await page
+    .getByRole('dialog')
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }
