@@ -10,6 +10,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
 import {
   assertReplicateVideoReference,
   assertSeedanceReferenceBinding,
@@ -304,6 +305,11 @@ export class VideoGenerationPreparationService {
     let templateVersion: number | undefined;
     if (compiledDispatch) {
       promptParams = compiledDispatch as unknown as Record<string, unknown>;
+      attachAvatarAudioToCompiledDispatch(
+        model,
+        promptParams,
+        createVideoDto.audioUrl,
+      );
     } else {
       const built = await this.buildPromptParams({
         endFrameUrl,

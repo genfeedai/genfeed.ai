@@ -196,6 +196,29 @@ describe('compileRemainingVideoGenerationBrief', () => {
     },
   );
 
+  it('sends the Kling Avatar V2 portrait as image, with no clip-length or frame fields', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'the host greets the viewer' },
+      mediaKind: 'video',
+      output: { durationSeconds: 5 },
+      references: [{ assetId: 'portrait-1', role: 'first_frame' }],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2),
+      modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+    });
+
+    expect(result.dispatch.image).toBe('portrait-1');
+    expect(result.dispatch).not.toHaveProperty('start_image');
+    expect(result.dispatch).not.toHaveProperty('duration');
+    expect(result.dispatch).not.toHaveProperty('aspect_ratio');
+  });
+
   it('requires a first frame for Kling v2.1', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],

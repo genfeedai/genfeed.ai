@@ -257,14 +257,6 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             negativePromptSupported: true,
           },
         ),
-        profile(
-          'kling-avatar-v2-capability',
-          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
-          {
-            nativeFields: ['start_image'],
-            requireImageToVideo: true,
-          },
-        ),
         profile('klingai-v2-capability', MODEL_KEYS.KLINGAI_V2, {
           nativeFields: ['start_image'],
         }),
@@ -314,6 +306,27 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         negativePromptField: 'negative_prompt',
         resolutionField: 'mode',
         videoReferenceField: 'reference_video',
+      },
+    },
+    {
+      // Avatar V2 takes the portrait as `image` plus a separate `audio` input,
+      // and its length follows the audio. Preparation adds `audio` after compile.
+      compilerId: KLING_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'kling-avatar-v2-capability',
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+          {
+            nativeFields: ['image'],
+            requireImageToVideo: true,
+          },
+        ),
+      ],
+      spec: {
+        firstFrameField: 'image',
+        modelLabel: 'Kling Avatar',
+        resolutionField: 'mode',
       },
     },
     {
