@@ -16,12 +16,14 @@ import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/a
 import type {
   AgentGenerationMode,
   AgentGenerationSettings,
+  AgentRunBriefTargets,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
+import { applyAgentBriefTargets } from '@api/services/agent-orchestrator/tools/agent-brief-targets.util';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
@@ -139,6 +141,8 @@ export interface ToolExecutionContext {
   /** Transient server-only constraint retrieved from a matched claimed approval. */
   approvedGenerationQuote?: ApprovedGenerationQuoteConstraint;
   generationEntry?: GenerationEntry;
+  /** A proactive run's configured platforms and topics. */
+  agentBrief?: AgentRunBriefTargets;
   isProactive?: boolean;
   /** Transient constraint issued by mutation authorization; stripped from incoming contexts. */
   proactiveTextDraftOnly?: true;
@@ -448,6 +452,15 @@ export class AgentToolExecutorService implements OnModuleInit {
       if (requestedSkillSlugs)
         parameters.requestedSkillSlugs = requestedSkillSlugs;
       else delete parameters.requestedSkillSlugs;
+    }
+    if (context.isProactive && context.agentBrief) {
+      const targeted = applyAgentBriefTargets(
+        toolName,
+        parameters,
+        context.agentBrief,
+      );
+      if ('refusal' in targeted) return targeted.refusal;
+      parameters = targeted.parameters;
     }
     if (context.creditBudget !== undefined) {
       const estimate = agentToolCreditEstimate(toolName, parameters);

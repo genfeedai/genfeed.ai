@@ -15,13 +15,13 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { LightingsService } from '@services/elements/lightings.service';
 import { useQuery } from '@tanstack/react-query';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLighting } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
@@ -43,8 +43,6 @@ function LightingsListContent({
   const { isSignedIn } = useAuthIdentity();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
@@ -53,45 +51,8 @@ function LightingsListContent({
   );
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 
-  // Admin org/brand filter values derived from URL (superadmin only)
-  const adminOrg = parsedSearchParams.get('organization') ?? '';
-  const adminBrand = parsedSearchParams.get('brand') ?? '';
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   const getLightingsService = useAuthedService(
     useCallback((token: string) => LightingsService.getInstance(token), []),
@@ -253,17 +214,6 @@ function LightingsListContent({
 
   return (
     <>
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<ElementLighting>
         items={lightings}
         columns={columns}

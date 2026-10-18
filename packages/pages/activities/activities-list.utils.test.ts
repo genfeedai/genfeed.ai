@@ -19,6 +19,7 @@ import {
   getActivityMediaPreviewUrl,
   getActivitySourceLabel,
   getActivityTypeKind,
+  getActivityValueFields,
   getActivityVideoUrl,
   getGenerationCreditAmount,
 } from './activities-list.utils';
@@ -274,5 +275,28 @@ describe('activity output and timing', () => {
         key: ActivityKey.CREDITS_REMOVE,
       } as IActivity),
     ).toBeUndefined();
+  });
+
+  it('reads the readable fields from a stored value for the admin detail', () => {
+    const fields = getActivityValueFields({
+      value: JSON.stringify({
+        completedAt: '2026-09-08T18:52:19Z',
+        error: ' Provider timed out ',
+        resultId: 'img-1',
+        resultType: 'image',
+        startedAt: '2026-09-08T18:52:06Z',
+      }),
+    });
+    expect(fields).toMatchObject({
+      completedAt: '2026-09-08T18:52:19Z',
+      error: 'Provider timed out',
+      resultId: 'img-1',
+      resultType: 'image',
+      startedAt: '2026-09-08T18:52:06Z',
+    });
+    expect(fields.raw).toContain('\n  "resultId": "img-1"');
+    expect(getActivityValueFields({ value: 'plain text' })).toEqual({
+      raw: 'plain text',
+    });
   });
 });

@@ -29,7 +29,6 @@ import {
   isServiceOperationError,
   normalizeOperationError,
 } from '@genfeedai/services/core/operation-error';
-import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import {
   createCacheKey,
   createLocalStorageCache,
@@ -176,10 +175,6 @@ export function useIngredientsLoading({
     FoldersService.getInstance(token),
   );
 
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
-
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
   const [cachedAt, setCachedAt] = useState<string | null>(null);
@@ -273,7 +268,9 @@ export function useIngredientsLoading({
             queryParams.brand = resolvedBrandId;
           }
         } else if (scope === PageScope.ORGANIZATION && organizationId) {
-          queryParams.organization = organizationId;
+          // Same endpoint and query as a brand; `allBrands` only widens the
+          // brand axis to every brand in the organization.
+          queryParams.allBrands = true;
         }
 
         if (
@@ -312,44 +309,26 @@ export function useIngredientsLoading({
 
         queryParams = sanitizeQueryParams(queryParams);
 
+        const isRecoveryShelf =
+          scope === PageScope.BRAND && query.shelf === LibraryShelf.FAILED;
         let data: Ingredient[] = [];
         let nextPage: IngredientsNextPage = null;
         let listQuery: IQueryParams | null = null;
 
-        if (scope === PageScope.ORGANIZATION && organizationId) {
-          const organizationsService = await getOrganizationsService();
-          // The unified `ingredients` route represents every asset category.
-          // Its derived singular type is the generic `INGREDIENT` enum member,
-          // which must not become a category filter or the organization-wide
-          // All assets view excludes images, videos, audio, and other media.
-          const organizationQuery =
-            type === 'ingredients'
-              ? queryParams
-              : { ...queryParams, category: singularType };
-          data = await organizationsService.findOrganizationIngredients(
-            organizationId,
-            organizationQuery,
-            signal,
-          );
+        const service = await getIngredientsService();
+        if (isRecoveryShelf) {
+          data = await service.findAllPages(queryParams, signal);
         } else {
-          const service = await getIngredientsService();
-          if (
-            scope === PageScope.BRAND &&
-            query.shelf === LibraryShelf.FAILED
-          ) {
-            data = await service.findAllPages(queryParams, signal);
-          } else {
-            // Keyset pages: no per-page count, and older assets stay as cheap
-            // to reach as the newest. Orders the API cannot keyset-page come
-            // back with page-number links instead.
-            listQuery = { ...queryParams, paging: 'cursor' };
-            const result = await service.findAllPage(listQuery, signal);
-            data = result.items;
-            nextPage = resolveNextPage(result);
-            PagesService.setCurrentPage(result.page);
-            PagesService.setTotalPages(result.totalPages);
-            PagesService.setTotalDocs(result.total);
-          }
+          // Keyset pages: no per-page count, and older assets stay as cheap
+          // to reach as the newest. Orders the API cannot keyset-page come
+          // back with page-number links instead.
+          listQuery = { ...queryParams, paging: 'cursor' };
+          const result = await service.findAllPage(listQuery, signal);
+          data = result.items;
+          nextPage = resolveNextPage(result);
+          PagesService.setCurrentPage(result.page);
+          PagesService.setTotalPages(result.totalPages);
+          PagesService.setTotalDocs(result.total);
         }
 
         if (signal?.aborted || sequence !== loadSequenceRef.current) {
@@ -362,7 +341,7 @@ export function useIngredientsLoading({
         lastListQueryRef.current = listQuery;
         setHasMoreIngredients(nextPage !== null);
         setIngredients(data);
-        if (scope === PageScope.BRAND && query.shelf === LibraryShelf.FAILED) {
+        if (isRecoveryShelf) {
           PagesService.setCurrentPage(1);
           PagesService.setTotalPages(1);
           PagesService.setTotalDocs(data.length);
@@ -424,7 +403,6 @@ export function useIngredientsLoading({
       ingredientsCacheMeta,
       formatFilter,
       getIngredientsService,
-      getOrganizationsService,
       notificationsService,
       organizationId,
       scope,

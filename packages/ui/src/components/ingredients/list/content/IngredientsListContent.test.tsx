@@ -1,7 +1,6 @@
 import {
   IngredientCategory,
   IngredientStatus,
-  ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
@@ -411,7 +410,8 @@ describe('IngredientsListContent', () => {
 
     fireEvent.click(screen.getByTestId('media-grid-item'));
 
-    expect(onOpenLightbox).toHaveBeenCalledWith(videoIngredient);
+    expect(setSelectedAsset).toHaveBeenCalledWith(videoIngredient);
+    expect(onOpenLightbox).not.toHaveBeenCalled();
   });
 
   it('honors the Library list control for visual assets', () => {
@@ -536,7 +536,7 @@ describe('IngredientsListContent', () => {
     expect(document.querySelector('img')).toBeNull();
   });
 
-  it('opens the ingredient modal for avatar rows in organization scope', () => {
+  it('inspects avatar rows in organization scope like a brand', () => {
     const { onOpenIngredientModal, onOpenLightbox } = renderContent();
     const row = screen.getByText('Avatar Source').closest('tr');
 
@@ -544,10 +544,8 @@ describe('IngredientsListContent', () => {
 
     fireEvent.click(within(row as HTMLElement).getByTestId('action-button'));
 
-    expect(onOpenIngredientModal).toHaveBeenCalledWith(
-      ModalEnum.INGREDIENT,
-      baseIngredient,
-    );
+    expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
+    expect(onOpenIngredientModal).not.toHaveBeenCalled();
     expect(onOpenLightbox).not.toHaveBeenCalled();
   });
 
@@ -899,10 +897,11 @@ describe('IngredientsListContent inspector handoff', () => {
     ]);
   });
 
-  it('preserves non-brand list row semantics', () => {
+  it('preserves superadmin list row semantics', () => {
     const onSelectionChange = vi.fn();
     const { onOpenIngredientModal, onOpenLightbox } = renderContent({
       onSelectionChange,
+      scope: PageScope.SUPERADMIN,
     });
     const row = screen.getByText('Avatar Source').closest('tr') as HTMLElement;
     fireEvent.click(row);
@@ -1211,11 +1210,11 @@ describe('Library See Details sidebar routing', () => {
     expect(onOpenIngredientModal).not.toHaveBeenCalled();
     expect(onOpenLightbox).not.toHaveBeenCalled();
   });
-  it('preserves details behavior outside the brand workspace', () => {
+  it('preserves details behavior outside the Library workspace', () => {
     const onSeeDetails = vi.fn();
     const onSelectionChange = vi.fn();
     renderContent({
-      scope: PageScope.ORGANIZATION,
+      scope: PageScope.SUPERADMIN,
       singularType: IngredientCategory.IMAGE,
       filteredIngredients: [
         { ...baseIngredient, category: IngredientCategory.IMAGE },

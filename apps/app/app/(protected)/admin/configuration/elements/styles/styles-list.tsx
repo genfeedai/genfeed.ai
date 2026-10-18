@@ -17,23 +17,16 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { StylesService } from '@services/elements/styles.service';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import Badge from '@ui/display/badge/Badge';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalStyle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-} from 'react';
+import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 
 function stylesListReducer(
   state: StylesListState,
@@ -46,16 +39,6 @@ function stylesListReducer(
       return { ...state, styles: action.payload, isLoading: false };
     case 'SET_SELECTED_STYLE':
       return { ...state, selectedStyle: action.payload };
-    case 'SET_ADMIN_ORG':
-      return { ...state, adminOrg: action.payload, adminBrand: '' };
-    case 'SET_ADMIN_BRAND':
-      return { ...state, adminBrand: action.payload };
-    case 'SET_ADMIN_FILTER':
-      return {
-        ...state,
-        adminOrg: action.payload.adminOrg,
-        adminBrand: action.payload.adminBrand,
-      };
     default:
       return state;
   }
@@ -75,62 +58,17 @@ function StylesListContent({
     useCallback((token: string) => StylesService.getInstance(token), []),
   );
 
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
 
   const [state, dispatch] = useReducer(stylesListReducer, {
     styles: [],
     isLoading: true,
     selectedStyle: null,
-    adminOrg: parsedSearchParams.get('organization') ?? '',
-    adminBrand: parsedSearchParams.get('brand') ?? '',
   });
 
-  const { styles, isLoading, selectedStyle, adminOrg, adminBrand } = state;
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      dispatch({ type: 'SET_ADMIN_ORG', payload: orgId });
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
+  const { styles, isLoading, selectedStyle } = state;
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   // Use refs for callback props to prevent unnecessary re-renders
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -299,17 +237,6 @@ function StylesListContent({
 
   return (
     <>
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<ElementStyle>
         items={styles}
         columns={columns}

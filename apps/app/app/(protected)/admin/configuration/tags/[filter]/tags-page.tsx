@@ -4,7 +4,6 @@ import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
 import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { ITagsPageProps } from '@props/admin/tags.props';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
@@ -36,41 +35,37 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
     setRefreshTrigger((prev) => prev + 1);
   };
 
-  const rightActions = (
-    <>
-      <FiltersButton
-        filters={filters}
-        visibleFilters={{
-          format: false,
-          model: false,
-          provider: false,
-          search: true,
-          sort: true,
-          status: false,
-          type: true,
-        }}
-        onFiltersChange={(f: IFiltersState) => {
-          setFilters(f);
-        }}
-      />
-
-      {scope === PageScope.SUPERADMIN && (
-        <Button
-          variant={ButtonVariant.DEFAULT}
-          onClick={handleAddTag}
-          icon={<Plus />}
-          label="Tag"
-        />
-      )}
-    </>
-  );
-
   return (
     <TagsLayout
       scope={scope}
-      rightActions={rightActions}
-      refreshAction={
-        <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+      onRefresh={handleRefresh}
+      isRefreshing={isRefreshing}
+      filters={
+        <FiltersButton
+          filters={filters}
+          visibleFilters={{
+            format: false,
+            model: false,
+            provider: false,
+            search: true,
+            sort: true,
+            status: false,
+            type: true,
+          }}
+          onFiltersChange={(f: IFiltersState) => {
+            setFilters(f);
+          }}
+        />
+      }
+      primaryAction={
+        scope === PageScope.SUPERADMIN ? (
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            onClick={handleAddTag}
+            icon={<Plus />}
+            label="Tag"
+          />
+        ) : undefined
       }
     >
       <TagsList

@@ -2,7 +2,6 @@ import { ModalEnum } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import type { TagsListProps } from '@props/tags/tags-list.props';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { Switch } from '@ui/primitives/switch';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -20,12 +19,8 @@ import { useTagsList } from './use-tags-list';
 
 function TagsListContent(props: TagsListProps) {
   const {
-    adminBrand,
-    adminOrg,
     canEditTag,
     filteredAndSortedTags,
-    handleAdminBrandChange,
-    handleAdminOrgChange,
     handleToggleActive,
     isLoading,
     isRefreshing,
@@ -122,17 +117,6 @@ function TagsListContent(props: TagsListProps) {
 
   return (
     <>
-      {scope === 'superadmin' && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<ITag>
         items={filteredAndSortedTags}
         actions={actions}

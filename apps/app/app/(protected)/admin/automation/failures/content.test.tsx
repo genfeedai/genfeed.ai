@@ -18,9 +18,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children, right }: PropsWithChildren<{ right?: ReactNode }>) => (
+  default: ({
+    children,
+    leading,
+  }: PropsWithChildren<{ leading?: ReactNode }>) => (
     <>
-      {right}
+      {leading}
       {children}
     </>
   ),

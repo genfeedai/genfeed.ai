@@ -55,7 +55,7 @@ describe('configured cadence editing', () => {
         />,
       );
       const input = screen.getByLabelText(label);
-      const save = screen.getByRole('button', { name: 'Save schedule' });
+      const save = screen.getByRole('button', { name: 'save' });
       fireEvent.change(input, { target: { value: '' } });
       expect(save).toBeDisabled();
       expect(screen.getByRole('alert')).toHaveTextContent('invalid');
@@ -89,7 +89,7 @@ describe('configured cadence editing', () => {
         onSubmit={submit}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
     await waitFor(() => expect(submit).toHaveBeenCalledOnce());
     expect(submit.mock.calls[0][0]).toMatchObject({
       publishingCeilingPerWeek: '',

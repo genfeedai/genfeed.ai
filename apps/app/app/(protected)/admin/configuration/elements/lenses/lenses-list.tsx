@@ -15,22 +15,15 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { LensesService } from '@services/elements/lenses.service';
 import { useQuery } from '@tanstack/react-query';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLens } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 function LensesListContent({
   filters,
@@ -43,14 +36,7 @@ function LensesListContent({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
 
   const getLensesService = useAuthedService(
     useCallback((token: string) => LensesService.getInstance(token), []),
@@ -58,52 +44,8 @@ function LensesListContent({
 
   const [selectedLens, setSelectedLens] = useState<IElementLens | null>(null);
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      setAdminBrand(brandId);
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   // Use refs for callback props to prevent unnecessary re-renders
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -248,17 +190,6 @@ function LensesListContent({
 
   return (
     <>
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<ElementLens>
         items={lenses}
         columns={columns}

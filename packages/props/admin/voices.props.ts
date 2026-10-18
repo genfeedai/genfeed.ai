@@ -18,15 +18,21 @@ export type ProviderFilter =
   | VoiceProvider.ELEVENLABS
   | VoiceProvider.HEYGEN;
 
-export interface VoicesCatalogControlsProps {
-  view: CollectionViewType;
-  onViewChange: (view: CollectionViewType) => void;
-  isSyncingAll: boolean;
-  providerFilter: ProviderFilter;
+export interface VoicesCatalogSearchProps {
   search: string;
-  syncingProvider: VoiceProvider | null;
-  onProviderFilterChange: (value: ProviderFilter) => void;
   onSearchChange: (value: string) => void;
+}
+
+export interface VoicesCatalogFiltersProps {
+  providerFilter: ProviderFilter;
+  view: CollectionViewType;
+  onProviderFilterChange: (value: ProviderFilter) => void;
+  onViewChange: (view: CollectionViewType) => void;
+}
+
+export interface VoicesSyncControlsProps {
+  isSyncingAll: boolean;
+  syncingProvider: VoiceProvider | null;
   onSync: (providers?: VoiceProvider[]) => void;
 }
 

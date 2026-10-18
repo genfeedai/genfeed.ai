@@ -144,6 +144,24 @@ vi.mock('./AgentWorkflowRunDialog', () => ({
     ) : null,
 }));
 
+vi.mock('./AddAgentDialog', () => ({
+  default: ({
+    isOpen,
+    onCreated,
+  }: {
+    isOpen: boolean;
+    onCreated: () => Promise<void>;
+  }) =>
+    isOpen ? (
+      <div role="dialog">
+        <p>Agent marketplace</p>
+        <button type="button" onClick={() => onCreated()}>
+          Activate marketplace agent
+        </button>
+      </div>
+    ) : null,
+}));
+
 vi.mock('./open-content-agent-conversation', () => ({
   buildContentAgentSetupPrompt: (brandId: string) =>
     `Set up a content agent for this brand. Brand id: ${brandId}.`,
@@ -258,6 +276,31 @@ describe('AgentHubPage', () => {
       { scroll: false },
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('opens the one-click marketplace from marketplace add links', () => {
+    mocks.addIntent = 'library';
+
+    render(<AgentHubPage />);
+
+    expect(screen.getByText('Agent marketplace')).toBeVisible();
+    expect(mocks.openConversation).not.toHaveBeenCalled();
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/org-one/brand-one/automation/agents',
+      { scroll: false },
+    );
+  });
+
+  it('activates a marketplace agent with no further input and refreshes the roster', async () => {
+    mocks.strategies = [HEALTHY_AGENT];
+    render(<AgentHubPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Marketplace' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Activate marketplace agent' }),
+    );
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    expect(mocks.openConversation).not.toHaveBeenCalled();
   });
 
   it('shows list skeletons inside All while loading, then the empty state', async () => {

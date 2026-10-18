@@ -1,0 +1,15 @@
+{
+  "title": "Training",
+  "images": "Images",
+  "sources": "Sources",
+  "loadError": "Failed to load training details",
+  "notFound": "Training not found",
+  "retry": "Try Again",
+  "editTraining": "Edit Training",
+  "status": "Status",
+  "brand": "Brand",
+  "unknownBrand": "Unknown",
+  "trigger": "Trigger",
+  "category": "Category",
+  "steps": "Steps"
+}

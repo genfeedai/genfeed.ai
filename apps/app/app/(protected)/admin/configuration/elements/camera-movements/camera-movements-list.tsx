@@ -17,22 +17,15 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CameraMovementsService } from '@services/elements/camera-movements.service';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalCameraMovement } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-} from 'react';
+import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 
 function cameraMovementsReducer(
   state: CameraMovementsState,
@@ -45,12 +38,6 @@ function cameraMovementsReducer(
       return { ...state, cameraMovements: action.payload };
     case 'SET_SELECTED':
       return { ...state, selectedCameraMovement: action.payload };
-    case 'SET_ADMIN_ORG':
-      return { ...state, adminOrg: action.payload };
-    case 'SET_ADMIN_BRAND':
-      return { ...state, adminBrand: action.payload };
-    case 'SET_ADMIN_ORG_AND_CLEAR_BRAND':
-      return { ...state, adminOrg: action.payload, adminBrand: '' };
     case 'FETCH_START':
       return { ...state, isLoading: !action.payload.isRefresh };
     case 'FETCH_DONE':
@@ -72,14 +59,7 @@ function CameraMovementsListContent({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
 
   const getCameraMovementsService = useAuthedService(
     useCallback(
@@ -95,56 +75,13 @@ function CameraMovementsListContent({
       cameraMovements: [],
       isLoading: true,
       selectedCameraMovement: null,
-      adminOrg: parsedSearchParams.get('organization') || '',
-      adminBrand: parsedSearchParams.get('brand') || '',
     }),
   );
 
-  const {
-    cameraMovements,
-    isLoading,
-    selectedCameraMovement,
-    adminOrg,
-    adminBrand,
-  } = state;
+  const { cameraMovements, isLoading, selectedCameraMovement } = state;
 
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      dispatch({ type: 'SET_ADMIN_ORG_AND_CLEAR_BRAND', payload: orgId });
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   // Use refs for callback props to prevent unnecessary re-renders
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -298,17 +235,6 @@ function CameraMovementsListContent({
 
   return (
     <>
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<ElementCameraMovement>
         items={cameraMovements}
         columns={columns}

@@ -23,6 +23,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsOptional,
@@ -31,6 +32,17 @@ import {
 } from 'class-validator';
 
 export class IngredientsQueryDto extends BaseQueryDto {
+  @ApiProperty({
+    description:
+      'List every brand in the organization (and unbranded assets), ignoring ' +
+      'the session brand. An explicit `brandId` still narrows the list.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  allBrands?: boolean;
+
   @ApiProperty({
     description: 'Filter ingredients by folder ID',
     nullable: true,

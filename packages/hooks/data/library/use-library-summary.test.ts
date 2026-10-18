@@ -115,6 +115,21 @@ describe('useLibrarySummary', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('counts every brand on the organization Library', async () => {
+    scopeMock.pageScope = 'org';
+    fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
+
+    const { result } = renderHook(() => useLibrarySummary());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      'https://api.genfeed.test/ingredients/summary?allBrands=true',
+    );
+  });
+
   it('sends the routed organization header with the bearer token', async () => {
     fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
     setRequestOrganizationId('org-a');
