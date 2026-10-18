@@ -57,7 +57,9 @@ if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^
 if (process.env.FAIL_RECEIPT === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) process.exit(19);
 if (process.env.ISOLATED === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) {
   fs.mkdirSync(path.dirname(args[2]), { recursive: true });
-  fs.writeFileSync(args[2], JSON.stringify({ mode: 'verification-max-chunks-trial', effectiveRequestCost: 200000, effectiveMaxChunkCountPerGroup: 1, effectiveMaxMergeChunkSize: 200000 }));
+  fs.writeFileSync(args[2], JSON.stringify({ mode: 'production-default', effectiveRequestCost: 200000, effectiveMaxChunkCountPerGroup: 40, effectiveMaxMergeChunkSize: 200000 }));
+  fs.mkdirSync('packages/serializers/dist', { recursive: true });
+  fs.writeFileSync('packages/serializers/dist/request-runtime.provenance.json', JSON.stringify({ schemaVersion: 1 }));
 }
 if (args.includes('scripts/collect-bundle-manifest.ts')) {
   const out = args[args.indexOf('--out') + 1];
@@ -107,9 +109,13 @@ if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/r
 }
 
 describe('pinned serializer bundle workflow', () => {
-  it('builds dependencies before exactly one fixed verification trial', () => {
+  it('builds dependencies and captures real package/config provenance before exactly one app compilation', () => {
     expect(buildStep).toContain(`BUNDLE_APP: ${matrixApp}`);
-    expect(runScript(script, 'app')).toEqual({
+    expect(buildStep).toContain(
+      'cp packages/serializers/dist/request-runtime.provenance.json .bundle-size/request-serializers-package.json',
+    );
+    expect(buildStep).not.toContain('--trial');
+    expect(runScript(script, 'app', false, true)).toEqual({
       status: 0,
       calls: [
         {
@@ -128,10 +134,9 @@ describe('pinned serializer bundle workflow', () => {
             'run',
             'packages/services/scripts/request-serializer-build-receipt.ts',
             '.bundle-size/request-serializers-build.json',
-            '--trial-max-chunks',
-            '1',
           ],
         },
+        { bin: 'bun', args: ['run', '--cwd', 'apps/app', 'analyze'] },
       ],
     });
   });
@@ -215,7 +220,7 @@ describe('pinned serializer bundle workflow', () => {
       true,
     );
     expect(result.status).toBe(23);
-    expect(result.calls).toHaveLength(11);
+    expect(result.calls).toHaveLength(12);
     expect(result.proofFiles).toEqual([
       'request-serializers-0.json',
       'request-serializers-1.json',
@@ -223,6 +228,7 @@ describe('pinned serializer bundle workflow', () => {
       'request-serializers-3.json',
       'request-serializers-build.json',
       'request-serializers-initial.json',
+      'request-serializers-package.json',
     ]);
     expect(proofStep).toContain('id: serializer_proof');
     expect(proofStep).not.toContain('continue-on-error');
@@ -243,7 +249,7 @@ describe('pinned serializer bundle workflow', () => {
     expect(uploadStep).toContain('retention-days: 1');
   });
 
-  it('does not start a separate app compile when the fixed trial wrapper fails', () => {
+  it('does not compile the app when production provenance collection fails', () => {
     const result = runScript(script, 'app', false, false, false, true);
     expect(result.status).toBe(19);
     expect(result.calls).toHaveLength(2);

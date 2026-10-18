@@ -75,6 +75,9 @@
       "@genfeedai/providers/*": ["../../packages/contexts/providers/*"],
       "@genfeedai/services": ["../../packages/services/index.ts"],
       "@genfeedai/services/*": ["../../packages/services/*"],
+      "@genfeedai/serializers/request-runtime": [
+        "../../packages/serializers/dist/request-runtime.d.ts"
+      ],
       "@genfeedai/serializers": ["../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
       "@genfeedai/contracts/types": [

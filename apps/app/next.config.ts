@@ -533,6 +533,8 @@ config.turbopack = {
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
     '@genfeedai/contracts/interfaces':
       '../../packages/contracts/src/interfaces/index.ts',
+    '@genfeedai/serializers/request-runtime':
+      '../../packages/serializers/dist/request-runtime.bundle.js',
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
     '@genfeedai/contracts/types': '../../packages/contracts/src/types/index.ts',
     '@genfeedai/ui': '../../packages/ui/src/index.ts',

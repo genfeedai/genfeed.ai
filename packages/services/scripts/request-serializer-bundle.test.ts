@@ -62,6 +62,14 @@ function graph() {
         size: 1000,
         compressed_size: 400,
       },
+      ...['ts-jsonapi/lib/index.js', 'lodash/lodash.js'].map((source) => ({
+        type: 'part',
+        route,
+        filename: '[client-fs]/write.js',
+        source_path: `[project]/node_modules/${source}`,
+        size: 0,
+        compressed_size: 0,
+      })),
       {
         type: 'group',
         route,
@@ -143,12 +151,12 @@ describe('serializer bundle evidence', () => {
           },
           tsJsonapi: {
             modules: 1,
-            sourceParts: 0,
+            sourceParts: 1,
             paths: ['node_modules/ts-jsonapi/lib/index.js'],
           },
           lodash: {
             modules: 1,
-            sourceParts: 0,
+            sourceParts: 1,
             paths: ['node_modules/lodash/lodash.js'],
           },
         },
@@ -221,6 +229,70 @@ describe('serializer bundle evidence', () => {
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it('rejects generated-artifact membership without original canonical source-map provenance', () => {
+    expect(() =>
+      verifyRequestSerializerBundle(
+        graph().map((record) =>
+          record.type === 'part' &&
+          'source_path' in record &&
+          typeof record.source_path === 'string' &&
+          record.source_path.includes('/packages/serializers/src/')
+            ? {
+                ...record,
+                source_path:
+                  '[project]/packages/serializers/dist/request-runtime.bundle.js',
+              }
+            : record,
+        ),
+      ),
+    ).toThrow(
+      'Missing original source-map provenance /packages/serializers/src/',
+    );
+  });
+
+  it.each(['ts-jsonapi', 'lodash'])(
+    'requires original %s source parts even when an outer module has matching membership',
+    (vendor) => {
+      expect(() =>
+        verifyRequestSerializerBundle(
+          graph().filter(
+            (record) =>
+              !(
+                record.type === 'part' &&
+                'source_path' in record &&
+                typeof record.source_path === 'string' &&
+                record.source_path.includes(`/node_modules/${vendor}/`)
+              ),
+          ),
+        ),
+      ).toThrow(
+        `Missing original source-map provenance /node_modules/${vendor}/`,
+      );
+    },
+  );
+
+  it('checks every original canonical/vendor input recorded by the package build', () => {
+    const originalSources = [
+      'packages/serializers/src/server/ingredients/image.serializer.ts',
+      'node_modules/ts-jsonapi/lib/index.js',
+      'node_modules/lodash/lodash.js',
+    ];
+    expect(
+      verifyRequestSerializerBundle(graph(), undefined, { originalSources })
+        .routes[1].deferred?.originalSourceFiles,
+    ).toBe(3);
+    expect(() =>
+      verifyRequestSerializerBundle(graph(), undefined, {
+        originalSources: [
+          ...originalSources,
+          'packages/serializers/src/server/missing.serializer.ts',
+        ],
+      }),
+    ).toThrow(
+      'Missing original source-map input packages/serializers/src/server/missing.serializer.ts',
+    );
   });
 
   it('fails closed on unsupported schema and coverage', () => {

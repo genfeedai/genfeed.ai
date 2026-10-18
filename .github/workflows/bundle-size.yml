@@ -83,7 +83,9 @@ jobs:
           set -euo pipefail
           if [ "$BUNDLE_APP" = "app" ]; then
             bunx turbo run build --filter='@genfeedai/app^...' --concurrency=1
-            NODE_OPTIONS=--max-old-space-size=6144 bun run packages/services/scripts/request-serializer-build-receipt.ts .bundle-size/request-serializers-build.json --trial-max-chunks 1
+            bun run packages/services/scripts/request-serializer-build-receipt.ts .bundle-size/request-serializers-build.json
+            cp packages/serializers/dist/request-runtime.provenance.json .bundle-size/request-serializers-package.json
+            NODE_OPTIONS=--max-old-space-size=6144 bun run --cwd apps/app analyze
           else
             bunx turbo run build --filter="@genfeedai/$BUNDLE_APP"
           fi

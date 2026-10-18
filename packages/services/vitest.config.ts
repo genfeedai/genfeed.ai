@@ -21,6 +21,17 @@ export default defineConfig({
         find: '@serializers',
         replacement: path.resolve(__dirname, '../serializers/src'),
       },
+      {
+        find: '@request-serializers-built',
+        replacement: path.resolve(
+          __dirname,
+          '../serializers/dist/request-runtime.bundle.js',
+        ),
+      },
+      {
+        find: /^@genfeedai\/serializers\/request-runtime$/,
+        replacement: path.resolve(__dirname, '__mocks__/serializers.mock.ts'),
+      },
       // IMPORTANT: More specific aliases must come before less specific ones
       // Mock canonical serializers to keep unit tests isolated from build-time wiring
       {

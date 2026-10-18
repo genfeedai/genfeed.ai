@@ -15,9 +15,11 @@ import { UsersService } from '@services/organization/users.service';
 import { ActivitiesService } from '@services/social/activities.service';
 import { describe, expect, it, vi } from 'vitest';
 
-// These wire fixtures intentionally use the local canonical implementation,
-// bypassing the package's usual no-op serializer alias.
-vi.mock('@genfeedai/serializers', () => import('@serializers/index'));
+// Wire fixtures use the package artifact consumed by the browser, never the unit-test mock.
+vi.mock(
+  '@genfeedai/serializers/request-runtime',
+  () => import('@request-serializers-built'),
+);
 
 vi.mock('@services/core/logger.service', () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
@@ -79,6 +81,34 @@ const serializerNames = [
 ] as const;
 
 describe('canonical request wire bodies', () => {
+  it('reuses the actual artifact objects and honors mutable serializer options through the loader', async () => {
+    const runtime = await import('@request-serializers-built');
+    const again = await import('@request-serializers-built');
+    const { serializeRequest } = await import(
+      '@services/core/request-serializers'
+    );
+    expect(runtime.TagSerializer).toBe(again.TagSerializer);
+    const serializer = runtime.TagSerializer as typeof runtime.TagSerializer & {
+      opts: Record<string, unknown>;
+    };
+    const previous = serializer.opts;
+    try {
+      serializer.opts = {
+        ...previous,
+        topLevelLinks: { self: '/tags?page=2' },
+      };
+      expect(
+        await serializeRequest('TagSerializer', [{ id: 'tag-1', label: 'A' }]),
+      ).toMatchObject({
+        data: [{ id: 'tag-1', attributes: { label: 'A' } }],
+        links: { self: '/tags?page=2' },
+      });
+      expect(runtime.TagSerializer).toBe(again.TagSerializer);
+    } finally {
+      serializer.opts = previous;
+    }
+  });
+
   it('preserves null, missing relationships and array wire behavior for all 21 serializers', async () => {
     const { serializeRequest } = await import(
       '@services/core/request-serializers'

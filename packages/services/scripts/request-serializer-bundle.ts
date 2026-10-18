@@ -83,6 +83,7 @@ export type BundleFailureDiagnostic = {
 };
 
 type VerificationOptions = {
+  originalSources?: readonly string[];
   onFailure?: (diagnostic: BundleFailureDiagnostic) => void;
 };
 
@@ -300,12 +301,33 @@ export function verifyRequestSerializerBundle(
         fail(`Missing deferred ${required}: ${route}`, chunkEvidence);
     }
     const contributions = parts.filter((part) => files.includes(part.filename));
+    for (const required of [
+      '/packages/serializers/src/',
+      '/node_modules/ts-jsonapi/',
+      '/node_modules/lodash/',
+    ]) {
+      if (!contributions.some((part) => part.source_path.includes(required)))
+        fail(
+          `Missing original source-map provenance ${required}: ${route}`,
+          chunkEvidence,
+        );
+    }
+    for (const source of options.originalSources ?? []) {
+      if (
+        !contributions.some((part) => part.source_path.endsWith(`/${source}`))
+      )
+        fail(
+          `Missing original source-map input ${source}: ${route}`,
+          chunkEvidence,
+        );
+    }
     return {
       route,
       initialJavaScriptChunks: initial.length,
       forbiddenInitialSources: 0,
       deferred: {
         ...chunkEvidence,
+        originalSourceFiles: options.originalSources?.length ?? null,
         requiredSources: {
           canonical: sources.filter((source) =>
             source.includes('/packages/serializers/'),
@@ -370,10 +392,65 @@ if (
     .filter(Boolean)
     .map((line) => JSON.parse(line));
   const runtime = readPinnedAppRuntime();
+  const packageProof = z
+    .object({
+      schemaVersion: z.literal(1),
+      inputs: z.record(
+        z.string(),
+        z.object({
+          sha256: z.string().regex(/^[a-f0-9]{64}$/),
+          bytesInOutput: z.number().positive(),
+          sourceMaps: z.array(
+            z.object({
+              path: z.string(),
+              sha256: z.string().regex(/^[a-f0-9]{64}$/),
+            }),
+          ),
+          originalSources: z
+            .array(
+              z.object({
+                path: z.string(),
+                contentSha256: z
+                  .string()
+                  .regex(/^[a-f0-9]{64}$/)
+                  .nullable(),
+                evidence: z.enum([
+                  'source-content-and-disk',
+                  'local-map-content',
+                  'local-map-identity-only',
+                ]),
+              }),
+            )
+            .min(1),
+        }),
+      ),
+    })
+    .parse(
+      JSON.parse(
+        readFileSync(
+          'packages/serializers/dist/request-runtime.provenance.json',
+          'utf8',
+        ),
+      ),
+    );
+  const originalSources = [
+    ...new Set(
+      Object.values(packageProof.inputs).flatMap((input) =>
+        input.originalSources.map((source) => source.path),
+      ),
+    ),
+  ].filter((source) =>
+    /^(?:packages\/serializers\/src\/|node_modules\/(?:ts-jsonapi|lodash)\/)/.test(
+      source,
+    ),
+  );
+  if (!originalSources.length)
+    throw new Error('Missing original package source provenance');
   const report = verifyRequestSerializerBundle(
     records,
     process.argv[4] ? [process.argv[4]] : undefined,
     {
+      originalSources,
       onFailure: (diagnostic) => {
         writeFileSync(
           out,
