@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
+import { parseBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import type {
   BrandKitFieldKey,
   IBrandOsRevision,
@@ -246,7 +247,21 @@ function buildApprovedBrandOsIdentity(
         `${revision.content.fields[key]?.label ?? key}: ${value.trim()}`,
       );
   }
-  return { systemDirectives, styleDirectives };
+  // The approved Policy (#7339) shapes the draft, and the publish gate checks
+  // the same lists again before anything goes out unattended.
+  const policy = parseBrandPublishPolicy(revision.content.policy);
+  const guardrails = policy
+    ? [
+        ...policy.bannedTopics.map((topic) => `Do not discuss: ${topic}`),
+        ...policy.bannedClaims.map((claim) => `Never claim: ${claim}`),
+        ...policy.bannedPhrases.map((phrase) => `Never write: ${phrase}`),
+      ]
+    : [];
+  return {
+    systemDirectives,
+    styleDirectives,
+    ...(guardrails.length > 0 ? { guardrails } : {}),
+  };
 }
 
 export const buildHarnessInput = (params: {

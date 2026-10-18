@@ -86,7 +86,9 @@ export async function createProactiveAgentTextPost(
     }) => Promise<Array<Record<string, unknown>>>;
     resolvePublishPolicy: (params: {
       brandId?: string;
+      caption?: string;
       channelAllowsAutoPublish: boolean;
+      scheduledAt?: string;
       ctx: ToolExecutionContext;
       targets: Array<{ credentialId: string; platform: string }>;
     }) => Promise<PublishPolicy>;
@@ -173,6 +175,8 @@ export async function createProactiveAgentTextPost(
     await deps.resolvePublishPolicy({
       ctx,
       brandId,
+      caption,
+      scheduledAt: requestedScheduledAt,
       targets: resolved.targets,
       channelAllowsAutoPublish: true,
     }),
@@ -343,6 +347,7 @@ export async function scheduleAgentPost(
       const policy = await deps.autonomousPublishPolicyService?.resolveForPost({
         organizationId: ctx.organizationId,
         postId,
+        publishAt: scheduledDate,
         strategyId: ctx.strategyId,
       });
       if (!policy || policy.result.decision === AgentPublishDecision.DENIED) {

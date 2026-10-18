@@ -79,6 +79,7 @@ export const postAttributes = createEntityAttributes([
   'reviewFeedback',
   'reviewedAt',
   'reviewEvents',
+  'policyViolations',
   'contentRunId',
   'variantId',
   'workflowExecutionId',

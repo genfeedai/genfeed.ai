@@ -302,6 +302,7 @@ export class TurboRunProcessingService {
       const policy = await this.autonomousPublishPolicy.resolveForPost({
         organizationId: orgId,
         postId: item.postId,
+        qualityScore: item.gateOverallScore,
       });
       if (policy.result.decision !== AgentPublishDecision.PERMITTED) continue;
       try {

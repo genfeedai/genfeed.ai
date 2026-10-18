@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
+  BrandPublishPolicyService,
+  resolveBrandPolicyDraftFormat,
+} from '@api/services/brand-publish-policy/brand-publish-policy.service';
+import {
   MediaAssessmentService,
   toPolicyMediaAssessment,
 } from '@api/services/media-assessment/media-assessment.service';
@@ -21,6 +25,7 @@ import {
   type AgentPublishPolicyResult,
   evaluateAgentPublishPolicy,
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import type { BrandPublishRequiredCheck } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -28,12 +33,10 @@ export interface ResolveAutonomousPostPolicyInput {
   organizationId: string;
   postId: string;
   strategyId?: string;
-  /**
-   * Skip the media assessment for callers that only need the timeout or
-   * autonomy settings (the review-expiry sweep runs inside a locked
-   * transaction and must not fan out into media reads).
-   */
-  skipMediaAssessment?: boolean;
+  /** 0–100 quality score measured for the draft, for the Policy minimum. */
+  qualityScore?: number | null;
+  /** When the post would go out; its scheduled date, else now, when absent. */
+  publishAt?: Date;
 }
 export interface ResolveAutonomousTargetPolicyInput {
   organizationId: string;
@@ -48,8 +51,18 @@ export interface ResolveAutonomousTargetPolicyInput {
    * (#4881) can only tighten the decision to review-required.
    */
   assetIds?: readonly string[];
-  /** The post caption, for caption-consistency warnings (#4882). */
+  /** The post caption, for caption-consistency warnings (#4882) and the brand Policy. */
   caption?: string;
+  /** The draft being decided; the brand Policy violations are recorded on it. */
+  postId?: string;
+  /** The saved post's category, which with the media decides the format. */
+  postCategory?: string | null;
+  /** When the post would go out; now when absent. */
+  publishAt?: Date;
+  /** 0–100 quality score measured for the draft, for the Policy minimum. */
+  qualityScore?: number | null;
+  /** Receipt-settled checks the draft passed. */
+  passedChecks?: readonly BrandPublishRequiredCheck[];
 }
 export interface ResolvedAutonomousPostPolicy {
   autonomyMode: AgentAutonomyMode;
@@ -92,12 +105,40 @@ function boundedInteger(value: unknown, fallback: number, max: number): number {
 }
 @Injectable()
 export class AutonomousPublishPolicyService {
+  /** Without the module's judge, a Policy that needs one holds its drafts. */
+  private readonly brandPublishPolicy: BrandPublishPolicyService;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly activityRecorder: ActivityRecorderService,
     @Optional()
     private readonly mediaAssessmentService?: MediaAssessmentService,
-  ) {}
+    @Optional()
+    brandPublishPolicy?: BrandPublishPolicyService,
+  ) {
+    this.brandPublishPolicy =
+      brandPublishPolicy ?? new BrandPublishPolicyService(prisma);
+  }
+
+  /** How long an autonomous draft waits in review, without deciding anything. */
+  async resolveReviewTimeoutHours(
+    organizationId: string,
+    strategyId: string | null | undefined,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const strategy = strategyId
+      ? await (transaction ?? this.prisma).agentStrategy.findFirst({
+          select: { policies: true },
+          where: scopedWhere(organizationId, { id: strategyId }),
+        })
+      : null;
+    return boundedInteger(
+      policyObject(policyObject(strategy?.policies).publishPolicy)
+        .reviewTimeoutHours,
+      24,
+      168,
+    );
+  }
 
   async resolveForPost(
     input: ResolveAutonomousPostPolicyInput,
@@ -107,15 +148,14 @@ export class AutonomousPublishPolicyService {
     const post = await db.post.findFirst({
       where: scopedWhere(input.organizationId, { id: input.postId }),
     });
-    const attached =
-      post && this.mediaAssessmentService && !input.skipMediaAssessment
-        ? await db.ingredient.findMany({
-            select: { id: true },
-            where: scopedWhere(input.organizationId, {
-              postLinks: { some: { postId: input.postId } },
-            }),
-          })
-        : [];
+    const attached = post
+      ? await db.ingredient.findMany({
+          select: { id: true },
+          where: scopedWhere(input.organizationId, {
+            postLinks: { some: { postId: input.postId } },
+          }),
+        })
+      : [];
     return this.resolveForTarget(
       {
         organizationId: input.organizationId,
@@ -131,6 +171,14 @@ export class AutonomousPublishPolicyService {
             input.strategyId === post.agentStrategyId),
         assetIds: attached.map((ingredient) => ingredient.id),
         caption: post?.description,
+        passedChecks:
+          post?.brandedReceiptState === 'ready'
+            ? ['brand_validation', 'fact_check']
+            : [],
+        postCategory: post?.category,
+        postId: post?.id,
+        publishAt: input.publishAt ?? post?.scheduledDate ?? undefined,
+        qualityScore: input.qualityScore,
       },
       transaction,
     );
@@ -209,26 +257,62 @@ export class AutonomousPublishPolicyService {
           : baseMode;
     const matchingStrategy = Boolean(strategy || (!strategyId && persona));
     const mediaAssessment = await this.assessMedia(input);
+    const decided = {
+      autonomyMode,
+      brandAllowsAutoPublish:
+        matchingStrategy &&
+        globalEnabled &&
+        brandConfig.enabled !== false &&
+        policyObject(brandConfig.autoPublish).enabled === true &&
+        policyObject(brandConfig.autoPublish).isApprovalRequired !== true,
+      channelAllowsAutoPublish: Boolean(
+        input.channelAllowsAutoPublish !== false &&
+          credential &&
+          fromPrismaCredentialPlatform(credential.platform) === input.platform,
+      ),
+      mediaAssessment,
+    };
+    // The brand Policy (#7339) binds every unattended publish. Its judge only
+    // runs for a draft that nothing else already sends to review.
+    const brandPolicy = await this.brandPublishPolicy.buildEvaluation(
+      {
+        brandId: input.brandId,
+        format: resolveBrandPolicyDraftFormat(
+          input.postCategory,
+          await this.brandPublishPolicy.readIngredientCategories(
+            input.organizationId,
+            input.assetIds ?? [],
+            db,
+          ),
+        ),
+        organizationId: input.organizationId,
+        passedChecks: input.passedChecks,
+        platform: input.platform,
+        postId: input.postId,
+        publishAt: input.publishAt ?? new Date(),
+        qualityScore: input.qualityScore,
+        text: input.caption ?? '',
+      },
+      {
+        isJudgeEnabled:
+          evaluateAgentPublishPolicy(decided).decision ===
+          AgentPublishDecision.PERMITTED,
+      },
+      db,
+    );
+    const result = evaluateAgentPublishPolicy({ ...decided, brandPolicy });
+    if (input.postId)
+      await this.brandPublishPolicy.recordViolations(
+        input.organizationId,
+        input.postId,
+        result.policyViolations ?? [],
+        db,
+      );
     return {
       autonomyMode,
       reviewTimeoutHours: boundedInteger(policy.reviewTimeoutHours, 24, 168),
       strategyId: strategy?.id,
-      result: evaluateAgentPublishPolicy({
-        autonomyMode,
-        brandAllowsAutoPublish:
-          matchingStrategy &&
-          globalEnabled &&
-          brandConfig.enabled !== false &&
-          policyObject(brandConfig.autoPublish).enabled === true &&
-          policyObject(brandConfig.autoPublish).isApprovalRequired !== true,
-        channelAllowsAutoPublish: Boolean(
-          input.channelAllowsAutoPublish !== false &&
-            credential &&
-            fromPrismaCredentialPlatform(credential.platform) ===
-              input.platform,
-        ),
-        mediaAssessment,
-      }),
+      result,
     };
   }
 

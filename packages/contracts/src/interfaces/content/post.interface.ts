@@ -18,6 +18,7 @@ import type {
   ITag,
   IUser,
 } from '../index';
+import type { IBrandPolicyViolation } from '../organization/brand-publish-policy.interface';
 import type { IPublishApproval } from '../publisher/publish-approval.interface';
 import type { IChannelTargetError } from '../scheduler/channel-target.interface';
 import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
@@ -61,6 +62,8 @@ export interface IPost extends IBaseEntity {
     feedback?: string;
     reviewedAt: string;
   }>;
+  /** Brand Policy rules this draft broke at the publish gate (#7339). */
+  policyViolations?: IBrandPolicyViolation[];
   reviewFeedback?: string | null;
   reviewedAt?: string | null;
   reviewItemId?: string | null;

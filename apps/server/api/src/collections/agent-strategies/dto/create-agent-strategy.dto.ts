@@ -1,7 +1,4 @@
-import {
-  AGENT_STRATEGY_BRAND_SAFETY_MODES,
-  AGENT_STRATEGY_GOAL_PROFILES,
-} from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
+import { AGENT_STRATEGY_GOAL_PROFILES } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import type { AgentPolicyQualityTier } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import {
   MAX_CONFIGURED_SKILL_SLUGS,
@@ -207,23 +204,6 @@ export class PublishPolicyDto {
   @IsOptional()
   @ApiProperty({ description: 'Minimum image score', required: false })
   minImageScore?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Allow video auto-publishing',
-    required: false,
-  })
-  videoAutopublishEnabled?: boolean;
-
-  @IsEnum(AGENT_STRATEGY_BRAND_SAFETY_MODES)
-  @IsOptional()
-  @ApiProperty({
-    description: 'Brand safety mode',
-    enum: AGENT_STRATEGY_BRAND_SAFETY_MODES,
-    required: false,
-  })
-  brandSafetyMode?: (typeof AGENT_STRATEGY_BRAND_SAFETY_MODES)[number];
 }
 
 export class ReportingPolicyDto {

@@ -11,6 +11,7 @@ import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflow
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
+import { BrandPublishPolicyModule } from '@api/services/brand-publish-policy/brand-publish-policy.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
@@ -195,6 +196,7 @@ import { Module } from '@nestjs/common';
     AgentGoalsModule,
     AgentThreadsModule,
     BrandedTextGenerationModule,
+    BrandPublishPolicyModule,
     BrandsCoreModule,
     CaptionsModule,
     ContentEngineModule,

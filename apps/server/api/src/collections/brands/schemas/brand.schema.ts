@@ -64,7 +64,6 @@ export interface BrandAgentSchedule {
 export interface BrandAgentAutoPublish {
   enabled?: boolean;
   isApprovalRequired?: boolean;
-  platforms?: string[];
   [key: string]: unknown;
 }
 

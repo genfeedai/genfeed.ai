@@ -13,6 +13,7 @@ export * from './agent-publish-policy.contract';
 export * from './analytics-insights.contract';
 export * from './brand-artifact-proof.contract';
 export * from './brand-profile-analysis.contract';
+export * from './brand-publish-policy.contract';
 export * from './brand-remix-generation.contract';
 export * from './brand-remix-run.contract';
 export * from './brand-remix-run-summary.contract';

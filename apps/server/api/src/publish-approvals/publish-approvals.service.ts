@@ -7,6 +7,7 @@ import {
 import {
   buildApprovalProvenance,
   isInteractiveApprovalOrigin,
+  isPolicyBoundApprovalOrigin,
   readApprovalOrigin,
   readProvenanceOrigin,
 } from '@api/publish-approvals/publish-approval-action-origin';
@@ -176,7 +177,7 @@ export class PublishApprovalsService {
       input.postId,
       client,
     );
-    await this.assertCreatable(post);
+    await this.assertCreatable(post, params.transaction);
     if (
       input.contextVersion !== undefined &&
       input.contextVersion !== post.agentContextVersion
@@ -373,13 +374,22 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(approval);
   }
 
-  /** The post must be an eligible target and not held by its brand receipt. */
-  private async assertCreatable(post: ApprovalPost): Promise<void> {
+  /**
+   * The post must be an eligible target and not held by its brand receipt or,
+   * for a workflow or MCP publish, by the brand Policy.
+   */
+  private async assertCreatable(
+    post: ApprovalPost,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
     this.contractCodec.assertTargetStatus(post);
+    const origin = readApprovalOrigin();
     await this.publishHold?.assertPostPublishable({
-      isHumanApproval: isInteractiveApprovalOrigin(readApprovalOrigin()),
+      isHumanApproval: isInteractiveApprovalOrigin(origin),
+      isPolicyBound: isPolicyBoundApprovalOrigin(origin),
       organizationId: post.organizationId,
       postId: post.id,
+      transaction,
     });
   }
 
@@ -387,10 +397,10 @@ export class PublishApprovalsService {
   private async assertClaimNotHeld(
     approval: PublishApprovalRow,
   ): Promise<void> {
+    const origin = readProvenanceOrigin(approval.provenance);
     await this.publishHold?.assertPostPublishable({
-      isHumanApproval: isInteractiveApprovalOrigin(
-        readProvenanceOrigin(approval.provenance),
-      ),
+      isHumanApproval: isInteractiveApprovalOrigin(origin),
+      isPolicyBound: isPolicyBoundApprovalOrigin(origin),
       organizationId: approval.organizationId,
       postId: approval.postId,
     });

@@ -57,10 +57,8 @@ const form: AgentStrategyFormState = {
 };
 const policy: AgentStrategyPublishPolicy = {
   autoPublishEnabled: false,
-  brandSafetyMode: 'strict',
   minImageScore: 75,
   minPostScore: 70,
-  videoAutopublishEnabled: false,
 };
 
 afterEach(cleanup);

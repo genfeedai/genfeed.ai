@@ -257,6 +257,8 @@ export class AgentPublishToolHandler {
     const publishPolicy = await this.resolvePublishPolicy({
       assetIds: mediaGate.assetIds,
       brandId: ingredientBrandId,
+      caption: baseContent,
+      scheduledAt,
       targets: resolvedTargets.targets,
       channelAllowsAutoPublish: resolvedTargets.targets.every((target) =>
         this.isCredentialConnected(credentialsById.get(target.credentialId)),
@@ -390,6 +392,8 @@ export class AgentPublishToolHandler {
   private async resolvePublishPolicy(params: {
     assetIds?: string[];
     brandId?: string;
+    caption?: string;
+    scheduledAt?: string;
     targets: Array<{ credentialId: string; platform: string }>;
     channelAllowsAutoPublish: boolean;
     ctx: ToolExecutionContext;
@@ -404,6 +408,10 @@ export class AgentPublishToolHandler {
         params.targets.map((target) =>
           service.resolveForTarget({
             assetIds: params.assetIds,
+            caption: params.caption,
+            publishAt: params.scheduledAt
+              ? new Date(params.scheduledAt)
+              : undefined,
             organizationId: params.ctx.organizationId,
             brandId,
             strategyId: params.ctx.strategyId,

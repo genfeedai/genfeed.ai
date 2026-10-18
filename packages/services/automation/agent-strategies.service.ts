@@ -37,10 +37,8 @@ export interface AgentStrategyPublishPolicy {
     }
   >;
   autoPublishEnabled: boolean;
-  brandSafetyMode: 'standard' | 'strict';
   minImageScore: number;
   minPostScore: number;
-  videoAutopublishEnabled: boolean;
 }
 
 export interface AgentStrategyReportingPolicy {

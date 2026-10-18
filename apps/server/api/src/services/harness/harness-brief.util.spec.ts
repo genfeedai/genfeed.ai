@@ -1,5 +1,11 @@
-import { formatHarnessBrief } from '@api/services/harness/harness-brief.util';
+import {
+  buildHarnessInput,
+  formatHarnessBrief,
+} from '@api/services/harness/harness-brief.util';
+import { createDefaultBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
+import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
+import { buildBrandKitDraftFromBrand } from '@genfeedai/helpers';
 import { describe, expect, it } from 'vitest';
 
 function brief(sources: ContentHarnessBrief['sources']): ContentHarnessBrief {
@@ -72,5 +78,48 @@ describe('formatHarnessBrief', () => {
     const text = formatHarnessBrief(brief([]));
     expect(text).not.toContain('BRAND FACTS');
     expect(text).not.toContain('REFERENCE SIGNALS');
+  });
+});
+
+describe('buildHarnessInput approved Brand OS Policy (#7339)', () => {
+  function revision(policy?: IBrandOsRevision['content']['policy']) {
+    return {
+      content: {
+        ...buildBrandKitDraftFromBrand({ id: 'brand-1', label: 'Acme' }),
+        ...(policy ? { policy } : {}),
+      },
+      id: 'rev-1',
+    } as IBrandOsRevision;
+  }
+  const intent = { contentType: 'post', objective: 'engagement' } as const;
+
+  it('turns the Policy lists into prompt guardrails', () => {
+    const input = buildHarnessInput({
+      brandOsRevision: revision({
+        ...createDefaultBrandPublishPolicy(),
+        bannedClaims: ['Cures anxiety'],
+        bannedPhrases: ['game changer'],
+        bannedTopics: ['Politics'],
+      }),
+      intent,
+      organizationId: 'org-1',
+    });
+
+    expect(input.identityContribution?.guardrails).toEqual([
+      'Do not discuss: Politics',
+      'Never claim: Cures anxiety',
+      'Never write: game changer',
+    ]);
+  });
+
+  it('adds no guardrails without a Policy or with empty lists', () => {
+    for (const brandOsRevision of [
+      revision(),
+      revision(createDefaultBrandPublishPolicy()),
+    ])
+      expect(
+        buildHarnessInput({ brandOsRevision, intent, organizationId: 'org-1' })
+          .identityContribution,
+      ).not.toHaveProperty('guardrails');
   });
 });

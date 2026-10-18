@@ -134,6 +134,7 @@ function fixture() {
   const policy = {
     assessPostMediaReasons: vi.fn().mockResolvedValue([]),
     recordReviewDecision: vi.fn(),
+    resolveReviewTimeoutHours: vi.fn(async () => 24),
     resolveForPost: vi.fn(async () => ({
       reviewTimeoutHours: 24,
       result: { decision: AgentPublishDecision.DENIED },
@@ -386,6 +387,13 @@ describe('Autonomous review transaction boundary', () => {
     ).toEqual(['post-1']);
     expect(f.calls.slice(0, 2)).toEqual(['lock', 'read']);
     expect(f.approvals.createForCurrentPost).not.toHaveBeenCalled();
+    // The sweep reads only the review window, never the publish gate (#7339).
+    expect(f.policy.resolveForPost).not.toHaveBeenCalled();
+    expect(f.policy.resolveReviewTimeoutHours).toHaveBeenCalledWith(
+      'org-1',
+      expect.anything(),
+      f.tx,
+    );
     expect(f.approvals.invalidatePost.mock.calls[0]?.[4]).toBe(f.tx);
     expect(f.current().post).toMatchObject({
       isDeleted: true,
@@ -414,10 +422,7 @@ describe('Autonomous review transaction boundary', () => {
     ).toEqual([]);
     expect(interactive.lifecycle.transition).not.toHaveBeenCalled();
     const delayed = fixture();
-    delayed.policy.resolveForPost.mockResolvedValue({
-      reviewTimeoutHours: 168,
-      result: { decision: AgentPublishDecision.DENIED },
-    });
+    delayed.policy.resolveReviewTimeoutHours.mockResolvedValue(168);
     expect(
       await delayed.service.expireAutonomousReviewTurboRun(
         'run-1',

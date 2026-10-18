@@ -13,6 +13,8 @@ import {
   PublishApprovalsService,
   SERVER_TOKENS,
 } from '@api/index';
+import { BrandPublishPolicyModule } from '@api/services/brand-publish-policy/brand-publish-policy.module';
+import { BrandPublishPolicyService } from '@api/services/brand-publish-policy/brand-publish-policy.service';
 import { BrandedPublishHoldService } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
@@ -39,6 +41,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
 @Module({
   imports: [
     BrandAccessModule,
+    BrandPublishPolicyModule,
     forwardRef(() => ActivitiesModule),
     forwardRef(() => CredentialsModule),
     forwardRef(() => OrganizationsModule),
@@ -107,6 +110,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
         AgentArtifactReferenceService,
         LoggerService,
         MediaReadinessService,
+        BrandPublishPolicyService,
       ],
       provide: PublishApprovalsService,
       useFactory: (
@@ -114,13 +118,14 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
         artifactReferenceService: AgentArtifactReferenceService,
         logger: LoggerService,
         mediaReadinessService: MediaReadinessService,
+        brandPublishPolicy: BrandPublishPolicyService,
       ) =>
         new PublishApprovalsService(
           prisma,
           artifactReferenceService,
           logger,
           mediaReadinessService,
-          new BrandedPublishHoldService(prisma),
+          new BrandedPublishHoldService(prisma, brandPublishPolicy),
         ),
     },
   ],

@@ -608,17 +608,15 @@ export class TurboRunReviewService {
             }),
           });
           if (!post || (!post.agentStrategyId && !post.personaId)) continue;
-          const policy = await this.autonomousPublishPolicy.resolveForPost(
-            {
-              organizationId: orgId,
-              postId: post.id,
-              skipMediaAssessment: true,
-            },
-            transaction,
-          );
+          const reviewTimeoutHours =
+            await this.autonomousPublishPolicy.resolveReviewTimeoutHours(
+              orgId,
+              post.agentStrategyId,
+              transaction,
+            );
           if (
             now.getTime() - post.createdAt.getTime() <
-            policy.reviewTimeoutHours * 3_600_000
+            reviewTimeoutHours * 3_600_000
           )
             continue;
           const reason = 'Autonomous draft expired while awaiting human review';

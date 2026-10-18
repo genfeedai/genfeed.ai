@@ -1,7 +1,18 @@
 import type { IPublishApprovalHold } from '@api/publish-approvals/publish-approval-hold';
+import type {
+  BrandPolicyDraftFacts,
+  BrandPublishPolicyService,
+} from '@api/services/brand-publish-policy/brand-publish-policy.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { BrandOsRevisionStatus, type PrismaClient } from '@genfeedai/prisma';
+import { AgentAutonomyMode, AgentPublishDecision } from '@genfeedai/contracts';
+import { evaluateAgentPublishPolicy } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import type { IBrandPolicyViolation } from '@genfeedai/contracts/interfaces';
+import {
+  BrandOsRevisionStatus,
+  type Prisma,
+  type PrismaClient,
+} from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 
 const TEXT_LOOKUP_LIMIT = 20;
@@ -11,17 +22,34 @@ type HoldPrisma = Pick<
   'brandedGenerationReceipt' | 'brandOsRevision' | 'post'
 >;
 
-export type BrandedPublishHoldReason = 'needs_review' | 'provisional_brand';
+type HoldPolicy = Pick<
+  BrandPublishPolicyService,
+  'buildEvaluation' | 'describePost' | 'recordViolations'
+>;
 
-export interface BrandedPublishHold {
-  brandId: string;
-  receiptId: string;
-  reason: BrandedPublishHoldReason;
-}
+export type BrandedPublishHoldReason =
+  | 'needs_review'
+  | 'provisional_brand'
+  | 'policy_violation';
+
+export type BrandedPublishHold =
+  | {
+      brandId: string;
+      receiptId: string;
+      reason: Exclude<BrandedPublishHoldReason, 'policy_violation'>;
+    }
+  | {
+      brandId: string;
+      reason: 'policy_violation';
+      /** The brand Policy rules the post broke (#7339). */
+      violations: IBrandPolicyViolation[];
+    };
 
 const HOLD_MESSAGES: Record<BrandedPublishHoldReason, string> = {
   needs_review:
     'This post is held: its generation receipt is not cleared (validation is unavailable or unconfirmed). A member must approve it in the app before it can publish.',
+  policy_violation:
+    'This post is held: it breaks the brand Policy. A member must approve it in the app before it can publish.',
   provisional_brand:
     'This post is held: it was generated from a provisional brand kit that nobody has approved. A member must approve it in the app, or the brand needs an approved kit, before it can publish.',
 };
@@ -33,20 +61,57 @@ function isCleared(receipt: { mode: string; state: string }): boolean {
 
 /** Raised when a receipt-bound post may not be published unattended. */
 export class BrandedPublishHoldException extends ConflictException {
-  public readonly receiptId: string;
+  public readonly receiptId?: string;
   public readonly reason: BrandedPublishHoldReason;
+  public readonly violations: IBrandPolicyViolation[];
 
   constructor(hold: BrandedPublishHold) {
+    const isPolicy = hold.reason === 'policy_violation';
     super({
-      brandedGenerationReceiptId: hold.receiptId,
-      code: 'branded_receipt_held',
+      ...(isPolicy
+        ? { code: 'brand_policy_held', violations: hold.violations }
+        : {
+            brandedGenerationReceiptId: hold.receiptId,
+            code: 'branded_receipt_held',
+          }),
       detail: HOLD_MESSAGES[hold.reason],
       holdReason: hold.reason,
       title: 'Post held for review',
     });
-    this.receiptId = hold.receiptId;
+    this.receiptId = isPolicy ? undefined : hold.receiptId;
     this.reason = hold.reason;
+    this.violations = isPolicy ? hold.violations : [];
   }
+}
+
+/**
+ * The brand Policy, judged through the single publish gate for a publish a
+ * workflow or MCP asked for. Those requests chose to publish, so autonomy,
+ * brand and channel are theirs; the Policy is what binds them.
+ */
+export async function evaluatePolicyHold(
+  policy: HoldPolicy,
+  facts: BrandPolicyDraftFacts,
+  transaction?: Prisma.TransactionClient,
+): Promise<BrandedPublishHold | null> {
+  const brandPolicy = await policy.buildEvaluation(
+    facts,
+    { isJudgeEnabled: true },
+    transaction,
+  );
+  const result = evaluateAgentPublishPolicy({
+    autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+    brandAllowsAutoPublish: true,
+    brandPolicy,
+    channelAllowsAutoPublish: true,
+  });
+  return result.decision === AgentPublishDecision.DENIED
+    ? {
+        brandId: facts.brandId,
+        reason: 'policy_violation',
+        violations: result.policyViolations ?? [],
+      }
+    : null;
 }
 
 /**
@@ -56,9 +121,15 @@ export class BrandedPublishHoldException extends ConflictException {
  * approves it in the app, or, for a provisional receipt, until the brand has an
  * approved kit. Posts with no receipt, and raw posts a member chose to
  * generate without the brand, are not held.
+ *
+ * A workflow or MCP publish is also held while it breaks the brand Policy
+ * (#7339), and the broken rules are recorded on the post for its reviewer.
  */
 export class BrandedPublishHoldService implements IPublishApprovalHold {
-  constructor(private readonly prisma: HoldPrisma) {}
+  constructor(
+    private readonly prisma: HoldPrisma,
+    private readonly policy: HoldPolicy,
+  ) {}
 
   async findHold(
     organizationId: string,
@@ -134,13 +205,75 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
       : null;
   }
 
+  /** The brand Policy hold on a saved post, with its violations recorded on it. */
+  async findPolicyHold(
+    organizationId: string,
+    postId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<BrandedPublishHold | null> {
+    const facts = await this.policy.describePost(
+      organizationId,
+      postId,
+      transaction,
+    );
+    if (!facts) return null;
+    const hold = await evaluatePolicyHold(this.policy, facts, transaction);
+    await this.policy.recordViolations(
+      organizationId,
+      postId,
+      hold?.reason === 'policy_violation' ? hold.violations : [],
+      transaction,
+    );
+    return hold;
+  }
+
+  /**
+   * The hold on text a workflow is about to publish as new posts, one per
+   * destination platform: any platform the Policy holds holds them all.
+   */
+  async findPolicyHoldForText(
+    facts: Omit<BrandPolicyDraftFacts, 'platform' | 'postId'>,
+    platforms: readonly string[],
+  ): Promise<BrandedPublishHold | null> {
+    const violations: IBrandPolicyViolation[] = [];
+    for (const platform of platforms.length > 0 ? platforms : ['']) {
+      const hold = await evaluatePolicyHold(this.policy, {
+        ...facts,
+        platform,
+      });
+      if (hold?.reason === 'policy_violation')
+        for (const violation of hold.violations)
+          if (
+            !violations.some(
+              (seen) =>
+                seen.rule === violation.rule &&
+                seen.detail === violation.detail,
+            )
+          )
+            violations.push(violation);
+    }
+    return violations.length > 0
+      ? { brandId: facts.brandId, reason: 'policy_violation', violations }
+      : null;
+  }
+
   async assertPostPublishable(input: {
     organizationId: string;
     postId: string;
     isHumanApproval: boolean;
+    isPolicyBound: boolean;
+    transaction?: Prisma.TransactionClient;
   }): Promise<void> {
     if (input.isHumanApproval) return;
-    const hold = await this.findHold(input.organizationId, input.postId);
+    const hold =
+      (await this.findHold(input.organizationId, input.postId)) ??
+      (input.isPolicyBound
+        ? await this.findPolicyHold(
+            input.organizationId,
+            input.postId,
+            input.transaction,
+          )
+        : null);
     if (hold) throw new BrandedPublishHoldException(hold);
   }
 }

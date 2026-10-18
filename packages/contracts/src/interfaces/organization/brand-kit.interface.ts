@@ -1,6 +1,7 @@
 import type { ReferenceImageCategory } from '../..';
 import type { BrandGenerationRulesV1 } from '../content/branded-generation.interface';
 import type { IBrandAgentStrategy, IBrandAgentVoice } from './brand.interface';
+import type { IBrandPublishPolicy } from './brand-publish-policy.interface';
 
 export type BrandKitDraftStatus =
   | 'ready'
@@ -204,6 +205,11 @@ export interface IBrandKitResource {
 
 export interface IBrandKitDraft extends IBrandKitResource {
   generationRules?: BrandGenerationRulesV1;
+  /**
+   * The Policy section (#7339). It binds unattended publishing only once the
+   * revision is approved; absent means the brand has no Policy yet.
+   */
+  policy?: IBrandPublishPolicy;
   organizationId?: string;
   status: BrandKitDraftStatus;
   sourceType: BrandKitSourceType;

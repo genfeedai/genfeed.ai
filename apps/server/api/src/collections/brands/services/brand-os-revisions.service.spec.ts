@@ -3,6 +3,7 @@ import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { createDefaultBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import { brandGenerationRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
@@ -925,6 +926,70 @@ describe('BrandOsRevisionsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
+  describe('Policy section (#7339)', () => {
+    function withPolicy(timezone = 'Europe/Paris'): IBrandKitDraft {
+      return { ...draft(), policy: createDefaultBrandPublishPolicy(timezone) };
+    }
+
+    it('rejects an invalid Policy before any transaction', async () => {
+      const { service, prisma } = harness();
+      const invalid = {
+        ...draft(),
+        policy: { ...createDefaultBrandPublishPolicy(), timezone: 'Mars/Base' },
+      };
+      await expect(service.create(ORG, BRAND, invalid)).rejects.toThrow(
+        'Invalid Brand OS Policy',
+      );
+      const videoOpen = {
+        ...draft(),
+        policy: {
+          ...createDefaultBrandPublishPolicy(),
+          autonomy: {
+            formats: { image: 'earned', text: 'earned', video: 'earned' },
+            platforms: {},
+          },
+        },
+      } as unknown as IBrandKitDraft;
+      await expect(service.create(ORG, BRAND, videoOpen)).rejects.toThrow(
+        'Invalid Brand OS Policy',
+      );
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('approves the Policy with the revision it belongs to', async () => {
+      const { service } = harness();
+      const created = await service.create(ORG, BRAND, withPolicy());
+      const approved = await service.approve(
+        ORG,
+        BRAND,
+        created.id,
+        USER,
+        created.updatedAt,
+      );
+      expect(approved.content.policy).toEqual(
+        createDefaultBrandPublishPolicy('Europe/Paris'),
+      );
+    });
+
+    it('carries the approved Policy into a new draft that brings none', async () => {
+      const approved = row('rev-1', 1, BrandOsRevisionStatus.APPROVED);
+      approved.content = withPolicy() as unknown as Prisma.JsonValue;
+      const { service } = harness([approved]);
+      const created = await service.create(ORG, BRAND, draft());
+      expect(created.content.policy).toEqual(
+        createDefaultBrandPublishPolicy('Europe/Paris'),
+      );
+      const explicit = await service.create(ORG, BRAND, withPolicy('UTC'));
+      expect(explicit.content.policy?.timezone).toBe('UTC');
+    });
+
+    it('starts a draft with no Policy when none was approved', async () => {
+      const { service } = harness([row()]);
+      const created = await service.create(ORG, BRAND, draft());
+      expect(created.content.policy).toBeUndefined();
+    });
+  });
+
   it('persists a claim as draft v1 and follows the complete approval and revision lifecycle', async () => {
     const { service, rows } = harness();
     const claimed = await service.ensureInitial(
