@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
@@ -53,6 +54,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -83,25 +85,31 @@ export class IngredientsController {
     private readonly evaluationProjection?: ContentEvaluationProjectionService,
     @Optional()
     private readonly characterFilter?: IngredientCharacterFilterService,
+    @Optional()
+    private readonly brandAccess?: BrandAccessService,
   ) {}
 
   /**
    * Brand axis of a Library read. An organization-level view passes
-   * `allBrands` so the list spans every brand in the organization instead of
+   * `allBrands` so the list spans every brand the caller may access instead of
    * collapsing to the session brand; an explicit `brandId` still narrows it.
    */
-  private resolveLibraryBrandFilter(
+  private async resolveLibraryBrandFilter(
     query: IngredientsQueryDto,
     tenant: ReturnType<typeof CollectionFilterUtil.resolveListOrganizationId>,
     user: User,
     request: Request,
-  ): string | Record<string, unknown> | undefined {
+  ): Promise<string | Record<string, unknown> | undefined> {
     if (tenant.isOrganizationOverride) {
       return tenant.brandId;
     }
 
     if (query.allBrands && !query.brandId) {
-      return undefined;
+      return this.resolveAllBrandsFilter(
+        tenant.organizationId,
+        user,
+        getIsSuperAdmin(user, request),
+      );
     }
 
     return CollectionFilterUtil.buildAuthorizedBrandFilter(
@@ -109,6 +117,36 @@ export class IngredientsController {
       user,
       getIsSuperAdmin(user, request),
     );
+  }
+
+  /**
+   * `allBrands` widens the list only as far as the caller's brand access:
+   * owners, admins, self-hosted installs and superadmins see every brand; a
+   * member assigned to specific brands (or none) sees only those.
+   */
+  private async resolveAllBrandsFilter(
+    organizationId: string,
+    user: User,
+    isSuperAdmin: boolean,
+  ): Promise<Record<string, unknown> | undefined> {
+    if (isSuperAdmin) {
+      return undefined;
+    }
+
+    const userId = user.userId || user.id;
+    if (!userId || !organizationId || !this.brandAccess) {
+      throw new ForbiddenException({
+        detail: 'Access denied to this organization',
+        title: 'Forbidden',
+      });
+    }
+
+    const { brandIds } = await this.brandAccess.resolve({
+      organizationId,
+      userId,
+    });
+
+    return brandIds === undefined ? undefined : { in: brandIds };
   }
 
   /**
@@ -146,7 +184,7 @@ export class IngredientsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const brandId = this.resolveLibraryBrandFilter(
+    const brandId = await this.resolveLibraryBrandFilter(
       query,
       tenant,
       user,
@@ -270,7 +308,7 @@ export class IngredientsController {
     );
     // Counters follow the same brand scope as the list: an explicit brand when
     // asked for, otherwise the caller's brand, otherwise any branded asset.
-    const brandId = this.resolveLibraryBrandFilter(
+    const brandId = await this.resolveLibraryBrandFilter(
       query,
       tenant,
       user,

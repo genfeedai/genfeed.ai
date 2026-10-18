@@ -5,6 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import type { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
@@ -73,6 +74,10 @@ describe('IngredientsController — Library axes', () => {
     buildFilter: vi.fn().mockResolvedValue({}),
   };
 
+  const brandAccess = {
+    resolve: vi.fn().mockResolvedValue({ brandIds: undefined }),
+  };
+
   const controller = new IngredientsController(
     ingredientsService as unknown as IngredientsService,
     {} as never,
@@ -81,6 +86,7 @@ describe('IngredientsController — Library axes', () => {
     { buildUrlFromAbsolute: (url: string) => url } as never,
     undefined,
     characterFilter as unknown as IngredientCharacterFilterService,
+    brandAccess as unknown as BrandAccessService,
   );
 
   afterEach(() => {
@@ -294,6 +300,68 @@ describe('IngredientsController — Library axes', () => {
       expect(andBranches(aggregate).some((branch) => 'brandId' in branch)).toBe(
         false,
       );
+    });
+
+    it('limits allBrands to the brands a restricted member is assigned to', async () => {
+      const assigned = [brandId, testId('brand', 2)];
+      brandAccess.resolve.mockResolvedValueOnce({ brandIds: assigned });
+
+      await controller.findAll(
+        mockRequest,
+        { allBrands: true } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate)).toContainEqual({
+        brandId: { in: assigned },
+      });
+      expect(brandAccess.resolve).toHaveBeenCalledWith({
+        organizationId,
+        userId,
+      });
+    });
+
+    it('lists no brand for a member with no assigned brands', async () => {
+      brandAccess.resolve.mockResolvedValueOnce({ brandIds: [] });
+
+      await controller.findAll(
+        mockRequest,
+        { allBrands: true } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate)).toContainEqual({ brandId: { in: [] } });
+    });
+
+    it('lets a superadmin span every brand without a membership lookup', async () => {
+      await controller.findAll(
+        mockRequest,
+        { allBrands: true } as IngredientsQueryDto,
+        { ...mockUser, isSuperAdmin: true },
+      );
+
+      expect(brandAccess.resolve).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when allBrands cannot be authorized', async () => {
+      const unwired = new IngredientsController(
+        ingredientsService as unknown as IngredientsService,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+
+      await expect(
+        unwired.findAll(
+          mockRequest,
+          { allBrands: true } as IngredientsQueryDto,
+          mockUser,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
     });
 
     it('still narrows allBrands to an explicit brand', async () => {
@@ -625,6 +693,21 @@ describe('IngredientsController — Library axes', () => {
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
         { brandId },
+      );
+    });
+
+    it('counts only assigned brands for a restricted member under allBrands', async () => {
+      brandAccess.resolve.mockResolvedValueOnce({ brandIds: [brandId] });
+
+      await controller.getSummary(
+        mockRequest,
+        { allBrands: true } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
+        organizationId,
+        { brandId: { in: [brandId] } },
       );
     });
 

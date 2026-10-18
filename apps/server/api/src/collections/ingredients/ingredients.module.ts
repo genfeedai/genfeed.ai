@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { EvaluationReadModule } from '@api/collections/evaluations/evaluation-read.module';
 import { IngredientExportsController } from '@api/collections/ingredients/controllers/ingredient-exports.controller';
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
@@ -45,6 +46,7 @@ import { Module } from '@nestjs/common';
     IngredientsService,
   ],
   imports: [
+    BrandAccessModule,
     EvaluationReadModule,
     FilesClientModule,
     MediaUrlsModule,
