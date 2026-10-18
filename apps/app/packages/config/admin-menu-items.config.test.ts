@@ -48,10 +48,10 @@ describe('ADMIN_MENU_ITEMS', () => {
   });
 
   it('lists prompts inside Generations instead of as their own page', () => {
-    const hrefs = ADMIN_MENU_ITEMS.map((item) => item.href);
-
     expect(
-      hrefs.some((href) => href.startsWith('/admin/content/prompts')),
+      ADMIN_MENU_ITEMS.some((item) =>
+        item.href?.startsWith('/admin/content/prompts'),
+      ),
     ).toBe(false);
     expect(ADMIN_MENU_ITEMS.some((item) => item.label === 'Prompts')).toBe(
       false,
