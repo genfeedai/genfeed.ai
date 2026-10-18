@@ -40,11 +40,10 @@ describe('AdminGenerationReviewsService', () => {
       organizationId: 'org-1',
     });
     expect(aggregate.include).toEqual({
-      brand: true,
       metadata: true,
-      organization: true,
+      organization: { select: { id: true, label: true } },
       prompt: true,
-      user: true,
+      user: { select: { email: true, handle: true, id: true } },
     });
   });
 

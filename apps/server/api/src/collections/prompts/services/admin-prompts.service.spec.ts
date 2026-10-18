@@ -1,3 +1,7 @@
+import {
+  ADMIN_GENERATION_CATEGORIES,
+  ADMIN_GENERATION_STATUSES,
+} from '@api/collections/ingredients/utils/admin-generation-reviews.util';
 import type { AdminPromptsQueryDto } from '@api/collections/prompts/dto/admin-prompts-query.dto';
 import {
   AdminPromptsService,
@@ -9,13 +13,22 @@ vi.mock('@libs/prisma/tenant-context', () => ({
   crossOrgUnsafe: <T>(work: () => T) => work(),
 }));
 
+// A prompt counts as represented only by an ingredient the generation ledger shows.
+const shownIngredients = {
+  none: {
+    category: { in: [...ADMIN_GENERATION_CATEGORIES] },
+    isDeleted: false,
+    status: { in: [...ADMIN_GENERATION_STATUSES] },
+  },
+};
+
 const query = (partial: Partial<AdminPromptsQueryDto> = {}) =>
   partial as AdminPromptsQueryDto;
 
 describe('buildAdminPromptsWhere', () => {
   it('keeps only live prompts with no generation', () => {
     expect(buildAdminPromptsWhere(query())).toEqual({
-      ingredients: { none: {} },
+      ingredients: shownIngredients,
       isDeleted: false,
     });
   });
@@ -32,7 +45,7 @@ describe('buildAdminPromptsWhere', () => {
         { user: { is: { email: { contains: 'cat', mode: 'insensitive' } } } },
       ],
       brandId: 'brand-1',
-      ingredients: { none: {} },
+      ingredients: shownIngredients,
       isDeleted: false,
       organizationId: 'org-1',
     });
@@ -47,7 +60,7 @@ describe('AdminPromptsService', () => {
     await service.withoutGeneration(query({ page: 1 }));
 
     const [aggregate] = prompts.findAll.mock.calls[0];
-    expect(aggregate.where).toMatchObject({ ingredients: { none: {} } });
+    expect(aggregate.where).toMatchObject({ ingredients: shownIngredients });
     expect(Object.keys(aggregate.include)).toEqual(['organization', 'user']);
   });
 });

@@ -51,13 +51,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     },
     {
       file: 'apps/server/api/src/collections/ingredients/services/admin-generation-reviews.service.ts',
-      line: 66,
+      line: 65,
     },
     // Superadmin prompt-only ledger: read-only list of prompts that have no
     // generation yet, behind the same superadmin guard as the Generations page.
     {
       file: 'apps/server/api/src/collections/prompts/services/admin-prompts.service.ts',
-      line: 46,
+      line: 56,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps

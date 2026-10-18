@@ -1,3 +1,7 @@
+import {
+  ADMIN_GENERATION_CATEGORIES,
+  ADMIN_GENERATION_STATUSES,
+} from '@api/collections/ingredients/utils/admin-generation-reviews.util';
 import type { AdminPromptsQueryDto } from '@api/collections/prompts/dto/admin-prompts-query.dto';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -13,8 +17,14 @@ export function buildAdminPromptsWhere(
   const search = query.search?.trim();
 
   return {
-    // The generation ledger already shows every prompt that produced media.
-    ingredients: { none: {} },
+    // Exclude exactly the prompts the generation ledger shows.
+    ingredients: {
+      none: {
+        category: { in: [...ADMIN_GENERATION_CATEGORIES] },
+        isDeleted: false,
+        status: { in: [...ADMIN_GENERATION_STATUSES] },
+      },
+    },
     isDeleted: false,
     ...(query.organizationId ? { organizationId: query.organizationId } : {}),
     ...(query.brandId ? { brandId: query.brandId } : {}),

@@ -36,11 +36,10 @@ export class AdminGenerationReviewsService {
         await this.ingredientsService.findAll(
           {
             include: {
-              brand: true,
               metadata: true,
-              organization: true,
+              organization: { select: { id: true, label: true } },
               prompt: true,
-              user: true,
+              user: { select: { email: true, handle: true, id: true } },
             },
             orderBy: handleQuerySort(query.sort),
             where: buildAdminGenerationReviewsWhere(query),

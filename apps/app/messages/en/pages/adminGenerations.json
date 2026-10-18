@@ -4,7 +4,7 @@
   "allTypes": "All types",
   "audio": "Audio result",
   "compiled": "Compiled",
-  "credits": "{count} credits",
+  "credits": "{count, plural, one {# credit} other {# credits}}",
   "detailTitle": "Generation",
   "directives": "Brand directives",
   "download": "Download CSV",
