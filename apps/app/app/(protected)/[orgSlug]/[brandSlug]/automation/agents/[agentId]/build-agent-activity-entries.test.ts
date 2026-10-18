@@ -140,6 +140,7 @@ describe('buildRunActivityEntries', () => {
     const entries = buildRunActivityEntries(
       runHistory,
       executions,
+      [],
       translate,
       (id) => `/agent/${id}`,
       (id) => `/runs/${id}`,
@@ -150,5 +151,83 @@ describe('buildRunActivityEntries', () => {
     expect(
       entries.find((entry) => entry.id === 'execution-execution-1')?.href,
     ).toBe('/runs/execution-1');
+  });
+
+  it('names the posts each run created from their execution lineage', () => {
+    const runHistory: IAgentStrategyRunHistoryItem[] = [
+      {
+        completedAt: '2026-01-01T00:05:00.000Z',
+        contentGenerated: 4,
+        creditsUsed: 3,
+        executionId: 'execution-1',
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+      },
+      {
+        completedAt: '2026-01-03T00:05:00.000Z',
+        contentGenerated: 0,
+        creditsUsed: 1,
+        executionId: 'execution-2',
+        startedAt: '2026-01-03T00:00:00.000Z',
+        status: 'completed',
+      },
+    ];
+    const executions: IWorkflowExecution[] = [
+      {
+        createdAt: '2026-01-01T00:00:00.000Z',
+        id: 'execution-1',
+        metadata: { actualModel: 'model-a' },
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'COMPLETED',
+      } as unknown as IWorkflowExecution,
+    ];
+    const posts = [
+      buildPost({
+        id: 'p1',
+        label: 'First',
+        workflowExecutionId: 'execution-1',
+      }),
+      buildPost({
+        id: 'p2',
+        label: 'Second',
+        workflowExecutionId: 'execution-1',
+      }),
+      buildPost({
+        id: 'p3',
+        description: 'Third',
+        workflowExecutionId: 'execution-1',
+      }),
+      buildPost({ id: 'p4', workflowExecutionId: 'execution-1' }),
+      buildPost({
+        id: 'p5',
+        label: 'Other run',
+        workflowExecutionId: 'execution-9',
+      }),
+    ];
+
+    const entries = buildRunActivityEntries(
+      runHistory,
+      executions,
+      posts,
+      translate,
+      (id) => `/agent/${id}`,
+      (id) => `/runs/${id}`,
+    );
+
+    const postsLine = `activityRunPosts:${JSON.stringify({
+      count: 4,
+      more: 1,
+      titles: 'First, Second, Third',
+    })}`;
+    expect(entries[0].description).toBe(
+      `activityRunGenerated:${JSON.stringify({ count: 4, credits: 3 })} · ${postsLine}`,
+    );
+    expect(entries[1].description).toBe(
+      `activityRunGenerated:${JSON.stringify({ count: 0, credits: 1 })}`,
+    );
+    expect(
+      entries.find((entry) => entry.id === 'execution-execution-1')
+        ?.description,
+    ).toBe(`model-a · ${postsLine}`);
   });
 });

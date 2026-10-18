@@ -48,6 +48,7 @@ import {
 } from '../open-content-agent-conversation';
 import AgentActivitySection from './AgentActivitySection';
 import AgentDetailNeedsYou from './AgentDetailNeedsYou';
+import AgentLatestReport from './AgentLatestReport';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
 import { buildAgentDetailFacts } from './agent-detail-facts.helper';
@@ -413,6 +414,11 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           runsHref={href(APP_ROUTES.AUTOMATION.RUNS)}
           title={detail('needsYouTitle')}
           viewRunsLabel={detail('viewRuns')}
+        />
+
+        <AgentLatestReport
+          agentId={agentId}
+          key={`report-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
         />
 
         <AgentWorkflowBindCard

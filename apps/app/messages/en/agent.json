@@ -20,20 +20,6 @@
     "onboardingUrlPlaceholder": "Paste a public URL…",
     "outputs": "Outputs"
   },
-  "activityFeed": {
-    "budget": "Budget",
-    "completed": "Completed",
-    "contentGenerated": "{count} content generated",
-    "credits": "{count} credits",
-    "empty": "No activity yet",
-    "emptyDescription": "Activity from agent runs will appear here.",
-    "failed": "Failed",
-    "loadError": "Could not load agent activity.",
-    "recent": "Recent Activity",
-    "view": "View",
-    "viewConversation": "View conversation",
-    "viewExecution": "View execution"
-  },
   "threadList": {
     "agent": "Agent",
     "fork": "Fork thread",
