@@ -16,7 +16,6 @@ import {
   Cog,
   Cpu,
   CreditCard,
-  FilePenLine,
   FileStack,
   FolderOpen,
   Gauge,
@@ -88,15 +87,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ADMIN.CONTENT.TEMPLATES],
     outline: FileStack,
     solid: FileStack,
-  },
-  {
-    group: 'Content',
-    hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST,
-    label: 'Prompts',
-    matchPaths: [APP_ROUTES.ADMIN.CONTENT.PROMPTS],
-    outline: FilePenLine,
-    solid: FilePenLine,
   },
   {
     group: 'Content',

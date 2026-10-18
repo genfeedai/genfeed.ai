@@ -171,8 +171,6 @@
     "apps/app/app/(protected)/admin/configuration/tags/[filter]/tags-list.tsx": 9,
     "apps/app/app/(protected)/admin/configuration/tags/[filter]/tags-page.tsx": 1,
     "apps/app/app/(protected)/admin/content/posts/layout.tsx": 2,
-    "apps/app/app/(protected)/admin/content/prompts/layout.tsx": 4,
-    "apps/app/app/(protected)/admin/content/prompts/list/prompts-page.tsx": 10,
     "apps/app/app/(protected)/admin/content/templates/[id]/template-detail.tsx": 12,
     "apps/app/app/(protected)/admin/content/templates/[id]/template-sidebar.tsx": 17,
     "apps/app/app/(protected)/admin/content/templates/[id]/template-variables-card.tsx": 7,

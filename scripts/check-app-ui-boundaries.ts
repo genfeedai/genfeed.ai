@@ -36,7 +36,6 @@ const LEGACY_BUTTON_IMPORT_ALLOWLIST = new Set([
   'apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx',
   'apps/app/app/(protected)/admin/automation/bots/bots-page.tsx',
   'apps/app/app/(protected)/admin/automation/workflows/workflows-page.tsx',
-  'apps/app/app/(protected)/admin/content/prompts/list/prompts-page.tsx',
   'apps/app/app/(protected)/admin/library/voices/voices-library-page.tsx',
   'apps/app/app/(protected)/admin/overview/dashboard/activity-chart.tsx',
   'apps/app/app/(protected)/admin/overview/dashboard/overview-page.tsx',

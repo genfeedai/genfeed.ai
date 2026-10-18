@@ -113,19 +113,6 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/content/prompts`);
-    },
-    category: 'content',
-    condition: adminCondition,
-    description: 'Manage AI prompts',
-    icon: FileText,
-    id: 'admin-nav-prompts',
-    keywords: ['prompts', 'ai', 'content'],
-    label: 'Prompts',
-    priority: 7,
-  },
-  {
-    action: () => {
       navigate(`${EnvironmentService.apps.admin}/content/generations`);
     },
     category: 'content',
@@ -133,7 +120,7 @@ export const adminNavigationCommands: ICommand[] = [
     description: 'Review generated images and their prompts',
     icon: Image,
     id: 'admin-nav-generations',
-    keywords: ['generations', 'prompts', 'images', 'review'],
+    keywords: ['generations', 'prompts', 'images', 'videos', 'review'],
     label: 'Generations',
     priority: 7,
   },

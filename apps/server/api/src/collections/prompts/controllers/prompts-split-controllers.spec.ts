@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { AdminPromptsController } from '@api/collections/prompts/controllers/admin-prompts.controller';
 import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
 import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
 import { PromptsTransformationsController } from '@api/collections/prompts/controllers/prompts-transformations.controller';
@@ -122,6 +123,7 @@ describe('Prompts split controllers', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, PromptsModule),
     ).toEqual([
+      AdminPromptsController,
       PromptsTransformationsController,
       PromptsOperationsController,
       PromptsController,

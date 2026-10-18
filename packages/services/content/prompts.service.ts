@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import { PromptSerializer } from '@genfeedai/serializers';
+import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -27,5 +28,29 @@ export class PromptsService extends BaseService<Prompt> {
       .patch<JsonApiResponseDocument>(`${id}/enhance`, {})
       .then((res) => res.data)
       .then((res) => this.mapOne(res));
+  }
+
+  /**
+   * Superadmin: prompts that never produced a generation, across
+   * organizations. `findAll` is scoped to the caller's own user.
+   */
+  public findAdminWithoutGeneration(
+    query: Record<string, unknown> = {},
+    signal?: AbortSignal,
+  ): Promise<Prompt[]> {
+    return this.instance
+      .get<JsonApiResponseDocument>('admin/without-generation', {
+        params: query,
+        signal,
+      })
+      .then(async (response) => {
+        const page = await this.mapPage(response.data);
+        if ((query as { page?: number }).page) {
+          PagesService.setCurrentPage(page.page);
+          PagesService.setTotalPages(page.totalPages);
+          PagesService.setTotalDocs(page.total);
+        }
+        return page.items;
+      });
   }
 }
