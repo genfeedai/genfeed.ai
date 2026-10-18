@@ -739,6 +739,58 @@ describe('McpApprovalsService', () => {
       });
     },
   );
+  describe('claimExecutionForActor', () => {
+    it('lets the requester redeem an approval a reviewer granted', async () => {
+      vi.spyOn(service, 'findOwned').mockResolvedValue({
+        id: 'approval-claim',
+        userId: 'requester',
+      } as McpApprovalDocument);
+      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.claimExecutionForActor(
+          'approval-claim',
+          'org-1',
+          'requester',
+          false,
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('lets a reviewer claim another member approval', async () => {
+      vi.spyOn(service, 'findOwned').mockResolvedValue({
+        id: 'approval-claim',
+        userId: 'requester',
+      } as McpApprovalDocument);
+      mcpApproval.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.claimExecutionForActor(
+          'approval-claim',
+          'org-1',
+          'admin',
+          true,
+        ),
+      ).resolves.toBe(false);
+    });
+
+    it('refuses a member who neither asked nor reviews', async () => {
+      vi.spyOn(service, 'findOwned').mockResolvedValue({
+        id: 'approval-claim',
+        userId: 'requester',
+      } as McpApprovalDocument);
+
+      await expect(
+        service.claimExecutionForActor(
+          'approval-claim',
+          'org-1',
+          'bystander',
+          false,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+  });
   describe('replacePending', () => {
     const original: McpApprovalDocument = {
       id: 'old-approval',

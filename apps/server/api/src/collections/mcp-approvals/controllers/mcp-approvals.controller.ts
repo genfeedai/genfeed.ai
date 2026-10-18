@@ -31,9 +31,11 @@ import {
   ParseEnumPipe,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 
 type McpApprovalResponse = {
   id: string;
@@ -51,6 +53,7 @@ type McpApprovalResponse = {
 export class McpApprovalsController {
   constructor(
     private readonly service: McpApprovalsService,
+    private readonly rolesGuard: RolesGuard,
     readonly _logger: LoggerService,
   ) {}
 
@@ -176,6 +179,33 @@ export class McpApprovalsController {
       metadata,
     );
     return { data: this.toResponse(result) };
+  }
+
+  @Post(':id/claim')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @ApiOperation({
+    summary: 'Claim an approved MCP action for its single execution',
+  })
+  @ApiResponse({ description: 'Claim outcome', status: HttpStatus.OK })
+  async claim(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<{ data: { id: string; isClaimed: boolean } }> {
+    const isReviewer = await this.rolesGuard
+      .assertRoles(Object.assign(req, { user }), [
+        MemberRole.OWNER,
+        MemberRole.ADMIN,
+      ])
+      .catch(() => false);
+    const isClaimed = await this.service.claimExecutionForActor(
+      id,
+      user.organizationId,
+      user.userId ?? user.id,
+      isReviewer,
+    );
+    return { data: { id, isClaimed } };
   }
 
   @Post(':id/result')

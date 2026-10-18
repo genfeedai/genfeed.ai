@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   ASSETS: '/assets',
   TURBO_PROJECTS: '/turbo-projects',
   TURBO_RUNS: '/turbo-runs',
+  REVIEW_INBOX: '/review-inbox',
   BILLING_ACCOUNTS: '/billing-accounts',
   REFERRALS: '/referrals',
   BLACKLISTS: '/elements/blacklists',

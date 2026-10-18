@@ -372,6 +372,26 @@ export class McpApprovalsService extends BaseService<
     return count === 1;
   }
 
+  /**
+   * Claim an approved action for its one execution on behalf of the caller.
+   * The requester redeems an approval a reviewer granted in the app; an owner
+   * or admin redeems one they approved over MCP. Anyone else is refused.
+   */
+  async claimExecutionForActor(
+    id: string,
+    organizationId: string,
+    userId: string,
+    isReviewer: boolean,
+  ): Promise<boolean> {
+    const approval = await this.findOwned(id, organizationId);
+    if (!isReviewer && approval.userId !== userId) {
+      throw new ForbiddenException(
+        'Only the requester or an organization owner or admin can run this approval',
+      );
+    }
+    return this.claimExecution(id, organizationId);
+  }
+
   async attachResult(
     id: string,
     organizationId: string,

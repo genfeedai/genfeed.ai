@@ -3,7 +3,8 @@ import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPick
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen } from '@testing-library/react';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/data/content/use-posting-sets/use-posting-sets', () => ({
@@ -74,34 +75,86 @@ describe('ReviewGateCard', () => {
     ).toBeDisabled();
   });
 
-  it('approves the selected items', () => {
-    const onApprove = vi.fn();
-    render(<ReviewGateCard action={makeAction()} onApprove={onApprove} />);
+  function makeApi(
+    resolveReviewInboxItem = vi.fn().mockResolvedValue({ status: 'approved' }),
+  ): AgentApiService {
+    return { resolveReviewInboxItem } as unknown as AgentApiService;
+  }
+
+  it('approves the selected items through the review inbox', async () => {
+    const api = makeApi();
+    render(<ReviewGateCard action={makeAction()} apiService={api} />);
 
     fireEvent.click(screen.getAllByRole('checkbox')[0] as HTMLElement);
     fireEvent.click(screen.getByRole('button', { name: /approve \(1\)/i }));
 
-    expect(onApprove).toHaveBeenCalledWith(['item-1']);
     expect(
-      screen.getByText(/review submitted for 1 item/i),
+      await screen.findByText(/review submitted for 1 item/i),
     ).toBeInTheDocument();
+    expect(api.resolveReviewInboxItem).toHaveBeenCalledTimes(1);
+    expect(api.resolveReviewInboxItem).toHaveBeenCalledWith(
+      'item-1',
+      'approve',
+      expect.any(AbortSignal),
+    );
   });
 
-  it('select-all then reject submits every item id', () => {
-    const onReject = vi.fn();
-    render(<ReviewGateCard action={makeAction()} onReject={onReject} />);
+  it('select-all then reject submits every item id', async () => {
+    const api = makeApi();
+    render(<ReviewGateCard action={makeAction()} apiService={api} />);
 
     fireEvent.click(screen.getByRole('button', { name: /select all/i }));
     fireEvent.click(screen.getByRole('button', { name: /reject \(2\)/i }));
 
-    expect(onReject).toHaveBeenCalledWith(['item-1', 'item-2']);
     expect(
-      screen.getByText(/review submitted for 2 items/i),
+      await screen.findByText(/review submitted for 2 items/i),
     ).toBeInTheDocument();
+    expect(
+      vi
+        .mocked(api.resolveReviewInboxItem)
+        .mock.calls.map((call) => [call[0], call[1]]),
+    ).toEqual([
+      ['item-1', 'reject'],
+      ['item-2', 'reject'],
+    ]);
+  });
+
+  it('keeps unresolved items selectable when one decision fails', async () => {
+    const api = makeApi(
+      vi
+        .fn()
+        .mockResolvedValueOnce({ status: 'approved' })
+        .mockRejectedValueOnce(new Error('Review gate was already resolved')),
+    );
+    render(<ReviewGateCard action={makeAction()} apiService={api} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /select all/i }));
+    fireEvent.click(screen.getByRole('button', { name: /approve \(2\)/i }));
+
+    expect(
+      await screen.findByText(/1 item was resolved before the error/i),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText('Post A')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Post B')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /approve \(1\)/i }),
+    ).toBeEnabled();
+    expect(screen.queryByText(/review submitted/i)).not.toBeInTheDocument();
+  });
+
+  it('stays read-only without a live API', () => {
+    render(<ReviewGateCard action={makeAction()} />);
+
+    expect(
+      screen.getByText(/decisions are unavailable here/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select all/i })).toBeDisabled();
   });
 
   it('toggling a selected item removes it again', () => {
-    render(<ReviewGateCard action={makeAction()} />);
+    render(<ReviewGateCard action={makeAction()} apiService={makeApi()} />);
 
     const checkbox = screen.getAllByRole('checkbox')[0] as HTMLElement;
     fireEvent.click(checkbox);

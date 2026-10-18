@@ -38,6 +38,7 @@ import {
   WorkflowActorMembershipVerifier,
 } from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
+import { WorkflowReviewGateFeedbackService } from '@api/collections/workflows/services/workflow-review-gate-feedback.service';
 import {
   AgentScopeContextService,
   resolveNestedActionOrigin,
@@ -112,6 +113,8 @@ export class WorkflowExecutorService {
     private readonly generationBilling?: WorkflowGenerationBillingService,
     @Optional()
     private readonly admissionPlan?: WorkflowGenerationAdmissionPlanService,
+    @Optional()
+    private readonly reviewGateFeedback?: WorkflowReviewGateFeedbackService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -150,6 +153,10 @@ export class WorkflowExecutorService {
             workflowLabel: input.workflowLabel,
           },
         ),
+      this.reviewGateFeedback
+        ? (input) =>
+            this.reviewGateFeedback?.recordDecision(input) ?? Promise.resolve()
+        : undefined,
     );
     this.nodeProgressTracker = new WorkflowNodeProgressTrackerService(
       this.progressService,

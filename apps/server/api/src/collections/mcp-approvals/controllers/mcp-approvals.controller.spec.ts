@@ -35,6 +35,7 @@ describe('McpApprovalsController', () => {
 
   const mockServiceMethods = {
     attachResult: vi.fn(),
+    claimExecutionForActor: vi.fn(),
     createPending: vi.fn(),
     findByOrganization: vi.fn(),
     findOne: vi.fn(),
@@ -42,6 +43,7 @@ describe('McpApprovalsController', () => {
     findPricingForActor: vi.fn(),
     resolve: vi.fn(),
   };
+  const rolesGuard = { assertRoles: vi.fn() };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -50,6 +52,7 @@ describe('McpApprovalsController', () => {
       controllers: [McpApprovalsController],
       providers: [
         { provide: McpApprovalsService, useValue: mockServiceMethods },
+        { provide: RolesGuard, useValue: rolesGuard },
         {
           provide: LoggerService,
           useValue: {
@@ -312,6 +315,48 @@ describe('McpApprovalsController', () => {
           result: {},
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('POST /:id/claim', () => {
+    const request = { body: {}, params: {} } as never;
+
+    it('lets an owner or admin claim any approval of the organization', async () => {
+      rolesGuard.assertRoles.mockResolvedValue(true);
+      mockServiceMethods.claimExecutionForActor.mockResolvedValue(true);
+
+      const result = await controller.claim(
+        request,
+        mockUser as never,
+        'approval-1',
+      );
+
+      expect(mockServiceMethods.claimExecutionForActor).toHaveBeenCalledWith(
+        'approval-1',
+        'org-abc',
+        'user-xyz',
+        true,
+      );
+      expect(result).toEqual({ data: { id: 'approval-1', isClaimed: true } });
+    });
+
+    it('falls back to requester-only redemption for other members', async () => {
+      rolesGuard.assertRoles.mockRejectedValue(new Error('Roles - Forbidden'));
+      mockServiceMethods.claimExecutionForActor.mockResolvedValue(false);
+
+      const result = await controller.claim(
+        request,
+        mockUser as never,
+        'approval-1',
+      );
+
+      expect(mockServiceMethods.claimExecutionForActor).toHaveBeenCalledWith(
+        'approval-1',
+        'org-abc',
+        'user-xyz',
+        false,
+      );
+      expect(result.data.isClaimed).toBe(false);
     });
   });
 });

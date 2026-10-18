@@ -38,6 +38,8 @@ export interface PublishingPostsFilterRouteOptions {
 }
 
 export interface PublishingApprovalsRouteOptions {
+  /** Review inbox gate to focus (`IReviewInboxItem.id`). */
+  approval?: string | null;
   /** Approval queue filter, e.g. `ready`. */
   filter?: string | null;
   /** Review item to focus. */
@@ -48,6 +50,7 @@ export interface PublishingApprovalsRouteOptions {
 
 /** #5502 deep link into the Posts approval view. */
 export function createPublishingApprovalsRoute({
+  approval,
   filter,
   item,
   run,
@@ -56,6 +59,7 @@ export function createPublishingApprovalsRoute({
   if (run) params.set('run', run);
   if (filter) params.set('filter', filter);
   if (item) params.set('item', item);
+  if (approval) params.set('approval', approval);
   return `${APP_ROUTES.PUBLISHING.POSTS}?${params.toString()}`;
 }
 

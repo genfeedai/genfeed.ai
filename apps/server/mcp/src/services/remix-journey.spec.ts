@@ -24,6 +24,7 @@ type Approval = {
   status: 'PENDING' | 'APPROVED' | 'DECLINED';
   toolName: string;
   arguments: Record<string, unknown>;
+  isExecutionClaimed?: boolean;
 };
 
 class FixtureApiError extends Error {
@@ -47,7 +48,7 @@ const ALLOWED_PATHS = [
   /^\/content-runs\/[^/]+\/remix$/,
   /^\/content-runs\/[^/]+\/remix\/generation\/(quote|execute)$/,
   /^\/content-runs\/[^/]+\/remix\/scenes\/(source|quote|execute|cancel|resume)$/,
-  /^\/mcp-approvals(\/[^/]+\/(resolve|result))?$/,
+  /^\/mcp-approvals(\/[^/]+\/(resolve|claim|result))?$/,
 ];
 const FORBIDDEN_FRAGMENTS = [
   'knowledge',
@@ -300,6 +301,17 @@ function fixtureApi() {
           throw new FixtureApiError(409, 'Approval already resolved');
         approval.status = body.decision === 'approve' ? 'APPROVED' : 'DECLINED';
         return envelope(approval);
+      },
+    ],
+    [
+      'post',
+      /^\/mcp-approvals\/([^/]+)\/claim$/,
+      ([, id]) => {
+        const approval = approvals.get(id);
+        const isClaimed =
+          approval?.status === 'APPROVED' && !approval.isExecutionClaimed;
+        if (approval && isClaimed) approval.isExecutionClaimed = true;
+        return envelope({ id, isClaimed });
       },
     ],
     [

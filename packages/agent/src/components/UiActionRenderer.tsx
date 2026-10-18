@@ -195,7 +195,7 @@ export function UiActionRenderer({
       );
       break;
     case 'review_gate_card':
-      card = <ReviewGateCard action={action} />;
+      card = <ReviewGateCard action={action} apiService={liveApiService} />;
       break;
     case 'ingredient_picker_card':
       card = (

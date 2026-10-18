@@ -495,6 +495,17 @@
     "openDraftAria": "Open {platform} draft in review",
     "remainingInReview": "+{count} more {count, plural, one {post} other {posts}} in review"
   },
+  "reviewGateCard": {
+    "approve": "Approve ({count})",
+    "defaultTitle": "Review queue",
+    "empty": "No items to review",
+    "failed": "Some items were not resolved. Try again, or open the review inbox.",
+    "partiallySubmitted": "{count, plural, one {# item was resolved} other {# items were resolved}} before the error.",
+    "readOnly": "Decisions are unavailable here. Open the review inbox to decide these items.",
+    "reject": "Reject ({count})",
+    "selectAll": "Select all",
+    "submitted": "{count, plural, one {Review submitted for # item} other {Review submitted for # items}}"
+  },
   "dock": {
     "emptyTitle": "What do you want to do?",
     "emptyDescription": "Create, edit, or plan with your agent.",

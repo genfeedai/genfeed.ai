@@ -93,6 +93,7 @@ import { WorkflowNodeClaimService } from '@api/collections/workflows/services/wo
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { WorkflowPostGenerationService } from '@api/collections/workflows/services/workflow-post-generation.service';
+import { WorkflowReviewGateFeedbackService } from '@api/collections/workflows/services/workflow-review-gate-feedback.service';
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
@@ -111,9 +112,11 @@ import {
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -194,10 +197,12 @@ import { Module } from '@nestjs/common';
     AdPerformanceModule,
     AgentGoalsModule,
     AgentThreadsModule,
+    AutonomousPublishingModule,
     BrandedTextGenerationModule,
     BrandsCoreModule,
     CaptionsModule,
     ContentEngineModule,
+    ContentHarnessModule,
     ContentPerformanceModule,
     ContentLearningCoreModule,
     CredentialsCoreModule,
@@ -265,6 +270,7 @@ import { Module } from '@nestjs/common';
     WorkflowKnowledgeGroundingService,
     WorkflowContentExecutorRegistrarService,
     WorkflowPostGenerationService,
+    WorkflowReviewGateFeedbackService,
     WorkflowAutomationExecutorRegistrarService,
     WorkflowTrendPublishExecutorRegistrarService,
     WorkflowEngineExecutorRegistryService,

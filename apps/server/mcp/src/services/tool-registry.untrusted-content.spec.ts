@@ -43,6 +43,7 @@ describe('native MCP untrusted-result integration', () => {
     createApproval: vi.fn(),
     resolveApproval: vi.fn(),
     attachApprovalResult: vi.fn(),
+    claimApprovalExecution: vi.fn().mockResolvedValue(true),
   };
   const logger = {
     debug: vi.fn(),

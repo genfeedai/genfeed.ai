@@ -20,6 +20,7 @@ import {
   requireRecordedWorkflowActor,
   type WorkflowActorMembershipVerifier,
 } from '@api/collections/workflows/services/workflow-resume-actor.util';
+import type { WorkflowReviewGateDecisionInput } from '@api/collections/workflows/services/workflow-review-gate-feedback.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import type {
@@ -80,6 +81,9 @@ export class WorkflowReviewGateService {
     private readonly actorMembership: WorkflowActorMembershipVerifier,
     private readonly notifier?: ReviewGateNotificationService,
     private readonly continueWorkflowGraph?: ContinueWorkflowGraph,
+    private readonly recordHumanDecision?: (
+      input: WorkflowReviewGateDecisionInput,
+    ) => Promise<void>,
   ) {}
 
   async submitReviewGateApproval(
@@ -224,6 +228,19 @@ export class WorkflowReviewGateService {
       throw new ForbiddenException(
         buildRevokedWorkflowActorMessage(executionId),
       );
+    }
+    // Only a person's decision teaches the autonomy streak and the harness;
+    // timeout resolutions are recorded against the system actor and skipped.
+    if (userId !== REVIEW_GATE_SYSTEM_ACTOR && this.recordHumanDecision) {
+      await this.recordHumanDecision({
+        executionId,
+        isApproved: approved,
+        nodeId,
+        organizationId,
+        rejectionReason: approved ? undefined : reviewResult.rejectionReason,
+        reviewedCaption: pendingApproval.inputCaption,
+        userId,
+      });
     }
     return reviewResult;
   }

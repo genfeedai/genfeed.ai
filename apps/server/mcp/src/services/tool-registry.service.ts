@@ -410,6 +410,11 @@ export class ToolRegistryService implements OnModuleInit {
           name,
           args ?? {},
         );
+        // A reviewer approved this exact call in the Genfeed review inbox
+        // (#7340); repeating it runs the approved action once.
+        if (approval.status === 'APPROVED' && !approval.result) {
+          return await this.runApprovedApproval(approval);
+        }
         return this.pendingApprovalResult(approval, args ?? {});
       }
 
@@ -654,7 +659,16 @@ export class ToolRegistryService implements OnModuleInit {
     // isolation. (Previously the claim happened AFTER execution, leaving a
     // TOCTOU window where two callers could both execute an irreversible tool.)
     const approval = await this.claimApprovalOrRecoverRetry(approvalId);
+    return this.runApprovedApproval(approval);
+  }
 
+  /**
+   * Run an APPROVED approval exactly once and persist its outcome. Reached from
+   * `resolve_approval` and when the requester repeats a call a reviewer has
+   * since approved in the Genfeed review inbox (#7340).
+   */
+  private async runApprovedApproval(approval: McpApprovalResource) {
+    const approvalId = approval.id;
     // Defense-in-depth: only execute tools that are actually approval-gated, so
     // a stray approval row created for a non-write tool cannot be run via the
     // admin resolve path.
@@ -670,6 +684,17 @@ export class ToolRegistryService implements OnModuleInit {
     // written onto the approval: that would make it permanently unredeemable.
     const apiOwnsOutcome =
       ToolRegistryService.classify(approval.toolName) === 'agent-executor';
+
+    // Direct-dispatch tools have no API-side fence, so they take the
+    // execution claim here: whoever loses it must not run the tool again.
+    if (
+      !apiOwnsOutcome &&
+      !(await this.clientService.claimApprovalExecution(approvalId))
+    ) {
+      throw new Error(
+        `Approval ${approvalId} has already run or is running; not executed again.`,
+      );
+    }
 
     let result: Awaited<ReturnType<typeof this.executeTool>>;
     try {
@@ -703,12 +728,12 @@ export class ToolRegistryService implements OnModuleInit {
 
   /**
    * Claim the approval for execution. An approval that is already APPROVED with
-   * no recorded outcome is a redemption that failed before the API consumed it
-   * (for example an identity check): its decision stands, so re-approving
-   * retries the execution instead of dead-ending on "already resolved". That
-   * recovery is limited to agent-executor tools, whose execution the API fences
-   * to at most one run; direct-dispatch tools have no such fence, so for them a
-   * lost claim always stays lost.
+   * no recorded outcome was approved elsewhere (the Genfeed review inbox) or is
+   * a redemption that failed before the API consumed it: its decision stands,
+   * so re-approving runs it instead of dead-ending on "already resolved".
+   * {@link runApprovedApproval} still fences the run to at most once: the API
+   * fences agent-executor tools, and direct-dispatch tools take the execution
+   * claim first.
    */
   private async claimApprovalOrRecoverRetry(
     approvalId: string,
@@ -722,11 +747,7 @@ export class ToolRegistryService implements OnModuleInit {
       } catch {
         // Unreadable: keep the original claim failure.
       }
-      if (
-        existing?.status === 'APPROVED' &&
-        !existing.result &&
-        ToolRegistryService.classify(existing.toolName) === 'agent-executor'
-      ) {
+      if (existing?.status === 'APPROVED' && !existing.result) {
         return existing;
       }
       throw claimError;

@@ -1,11 +1,23 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ReviewInboxDecision } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Check, ClipboardList, X } from 'lucide-react';
-import { type ReactElement, useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
+import { AgentErrorMessage } from './AgentErrorMessage';
 
 interface ReviewItem {
+  /** A review inbox item id; the API routes it to the gate that owns it. */
   id: string;
   title: string;
   type?: string;
@@ -15,18 +27,28 @@ interface ReviewItem {
 
 interface ReviewGateCardProps {
   action: AgentUiAction;
-  onApprove?: (ids: string[]) => void;
-  onReject?: (ids: string[]) => void;
+  /** Absent while the conversation is read-only: decisions stay unavailable. */
+  apiService?: AgentApiService;
 }
 
 export function ReviewGateCard({
   action,
-  onApprove,
-  onReject,
+  apiService,
 }: ReviewGateCardProps): ReactElement {
+  const translate = useTranslations('agent.reviewGateCard');
   const items = (action.items ?? []) as ReviewItem[];
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [acted, setActed] = useState(false);
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
+  const [submittedCount, setSubmittedCount] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [partialCount, setPartialCount] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  const pendingItems = items.filter((item) => !resolvedIds.has(item.id));
+  const isDecisionAvailable = Boolean(apiService) && !isSubmitting;
 
   const toggleItem = useCallback((id: string) => {
     setSelected((prev) => {
@@ -41,29 +63,59 @@ export function ReviewGateCard({
   }, []);
 
   const selectAll = useCallback(() => {
-    setSelected(new Set(items.map((item) => item.id)));
-  }, [items]);
+    setSelected(new Set(pendingItems.map((item) => item.id)));
+  }, [pendingItems]);
 
-  const handleApprove = useCallback(() => {
-    const ids = Array.from(selected);
-    onApprove?.(ids);
-    setActed(true);
-  }, [selected, onApprove]);
+  const submit = useCallback(
+    async (decision: ReviewInboxDecision) => {
+      if (!apiService || selected.size === 0) return;
+      const ids = Array.from(selected);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setIsSubmitting(true);
+      setError(null);
 
-  const handleReject = useCallback(() => {
-    const ids = Array.from(selected);
-    onReject?.(ids);
-    setActed(true);
-  }, [selected, onReject]);
+      const landed: string[] = [];
+      try {
+        // One item at a time, so a failure never hides the ones that landed.
+        for (const id of ids) {
+          await apiService.resolveReviewInboxItem(
+            id,
+            decision,
+            controller.signal,
+          );
+          landed.push(id);
+        }
+        setSubmittedCount(ids.length);
+      } catch (err: unknown) {
+        if (controller.signal.aborted) return;
+        setPartialCount(landed.length);
+        setError(err instanceof Error ? err.message : translate('failed'));
+      } finally {
+        if (!controller.signal.aborted) {
+          setResolvedIds((prev) => new Set([...prev, ...landed]));
+          setSelected((prev) => {
+            const next = new Set(prev);
+            for (const id of landed) next.delete(id);
+            return next;
+          });
+          setIsSubmitting(false);
+        }
+      }
+    },
+    [apiService, selected, translate],
+  );
 
-  if (acted) {
+  const handleApprove = useCallback(() => submit('approve'), [submit]);
+  const handleReject = useCallback(() => submit('reject'), [submit]);
+
+  if (submittedCount !== null) {
     return (
       <div className="border border-success/20  bg-success/10  p-4 my-2">
         <div className="flex items-center gap-2 text-success ">
           <Check className="size-5" />
           <span className="text-sm font-medium">
-            Review submitted for {selected.size} item
-            {selected.size !== 1 ? 's' : ''}
+            {translate('submitted', { count: submittedCount })}
           </span>
         </div>
       </div>
@@ -76,16 +128,17 @@ export function ReviewGateCard({
         <div className="flex items-center gap-2">
           <ClipboardList className="size-5 text-amber-500" />
           <h3 className="font-semibold text-sm">
-            {action.title || 'Review Queue'}
+            {action.title || translate('defaultTitle')}
           </h3>
         </div>
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           onClick={selectAll}
+          isDisabled={!isDecisionAvailable}
           className="text-blue-500 hover:text-info"
         >
-          Select All
+          {translate('selectAll')}
         </Button>
       </div>
 
@@ -96,7 +149,7 @@ export function ReviewGateCard({
       )}
 
       <div className="space-y-2 max-h-48 overflow-y-auto">
-        {items.map((item) => (
+        {pendingItems.map((item) => (
           <label
             key={item.id}
             className={`flex items-center gap-3 p-2 cursor-pointer transition-colors ${
@@ -107,6 +160,7 @@ export function ReviewGateCard({
           >
             <Checkbox
               isChecked={selected.has(item.id)}
+              isDisabled={!isDecisionAvailable}
               onChange={() => toggleItem(item.id)}
               className="rounded border-zinc-300 text-primary"
             />
@@ -124,33 +178,51 @@ export function ReviewGateCard({
         ))}
       </div>
 
-      {items.length === 0 && (
+      {pendingItems.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
-          No items to review
+          {translate('empty')}
         </p>
       )}
 
-      {items.length > 0 && (
+      {error && (
+        <div className="mt-3">
+          <AgentErrorMessage message={error} />
+          {partialCount > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {translate('partiallySubmitted', { count: partialCount })}
+            </p>
+          )}
+        </div>
+      )}
+
+      {!apiService && pendingItems.length > 0 && (
+        <p className="text-xs text-muted-foreground mt-3">
+          {translate('readOnly')}
+        </p>
+      )}
+
+      {pendingItems.length > 0 && (
         <div className="flex gap-2 mt-3 pt-3 border-t border-border">
           <Button
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             onClick={handleApprove}
-            isDisabled={selected.size === 0}
+            isDisabled={!isDecisionAvailable || selected.size === 0}
+            isLoading={isSubmitting}
             className="bg-success text-success-foreground hover:bg-success/90"
           >
             <Check className="size-3.5" />
-            Approve ({selected.size})
+            {translate('approve', { count: selected.size })}
           </Button>
           <Button
             variant={ButtonVariant.DESTRUCTIVE}
             size={ButtonSize.SM}
             onClick={handleReject}
-            isDisabled={selected.size === 0}
+            isDisabled={!isDecisionAvailable || selected.size === 0}
             className="bg-destructive/10 text-destructive hover:bg-destructive/10  "
           >
             <X className="size-3.5" />
-            Reject ({selected.size})
+            {translate('reject', { count: selected.size })}
           </Button>
         </div>
       )}

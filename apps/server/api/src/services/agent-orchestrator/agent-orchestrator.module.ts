@@ -37,6 +37,7 @@ import { PlatformSettingsModule } from '@api/collections/platform-settings/platf
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { ReviewInboxCoreModule } from '@api/collections/review-inbox/review-inbox-core.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
@@ -236,6 +237,7 @@ import { Module } from '@nestjs/common';
     PostGroupsModule,
     PostsModule,
     QueuesModule,
+    ReviewInboxCoreModule,
     SettingsModule,
     SocialInboxModule,
     TrendsModule,
