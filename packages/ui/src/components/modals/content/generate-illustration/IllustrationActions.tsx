@@ -5,29 +5,25 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
-import { ArrowUp, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 type Props = {
   generatedImageId: string | null;
   generatedImageUrl: string | null;
   isGenerating: boolean;
-  prompt: string;
   onTryAgain: () => void;
   onConfirmImage: () => void;
   onClose: () => void;
-  onGenerate: () => void;
 };
 
 export default function IllustrationActions({
   generatedImageId,
   generatedImageUrl,
   isGenerating,
-  prompt,
   onTryAgain,
   onConfirmImage,
   onClose,
-  onGenerate,
 }: Props) {
   const { href } = useOrgUrl();
 
@@ -64,23 +60,12 @@ export default function IllustrationActions({
           />
         </>
       ) : (
-        <>
-          <Button
-            label="Cancel"
-            variant={ButtonVariant.SECONDARY}
-            onClick={onClose}
-            isDisabled={isGenerating}
-          />
-
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            icon={<ArrowUp />}
-            onClick={onGenerate}
-            isLoading={isGenerating}
-            isDisabled={!prompt.trim() || isGenerating}
-            label="Generate"
-          />
-        </>
+        <Button
+          label="Cancel"
+          variant={ButtonVariant.SECONDARY}
+          onClick={onClose}
+          isDisabled={isGenerating}
+        />
       )}
     </ModalActions>
   );

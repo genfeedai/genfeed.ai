@@ -317,26 +317,41 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/textarea', () => ({
-  Textarea: ({
-    onChange,
-    onKeyDown,
+// The TipTap editor needs a real DOM layout (and `@tiptap/react` is stubbed for
+// the target-brand field above); a textarea keeps these tests on the composer.
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    ariaLabel,
+    onSubmit,
+    onValueChange,
     placeholder,
     value,
   }: {
-    onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    onKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+    ariaLabel?: string;
+    onSubmit?: () => void;
+    onValueChange?: (value: string) => void;
     placeholder?: string;
-    value: string;
+    value?: string;
   }) => (
     <textarea
+      aria-label={ariaLabel}
       placeholder={placeholder}
       value={value}
-      onChange={onChange}
-      onKeyDown={onKeyDown}
+      onChange={(event) => onValueChange?.(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          onSubmit?.();
+        }
+      }}
     />
   ),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/image', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
@@ -362,6 +377,17 @@ function renderComposer() {
       onTaskCreated={mocks.onTaskCreated}
     />,
   );
+}
+
+// The select primitive is stubbed as a native select that drops its aria-label,
+// so the composer toolbar's selects are addressed by position: output type,
+// then task mode, then the facecam panel's avatar and voice selects.
+function chooseOutputType(value: string) {
+  fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value } });
+}
+
+function chooseTaskMode(value: string) {
+  fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value } });
 }
 
 function fillRequest(value: string) {
@@ -498,7 +524,7 @@ describe('WorkspaceTaskComposer', () => {
     renderComposer();
     fillRequest('Evaluate our new creator niche');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Research' }));
+    chooseTaskMode('research');
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 
     await waitFor(() =>
@@ -514,7 +540,7 @@ describe('WorkspaceTaskComposer', () => {
     );
 
     fillRequest('Find creator economy angles');
-    fireEvent.click(screen.getByRole('button', { name: 'Trends' }));
+    chooseTaskMode('trends');
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 
     await waitFor(() =>
@@ -533,7 +559,7 @@ describe('WorkspaceTaskComposer', () => {
     renderComposer();
     fillRequest('Record a facecam intro');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
+    chooseOutputType('facecam');
 
     await waitFor(() => {
       expect(mocks.fetchAvatarPage).toHaveBeenCalledWith({
@@ -568,7 +594,7 @@ describe('WorkspaceTaskComposer', () => {
 
   it('loads both catalogs and keeps the selected identity bound to its organization', async () => {
     renderComposer();
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
+    chooseOutputType('facecam');
     await waitFor(() => {
       expect(mocks.fetchAvatarPage).toHaveBeenCalledWith({
         ownership: 'public',
@@ -594,7 +620,7 @@ describe('WorkspaceTaskComposer', () => {
     );
   });
 
-  it('targets a mentioned brand, clears it, and submits with Cmd+Enter', async () => {
+  it('targets a mentioned brand, clears it, and submits with Enter', async () => {
     renderComposer();
     fillRequest('Create a cross-brand caption');
 
@@ -620,13 +646,9 @@ describe('WorkspaceTaskComposer', () => {
     });
 
     expect(screen.getByText('Solar Studio')).toBeVisible();
-    fireEvent.keyDown(
-      screen.getByPlaceholderText(/create three thumbnail directions/i),
-      {
-        key: 'Enter',
-        metaKey: true,
-      },
-    );
+    fireEvent.keyDown(screen.getByLabelText('Task request'), {
+      key: 'Enter',
+    });
 
     await waitFor(() =>
       expect(mocks.createTask).toHaveBeenCalledWith(
@@ -664,13 +686,13 @@ describe('WorkspaceTaskComposer', () => {
     );
     renderComposer();
     fillRequest('Record a cloned facecam intro');
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
+    chooseOutputType('facecam');
 
     await screen.findByText('[elevenlabs] Narrator');
-    fireEvent.change(screen.getAllByRole('combobox')[0], {
+    fireEvent.change(screen.getAllByRole('combobox')[2], {
       target: { value: 'heygen:public:avatar-default' },
     });
-    fireEvent.change(screen.getAllByRole('combobox')[1], {
+    fireEvent.change(screen.getAllByRole('combobox')[3], {
       target: { value: 'voice-cloned' },
     });
     fireEvent.click(screen.getByLabelText('Save as brand default'));
@@ -703,7 +725,7 @@ describe('WorkspaceTaskComposer', () => {
     ).toBeVisible();
 
     mocks.resolveAuthToken.mockResolvedValue('api-token');
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
+    chooseOutputType('facecam');
     expect(
       await screen.findByText(/HeyGen public avatars could not be loaded/i),
     ).toBeVisible();
@@ -720,7 +742,7 @@ describe('WorkspaceTaskComposer', () => {
     });
     expect(screen.getByRole('button', { name: /enhance/i })).toBeEnabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
+    chooseOutputType('image');
     mocks.createTask.mockRejectedValueOnce(new Error('create failed'));
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
     expect(await screen.findByText('create failed')).toBeVisible();
@@ -763,7 +785,7 @@ describe('WorkspaceTaskComposer', () => {
 
     mocks.resolveAuthToken.mockResolvedValue('api-token');
     mocks.getClonedVoices.mockRejectedValueOnce(new Error('clone unavailable'));
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
+    chooseOutputType('facecam');
     await waitFor(() => expect(mocks.getClonedVoices).toHaveBeenCalled());
     expect(screen.getByRole('button', { name: /create task/i })).toBeEnabled();
   });
@@ -781,7 +803,7 @@ describe('WorkspaceTaskComposer', () => {
     mocks.fetchVoices.mockResolvedValue([]);
     renderComposer();
     fillRequest('Record a facecam intro');
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
+    chooseOutputType('facecam');
     await waitFor(() => expect(mocks.fetchAvatarPage).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
     await waitFor(() =>

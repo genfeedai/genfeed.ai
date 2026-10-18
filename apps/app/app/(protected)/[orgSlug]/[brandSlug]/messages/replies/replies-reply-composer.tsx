@@ -12,12 +12,12 @@ import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const INTENT_OPTIONS: Array<{ label: string; value: ReplyIntent }> = [
-  { label: 'Thanks', value: 'thanks' },
-  { label: 'Question', value: 'question' },
-  { label: 'Troll', value: 'troll' },
-  { label: 'Default', value: 'default' },
-  { label: 'Spam (skip auto)', value: 'spam' },
+const INTENT_VALUES: ReplyIntent[] = [
+  'thanks',
+  'question',
+  'troll',
+  'default',
+  'spam',
 ];
 
 /**
@@ -50,7 +50,7 @@ export default function RepliesReplyComposer({
         className="min-h-12"
         onSubmit={handleSubmit}
         onValueChange={onDraftChange}
-        placeholder="Your reply…"
+        placeholder={translate('composer.placeholder')}
         value={draft}
       />
       <PromptBarToolbar
@@ -58,10 +58,13 @@ export default function RepliesReplyComposer({
         leading={
           <>
             <PromptBarCompactSelect
-              ariaLabel="Intent"
+              ariaLabel={translate('composer.intentLabel')}
               isDisabled={isBusy}
               onChange={(value) => onIntentChange(value as ReplyIntent)}
-              options={INTENT_OPTIONS}
+              options={INTENT_VALUES.map((value) => ({
+                label: translate(`composer.intents.${value}`),
+                value,
+              }))}
               value={intent}
             />
             <Button

@@ -124,8 +124,6 @@ export function useModalGenerateIllustration({
 
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   // Refs for callbacks to prevent re-renders
   const onConfirmRef = useRef(onConfirm);
   onConfirmRef.current = onConfirm;
@@ -251,9 +249,6 @@ export function useModalGenerateIllustration({
         setIsGenerating(false);
         setGeneratedImageId(null);
         setGeneratedImageUrl(null);
-
-        // Auto-focus textarea when modal opens
-        textareaRef.current?.focus();
       });
     }
     prevIsOpenRef.current = isOpen;
@@ -357,13 +352,6 @@ export function useModalGenerateIllustration({
     defaultModelKey,
   ]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      handleGenerate();
-    }
-  };
-
   // Get format label for display
   const formatLabel = useMemo(() => {
     const labels: Record<IngredientFormat, string> = {
@@ -389,11 +377,9 @@ export function useModalGenerateIllustration({
     error,
     generatedImageId,
     generatedImageUrl,
-    textareaRef,
     formatLabel,
     dimensions,
     handleGenerate,
-    handleKeyDown,
     handleClose,
     handleConfirmImage,
     handleTryAgain,

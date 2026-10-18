@@ -18,11 +18,9 @@ const hookState = {
   error: null as string | null,
   generatedImageId: null as string | null,
   generatedImageUrl: null as string | null,
-  textareaRef: { current: null },
   formatLabel: 'Square',
   dimensions: { width: 1024, height: 1024 },
   handleGenerate,
-  handleKeyDown: vi.fn(),
   handleClose,
   handleConfirmImage,
   handleTryAgain,
@@ -47,8 +45,17 @@ vi.mock('@ui/modals/modal/Modal', () => ({
 }));
 
 vi.mock('./IllustrationPromptSection', () => ({
-  default: ({ prompt }: { prompt: string }) => (
-    <div data-testid="illustration-prompt">{prompt}</div>
+  default: ({
+    prompt,
+    onGenerate,
+  }: {
+    prompt: string;
+    onGenerate: () => void;
+  }) => (
+    <div data-testid="illustration-prompt">
+      {prompt}
+      <Button type="button" label="Generate" onClick={onGenerate} />
+    </div>
   ),
 }));
 
@@ -59,13 +66,11 @@ vi.mock('./IllustrationPreview', () => ({
 vi.mock('./IllustrationActions', () => ({
   default: ({
     generatedImageId,
-    onGenerate,
     onConfirmImage,
     onTryAgain,
     onClose,
   }: {
     generatedImageId: string | null;
-    onGenerate: () => void;
     onConfirmImage: () => void;
     onTryAgain: () => void;
     onClose: () => void;
@@ -81,10 +86,7 @@ vi.mock('./IllustrationActions', () => ({
           />
         </>
       ) : (
-        <>
-          <Button type="button" label="Cancel" onClick={onClose} />
-          <Button type="button" label="Generate" onClick={onGenerate} />
-        </>
+        <Button type="button" label="Cancel" onClick={onClose} />
       )}
     </div>
   ),

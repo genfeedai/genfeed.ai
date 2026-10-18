@@ -588,6 +588,12 @@ const UI_TEST_MESSAGES = {
         poor: 'Poor',
       },
     },
+    illustrationPrompt: {
+      title: 'Describe your illustration',
+      placeholder: 'A professional illustration showing…',
+      generate: 'Generate',
+      generating: 'Generating your illustration…',
+    },
     postCardFooter: {
       addMedia: 'Add media',
       media: 'Media ({count})',

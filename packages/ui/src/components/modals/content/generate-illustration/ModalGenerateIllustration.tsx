@@ -23,11 +23,9 @@ export default function ModalGenerateIllustration({
     error,
     generatedImageId,
     generatedImageUrl,
-    textareaRef,
     formatLabel,
     dimensions,
     handleGenerate,
-    handleKeyDown,
     handleClose,
     handleConfirmImage,
     handleTryAgain,
@@ -52,9 +50,9 @@ export default function ModalGenerateIllustration({
           prompt={prompt}
           isGenerating={isGenerating}
           formatLabel={formatLabel}
-          textareaRef={textareaRef}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
+          hasGeneratedImage={Boolean(generatedImageId)}
+          onPromptChange={setPrompt}
+          onGenerate={handleGenerate}
         />
 
         {generatedImageId && !isGenerating && (
@@ -69,11 +67,9 @@ export default function ModalGenerateIllustration({
         generatedImageId={generatedImageId}
         generatedImageUrl={generatedImageUrl}
         isGenerating={isGenerating}
-        prompt={prompt}
         onTryAgain={handleTryAgain}
         onConfirmImage={handleConfirmImage}
         onClose={handleClose}
-        onGenerate={handleGenerate}
       />
     </Modal>
   );

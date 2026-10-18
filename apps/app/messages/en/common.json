@@ -1592,6 +1592,17 @@
         "off": "Auto-replies off",
         "on": "Auto-replies on",
         "skipAuto": "skip auto"
+      },
+      "composer": {
+        "intentLabel": "Intent",
+        "placeholder": "Your reply…",
+        "intents": {
+          "thanks": "Thanks",
+          "question": "Question",
+          "troll": "Troll",
+          "default": "Default",
+          "spam": "Spam (skip auto)"
+        }
       }
     },
     "workflowBinding": {
@@ -1949,7 +1960,9 @@
     },
     "replyComposer": {
       "description": "Review every draft before it is sent or published.",
-      "title": "Reply composer"
+      "title": "Reply composer",
+      "ariaLabel": "Social reply or direct message",
+      "placeholder": "Write a reply or DM"
     },
     "sidebar": {
       "account": "Account",

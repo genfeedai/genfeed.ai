@@ -1,7 +1,14 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { WorkspaceTaskToolbarProps } from '@props/workspace/workspace-task-toolbar.props';
+import type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
+import type {
+  TaskPreset,
+  WorkspaceTaskToolbarProps,
+} from '@props/workspace/workspace-task-toolbar.props';
 import { Button } from '@ui/primitives/button';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import { Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export function WorkspaceTaskToolbar({
   isEnhancementBusy,
@@ -16,62 +23,64 @@ export function WorkspaceTaskToolbar({
   presets,
   taskMode,
 }: WorkspaceTaskToolbarProps) {
+  const translate = useTranslations(
+    'pages.workspaceOverview.taskComposer.toolbar',
+  );
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {presets.map((preset) => (
-        <Button
-          key={preset.outputType}
-          size={ButtonSize.XS}
-          variant={
-            outputType === preset.outputType
-              ? ButtonVariant.DEFAULT
-              : ButtonVariant.SECONDARY
-          }
-          className="font-semibold uppercase tracking-[0.12em]"
-          disabled={taskMode !== 'standard'}
-          onClick={() => onOutputTypeChange(preset.outputType)}
-        >
-          {preset.label}
-        </Button>
-      ))}
-      <span className="h-4 w-px bg-border" />
-      {modeOptions.map((mode) => (
-        <Button
-          key={mode.id}
-          size={ButtonSize.XS}
-          variant={
-            taskMode === mode.id
-              ? ButtonVariant.DEFAULT
-              : ButtonVariant.SECONDARY
-          }
-          className="font-semibold"
-          onClick={() => onTaskModeChange(mode.id)}
-        >
-          {mode.label}
-        </Button>
-      ))}
-      <div className="ml-auto flex items-center gap-1.5">
-        {hasPreviousRequest ? (
+    <PromptBarToolbar
+      density="compact"
+      leading={
+        <>
+          <PromptBarCompactSelect
+            ariaLabel={translate('outputType')}
+            density="compact"
+            isDisabled={taskMode !== 'standard'}
+            options={presets.map((preset) => ({
+              label: preset.label,
+              value: preset.outputType,
+            }))}
+            value={outputType}
+            onChange={(value) =>
+              onOutputTypeChange(value as TaskPreset['outputType'])
+            }
+          />
+          <PromptBarCompactSelect
+            ariaLabel={translate('taskMode')}
+            density="compact"
+            options={modeOptions.map((mode) => ({
+              label: mode.label,
+              value: mode.id,
+            }))}
+            value={taskMode}
+            onChange={(value) => onTaskModeChange(value as WorkspaceTaskMode)}
+          />
+        </>
+      }
+      trailing={
+        <>
+          {hasPreviousRequest ? (
+            <Button
+              size={ButtonSize.XS}
+              variant={ButtonVariant.GHOST}
+              className="px-2 text-xs text-foreground/55"
+              onClick={onUndoEnhancement}
+            >
+              {translate('undo')}
+            </Button>
+          ) : null}
           <Button
             size={ButtonSize.XS}
             variant={ButtonVariant.GHOST}
-            className="px-2 text-xs text-foreground/55"
-            onClick={onUndoEnhancement}
+            className="px-2 text-xs text-foreground/70"
+            disabled={isEnhancementBusy || !hasRequest}
+            onClick={onEnhance}
           >
-            Undo
+            <Sparkles className="size-3.5" />
+            {isEnhancementBusy ? translate('enhancing') : translate('enhance')}
           </Button>
-        ) : null}
-        <Button
-          size={ButtonSize.XS}
-          variant={ButtonVariant.GHOST}
-          className="px-2 text-xs text-foreground/70"
-          disabled={isEnhancementBusy || !hasRequest}
-          onClick={onEnhance}
-        >
-          <Sparkles className="size-3.5" />
-          {isEnhancementBusy ? 'Enhancing…' : 'Enhance - 1 credit'}
-        </Button>
-      </div>
-    </div>
+        </>
+      }
+    />
   );
 }

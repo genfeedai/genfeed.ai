@@ -1,47 +1,72 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
-import FormControl from '@ui/primitives/field';
+import type { IllustrationPromptSectionProps } from '@genfeedai/props/modals/illustration-prompt-section.props';
 import Spinner from '@ui/primitives/spinner';
-import { Textarea } from '@ui/primitives/textarea';
-import type { RefObject } from 'react';
-
-type Props = {
-  prompt: string;
-  isGenerating: boolean;
-  formatLabel: string;
-  textareaRef: RefObject<HTMLTextAreaElement | null>;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-};
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
+import { useTranslations } from 'next-intl';
 
 export default function IllustrationPromptSection({
   prompt,
   isGenerating,
   formatLabel,
-  textareaRef,
-  onChange,
-  onKeyDown,
-}: Props) {
+  hasGeneratedImage,
+  onPromptChange,
+  onGenerate,
+}: IllustrationPromptSectionProps) {
+  const translate = useTranslations('ui.illustrationPrompt');
+  const canGenerate =
+    Boolean(prompt.trim()) && !isGenerating && !hasGeneratedImage;
+
   return (
     <>
-      <FormControl label="Describe your illustration" description={formatLabel}>
-        <Textarea
-          name="illustration-prompt"
+      <PromptBarComposer
+        data-testid="illustration-prompt-composer"
+        density="compact"
+        beforeBody={
+          <p className="flex items-center gap-1.5 px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
+            {translate('title')}
+            <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
+              {formatLabel}
+            </span>
+          </p>
+        }
+      >
+        <PromptEditor
+          ariaLabel={translate('title')}
+          isAutoFocused
           value={prompt}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          placeholder="A professional illustration showing…"
           isDisabled={isGenerating}
-          className="resize-none"
-          textareaRef={textareaRef}
+          placeholder={translate('placeholder')}
+          onValueChange={onPromptChange}
+          onSubmit={() => {
+            if (canGenerate) onGenerate();
+          }}
+          className="min-h-16"
         />
-      </FormControl>
+        <PromptBarToolbar
+          density="compact"
+          leading={null}
+          trailing={
+            <PromptBarSendButton
+              ariaLabel={translate('generate')}
+              density="compact"
+              isDisabled={!canGenerate}
+              isLoading={isGenerating}
+              onClick={onGenerate}
+              tooltip={translate('generate')}
+            />
+          }
+        />
+      </PromptBarComposer>
 
       {isGenerating && (
         <div className="flex items-center gap-2 bg-background p-3 text-sm">
           <Spinner size={ComponentSize.SM} />
-          <span>Generating your illustration…</span>
+          <span>{translate('generating')}</span>
         </div>
       )}
     </>

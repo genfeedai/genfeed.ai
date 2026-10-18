@@ -93,11 +93,11 @@ export default function MessagesReplyComposer({
         density="compact"
       >
         <PromptEditor
-          ariaLabel="Social reply or direct message"
+          ariaLabel={translate('replyComposer.ariaLabel')}
           className="min-h-12"
           onSubmit={handleSubmit}
           onValueChange={onDraftChange}
-          placeholder="Write a reply or DM"
+          placeholder={translate('replyComposer.placeholder')}
           value={draft}
         />
         <PromptBarToolbar

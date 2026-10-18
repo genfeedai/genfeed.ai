@@ -273,6 +273,63 @@ vi.mock('@services/management/tasks.service', async () => {
   };
 });
 
+// The TipTap editor and Radix select need a real DOM layout; plain form
+// controls keep these tests on the composer flow.
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    ariaLabel,
+    onSubmit,
+    onValueChange,
+    placeholder,
+    value,
+  }: {
+    ariaLabel?: string;
+    onSubmit?: () => void;
+    onValueChange?: (value: string) => void;
+    placeholder?: string;
+    value?: string;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      value={value}
+      onChange={(event) => onValueChange?.(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          onSubmit?.();
+        }
+      }}
+    />
+  ),
+}));
+
+vi.mock('@ui/prompt-bars/components/toolbar/PromptBarCompactSelect', () => ({
+  default: ({
+    ariaLabel,
+    onChange,
+    options,
+    value,
+  }: {
+    ariaLabel: string;
+    onChange: (value: string) => void;
+    options: Array<{ label: string; value: string }>;
+    value: string;
+  }) => (
+    <select
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+}));
+
 vi.mock('@sentry/nextjs', () => ({
   addBreadcrumb: vi.fn(),
 }));
@@ -554,8 +611,10 @@ describe('WorkspacePageContent', () => {
       },
     );
 
-    // Select Facecam preset (uppercase label inside the toolbar button)
-    fireEvent.click(screen.getByRole('button', { name: /^facecam$/i }));
+    // Select the Facecam output type in the composer toolbar
+    fireEvent.change(screen.getByRole('combobox', { name: 'Output type' }), {
+      target: { value: 'facecam' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 

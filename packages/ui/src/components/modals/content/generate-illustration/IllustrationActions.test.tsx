@@ -15,10 +15,8 @@ describe('IllustrationActions', () => {
         generatedImageId={null}
         generatedImageUrl={null}
         isGenerating={false}
-        prompt="a pomeranian"
         onClose={vi.fn()}
         onConfirmImage={vi.fn()}
-        onGenerate={vi.fn()}
         onTryAgain={vi.fn()}
       />,
     );
@@ -27,5 +25,23 @@ describe('IllustrationActions', () => {
       'href',
       '/demo/FUDNEWS/agent/new',
     );
+  });
+
+  it('only offers Cancel before an image exists; generating lives in the prompt composer', () => {
+    render(
+      <IllustrationActions
+        generatedImageId={null}
+        generatedImageUrl={null}
+        isGenerating={false}
+        onClose={vi.fn()}
+        onConfirmImage={vi.fn()}
+        onTryAgain={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    expect(
+      screen.queryByRole('button', { name: 'Generate' }),
+    ).not.toBeInTheDocument();
   });
 });

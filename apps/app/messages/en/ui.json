@@ -668,5 +668,11 @@
     "reasonTooLong": "Too long",
     "reasonTooGeneric": "Too generic",
     "reasonOther": "Something else"
+  },
+  "illustrationPrompt": {
+    "title": "Describe your illustration",
+    "placeholder": "A professional illustration showing…",
+    "generate": "Generate",
+    "generating": "Generating your illustration…"
   }
 }
