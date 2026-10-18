@@ -18,6 +18,7 @@ describe('app frontend build graph', () => {
       '@genfeedai/config#build',
       '@genfeedai/integrations#build',
       '@genfeedai/pricing#build',
+      '@genfeedai/serializers#build',
     ]);
     expect(turbo.tasks.build.dependsOn).not.toContain('^build');
     expect(turbo.tasks.build.dependsOn.join(' ')).not.toContain('workflows');
