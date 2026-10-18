@@ -59,6 +59,27 @@ describe('WorkflowExecutionGraphService', () => {
     ).toEqual(new Map());
   });
 
+  it('delivers condition passthrough data only on the taken branch', () => {
+    const evaluation = { shouldBreak: true, streakId: 's1' };
+    const edge = (sourceHandle: 'true' | 'false'): ExecutableEdge => ({
+      id: `should-break-${sourceHandle}`,
+      source: 'should-break',
+      sourceHandle,
+      target: target.id,
+      targetHandle: 'evaluation',
+    });
+    const cache = new Map([
+      ['should-break', { data: evaluation, result: true, value: true }],
+    ]);
+
+    expect(
+      service.gatherInputs(target, [edge('true')], cache, new Map()),
+    ).toEqual(new Map([['evaluation', evaluation]]));
+    expect(
+      service.gatherInputs(target, [edge('false')], cache, new Map()),
+    ).toEqual(new Map());
+  });
+
   it.each([
     ['true', 'false'],
     ['false', 'true'],
