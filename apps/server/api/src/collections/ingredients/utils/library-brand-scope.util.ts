@@ -41,3 +41,17 @@ export async function resolveAllBrandsFilter(
 
   return brandIds === undefined ? undefined : { in: brandIds };
 }
+
+/**
+ * Cache-key segment for the access identity behind a Library read. `allBrands`
+ * results depend on the caller's API-key role cap, so a session and a scoped
+ * key of the same user must never share a cached payload.
+ */
+export function libraryCacheIdentity(
+  user: Pick<User, 'apiKeyId' | 'isApiKey' | 'scopes'> | undefined,
+): string {
+  if (!user?.isApiKey) {
+    return 'session';
+  }
+  return `key:${user.apiKeyId ?? 'unknown'}:${[...(user.scopes ?? [])].sort().join(',')}`;
+}

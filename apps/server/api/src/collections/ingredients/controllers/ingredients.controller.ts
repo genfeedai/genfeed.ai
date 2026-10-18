@@ -10,7 +10,10 @@ import {
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { resolveAllBrandsFilter } from '@api/collections/ingredients/utils/library-brand-scope.util';
+import {
+  libraryCacheIdentity,
+  resolveAllBrandsFilter,
+} from '@api/collections/ingredients/utils/library-brand-scope.util';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -124,7 +127,7 @@ export class IngredientsController {
   @Cache({
     keyGenerator: (req) => {
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      return `ingredients:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+      return `ingredients:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:access:${libraryCacheIdentity(req.user)}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['ingredients'],
     ttl: 60,
@@ -251,7 +254,7 @@ export class IngredientsController {
   @Cache({
     keyGenerator: (req) => {
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      return `ingredients:summary:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+      return `ingredients:summary:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:access:${libraryCacheIdentity(req.user)}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['ingredients'],
     ttl: 60,
