@@ -32,6 +32,8 @@ interface S3Error extends Error {
 }
 
 const createBadRequest = (message: string) => new BadRequestException(message);
+const MAX_DOWNLOAD_ERROR_BYTES = 64 * 1024;
+const DOWNLOAD_ERROR_BODY_TIMEOUT_MS = 10_000;
 
 function asNodeReadable(body: unknown, emptyMessage: string): Readable {
   if (body instanceof Readable) {
@@ -234,9 +236,9 @@ export class S3Service {
             asNodeReadable(response.body, 'Empty download body').destroy();
           throw new Error(`Media download failed (${response.status})`);
         }
-        const errorText = await response
-          .text()
-          .catch(() => response.statusText);
+        const errorText = await this.readDownloadErrorBody(response).catch(
+          () => response.statusText,
+        );
 
         // Parse error response if it's JSON
         let errorMessage = errorText;
@@ -305,6 +307,42 @@ export class S3Service {
         url,
       });
       throw error;
+    }
+  }
+
+  private async readDownloadErrorBody(response: Response): Promise<string> {
+    if (!response.body) return '';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<never>((_resolve, reject) => {
+      timeout = setTimeout(
+        () => reject(new Error('Download error response timed out')),
+        DOWNLOAD_ERROR_BODY_TIMEOUT_MS,
+      );
+    });
+    let bytes = 0;
+    let text = '';
+    let complete = false;
+    try {
+      for (;;) {
+        const { done, value } = await Promise.race([reader.read(), expired]);
+        if (done) {
+          complete = true;
+          return text + decoder.decode();
+        }
+        bytes += value.byteLength;
+        if (bytes > MAX_DOWNLOAD_ERROR_BYTES)
+          throw new Error('Download error response exceeds size limit');
+        text += decoder.decode(value, { stream: true });
+      }
+    } finally {
+      if (timeout) clearTimeout(timeout);
+      try {
+        if (!complete) void reader.cancel().catch(() => undefined);
+      } finally {
+        reader.releaseLock();
+      }
     }
   }
 
