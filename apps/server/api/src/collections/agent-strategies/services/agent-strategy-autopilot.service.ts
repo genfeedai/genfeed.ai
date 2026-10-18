@@ -14,6 +14,7 @@ import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-st
 import {
   getCadenceDemand,
   resolveCadencePolicy,
+  resolveEffectivePostsPerWeek,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
@@ -259,7 +260,7 @@ export class AgentStrategyAutopilotService {
         postingDemand: demand.posting,
       };
     }
-    const target = strategy.postsPerWeek;
+    const target = resolveEffectivePostsPerWeek(strategy);
     if (!target || target <= 0)
       return { remainingSlots: opportunityCount, postingDemand: 0 };
     const cadence =

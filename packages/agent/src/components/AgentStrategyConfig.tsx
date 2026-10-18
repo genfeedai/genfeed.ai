@@ -35,7 +35,7 @@ export function AgentStrategyConfig({
   const [topicInput, setTopicInput] = useState('');
   const [voice, setVoice] = useState('');
   const [platforms, setPlatforms] = useState<string[]>([]);
-  const [postsPerWeek, setPostsPerWeek] = useState(10);
+  const [postsPerWeek, setPostsPerWeek] = useState(14);
   const [runFrequency, setRunFrequency] = useState('daily');
   const [timezone, setTimezone] = useState('America/New_York');
   const [dailyCreditBudget, setDailyCreditBudget] = useState(100);

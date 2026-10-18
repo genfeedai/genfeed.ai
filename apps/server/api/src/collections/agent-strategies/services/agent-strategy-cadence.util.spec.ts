@@ -6,6 +6,7 @@ import {
   isReadyCadenceDraft,
   recordReadyDraftReceipt,
   resolveCadencePolicy,
+  resolveEffectivePostsPerWeek,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
@@ -58,6 +59,24 @@ describe('strategy cadence', () => {
       }),
     ).toBe(false);
     expect(isReadyCadenceDraft({ ...original, ...update })).toBe(true);
+  });
+  it('defaults an X strategy without an explicit cadence to two posts a day', () => {
+    expect(resolveEffectivePostsPerWeek({ platforms: ['twitter'] })).toBe(14);
+    expect(
+      resolveEffectivePostsPerWeek({ platforms: ['linkedin', 'twitter'] }),
+    ).toBe(14);
+    expect(resolveEffectivePostsPerWeek({ platforms: [] })).toBe(14);
+    expect(resolveEffectivePostsPerWeek({})).toBe(14);
+    expect(resolveEffectivePostsPerWeek({ postsPerWeek: null })).toBe(14);
+  });
+  it('keeps an explicit cadence, including 0, and gives other platforms no default', () => {
+    expect(
+      resolveEffectivePostsPerWeek({ platforms: ['twitter'], postsPerWeek: 0 }),
+    ).toBe(0);
+    expect(
+      resolveEffectivePostsPerWeek({ platforms: ['twitter'], postsPerWeek: 3 }),
+    ).toBe(3);
+    expect(resolveEffectivePostsPerWeek({ platforms: ['instagram'] })).toBe(0);
   });
   it('preserves legacy limits until separate controls are configured', () => {
     expect(resolveCadencePolicy({ postsPerWeek: 7 })).toEqual({

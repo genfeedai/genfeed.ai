@@ -1204,6 +1204,119 @@ describe('AgentStrategyAutopilotService', () => {
     }
   });
 
+  describe('default X cadence', () => {
+    const defaultXStrategy = {
+      ...baseStrategy,
+      postsPerWeek: undefined,
+      platforms: ['twitter'],
+      opportunitySources: {
+        ...baseStrategy.opportunitySources,
+        evergreenCadenceEnabled: true,
+        trendWatchersEnabled: true,
+      },
+    };
+
+    it('plans two distinct evergreen items a day at the default cadence', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-09-06T12:00:00Z'));
+        const deps = createService();
+        deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+        const strategy = { ...defaultXStrategy, topics: ['AI hooks'] };
+        await deps.planningService.refreshOpportunities(strategy as never);
+        await deps.planningService.refreshOpportunities(strategy as never);
+        const evergreen = deps.opportunitiesService.createIfMissing.mock.calls
+          .map(([input]) => input)
+          .filter((input) => input.sourceType === 'evergreen');
+        const refs = new Set(evergreen.map((input) => input.sourceRef));
+        expect(refs.size).toBe(2);
+        expect(evergreen).toHaveLength(4);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('rotates topics across the daily slots', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-09-06T12:00:00Z'));
+        const deps = createService();
+        deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+        await deps.planningService.refreshOpportunities({
+          ...defaultXStrategy,
+          topics: ['First', 'Second'],
+        } as never);
+        const topics = deps.opportunitiesService.createIfMissing.mock.calls
+          .map(([input]) => input)
+          .filter((input) => input.sourceType === 'evergreen')
+          .map((input) => input.topic);
+        expect(new Set(topics)).toEqual(new Set(['First', 'Second']));
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('stops planning evergreen once two posts are out today', async () => {
+      const deps = createService();
+      deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+      deps.postsService.find.mockResolvedValue([
+        { id: 'a', publishedAt: new Date(), targetExecutionState: 'published' },
+        { id: 'b', publishedAt: new Date(), targetExecutionState: 'published' },
+      ]);
+      await deps.planningService.refreshOpportunities(
+        defaultXStrategy as never,
+      );
+      expect(deps.opportunitiesService.createIfMissing).not.toHaveBeenCalled();
+    });
+
+    it('keeps an explicit 0 cadence from planning evergreen items', async () => {
+      const deps = createService();
+      deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+      await deps.planningService.refreshOpportunities({
+        ...defaultXStrategy,
+        postsPerWeek: 0,
+      } as never);
+      expect(deps.opportunitiesService.createIfMissing).not.toHaveBeenCalled();
+    });
+
+    it('runs two opportunities a day at the default cadence', async () => {
+      const deps = createService();
+      deps.agentStrategiesService.findOneById.mockResolvedValue(
+        defaultXStrategy,
+      );
+      deps.opportunitiesService.listOpenByStrategy.mockResolvedValue(
+        ['one', 'two', 'three'].map((id) => ({
+          id,
+          estimatedCreditCost: 1,
+          formatCandidates: ['text'],
+          platformCandidates: ['twitter'],
+          priorityScore: 90,
+          sourceType: 'evergreen',
+          status: 'queued',
+          topic: id,
+        })),
+      );
+      const execute = vi
+        .spyOn(
+          AgentStrategyAutopilotExecutionService.prototype,
+          'executeOpportunity',
+        )
+        .mockResolvedValue({ contentGenerated: 1, creditsUsed: 0 });
+      try {
+        const result = await deps.service.executeQueuedRun({
+          organizationId,
+          strategyId,
+          userId,
+          runId: 'run',
+        });
+        expect(execute).toHaveBeenCalledTimes(2);
+        expect(result.contentGenerated).toBe(2);
+      } finally {
+        execute.mockRestore();
+      }
+    });
+  });
+
   it('does not call scheduled posts published or count completed runs as posts', async () => {
     const deps = createService();
     deps.postsService.find.mockResolvedValue([
@@ -1734,12 +1847,16 @@ describe('AgentStrategyAutopilotService', () => {
       expect.objectContaining({ sourceType: 'evergreen' }),
     );
   });
-  it.each([undefined, 0])(
-    'executes queued opportunities without a positive weekly cadence target (%s)',
-    async (postsPerWeek) => {
+  it.each([
+    [undefined, ['instagram']],
+    [0, ['twitter']],
+  ])(
+    'executes queued opportunities without a positive weekly cadence target (%s, %j)',
+    async (postsPerWeek, platforms) => {
       const deps = createService();
       deps.agentStrategiesService.findOneById.mockResolvedValue({
         ...baseStrategy,
+        platforms,
         postsPerWeek,
       });
       deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([

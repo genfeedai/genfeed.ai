@@ -17,6 +17,7 @@ import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent
 import {
   getCadenceDemand,
   resolveCadencePolicy,
+  resolveEffectivePostsPerWeek,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -26,12 +27,14 @@ import { DateTime } from 'luxon';
 
 interface OpportunityPlanningContext {
   day: string;
+  dayIndex: number;
   defaultTopic: string;
   expiresAt: Date;
   platforms: string[];
   strategyBrandId: string | undefined;
   strategyId: string;
   strategyOrganizationId: string;
+  topics: string[];
 }
 
 @Injectable()
@@ -113,17 +116,19 @@ export class AgentStrategyAutopilotPlanningService {
     const topics = strategy.topics?.length
       ? strategy.topics
       : [strategy.label || 'General update'];
-    const defaultTopic =
-      topics[Math.floor(Date.parse(day) / 86_400_000) % topics.length];
+    const dayIndex = Math.floor(Date.parse(day) / 86_400_000);
+    const defaultTopic = topics[dayIndex % topics.length];
 
     return {
       day,
+      dayIndex,
       defaultTopic,
       expiresAt,
       platforms,
       strategyBrandId: getStrategyBrandId(strategy),
       strategyId: getStrategyId(strategy),
       strategyOrganizationId: getStrategyOrganizationId(strategy),
+      topics,
     };
   }
 
@@ -292,36 +297,43 @@ export class AgentStrategyAutopilotPlanningService {
 
     const cadence =
       await this.performanceService.getPublishingCadence(strategy);
+    const postsPerWeek = resolveEffectivePostsPerWeek(strategy);
+    const dailyTarget = Math.ceil(postsPerWeek / 7);
     const isBelowWeeklyTarget =
-      cadence.week < (strategy.postsPerWeek ?? 0) &&
-      cadence.today < Math.ceil((strategy.postsPerWeek ?? 0) / 7);
+      cadence.week < postsPerWeek && cadence.today < dailyTarget;
     if (!isBelowWeeklyTarget) return;
 
-    await this.opportunitiesService.createIfMissing({
-      brandId: strategyBrandId ?? '',
-      decisionReason: 'Evergreen cadence filled a weekly publishing gap.',
-      expiresAt,
-      estimatedCreditCost: estimateOpportunityCost(
-        resolveFormatsForStrategy(strategy),
-      ),
-      expectedTrafficScore: 55,
-      formatCandidates: resolveFormatsForStrategy(strategy),
-      metadata: { trigger: 'weekly-gap' },
-      organizationId: strategyOrganizationId,
-      platformCandidates: platforms,
-      priorityScore: computePriorityScore(strategy, {
-        costEfficiency: 100 / DEFAULT_TEXT_OPPORTUNITY_COST,
-        expectedTraffic: 55,
-        freshness: 50,
-        historicalConfidence: 60,
-        relevance: computeTopicRelevance(strategy, defaultTopic),
-      }),
-      relevanceScore: computeTopicRelevance(strategy, defaultTopic),
-      sourceRef: `evergreen:${day}:${defaultTopic}`,
-      sourceType: 'evergreen',
-      strategyId,
-      topic: defaultTopic,
-    });
+    // One evergreen item per daily slot: the slot is part of the source ref, so
+    // reaching the daily target never repeats the same item on a day.
+    for (let slot = 0; slot < dailyTarget; slot++) {
+      const topic =
+        context.topics[(context.dayIndex + slot) % context.topics.length];
+      await this.opportunitiesService.createIfMissing({
+        brandId: strategyBrandId ?? '',
+        decisionReason: 'Evergreen cadence filled a weekly publishing gap.',
+        expiresAt,
+        estimatedCreditCost: estimateOpportunityCost(
+          resolveFormatsForStrategy(strategy),
+        ),
+        expectedTrafficScore: 55,
+        formatCandidates: resolveFormatsForStrategy(strategy),
+        metadata: { trigger: 'weekly-gap' },
+        organizationId: strategyOrganizationId,
+        platformCandidates: platforms,
+        priorityScore: computePriorityScore(strategy, {
+          costEfficiency: 100 / DEFAULT_TEXT_OPPORTUNITY_COST,
+          expectedTraffic: 55,
+          freshness: 50,
+          historicalConfidence: 60,
+          relevance: computeTopicRelevance(strategy, topic),
+        }),
+        relevanceScore: computeTopicRelevance(strategy, topic),
+        sourceRef: `evergreen:${day}:${slot}:${topic}`,
+        sourceType: 'evergreen',
+        strategyId,
+        topic,
+      });
+    }
   }
 
   selectOpportunities(

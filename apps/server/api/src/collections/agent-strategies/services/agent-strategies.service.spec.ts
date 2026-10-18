@@ -196,6 +196,62 @@ describe('AgentStrategiesService', () => {
       skillSlugs: ['brand-voice'],
     });
   });
+
+  it('turns trend and evergreen sources on for a new strategy without activating it', async () => {
+    const create = vi.fn().mockResolvedValue({
+      config: {},
+      id: 'strategy-1',
+      policies: {},
+    });
+
+    await service.createWithClient(
+      {
+        brandId: 'brand-1',
+        isActive: false,
+        label: 'X agent',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      { agentStrategy: { create } } as never,
+    );
+
+    const data = create.mock.calls[0]?.[0].data;
+    expect(data.isActive).toBe(false);
+    expect(data.config.opportunitySources).toEqual({
+      evergreenCadenceEnabled: true,
+      trendWatchersEnabled: true,
+    });
+    expect(data.config).not.toHaveProperty('nextRunAt');
+    expect(data.config).not.toHaveProperty('postsPerWeek');
+  });
+
+  it('keeps explicitly chosen opportunity sources on create', async () => {
+    const create = vi.fn().mockResolvedValue({
+      config: {},
+      id: 'strategy-1',
+      policies: {},
+    });
+
+    await service.createWithClient(
+      {
+        label: 'Events only',
+        opportunitySources: {
+          eventTriggersEnabled: true,
+          evergreenCadenceEnabled: false,
+          trendWatchersEnabled: false,
+        },
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      { agentStrategy: { create } } as never,
+    );
+
+    expect(create.mock.calls[0]?.[0].data.config.opportunitySources).toEqual({
+      eventTriggersEnabled: true,
+      evergreenCadenceEnabled: false,
+      trendWatchersEnabled: false,
+    });
+  });
 });
 
 describe('AgentStrategiesService budget and atomic run persistence', () => {

@@ -216,6 +216,7 @@ describe('AgentStrategyConfig', () => {
     });
     expect(createStrategy.mock.calls[0]?.[0]).toMatchObject({
       label: 'Fresh plan',
+      postsPerWeek: 14,
     });
   });
 

@@ -13,6 +13,7 @@ import type { PostsService } from '@api/collections/posts/services/posts.service
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   PersistedReviewDecision,
+  Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { AgentStrategyCadenceStatus } from '@genfeedai/contracts/interfaces';
@@ -33,6 +34,25 @@ export type StrategyCadencePolicy = {
 };
 
 export class CadenceGenerationUnavailableError extends Error {}
+
+/** Default X cadence: two posts a day once autopilot runs the strategy. */
+export const DEFAULT_X_POSTS_PER_WEEK = 14;
+
+/**
+ * Weekly target for a strategy without a separate cadence policy. An explicit
+ * `postsPerWeek` always wins, including 0. Otherwise a strategy that targets X,
+ * or names no platform (X is the default platform), posts twice a day.
+ */
+export function resolveEffectivePostsPerWeek(config: {
+  platforms?: readonly string[];
+  postsPerWeek?: number | null;
+}): number {
+  if (typeof config.postsPerWeek === 'number') return config.postsPerWeek;
+  const platforms = config.platforms ?? [];
+  return platforms.length === 0 || platforms.includes(Platform.TWITTER)
+    ? DEFAULT_X_POSTS_PER_WEEK
+    : 0;
+}
 
 export function resolveCadencePolicy(
   config: StrategyCadenceConfiguration,

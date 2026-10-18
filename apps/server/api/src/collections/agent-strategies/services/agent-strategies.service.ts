@@ -221,6 +221,15 @@ export class AgentStrategiesService extends BaseService<
         : {}),
       ...(preferredWorkflowTemplateId ? { preferredWorkflowTemplateId } : {}),
       ...(skillSlugs !== undefined ? { skillSlugs } : {}),
+      // New strategies draw on trends and evergreen once autopilot runs them;
+      // event triggers stay opt-in. Existing rows keep their stored sources.
+      opportunitySources: {
+        ...createDto.opportunitySources,
+        evergreenCadenceEnabled:
+          createDto.opportunitySources?.evergreenCadenceEnabled ?? true,
+        trendWatchersEnabled:
+          createDto.opportunitySources?.trendWatchersEnabled ?? true,
+      },
       // Defaults for counters that live in config
       weeklyCreditBudget:
         createDto.weeklyCreditBudget ?? (createDto.dailyCreditBudget ?? 0) * 5,
