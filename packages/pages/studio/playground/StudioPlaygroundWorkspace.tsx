@@ -56,6 +56,7 @@ import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
+import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
@@ -362,6 +363,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   // The epoch also fences A → B → A changes without reviving the old selection.
   const focusedScopeKey = `${crunRestoreScope}:${crunRestoreEpochRef.current}`;
   const galleryScrollRef = useRef<HTMLDivElement>(null);
+  const composerDockRef = useRef<HTMLDivElement>(null);
+  const composerResting = usePromptBarResting({
+    composerRef: composerDockRef,
+    scrollRef: galleryScrollRef,
+  });
   const galleryPositionRef = useRef(0);
   const focusReturnRef = useRef<HTMLElement | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
@@ -2603,7 +2609,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             maxWidth="4xl"
             zIndex={40}
           >
-            <div {...(capabilities.hasReferences ? dragHandlers : {})}>
+            <div
+              ref={composerDockRef}
+              {...(capabilities.hasReferences ? dragHandlers : {})}
+            >
               <StudioPlaygroundComposer
                 notice={
                   draftSaveStatus === 'error' ||
@@ -2660,6 +2669,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 isDragActive={capabilities.hasReferences && dragState.isActive}
                 isEnhancingPrompt={isEnhancingPrompt}
                 isListening={isListening}
+                isResting={composerResting.isResting}
+                onExpand={composerResting.expand}
                 isLoadingModels={isLoadingModels}
                 isTranscribing={isTranscribing}
                 isUploading={isUploading}

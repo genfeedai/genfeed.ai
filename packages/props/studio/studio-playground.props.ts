@@ -55,11 +55,14 @@ export interface StudioPlaygroundComposerProps {
   isEnhancingPrompt?: boolean;
   isListening: boolean;
   isLoadingModels: boolean;
+  /** One-line resting bar while the gallery scrolls under it. */
+  isResting?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
   models: readonly IModel[];
   /** Status or recovery notice pinned inside the composer shell, never above it. */
   notice?: ReactNode;
+  onExpand?: () => void;
   onAddFiles: (files: File[], role?: StudioPlaygroundReferenceRole) => void;
   onCancelEnhancePrompt?: () => void;
   onEnhancePrompt?: () => void;
