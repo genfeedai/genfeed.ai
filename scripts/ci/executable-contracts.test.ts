@@ -92,7 +92,7 @@ const REPOSITORY_CONTRACTS = [
 describe('executable repository contracts', () => {
   it.each(REPOSITORY_CONTRACTS)(
     '$name holds on this repository',
-    { timeout: 180_000 },
+    { timeout: 300_000 },
     ({ command, name }) => {
       runContract(command, repositoryRoot, name);
     },

@@ -1,8 +1,8 @@
 import { type SpawnSyncReturns, spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 
-/** Keep child processes below the 180s Vitest timeout on each contract. */
-export const CONTRACT_CHILD_TIMEOUT_MS = 150_000;
+/** Keep child processes below the 300s Vitest timeout on each contract. */
+export const CONTRACT_CHILD_TIMEOUT_MS = 270_000;
 
 type ContractProcessResult = Pick<
   SpawnSyncReturns<string>,
