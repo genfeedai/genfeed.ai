@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   REQUEST_SERIALIZER_BUNDLE_ROUTES,
+  selectRequestSerializerOriginalSources,
   verifyRequestSerializerBundle,
 } from '@services/scripts/request-serializer-bundle';
 import { describe, expect, it } from 'vitest';
@@ -422,6 +423,58 @@ describe('serializer bundle evidence', () => {
       '"javaScriptChunks":2,"javaScriptOutputs":["[client-fs]/write.js","[client-fs]/vendor.js"],"alreadyInitialJavaScriptChunks":0',
     );
   });
+  it('selects only full canonical or installed package boundaries while preserving raw flat and Bun paths', () => {
+    const genuine = [
+      originalSources[0],
+      originalSources[1],
+      originalSources[2],
+      'node_modules/.bun/ts-jsonapi@2.1.3/node_modules/ts-jsonapi/src/serializer.ts',
+      'node_modules/.bun/lodash@4.18.1/node_modules/lodash/lodash.js',
+    ];
+    const spoofed = [
+      'node_modules/.bun/ts-jsonapi@2.1.3/ts-jsonapi/src/serializer.ts',
+      'node_modules/.bun/ts-jsonapi@2.1.3/node_modules/ts-jsonapi-fake/src/serializer.ts',
+      'not_node_modules/ts-jsonapi/src/serializer.ts',
+      'node_modules/lodash/../../ts-jsonapi/src/serializer.ts',
+      'node_modules/lodash/',
+      'packages/serializers/src-fake/index.ts',
+    ];
+    expect(
+      selectRequestSerializerOriginalSources([...genuine, ...spoofed]),
+    ).toEqual(genuine);
+  });
+
+  it('accepts authenticated full Bun vendor paths without rewriting their original identities', () => {
+    const bunOriginals = [
+      originalSources[0],
+      'node_modules/.bun/ts-jsonapi@2.1.3/node_modules/ts-jsonapi/src/serializer.ts',
+      'node_modules/.bun/lodash@4.18.1/node_modules/lodash/lodash.js',
+    ];
+    const report = verifyRequestSerializerBundle(compiledGraph(), undefined, {
+      compilerInput,
+      originalSources: bunOriginals,
+    });
+    expect(report.routes[1].deferred?.authenticatedPackageInput).toMatchObject({
+      originalPackageSourceFiles: 3,
+      positiveSourceParts: 1,
+      globalModuleIdentities: [artifactModule],
+    });
+  });
+
+  it.each([
+    'node_modules/.bun/ts-jsonapi@2.1.3/ts-jsonapi/src/serializer.ts',
+    'node_modules/.bun/ts-jsonapi@2.1.3/node_modules/ts-jsonapi-fake/src/serializer.ts',
+    'not_node_modules/ts-jsonapi/src/serializer.ts',
+    'node_modules/lodash/../../ts-jsonapi/src/serializer.ts',
+  ])('rejects missing or spoofed Bun vendor boundaries: %s', (spoof) => {
+    expect(() =>
+      verifyRequestSerializerBundle(compiledGraph(), undefined, {
+        compilerInput,
+        originalSources: [originalSources[0], spoof, originalSources[2]],
+      }),
+    ).toThrow('authenticated package source');
+  });
+
   it('joins authenticated actual input with the global native module index and concatenated positive output part', () => {
     const result = verifyRequestSerializerBundle(compiledGraph(), undefined, {
       compilerInput,

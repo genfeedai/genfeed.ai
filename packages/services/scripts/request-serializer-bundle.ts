@@ -107,6 +107,40 @@ export const REQUEST_SERIALIZER_BUNDLE_ROUTES = [
   '/[orgSlug]/[brandSlug]/publishing/posts',
 ] as const;
 
+const originalSourcePrefixes = [
+  'packages/serializers/src/',
+  'node_modules/ts-jsonapi/',
+  'node_modules/lodash/',
+] as const;
+
+function matchesOriginalSourcePrefix(source: string, prefix: string): boolean {
+  const segments = source.split('/');
+  if (
+    source.includes('\\') ||
+    segments.some((segment) => !segment || segment === '.' || segment === '..')
+  )
+    return false;
+  if (prefix.startsWith('node_modules/')) {
+    const installedPackage = segments.lastIndexOf('node_modules');
+    return (
+      installedPackage !== -1 &&
+      segments.length > installedPackage + 2 &&
+      segments[installedPackage + 1] === prefix.split('/')[1]
+    );
+  }
+  return source.startsWith(prefix) && source.length > prefix.length;
+}
+
+export function selectRequestSerializerOriginalSources(
+  sources: readonly string[],
+): string[] {
+  return sources.filter((source) =>
+    originalSourcePrefixes.some((prefix) =>
+      matchesOriginalSourcePrefix(source, prefix),
+    ),
+  );
+}
+
 function isClientJavaScript(file: string): boolean {
   return file.startsWith('[client-fs]/') && file.endsWith('.js');
 }
@@ -339,14 +373,10 @@ export function verifyRequestSerializerBundle(
         )
       )
         fail('Missing actual runtime wrapper output membership', chunkEvidence);
-      for (const required of [
-        'packages/serializers/src/',
-        'node_modules/ts-jsonapi/',
-        'node_modules/lodash/',
-      ]) {
+      for (const required of originalSourcePrefixes) {
         if (
           !options.originalSources?.some((source) =>
-            source.startsWith(required),
+            matchesOriginalSourcePrefix(source, required),
           )
         )
           fail(
@@ -567,17 +597,13 @@ if (
         throw new Error('Changed canonical source content');
     }
   }
-  const originalSources = [
+  const originalSources = selectRequestSerializerOriginalSources([
     ...new Set(
       Object.values(packageProof.inputs).flatMap((input) =>
         input.originalSources.map((source) => source.path),
       ),
     ),
-  ].filter((source) =>
-    /^(?:packages\/serializers\/src\/|node_modules\/(?:ts-jsonapi|lodash)\/)/.test(
-      source,
-    ),
-  );
+  ]);
   if (!originalSources.length)
     throw new Error('Missing original package source provenance');
   const report = verifyRequestSerializerBundle(
