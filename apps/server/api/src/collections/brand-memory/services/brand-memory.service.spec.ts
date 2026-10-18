@@ -127,6 +127,59 @@ describe('BrandMemoryService typed entries', () => {
       }),
     );
   });
+  it('replaces a replayed winner insight but appends unkeyed insights', async () => {
+    const source = 'analytics-winner:post-1';
+    brandMemory.findFirst.mockResolvedValue({
+      id: 'memory-1',
+      insights: [
+        { source: 'memory_distiller_30d', insight: 'Distilled' },
+        { source, insight: 'Earlier winner' },
+      ],
+    });
+    await service.addInsight('org-1', 'brand-1', {
+      category: 'performance',
+      confidence: 0.5,
+      insight: 'Updated winner',
+      source,
+    });
+    await service.addInsight('org-1', 'brand-1', {
+      category: 'format',
+      confidence: 0.5,
+      insight: 'Distilled again',
+      source: 'memory_distiller_30d',
+    });
+    expect(brandMemory.update.mock.calls[0][0].data.insights).toEqual([
+      { source: 'memory_distiller_30d', insight: 'Distilled' },
+      expect.objectContaining({ source, insight: 'Updated winner' }),
+    ]);
+    expect(brandMemory.update.mock.calls[1][0].data.insights).toHaveLength(3);
+  });
+  it('replaces a keyed log entry on replay and appends unkeyed entries', async () => {
+    brandMemory.findFirst.mockResolvedValue({
+      entries: [
+        { content: 'Manual note', type: 'note' },
+        { content: 'Old', key: 'post_performance:post-1', type: 'p' },
+      ],
+      id: 'memory-1',
+    });
+    await service.logEntry('org-1', 'brand-1', {
+      content: 'New',
+      key: 'post_performance:post-1',
+      type: 'p',
+    });
+    await service.logEntry('org-1', 'brand-1', {
+      content: 'Another note',
+      type: 'note',
+    });
+    expect(brandMemory.update.mock.calls[0][0].data.entries).toEqual([
+      { content: 'Manual note', type: 'note' },
+      expect.objectContaining({
+        content: 'New',
+        key: 'post_performance:post-1',
+      }),
+    ]);
+    expect(brandMemory.update.mock.calls[1][0].data.entries).toHaveLength(3);
+  });
   it('scopes the daily-row writes to the organization in CLOUD mode', async () => {
     brandMemory.findFirst.mockResolvedValue({
       entries: [],

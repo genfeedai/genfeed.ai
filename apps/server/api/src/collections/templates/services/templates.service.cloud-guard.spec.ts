@@ -122,4 +122,37 @@ describe('templates under the CLOUD tenant guard', () => {
     );
     expect(prisma.templateMetadata.updateMany).toHaveBeenCalled();
   });
+
+  it('lists platform plus own templates, never another organization, when system templates are included', async () => {
+    const { inTenant, service } = setup();
+
+    const templates = await inTenant(() =>
+      service.findAll(ORG, { includeSystem: true }),
+    );
+
+    expect(templates.map((template) => template.id).sort()).toEqual([
+      'mine-greeting',
+      'platform-farewell',
+      'platform-greeting',
+    ]);
+  });
+
+  it('lists only the organization templates by default', async () => {
+    const { inTenant, service } = setup();
+
+    const templates = await inTenant(() => service.findAll(ORG));
+
+    expect(templates.map((template) => template.id)).toEqual(['mine-greeting']);
+  });
+
+  it("opens a platform template by id but never another organization's", async () => {
+    const { inTenant, service } = setup();
+
+    await expect(
+      inTenant(() => service.findOne('platform-greeting', ORG)),
+    ).resolves.toMatchObject({ id: 'platform-greeting' });
+    await expect(
+      inTenant(() => service.findOne('theirs-secret', ORG)),
+    ).rejects.toThrow();
+  });
 });

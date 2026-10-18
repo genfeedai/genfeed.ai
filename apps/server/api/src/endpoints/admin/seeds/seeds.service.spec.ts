@@ -18,10 +18,22 @@ const { AdminSeedsService } = await import('./seeds.service');
 function build() {
   const prisma = {} as never;
   const cache = { invalidateByTags: vi.fn().mockResolvedValue(2) };
+  const platformTemplates = {
+    reconcileCatalog: vi.fn().mockResolvedValue({
+      keys: ['content.video.default'],
+      unchanged: 3,
+      written: 1,
+    }),
+  };
   return {
     cache,
+    platformTemplates,
     prisma,
-    service: new AdminSeedsService(prisma, cache as never),
+    service: new AdminSeedsService(
+      prisma,
+      cache as never,
+      platformTemplates as never,
+    ),
   };
 }
 
@@ -158,6 +170,44 @@ describe('AdminSeedsService', () => {
       expect(mockSeedWorkflows).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ dryRun: false }),
+      );
+    });
+  });
+
+  describe('seedTemplates', () => {
+    it('defaults to a dry run', async () => {
+      const { platformTemplates, service } = build();
+
+      await expect(service.seedTemplates({})).resolves.toEqual({
+        dryRun: true,
+        keys: ['content.video.default'],
+        unchanged: 3,
+        written: 1,
+      });
+      expect(platformTemplates.reconcileCatalog).toHaveBeenCalledWith({
+        isDryRun: true,
+      });
+    });
+
+    it('writes only on an explicit live run', async () => {
+      const { platformTemplates, service } = build();
+
+      const summary = await service.seedTemplates({ dryRun: false });
+
+      expect(summary.dryRun).toBe(false);
+      expect(platformTemplates.reconcileCatalog).toHaveBeenCalledWith({
+        isDryRun: false,
+      });
+    });
+
+    it('turns a failed reconcile into a bad request', async () => {
+      const { platformTemplates, service } = build();
+      platformTemplates.reconcileCatalog.mockRejectedValue(
+        new Error('Platform template reconcile failed for: a'),
+      );
+
+      await expect(service.seedTemplates({})).rejects.toThrow(
+        BadRequestException,
       );
     });
   });

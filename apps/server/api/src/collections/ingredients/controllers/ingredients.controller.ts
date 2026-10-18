@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
@@ -9,6 +10,11 @@ import {
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  libraryBrandWhere,
+  libraryCacheIdentity,
+  resolveAllBrandsFilter,
+} from '@api/collections/ingredients/utils/library-brand-scope.util';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -44,7 +50,6 @@ import type {
   ILibrarySummary,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -83,7 +88,32 @@ export class IngredientsController {
     private readonly evaluationProjection?: ContentEvaluationProjectionService,
     @Optional()
     private readonly characterFilter?: IngredientCharacterFilterService,
+    @Optional()
+    private readonly brandAccess?: BrandAccessService,
   ) {}
+
+  /**
+   * Brand axis of a Library read. `allBrands` (organization view) spans every
+   * brand the caller may access; an explicit `brandId` still narrows it.
+   */
+  private resolveLibraryBrandFilter(
+    query: IngredientsQueryDto,
+    tenant: ReturnType<typeof CollectionFilterUtil.resolveListOrganizationId>,
+    user: User,
+    request: Request,
+  ) {
+    if (tenant.isOrganizationOverride) {
+      return tenant.brandId;
+    }
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    return query.allBrands && !query.brandId
+      ? resolveAllBrandsFilter(this.brandAccess, tenant, user, isSuperAdmin)
+      : CollectionFilterUtil.buildAuthorizedBrandFilter(
+          query.brandId,
+          user,
+          isSuperAdmin,
+        );
+  }
 
   /**
    * Unified Library list — every asset category in one query.
@@ -97,7 +127,7 @@ export class IngredientsController {
   @Cache({
     keyGenerator: (req) => {
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      return `ingredients:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+      return `ingredients:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:access:${libraryCacheIdentity(req.user)}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['ingredients'],
     ttl: 60,
@@ -120,13 +150,12 @@ export class IngredientsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const brandId = tenant.isOrganizationOverride
-      ? tenant.brandId
-      : CollectionFilterUtil.buildAuthorizedBrandFilter(
-          query.brandId,
-          user,
-          getIsSuperAdmin(user, request),
-        );
+    const brandId = await this.resolveLibraryBrandFilter(
+      query,
+      tenant,
+      user,
+      request,
+    );
 
     // `categories` is the multi-select Library type axis; `category` stays for
     // single-type callers. Both normalize to Prisma labels.
@@ -172,7 +201,7 @@ export class IngredientsController {
         isDeleted: QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted),
         AND: [
           { organizationId: tenant.organizationId },
-          brandId ? { brandId } : {},
+          libraryBrandWhere(brandId),
           categoryFilter,
           // A selected shelf owns the status axis outright.
           LibraryShelfUtil.buildShelfFilter(query.shelf),
@@ -225,7 +254,7 @@ export class IngredientsController {
   @Cache({
     keyGenerator: (req) => {
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      return `ingredients:summary:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+      return `ingredients:summary:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:access:${libraryCacheIdentity(req.user)}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['ingredients'],
     ttl: 60,
@@ -245,14 +274,13 @@ export class IngredientsController {
     );
     // Counters follow the same brand scope as the list: an explicit brand when
     // asked for, otherwise the caller's brand, otherwise any branded asset.
-    const brandId = tenant.isOrganizationOverride
-      ? tenant.brandId
-      : CollectionFilterUtil.buildAuthorizedBrandFilter(
-          query.brandId,
-          user,
-          getIsSuperAdmin(user, request),
-        );
-    const brandFilter: Prisma.IngredientWhereInput = brandId ? { brandId } : {};
+    const brandId = await this.resolveLibraryBrandFilter(
+      query,
+      tenant,
+      user,
+      request,
+    );
+    const brandFilter = libraryBrandWhere(brandId);
 
     return this.ingredientsService.getLibrarySummary(
       tenant.organizationId,

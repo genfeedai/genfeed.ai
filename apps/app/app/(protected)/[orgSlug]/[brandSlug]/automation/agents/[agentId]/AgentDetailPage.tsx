@@ -35,7 +35,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
-import { ArrowLeft, CirclePlay, Clock, Cpu, Workflow } from 'lucide-react';
+import { ArrowLeft, CirclePlay, Cpu, Pencil, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -188,7 +188,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
   const openContentAgentConversation = useOpenContentAgentConversation();
 
-  const handleOpenSchedule = useCallback(() => {
+  const handleOpenEdit = useCallback(() => {
     if (!strategy) {
       return;
     }
@@ -268,7 +268,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       : 'Supervised';
 
   // Run now is the one action every agent record supports regardless of
-  // state; everything else — status toggle, schedule, manual workflow run —
+  // state; everything else — status toggle, edit, manual workflow run —
   // moves into the overflow menu.
   const overflow = useMemo<CollectionOverflowAction[]>(() => {
     if (!strategy) {
@@ -282,10 +282,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         onSelect: handleOpenWorkflow,
       },
       {
-        icon: <Clock className="size-4" />,
-        id: 'schedule',
-        label: translate('schedule'),
-        onSelect: handleOpenSchedule,
+        icon: <Pencil className="size-4" />,
+        id: 'edit',
+        label: translate('edit'),
+        onSelect: handleOpenEdit,
       },
       {
         id: 'toggle-active',
@@ -295,7 +295,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     ];
   }, [
     detail,
-    handleOpenSchedule,
+    handleOpenEdit,
     handleOpenWorkflow,
     handleToggle,
     strategy,

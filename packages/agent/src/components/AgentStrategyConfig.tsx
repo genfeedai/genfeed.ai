@@ -81,9 +81,7 @@ export function AgentStrategyConfig({
         if (err instanceof Error && err.name === 'AbortError') {
           return;
         }
-        setError(
-          err instanceof Error ? err.message : 'Failed to load strategy',
-        );
+        setError(err instanceof Error ? err.message : 'Failed to load agent');
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
@@ -169,7 +167,7 @@ export function AgentStrategyConfig({
       if (err instanceof Error && err.name === 'AbortError') {
         return;
       }
-      setError(err instanceof Error ? err.message : 'Failed to save strategy');
+      setError(err instanceof Error ? err.message : 'Failed to save agent');
     } finally {
       setIsSaving(false);
     }
@@ -263,7 +261,7 @@ export function AgentStrategyConfig({
         isLoading={isSaving}
         className="w-full"
       >
-        {isSaving ? 'Saving...' : strategy ? 'Save Changes' : 'Create Strategy'}
+        {isSaving ? 'Saving...' : strategy ? 'Save Changes' : 'Create agent'}
       </Button>
     </div>
   );

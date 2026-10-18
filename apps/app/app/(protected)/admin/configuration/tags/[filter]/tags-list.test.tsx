@@ -88,34 +88,6 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }));
 
-vi.mock('@ui/content/admin-filters/AdminOrgBrandFilter', () => ({
-  default: ({
-    brand,
-    onBrandChange,
-    onOrganizationChange,
-    organization,
-  }: {
-    brand: string;
-    onBrandChange: (value: string) => void;
-    onOrganizationChange: (value: string) => void;
-    organization: string;
-  }) => (
-    <section>
-      <div>Admin org: {organization || 'none'}</div>
-      <div>Admin brand: {brand || 'none'}</div>
-      <button type="button" onClick={() => onOrganizationChange('org-2')}>
-        Pick Org
-      </button>
-      <button type="button" onClick={() => onBrandChange('brand-2')}>
-        Pick Brand
-      </button>
-      <button type="button" onClick={() => onOrganizationChange('')}>
-        Clear Org
-      </button>
-    </section>
-  ),
-}));
-
 vi.mock('@ui/display/badge/Badge', () => ({
   default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
@@ -294,7 +266,7 @@ describe('TagsList', () => {
     mockTagsQuery();
   });
 
-  it('renders superadmin tags, filters by scope, and syncs admin filters to the URL', async () => {
+  it('renders superadmin tags, filters by scope, and reads the admin filters from the URL', async () => {
     render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
 
     expect(screen.getByText('Global Tag')).toBeInTheDocument();
@@ -309,18 +281,6 @@ describe('TagsList', () => {
         }),
       );
     });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/tags/all?organization=org-2',
-      { scroll: false },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Brand' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/tags/all?organization=org-1&brand=brand-2',
-      { scroll: false },
-    );
   });
 
   it('uses tags collection queries and only exposes edit actions for owned organization tags', async () => {

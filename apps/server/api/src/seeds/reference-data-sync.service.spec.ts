@@ -1,4 +1,5 @@
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
+import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import { ReferenceDataSyncService } from '@api/seeds/reference-data-sync.service';
 import { SkillCatalogSeedService } from '@api/seeds/skill-catalog-seed.service';
 import { StudioElementSeedService } from '@api/seeds/studio-element-seed.service';
@@ -22,6 +23,7 @@ describe('ReferenceDataSyncService', () => {
     backfillOrganizations: ReturnType<typeof vi.fn>;
     reconcileCatalog: ReturnType<typeof vi.fn>;
   };
+  let platformTemplates: { reconcileCatalog: ReturnType<typeof vi.fn> };
   let studioPresets: { reconcileCatalog: ReturnType<typeof vi.fn> };
   let studioElements: { reconcileCatalog: ReturnType<typeof vi.fn> };
   let service: ReferenceDataSyncService;
@@ -37,6 +39,11 @@ describe('ReferenceDataSyncService', () => {
         .fn()
         .mockResolvedValue({ inserted: 0, skipped: 4, updated: 1 }),
     };
+    platformTemplates = {
+      reconcileCatalog: vi
+        .fn()
+        .mockResolvedValue({ keys: [], unchanged: 3, written: 1 }),
+    };
     studioPresets = {
       reconcileCatalog: vi.fn().mockResolvedValue({ unchanged: 6, written: 0 }),
     };
@@ -48,6 +55,7 @@ describe('ReferenceDataSyncService', () => {
     service = new ReferenceDataSyncService(
       logger as unknown as LoggerService,
       models as unknown as ModelCatalogSeedService,
+      platformTemplates as unknown as PlatformTemplateSeedService,
       {} as PrismaService,
       skills as unknown as SkillCatalogSeedService,
       studioElements as unknown as StudioElementSeedService,
@@ -60,6 +68,10 @@ describe('ReferenceDataSyncService', () => {
     expect(report.failedDomains).toEqual([]);
     expect(logger.log).toHaveBeenCalledWith(
       'reference-data models: written=1 unchanged=3 failed=0',
+      'ReferenceDataSyncService',
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      'reference-data platform-templates: written=1 unchanged=3 failed=0',
       'ReferenceDataSyncService',
     );
     expect(skills.backfillOrganizations).toHaveBeenCalledOnce();

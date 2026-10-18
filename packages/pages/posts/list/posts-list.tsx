@@ -4,6 +4,7 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { PageScope, PostStatus } from '@genfeedai/contracts';
 import type { IPost, IPreset } from '@genfeedai/contracts/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import AdminPostsTable from '@pages/posts/list/components/AdminPostsTable';
 import PostsGrid from '@pages/posts/list/components/PostsGrid';
 import PostsListToolbar, {
   PostsListSearch,
@@ -22,7 +23,6 @@ import {
 } from '@pages/posts/list/usePostsList';
 import type { ContentProps } from '@props/layout/content.props';
 import CollectionSection from '@ui/collection/CollectionSection';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
@@ -57,14 +57,10 @@ export default function PostsList({
   const translate = useTranslations('pages.posts.list.collection');
   const { setLeadingNode } = usePostsLayout();
   const {
-    adminBrand,
-    adminOrg,
     currentPage,
     filterSearch,
     filterSort,
     filters,
-    handleAdminBrandChange,
-    handleAdminOrgChange,
     handleFiltersChange,
     handleSearchChange,
     handleOpenPostDetail,
@@ -121,8 +117,12 @@ export default function PostsList({
     [handleFiltersChange],
   );
 
-  // Pass ViewToggle to layout header (renders JSX — stays in component)
+  const isAdminScope = scope === PageScope.SUPERADMIN;
+
+  // Pass ViewToggle to layout header (renders JSX — stays in component).
+  // The admin list is always table rows, so it has no toggle.
   useEffect(() => {
+    if (isAdminScope) return;
     setViewToggleNode(
       <ViewToggle
         options={[
@@ -141,7 +141,7 @@ export default function PostsList({
         onChange={setViewType}
       />,
     );
-  }, [viewType, setViewToggleNode, setViewType]);
+  }, [isAdminScope, viewType, setViewToggleNode, setViewType]);
 
   useEffect(() => {
     return () => setViewToggleNode(null);
@@ -186,49 +186,44 @@ export default function PostsList({
     };
   }, [setFiltersNode, setLeadingNode]);
 
+  const listHeading =
+    publishingView === 'posted'
+      ? 'Posted'
+      : publishingView === PostStatus.FAILED
+        ? 'Failed'
+        : publishingView === PostStatus.PENDING
+          ? 'Pending'
+          : publishingView === PostStatus.PROCESSING
+            ? 'Publishing'
+            : publishingView === 'not-posted'
+              ? 'Not posted'
+              : 'All posts';
+  const listDescription =
+    publishingView === 'posted'
+      ? 'Posts already live on their destination platforms.'
+      : publishingView === PostStatus.FAILED
+        ? 'Posts that could not be published. Fix the issue and retry.'
+        : publishingView === PostStatus.PENDING
+          ? 'Posts queued to enter the publishing pipeline.'
+          : publishingView === PostStatus.PROCESSING
+            ? 'Posts currently being sent to destination platforms.'
+            : publishingView === 'not-posted'
+              ? 'Drafts, scheduled posts, and publishing work in progress.'
+              : 'Posts across every publishing state.';
+
   return (
     <div>
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
+      {/* The admin breadcrumb already names the page, so it draws no header. */}
+      {isAdminScope ? null : (
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              {listHeading}
+            </h2>
+            <p className="mt-1 text-sm text-foreground/55">{listDescription}</p>
+          </div>
         </div>
       )}
-
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">
-            {publishingView === 'posted'
-              ? 'Posted'
-              : publishingView === PostStatus.FAILED
-                ? 'Failed'
-                : publishingView === PostStatus.PENDING
-                  ? 'Pending'
-                  : publishingView === PostStatus.PROCESSING
-                    ? 'Publishing'
-                    : publishingView === 'not-posted'
-                      ? 'Not posted'
-                      : 'All posts'}
-          </h2>
-          <p className="mt-1 text-sm text-foreground/55">
-            {publishingView === 'posted'
-              ? 'Posts already live on their destination platforms.'
-              : publishingView === PostStatus.FAILED
-                ? 'Posts that could not be published. Fix the issue and retry.'
-                : publishingView === PostStatus.PENDING
-                  ? 'Posts queued to enter the publishing pipeline.'
-                  : publishingView === PostStatus.PROCESSING
-                    ? 'Posts currently being sent to destination platforms.'
-                    : publishingView === 'not-posted'
-                      ? 'Drafts, scheduled posts, and publishing work in progress.'
-                      : 'Posts across every publishing state.'}
-          </p>
-        </div>
-      </div>
 
       {isError && posts.length > 0 ? (
         <ErrorFallback
@@ -246,36 +241,46 @@ export default function PostsList({
         <Loading isFullSize={false} />
       ) : (
         <>
-          <CollectionSection
-            title={translate('needsYou')}
-            itemCount={
-              posts.filter((post) =>
-                needsPostAttention(post.status, post.scheduledDate),
-              ).length
-            }
-            className="mb-6"
-          >
-            <PostsGrid
-              posts={posts.filter((post) =>
-                needsPostAttention(post.status, post.scheduledDate),
-              )}
-              view="list"
-              onPostEvaluated={handlePostEvaluated}
-              onOpenPostDetail={handleOpenPostDetail}
-              primaryAction={primaryCardAction}
-              secondaryActions={secondaryCardActions}
-            />
-          </CollectionSection>
-          <CollectionSection title={translate('all')} isLoading={isLoading}>
-            <PostsGrid
+          {isAdminScope ? (
+            <AdminPostsTable
               posts={posts}
-              view={viewType === VIEW_TYPE_GRID ? 'grid' : 'list'}
-              onPostEvaluated={handlePostEvaluated}
+              isLoading={isLoading}
               onOpenPostDetail={handleOpenPostDetail}
-              primaryAction={primaryCardAction}
-              secondaryActions={secondaryCardActions}
             />
-          </CollectionSection>
+          ) : (
+            <>
+              <CollectionSection
+                title={translate('needsYou')}
+                itemCount={
+                  posts.filter((post) =>
+                    needsPostAttention(post.status, post.scheduledDate),
+                  ).length
+                }
+                className="mb-6"
+              >
+                <PostsGrid
+                  posts={posts.filter((post) =>
+                    needsPostAttention(post.status, post.scheduledDate),
+                  )}
+                  view="list"
+                  onPostEvaluated={handlePostEvaluated}
+                  onOpenPostDetail={handleOpenPostDetail}
+                  primaryAction={primaryCardAction}
+                  secondaryActions={secondaryCardActions}
+                />
+              </CollectionSection>
+              <CollectionSection title={translate('all')} isLoading={isLoading}>
+                <PostsGrid
+                  posts={posts}
+                  view={viewType === VIEW_TYPE_GRID ? 'grid' : 'list'}
+                  onPostEvaluated={handlePostEvaluated}
+                  onOpenPostDetail={handleOpenPostDetail}
+                  primaryAction={primaryCardAction}
+                  secondaryActions={secondaryCardActions}
+                />
+              </CollectionSection>
+            </>
+          )}
 
           <div className="mt-4">
             <Pagination

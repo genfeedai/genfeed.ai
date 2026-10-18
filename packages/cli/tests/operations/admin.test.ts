@@ -8,6 +8,7 @@ import {
   findPendingVersion,
   readOrganizationAppsReport,
   seedArticles,
+  seedTemplates,
   seedWorkflows,
   syncProviderPrices,
 } from '../../src/operations/admin';
@@ -131,6 +132,16 @@ describe('operations/admin', () => {
         allBrands: true,
         dryRun: false,
       });
+    });
+  });
+
+  describe('seedTemplates', () => {
+    it('posts the dry-run flag to the templates seed', async () => {
+      const summary = { dryRun: true, keys: ['content.video.default'], unchanged: 3, written: 1 };
+      adminPost.mockResolvedValue(summary);
+
+      await expect(seedTemplates({ dryRun: true })).resolves.toBe(summary);
+      expect(adminPost).toHaveBeenCalledWith('/admin/seeds/templates', { dryRun: true });
     });
   });
 });

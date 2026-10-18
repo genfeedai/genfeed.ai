@@ -59,9 +59,20 @@ export interface AgentGenerationSettings {
   resolution?: string;
 }
 
+/**
+ * What a proactive agent run generates for: the agent's configured platforms
+ * and topics, merged over the brand's agent defaults at dispatch.
+ */
+export interface AgentRunBriefTargets {
+  platforms: string[];
+  topics: string[];
+}
+
 export interface AgentChatRequest {
   /** Captured by server acceptance; not a public request authority. */
   generationEntry?: GenerationEntry;
+  /** Trusted internal proactive targets; rejected on any other request. */
+  agentBrief?: AgentRunBriefTargets;
   creditBudget?: number;
   autonomyMode?: AgentAutonomyMode;
   agentType?: AgentType;
@@ -104,6 +115,7 @@ export interface AgentTurnAcknowledgement {
 
 export interface AgentChatContext {
   generationEntry?: GenerationEntry;
+  agentBrief?: AgentRunBriefTargets;
   creditBudget?: number;
   autonomyMode?: AgentAutonomyMode;
   requestedSkillSlugs?: string[];

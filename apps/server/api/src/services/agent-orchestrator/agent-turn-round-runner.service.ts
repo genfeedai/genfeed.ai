@@ -936,6 +936,7 @@ export class AgentTurnRoundRunnerService {
     } = params;
     return {
       isProactive: params.source === 'proactive',
+      ...(context.agentBrief ? { agentBrief: context.agentBrief } : {}),
       apiKeyContext: context.apiKeyContext,
       initiatingPrincipal: context.initiatingPrincipal,
       attachmentUrls,

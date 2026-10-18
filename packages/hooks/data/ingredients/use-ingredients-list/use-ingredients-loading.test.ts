@@ -11,7 +11,6 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 const mockGetIngredientsService = vi.fn();
 const mockGetFoldersService = vi.fn();
-const mockGetOrganizationsService = vi.fn();
 const { mockLoggerError, mockNotificationError } = vi.hoisted(() => ({
   mockLoggerError: vi.fn(),
   mockNotificationError: vi.fn(),
@@ -28,11 +27,8 @@ vi.mock('@helpers/data/cache/cache.helper', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn((fn: (token: string) => unknown) => {
     const service = fn('test-token') as {
-      serviceKind?: 'folders' | 'ingredients' | 'organizations';
+      serviceKind?: 'folders' | 'ingredients';
     };
-    if (service.serviceKind === 'organizations') {
-      return mockGetOrganizationsService;
-    }
     if (service.serviceKind === 'ingredients') {
       return mockGetIngredientsService;
     }
@@ -54,15 +50,6 @@ vi.mock('@genfeedai/services/content/ingredients.service', () => ({
     getInstance: vi.fn(() => ({
       findAll: vi.fn().mockResolvedValue([]),
       serviceKind: 'ingredients',
-    })),
-  },
-}));
-
-vi.mock('@genfeedai/services/organization/organizations.service', () => ({
-  OrganizationsService: {
-    getInstance: vi.fn(() => ({
-      findOrganizationIngredients: vi.fn().mockResolvedValue([]),
-      serviceKind: 'organizations',
     })),
   },
 }));
@@ -148,9 +135,6 @@ describe('useIngredientsLoading', () => {
     mockGetFoldersService.mockResolvedValue({
       findAll: vi.fn().mockResolvedValue([]),
     });
-    mockGetOrganizationsService.mockResolvedValue({
-      findAll: vi.fn().mockResolvedValue([]),
-    });
   });
 
   it('returns required fields', () => {
@@ -229,12 +213,7 @@ describe('useIngredientsLoading', () => {
     expect(ingredientsFindAllMock).not.toHaveBeenCalled();
   });
 
-  it('keeps the organization-wide ingredients route unfiltered by category', async () => {
-    const findOrganizationIngredients = vi.fn().mockResolvedValue([]);
-    mockGetOrganizationsService.mockResolvedValue({
-      findOrganizationIngredients,
-    });
-
+  it('lists the organization through the same ingredients list, across every brand', async () => {
     renderHook(() =>
       useIngredientsLoading({
         ...baseProps,
@@ -246,16 +225,16 @@ describe('useIngredientsLoading', () => {
     );
 
     await waitFor(() => {
-      expect(findOrganizationIngredients).toHaveBeenCalled();
+      expect(ingredientsFindAllMock).toHaveBeenCalled();
     });
 
-    expect(findOrganizationIngredients).toHaveBeenCalledWith(
-      'org-1',
-      expect.not.objectContaining({
-        category: IngredientCategory.INGREDIENT,
-      }),
-      expect.any(AbortSignal),
-    );
+    const params = ingredientsFindAllMock.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(params).toMatchObject({ allBrands: true, paging: 'cursor' });
+    expect(params).not.toHaveProperty('brand');
+    expect(params).not.toHaveProperty('category');
   });
 
   it('strips empty query params before requesting ingredients', async () => {

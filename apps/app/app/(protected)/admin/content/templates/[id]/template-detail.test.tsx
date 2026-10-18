@@ -1,6 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import messages from '../../../../../../messages/en/pages/adminTemplates.json';
 import TemplateDetail from './template-detail';
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    (messages as Record<string, string>)[key].replace(
+      /\{(\w+)\}/g,
+      (_, name: string) => String(values?.[name]),
+    ),
+}));
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
@@ -11,8 +20,13 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+const getService = vi.hoisted(() => async () => ({
+  getTemplate: mocks.getTemplate,
+}));
+
+// Stable like the real hook: a new function per render re-runs the load effect.
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ getTemplate: mocks.getTemplate }),
+  useAuthedService: () => getService,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -70,5 +84,27 @@ describe('TemplateDetail shell-first loading', () => {
     });
     expect(screen.getByTestId('template-detail-shell')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Template' })).toBeVisible();
+  });
+
+  it('renders a seeded system template written in the API shape', async () => {
+    mocks.getTemplate.mockResolvedValueOnce({
+      category: 'video',
+      content: '{{{prompt}}}',
+      description: 'Default video prompt',
+      id: 'template-1',
+      isActive: true,
+      key: 'content.video.default',
+      label: 'Video default',
+      variables: null,
+    });
+
+    render(<TemplateDetail templateId="template-1" />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Video default' }),
+    ).toBeVisible();
+    expect(screen.getByText('content.video.default')).toBeVisible();
+    expect(screen.getByText('{{{prompt}}}')).toBeVisible();
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,32 +36,31 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: { info: vi.fn(), error: vi.fn() },
 }));
-vi.mock('@ui/layout/container/Container', () => ({
+vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   default: ({
     children,
-    right,
-  }: {
-    children: ReactNode;
-    right?: ReactNode;
-  }) => (
-    <main>
-      {right}
-      {children}
-    </main>
-  ),
-}));
-vi.mock('@ui/overview/WorkspaceSurface', () => ({
-  WorkspaceSurface: ({
-    children,
+    filters,
+    onRefresh,
+    search,
     title,
   }: {
     children: ReactNode;
+    filters?: ReactNode;
+    onRefresh?: () => void;
+    search?: ReactNode;
     title: string;
   }) => (
-    <section>
-      <h2>{title}</h2>
-      {children}
-    </section>
+    <main>
+      <div data-testid="subbar">
+        <h1 className="sr-only">{title}</h1>
+        {search}
+        {filters}
+        <button type="button" onClick={onRefresh}>
+          refresh
+        </button>
+      </div>
+      <div data-testid="content">{children}</div>
+    </main>
   ),
 }));
 
@@ -95,6 +100,68 @@ describe('admin templates collection', () => {
     render(<TemplatesPage />);
     expect(await screen.findByTestId('templates-grid')).toBeInTheDocument();
   });
+  it('renders no in-content header: the breadcrumb is the title and the toggle lives in the subbar', async () => {
+    render(<TemplatesPage />);
+    await screen.findByTestId('templates-list');
+    expect(screen.queryByText('catalog')).not.toBeInTheDocument();
+    expect(screen.queryByText('description')).not.toBeInTheDocument();
+    const content = screen.getByTestId('content');
+    expect(within(content).queryAllByRole('heading')).toHaveLength(0);
+    expect(
+      within(screen.getByTestId('subbar')).getByRole('radio', { name: 'grid' }),
+    ).toBeInTheDocument();
+    expect(
+      within(content).queryByRole('radio', { name: 'grid' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('asks for the system templates too and labels them', async () => {
+    mocks.service.getTemplates.mockResolvedValue([
+      {
+        id: 'sys-1',
+        label: 'Video default',
+        key: 'content.video.default',
+        description: 'Default video prompt',
+        category: 'video',
+        isActive: true,
+        variables: [{ name: 'prompt' }],
+        content: '{{{prompt}}}',
+      },
+      {
+        id: 'org-1',
+        label: 'My template',
+        organization: 'org-1',
+        category: 'social-media',
+        variables: null,
+        content: 'Hi {{name}}',
+      },
+    ]);
+    render(<TemplatesPage />);
+    expect(
+      await screen.findByRole('link', { name: 'open Video default' }),
+    ).toBeInTheDocument();
+    expect(mocks.service.getTemplates).toHaveBeenCalledWith({
+      includeSystem: true,
+    });
+    expect(screen.getAllByText('system')).toHaveLength(1);
+    expect(screen.getByText('content.video.default')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'open My template' }),
+    ).toBeInTheDocument();
+  });
+
+  it('filters the loaded templates from the subbar search and refreshes from it', async () => {
+    const user = userEvent.setup();
+    render(<TemplatesPage />);
+    await screen.findByRole('link', { name: 'open Template 0' });
+    await user.type(screen.getByLabelText('search'), 'Template 54');
+    await waitFor(() => expect(screen.getAllByRole('link')).toHaveLength(1));
+    await user.click(screen.getByRole('button', { name: 'refresh' }));
+    await waitFor(() =>
+      expect(mocks.service.getTemplates).toHaveBeenCalledTimes(2),
+    );
+  });
+
   it('mirrors the stored grid view while loading', () => {
     localStorage.setItem(
       'genfeed:collection-view:admin.content.templates',

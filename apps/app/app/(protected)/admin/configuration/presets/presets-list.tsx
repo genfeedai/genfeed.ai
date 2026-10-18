@@ -13,16 +13,17 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
 import { useQuery } from '@tanstack/react-query';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import AdminOrgBrandUrlFilter, {
+  useAdminOrgBrandParams,
+} from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 import {
   PresetCategoryCell,
@@ -45,63 +46,11 @@ function PresetsListContent({
     PresetsService.getInstance(token),
   );
 
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   const [selectedPreset, setSelectedPreset] = useState<Preset | null>();
-
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      setAdminBrand(brandId);
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -262,16 +211,14 @@ function PresetsListContent({
       : [];
 
   return (
-    <Container
-      label="Presets"
-      description="Reusable generation settings and defaults."
-      refresh={
-        <ButtonRefresh
-          onClick={() => refreshPresets()}
-          isRefreshing={isRefreshing}
-        />
+    <AdminPageShell
+      title="Presets"
+      onRefresh={() => refreshPresets()}
+      isRefreshing={isRefreshing}
+      dropdowns={
+        scope === PageScope.SUPERADMIN ? <AdminOrgBrandUrlFilter /> : undefined
       }
-      right={
+      primaryAction={
         scope === PageScope.SUPERADMIN ? (
           <Button
             label="Preset"
@@ -282,17 +229,6 @@ function PresetsListContent({
         ) : undefined
       }
     >
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<Preset>
         items={presets}
         columns={columns}
@@ -315,7 +251,7 @@ function PresetsListContent({
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="presets" />
       </div>
-    </Container>
+    </AdminPageShell>
   );
 }
 

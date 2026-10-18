@@ -1,40 +1,47 @@
-import type {
-  AddAgentDialogProps,
-  AddAgentMode,
-} from '@props/automation/add-agent-dialog.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import type { AddAgentDialogProps } from '@props/automation/add-agent-dialog.props';
+import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { MessageSquarePlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
 import ContentTeamHirePage from '../hire/ContentTeamHirePage';
-import CustomAgentForm from './CustomAgentForm';
+import {
+  buildContentAgentSetupPrompt,
+  useOpenContentAgentConversation,
+} from './open-content-agent-conversation';
 
-export type { AddAgentMode } from '@props/automation/add-agent-dialog.props';
-
+/**
+ * Hires an agent: a marketplace agent activates in one click, and anything
+ * custom is described in the agent conversation, which saves it.
+ */
 export default function AddAgentDialog({
-  initialMode = 'library',
   isOpen,
   onCreated,
   onOpenChange,
 }: AddAgentDialogProps) {
   const translate = useTranslations('common.automation.agentCreation');
-  const [mode, setMode] = useState<AddAgentMode>(initialMode);
-
-  useEffect(() => {
-    if (isOpen) {
-      setMode(initialMode);
-    }
-  }, [initialMode, isOpen]);
+  const { brandId } = useCollectionScope();
+  const openContentAgentConversation = useOpenContentAgentConversation();
 
   const handleCreated = async () => {
     onOpenChange(false);
     await onCreated();
+  };
+
+  const handleHireFromChat = () => {
+    if (!brandId) {
+      return;
+    }
+    onOpenChange(false);
+    openContentAgentConversation(buildContentAgentSetupPrompt(brandId));
   };
 
   return (
@@ -45,23 +52,20 @@ export default function AddAgentDialog({
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
-        <Tabs
-          activeTab={mode}
-          ariaLabel={translate('modeLabel')}
-          contentClassName="mt-4"
-          fullWidth={false}
-          items={[
-            { id: 'library', label: translate('library') },
-            { id: 'custom', label: translate('custom') },
-          ]}
-          onTabChange={(value) => setMode(value as AddAgentMode)}
-        >
-          {mode === 'library' ? (
-            <ContentTeamHirePage isEmbedded onCreated={handleCreated} />
-          ) : (
-            <CustomAgentForm onCreated={handleCreated} />
-          )}
-        </Tabs>
+        <ContentTeamHirePage isEmbedded onCreated={handleCreated} />
+
+        <DialogFooter className="items-center gap-3 sm:justify-between sm:space-x-0">
+          <p className="text-sm text-muted-foreground">
+            {translate('hireFromChatDescription')}
+          </p>
+          <Button
+            icon={<MessageSquarePlus className="size-4" />}
+            isDisabled={!brandId}
+            label={translate('hireFromChat')}
+            onClick={handleHireFromChat}
+            variant={ButtonVariant.SECONDARY}
+          />
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

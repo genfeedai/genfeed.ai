@@ -11,6 +11,10 @@ export interface IActivity extends IBaseEntity {
   key: string;
 
   value: string;
+  /** What produced the activity (web, api, workflow...), when recorded. */
+  origin?: string | null;
+  actorUserId?: string | null;
+  apiKeyId?: string | null;
   status?: ActivityStatus;
   source: string;
   isRead: boolean;

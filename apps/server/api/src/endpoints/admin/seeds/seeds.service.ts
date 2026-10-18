@@ -1,3 +1,4 @@
+import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -10,6 +11,7 @@ import {
 } from '@api-scripts/seeds/workflows.seed';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { SeedArticlesDto } from './dto/seed-articles.dto';
+import type { SeedTemplatesDto } from './dto/seed-templates.dto';
 import type { SeedWorkflowsDto } from './dto/seed-workflows.dto';
 
 /** Tags on the public article endpoints, dropped after a live article seed. */
@@ -25,11 +27,20 @@ export interface ArticlesSeedSummary {
 
 export type WorkflowsSeedSummary = WorkflowsSeedResult;
 
+export interface TemplatesSeedSummary {
+  dryRun: boolean;
+  /** Keys created, or that a live run would create. */
+  keys: string[];
+  unchanged: number;
+  written: number;
+}
+
 @Injectable()
 export class AdminSeedsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly platformTemplates: PlatformTemplateSeedService,
   ) {}
 
   async seedArticles(dto: SeedArticlesDto): Promise<ArticlesSeedSummary> {
@@ -94,6 +105,14 @@ export class AdminSeedsService {
         organizationId: dto.organizationId,
       }),
     );
+  }
+
+  async seedTemplates(dto: SeedTemplatesDto): Promise<TemplatesSeedSummary> {
+    const dryRun = dto.dryRun !== false;
+    const result = await this.run(() =>
+      this.platformTemplates.reconcileCatalog({ isDryRun: dryRun }),
+    );
+    return { ...result, dryRun };
   }
 
   /** The seeds throw plain errors for bad input (unknown owner, bad id). */

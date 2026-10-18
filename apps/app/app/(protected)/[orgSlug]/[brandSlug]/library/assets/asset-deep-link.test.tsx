@@ -15,8 +15,10 @@ const mocks = vi.hoisted(() => ({
   findOne: vi.fn(),
   getService: vi.fn(),
   open: vi.fn(),
+  pathname: '/org/brand/library/assets',
 }));
 vi.mock('next/navigation', () => ({
+  usePathname: () => mocks.pathname,
   useSearchParams: () =>
     new URLSearchParams(mocks.assetId ? { asset: mocks.assetId } : {}),
 }));
@@ -41,6 +43,7 @@ describe('AssetDeepLink', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.assetId = 'asset-1';
+    mocks.pathname = '/org/brand/library/assets';
     mocks.brand = {
       brandId: 'brand-1',
       organizationId: 'org-1',
@@ -79,6 +82,23 @@ describe('AssetDeepLink', () => {
       expect(mocks.open).not.toHaveBeenCalled();
     },
   );
+
+  it('opens an asset from any brand on the organization Library', async () => {
+    mocks.pathname = '/org/~/library/assets';
+    mocks.brand = { brandId: '', organizationId: 'org-1', isReady: true };
+    mocks.findOne.mockResolvedValue({ ...ingredient, brandId: 'other-brand' });
+    render(<AssetDeepLink />);
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledTimes(1));
+  });
+
+  it('still rejects another organization asset on the organization Library', async () => {
+    mocks.pathname = '/org/~/library/assets';
+    mocks.brand = { brandId: '', organizationId: 'org-1', isReady: true };
+    mocks.findOne.mockResolvedValue({ ...ingredient, organizationId: 'other' });
+    render(<AssetDeepLink />);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(mocks.open).not.toHaveBeenCalled();
+  });
 
   it('does not fetch until brand context is ready', async () => {
     mocks.brand.isReady = false;

@@ -4,15 +4,18 @@ import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import type { ITagsLayoutProps } from '@props/admin/tags.props';
-import Container from '@ui/layout/container/Container';
+import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Tag } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
 export default function TagsLayout({
   children,
   scope,
-  rightActions,
-  refreshAction,
+  filters,
+  primaryAction,
+  onRefresh,
+  isRefreshing,
 }: ITagsLayoutProps) {
   const search = useSearchParams()?.toString() ?? '';
   const filterHref = (filter: string) =>
@@ -43,11 +46,10 @@ export default function TagsLayout({
       : undefined;
 
   return (
-    <Container
-      label="Tags"
-      description="Organize content with tags."
+    <AdminPageShell
+      title="Tags"
       icon={Tag}
-      headerTabs={
+      tabs={
         tabs
           ? {
               activeTab: filterHref(
@@ -61,10 +63,15 @@ export default function TagsLayout({
             }
           : undefined
       }
-      refresh={refreshAction}
-      right={rightActions}
+      filters={filters}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      dropdowns={
+        scope === PageScope.SUPERADMIN ? <AdminOrgBrandUrlFilter /> : undefined
+      }
+      primaryAction={primaryAction}
     >
       {children}
-    </Container>
+    </AdminPageShell>
   );
 }

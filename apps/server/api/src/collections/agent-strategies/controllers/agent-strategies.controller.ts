@@ -235,8 +235,7 @@ export class AgentStrategiesController extends BaseCRUDController<
     } as UpdateAgentStrategyDto);
 
     return {
-      message:
-        'Proactive run queued. It will execute on the next minute cycle.',
+      message: 'Agent run queued. It will execute on the next minute cycle.',
     };
   }
 

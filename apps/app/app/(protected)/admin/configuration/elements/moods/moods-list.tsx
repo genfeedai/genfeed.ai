@@ -14,20 +14,19 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MoodsService } from '@services/elements/moods.service';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalMood } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
   Suspense,
   useCallback,
   useEffect,
-  useMemo,
   useReducer,
   useRef,
 } from 'react';
@@ -37,10 +36,6 @@ function moodsListReducer(
   action: MoodsListAction,
 ): MoodsListState {
   switch (action.type) {
-    case 'SET_ADMIN_BRAND':
-      return { ...state, adminBrand: action.payload };
-    case 'SET_ADMIN_ORG_CLEAR_BRAND':
-      return { ...state, adminOrg: action.payload, adminBrand: '' };
     case 'SET_MOODS':
       return { ...state, moods: action.payload };
     case 'SET_IS_LOADING':
@@ -59,63 +54,18 @@ function MoodsListContent({
 }: IElementContentProps): ReactNode {
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
   const currentPage = Number(searchParams.get('page')) || 1;
 
   const [state, dispatch] = useReducer(moodsListReducer, undefined, () => ({
-    adminOrg: parsedSearchParams.get('organization') || '',
-    adminBrand: parsedSearchParams.get('brand') || '',
     moods: [],
     isLoading: true,
     selectedMood: null,
   }));
 
-  const { adminOrg, adminBrand, moods, isLoading, selectedMood } = state;
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      dispatch({ type: 'SET_ADMIN_ORG_CLEAR_BRAND', payload: orgId });
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
+  const { moods, isLoading, selectedMood } = state;
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   const getMoodsService = useAuthedService(
     useCallback((token: string) => MoodsService.getInstance(token), []),
@@ -262,17 +212,6 @@ function MoodsListContent({
 
   return (
     <>
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<ElementMood>
         items={moods}
         columns={columns}
