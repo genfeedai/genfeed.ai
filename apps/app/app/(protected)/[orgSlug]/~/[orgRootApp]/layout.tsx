@@ -30,13 +30,13 @@ export default async function OrganizationAppIntlLayout({
 
   // The organization Library is the brand Library across every brand, so it
   // mounts the same layout (asset detail panel included).
-  return (
-    <AppPageIntlProvider pages={pages}>
-      {orgRootApp === 'library' ? (
+  if (orgRootApp === 'library') {
+    return (
+      <AppPageIntlProvider pages={pages}>
         <LibraryLayout>{children}</LibraryLayout>
-      ) : (
-        children
-      )}
-    </AppPageIntlProvider>
-  );
+      </AppPageIntlProvider>
+    );
+  }
+
+  return <AppPageIntlProvider pages={pages}>{children}</AppPageIntlProvider>;
 }
