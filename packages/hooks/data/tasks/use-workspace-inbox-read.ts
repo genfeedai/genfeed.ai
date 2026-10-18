@@ -6,6 +6,18 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+
+function isTaskUnreadSince(
+  task: Pick<Task, 'updatedAt' | 'createdAt'>,
+  seen: string | undefined,
+): boolean {
+  return (
+    !seen ||
+    new Date(task.updatedAt ?? task.createdAt).getTime() >
+      new Date(seen).getTime()
+  );
+}
 
 export function isWorkspaceInboxTaskUnread(
   task: Pick<Task, 'id' | 'updatedAt' | 'createdAt'>,
@@ -15,11 +27,7 @@ export function isWorkspaceInboxTaskUnread(
   // receipts mean unseen. Calling find on that list crashes the inbox.
   const readList = Array.isArray(reads) ? reads : [];
   const seen = readList.find((read) => read.taskId === task.id)?.seenUpdatedAt;
-  return (
-    !seen ||
-    new Date(task.updatedAt ?? task.createdAt).getTime() >
-      new Date(seen).getTime()
-  );
+  return isTaskUnreadSince(task, seen);
 }
 
 export function useWorkspaceInboxRead() {
@@ -41,6 +49,24 @@ export function useWorkspaceInboxRead() {
     queryFn: async ({ signal }) => (await service()).findInboxReadState(signal),
     refetchInterval: 60_000,
   });
+  const hasReadState = Boolean(state.data);
+  const receiptList = state.data?.reads;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: user and organization scope reset the derived receipt snapshot even if it shares an array.
+  const isUnread = useMemo(() => {
+    let seenByTaskId: Map<string, string> | undefined;
+    return (task: Task): boolean => {
+      if (!hasReadState) return false;
+      if (!seenByTaskId) {
+        seenByTaskId = new Map();
+        for (const read of Array.isArray(receiptList) ? receiptList : []) {
+          const { taskId } = read;
+          if (!seenByTaskId.has(taskId))
+            seenByTaskId.set(taskId, read.seenUpdatedAt);
+        }
+      }
+      return isTaskUnreadSince(task, seenByTaskId.get(task.id));
+    };
+  }, [hasReadState, receiptList, scopeId, userId]);
   const read = useMutation({
     mutationKey: key,
     scope: { id: key.join(':') },
@@ -67,7 +93,6 @@ export function useWorkspaceInboxRead() {
   return {
     state,
     read,
-    isUnread: (task: Task) =>
-      state.data ? isWorkspaceInboxTaskUnread(task, state.data.reads) : false,
+    isUnread,
   };
 }
