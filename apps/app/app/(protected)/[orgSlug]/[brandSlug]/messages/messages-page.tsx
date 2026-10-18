@@ -28,7 +28,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
-import { Textarea } from '@ui/primitives/textarea';
 import {
   ChevronLeft,
   ChevronRight,
@@ -36,7 +35,6 @@ import {
   LinkIcon,
   LockKeyhole,
   MessageSquare,
-  Send,
   Sparkles,
   Zap,
 } from 'lucide-react';
@@ -61,6 +59,7 @@ import {
   STATUS_LABELS,
   STATUS_STYLES,
 } from './messages-page.helpers';
+import MessagesReplyComposer from './messages-reply-composer';
 import { useMessagesSurfaceAdapter } from './messages-surface-adapter';
 import { useMessagesActions } from './use-messages-actions';
 import { useMessagesConversations } from './use-messages-conversations';
@@ -527,6 +526,8 @@ export default function MessagesPage() {
     selectedConversation?.conversationType === SocialConversationType.DM;
   const isTikTokReadOnly = selectedConversation?.platform === Platform.TIKTOK;
   const isReadOnly = !canWrite || isTikTokReadOnly;
+  // While the reply bar is up it carries the action status and failures.
+  const isComposerVisible = Boolean(selectedConversation) && !isReadOnly;
 
   const availability = !canWrite
     ? {
@@ -642,23 +643,27 @@ export default function MessagesPage() {
       {workspaceNavPanel?.portalTargets.map((target, index) =>
         createPortal(conversationNavPanel, target, `messages-nav-${index}`),
       )}
-      {error ? (
-        <div
-          className="mx-4 mt-3 shrink-0 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          role="alert"
-        >
-          {error}
-        </div>
-      ) : null}
-      {notice ? (
-        <div
-          aria-live="polite"
-          className="mx-4 mt-3 shrink-0 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
-          role="status"
-        >
-          {notice}
-        </div>
-      ) : null}
+      {isComposerVisible ? null : (
+        <>
+          {error ? (
+            <div
+              className="mx-4 mt-3 shrink-0 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              {error}
+            </div>
+          ) : null}
+          {notice ? (
+            <div
+              aria-live="polite"
+              className="mx-4 mt-3 shrink-0 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
+              role="status"
+            >
+              {notice}
+            </div>
+          ) : null}
+        </>
+      )}
 
       <div
         className="flex min-h-0 flex-1 overflow-hidden"
@@ -854,85 +859,17 @@ export default function MessagesPage() {
                   </div>
                 </div>
               ) : (
-                <div className="border-t border-border p-4">
-                  <div className="mb-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          {translate('replyComposer.title')}
-                        </p>
-                        <p className="mt-1 text-xs text-foreground/45">
-                          {translate('replyComposer.description')}
-                        </p>
-                      </div>
-                      <Button
-                        icon={<Sparkles className="size-4" />}
-                        isDisabled={Boolean(busyAction)}
-                        isLoading={busyAction === 'suggested-reply'}
-                        onClick={handleSuggestedReply}
-                        size={ButtonSize.SM}
-                        variant={ButtonVariant.SECONDARY}
-                      >
-                        {translate('actions.draftReply')}
-                      </Button>
-                    </div>
-                  </div>
-                  <Textarea
-                    aria-label="Social reply or direct message"
-                    className="min-h-24 w-full"
-                    placeholder="Write a reply or DM"
-                    rows={4}
-                    value={draft}
-                    onChange={handleDraftChange}
-                  />
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs text-gray-800">
-                      {availability.canSendDm
-                        ? 'DM is available for this thread.'
-                        : availability.sendDmReason}
-                    </p>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Button
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SM}
-                        isDisabled={Boolean(busyAction) || !draft.trim()}
-                        isLoading={busyAction === 'draft'}
-                        onClick={() => handleAction('draft')}
-                      >
-                        {translate('actions.saveDraft')}
-                      </Button>
-                      <Button
-                        variant={ButtonVariant.DEFAULT}
-                        size={ButtonSize.SM}
-                        icon={<Send className="size-4" />}
-                        isDisabled={
-                          Boolean(busyAction) ||
-                          !draft.trim() ||
-                          !availability.canPostReply
-                        }
-                        isLoading={busyAction === 'reply'}
-                        title={availability.postReplyReason}
-                        onClick={() => handleAction('reply')}
-                      >
-                        {translate('actions.reply')}
-                      </Button>
-                      <Button
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SM}
-                        isDisabled={
-                          Boolean(busyAction) ||
-                          !draft.trim() ||
-                          !availability.canSendDm
-                        }
-                        isLoading={busyAction === 'dm'}
-                        title={availability.sendDmReason}
-                        onClick={() => handleAction('dm')}
-                      >
-                        {translate('actions.dm')}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <MessagesReplyComposer
+                  availability={availability}
+                  busyAction={busyAction}
+                  draft={draft}
+                  error={error}
+                  notice={notice}
+                  onAction={handleAction}
+                  onDraftChange={handleDraftChange}
+                  onSuggestedReply={handleSuggestedReply}
+                  participantLabel={getParticipantLabel(selectedConversation)}
+                />
               )}
             </>
           ) : (

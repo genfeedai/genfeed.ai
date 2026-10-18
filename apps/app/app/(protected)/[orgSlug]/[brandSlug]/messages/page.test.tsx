@@ -148,6 +148,40 @@ vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
   default: () => <div>Loading messages</div>,
 }));
 
+// The TipTap editor needs a real DOM layout; a textarea keeps these tests on
+// the composer's own behaviour.
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    ariaLabel,
+    isDisabled,
+    onSubmit,
+    onValueChange,
+    placeholder,
+    value,
+  }: {
+    ariaLabel?: string;
+    isDisabled?: boolean;
+    onSubmit?: () => void;
+    onValueChange?: (value: string) => void;
+    placeholder?: string;
+    value?: string;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      disabled={isDisabled}
+      placeholder={placeholder}
+      value={value}
+      onChange={(event) => onValueChange?.(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          onSubmit?.();
+        }
+      }}
+    />
+  ),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     'aria-pressed': ariaPressed,
@@ -259,27 +293,6 @@ vi.mock('@ui/primitives/select', async () => {
     ),
   };
 });
-
-vi.mock('@ui/primitives/textarea', () => ({
-  Textarea: ({
-    'aria-label': ariaLabel,
-    onChange,
-    placeholder,
-    value,
-  }: {
-    'aria-label'?: string;
-    onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
-    placeholder?: string;
-    value: string;
-  }) => (
-    <textarea
-      aria-label={ariaLabel}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-    />
-  ),
-}));
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -638,6 +651,31 @@ describe('SocialMessagesPage', () => {
     expect(mocks.refreshInboxIndicators.mock.calls.length).toBeGreaterThan(
       indicatorRefreshesBeforeReply,
     );
+  });
+
+  it('keeps the reply status inside the shared prompt bar and sends on Enter', async () => {
+    render(<SocialMessagesPage />);
+
+    const composer = await screen.findByTestId('messages-reply-composer');
+    expect(composer).toHaveAttribute('data-prompt-bar-composer');
+    const editor = within(composer).getByRole('textbox', {
+      name: 'Social reply or direct message',
+    });
+
+    fireEvent.change(editor, { target: { value: 'Thanks for asking!' } });
+    fireEvent.keyDown(editor, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(mocks.postReply).toHaveBeenCalledWith(
+        'conversation-1',
+        expect.objectContaining({ text: 'Thanks for asking!' }),
+      ),
+    );
+    const notice = await screen.findByText('Reply posted.');
+    expect(composer).toContainElement(notice);
+    expect(
+      within(screen.getByTestId('prompt-bar-shell-banner')).getByRole('status'),
+    ).toHaveTextContent('Reply posted.');
   });
 
   it('opens the conversation named in the URL and marks it read', async () => {

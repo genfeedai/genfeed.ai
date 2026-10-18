@@ -6,14 +6,7 @@ import type {
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
 import { useTranslations } from 'next-intl';
-import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getMessagesErrorMessage,
   getMessagesSyncFeedback,
@@ -135,14 +128,11 @@ export function useMessagesActions({
     }
   }, [refreshSelectedThread]);
 
-  const handleDraftChange = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) => {
-      draftRevisionRef.current += 1;
-      pendingIdempotencyKeysRef.current.clear();
-      setDraft(event.target.value);
-    },
-    [],
-  );
+  const handleDraftChange = useCallback((value: string) => {
+    draftRevisionRef.current += 1;
+    pendingIdempotencyKeysRef.current.clear();
+    setDraft(value);
+  }, []);
 
   const handleAction = useCallback(
     async (action: 'draft' | 'dm' | 'reply') => {

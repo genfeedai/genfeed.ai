@@ -35,20 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import { MessageCircleReply } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
-const INTENT_OPTIONS: Array<{ label: string; value: ReplyIntent }> = [
-  { label: 'Thanks', value: 'thanks' },
-  { label: 'Question', value: 'question' },
-  { label: 'Troll', value: 'troll' },
-  { label: 'Default', value: 'default' },
-  { label: 'Spam (skip auto)', value: 'spam' },
-];
+import RepliesReplyComposer from './replies-reply-composer';
 
 const REPLIES_DESCRIPTION =
   'Answer people who comment on your posts. Draft replies in your brand voice, or turn on auto-replies for new comments.';
@@ -450,55 +442,20 @@ export default function RepliesPage() {
                 <p className="text-sm whitespace-pre-wrap">
                   {item.commentText}
                 </p>
-                <Select
-                  value={intent}
-                  onValueChange={(value) =>
-                    setIntents((prev) => ({
-                      ...prev,
-                      [item.commentId]: value as ReplyIntent,
-                    }))
+                <RepliesReplyComposer
+                  authorUsername={item.authorUsername}
+                  draft={drafts[item.commentId] ?? ''}
+                  intent={intent}
+                  isBusy={busyId === item.commentId}
+                  onDraft={() => void handleDraft(item)}
+                  onDraftChange={(value) =>
+                    setDrafts((prev) => ({ ...prev, [item.commentId]: value }))
                   }
-                >
-                  <SelectTrigger className="w-full max-w-xs">
-                    <SelectValue placeholder="Intent" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INTENT_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Textarea
-                  value={drafts[item.commentId] ?? ''}
-                  onChange={(event) =>
-                    setDrafts((prev) => ({
-                      ...prev,
-                      [item.commentId]: event.target.value,
-                    }))
+                  onIntentChange={(value) =>
+                    setIntents((prev) => ({ ...prev, [item.commentId]: value }))
                   }
-                  placeholder="Your reply…"
-                  rows={3}
+                  onSend={() => void handleSend(item)}
                 />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    isDisabled={busyId === item.commentId}
-                    onClick={() => void handleDraft(item)}
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
-                  >
-                    {translate('actions.draft')}
-                  </Button>
-                  <Button
-                    isDisabled={busyId === item.commentId}
-                    onClick={() => void handleSend(item)}
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.DEFAULT}
-                  >
-                    {translate('actions.send')}
-                  </Button>
-                </div>
               </Card>
             );
           })}

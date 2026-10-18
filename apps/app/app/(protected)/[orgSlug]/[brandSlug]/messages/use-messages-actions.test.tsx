@@ -2,7 +2,6 @@ import { SocialConversationType } from '@genfeedai/contracts';
 import type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
 import type { SocialMessagesService } from '@services/social/messages.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type { ChangeEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { useMessagesActions } from './use-messages-actions';
 
@@ -50,11 +49,7 @@ describe('Inline suggested replies', () => {
       void result.current.handleSuggestedReply();
     });
     await waitFor(() => expect(suggestedReply).toHaveBeenCalled());
-    act(() =>
-      result.current.handleDraftChange({
-        target: { value: 'My own reply' },
-      } as ChangeEvent<HTMLTextAreaElement>),
-    );
+    act(() => result.current.handleDraftChange('My own reply'));
     await act(async () => complete?.({ draft: 'Late suggestion' }));
     expect(result.current.draft).toBe('My own reply');
   });
@@ -84,11 +79,7 @@ describe('Messages module admission', () => {
     const { result, params, rerender } = setup();
     const getMessagesService = vi.fn(params.getMessagesService);
     rerender({ ...params, canWrite: false, getMessagesService });
-    act(() =>
-      result.current.handleDraftChange({
-        target: { value: 'Local draft' },
-      } as ChangeEvent<HTMLTextAreaElement>),
-    );
+    act(() => result.current.handleDraftChange('Local draft'));
     await act(async () => {
       await result.current.handleSync();
       await result.current.handleSuggestedReply();
