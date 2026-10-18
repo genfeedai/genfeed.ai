@@ -1,0 +1,218 @@
+# Generation-type smoke — reporting only.
+#
+# Runs every generation type (text kinds, image, video) against the synthetic
+# KELDER org + brand context and scores the output with the content-eval
+# harness (scripts/content-eval), plus the public genfeedai/benchmark task pack
+# for the media cells. One hard spend cap covers the whole run; each suite gets
+# a share and aborts itself at it. Docs: docs/content-evals.md.
+#
+# Lanes:
+#   deterministic  free: harness unit tests, benchmark validation and a stub
+#                  run of every cell. Runs on every trigger.
+#   live           paid: real providers. Fails closed when the cap variable or
+#                  a key is missing. Nightly it is opt-in (CONTENT_EVAL_NIGHTLY)
+#                  and text-only at a third of the cap; after a Release it runs
+#                  every cell. Never a release gate and never a deploy step.
+#
+# This workflow is NOT reusable. full-suite.yml and release.yml must never
+# uses/needs it.
+
+name: Content Eval Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      dispatcher:
+        description: "stub is free; live spends the cap on real providers"
+        type: choice
+        default: stub
+        options:
+          - stub
+          - live
+      mediums:
+        description: "Comma-separated cells: text,image,video"
+        type: string
+        default: "text,image,video"
+      max_credits:
+        description: "Hard cap in credits (1 credit = $0.01). Empty uses the CONTENT_EVAL_MAX_CREDITS repository variable"
+        type: string
+        required: false
+  schedule:
+    - cron: "37 4 * * *" # 04:37 UTC — after e2e (02:17), Playwright full (02:47) and learning (03:23)
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+concurrency:
+  group: content-eval-smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  deterministic:
+    name: Deterministic lane (free)
+    # A Release that did not publish has nothing to smoke.
+    if: >-
+      github.event_name != 'workflow_run'
+      || (github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Build packages
+        run: bunx turbo run build --filter="./packages/*"
+
+      # The harness proves its pinned media task pack verbatim against this
+      # checkout (scripts/content-eval/bench/schema-drift.ts), which finds the
+      # benchmark repo as a sibling of the workspace.
+      - name: Check out genfeedai/benchmark beside the workspace
+        run: git clone --quiet https://github.com/genfeedai/benchmark.git "${GITHUB_WORKSPACE}/../benchmark"
+
+      - name: Validate the benchmark task pack and recompute its ladder
+        run: |
+          cd "${GITHUB_WORKSPACE}/../benchmark"
+          bun install --frozen-lockfile
+          bun run validate
+          bun run ladder
+
+      - name: Run the content-eval harness tests
+        run: bun run test:content-eval
+
+      - name: Stub run of every generation cell
+        run: >-
+          bun scripts/content-eval/smoke/run-smoke.ts
+          --max-credits=300
+          --dispatcher=stub
+          --out-dir=reports/content-eval-smoke-stub
+
+      - name: Upload stub reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: content-eval-smoke-stub-${{ github.sha }}
+          path: reports/content-eval-smoke-stub/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  live:
+    name: Live lane (spends the cap)
+    needs: [deterministic]
+    if: >-
+      needs.deterministic.result == 'success'
+      && (github.event_name == 'workflow_run'
+        || (github.event_name == 'workflow_dispatch' && inputs.dispatcher == 'live')
+        || (github.event_name == 'schedule' && vars.CONTENT_EVAL_NIGHTLY == 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      REDIS_URL: redis://localhost:6379
+      # One key routes every judge and generator through OpenRouter.
+      OPENROUTER_API_KEY: ${{ secrets.CONTENT_EVAL_OPENROUTER_API_KEY }}
+      CONTENT_EVAL_GENFEED_API_KEY: ${{ secrets.CONTENT_EVAL_GENFEED_API_KEY }}
+      CONTENT_EVAL_GENFEED_API_URL: ${{ vars.CONTENT_EVAL_GENFEED_API_URL }}
+      CONTENT_EVAL_KELDER_BRAND_ID: ${{ vars.CONTENT_EVAL_KELDER_BRAND_ID }}
+    steps:
+      # Fail closed: no variable, no spend.
+      - name: Resolve the spend cap and the cells to run
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MAX_CREDITS: ${{ inputs.max_credits }}
+          INPUT_MEDIUMS: ${{ inputs.mediums }}
+          REPO_MAX_CREDITS: ${{ vars.CONTENT_EVAL_MAX_CREDITS }}
+        run: |
+          set -euo pipefail
+          cap="${INPUT_MAX_CREDITS:-${REPO_MAX_CREDITS:-}}"
+          if [ -z "${cap}" ]; then
+            echo "::error::CONTENT_EVAL_MAX_CREDITS is not set and no max_credits was given. The live lane never runs uncapped."
+            exit 1
+          fi
+          if [ -z "${OPENROUTER_API_KEY}" ]; then
+            echo "::error::Secret CONTENT_EVAL_OPENROUTER_API_KEY is not set."
+            exit 1
+          fi
+          mediums="text,image,video"
+          if [ "${EVENT_NAME}" = "schedule" ]; then
+            # Nightly: text only, a third of the release cap.
+            mediums="text"
+            cap="$(awk -v cap="${cap}" 'BEGIN { printf "%.2f", cap / 3 }')"
+          elif [ -n "${INPUT_MEDIUMS:-}" ]; then
+            mediums="${INPUT_MEDIUMS}"
+          fi
+          echo "cap=${cap}" >> "${GITHUB_OUTPUT}"
+          echo "mediums=${mediums}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Build packages
+        run: bunx turbo run build --filter="./packages/*"
+
+      - name: Apply Prisma migrations to the eval database
+        run: bun x prisma migrate deploy
+        working-directory: packages/prisma
+
+      - name: Run the generation smoke
+        env:
+          SMOKE_CAP: ${{ steps.plan.outputs.cap }}
+          SMOKE_MEDIUMS: ${{ steps.plan.outputs.mediums }}
+        run: >-
+          bun scripts/content-eval/smoke/run-smoke.ts
+          --max-credits="${SMOKE_CAP}"
+          --mediums="${SMOKE_MEDIUMS}"
+          --dispatcher=live
+          --out-dir=reports/content-eval-smoke-live
+
+      - name: Upload live reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: content-eval-smoke-live-${{ github.run_id }}
+          path: reports/content-eval-smoke-live/
+          retention-days: 30
+          if-no-files-found: ignore

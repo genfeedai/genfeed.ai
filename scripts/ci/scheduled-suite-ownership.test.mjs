@@ -29,6 +29,10 @@ const SUITE_FAMILY_OWNERS = {
     job: 'learning-runtime',
   },
   'dataset-scale': { workflow: 'dataset-scale.yml', job: 'scale' },
+  'content-eval-smoke': {
+    workflow: 'content-eval-smoke.yml',
+    job: 'deterministic',
+  },
   'desktop-qa': { workflow: 'desktop-qa.yml', job: 'desktop-release-qa' },
   coverage: { workflow: 'coverage.yml', job: 'coverage-api' },
   'selfhosted-release-e2e': {

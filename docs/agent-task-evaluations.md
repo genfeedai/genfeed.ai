@@ -3,6 +3,8 @@
 Owner: agent runtime maintainers. Scope: #3999 FR-8 and #4001 FR-8.
 Fixture version: 1; rubric: `contract-exact-v1`. Reviewed source date: 2026-09-08.
 
+This harness checks agent task contracts only. Generated content quality against org and brand context is measured by [content evals](content-evals.md).
+
 ## Run deterministic evaluations
 
 On the authorized verification host, from the repository root:
