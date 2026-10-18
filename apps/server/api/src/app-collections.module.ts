@@ -89,6 +89,7 @@ import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { PublishingSetupModule } from '@api/collections/publishing-setup/publishing-setup.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
+import { ReviewInboxModule } from '@api/collections/review-inbox/review-inbox.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { RssSourcesModule } from '@api/collections/rss-sources/rss-sources.module';
 import { SavedAdsModule } from '@api/collections/saved-ads/saved-ads.module';
@@ -224,6 +225,7 @@ import { Module } from '@nestjs/common';
     ProjectsModule,
     PromptsModule,
     ReferralsModule,
+    ReviewInboxModule,
     RolesModule,
     RssSourcesModule,
     SchedulesModule,

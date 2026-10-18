@@ -36,6 +36,12 @@ describe('publishing-posts-routes.constant', () => {
     ).toBe('/publishing/posts?view=approvals');
   });
 
+  it('focuses one review inbox gate (#7340)', () => {
+    expect(
+      createPublishingApprovalsRoute({ approval: 'mcp_approval:apr-1' }),
+    ).toBe('/publishing/posts?view=approvals&approval=mcp_approval%3Aapr-1');
+  });
+
   it('returns the canonical library when no filters are provided', () => {
     expect(createPublishingPostsFilterRoute()).toBe(
       APP_ROUTES.PUBLISHING.POSTS,

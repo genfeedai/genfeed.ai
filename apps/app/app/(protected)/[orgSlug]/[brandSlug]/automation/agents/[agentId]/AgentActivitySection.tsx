@@ -73,6 +73,7 @@ export default function AgentActivitySection({
         buildRunActivityEntries(
           runHistory,
           executions,
+          posts,
           detail,
           (threadId) => href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`),
           (executionId) => href(`${APP_ROUTES.AUTOMATION.RUNS}/${executionId}`),

@@ -3,6 +3,7 @@ import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
+  ComponentSize,
   PageScope,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
@@ -11,12 +12,16 @@ import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.p
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
+import Badge from '@ui/display/badge/Badge';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { isAgentSourceVisible } from '../useReviewInboxApprovals';
 import ReviewGrid from './ReviewGrid';
+import ReviewInboxApprovalsSection from './ReviewInboxApprovalsSection';
+import ReviewSourceFilters from './ReviewSourceFilters';
 import ReviewStatusFilters, {
   PUBLISH_HEADER_DROPDOWN_CLASS,
 } from './ReviewStatusFilters';
@@ -42,6 +47,7 @@ export default function ReviewQueueView({
   activeTurboRun,
   activeTurboRunError,
   activeTurboRunId,
+  approvals,
   turboRunList,
   turboRunsError,
   canDiscardTurboRun,
@@ -74,6 +80,7 @@ export default function ReviewQueueView({
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
   const translate = useTranslations('pages.publishing.review.approvalQueue');
+  const translateInbox = useTranslations('pages.publishing.review.inbox');
   // Rows the operator tapped, as opposed to the first item the queue picks
   // for them: only a tap opens the mobile drawer, and every tap reveals it.
   const [rowTap, setRowTap] = useState<{
@@ -118,35 +125,51 @@ export default function ReviewQueueView({
     setIsRefreshing(isRefreshing || isTurboRunLoading);
   }, [isTurboRunLoading, isRefreshing, setIsRefreshing]);
 
+  const isTurboQueueVisible = isAgentSourceVisible(approvals.sourceFilters);
+  const hasTurboControls = isTurboQueueVisible && turboRunOptions.length > 0;
+  const hasSourceFilter =
+    turboRunOptions.length > 0 ||
+    approvals.items.length > 0 ||
+    approvals.sourceFilters.length > 0;
+  const { onSourceFilterChange, sourceFilters } = approvals;
+
   useEffect(() => {
-    if (turboRunOptions.length === 0) {
+    if (!hasSourceFilter) {
       setFiltersNode(null);
       return () => {
         setFiltersNode(null);
       };
     }
 
-    // Sub topbar action rail: status + batch (+ discard) beside New content /
-    // refresh — same vertical level, no page-body orphan row.
+    // Sub topbar action rail: source, then status + batch (+ discard) beside
+    // New content / refresh — same vertical level, no page-body orphan row.
     setFiltersNode(
       <div className="flex min-w-0 items-center gap-2">
-        <ReviewStatusFilters
-          activeFilters={activeFilters}
-          filterCounts={filterCounts}
-          onFilterChange={onFilterChange}
+        <ReviewSourceFilters
+          activeSources={sourceFilters}
+          onSourceChange={onSourceFilterChange}
         />
-        <ButtonDropdown
-          className={PUBLISH_HEADER_DROPDOWN_CLASS}
-          name="review-batch"
-          onChange={(_name, value) => {
-            onTurboRunChange(value);
-          }}
-          options={turboRunOptions}
-          placeholder="Select batch"
-          tooltip="Select review batch"
-          value={activeTurboRunId ?? ''}
-        />
-        {canDiscardTurboRun ? (
+        {hasTurboControls ? (
+          <>
+            <ReviewStatusFilters
+              activeFilters={activeFilters}
+              filterCounts={filterCounts}
+              onFilterChange={onFilterChange}
+            />
+            <ButtonDropdown
+              className={PUBLISH_HEADER_DROPDOWN_CLASS}
+              name="review-batch"
+              onChange={(_name, value) => {
+                onTurboRunChange(value);
+              }}
+              options={turboRunOptions}
+              placeholder="Select batch"
+              tooltip="Select review batch"
+              value={activeTurboRunId ?? ''}
+            />
+          </>
+        ) : null}
+        {hasTurboControls && canDiscardTurboRun ? (
           <Button
             className="h-8 shrink-0 gap-1.5 px-3 text-xs"
             icon={<Trash2 className="size-3.5" />}
@@ -170,31 +193,75 @@ export default function ReviewQueueView({
     turboRunOptions,
     canDiscardTurboRun,
     filterCounts,
+    hasSourceFilter,
+    hasTurboControls,
     isActioning,
+    onSourceFilterChange,
     onTurboRunChange,
     onDiscardTurboRun,
     onFilterChange,
     setFiltersNode,
+    sourceFilters,
   ]);
+
+  const approvalsSection = (
+    <ReviewInboxApprovalsSection approvals={approvals} />
+  );
+
+  // An error, a missing deep-linked row or a row to decide all render in the
+  // approvals section; with none of them it would render nothing.
+  const hasApprovalsContent =
+    approvals.items.length > 0 ||
+    approvals.isHighlightedItemMissing ||
+    approvals.error !== null;
+
+  if (!isTurboQueueVisible) {
+    if (approvals.isLoading) {
+      return <Loading />;
+    }
+    if (!hasApprovalsContent) {
+      return (
+        <Card
+          variant={CardVariant.DEFAULT}
+          icon={ClipboardCheck}
+          label={translateInbox('emptyFilteredTitle')}
+          description={translateInbox('emptyFilteredDescription')}
+          bodyClassName="items-center py-12 text-center"
+          iconWrapperClassName="bg-muted text-muted-foreground"
+          className="max-w-xl mx-auto"
+        />
+      );
+    }
+    return approvalsSection;
+  }
 
   if (turboRunsError || hasInvalidTurboRunPayload) {
     return (
-      <Card
-        variant={CardVariant.DEFAULT}
-        icon={TriangleAlert}
-        label="Unable to load the review queue"
-        description={getJsonApiErrorMessage(
-          turboRunsError,
-          'The review batches response was invalid or failed to load. Refresh the page and check the batches API.',
-        )}
-        bodyClassName="items-center py-12 text-center"
-        iconWrapperClassName="bg-destructive/10 text-destructive"
-        className="max-w-xl mx-auto"
-      />
+      <>
+        {approvalsSection}
+        <Card
+          variant={CardVariant.DEFAULT}
+          icon={TriangleAlert}
+          label="Unable to load the review queue"
+          description={getJsonApiErrorMessage(
+            turboRunsError,
+            'The review batches response was invalid or failed to load. Refresh the page and check the batches API.',
+          )}
+          bodyClassName="items-center py-12 text-center"
+          iconWrapperClassName="bg-destructive/10 text-destructive"
+          className="max-w-xl mx-auto"
+        />
+      </>
     );
   }
 
   if (turboRunList.length === 0) {
+    if (approvals.isLoading) {
+      return <Loading />;
+    }
+    if (hasApprovalsContent) {
+      return approvalsSection;
+    }
     return (
       <Card
         variant={CardVariant.DEFAULT}
@@ -210,14 +277,18 @@ export default function ReviewQueueView({
 
   return (
     <>
+      {approvalsSection}
       {/* Explicit framing: this is the decision queue, not the content library. */}
       <div
         className="mb-4 flex flex-wrap items-center justify-between gap-3"
         data-testid="approval-queue-framing"
       >
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-foreground">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
             {translate('title')}
+            <Badge size={ComponentSize.SM} variant="purple">
+              {translate('sourceBadge')}
+            </Badge>
           </h2>
           <p className="text-xs text-muted-foreground">
             {translate('description')}

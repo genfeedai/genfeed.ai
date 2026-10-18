@@ -13,6 +13,44 @@ export type ActivityTranslate = (
   values?: Record<string, string | number>,
 ) => string;
 
+const MAX_RUN_POST_TITLES = 3;
+
+function getPostTitle(post: IPost, translate: ActivityTranslate): string {
+  return post.label || post.description || translate('untitledPost');
+}
+
+/**
+ * The posts one run created, matched on the post's workflow execution
+ * lineage. Returns nothing for a run without an execution id or posts.
+ */
+function describeRunPosts(
+  executionId: string | undefined,
+  posts: IPost[],
+  translate: ActivityTranslate,
+): string | undefined {
+  if (!executionId) {
+    return undefined;
+  }
+  const runPosts = posts.filter(
+    (post) => post.workflowExecutionId === executionId,
+  );
+  if (runPosts.length === 0) {
+    return undefined;
+  }
+  return translate('activityRunPosts', {
+    count: runPosts.length,
+    more: Math.max(0, runPosts.length - MAX_RUN_POST_TITLES),
+    titles: runPosts
+      .slice(0, MAX_RUN_POST_TITLES)
+      .map((post) => getPostTitle(post, translate))
+      .join(', '),
+  });
+}
+
+function joinDescription(...parts: Array<string | undefined>): string {
+  return parts.filter(Boolean).join(' · ');
+}
+
 /** One entry per post this agent generated — the Content filter's rows. */
 export function buildContentActivityEntries(
   posts: IPost[],
@@ -30,7 +68,7 @@ export function buildContentActivityEntries(
       href: getPostHref(post.id),
       id: `content-${post.id}`,
       timestamp: post.createdAt,
-      title: post.label || post.description || translate('untitledPost'),
+      title: getPostTitle(post, translate),
       type: 'content',
     };
   });
@@ -78,20 +116,24 @@ function getRunStatusLabel(
  * One entry per agent run and per workflow execution — the Runs filter's
  * rows. The two sources are not deduplicated: a run's `executionId` does not
  * reliably resolve to a fetched execution, and showing both is safer than
- * silently dropping one.
+ * silently dropping one. Each row names the posts its execution created.
  */
 export function buildRunActivityEntries(
   runHistory: IAgentStrategyRunHistoryItem[],
   executions: IWorkflowExecution[],
+  posts: IPost[],
   translate: ActivityTranslate,
   getThreadHref: (threadId: string) => string,
   getExecutionHref: (executionId: string) => string,
 ): AgentActivityEntry[] {
   const runEntries: AgentActivityEntry[] = runHistory.map((run, index) => ({
-    description: translate('activityRunGenerated', {
-      count: run.contentGenerated,
-      credits: run.creditsUsed,
-    }),
+    description: joinDescription(
+      translate('activityRunGenerated', {
+        count: run.contentGenerated,
+        credits: run.creditsUsed,
+      }),
+      describeRunPosts(run.executionId, posts, translate),
+    ),
     href: run.executionId
       ? getExecutionHref(run.executionId)
       : run.threadId
@@ -105,7 +147,10 @@ export function buildRunActivityEntries(
 
   const executionEntries: AgentActivityEntry[] = executions.map(
     (execution) => ({
-      description: getExecutionModelLabel(execution),
+      description: joinDescription(
+        getExecutionModelLabel(execution),
+        describeRunPosts(execution.id, posts, translate),
+      ),
       href: getExecutionHref(execution.id),
       id: `execution-${execution.id}`,
       timestamp: execution.startedAt ?? execution.createdAt,
