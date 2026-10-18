@@ -1,35 +1,66 @@
 name: Notify release
 
+# The Release workflow publishes with GITHUB_TOKEN, and events raised by that
+# token never start other workflows, so `release: published` cannot be used.
+# Follow the completed Release run instead.
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   notify:
-    if: ${{ !github.event.release.prerelease && !github.event.release.draft }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Notify webhooks
+        shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_TITLE: ${{ github.event.workflow_run.display_title }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
           RELEASE_WATCH_URL: ${{ secrets.RELEASE_WATCH_WEBHOOK_URL }}
           RELEASE_WATCH_AUTH: ${{ secrets.RELEASE_WATCH_WEBHOOK_AUTH }}
           QA_URL: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_URL }}
           QA_AUTH: ${{ secrets.QA_POST_DEPLOY_WEBHOOK_AUTH }}
-          REPO: ${{ github.repository }}
-          TAG: ${{ github.event.release.tag_name }}
-          SHA: ${{ github.sha }}
-          URL: ${{ github.event.release.html_url }}
-          PUBLISHED_AT: ${{ github.event.release.published_at }}
         run: |
-          payload=$(jq -n --arg repo "$REPO" --arg tag "$TAG" --arg sha "$SHA" --arg url "$URL" --arg at "$PUBLISHED_AT" \
-            '{event:"release.published", repository:$repo, tag:$tag, sha:$sha, url:$url, published_at:$at}')
+          tag="${RUN_TITLE#Release }"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::warning::run title '$RUN_TITLE' does not name a stable release tag; nothing sent"
+            exit 0
+          fi
+          if ! release=$(gh release view "$tag" --json isDraft,isPrerelease,url,publishedAt); then
+            echo "::warning::release $tag not found; nothing sent"
+            exit 0
+          fi
+          if [ "$(jq -r '.isDraft or .isPrerelease' <<<"$release")" = true ]; then
+            echo "skip: $tag is a draft or prerelease"
+            exit 0
+          fi
+          sha=$(gh api "repos/${GH_REPO}/commits/${tag}" --jq .sha 2>/dev/null) || sha="$RUN_SHA"
+          payload=$(jq -n --arg repo "$GH_REPO" --arg tag "$tag" --arg sha "$sha" \
+            --argjson release "$release" \
+            '{event:"release.published", repository:$repo, tag:$tag, sha:$sha, url:$release.url, published_at:$release.publishedAt}')
           send() {
-            [ -z "$1" ] && { echo "skip: $3 not configured"; return 0; }
-            curl -fsS --retry 3 --max-time 20 -X POST "$1" -H "$2" -H 'Content-Type: application/json' -d "$payload" >/dev/null \
-              && echo "sent: $3" || echo "::warning::failed to notify $3"
+            local url="$1" auth="$2" name="$3"
+            if [ -z "$url" ]; then
+              echo "skip: $name not configured"
+              return 0
+            fi
+            local args=(-fsS --retry 3 --max-time 20 -X POST -H 'Content-Type: application/json' -d "$payload")
+            if [ -n "$auth" ]; then
+              args+=(-H "$auth")
+            fi
+            if curl "${args[@]}" "$url" >/dev/null; then
+              echo "sent: $name"
+            else
+              echo "::warning::failed to notify $name"
+            fi
           }
           send "$RELEASE_WATCH_URL" "$RELEASE_WATCH_AUTH" "release-watch"
           send "$QA_URL" "$QA_AUTH" "qa-post-deploy"
