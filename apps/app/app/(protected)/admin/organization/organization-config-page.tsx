@@ -1,13 +1,12 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { AlertCategory } from '@genfeedai/contracts';
 import { isReleaseItemId } from '@genfeedai/contracts/constants';
 import OrganizationReleaseGrants from '@protected/organization/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organization/components/organization-settings-table';
 import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
 import Alert from '@ui/feedback/alert/Alert';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Settings } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -23,44 +22,31 @@ function OrganizationConfigPageContent() {
   // between the missing-id, error and loaded states.
   if (!organizationId) {
     return (
-      <Container
-        label="Organization Configuration"
-        description="Configure organization settings and preferences"
-        icon={Settings}
-        moduleChrome
-      >
+      <AdminPageShell title="Organization Configuration" icon={Settings}>
         <Alert type={AlertCategory.WARNING}>
           Organization ID is required. Please provide an organization ID in the
           URL query parameters (e.g., /organization?id=...).
         </Alert>
-      </Container>
+      </AdminPageShell>
     );
   }
 
   if (error) {
     return (
-      <Container
-        label="Organization Configuration"
-        description="Configure organization settings and preferences"
-        icon={Settings}
-        moduleChrome
-      >
+      <AdminPageShell title="Organization Configuration" icon={Settings}>
         <Alert type={AlertCategory.ERROR}>
           Failed to load organization settings. Please try again.
         </Alert>
-      </Container>
+      </AdminPageShell>
     );
   }
 
   return (
-    <Container
-      label="Organization Configuration"
-      description="Configure organization settings and preferences"
+    <AdminPageShell
+      title="Organization Configuration"
       icon={Settings}
-      moduleChrome
-      refresh={
-        <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
-      }
+      onRefresh={() => refresh()}
+      isRefreshing={isRefreshing}
     >
       {settings ? (
         <OrganizationReleaseGrants
@@ -84,7 +70,7 @@ function OrganizationConfigPageContent() {
         organizationId={organizationId}
         onUpdate={refresh}
       />
-    </Container>
+    </AdminPageShell>
   );
 }
 

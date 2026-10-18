@@ -11,9 +11,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
 import { useQuery } from '@tanstack/react-query';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Users, VenetianMask } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
@@ -151,13 +150,11 @@ export default function UsersList() {
   ];
 
   return (
-    <Container
-      label={translate('title')}
-      description={translate('description')}
+    <AdminPageShell
+      title={translate('title')}
       icon={Users}
-      refresh={
-        <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
-      }
+      onRefresh={() => refresh()}
+      isRefreshing={isRefreshing}
     >
       <AppTable<IUser>
         items={users || []}
@@ -167,6 +164,6 @@ export default function UsersList() {
         getRowKey={(u) => u.id}
         emptyLabel={translate('empty')}
       />
-    </Container>
+    </AdminPageShell>
   );
 }

@@ -71,19 +71,8 @@ vi.mock('@ui/display/skeleton/skeleton', () => ({
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({
-    children,
-    description,
-    label,
-  }: {
-    children: ReactNode;
-    description: string;
-    label: string;
-  }) => (
-    <section aria-label={label}>
-      <p>{description}</p>
-      {children}
-    </section>
+  default: ({ children, label }: { children: ReactNode; label: string }) => (
+    <section aria-label={label}>{children}</section>
   ),
 }));
 
