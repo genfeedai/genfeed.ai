@@ -3,12 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import messages from '../../../../../../messages/en/pages/adminTemplates.json';
 import TemplateDetail from './template-detail';
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+// Stable like next-intl's `t`: a new function per render re-runs the load effect.
+const translate = vi.hoisted(
+  () => (key: string, values?: Record<string, unknown>) =>
     (messages as Record<string, string>)[key].replace(
       /\{(\w+)\}/g,
       (_, name: string) => String(values?.[name]),
     ),
+);
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => translate,
 }));
 
 const mocks = vi.hoisted(() => ({
