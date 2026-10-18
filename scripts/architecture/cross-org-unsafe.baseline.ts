@@ -41,15 +41,23 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/workflows/services/featured-workflows.service.ts',
       line: 169,
     },
-    // #5763: superadmin generation review is a read-only cross-tenant ledger
-    // of original/enhanced/compiled prompts plus result images. Library
-    // findAll, delete, and merge stay organization-scoped. The call moved
-    // down when the library list filter gained the trash flag (#6391), then
-    // five lines for metadata label ordering, then sixteen for keyset Library
-    // paging and its import. The ledger query/guard are unchanged.
+    // #5763: the superadmin Generations ledger is a read-only cross-tenant view
+    // of original/enhanced/compiled prompts plus result images and their cost.
+    // It moved out of the ingredients controller into a superadmin-guarded
+    // service; Library findAll, delete, and merge stay organization-scoped.
     {
-      file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 340,
+      file: 'apps/server/api/src/collections/ingredients/services/admin-generation-reviews.service.ts',
+      line: 33,
+    },
+    {
+      file: 'apps/server/api/src/collections/ingredients/services/admin-generation-reviews.service.ts',
+      line: 66,
+    },
+    // Superadmin prompt-only ledger: read-only list of prompts that have no
+    // generation yet, behind the same superadmin guard as the Generations page.
+    {
+      file: 'apps/server/api/src/collections/prompts/services/admin-prompts.service.ts',
+      line: 46,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps
