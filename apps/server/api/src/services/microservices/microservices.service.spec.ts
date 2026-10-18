@@ -518,7 +518,7 @@ describe('MicroservicesService', () => {
       await service.notifyWebhook('api', 'user.created', notificationData);
 
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://notifications.genfeed.ai/webhooks/notify',
+        'http://notifications.genfeed.ai/v1/webhooks/notify',
         expect.objectContaining({
           data: notificationData,
           event: 'user.created',

@@ -5,12 +5,14 @@ import type {
   AdminModelPricingRow,
   ModelPricingAttentionLevel,
 } from '@genfeedai/contracts/interfaces';
+import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { CircleAlert, TriangleAlert } from 'lucide-react';
+import { CircleAlert, TriangleAlert, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useAdminModelPricingReport } from './use-admin-model-pricing-report';
+import { useFixModelPricing } from './use-fix-model-pricing';
 
 function reasonsFor(
   row: AdminModelPricingRow,
@@ -31,6 +33,8 @@ export default function ModelPricingAttentionPanel() {
   const [isRedExpanded, setIsRedExpanded] = useState(false);
   const [isOrangeExpanded, setIsOrangeExpanded] = useState(false);
   const { data: report } = useAdminModelPricingReport();
+  const { openConfirm } = useConfirmModal();
+  const { fixAll, isFixing } = useFixModelPricing();
   const { red, orange } = useMemo(() => {
     const rows = report?.rows ?? [];
     return {
@@ -40,6 +44,25 @@ export default function ModelPricingAttentionPanel() {
   }, [report]);
 
   if (red.length === 0 && orange.length === 0) return null;
+
+  const fixAllButton = (
+    <Button
+      icon={<Wrench aria-hidden="true" className="size-3.5" />}
+      isDisabled={isFixing}
+      onClick={() =>
+        openConfirm({
+          confirmLabel: t('fixAllConfirmLabel'),
+          label: t('fixAllPricing'),
+          message: t('fixAllConfirmMessage'),
+          onConfirm: () => void fixAll(),
+        })
+      }
+      variant={ButtonVariant.SECONDARY}
+      withWrapper={false}
+    >
+      {isFixing ? t('fixingPricing') : t('fixAllPricing')}
+    </Button>
+  );
 
   return (
     <section
@@ -55,6 +78,7 @@ export default function ModelPricingAttentionPanel() {
           </AlertTitle>
           <AlertDescription>
             <p>{t('attentionRedHint')}</p>
+            <div className="mt-2">{fixAllButton}</div>
             <ul className="mt-2 list-disc space-y-1 pl-4">
               {(isRedExpanded ? red : red.slice(0, 5)).map((row) => (
                 <li key={row.id}>
@@ -87,6 +111,9 @@ export default function ModelPricingAttentionPanel() {
           </AlertTitle>
           <AlertDescription>
             <p>{t('attentionOrangeHint')}</p>
+            {red.length === 0 ? (
+              <div className="mt-2">{fixAllButton}</div>
+            ) : null}
             <ul className="mt-2 list-disc space-y-1 pl-4">
               {(isOrangeExpanded ? orange : orange.slice(0, 5)).map((row) => (
                 <li key={row.id}>

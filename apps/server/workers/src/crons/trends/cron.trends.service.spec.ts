@@ -87,14 +87,14 @@ describe('CronTrendsService', () => {
     service.onModuleInit();
   });
 
-  it('queues one immutable refresh graph per twelve-hour window', async () => {
+  it('queues one immutable refresh graph per daily window', async () => {
     await service.refreshGlobalTrends(new Date('2026-08-28T12:15:00.000Z'));
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.REFRESH,
         trigger: WorkflowExecutionTrigger.SCHEDULED,
       }),
-      'trends-refresh-41387',
+      'trends-refresh-20693',
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
@@ -104,7 +104,7 @@ describe('CronTrendsService', () => {
       expect.objectContaining({
         canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_REFRESH,
       }),
-      'trends-scoped-refresh-41387',
+      'trends-scoped-refresh-20693',
       {
         attempts: 3,
         delayMs: SCOPED_REFRESH_START_DELAY_MS,

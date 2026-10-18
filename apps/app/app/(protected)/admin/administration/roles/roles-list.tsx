@@ -1,6 +1,5 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { LazyModalRole } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IRole } from '@genfeedai/contracts/interfaces';
@@ -11,7 +10,7 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import { RolesService } from '@services/organization/roles.service';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -116,17 +115,12 @@ export default function RolesList() {
   };
 
   return (
-    <Container
-      label="Roles"
-      description="Manage user roles, permissions, and access control settings"
+    <AdminPageShell
+      title="Roles"
       icon={ShieldCheck}
-      refresh={
-        <ButtonRefresh
-          onClick={() => loadRoles(true)}
-          isRefreshing={isRefreshing}
-        />
-      }
-      right={
+      onRefresh={() => loadRoles(true)}
+      isRefreshing={isRefreshing}
+      primaryAction={
         <Button
           label={
             <>
@@ -148,6 +142,6 @@ export default function RolesList() {
       />
 
       <LazyModalRole role={selectedRole} onConfirm={() => loadRoles(true)} />
-    </Container>
+    </AdminPageShell>
   );
 }

@@ -10,7 +10,7 @@ import type {
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Megaphone } from 'lucide-react';
 import { useCallback, useEffect, useReducer } from 'react';
 
@@ -186,11 +186,10 @@ export default function AnnouncementsPage({
   const tweetOverLimit = tweetCharCount > TWEET_MAX_CHARS;
 
   return (
-    <Container
-      label="Announcements"
-      description="Broadcast changelogs, updates, and news to Discord and Twitter/X"
+    <AdminPageShell
+      title="Announcements"
       icon={Megaphone}
-      headerTabs={{
+      tabs={{
         activeTab,
         fullWidth: false,
         onTabChange: handleTabChange,
@@ -214,6 +213,6 @@ export default function AnnouncementsPage({
           announcements={announcements}
         />
       )}
-    </Container>
+    </AdminPageShell>
   );
 }

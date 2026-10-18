@@ -1,3 +1,4 @@
+import { TREND_REFRESH_WINDOW_MS } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import {
   buildScopedTrendsRefreshWorkflowDefinition,
@@ -32,7 +33,7 @@ import { ConfigService } from '@workers/config/config.service';
 import { TrendIngestionHealthService } from '@workers/services/trend-ingestion-health.service';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
-const REFRESH_WINDOW_MS = 12 * 60 * 60 * 1000;
+const REFRESH_WINDOW_MS = TREND_REFRESH_WINDOW_MS;
 
 @Injectable()
 export class CronTrendsService implements OnModuleInit {

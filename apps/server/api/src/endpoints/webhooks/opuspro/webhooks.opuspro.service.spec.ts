@@ -270,7 +270,7 @@ describe('OpusProWebhookService', () => {
       } as OpusProWebhookPayload;
 
       const error = new Error('DB write failed');
-      microservicesService.notifyWebhook.mockRejectedValue(error);
+      metadataService.findOne.mockRejectedValue(error);
 
       await expect(service.handleCallback(payload)).rejects.toThrow(
         'DB write failed',
@@ -280,6 +280,22 @@ describe('OpusProWebhookService', () => {
         expect.stringContaining('failed'),
         error,
       );
+    });
+
+    it('should keep processing when the notification call fails', async () => {
+      const payload: OpusProWebhookPayload = {
+        callback_id: 'cb_notify',
+        status: 'processing',
+      } as OpusProWebhookPayload;
+
+      microservicesService.notifyWebhook.mockRejectedValue(
+        new Error('Request failed with status code 404'),
+      );
+      metadataService.findOne.mockResolvedValue(null);
+
+      await expect(service.handleCallback(payload)).resolves.toBeUndefined();
+
+      expect(metadataService.findOne).toHaveBeenCalled();
     });
   });
 });

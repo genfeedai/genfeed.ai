@@ -158,4 +158,91 @@ describe('private operator pricing boundary', () => {
       expect(enqueue).not.toHaveBeenCalled();
     });
   });
+  describe('fix', () => {
+    const request = { context: { userId: 'operator-1' } } as never;
+
+    function buildController(result: Record<string, unknown>) {
+      const fixPricing = vi.fn().mockResolvedValue({
+        approved: [],
+        changed: [],
+        syncQueued: [],
+        unresolved: [],
+        ...result,
+      });
+      const enqueue = vi.fn().mockResolvedValue([]);
+      return {
+        controller: new AdminModelPricingController(
+          { fixPricing } as never,
+          { enqueue } as never,
+        ),
+        enqueue,
+        fixPricing,
+      };
+    }
+
+    it('fixes the named models as the authenticated operator', async () => {
+      const { controller, fixPricing } = buildController({
+        approved: [{ id: 'model-1', key: 'fal/one' }],
+      });
+
+      const response = await controller.fix(request, {
+        modelIds: ['model-1'],
+      });
+
+      expect(fixPricing).toHaveBeenCalledWith('operator-1', ['model-1']);
+      expect(response).toMatchObject({
+        approved: [{ id: 'model-1', key: 'fal/one' }],
+      });
+    });
+
+    it('fixes every model that needs it when none are named', async () => {
+      const { controller, fixPricing } = buildController({});
+
+      await controller.fix(request, undefined);
+
+      expect(fixPricing).toHaveBeenCalledWith('operator-1', undefined);
+    });
+
+    it('queues one provider price import per provider that has models without rates', async () => {
+      const { controller, enqueue } = buildController({
+        syncQueued: [
+          { id: 'a', key: 'fal/a', provider: 'fal' },
+          { id: 'b', key: 'fal/b', provider: 'fal' },
+          { id: 'c', key: 'replicate/c', provider: 'replicate' },
+        ],
+      });
+
+      await controller.fix(request, {});
+
+      expect(enqueue).toHaveBeenCalledWith(['fal', 'replicate']);
+    });
+
+    it('does not queue an import when every model was fixed or needs a hand-set price', async () => {
+      const { controller, enqueue } = buildController({
+        unresolved: [{ id: 'a', key: 'x/a', reason: 'No price' }],
+      });
+
+      await controller.fix(request, {});
+
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    it('refuses without an authenticated operator', async () => {
+      const { controller, fixPricing } = buildController({});
+
+      await expect(
+        controller.fix({ context: {} } as never, {}),
+      ).rejects.toThrow();
+      expect(fixPricing).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed model list', async () => {
+      const { controller, fixPricing } = buildController({});
+
+      await expect(
+        controller.fix(request, { modelIds: 'model-1' }),
+      ).rejects.toThrow('modelIds');
+      expect(fixPricing).not.toHaveBeenCalled();
+    });
+  });
 });

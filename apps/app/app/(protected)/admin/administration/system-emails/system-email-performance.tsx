@@ -2,7 +2,10 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { LIFECYCLE_SYSTEM_EMAILS } from '@genfeedai/contracts/constants';
-import type { IEmailPerformanceReport } from '@genfeedai/contracts/interfaces';
+import type {
+  IEmailPerformanceQuery,
+  IEmailPerformanceReport,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { logger } from '@services/core/logger.service';
@@ -11,7 +14,6 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import {
   Table,
   TableBody,
@@ -21,16 +23,11 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-const DAY_MS = 86_400_000;
 const TEMPLATE_NAMES = new Map(
   LIFECYCLE_SYSTEM_EMAILS.map((email) => [email.id as string, email.name]),
 );
-
-function dateInputValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 function rate(numerator: number, denominator: number): string {
   return denominator > 0
@@ -38,88 +35,48 @@ function rate(numerator: number, denominator: number): string {
     : '—';
 }
 
-export default function SystemEmailPerformance() {
+export default function SystemEmailPerformance({
+  query,
+}: {
+  query: IEmailPerformanceQuery;
+}) {
   const translate = useTranslations('pages.systemEmailPerformance');
-  const [from, setFrom] = useState(() =>
-    dateInputValue(new Date(Date.now() - 29 * DAY_MS)),
-  );
-  const [to, setTo] = useState(() => dateInputValue(new Date()));
-  const [query, setQuery] = useState(() => ({
-    from: `${from}T00:00:00.000Z`,
-    to: new Date(
-      new Date(`${to}T00:00:00.000Z`).getTime() + DAY_MS,
-    ).toISOString(),
-  }));
   const [report, setReport] = useState<IEmailPerformanceReport | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const getService = useAuthedService((token: string) =>
     AdminSystemEmailsService.getInstance(token),
   );
-  const duration = new Date(to).getTime() - new Date(from).getTime() + DAY_MS;
-  const validRange =
-    Number.isFinite(duration) && duration > 0 && duration <= 90 * DAY_MS;
+  const controllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
+  const loadReport = useCallback(async () => {
+    controllerRef.current?.abort();
     const controller = new AbortController();
-    async function loadReport() {
-      setState('loading');
-      try {
-        const service = await getService();
-        controller.signal.throwIfAborted();
-        const data = await service.getPerformance(query, controller.signal);
-        if (!controller.signal.aborted) {
-          setReport(data);
-          setState('ready');
-        }
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error('Failed to load system email performance', error);
-        setState('error');
+    controllerRef.current = controller;
+    setState('loading');
+    try {
+      const service = await getService();
+      controller.signal.throwIfAborted();
+      const data = await service.getPerformance(query, controller.signal);
+      if (!controller.signal.aborted) {
+        setReport(data);
+        setState('ready');
       }
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      logger.error('Failed to load system email performance', error);
+      setState('error');
     }
-    void loadReport();
-    return () => controller.abort();
   }, [getService, query]);
 
-  function applyRange() {
-    if (!validRange) return;
-    setQuery({
-      from: `${from}T00:00:00.000Z`,
-      to: new Date(
-        new Date(`${to}T00:00:00.000Z`).getTime() + DAY_MS,
-      ).toISOString(),
-    });
-  }
+  useEffect(() => {
+    void loadReport();
+    return () => controllerRef.current?.abort();
+  }, [loadReport]);
 
   return (
     <WorkspaceSurface title={translate('title')} tone="muted">
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">{translate('intro')}</p>
-        <div className="flex flex-wrap items-end gap-3">
-          <Input
-            label={translate('from')}
-            type="date"
-            value={from}
-            onChange={(event) => setFrom(event.target.value)}
-          />
-          <Input
-            label={translate('through')}
-            type="date"
-            value={to}
-            onChange={(event) => setTo(event.target.value)}
-          />
-          <Button
-            label={translate('applyDates')}
-            variant={ButtonVariant.SECONDARY}
-            isDisabled={!validRange}
-            onClick={applyRange}
-          />
-        </div>
-        {!validRange && (
-          <p role="alert" className="text-sm text-destructive">
-            {translate('invalidRange')}
-          </p>
-        )}
         {state === 'loading' ? (
           <div role="status" aria-label={translate('loading')}>
             <SkeletonCard showImage={false} />
@@ -130,7 +87,7 @@ export default function SystemEmailPerformance() {
             <Button
               label={translate('retry')}
               variant={ButtonVariant.SECONDARY}
-              onClick={() => setQuery((value) => ({ ...value }))}
+              onClick={() => void loadReport()}
             />
           </Alert>
         ) : !report || report.rows.length === 0 ? (
@@ -141,7 +98,9 @@ export default function SystemEmailPerformance() {
               {translate('queuedRange', {
                 asOf: new Date(report.asOf).toLocaleString('en-US'),
                 from: report.from.slice(0, 10),
-                to: dateInputValue(new Date(new Date(report.to).getTime() - 1)),
+                to: new Date(new Date(report.to).getTime() - 1)
+                  .toISOString()
+                  .slice(0, 10),
               })}
             </p>
             <div className="overflow-x-auto">
