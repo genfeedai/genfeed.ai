@@ -73,17 +73,25 @@ export class HeygenWebhookService {
       const { event_data, event_type } = body;
       const callbackId = this.getCallbackId(body);
 
-      await this.microservicesService.notifyWebhook(
-        'heygen',
-        event_type || 'unknown',
-        {
-          ...body,
-          metadata: {
-            callbackId,
-            timestamp: new Date().toISOString(),
+      // A notification outage must never block finalizing the render.
+      try {
+        await this.microservicesService.notifyWebhook(
+          'heygen',
+          event_type || 'unknown',
+          {
+            ...body,
+            metadata: {
+              callbackId,
+              timestamp: new Date().toISOString(),
+            },
           },
-        },
-      );
+        );
+      } catch (error: unknown) {
+        this.loggerService.warn(`${url} notification failed, continuing`, {
+          callbackId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
       if (!callbackId) {
         this.loggerService.warn(`${url} no callback_id provided`);

@@ -499,7 +499,7 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
 
       await firstValueFrom(
         this.httpService.post(
-          `${notificationsUrl}/webhooks/notify`,
+          `${notificationsUrl}/v1/webhooks/notify`,
           notification,
           {
             timeout: 5000,
