@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   GlobalModalsProvider,
@@ -6,6 +7,10 @@ import {
 } from './global-modals.provider';
 
 vi.mock('@genfeedai/auth-client/react', () => ({}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => ({ user: null }),
+}));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -40,6 +45,7 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalMetadata: () => null,
   LazyModalPostBatch: () => null,
   LazyModalPostRemix: () => null,
+  LazyModalPostRepurpose: () => null,
   LazyModalPrompt: () => null,
   LazyModalUpload: () => null,
   LazyPostMetadataOverlay: () => null,
@@ -117,6 +123,27 @@ describe('GlobalModalsProvider', () => {
       </GlobalModalsProvider>,
     );
     expect(container).toBeTruthy();
+  });
+
+  it('applies the host renderer only while the selected modal is open', async () => {
+    const renderModal = vi.fn((kind: string, child: ReactNode) => (
+      <div data-testid={`host-modal-${kind}`}>{child}</div>
+    ));
+    render(
+      <GlobalModalsProvider renderModal={renderModal}>
+        <ConfirmHarness />
+      </GlobalModalsProvider>,
+    );
+
+    expect(renderModal).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Open confirm' }));
+    expect(await screen.findByTestId('host-modal-confirm')).toBeInTheDocument();
+    expect(renderModal.mock.calls.map(([kind]) => kind)).toEqual(
+      expect.arrayContaining(['confirm']),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close confirm' }));
+    expect(screen.queryByTestId('host-modal-confirm')).not.toBeInTheDocument();
   });
 
   it('cleans stale body interaction locks after the last global modal closes', () => {

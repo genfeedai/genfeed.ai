@@ -15,6 +15,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { PresignedUploadDto } from '@api/collections/images/dto/presigned-upload.dto';
 import { UploadImageDto } from '@api/collections/images/dto/upload-image.dto';
 import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
+import { downloadNftImage } from '@api/collections/images/services/nft-image-download.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -49,7 +50,6 @@ import { ValidationConfigService } from '@libs/config/services/validation.config
 import { LoggerService } from '@libs/logger/logger.service';
 import { resolveContainedPath } from '@libs/security';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   Body,
@@ -65,7 +65,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { diskStorage } from 'multer';
-import { firstValueFrom } from 'rxjs';
 
 const LARGE_MEDIA_BYTES = 1 * 1024 * 1024;
 const IMAGE_UPLOAD_TMP_ROOT = path.join(tmpdir(), 'genfeed-image-uploads');
@@ -115,21 +114,6 @@ function unlinkImageUploadTemp(filePath: string | undefined): void {
 @AutoSwagger()
 @Controller('images')
 export class ImagesUploadsController {
-  private normalizeContentTypeHeader(value: unknown, fallback: string): string {
-    if (typeof value === 'string') {
-      return value;
-    }
-
-    if (Array.isArray(value)) {
-      return (
-        value.find((entry): entry is string => typeof entry === 'string') ??
-        fallback
-      );
-    }
-
-    return fallback;
-  }
-
   private async transferUploadedMedia(params: {
     contentType: string;
     file: Express.Multer.File;
@@ -194,7 +178,6 @@ export class ImagesUploadsController {
 
   constructor(
     private readonly filesClientService: FilesClientService,
-    private readonly httpService: HttpService,
     readonly _loggerService: LoggerService,
     private readonly presignedUploadService: PresignedUploadService,
     private readonly sharedService: SharedService,
@@ -321,17 +304,10 @@ export class ImagesUploadsController {
     const address = uploadNftDto.address;
 
     const nft = await this.solanaService.getNft(address);
-    const res = await firstValueFrom(
-      this.httpService.get(nft.image, { responseType: 'arraybuffer' }),
+    const { contentType, data } = await downloadNftImage(
+      nft.image,
+      this.validationConfigService.getMaxFileSize(),
     );
-    const contentType = this.normalizeContentTypeHeader(
-      res.headers['content-type'],
-      'image/jpeg',
-    );
-
-    if (!contentType.startsWith('image/')) {
-      throw new BadRequestException('NFT is not an image');
-    }
 
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
@@ -350,7 +326,7 @@ export class ImagesUploadsController {
       'images',
       {
         contentType,
-        data: Buffer.from(res.data),
+        data,
         type: FileInputType.BUFFER,
       },
     );

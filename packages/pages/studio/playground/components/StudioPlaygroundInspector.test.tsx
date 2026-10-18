@@ -166,6 +166,158 @@ describe('StudioPlaygroundInspector', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
+  it.each(['image', 'image-edit'] as const)(
+    'prepares each %s continuation from the selected source without generating',
+    async (type) => {
+      const user = userEvent.setup();
+      const ingredient = {
+        id: 'image-source',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      const job = {
+        ...recipeJob,
+        id: 'image-job',
+        ingredientId: ingredient.id,
+        ingredient,
+        type,
+      };
+      const onAnimate = vi.fn();
+      const onEdit = vi.fn();
+      const onRemix = vi.fn();
+      const onVary = vi.fn();
+      const onUpscale = vi.fn();
+      const transformActions = {
+        getAvailability: vi.fn(() => ({ isAvailable: true })),
+        isExtending: false,
+        isUpscaling: false,
+        onExtend: vi.fn(),
+        onUpscale,
+      };
+      render(
+        <StudioPlaygroundInspector
+          job={job}
+          onAnimate={onAnimate}
+          onEdit={onEdit}
+          onRemix={onRemix}
+          onVary={onVary}
+          onUseInPost={vi.fn()}
+          onSelect={vi.fn()}
+          transformActions={transformActions}
+          runJobs={[job]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'Edit image' }));
+      await user.click(
+        screen.getByRole('button', { name: 'Create variation' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Animate' }));
+      await user.click(screen.getByRole('button', { name: 'Upscale' }));
+      expect(onEdit).toHaveBeenCalledWith(job);
+      expect(onRemix).toHaveBeenCalledWith(job);
+      expect(onAnimate).toHaveBeenCalledWith(ingredient);
+      expect(onUpscale).toHaveBeenCalledWith(ingredient);
+      expect(onVary).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('button', { name: 'Generate again' }),
+      ).toBeVisible();
+    },
+  );
+
+  it('routes video extension, upscale and Editor through the existing source-bound actions', async () => {
+    const user = userEvent.setup();
+    const ingredient = {
+      id: 'video-source',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      category: IngredientCategory.VIDEO,
+      status: IngredientStatus.GENERATED,
+      cdnUrl: 'https://cdn.example/source.mp4',
+    } as IIngredient;
+    const job = {
+      ...recipeJob,
+      id: 'video-job',
+      ingredientId: ingredient.id,
+      ingredient,
+      type: 'video' as const,
+    };
+    const onExtend = vi.fn();
+    const onUpscale = vi.fn();
+    const onOpenInEditor = vi.fn();
+    const transformActions = {
+      getAvailability: vi.fn(() => ({ isAvailable: true })),
+      isExtending: false,
+      isUpscaling: false,
+      onExtend,
+      onUpscale,
+    };
+    render(
+      <StudioPlaygroundInspector
+        job={job}
+        onRemix={vi.fn()}
+        onVary={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onOpenInEditor={onOpenInEditor}
+        transformActions={transformActions}
+        runJobs={[job]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Extend video' }));
+    await user.click(screen.getByRole('button', { name: 'Upscale' }));
+    await user.click(screen.getByRole('button', { name: 'Open in editor' }));
+    expect(onExtend).toHaveBeenCalledWith(ingredient);
+    expect(onUpscale).toHaveBeenCalledWith(ingredient);
+    expect(onOpenInEditor).toHaveBeenCalledWith(ingredient);
+    expect(
+      screen.queryByRole('button', { name: 'Animate' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('explains an unavailable transform quote without allowing preparation', () => {
+    const ingredient = {
+      id: 'image-source',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      category: IngredientCategory.IMAGE,
+      status: IngredientStatus.GENERATED,
+      cdnUrl: 'https://cdn.example/source.png',
+    } as IIngredient;
+    const job = { ...recipeJob, ingredientId: ingredient.id, ingredient };
+    const onUpscale = vi.fn();
+    const transformActions = {
+      getAvailability: vi.fn(() => ({
+        isAvailable: false,
+        reason: 'priceUnavailable' as const,
+      })),
+      isExtending: false,
+      isUpscaling: false,
+      onExtend: vi.fn(),
+      onUpscale,
+    };
+    render(
+      <StudioPlaygroundInspector
+        job={job}
+        onRemix={vi.fn()}
+        onVary={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        transformActions={transformActions}
+        runJobs={[job]}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Upscale' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Upscale' }),
+    ).toHaveAccessibleDescription(
+      'A current price is unavailable. Refresh models before continuing.',
+    );
+    expect(onUpscale).not.toHaveBeenCalled();
+  });
+
   it('opens the selected asset in the focused viewer through the shared preview control', async () => {
     const onOpenPreview = vi.fn();
     render(
@@ -340,7 +492,9 @@ describe('StudioPlaygroundInspector', () => {
       ).toBeEnabled(),
     );
     expect(screen.queryByRole('img', { name: 'Image preview' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Vary' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Generate again' }),
+    ).toBeEnabled();
     expect(onPreviewRecovered).not.toHaveBeenCalled();
   });
 
@@ -609,7 +763,9 @@ describe('StudioPlaygroundInspector', () => {
     expect(facts).toHaveTextContent('BrandNorthstar');
     expect(facts).toHaveTextContent('Created');
     // Video references do not survive the Auto model, so videos get no Remix.
-    expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Create variation' }),
+    ).toBeNull();
     expect(facts.textContent ?? '').not.toMatch(/credit/i);
   });
 
@@ -646,7 +802,9 @@ describe('StudioPlaygroundInspector', () => {
     );
     expect(onUseInPost).toHaveBeenCalledWith(ingredient);
 
-    fireEvent.click(within(actions).getByRole('button', { name: 'Remix' }));
+    fireEvent.click(
+      within(actions).getByRole('button', { name: 'Create variation' }),
+    );
     expect(onRemix).toHaveBeenCalledWith(job);
 
     fireEvent.click(
@@ -706,7 +864,7 @@ describe('StudioPlaygroundInspector', () => {
     }
   });
 
-  it('offers only Vary while the asset has no persisted ingredient', () => {
+  it('offers only Generate again while the asset has no persisted ingredient', () => {
     render(
       <StudioPlaygroundInspector
         job={recipeJob}
@@ -723,7 +881,7 @@ describe('StudioPlaygroundInspector', () => {
       within(actions)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Vary']);
+    ).toEqual(['Generate again']);
   });
 
   it('carries use as reference, make clips and source for a finished video', () => {
@@ -901,7 +1059,7 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
     expect(
-      screen.queryByRole('button', { name: 'Vary' }),
+      screen.queryByRole('button', { name: 'Generate again' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(
@@ -923,7 +1081,7 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate again' }));
     expect(onVary).toHaveBeenCalledWith(recipeJob);
   });
 

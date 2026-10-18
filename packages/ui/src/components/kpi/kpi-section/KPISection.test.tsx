@@ -3,7 +3,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { Sparkles } from 'lucide-react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it } from 'vitest';
-import pages from '../../../../../../apps/app/messages/en/pages.json';
+import pages from '../../../../../../apps/app/messages/en/pages';
 
 describe('KPISection', () => {
   const items = [

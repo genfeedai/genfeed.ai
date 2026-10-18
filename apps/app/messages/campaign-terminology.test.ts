@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import agent from './en/agent.json';
 import common from './en/common.json';
-import pages from './en/pages.json';
+import pages from './en/pages';
 
 const CAMPAIGN_WORD = /\bcampaigns?\b/i;
 

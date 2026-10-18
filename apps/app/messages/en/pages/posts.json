@@ -1,0 +1,234 @@
+{
+  "board": {
+    "bulk": {
+      "clearSelection": "Clear selection",
+      "delete": "Delete",
+      "scheduleNextSlot": "Schedule at next slot",
+      "scheduleNextSlotError": "Couldn't schedule that release at the next available slot",
+      "selectedCount": "{count, plural, one {# selected} other {# selected}}"
+    },
+    "columns": {
+      "draft": "Draft",
+      "failed": "Failed",
+      "published": "Published",
+      "review": "Awaiting review",
+      "reviewLink": "Open review queue",
+      "scheduled": "Scheduled"
+    },
+    "dropBlocked": "That release can't be moved right now",
+    "dropMissingSchedule": "That release has no scheduled date to move to",
+    "dropRefused": "That column can't be changed by dragging a card",
+    "loadError": "We couldn't load the release board",
+    "refresh": "Refresh"
+  },
+  "composer": {
+    "account": "Publishing account",
+    "artifactLabel": "Post",
+    "created": "Post created",
+    "description": "Write or generate the post, then preview it before you save.",
+    "failed": "The post could not be created.",
+    "noAccount": "No account yet",
+    "placeholder": "Write the post",
+    "platform": "Platform",
+    "post": "Post",
+    "save": "Create post",
+    "scheduledDate": "Publish time",
+    "title": "New post"
+  },
+  "desk": {
+    "loadErrorBody": "The content desk could not reach posts, articles, or newsletters. Try again, or return to Posts and open the item from the list.",
+    "loadErrorTitle": "Could not load content",
+    "loadingTitle": "Loading…",
+    "missingBody": "No post, article, or newsletter matches this id. Use the breadcrumb to return to Posts and open the item again.",
+    "missingTitle": "Content not found"
+  },
+  "detail": {
+    "header": {
+      "askAgent": "Ask Agent",
+      "delete": "Delete",
+      "edit": "Edit",
+      "expandingToThread": "Expanding…",
+      "expandToThread": "Expand to Thread",
+      "performance": "Performance",
+      "preview": "Preview",
+      "publishing": "Publishing…",
+      "publishNow": "Publish now",
+      "remix": "Remix",
+      "repurpose": "Repurpose",
+      "schedule": "Schedule",
+      "scheduling": "Scheduling…",
+      "threadLengthOption": "{count} tweets",
+      "threadLengthPrompt": "Select thread length",
+      "viewLivePost": "View live post"
+    },
+    "loadingSubtitle": "Loading post…",
+    "needsYou": {
+      "failedAction": "Retry publish",
+      "failedDescription": "This post failed to publish.",
+      "overdueAction": "Publish now",
+      "overdueDescription": "The scheduled time has passed.",
+      "pendingReviewAction": "Review",
+      "pendingReviewDescription": "Awaiting review before it can publish.",
+      "title": "Needs you"
+    },
+    "notFound": "Post not found",
+    "title": "Post detail",
+    "tweetFieldLabel": "Post",
+    "composerLabel": "Post composer",
+    "contentLabel": "Content",
+    "choosePlatform": "Choose a platform to preview this post.",
+    "threadFooter": {
+      "ariaLabel": "Thread end",
+      "replyTab": "Reply",
+      "grokTab": "@grok",
+      "grokTabOn": "@grok · On",
+      "replyHint": "Replies post in order after your first post.",
+      "addReply": "Add reply",
+      "grokFeedbackLabel": "End the thread by asking @grok for feedback",
+      "grokQuestionAria": "Question for @grok",
+      "grokHint": "Posted as the last reply of the thread.",
+      "addFirstComment": "Add first comment",
+      "firstComment": "First comment",
+      "firstCommentHint": "Posted right after the post",
+      "remove": "Remove",
+      "firstCommentPlaceholder": "Add context, a link or a question…"
+    }
+  },
+  "list": {
+    "captured": {
+      "audience": {
+        "private": "Private",
+        "public": "Public",
+        "unavailable": "Audience unavailable",
+        "unlisted": "Unlisted"
+      },
+      "columns": {
+        "audience": "Audience",
+        "content": "Content",
+        "published": "Published",
+        "source": "Source"
+      },
+      "description": "Read-only records of publications observed by the browser extension. They cannot be scheduled, rescheduled or retried.",
+      "empty": {
+        "description": "Publications the browser extension records will appear here.",
+        "label": "No captured publications"
+      },
+      "loadError": "Captured publications could not be loaded. Refresh to try again.",
+      "openAnalytics": "Open analytics for {title}",
+      "sourceBadge": "Extension",
+      "tableLabel": "Captured from the extension",
+      "untitled": "Captured publication"
+    },
+    "channelCount": "{count, plural, one {# channel} other {# channels}}",
+    "empty": {
+      "description": "Create and schedule posts to see them here.",
+      "label": "No posts found"
+    },
+    "generateVariationsAria": "Generate variations from {platform} post",
+    "loadError": "Posts could not be loaded. Refresh to try again.",
+    "noCopy": "No post copy yet.",
+    "postCount": "{count, plural, one {# post} other {# posts}}",
+    "rail": {
+      "accounts": {
+        "ariaToggle": "Toggle {account}",
+        "label": "Connected accounts",
+        "needsReconnect": "Reconnect needed"
+      },
+      "keys": {
+        "legend": "Keyboard shortcuts",
+        "next": "Next / previous",
+        "open": "Open",
+        "previous": "Previous",
+        "refresh": "Refresh",
+        "enterKey": "Enter",
+        "jKey": "j",
+        "kKey": "k",
+        "rKey": "r"
+      },
+      "nextAt": "Next at {time}",
+      "noMedia": "No media",
+      "open": "Open post",
+      "openVariations": "Open post variations",
+      "outcome": {
+        "failed": "{count, plural, one {# failed} other {# failed}}",
+        "pending": "{count, plural, one {# pending} other {# pending}}",
+        "published": "{count, plural, one {# published} other {# published}}"
+      },
+      "overflow": "+{count}",
+      "segments": {
+        "all": "All",
+        "draft": "Draft",
+        "failed": "Failed",
+        "published": "Published",
+        "publishing": "Publishing",
+        "scheduled": "Scheduled"
+      }
+    },
+    "toolbar": {
+      "failed": "Failed",
+      "notPosted": "Not posted",
+      "pending": "Pending",
+      "posted": "Posted",
+      "publishing": "Publishing",
+      "publishingStateAria": "Publishing state",
+      "searchPlaceholder": "Search posts",
+      "sortAria": "Sort",
+      "sourceAll": "All sources",
+      "sourceAria": "Source",
+      "sourceExtension": "Extension"
+    },
+    "unscheduled": "Unscheduled",
+    "untitled": "Untitled post",
+    "views": {
+      "all": {
+        "description": "Posts across every publishing state and channel target.",
+        "title": "All posts"
+      },
+      "failed": {
+        "description": "Posts with at least one failed channel target.",
+        "title": "Failed"
+      },
+      "notPosted": {
+        "description": "Drafts, scheduled posts, and publishing work in progress.",
+        "title": "Not posted"
+      },
+      "posted": {
+        "description": "Posts already live on at least one destination platform.",
+        "title": "Posted"
+      }
+    },
+    "viewToggle": {
+      "approvals": "Approvals",
+      "board": "Board",
+      "grid": "Grid",
+      "list": "List"
+    },
+    "actions": "Actions",
+    "collection": {
+      "all": "All",
+      "needsYou": "Needs you",
+      "open": "Open",
+      "retry": "Retry",
+      "retryFailed": "Could not retry this post. Please try again.",
+      "evaluate": "Evaluate",
+      "evaluationScore": "Evaluation: {score}",
+      "openTarget": "Open {platform} post",
+      "variations": "Remix {platform} post",
+      "setStatus": "Set status to {status}",
+      "statusFailed": "Could not update the post status."
+    }
+  },
+  "grid": {
+    "emptyDescription": "Connect an account in Settings to see per-account lanes.",
+    "emptyLabel": "No accounts to show",
+    "emptyLane": "Nothing on this account yet",
+    "expiredToken": "This account needs to be reconnected. Scheduled targets on it will fail.",
+    "failed": "Failed",
+    "gapLabel": "Empty slot",
+    "hold": "On hold",
+    "queued": "{count, plural, one {# queued} other {# queued}}",
+    "reconnect": "Reconnect",
+    "review": "Review",
+    "untitled": "Untitled release"
+  }
+}

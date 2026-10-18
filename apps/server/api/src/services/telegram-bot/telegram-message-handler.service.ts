@@ -13,6 +13,11 @@ import type {
   WorkflowInput,
 } from '@api/services/telegram-bot/telegram-bot.types';
 import type { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
+import {
+  downloadTelegramMedia,
+  TelegramMediaDownloadError,
+  toTelegramAbortSignal,
+} from '@api/services/telegram-bot/telegram-media-download.util';
 import { FileInputType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
@@ -356,7 +361,7 @@ export class TelegramMessageHandlerService {
    * Download a Telegram photo and re-host it to our own storage, returning a
    * token-free public URL. The Telegram file URL embeds the long-lived bot
    * token (`bot<token>`), so it must never be persisted in conversation state,
-   * forwarded to Replicate, or logged — it stays local to this method.
+   * forwarded to Replicate, or logged — it stays inside the download helper.
    */
   private async downloadPhotoFromTelegram(
     ctx: Context,
@@ -368,17 +373,12 @@ export class TelegramMessageHandlerService {
       throw new Error('File storage service is unavailable');
     }
 
-    const file = await ctx.api.getFile(fileId);
-    const telegramFileUrl = `https://api.telegram.org/file/bot${this.botToken}/${file.file_path}`;
-
-    const response = await fetch(telegramFileUrl);
-    if (!response.ok) {
-      throw new Error(`Telegram file download failed: ${response.status}`);
-    }
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-
-    const ext = path.extname(file.file_path || '') || '.jpg';
+    const download = await downloadTelegramMedia(this.botToken, (signal) =>
+      ctx.api.getFile(fileId, toTelegramAbortSignal(signal)),
+    );
+    const buffer = download.data;
+    const contentType = download.contentType || 'image/jpeg';
+    const ext = path.extname(download.filePath) || '.jpg';
     const key = `telegram-uploads/${chatId}-${nodeId}-${Date.now()}${ext}`;
 
     const metadata = await this.filesClientService.uploadToS3(key, 'images', {
@@ -406,30 +406,24 @@ export class TelegramMessageHandlerService {
       throw new Error('File storage service is unavailable');
     }
 
-    const file = await ctx.api.getFile(payload.fileId);
-
-    // Telegram omits file_path for files larger than the 20 MB Bot API limit.
-    if (!file.file_path) {
-      await ctx.reply(
-        '❌ This file is too large for the Telegram bot to download (limit: 20 MB). Please compress it or use a smaller file.',
-      );
-      throw new Error('Telegram file too large: file_path not returned by API');
-    }
-
-    const telegramFileUrl = `https://api.telegram.org/file/bot${this.botToken}/${file.file_path}`;
-
-    const response = await fetch(telegramFileUrl);
-    if (!response.ok) {
-      throw new Error(`Telegram file download failed: ${response.status}`);
-    }
-
-    const buffer = Buffer.from(await response.arrayBuffer());
+    const download = await downloadTelegramMedia(this.botToken, (signal) =>
+      ctx.api.getFile(payload.fileId, toTelegramAbortSignal(signal)),
+    ).catch(async (error: unknown) => {
+      if (
+        error instanceof TelegramMediaDownloadError &&
+        (error.kind === 'unavailable' || error.kind === 'too-large')
+      ) {
+        await ctx.reply(
+          '❌ This file is too large for the Telegram bot to download (limit: 20 MB). Please compress it or use a smaller file.',
+        );
+      }
+      throw error;
+    });
+    const buffer = download.data;
     const contentType =
-      response.headers.get('content-type') ||
-      payload.mimeType ||
-      payload.defaultContentType;
+      download.contentType || payload.mimeType || payload.defaultContentType;
     const ext =
-      path.extname(file.file_path || '') ||
+      path.extname(download.filePath) ||
       path.extname(payload.fileName || '') ||
       payload.fallbackExtension;
     const key = `telegram-uploads/${chatId}-${nodeId}-${Date.now()}${ext}`;

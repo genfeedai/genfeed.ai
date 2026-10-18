@@ -9,12 +9,14 @@ import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfac
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { STUDIO_ESTIMATE_DEBOUNCE_MS } from '@pages/studio/playground/hooks/useStudioGenerationEstimate';
+import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { HeyGenService } from '@services/ingredients/heygen.service';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface AvatarEstimateRecord {
   fingerprint: string;
+  ownerEpoch: number;
   quote: AvatarGenerationQuote | null;
 }
 
@@ -30,28 +32,48 @@ export function useStudioAvatarEstimate(
   const getHeyGenService = useAuthedService((token: string) =>
     HeyGenService.getInstance(token),
   );
-  const { orgId, userId } = useAuthIdentity();
+  const { orgId, userId, sessionId } = useAuthIdentity();
   const [record, setRecord] = useState<AvatarEstimateRecord | null>(null);
   // The quote is org-funded (BYOK or platform), so the scope is part of it.
   const fingerprint = request
-    ? JSON.stringify([userId ?? null, orgId ?? null, request])
+    ? JSON.stringify([
+        userId ?? null,
+        orgId ?? null,
+        sessionId ?? null,
+        EnvironmentService.apiEndpoint,
+        request,
+      ])
     : null;
+  const ownerRef = useRef({ fingerprint, epoch: 0 });
+  if (ownerRef.current.fingerprint !== fingerprint)
+    ownerRef.current = { fingerprint, epoch: ownerRef.current.epoch + 1 };
+  const owner = ownerRef.current;
 
   useEffect(() => {
     if (!fingerprint) return;
-    const [, , body]: [unknown, unknown, HeyGenAvatarVideoRequest] =
-      JSON.parse(fingerprint);
+    const [, , , , body]: [
+      unknown,
+      unknown,
+      unknown,
+      unknown,
+      HeyGenAvatarVideoRequest,
+    ] = JSON.parse(fingerprint);
     const controller = new AbortController();
+    const canApply = () =>
+      !controller.signal.aborted && ownerRef.current === owner;
     const timer = setTimeout(() => {
       void (async () => {
         try {
+          if (!canApply()) return;
           const service = await getHeyGenService();
+          if (!canApply()) return;
           const quote = await service.quote(body, controller.signal);
-          if (!controller.signal.aborted) setRecord({ fingerprint, quote });
+          if (canApply())
+            setRecord({ fingerprint, ownerEpoch: owner.epoch, quote });
         } catch (error: unknown) {
-          if (controller.signal.aborted) return;
+          if (!canApply()) return;
           logger.error('Studio avatar estimate failed', error);
-          setRecord({ fingerprint, quote: null });
+          setRecord({ fingerprint, ownerEpoch: owner.epoch, quote: null });
         }
       })();
     }, STUDIO_ESTIMATE_DEBOUNCE_MS);
@@ -59,7 +81,7 @@ export function useStudioAvatarEstimate(
       clearTimeout(timer);
       controller.abort();
     };
-  }, [fingerprint, getHeyGenService]);
+  }, [fingerprint, getHeyGenService, owner]);
 
   if (!fingerprint)
     return {
@@ -68,7 +90,7 @@ export function useStudioAvatarEstimate(
       unavailableReason:
         AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
     };
-  if (record?.fingerprint !== fingerprint)
+  if (record?.fingerprint !== fingerprint || record.ownerEpoch !== owner.epoch)
     return { credits: null, status: 'loading' };
   if (!record.quote)
     return {

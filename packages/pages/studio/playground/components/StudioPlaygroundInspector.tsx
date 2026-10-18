@@ -10,6 +10,7 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
+import type { IngredientContinuationOperation } from '@genfeedai/props/content/masonry.props';
 import type { StudioPlaygroundInspectorProps } from '@genfeedai/props/studio/studio-playground.props';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -47,7 +48,6 @@ import {
   RotateCcw,
   Scissors,
   Send,
-  Shuffle,
   Sparkles,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -59,6 +59,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -84,6 +85,9 @@ export default function StudioPlaygroundInspector({
   onPreviewRecovered,
   onRemix,
   onEdit,
+  onAnimate,
+  onOpenInEditor,
+  transformActions,
   onSelect,
   onUseAsReference,
   onUseInPost,
@@ -93,6 +97,10 @@ export default function StudioPlaygroundInspector({
   runJobs,
 }: StudioPlaygroundInspectorProps): ReactElement {
   const translate = useTranslations('pages.studioPlayground');
+  const availabilityId = useId();
+  const translateAction = useTranslations(
+    'common.videoCreativeActions.inspector',
+  );
   const downloadIngredient = useIngredientDownloadHandler();
   const { href, orgSlug } = useOrgUrl();
   const { push } = useRouter();
@@ -597,6 +605,44 @@ export default function StudioPlaygroundInspector({
     </div>
   );
 
+  const renderContinuationAction = (
+    operation: IngredientContinuationOperation,
+    label: string,
+    onPrepare: (source: IIngredient) => void | Promise<void>,
+  ) => {
+    if (!ingredient) return null;
+    const availability = transformActions?.getAvailability(
+      ingredient,
+      operation,
+    ) ?? { isAvailable: true };
+    const reason =
+      !availability.isAvailable && availability.reason
+        ? translateAction(`availability.${availability.reason}`)
+        : undefined;
+    const descriptionId = `${availabilityId}-${operation}`;
+    return (
+      <div className="flex min-w-0 flex-col gap-1">
+        <Button
+          className="w-full"
+          label={label}
+          onClick={() => {
+            void onPrepare(ingredient);
+          }}
+          isDisabled={!availability.isAvailable}
+          aria-describedby={reason ? descriptionId : undefined}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          withWrapper={false}
+        />
+        {reason ? (
+          <p className="text-2xs text-muted-foreground" id={descriptionId}>
+            {reason}
+          </p>
+        ) : null}
+      </div>
+    );
+  };
+
   const actions = isReady ? (
     <div
       aria-label={translate('inspector.actions')}
@@ -606,35 +652,58 @@ export default function StudioPlaygroundInspector({
       <Button
         className="w-full"
         icon={<Sparkles className="size-3.5" />}
-        label={translate('inspector.vary')}
+        label={translateAction('generateAgain')}
         onClick={() => onVary(continuationJob)}
         size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
       />
-      {ingredient &&
-      (job.type === 'image' || job.type === 'image-edit') &&
-      onEdit ? (
-        <Button
-          className="w-full"
-          label={translate('editImage.label')}
-          onClick={() => onEdit(job)}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        />
+      {ingredient && (job.type === 'image' || job.type === 'image-edit') ? (
+        <>
+          {onEdit
+            ? renderContinuationAction(
+                'edit',
+                translate('editImage.label'),
+                () => onEdit(job),
+              )
+            : null}
+          {renderContinuationAction(
+            'variation',
+            translateAction('createVariation'),
+            () => onRemix(job),
+          )}
+          {onAnimate
+            ? renderContinuationAction(
+                'animate',
+                translateAction('animate'),
+                onAnimate,
+              )
+            : null}
+        </>
       ) : null}
-      {ingredient && job.type === 'image' ? (
-        <Button
-          className="w-full"
-          icon={<Shuffle className="size-3.5" />}
-          label={translate('inspector.remix')}
-          onClick={() => onRemix(job)}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        />
+      {ingredient && transformActions ? (
+        <>
+          {renderContinuationAction(
+            'upscale',
+            translateAction('upscale'),
+            transformActions.onUpscale,
+          )}
+          {job.type === 'video'
+            ? renderContinuationAction(
+                'extend',
+                translateAction('extend'),
+                transformActions.onExtend,
+              )
+            : null}
+        </>
       ) : null}
+      {ingredient && job.type === 'video' && onOpenInEditor
+        ? renderContinuationAction(
+            'editor',
+            translateAction('editor'),
+            onOpenInEditor,
+          )
+        : null}
       {onUseAsReference &&
       isUseAsReferenceEnabled !== false &&
       (job.type === 'image' ||
