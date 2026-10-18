@@ -328,6 +328,8 @@ export class AgentStrategyAutopilotPlanningService {
     strategy: AgentStrategyDocument,
     opportunities: AgentStrategyOpportunityDocument[],
     pacing: BudgetPacingState,
+    /** Cadence runs price and dispatch video through their draft generator. */
+    isVideoDispatchable = false,
   ): AgentStrategyOpportunityDocument[] {
     const selected: AgentStrategyOpportunityDocument[] = [];
     let dailyRemaining = pacing.remainingDailyBudget;
@@ -379,8 +381,9 @@ export class AgentStrategyAutopilotPlanningService {
       }
 
       if (
-        strategy.agentType === 'video_creator' ||
-        opportunity.formatCandidates.includes('video')
+        !isVideoDispatchable &&
+        (strategy.agentType === 'video_creator' ||
+          opportunity.formatCandidates.includes('video'))
       ) {
         continue;
       }

@@ -154,7 +154,12 @@ export class AgentStrategyAutopilotService {
       opportunities.length,
     );
     const selected = this.planningService
-      .selectOpportunities(strategy, opportunities, pacing)
+      .selectOpportunities(
+        strategy,
+        opportunities,
+        pacing,
+        cadencePolicy.separate,
+      )
       .slice(0, remainingSlots);
 
     if (selected.length === 0) {

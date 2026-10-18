@@ -11,20 +11,29 @@ import {
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { replacePostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   currentWorkflowAccountingScope,
   runWithWorkflowAccounting,
 } from '@api/collections/workflow-executions/services/workflow-accounting.context';
+import {
+  AgentCadenceMediaGenerationService,
+  type CadenceMediaKind,
+  type CadenceMediaQuote,
+  type CadenceMediaResult,
+} from '@api/services/agent-orchestrator/agent-cadence-media-generation.service';
 import type {
   AgentTurnWorkflowResult,
   PreparedAgentTurnState,
 } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { buildCadenceMediaPrompt } from '@api/services/agent-orchestrator/utils/agent-cadence-media-prompt.util';
 import {
   ActivitySource,
   AgentStrategyRunStatus,
   ContentIntelligencePlatform,
+  PersistedReviewDecision,
   PostCategory,
   parsePlatform,
   TargetExecutionState,
@@ -42,6 +51,7 @@ export class AgentCadenceExecutionService {
     private readonly posts: PostsService,
     private readonly optimizers: OptimizersService,
     private readonly credits: CreditsUtilsService,
+    private readonly media: AgentCadenceMediaGenerationService,
   ) {}
 
   async tryExecute(
@@ -85,20 +95,22 @@ export class AgentCadenceExecutionService {
           runId: state.executionId,
           creditBudget: state.request.creditBudget,
           draftGenerator: async (input) => {
-            if (input.format !== 'text')
-              throw new CadenceGenerationUnavailableError(
-                'Cadence generation requires an authoritative credit quote for this media format; the opportunity is held without provider dispatch.',
-              );
+            const media = await this.quoteMedia(state, strategy, input);
+            if (media && !media.isAvailable)
+              return { creditsUsed: 0, heldReason: media.reason };
+            const mediaCredits = media?.credits ?? 0;
             if (
-              !(
-                Object.values(ContentIntelligencePlatform) as string[]
-              ).includes(input.platform)
+              input.creditBudget <
+              GENERATE_CONTENT_TEXT_CREDITS + mediaCredits
             )
-              throw new CadenceGenerationUnavailableError(
-                'Cadence generation is unavailable for this platform; no provider was called.',
-              );
-            if (input.creditBudget < GENERATE_CONTENT_TEXT_CREDITS)
-              return { creditsUsed: 0 };
+              return {
+                creditsUsed: 0,
+                ...(media
+                  ? {
+                      heldReason: `The ${media.kind} quote of ${mediaCredits} credits plus ${GENERATE_CONTENT_TEXT_CREDITS} for its caption exceeds the remaining run budget of ${input.creditBudget} credits; the opportunity is held without provider dispatch.`,
+                    }
+                  : {}),
+              };
             const result = await this.textGeneration.generateContent(
               {
                 brandId: strategy.brandId,
@@ -113,7 +125,7 @@ export class AgentCadenceExecutionService {
                 strategyId,
                 runId: state.executionId,
                 sourceActionId: input.opportunity.id,
-                creditBudget: input.creditBudget,
+                creditBudget: input.creditBudget - mediaCredits,
                 requestedSkillSlugs: strategy.skillSlugs,
               },
             );
@@ -126,6 +138,49 @@ export class AgentCadenceExecutionService {
               !data.content.trim()
             )
               return { creditsUsed: result.creditsUsed };
+            const caption = data.content;
+            if (media) {
+              const asset = await this.media.generate(
+                media,
+                buildCadenceMediaPrompt(input.opportunity.topic, caption),
+                {
+                  organizationId: state.organizationId,
+                  runId: state.executionId,
+                  sourceActionId: `${input.opportunity.id}:${media.kind}`,
+                  strategyId,
+                  userId: state.userId,
+                },
+              );
+              if (!asset.isGenerated) {
+                await this.adoptDraft(
+                  state,
+                  strategyId,
+                  strategy.brandId ?? undefined,
+                  input,
+                  data,
+                  { rejectionReason: asset.reason },
+                );
+                return {
+                  creditsUsed: opportunitySpend,
+                  heldReason: `${asset.reason} Its caption draft was rejected; no media draft was created.`,
+                };
+              }
+              charged += media.credits;
+              opportunitySpend += media.credits;
+              const draft = await this.adoptDraft(
+                state,
+                strategyId,
+                strategy.brandId ?? undefined,
+                input,
+                data,
+                { asset, kind: media.kind },
+              );
+              generatedCount++;
+              return {
+                draft: draft as PostDocument,
+                creditsUsed: opportunitySpend,
+              };
+            }
             const draft = await this.adoptDraft(
               state,
               strategyId,
@@ -141,7 +196,7 @@ export class AgentCadenceExecutionService {
                 this.evaluateQuality(
                   state,
                   { ...input, platform: platform ?? input.platform },
-                  content ?? (data.content as string),
+                  content ?? caption,
                   input.creditBudget - opportunitySpend,
                   (fee) => {
                     charged += fee;
@@ -179,7 +234,16 @@ export class AgentCadenceExecutionService {
     brandId: string | undefined,
     input: Parameters<CadenceDraftGenerator>[0],
     data: Record<string, unknown>,
+    media?:
+      | {
+          asset: Extract<CadenceMediaResult, { isGenerated: true }>;
+          kind: CadenceMediaKind;
+        }
+      | { rejectionReason: string },
   ): Promise<PostDocument> {
+    const asset = media && 'asset' in media ? media : undefined;
+    const rejectionReason =
+      media && 'rejectionReason' in media ? media.rejectionReason : undefined;
     if (typeof data.postId !== 'string' || typeof data.receiptId !== 'string')
       throw new CadenceGenerationUnavailableError(
         'Cadence generation did not return a receipt-bound draft. No replacement draft was created.',
@@ -196,9 +260,25 @@ export class AgentCadenceExecutionService {
       {
         agentStrategyId: strategyId,
         brandId: brandId ?? undefined,
-        category: PostCategory.TEXT,
+        category: asset
+          ? asset.kind === 'video'
+            ? PostCategory.VIDEO
+            : PostCategory.IMAGE
+          : PostCategory.TEXT,
         label: input.opportunity.topic,
-        ingredients: [],
+        // Media are ordered links; a bare id array is not a Prisma payload.
+        ingredientLinks: replacePostIngredientLinks(
+          state.organizationId,
+          asset ? [asset.asset.ingredientId] : [],
+        ),
+        ...(asset ? { targetAttachments: [asset.asset.mediaUrl] } : {}),
+        ...(rejectionReason
+          ? {
+              reviewDecision: PersistedReviewDecision.REJECTED,
+              reviewFeedback: rejectionReason,
+              reviewedAt: new Date(),
+            }
+          : {}),
         organizationId: state.organizationId,
         userId: state.userId,
         platform: parsePlatform(input.platform) ?? undefined,
@@ -220,6 +300,46 @@ export class AgentCadenceExecutionService {
         'The receipt-bound cadence draft is no longer available in this scope.',
       );
     return draft;
+  }
+
+  /** Null for text; otherwise the authoritative quote media dispatch will be held to. */
+  private async quoteMedia(
+    state: PreparedAgentTurnState,
+    strategy: { brandId?: string | null },
+    input: Parameters<CadenceDraftGenerator>[0],
+  ): Promise<CadenceMediaQuote | null> {
+    if (
+      input.format !== 'text' &&
+      input.format !== 'image' &&
+      input.format !== 'video'
+    )
+      throw new CadenceGenerationUnavailableError(
+        'Cadence generation is unavailable for this format; no provider was called.',
+      );
+    if (
+      !(Object.values(ContentIntelligencePlatform) as string[]).includes(
+        input.platform,
+      )
+    )
+      throw new CadenceGenerationUnavailableError(
+        'Cadence generation is unavailable for this platform; no provider was called.',
+      );
+    if (input.format === 'text') return null;
+    if (!strategy.brandId)
+      return {
+        isAvailable: false,
+        reason:
+          'Cadence media requires a brand to apply its identity; the opportunity is held without provider dispatch.',
+      };
+    return this.media.quote(
+      input.format,
+      buildCadenceMediaPrompt(input.opportunity.topic),
+      {
+        brandId: strategy.brandId,
+        organizationId: state.organizationId,
+        userId: state.userId,
+      },
+    );
   }
 
   private async evaluateQuality(

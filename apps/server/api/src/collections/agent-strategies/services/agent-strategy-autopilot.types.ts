@@ -65,6 +65,8 @@ export type CadenceDraftGenerator = (input: {
 }) => Promise<{
   draft?: PostDocument;
   creditsUsed: number;
+  /** Why no draft was produced, recorded on the held opportunity. */
+  heldReason?: string;
   evaluateQuality?: (
     content?: string,
     platform?: string,

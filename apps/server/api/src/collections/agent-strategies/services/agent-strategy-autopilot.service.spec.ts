@@ -1342,6 +1342,143 @@ describe('AgentStrategyAutopilotService', () => {
     );
   });
 
+  function cadenceStrategy() {
+    return {
+      ...baseStrategy,
+      postsPerWeek: 1,
+      publishingCeilingPerWeek: 7,
+      readyDraftReserve: 2,
+    };
+  }
+
+  it('dispatches a cadence video opportunity and always hands the draft to review', async () => {
+    const deps = createService();
+    deps.agentStrategiesService.findOneById.mockResolvedValue(
+      cadenceStrategy(),
+    );
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 40,
+        formatCandidates: ['video'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'Launch teaser',
+      },
+    ]);
+    const draftGenerator = vi.fn().mockResolvedValue({
+      draft: {
+        id: draftId,
+        description: 'Watch the teaser',
+        targetAttachments: ['https://cdn.example/video.mp4'],
+        targetSettings: { generation: { metadata: {} } },
+      },
+      creditsUsed: 32,
+    });
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+      creditBudget: 100,
+      draftGenerator,
+    });
+    expect(draftGenerator).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'video' }),
+    );
+    expect(result).toMatchObject({ contentGenerated: 1, creditsUsed: 32 });
+    expect(deps.optimizersService.analyzeContent).not.toHaveBeenCalled();
+    expect(deps.postAccountFanoutService.resolveTargets).not.toHaveBeenCalled();
+    expect(
+      deps.turboRunService.createManualReviewTurboRun,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            format: 'video',
+            mediaUrl: 'https://cdn.example/video.mp4',
+            postId: draftId,
+          }),
+        ],
+      }),
+      userId,
+      organizationId,
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'approved',
+      expect.objectContaining({
+        decisionReason: expect.stringContaining('requires human review'),
+      }),
+    );
+  });
+
+  it('records the generator hold reason when no draft is produced', async () => {
+    const deps = createService();
+    deps.agentStrategiesService.findOneById.mockResolvedValue(
+      cadenceStrategy(),
+    );
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 24,
+        formatCandidates: ['image'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'Product shot',
+      },
+    ]);
+    const draftGenerator = vi.fn().mockResolvedValue({
+      creditsUsed: 0,
+      heldReason: 'The image quote exceeds the remaining run budget.',
+    });
+    await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+      creditBudget: 100,
+      draftGenerator,
+    });
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'held',
+      {
+        decisionReason: 'The image quote exceeds the remaining run budget.',
+      },
+    );
+  });
+
+  it('keeps video out of legacy runs that have no priced generator', async () => {
+    const deps = createService();
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 40,
+        formatCandidates: ['video'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'Launch teaser',
+      },
+    ]);
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+    });
+    expect(result.contentGenerated).toBe(0);
+    expect(deps.opportunitiesService.claimForGeneration).not.toHaveBeenCalled();
+  });
+
   it('stops generation when scheduled and pending supply cover both minimums', async () => {
     const deps = createService();
     deps.agentStrategiesService.findOneById.mockResolvedValue({

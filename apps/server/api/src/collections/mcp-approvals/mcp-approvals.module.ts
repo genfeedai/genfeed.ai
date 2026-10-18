@@ -16,7 +16,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [McpApprovalsController],
-  exports: [McpApprovalsService],
+  exports: [McpApprovalsService, McpApprovalPricingService],
   imports: [
     ActivityRecordingModule,
     BrandAccessModule,
