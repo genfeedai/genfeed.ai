@@ -390,6 +390,20 @@ describe('pinned serializer bundle workflow', () => {
     });
   });
 
+  it('matches the exact package resource relative to the native app-project loader context', () => {
+    const config = readFileSync(
+      path.join(root, 'apps/app/next.config.ts'),
+      'utf8',
+    );
+    const rule = config.match(/'([^']*request-runtime\.bundle\.js)':/);
+    expect(rule?.[1]).toBe(
+      path.relative(
+        path.join(root, 'apps/app'),
+        path.join(root, 'packages/serializers/dist/request-runtime.bundle.js'),
+      ),
+    );
+  });
+
   it('keeps graph diagnostics and a failing conclusion when actual compiler input cannot be authenticated', () => {
     const proofStep = workflow
       .split('      - name: Verify deferred request serializers\n')[1]
@@ -421,7 +435,7 @@ describe('pinned serializer bundle workflow', () => {
       ?.split('root: path.resolve(appDir')[0];
     expect(rule).toContain("condition: { all: ['browser', 'production'] }");
     expect(rule).toContain(
-      "'packages/serializers/dist/request-runtime.bundle.js'",
+      "'../../packages/serializers/dist/request-runtime.bundle.js'",
     );
     expect(rule).not.toMatch(/\bas\s*:/);
   });

@@ -77,7 +77,7 @@ function compilerInputFixture() {
   const capture = () =>
     loaded.call(
       {
-        rootContext: root,
+        rootContext: path.join(root, 'apps/app'),
         resourcePath: path.join(root, prepared.input.artifacts.javaScript.path),
         resourceQuery: '',
         target: 'web',

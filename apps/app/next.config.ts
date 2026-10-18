@@ -568,7 +568,7 @@ config.turbopack = {
     ? {
         rules: {
           ...(config.turbopack?.rules ?? {}),
-          'packages/serializers/dist/request-runtime.bundle.js': {
+          '../../packages/serializers/dist/request-runtime.bundle.js': {
             condition: { all: ['browser', 'production'] },
             loaders: [
               path.resolve(
