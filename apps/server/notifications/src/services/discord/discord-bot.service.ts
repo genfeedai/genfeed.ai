@@ -307,6 +307,12 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
       },
       {
         channelId:
+          (await this.runtimeSettings.get()).discordChannelIdModels ??
+          undefined,
+        name: 'MODELS',
+      },
+      {
+        channelId:
           (await this.runtimeSettings.get()).discordChannelIdStudio ??
           undefined,
         name: 'STUDIO',
