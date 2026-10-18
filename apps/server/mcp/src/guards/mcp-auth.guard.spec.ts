@@ -155,6 +155,26 @@ describe('McpAuthGuard', () => {
       );
     });
 
+    it('answers 503 with Retry-After, not a re-auth 401, when the identity check is unavailable', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      mockAuthService.extractBearerToken.mockReturnValue('good-token');
+      mockAuthService.authenticateRequest.mockResolvedValue({
+        error: 'Auth service temporarily unavailable',
+        isUnavailable: true,
+        valid: false,
+      });
+      const context = createMockExecutionContext('Bearer good-token');
+
+      await expect(guard.canActivate(context)).rejects.toMatchObject({
+        status: 503,
+      });
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', '5');
+      expect(mockResponse.setHeader).not.toHaveBeenCalledWith(
+        'WWW-Authenticate',
+        expect.anything(),
+      );
+    });
+
     it('should allow access and attach context for valid token', async () => {
       mockReflector.getAllAndOverride.mockReturnValue(false);
       mockAuthService.extractBearerToken.mockReturnValue('valid-token');

@@ -4,7 +4,11 @@ import {
 } from '@libs/auth/url-credentials';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';
-import { AuthService, type McpRole } from '@mcp/services/auth.service';
+import {
+  AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS,
+  AuthService,
+  type McpRole,
+} from '@mcp/services/auth.service';
 import {
   applyRateLimitHeaders,
   RateLimitService,
@@ -75,6 +79,17 @@ export class McpAuthGuard implements CanActivate {
     }
 
     const authResult = await this.authService.authenticateRequest(token);
+
+    if (authResult.isUnavailable) {
+      response.setHeader(
+        'Retry-After',
+        `${AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS}`,
+      );
+      throw new HttpException(
+        authResult.error || 'Auth service temporarily unavailable',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
 
     if (!authResult.valid) {
       response.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
