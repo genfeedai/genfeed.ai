@@ -808,6 +808,24 @@ describe('WebhooksService', () => {
       );
     });
 
+    it('never stores the timeout marker as a confirmed failure reason', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredientDoc,
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+        status: IngredientStatus.FAILED,
+      });
+
+      await service.handleFailedGenerationForIngredient(
+        mockIngredientId.toString(),
+        INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      );
+
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        expect.anything(),
+        { generationError: 'Generation failed' },
+      );
+    });
+
     it.each(['already-failed', 'lost-failure-CAS'])(
       'repairs definitive provider failure evidence after a %s library transition',
       async (path) => {

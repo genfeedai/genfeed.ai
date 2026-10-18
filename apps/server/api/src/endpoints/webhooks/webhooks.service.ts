@@ -468,7 +468,13 @@ export class WebhooksService {
               isDeleted: false,
               status: IngredientStatus.FAILED,
             },
-            { generationError: errorMessage ?? 'Generation failed' },
+            {
+              generationError:
+                !errorMessage ||
+                errorMessage === INGREDIENT_PROCESSING_TIMEOUT_ERROR
+                  ? 'Generation failed'
+                  : errorMessage,
+            },
           );
       }
       return;
