@@ -5,8 +5,10 @@ import type { ReactNode } from 'react';
 export interface ITagsLayoutProps {
   children: ReactNode;
   scope: ContentProps['scope'];
-  rightActions?: ReactNode;
-  refreshAction?: ReactNode;
+  filters?: ReactNode;
+  primaryAction?: ReactNode;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export interface TagCellProps {
