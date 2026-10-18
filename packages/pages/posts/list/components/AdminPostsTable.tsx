@@ -14,6 +14,7 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { ExternalLink, FileText } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 interface AdminPostsTableProps {
@@ -24,26 +25,29 @@ interface AdminPostsTableProps {
 
 const STATUS_PRESENTATION: Record<
   string,
-  { canonicalStatus: string; label: string }
+  { canonicalStatus: string; labelKey: string }
 > = {
-  [PostStatus.DRAFT]: { canonicalStatus: 'planned', label: 'Draft' },
-  [PostStatus.FAILED]: { canonicalStatus: 'failed', label: 'Failed' },
-  [PostStatus.PENDING]: { canonicalStatus: 'pending', label: 'Pending' },
-  [PostStatus.PRIVATE]: { canonicalStatus: 'planned', label: 'Private' },
+  [PostStatus.DRAFT]: { canonicalStatus: 'planned', labelKey: 'draft' },
+  [PostStatus.FAILED]: { canonicalStatus: 'failed', labelKey: 'failed' },
+  [PostStatus.PENDING]: { canonicalStatus: 'pending', labelKey: 'pending' },
+  [PostStatus.PRIVATE]: { canonicalStatus: 'planned', labelKey: 'private' },
   [PostStatus.PROCESSING]: {
     canonicalStatus: 'processing',
-    label: 'Publishing',
+    labelKey: 'processing',
   },
-  [PostStatus.PUBLIC]: { canonicalStatus: 'published', label: 'Posted' },
-  [PostStatus.SCHEDULED]: { canonicalStatus: 'scheduled', label: 'Scheduled' },
-  [PostStatus.UNLISTED]: { canonicalStatus: 'planned', label: 'Unlisted' },
+  [PostStatus.PUBLIC]: { canonicalStatus: 'published', labelKey: 'public' },
+  [PostStatus.SCHEDULED]: {
+    canonicalStatus: 'scheduled',
+    labelKey: 'scheduled',
+  },
+  [PostStatus.UNLISTED]: { canonicalStatus: 'planned', labelKey: 'unlisted' },
 };
 
-function getPostTitle(post: IPost): string {
+function getPostTitle(post: IPost, untitled: string): string {
   const label = post.label?.trim();
   if (label) return label;
   const copy = stripHtmlToPlainText(post.description).replace(/\s+/g, ' ');
-  return copy || 'Untitled';
+  return copy || untitled;
 }
 
 function getPostThumbnailUrl(post: IPost): string | undefined {
@@ -73,6 +77,7 @@ export default function AdminPostsTable({
   isLoading = false,
   onOpenPostDetail,
 }: AdminPostsTableProps) {
+  const translate = useTranslations('pages.posts.list.admin');
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
   const columns = useMemo<TableColumn<IPost>[]>(
@@ -103,11 +108,11 @@ export default function AdminPostsTable({
       },
       {
         className: 'max-w-md',
-        header: 'Post',
+        header: translate('columnPost'),
         key: 'label',
         render: (post: IPost) => (
           <span className="line-clamp-1 font-medium text-foreground">
-            {getPostTitle(post)}
+            {getPostTitle(post, translate('untitled'))}
           </span>
         ),
         subtext: (post: IPost) => (
@@ -117,7 +122,7 @@ export default function AdminPostsTable({
         ),
       },
       {
-        header: 'Platform',
+        header: translate('columnPlatform'),
         key: 'platform',
         render: (post: IPost) => {
           if (!post.platform) return '—';
@@ -133,21 +138,21 @@ export default function AdminPostsTable({
         },
       },
       {
-        header: 'Status',
+        header: translate('columnStatus'),
         key: 'status',
         render: (post: IPost) => {
-          const presentation = STATUS_PRESENTATION[post.status] ?? {
-            canonicalStatus: 'planned',
-            label: post.status,
-          };
+          const presentation = STATUS_PRESENTATION[post.status];
+          const statusLabel = presentation
+            ? translate(`status.${presentation.labelKey}`)
+            : post.status;
           return (
             <div className="flex max-w-48 flex-col gap-1">
               <div>
                 <Badge
-                  status={presentation.canonicalStatus}
+                  status={presentation?.canonicalStatus ?? 'planned'}
                   size={ComponentSize.SM}
                 >
-                  {presentation.label}
+                  {statusLabel}
                 </Badge>
               </div>
               {post.status === PostStatus.FAILED &&
@@ -165,7 +170,7 @@ export default function AdminPostsTable({
       },
       {
         className: 'text-xs',
-        header: 'Date',
+        header: translate('columnDate'),
         key: 'scheduledDate',
         render: (post: IPost) => {
           const date = post.scheduledDate || post.publicationDate;
@@ -174,12 +179,14 @@ export default function AdminPostsTable({
               {formatDateInTimezone(date, browserTimezone, 'short')}
             </span>
           ) : (
-            <span className="text-muted-foreground">Not scheduled</span>
+            <span className="text-muted-foreground">
+              {translate('notScheduled')}
+            </span>
           );
         },
       },
     ],
-    [browserTimezone],
+    [browserTimezone, translate],
   );
 
   const actions = useMemo<TableAction<IPost>[]>(
@@ -191,18 +198,20 @@ export default function AdminPostsTable({
         isVisible: (post: IPost) => Boolean(post.platformUrl),
         tooltip: (post: IPost) =>
           post.platform
-            ? `View on ${getPostsPlatformLabel(post.platform)}`
-            : 'View post',
+            ? translate('viewOn', {
+                platform: getPostsPlatformLabel(post.platform),
+              })
+            : translate('viewPost'),
       },
     ],
-    [],
+    [translate],
   );
 
   return (
     <AppTable<IPost>
       actions={actions}
       columns={columns}
-      emptyLabel="No posts found"
+      emptyLabel={translate('empty')}
       getRowKey={(post: IPost) => post.id}
       isLoading={isLoading}
       items={posts}

@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 interface PostsPlatformSelectProps {
@@ -21,11 +22,12 @@ export default function PostsPlatformSelect({
   value,
   onChange,
 }: PostsPlatformSelectProps) {
+  const translate = useTranslations('pages.posts.list.admin');
   const options = useMemo(() => getPostPlatformTabs(), []);
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger aria-label="Platform" className="w-40">
+      <SelectTrigger aria-label={translate('platformFilter')} className="w-40">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -33,7 +35,7 @@ export default function PostsPlatformSelect({
           <SelectItem key={id} value={id}>
             <span className="flex items-center gap-2">
               {Icon ? <Icon aria-hidden="true" className="size-4" /> : null}
-              {id === 'all' ? 'All platforms' : label}
+              {id === 'all' ? translate('allPlatforms') : label}
             </span>
           </SelectItem>
         ))}
