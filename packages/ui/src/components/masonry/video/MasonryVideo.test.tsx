@@ -296,6 +296,26 @@ describe('MasonryVideo', () => {
     );
   });
 
+  it('sizes the tile from the video metadata, not a 16:9 or 9:16 bucket', () => {
+    render(
+      <MasonryVideo
+        video={
+          {
+            ...mockVideo,
+            aspectRatio: 'aspect-[9/16]',
+            metadata: { height: 1440, width: 1080 },
+          } as unknown as IVideo
+        }
+      />,
+    );
+
+    const media = screen.getByTestId(`masonry-ingredient-${mockVideo.id}`);
+    expect(media.style.aspectRatio).toBe('1080 / 1440');
+    expect(media.closest('[data-masonry-item]')).not.toHaveClass(
+      'aspect-[9/16]',
+    );
+  });
+
   it('should make the embedded video player ignore pointer events so the card remains draggable', () => {
     render(<MasonryVideo video={mockVideo} />);
 

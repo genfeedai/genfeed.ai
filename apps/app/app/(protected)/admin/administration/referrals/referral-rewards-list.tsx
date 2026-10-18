@@ -8,10 +8,9 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Gift, TriangleAlert } from 'lucide-react';
@@ -101,16 +100,11 @@ export default function ReferralRewardsList() {
   ];
 
   return (
-    <Container
-      label="Referral Rewards"
-      description="Audit referral attribution, pending settlements, grants, and reversals"
+    <AdminPageShell
+      title="Referral Rewards"
       icon={Gift}
-      refresh={
-        <ButtonRefresh
-          onClick={() => refetch()}
-          isRefreshing={isFetching && !isLoading}
-        />
-      }
+      onRefresh={() => refetch()}
+      isRefreshing={isFetching && !isLoading}
     >
       {error ? (
         <Alert variant="destructive">
@@ -138,6 +132,6 @@ export default function ReferralRewardsList() {
           emptyLabel="No referral rewards found"
         />
       )}
-    </Container>
+    </AdminPageShell>
   );
 }

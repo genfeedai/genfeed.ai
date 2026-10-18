@@ -2435,6 +2435,17 @@ describe('proxy', () => {
     );
   });
 
+  it('routes flat brand-only settings to the active brand instead of the org scope', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedInRequest('/settings/brand-kit'));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/settings/brand-kit',
+    );
+  });
+
   it('uses the bootstrap organization slug without fetching organizations', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);

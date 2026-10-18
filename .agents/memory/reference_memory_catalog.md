@@ -157,6 +157,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [workspace-inspector-tabs](spec-workspace-inspector-tabs.md) · [decisions](decisions-workspace-inspector-tabs.md) — user-configurable right-rail asset panes
 - [app-theming](spec-app-theming.md) · [decisions](decisions-app-theming.md) — System, Light, and Dark in product apps; marketing website stays Dark
 - [judge-calibration decisions](decisions-judge-calibration.md) — #4924 judge κ/ρ suite, scoring-surface lock + CI gate, harness-criteria injection OFF pending measured κ
+- [content-eval generation smoke](decisions-content-eval-smoke.md) — #4928 generation-type registry, org+brand context-injection tests, capped smoke workflow, known gaps (newsletter, music)
 - [self-host local identity gate](decisions-self-host-local-identity-gate.md) — seeded local admin only for loopback/Docker peers with login off; login on means no tokenless API request (#6965)
 
 ## Project state

@@ -246,6 +246,7 @@ const UI_TEST_MESSAGES = {
       genericFailureReason: 'Generation failed.',
       retry: 'Retry',
       retryAriaLabel: 'Retry generation',
+      moveToTrash: 'Move to Trash',
     },
     modelProviderContract: {
       discoveredAtLabel: 'Discovered:',

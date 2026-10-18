@@ -41,6 +41,7 @@ export function useModelsList({
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
   onRefresh,
+  renderCostAction,
 }: ModelsListProps) {
   const { organizationId } = useBrand();
   const translate = useTranslations('pages.models');
@@ -626,6 +627,7 @@ export function useModelsList({
         onOpenDetails: handleViewDetails,
         togglingModelId,
         models,
+        renderCostAction,
         translate,
       }),
     [
@@ -638,6 +640,7 @@ export function useModelsList({
       handleViewDetails,
       togglingModelId,
       models,
+      renderCostAction,
       translate,
     ],
   );

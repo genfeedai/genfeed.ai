@@ -84,12 +84,18 @@ export class PublicBrandsController {
 
     this.logger.log(url, { query: { isHighlighted, limit } });
 
-    const _maxLimit = Math.min(Number(limit), 100); // Cap at 100
+    const parsedLimit = Math.trunc(Number(limit));
+    const pageSize = Math.min(
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10,
+      100,
+    ); // Cap at 100
     const aggregate = { where: filter, orderBy: { createdAt: -1 } };
 
     const options = {
       customLabels,
-      pagination: false,
+      limit: pageSize,
+      page: 1,
+      pagination: true,
     };
 
     const data = await this.brandsService.findAll(aggregate, options);

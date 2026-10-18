@@ -10,6 +10,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   hasCompletedBrandOnboardingStep,
+  isBrandOnlySettingsPath,
   isExpertAccountType,
   isPersonalSettingsPath,
   ONBOARDING_STEPS,
@@ -977,8 +978,10 @@ async function redirectSignedInUserToAgentOnboarding(
     return redirectDroppingSearch(
       req,
       slugs?.brandSlug
-        ? `/${slugs.orgSlug}/${slugs.brandSlug}/settings/brand-kit`
-        : '/settings/brand-kit',
+        ? `/${slugs.orgSlug}/${slugs.brandSlug}${APP_ROUTES.SETTINGS.BRAND_KIT}`
+        : slugs?.orgSlug
+          ? `/${slugs.orgSlug}/~${APP_ROUTES.SETTINGS.BRANDS}`
+          : APP_ROUTES.SETTINGS.BRAND_KIT,
     );
   }
 
@@ -1080,6 +1083,17 @@ async function resolveCanonicalProtectedPath(
       }
 
       return { cookieValue, path: canonicalPath };
+    }
+
+    // Brand-only settings have no org-level page: send them to the active
+    // brand's copy, or to the org brand selector when no brand resolves.
+    if (isBrandOnlySettingsPath(canonicalPath)) {
+      return {
+        cookieValue,
+        path: slugs.brandSlug
+          ? `/${slugs.orgSlug}/${slugs.brandSlug}${canonicalPath}`
+          : `/${slugs.orgSlug}/~${APP_ROUTES.SETTINGS.BRANDS}`,
+      };
     }
 
     if (canonicalPath === APP_ROUTES.SETTINGS.GENERAL) {

@@ -22,7 +22,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -478,11 +478,10 @@ export default function WarmupAccountsPage({
   }
 
   return (
-    <Container
-      label={translate('title')}
-      description={translate('description')}
+    <AdminPageShell
+      title={translate('title')}
       icon={Rocket}
-      headerTabs={{
+      tabs={{
         activeTab,
         fullWidth: false,
         onTabChange: (tab) => {
@@ -688,7 +687,7 @@ export default function WarmupAccountsPage({
           </div>
         </div>
       )}
-    </Container>
+    </AdminPageShell>
   );
 }
 
