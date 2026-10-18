@@ -20,8 +20,13 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+const getService = vi.hoisted(() => async () => ({
+  getTemplate: mocks.getTemplate,
+}));
+
+// Stable like the real hook: a new function per render re-runs the load effect.
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ getTemplate: mocks.getTemplate }),
+  useAuthedService: () => getService,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
