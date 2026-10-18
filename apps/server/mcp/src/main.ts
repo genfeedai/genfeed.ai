@@ -178,7 +178,10 @@ async function main(): Promise<void> {
     // The identity check failed, not the token: a 401 here would make the
     // client drop a good connection and ask the user to authorize again.
     if (authResult.isUnavailable) {
-      res.setHeader('Retry-After', `${AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS}`);
+      res.setHeader(
+        'Retry-After',
+        `${authResult.retryAfterSeconds ?? AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS}`,
+      );
       res.status(503).json({
         error: {
           code: -32002,

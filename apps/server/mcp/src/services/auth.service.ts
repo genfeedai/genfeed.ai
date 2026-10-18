@@ -34,6 +34,8 @@ export interface AuthResult {
    * user to authorize again.
    */
   isUnavailable?: boolean;
+  /** Seconds the upstream asked callers to wait (e.g. its `Retry-After`). */
+  retryAfterSeconds?: number;
 }
 
 /** How long a client should wait before retrying a transient auth failure. */
@@ -155,7 +157,7 @@ export class AuthService {
       return { error: 'Invalid token', valid: false };
     } catch (error: unknown) {
       const errorObj = error as {
-        response?: { status?: number };
+        response?: { headers?: Record<string, unknown>; status?: number };
         message?: string;
       };
 
@@ -166,9 +168,16 @@ export class AuthService {
       }
 
       this.logger.error('Authentication check error:', errorObj.message);
+      const upstreamRetryAfter = Number(
+        errorObj?.response?.headers?.['retry-after'],
+      );
       return {
         error: 'Auth service temporarily unavailable',
         isUnavailable: true,
+        retryAfterSeconds:
+          Number.isFinite(upstreamRetryAfter) && upstreamRetryAfter > 0
+            ? Math.ceil(upstreamRetryAfter)
+            : AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS,
         valid: false,
       };
     }

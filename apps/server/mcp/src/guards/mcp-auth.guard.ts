@@ -83,7 +83,7 @@ export class McpAuthGuard implements CanActivate {
     if (authResult.isUnavailable) {
       response.setHeader(
         'Retry-After',
-        `${AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS}`,
+        `${authResult.retryAfterSeconds ?? AUTH_UNAVAILABLE_RETRY_AFTER_SECONDS}`,
       );
       throw new HttpException(
         authResult.error || 'Auth service temporarily unavailable',
