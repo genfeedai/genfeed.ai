@@ -122,6 +122,8 @@ describe('MCP catalog presentation through the public registry', () => {
       )
         args.brandId = 'input-private';
       if (tool.name === 'resolve_approval') args.decision = 'decline';
+      // The listing fixture is the only organization the user can switch to.
+      if (tool.name === 'switch_org') args.organization = fixture.id;
 
       let result = (await registry.handleToolCall({
         name: tool.name,
