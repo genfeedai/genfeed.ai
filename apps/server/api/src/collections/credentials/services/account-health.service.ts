@@ -486,10 +486,14 @@ export class AccountHealthService {
       this.prisma.socialWarmupEnrollment.findFirst({
         include: {
           events: {
-            where: { isDeleted: false },
+            where: scopedWhere(organizationId, {
+              ...(credential.brandId ? { brandId: credential.brandId } : {}),
+            }),
           },
           signals: {
-            where: { isDeleted: false },
+            where: scopedWhere(organizationId, {
+              ...(credential.brandId ? { brandId: credential.brandId } : {}),
+            }),
           },
         },
         where: scopedWhere(organizationId, {
