@@ -1,0 +1,454 @@
+{
+  "trendTurnover": {
+    "heading": "Trend Turnover",
+    "description": "How fast trends rise and fade on each platform.",
+    "periodLabel": "Period",
+    "periods": {
+      "d7": "7D",
+      "d30": "30D",
+      "d90": "90D"
+    },
+    "lifespanDays": "{value}d",
+    "kpi": {
+      "appeared": {
+        "label": "Appeared",
+        "description": "New trends in the last {days} days"
+      },
+      "died": {
+        "label": "Died",
+        "description": "Trends that expired in the last {days} days"
+      },
+      "avgLifespan": {
+        "label": "Avg Lifespan",
+        "description": "Average time a trend stays active"
+      },
+      "turnoverRate": {
+        "label": "Turnover Rate",
+        "description": "Percentage of new trends that expired"
+      }
+    },
+    "flow": {
+      "title": "Trend Flow",
+      "description": "Daily trend births (green) vs. deaths (red) over the selected period.",
+      "empty": "No timeline data for this period."
+    },
+    "breakdown": {
+      "title": "Platform Breakdown",
+      "empty": "No trend data for this period",
+      "columns": {
+        "platform": "Platform",
+        "appeared": "Appeared",
+        "died": "Died",
+        "alive": "Alive",
+        "avgLifespan": "Avg Lifespan",
+        "turnoverRate": "Turnover Rate"
+      }
+    },
+    "volatility": {
+      "title": "Platform Volatility",
+      "description": "Turnover rate by platform: higher bars indicate faster trend churn.",
+      "empty": "No platform data available for this period."
+    },
+    "errors": {
+      "load": "Trend turnover could not be loaded. Refresh the page to try again."
+    },
+    "emptyState": {
+      "title": "No trend turnover yet",
+      "description": "Trend Turnover counts the trends that appeared and expired in the last {days} days and how long they stayed active, so you can post before a topic peaks. It is calculated from the shared trend corpus, which has no trends for this period yet. It fills in on its own once trend sources refresh successfully.",
+      "checkSourceHealth": "Check source health",
+      "tryLongestPeriod": "Show last 90 days"
+    }
+  },
+  "topVideos": {
+    "title": "Top videos",
+    "description": "Your recent videos ranked by evaluated score, with the persuasion signal behind each one.",
+    "timeframe": "Timeframe",
+    "timeframes": {
+      "24h": "Last 24 hours",
+      "72h": "Last 72 hours",
+      "7d": "Last 7 days"
+    },
+    "empty": "No published videos in this timeframe yet.",
+    "columns": {
+      "video": "Video",
+      "platform": "Platform",
+      "views": "Views",
+      "engagement": "Engagement",
+      "score": "Score"
+    }
+  },
+  "metricDefinitions": {
+    "comments": "Comments recorded across the selected published content.",
+    "engagement": "Total recorded interactions across the selected content.",
+    "engagementRate": "Recorded interactions divided by the applicable audience or view denominator.",
+    "likes": "Likes recorded across the selected published content.",
+    "posts": "Published posts included in the visible scoped query.",
+    "saves": "Saves recorded across the selected published content.",
+    "shares": "Shares recorded across the selected published content.",
+    "views": "Platform-reported views for the selected published content.",
+    "viewsPerPost": "Platform-reported views divided by the number of selected published posts."
+  },
+  "metricLabels": {
+    "comments": "Comments",
+    "engagement": "Engagement",
+    "engagementRate": "Engagement rate",
+    "likes": "Likes",
+    "posts": "Posts",
+    "saves": "Saves",
+    "shares": "Shares",
+    "views": "Views",
+    "viewsPerPost": "Average views per post"
+  },
+  "metricDefinitionLabel": "About {metric}",
+  "scopedExport": {
+    "error": "Analytics export failed",
+    "label": "Export scoped data",
+    "success": "Scoped analytics exported"
+  },
+  "layout": {
+    "brand": {
+      "description": "Track your brand performance, content analytics, and growth metrics",
+      "errorDescription": "Failed to load analytics.",
+      "title": "Analytics"
+    },
+    "errorTitle": "Analytics Error",
+    "organization": {
+      "description": "Aggregate analytics across all brands",
+      "errorDescription": "Failed to load organization analytics.",
+      "title": "Organization Analytics"
+    }
+  },
+  "overview": {
+    "checkConnections": "Check connections",
+    "connectAccounts": "Connect accounts",
+    "createPost": "Create a post",
+    "emptyDescription": "Winners, trends, and rankings appear after a connected social account publishes and analytics syncs back.",
+    "emptyTitle": "Connect accounts to see analytics",
+    "placeholderDescription": "After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming.",
+    "placeholderTitle": "Trend lines will appear here once performance data lands",
+    "timeseriesDescription": "Use this to see which channels are actually contributing movement in the selected range.",
+    "timeseriesTitle": "Posts views by platform over time"
+  },
+  "hooksOutlierFilter": {
+    "allPosts": "All posts",
+    "breakoutsOnly": "Breakouts only",
+    "label": "Outlier filter",
+    "outliersFirst": "Outliers first"
+  },
+  "outliers": {
+    "allPlatforms": "All platforms",
+    "allTiers": "All tiers",
+    "analyzeHook": "Analyze hook",
+    "baseline": "Baseline",
+    "breakoutTier": "Breakout (10x+)",
+    "computed": "Computed",
+    "contributingPosts": "Contributing posts",
+    "description": "Posts ranked by how far they beat their account baseline, not by raw views.",
+    "empty": "No outlier posts for these filters",
+    "excludedPosts": "Excluded posts",
+    "heading": "Outliers",
+    "instagram": "Instagram",
+    "insufficient": "Insufficient data — this account needs at least 5 eligible posts",
+    "tiktok": "TikTok",
+    "twitter": "Twitter",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "loadingBaseline": "Loading baseline…",
+    "medianViews": "Median views",
+    "noContributors": "No contributing posts in this snapshot.",
+    "noExcluded": "No excluded posts.",
+    "outlierTier": "Outlier (3x+)",
+    "pinnedUnknown": "pinned unknown",
+    "platform": "Platform",
+    "post": "Post",
+    "promotedUnknown": "promoted unknown",
+    "ratio": "Ratio",
+    "remix": "Remix",
+    "sampleSize": "Sample size",
+    "selectPost": "Select a post to inspect its baseline.",
+    "sheetDescription": "Median views from the latest eligible posts, with exclusions.",
+    "status": "Status",
+    "tier": "Tier",
+    "unknownEligibility": "Unknown eligibility",
+    "unknownEligibilityReady": "Pinned and promoted state was available for this account.",
+    "views": "Views",
+    "window": "Window"
+  },
+  "accounts": {
+    "errorTitle": "Account analytics error",
+    "evaluation": "Evaluation",
+    "followers": "Followers",
+    "loadError": "Account analytics could not be loaded.",
+    "loading": "Loading account analytics…",
+    "noTrend": "No trend data for this window",
+    "posts": "Posts",
+    "postsOverWeeks": "{posts, plural, one {# post} other {# posts}} over {weeks, plural, one {# week} other {# weeks}}",
+    "topAccounts": "Top accounts",
+    "trend": "Trend",
+    "views": "Views"
+  },
+  "performanceDataset": {
+    "coldStartHint": "Planning uses a cold-start brief — competitor ads, creative patterns, and followed creators — until more history exists.",
+    "coldStartHintLink": "Connect more accounts",
+    "confidence": {
+      "high": "High confidence",
+      "low": "Low confidence",
+      "medium": "Medium confidence",
+      "none": "No confidence"
+    },
+    "importedBadge": "Imported",
+    "summaryLine": "Based on {total} posts in the last 7 days · {imported} imported from your connected accounts",
+    "title": "Performance dataset"
+  },
+  "trends": {
+    "page": {
+      "heading": "Social Media Trends",
+      "trendingTopics": "Trending Topics",
+      "trendingHashtags": "Trending Hashtags",
+      "trendingSounds": "Trending Sounds",
+      "subtitle": "Public topics, videos, hashtags and sounds trending across platforms."
+    },
+    "header": {
+      "latestObserved": "Latest observed source {date}",
+      "tracking": "Tracking {videoCount} standout videos across {platformCount} platforms",
+      "highestVolume": "Highest term volume:",
+      "mentions": "({count} mentions)",
+      "keywords": "{count} active keywords monitored"
+    },
+    "columns": {
+      "platform": "Platform",
+      "topic": "Topic",
+      "mentions": "Mentions",
+      "growth": "Growth",
+      "virality": "Virality"
+    },
+    "topics": {
+      "description": "Click on a trend to see detailed analytics and cross-platform data.",
+      "empty": "No trending topics available.",
+      "emptyDescription": "Try another publication window or check collection health for this market."
+    },
+    "detail": {
+      "loadingTitle": "Loading trend…",
+      "notFound": "Trend not found",
+      "error": "Error",
+      "goBack": "Go Back",
+      "backToTrends": "Back to Trends",
+      "trendingTopic": "Trending Topic",
+      "trendMetrics": "Trend Metrics",
+      "remixInAgent": "Remix in Agent",
+      "relatedHashtags": "Related Hashtags",
+      "sampleContent": "Sample Content",
+      "metrics": {
+        "mentions": {
+          "label": "Mentions",
+          "description": "Total mentions"
+        },
+        "growthRate": {
+          "label": "Growth Rate",
+          "description": "Week-over-week"
+        },
+        "viralityScore": {
+          "label": "Virality Score",
+          "description": "Calculated score"
+        },
+        "engagementRate": {
+          "label": "Engagement Rate",
+          "description": "Average engagement"
+        },
+        "reach": {
+          "label": "Reach",
+          "description": "Total reach"
+        },
+        "impressions": {
+          "label": "Impressions",
+          "description": "Total impressions"
+        }
+      },
+      "analysis": {
+        "title": "Trend Analysis",
+        "direction": "Direction",
+        "avgVirality": "Avg Virality (14d)",
+        "growthRate": "Growth Rate (14d)",
+        "peak": "Peak: {mentions} mentions on {date}"
+      },
+      "related": {
+        "title": "Cross-Platform Trends",
+        "description": "Similar trends on other platforms"
+      }
+    },
+    "corpusHealth": {
+      "title": "Source health",
+      "checkingCorpus": "Checking trend corpus",
+      "unavailableDescription": "Source health could not be loaded. Previously loaded health may be outdated. Saved items remain available.",
+      "description": "Health describes saved source coverage. It does not confirm that a provider refresh succeeded.",
+      "checkingHealth": "Checking health",
+      "unavailableHealth": "Health unavailable",
+      "missingHealth": "No saved health is available for this platform. Reload to check again.",
+      "notRecorded": "Not recorded",
+      "noSuccessfulRefresh": "No successful refresh",
+      "status": {
+        "healthy": "healthy",
+        "stale": "stale",
+        "degraded": "degraded",
+        "empty": "empty",
+        "unavailable": "unavailable"
+      },
+      "corpusStatus": {
+        "healthy": "Trend corpus healthy",
+        "stale": "Trend corpus stale",
+        "degraded": "Trend corpus degraded",
+        "empty": "Trend corpus empty",
+        "unavailable": "Trend corpus unavailable"
+      },
+      "failure": {
+        "empty_source_preview": "No source previews were observed.",
+        "fallback_source_preview": "Saved fallback previews are being used.",
+        "stale_source_preview": "Saved source previews are stale.",
+        "refresh_failed": "The latest provider refresh failed or is unavailable."
+      },
+      "sourceTimestampLabel": "Last observed",
+      "lastRefreshLabel": "Last refresh",
+      "lastAttemptLabel": "Last attempt"
+    }
+  },
+  "breakouts": {
+    "title": "Breakouts",
+    "description": "Inspect breakout evidence and follow-up response status.",
+    "loadingBrandContext": "Loading brand context…",
+    "selectBrand": "Select a brand to inspect its breakout responses.",
+    "refreshLabel": "Refresh breakout responses",
+    "refresh": "Refresh",
+    "loading": "Loading breakout responses…",
+    "empty": "No breakout responses have been detected for this brand.",
+    "loadError": "Unable to load breakout responses. Your access may have changed.",
+    "detailLoadError": "Unable to load this response. It may be unavailable or your access may have changed.",
+    "unknownFormat": "Unknown format",
+    "sourceCurrent": "Detected breakout",
+    "sourceChanged": "Source changed or unavailable",
+    "originalPost": "Original post: {externalId}",
+    "ratioUnavailable": "Performance ratio unavailable",
+    "ratioMedian": "{ratio}× the comparable median",
+    "detectedAt": "Detected: {detectedAt}",
+    "responseState": "Response state: {state}",
+    "inspectLabel": "Inspect breakout {externalId}",
+    "inspect": "Inspect response",
+    "paginationLabel": "Breakout response pagination",
+    "pageSummary": "Page {page} of {pages} · {total} responses",
+    "previous": "Previous",
+    "next": "Next",
+    "closeDetails": "Close details",
+    "loadingDetails": "Loading response details…",
+    "detail": {
+      "label": "Breakout response details",
+      "heading": "Response details",
+      "responseState": "Response state: {state}",
+      "notice": "Detection does not confirm generation or publication. Refresh to read the latest status.",
+      "sourceHeading": "Source evidence",
+      "unknownFormat": "Unknown format",
+      "originalPost": "Original post: {externalId}",
+      "openOriginal": "Open original post",
+      "sourceChanged": "The original post changed or is unavailable. Response execution is held.",
+      "performance": "Performance: {ratio} the comparable median",
+      "unavailable": "Unavailable",
+      "metrics": "{metric}: {value} · Median: {median} · Prior posts: {sampleSize}",
+      "provenance": "Exposure provenance: {scope}",
+      "legacyProvenance": "Not retained in this legacy receipt",
+      "evidenceRecorded": "Evidence recorded: {evaluatedAt} · {source}",
+      "unknownMetricSource": "Unknown metric source",
+      "triggerUnavailable": "Verified trigger evidence is unavailable.",
+      "outputsHeading": "Follow-up outputs",
+      "outputsConflict": "Response status needs reconciliation. The output plan could not be verified.",
+      "outputsNotLoaded": "Detailed output status has not been loaded.",
+      "outputsEmpty": "No follow-up outputs have been reserved.",
+      "outputTitle": "Output {ordinal}: {kind} · {format}",
+      "kindQuote": "X quote",
+      "kindFollowUp": "Follow-up",
+      "outputUnavailable": "Output status is unavailable. Execution is held.",
+      "openFollowUp": "Open follow-up post {ordinal}",
+      "publishedPost": "Published post: {externalId}",
+      "capacityHeading": "Capacity",
+      "capacityUnchecked": "Remaining credits and posting slots have not been checked for a strategy.",
+      "capacityHeld": "Capacity is held. {reason}",
+      "remainingSlots": "Remaining posting slots: {value}",
+      "availableCredits": "Available organization credits: {value}",
+      "snapshot": "Advisory snapshot from {capturedAt}. No credits or posting slots are reserved by this read.",
+      "statusRead": "Status read: {readAt}",
+      "states": {
+        "not_submitted": "Not submitted",
+        "generation_in_flight": "Generating",
+        "reconciliation_required": "Needs reconciliation",
+        "generated": "Generated",
+        "draft": "Draft",
+        "awaiting_review": "Awaiting review",
+        "scheduled": "Scheduled",
+        "paused": "Paused",
+        "publishing": "Publishing",
+        "published": "Published",
+        "failed": "Failed",
+        "suppressed": "Suppressed",
+        "expired": "Expired"
+      },
+      "reasons": {
+        "not_dispatched": "Generation has not started.",
+        "provider_pending": "Waiting for the existing generation request.",
+        "generation_receipt_missing": "The generation result needs reconciliation.",
+        "receipt_invalid": "The saved generation result could not be verified.",
+        "generation_outcome_indeterminate": "The generation outcome is uncertain.",
+        "generation_failed": "Generation failed.",
+        "quality_or_brand_blocked": "Brand or quality checks are holding this output.",
+        "media_brand_capability_unavailable": "Generation is held because this media format cannot yet meet the brand requirements.",
+        "quality_evaluation_pending": "The quality evaluation needs reconciliation before this draft can proceed.",
+        "platform_quality_blocked": "This draft has not passed the account’s quality requirements.",
+        "approved_brand_required": "An approved brand snapshot is required.",
+        "brand_review_required": "Brand review is required.",
+        "artifact_binding_missing": "The generated content has not been attached to a post.",
+        "publication_admission_required": "The normal publishing checks are still required.",
+        "publication_confirmation_missing": "Publication has not been confirmed.",
+        "publication_in_flight": "Waiting for publication confirmation.",
+        "publication_failed": "Publication failed.",
+        "publication_paused": "Publication is paused.",
+        "publication_cancelled": "Publication was cancelled.",
+        "output_suppressed": "This output was suppressed.",
+        "output_expired": "This output expired.",
+        "confirmed_publication": "Publication is confirmed."
+      },
+      "capacityReasons": {
+        "missing_strategy": "The selected strategy is unavailable.",
+        "account_unavailable": "The connected account is unavailable.",
+        "wallet_unavailable": "The current credit balance is unavailable.",
+        "ledger_usage_unavailable": "Current spending or reserved credits could not be verified.",
+        "policy_unreadable": "The strategy budget or posting policy could not be verified."
+      }
+    }
+  },
+  "winners": {
+    "allPosts": "All posts",
+    "columns": {
+      "evidence": "Why it won",
+      "post": "Post"
+    },
+    "empty": "No winners in this period. A post wins when a metric beats its account's usual result and there are enough mature posts to compare.",
+    "evidence": "{signal} {ratio}× baseline ({value} vs {baseline}, {sampleSize} posts)",
+    "loadError": "Winners could not be loaded.",
+    "showLabel": "Show posts",
+    "signals": {
+      "comments": "Comments",
+      "engagementRate": "Engagement rate",
+      "likes": "Likes",
+      "views": "Views"
+    },
+    "tableLabel": "Winning posts",
+    "tiers": {
+      "breakout": "Breakout",
+      "outlier": "Outlier"
+    },
+    "untitled": "Untitled post",
+    "winners": "Winners"
+  },
+  "sourceFilter": {
+    "all": "All sources",
+    "audience": "Audience",
+    "aria": "Filter post analytics by source",
+    "extension": "Extension"
+  }
+}

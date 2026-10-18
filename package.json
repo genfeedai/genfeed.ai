@@ -364,8 +364,8 @@
     "nextra-theme-docs@4.6.1": "patches/nextra-theme-docs@4.6.1.patch"
   },
   "overrides": {
-    "ip-address": "10.3.1",
-    "fast-uri": "3.1.6",
+    "ip-address": "10.7.1",
+    "fast-uri": "3.1.8",
     "undici": "7.29.1",
     "hono": "4.12.34",
     "@hono/node-server": "2.0.10",
@@ -375,6 +375,7 @@
     "dompurify": "3.4.13",
     "mermaid": "11.16.1",
     "solid-js": "1.9.17",
+    "underscore": "1.13.8",
     "svelte": "4.2.19"
   }
 }

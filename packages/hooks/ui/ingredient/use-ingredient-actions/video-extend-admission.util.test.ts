@@ -1,7 +1,14 @@
-import { PricingType } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
+  IngredientCategory,
+  ModelCategory,
+  PricingType,
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
+import {
+  getVideoExtendAvailability,
   getVideoExtendDurationOptions,
+  getVideoExtendModelOptions,
   getVideoExtendQuote,
 } from '@hooks/ui/ingredient/use-ingredient-actions/video-extend-admission.util';
 import { describe, expect, it } from 'vitest';
@@ -14,6 +21,32 @@ const model = {
 };
 
 describe('video extension quote admission', () => {
+  it('uses the same source-first quoted options for availability and preparation', () => {
+    const source = {
+      id: 'source',
+      category: IngredientCategory.VIDEO,
+      model: model.key,
+    } as IIngredient;
+    const configured = {
+      ...model,
+      category: ModelCategory.VIDEO,
+      maxReferences: 1,
+    } as IModel;
+    expect(getVideoExtendAvailability(source, [configured])).toEqual({
+      isAvailable: true,
+    });
+    expect(getVideoExtendModelOptions(source, [configured])[0]?.key).toBe(
+      model.key,
+    );
+    expect(
+      getVideoExtendAvailability(source, [{ ...configured, cost: Number.NaN }]),
+    ).toEqual({ isAvailable: false, reason: 'priceUnavailable' });
+    expect(getVideoExtendAvailability(source, [])).toEqual({
+      isAvailable: false,
+      reason: 'modelUnavailable',
+    });
+  });
+
   it.each([undefined, [], [Number.NaN], [-1], [31], [4.5]])(
     'rejects invalid duration metadata (%j)',
     (durations) => {

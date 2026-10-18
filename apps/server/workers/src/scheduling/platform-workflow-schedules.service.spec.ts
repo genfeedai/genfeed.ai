@@ -41,13 +41,7 @@ describe('PlatformWorkflowSchedulesService', () => {
       { id: 'strategy-1', organizationId: 'org-1', config: {} },
     ]);
     runner.enqueueWorkflow.mockResolvedValue({ executionId: 'execution-1' });
-    // Active with Discovery by default, so the dispatch assertions below keep
-    // exercising the branches they target; the gate has its own tests.
-    prisma.member.findMany.mockResolvedValue([]);
-    prisma.session.findMany.mockImplementation(
-      async ({ where }: { where: { userId: { in: string[] } } }) =>
-        where.userId.in.map((userId) => ({ userId })),
-    );
+    // The default organization result also represents a recently active page.
     moduleAccess.canStartWork.mockResolvedValue(true);
   });
 
@@ -61,16 +55,49 @@ describe('PlatformWorkflowSchedulesService', () => {
     it.each(gated)(
       'skips %s for an organization with no session in the last 48h',
       async (template) => {
-        prisma.session.findMany.mockResolvedValue([]);
+        prisma.organization.findMany
+          .mockResolvedValueOnce([{ id: 'org-1', userId: 'owner-1' }])
+          .mockResolvedValueOnce([]);
         await service.sweep(template, Date.UTC(2026, 9, 14));
-        expect(prisma.session.findMany).toHaveBeenCalledWith({
+        expect(prisma.organization.findMany).toHaveBeenNthCalledWith(2, {
           where: {
-            userId: { in: ['owner-1'] },
-            updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+            id: { in: ['org-1'] },
+            isDeleted: false,
+            OR: [
+              {
+                user: {
+                  is: {
+                    sessions: {
+                      some: {
+                        updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                members: {
+                  some: {
+                    isDeleted: false,
+                    user: {
+                      is: {
+                        sessions: {
+                          some: {
+                            updatedAt: { gte: new Date(Date.UTC(2026, 9, 12)) },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
           },
-          distinct: ['userId'],
-          select: { userId: true },
+          select: { id: true },
+          take: 1,
         });
+        expect(prisma.member.findMany).not.toHaveBeenCalled();
+        expect(prisma.session.findMany).not.toHaveBeenCalled();
         expect(moduleAccess.canStartWork).not.toHaveBeenCalled();
         expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
         expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
@@ -90,17 +117,53 @@ describe('PlatformWorkflowSchedulesService', () => {
       },
     );
 
-    it('admits an organization through a recently active member, not only the owner', async () => {
-      prisma.member.findMany.mockResolvedValue([
-        { organizationId: 'org-1', userId: 'member-1' },
-      ]);
-      prisma.session.findMany.mockResolvedValue([{ userId: 'member-1' }]);
+    it('uses only activity IDs and preserves original organization admission order', async () => {
+      prisma.organization.findMany
+        .mockResolvedValueOnce([
+          { id: 'org-1', userId: 'owner-1' },
+          { id: 'org-2', userId: 'owner-2' },
+          { id: 'org-inactive', userId: 'owner-inactive' },
+        ])
+        .mockResolvedValueOnce([
+          { id: 'org-2' },
+          { id: 'org-outside-page' },
+          { id: 'org-1' },
+        ]);
+
       await service.sweep('content-learning.reconcile', 0);
-      expect(prisma.member.findMany).toHaveBeenCalledWith({
-        where: { organizationId: { in: ['org-1'] }, isDeleted: false },
-        select: { organizationId: true, userId: true },
-      });
-      expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
+
+      expect(moduleAccess.canStartWork.mock.calls).toEqual([
+        ['org-1', 'discovery'],
+        ['org-2', 'discovery'],
+      ]);
+      expect(runner.enqueueWorkflow).toHaveBeenCalledTimes(2);
+      expect(prisma.member.findMany).not.toHaveBeenCalled();
+      expect(prisma.session.findMany).not.toHaveBeenCalled();
+    });
+
+    it('does not read activity evidence for an empty organization page', async () => {
+      prisma.organization.findMany.mockResolvedValueOnce([]);
+
+      await service.sweep('content-learning.reconcile', 0);
+
+      expect(prisma.organization.findMany).toHaveBeenCalledOnce();
+      expect(prisma.member.findMany).not.toHaveBeenCalled();
+      expect(prisma.session.findMany).not.toHaveBeenCalled();
+      expect(moduleAccess.canStartWork).not.toHaveBeenCalled();
+    });
+
+    it('preserves an activity lookup failure without dispatching work', async () => {
+      const unavailable = new Error('activity database unavailable');
+      prisma.organization.findMany
+        .mockResolvedValueOnce([{ id: 'org-1', userId: 'owner-1' }])
+        .mockRejectedValueOnce(unavailable);
+
+      await expect(service.sweep('content-learning.reconcile', 0)).rejects.toBe(
+        unavailable,
+      );
+
+      expect(moduleAccess.canStartWork).not.toHaveBeenCalled();
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -385,23 +448,35 @@ describe('PlatformWorkflowSchedulesService', () => {
   });
 
   it('pages non-deleted organizations in bounded ID order', async () => {
+    const page = Array.from({ length: 100 }, (_, i) => ({
+      id: `org-${i}`,
+      userId: 'owner',
+    }));
     prisma.organization.findMany
-      .mockResolvedValueOnce(
-        Array.from({ length: 100 }, (_, i) => ({
-          id: `org-${i}`,
-          userId: 'owner',
-        })),
-      )
+      .mockResolvedValueOnce(page)
+      .mockResolvedValueOnce(page.map(({ id }) => ({ id })))
       .mockResolvedValueOnce([]);
     await service.sweep('analytics-sync', 0);
     expect(prisma.organization.findMany).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.objectContaining({
         where: { isDeleted: false, id: { gt: 'org-99' } },
         orderBy: { id: 'asc' },
         take: 100,
       }),
     );
+    expect(prisma.organization.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: page.map(({ id }) => id) },
+        }),
+        select: { id: true },
+        take: 100,
+      }),
+    );
+    expect(prisma.member.findMany).not.toHaveBeenCalled();
+    expect(prisma.session.findMany).not.toHaveBeenCalled();
   });
 
   it('runs the workspace task rollup recovery sweep', async () => {

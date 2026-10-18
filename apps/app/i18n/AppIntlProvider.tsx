@@ -4,7 +4,7 @@ import type { AppLocale } from '@genfeedai/contracts/constants';
 import { useViewerTimeZone } from '@hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
 import { NextIntlClientProvider } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
-import { loadMessages } from './messages';
+import { loadClientMessages } from './client-messages';
 
 interface AppIntlProviderProps {
   children: ReactNode;
@@ -21,7 +21,7 @@ export default function AppIntlProvider({
   children,
   locale,
 }: AppIntlProviderProps) {
-  const messages = useMemo(() => loadMessages(locale), [locale]);
+  const messages = useMemo(() => loadClientMessages(locale), [locale]);
   const timeZone = useViewerTimeZone();
 
   return (

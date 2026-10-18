@@ -95,6 +95,7 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalMetadata: makeStub('ModalMetadata'),
   LazyModalPostBatch: makeStub('ModalPostBatch'),
   LazyModalPostRemix: makeStub('ModalPostRemix'),
+  LazyModalPostRepurpose: makeStub('ModalPostRepurpose'),
   LazyModalPrompt: makeStub('ModalPrompt'),
   LazyModalUpload: makeStub('ModalUpload'),
   LazyPostMetadataOverlay: makeStub('PostMetadataOverlay'),

@@ -1,0 +1,15 @@
+{
+  "title": "Templates",
+  "description": "Create and manage reusable content templates",
+  "catalog": "Content Templates",
+  "loadError": "Failed to load templates",
+  "retry": "Retry",
+  "empty": "No templates yet",
+  "active": "Active",
+  "inactive": "Inactive",
+  "uncategorized": "Uncategorized",
+  "uses": "{count} uses",
+  "variables": "Variables:",
+  "open": "Open template {name}",
+  "details": "View details"
+}

@@ -501,6 +501,7 @@ export default function StudioPlaygroundCard({
       isContainerHovered: true,
       isDragEnabled: false,
       onClickIngredient: () => onSelect(job),
+      transformActions: assetActions.transformActions,
       onCopyPrompt: assetActions.onCopyPrompt,
       onDeleteIngredient: assetActions.onDeleteIngredient,
       onMarkRejected: assetActions.onMarkRejected,

@@ -29,16 +29,27 @@ export class LeonardoAIService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {
-    // Eager initialization - authenticate SDK in constructor to avoid race conditions
-    // NestJS creates singleton services, so this runs once at startup
     this.sdk.auth(this.configService.get('LEONARDO_KEY'));
   }
 
-  private async getGenerationById(generationId: string) {
+  private getSdkForRequest(apiKeyOverride?: string) {
+    if (!apiKeyOverride) {
+      return this.sdk;
+    }
+
+    const sdk = apiFactory('@leonardoai/v1.0#4ulvmzgnmb4k0che');
+    sdk.auth(apiKeyOverride);
+    return sdk;
+  }
+
+  private async getGenerationById(
+    generationId: string,
+    sdk: ReturnType<typeof apiFactory>,
+  ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const res = await this.sdk.getGenerationById({ id: generationId });
+    const res = await sdk.getGenerationById({ id: generationId });
     return res.generations_by_pk.generated_images[0].id;
   }
 
@@ -71,9 +82,7 @@ export class LeonardoAIService {
     try {
       this.loggerService.log(`${url} started`);
 
-      if (apiKeyOverride) {
-        this.sdk.auth(apiKeyOverride);
-      }
+      const sdk = this.getSdkForRequest(apiKeyOverride);
 
       const generationData = {
         height,
@@ -86,7 +95,7 @@ export class LeonardoAIService {
         width,
       };
 
-      const res = await this.sdk.createGeneration(generationData);
+      const res = await sdk.createGeneration(generationData);
 
       if (res.status !== 200) {
         this.loggerService.error(`${url} failed`, res.error);
@@ -96,10 +105,6 @@ export class LeonardoAIService {
       return res.data.sdGenerationJob.generationId;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-    } finally {
-      if (apiKeyOverride) {
-        this.sdk.auth(this.configService.get('LEONARDO_KEY'));
-      }
     }
   }
 
@@ -113,9 +118,7 @@ export class LeonardoAIService {
     try {
       this.loggerService.log(`${url} started for ${generationId}`);
 
-      if (apiKeyOverride) {
-        this.sdk.auth(apiKeyOverride);
-      }
+      const sdk = this.getSdkForRequest(apiKeyOverride);
 
       if (!generationId) {
         throw new Error('Generation ID is required');
@@ -123,9 +126,9 @@ export class LeonardoAIService {
 
       const imageId = generationId?.startsWith('img')
         ? generationId
-        : await this.getGenerationById(generationId);
+        : await this.getGenerationById(generationId, sdk);
 
-      const res = await this.sdk.createImageToVideoGeneration({
+      const res = await sdk.createImageToVideoGeneration({
         imageId,
         imageType: 'GENERATED',
         prompt,
@@ -134,10 +137,6 @@ export class LeonardoAIService {
       return res.data.sdGenerationJob.generationId;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-    } finally {
-      if (apiKeyOverride) {
-        this.sdk.auth(this.configService.get('LEONARDO_KEY'));
-      }
     }
   }
 
@@ -147,19 +146,13 @@ export class LeonardoAIService {
     try {
       this.loggerService.log(`${url} started`);
 
-      if (apiKeyOverride) {
-        this.sdk.auth(apiKeyOverride);
-      }
+      const sdk = this.getSdkForRequest(apiKeyOverride);
 
-      const res = await this.sdk.createVideoGeneration({ prompt });
+      const res = await sdk.createVideoGeneration({ prompt });
 
       return res.data.sdGenerationJob.generationId;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-    } finally {
-      if (apiKeyOverride) {
-        this.sdk.auth(this.configService.get('LEONARDO_KEY'));
-      }
     }
   }
 
@@ -173,11 +166,9 @@ export class LeonardoAIService {
     try {
       this.loggerService.log(`${url} started for ${imageId}`);
 
-      if (apiKeyOverride) {
-        this.sdk.auth(apiKeyOverride);
-      }
+      const sdk = this.getSdkForRequest(apiKeyOverride);
 
-      const res = await this.sdk.createReworkGeneration({
+      const res = await sdk.createReworkGeneration({
         imageId,
         prompt,
       });
@@ -185,10 +176,6 @@ export class LeonardoAIService {
       return res.data.sdGenerationJob.generationId;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-    } finally {
-      if (apiKeyOverride) {
-        this.sdk.auth(this.configService.get('LEONARDO_KEY'));
-      }
     }
   }
 }

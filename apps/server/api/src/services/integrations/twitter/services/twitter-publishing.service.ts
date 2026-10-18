@@ -1,4 +1,7 @@
-import { Buffer } from 'node:buffer';
+import {
+  downloadTwitterMedia,
+  type TwitterMediaSource,
+} from '@api/services/integrations/twitter/services/twitter-media-download.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
@@ -7,8 +10,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
 import { TwitterApi } from 'twitter-api-v2';
 
 interface TweetMediaOptions {
@@ -52,7 +53,7 @@ function requireAccessToken(value: string | null | undefined): string {
 
 export class TwitterPublishingService {
   constructor(
-    private readonly httpService: HttpService,
+    private readonly configuredMediaUrl: string,
     private readonly loggerService: LoggerService,
     private readonly resolveCredential: ResolveTwitterCredential,
   ) {}
@@ -66,6 +67,7 @@ export class TwitterPublishingService {
     quoteTweetId?: string,
     settings: ChannelTargetSettings = {},
     credentialId?: string,
+    mediaSource: TwitterMediaSource = 'external',
   ): Promise<string> {
     const url = `TwitterService ${CallerUtil.getCallerName()}`;
 
@@ -85,11 +87,14 @@ export class TwitterPublishingService {
 
       const mediaIds: string[] = [];
       for (const mediaUrl of mediaUrls) {
-        const mediaResponse = await firstValueFrom(
-          this.httpService.get(mediaUrl, { responseType: 'arraybuffer' }),
+        const media = await downloadTwitterMedia(
+          mediaUrl,
+          mediaType,
+          this.configuredMediaUrl,
+          mediaSource,
         );
         mediaIds.push(
-          await userClient.v2.uploadMedia(Buffer.from(mediaResponse.data), {
+          await userClient.v2.uploadMedia(media, {
             media_type: mediaType,
           }),
         );

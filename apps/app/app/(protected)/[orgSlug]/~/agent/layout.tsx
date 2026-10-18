@@ -1,8 +1,12 @@
-import type { ReactNode } from 'react';
-import AgentConversationRouteHost from './AgentConversationRouteHost';
+import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
+import messages from '@app-i18n/page-scopes/agent';
+import type { LayoutProps } from '@props/layout/layout.props';
+import LayoutContent from './layout-content';
 
-// The conversation lives in the layout so it survives `/agent/[id]` changes;
-// the pages below only carry route intent (reset, malformed-id redirect).
-export default function ChatLayout({ children }: { children: ReactNode }) {
-  return <AgentConversationRouteHost>{children}</AgentConversationRouteHost>;
+export default function PageIntlLayout({ children }: LayoutProps) {
+  return (
+    <AppPageIntlProvider pages={messages}>
+      <LayoutContent>{children}</LayoutContent>
+    </AppPageIntlProvider>
+  );
 }

@@ -1,57 +1,12 @@
-'use client';
-
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { Timeframe } from '@genfeedai/contracts';
+import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
+import messages from '@app-i18n/page-scopes/analytics';
 import type { LayoutProps } from '@props/layout/layout.props';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import { ErrorBoundary } from '@ui/error';
-import Container from '@ui/layout/container/Container';
-import FormDateRangePicker from '@ui/primitives/date-range-picker';
-import { ChartColumn } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import AnalyticsWorkSurfaceAdapter, {
-  AnalyticsScopedExportButton,
-} from '@/../app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter';
+import LayoutContent from './layout-client';
 
-function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
-  const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
-    useAnalyticsContext();
-  const translate = useTranslations('pages.analytics.layout');
-
+export default function PageIntlLayout({ children }: LayoutProps) {
   return (
-    <Container
-      label={translate('organization.title')}
-      description={translate('organization.description')}
-      icon={ChartColumn}
-      refresh={
-        <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
-      }
-      right={
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {toolbarNode}
-          <AnalyticsScopedExportButton />
-          <FormDateRangePicker
-            onChange={setDateRange}
-            defaultPreset={Timeframe.D7}
-            value={dateRange}
-          />
-        </div>
-      }
-    >
-      <ErrorBoundary
-        title={translate('errorTitle')}
-        description={translate('organization.errorDescription')}
-      >
-        {children}
-      </ErrorBoundary>
-    </Container>
-  );
-}
-
-export default function OrgAnalyticsLayout({ children }: LayoutProps) {
-  return (
-    <AnalyticsWorkSurfaceAdapter>
-      <OrgAnalyticsLayoutContent>{children}</OrgAnalyticsLayoutContent>
-    </AnalyticsWorkSurfaceAdapter>
+    <AppPageIntlProvider pages={messages}>
+      <LayoutContent>{children}</LayoutContent>
+    </AppPageIntlProvider>
   );
 }
