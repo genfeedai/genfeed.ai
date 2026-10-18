@@ -18,7 +18,8 @@ export interface AnalyticsSyncOptions {
 
 export interface AnalyticsSyncItem {
   brandId: string;
-  clicks: number;
+  /** Absent when the provider did not report clicks; never a fabricated 0. */
+  clicks?: number;
   comments: number;
   contentRunId?: string;
   contentType?: ReturnType<typeof mapPostCategoryToContentType>;
@@ -112,7 +113,7 @@ export class AnalyticsSyncService {
         const promptUsed = post.promptUsed?.trim() || description;
         return {
           brandId,
-          clicks: row.clicks ?? 0,
+          ...(typeof row.clicks === 'number' ? { clicks: row.clicks } : {}),
           comments: row.totalComments ?? 0,
           ...(post.contentRunId ? { contentRunId: post.contentRunId } : {}),
           ...(contentType ? { contentType } : {}),
@@ -196,11 +197,10 @@ export class AnalyticsSyncService {
       organizationId,
       performanceScore: this.computePerformanceScore({
         ...metrics,
-        clicks: item.clicks,
+        clicks: item.clicks ?? 0,
       }),
       platform: item.platform,
       postId: item.postId,
-      revenue: 0,
       saves: item.saves,
       shares: item.shares,
       source: PerformanceSource.API,
@@ -294,16 +294,26 @@ export class AnalyticsSyncService {
       }
       return candidate;
     };
-    const requiredNumber = (key: keyof AnalyticsSyncItem) => {
+    const optionalNumber = (key: keyof AnalyticsSyncItem) => {
       const candidate = item[key];
+      if (candidate === undefined || candidate === null) {
+        return undefined;
+      }
       if (typeof candidate !== 'number' || !Number.isFinite(candidate)) {
+        throw new Error(`Analytics item ${key} must be a finite number`);
+      }
+      return candidate;
+    };
+    const requiredNumber = (key: keyof AnalyticsSyncItem) => {
+      const candidate = optionalNumber(key);
+      if (candidate === undefined) {
         throw new Error(`Analytics item ${key} must be a finite number`);
       }
       return candidate;
     };
     return {
       brandId: requiredString('brandId'),
-      clicks: requiredNumber('clicks'),
+      clicks: optionalNumber('clicks'),
       comments: requiredNumber('comments'),
       contentRunId: optionalString('contentRunId'),
       contentType: optionalString(

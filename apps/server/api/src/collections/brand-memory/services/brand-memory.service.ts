@@ -16,8 +16,34 @@ import { Injectable } from '@nestjs/common';
 export interface BrandMemoryEntryInput {
   type: string;
   content: string;
+  /**
+   * Replay identity: an entry with the same key in the day's row is replaced
+   * instead of appended, so re-running a sync never duplicates it.
+   */
+  key?: string;
   metadata?: Record<string, unknown>;
   timestamp?: Date;
+}
+
+/**
+ * Insight sources written by analytics replays. One insight per source per
+ * day: a replay replaces the earlier copy instead of appending a duplicate.
+ */
+const REPLAY_KEYED_INSIGHT_SOURCE_PREFIXES = [
+  'analytics-threshold:',
+  'analytics-winner:',
+] as const;
+
+function readSource(value: unknown): unknown {
+  return value && typeof value === 'object' && 'source' in value
+    ? value.source
+    : undefined;
+}
+
+function readKey(value: unknown): unknown {
+  return value && typeof value === 'object' && 'key' in value
+    ? value.key
+    : undefined;
 }
 
 export interface BrandMemoryInsightInput {
@@ -77,6 +103,7 @@ export class BrandMemoryService extends BaseService<
 
     const newEntry = {
       content: entry.content,
+      ...(entry.key ? { key: entry.key } : {}),
       metadata: entry.metadata,
       timestamp: entry.timestamp ?? new Date(),
       type: entry.type,
@@ -85,13 +112,16 @@ export class BrandMemoryService extends BaseService<
     if (existing) {
       const currentEntries =
         ((existing as Record<string, unknown>).entries as unknown[]) ?? [];
+      const retainedEntries = entry.key
+        ? currentEntries.filter((current) => readKey(current) !== entry.key)
+        : currentEntries;
       return this.delegate.update({
         where: scopedWhere(organizationId, {
           brandId,
           id: (existing as Record<string, unknown>).id as string,
         }),
         data: {
-          entries: [...currentEntries, newEntry] as unknown as Record<
+          entries: [...retainedEntries, newEntry] as unknown as Record<
             string,
             unknown
           >[],
@@ -132,23 +162,24 @@ export class BrandMemoryService extends BaseService<
     if (existing) {
       const currentInsights =
         ((existing as Record<string, unknown>).insights as unknown[]) ?? [];
+      const isReplayKeyed = REPLAY_KEYED_INSIGHT_SOURCE_PREFIXES.some(
+        (prefix) => insight.source.startsWith(prefix),
+      );
+      const retainedInsights = isReplayKeyed
+        ? currentInsights.filter(
+            (current) => readSource(current) !== insight.source,
+          )
+        : currentInsights;
       return this.delegate.update({
         where: scopedWhere(organizationId, {
           brandId,
           id: (existing as Record<string, unknown>).id as string,
         }),
         data: {
-          insights: [
-            ...currentInsights.filter(
-              (current) =>
-                !insight.source.startsWith('analytics-threshold:') ||
-                !current ||
-                typeof current !== 'object' ||
-                !('source' in current) ||
-                current.source !== insight.source,
-            ),
-            newInsight,
-          ] as unknown as Record<string, unknown>[],
+          insights: [...retainedInsights, newInsight] as unknown as Record<
+            string,
+            unknown
+          >[],
         },
       }) as Promise<BrandMemoryDocument>;
     }
