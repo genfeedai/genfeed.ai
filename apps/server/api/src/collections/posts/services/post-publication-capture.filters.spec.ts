@@ -1,8 +1,14 @@
 import {
   extensionPublicationAnalyticsDiscoveryFilter,
+  OWNED_INBOX_POST_ORDER_BY,
   publicYoutubeInboxPostFilter,
+  publishedInboxPostStateFilter,
 } from '@api/collections/posts/services/post-publication-capture.filters';
-import { Platform, PostStatus } from '@genfeedai/contracts';
+import {
+  Platform,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { expect, it } from 'vitest';
 
@@ -29,10 +35,12 @@ it('includes owned published YouTube posts while preserving credential and captu
     credentialId: 'credential',
     externalId: { not: null },
     platform: Platform.YOUTUBE,
-    status: {
-      in: [PostStatus.PUBLIC, PostStatus.UNLISTED, PostStatus.PRIVATE],
-    },
     AND: [
+      publishedInboxPostStateFilter([
+        PostStatus.PUBLIC,
+        PostStatus.UNLISTED,
+        PostStatus.PRIVATE,
+      ]),
       {
         OR: [
           ...legacy,
@@ -54,3 +62,26 @@ it('keeps optional brand undefined without changing the credential predicate', (
     brandId: undefined,
     credentialId: 'credential',
   }));
+it('accepts lifecycle-published rows whose legacy status is still the draft default', () =>
+  expect(publishedInboxPostStateFilter([PostStatus.PUBLIC])).toEqual({
+    OR: [
+      { targetExecutionState: TargetExecutionState.PUBLISHED },
+      { status: { in: [PostStatus.PUBLIC] } },
+    ],
+  }));
+it('does not admit unpublished rows through the legacy status branch', () => {
+  const filter = publishedInboxPostStateFilter([
+    PostStatus.PUBLIC,
+    PostStatus.UNLISTED,
+    PostStatus.PRIVATE,
+  ]);
+  expect(JSON.stringify(filter)).not.toContain(PostStatus.DRAFT);
+  expect(JSON.stringify(filter)).not.toContain(PostStatus.SCHEDULED);
+  expect(JSON.stringify(filter)).not.toContain(PostStatus.FAILED);
+});
+it('orders by publish time with nulls last so lifecycle rows keep newest-first', () =>
+  expect(OWNED_INBOX_POST_ORDER_BY).toEqual([
+    { publishedAt: { nulls: 'last', sort: 'desc' } },
+    { publicationDate: { nulls: 'last', sort: 'desc' } },
+    { createdAt: 'desc' },
+  ]));

@@ -1,4 +1,8 @@
-import { publicYoutubeInboxPostFilter } from '@api/collections/posts/services/post-publication-capture.filters';
+import {
+  OWNED_INBOX_POST_ORDER_BY,
+  publicYoutubeInboxPostFilter,
+  publishedInboxPostStateFilter,
+} from '@api/collections/posts/services/post-publication-capture.filters';
 import type {
   SocialConversationAvailability,
   SocialConversationDocument,
@@ -327,7 +331,7 @@ export class SocialInboxIngestionService {
         ),
       findOwnedPosts: (organizationId, credential) =>
         this.prisma.post.findMany({
-          orderBy: { publishedAt: 'desc' },
+          orderBy: OWNED_INBOX_POST_ORDER_BY,
           take: 20,
           where: scopedWhere(
             organizationId,
@@ -371,14 +375,14 @@ export class SocialInboxIngestionService {
 
     for (const credential of credentials) {
       const posts = await this.prisma.post.findMany({
-        orderBy: { publishedAt: 'desc' },
+        orderBy: OWNED_INBOX_POST_ORDER_BY,
         take: 20,
         where: scopedWhere(scope.organizationId, {
           brandId: credential.brandId ?? undefined,
           credentialId: credential.id,
           externalId: { not: null },
           platform: Platform.INSTAGRAM,
-          status: { in: [PostStatus.PUBLIC] },
+          AND: [publishedInboxPostStateFilter([PostStatus.PUBLIC])],
         }),
       });
 
@@ -625,14 +629,14 @@ export class SocialInboxIngestionService {
       );
 
       const posts = await this.prisma.post.findMany({
-        orderBy: { publishedAt: 'desc' },
+        orderBy: OWNED_INBOX_POST_ORDER_BY,
         take: 20,
         where: scopedWhere(scope.organizationId, {
           brandId,
           credentialId: credential.id,
           externalId: { not: null },
           platform: Platform.TWITTER,
-          status: { in: [PostStatus.PUBLIC] },
+          AND: [publishedInboxPostStateFilter([PostStatus.PUBLIC])],
         }),
       });
 
@@ -813,14 +817,14 @@ export class SocialInboxIngestionService {
       }
 
       const posts = await this.prisma.post.findMany({
-        orderBy: { publishedAt: 'desc' },
+        orderBy: OWNED_INBOX_POST_ORDER_BY,
         take: 20,
         where: scopedWhere(scope.organizationId, {
           brandId,
           credentialId: credential.id,
           externalId: { not: null },
           platform: Platform.LINKEDIN,
-          status: { in: [PostStatus.PUBLIC] },
+          AND: [publishedInboxPostStateFilter([PostStatus.PUBLIC])],
         }),
       });
 
