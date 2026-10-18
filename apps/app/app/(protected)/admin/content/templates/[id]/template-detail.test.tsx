@@ -3,12 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import messages from '../../../../../../messages/en/pages/adminTemplates.json';
 import TemplateDetail from './template-detail';
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+// Stable like the real hook: a new `t` per render re-runs the load effect,
+// which resets the template to loading.
+const translate = vi.hoisted(
+  () => (key: string, values?: Record<string, unknown>) =>
     (messages as Record<string, string>)[key].replace(
       /\{(\w+)\}/g,
       (_, name: string) => String(values?.[name]),
     ),
+);
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => translate,
 }));
 
 const mocks = vi.hoisted(() => ({
