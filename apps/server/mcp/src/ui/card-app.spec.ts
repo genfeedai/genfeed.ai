@@ -799,3 +799,19 @@ it('explains unsupported files while retaining the open action', () => {
     'https://cdn.genfeed.ai/file.txt',
   );
 });
+
+it('lists only origins a browser iframe can load in the card CSP', () => {
+  const { _meta } = cardResource([
+    'https://cdn.genfeed.ai',
+    'http://files.genfeed.internal:3012',
+    'http://localhost:3012',
+    'http://media.example',
+  ]);
+  const domains = _meta.ui.csp.resourceDomains;
+
+  expect(domains).toEqual(
+    expect.arrayContaining(['https://cdn.genfeed.ai', 'http://localhost:3012']),
+  );
+  expect(domains).not.toContain('http://files.genfeed.internal:3012');
+  expect(domains).not.toContain('http://media.example');
+});
