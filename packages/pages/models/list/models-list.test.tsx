@@ -31,6 +31,10 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: (...args: unknown[]) => mockOpenModal(...args),
 }));
 
+vi.mock('@ui/lazy/modal/LazyModal', () => ({
+  LazyModalModel: () => null,
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
