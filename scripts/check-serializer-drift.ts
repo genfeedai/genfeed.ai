@@ -230,6 +230,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'image:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Computed for the superadmin generation ledger from the activity log.
+    'generationCredits',
     'blacklist',
     'blacklists',
     'camera',
@@ -275,6 +277,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'ingredient:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Computed for the superadmin generation ledger from the activity log.
+    'generationCredits',
     'blacklists',
     'camera',
     // Computed on read from s3Key by the Prisma result extension.
@@ -439,6 +443,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'voice:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Computed for the superadmin generation ledger from the activity log.
+    'generationCredits',
     'accent',
     'blacklists',
     'camera',
@@ -637,6 +643,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'avatar:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Computed for the superadmin generation ledger from the activity log.
+    'generationCredits',
     'age',
     'blacklists',
     'camera',
@@ -693,6 +701,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'video:Ingredient': [
     'agentWorkObject',
     'imageEdit',
+    // Computed for the superadmin generation ledger from the activity log.
+    'generationCredits',
     'bitrate',
     'blacklist',
     'blacklists',

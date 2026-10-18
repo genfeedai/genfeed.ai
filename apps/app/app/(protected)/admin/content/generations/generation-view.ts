@@ -1,3 +1,4 @@
+import { readRecordOrUndefined } from '@genfeedai/utils/data/extract.util';
 import type {
   GenerationMediaKind,
   GenerationView,
@@ -8,12 +9,6 @@ type SourceRecord = Record<string, unknown>;
 const PLACEHOLDER_ASPECT_RATIO = 1;
 const MIN_ASPECT_RATIO = 0.4;
 const MAX_ASPECT_RATIO = 2.4;
-
-function asRecord(value: unknown): SourceRecord | undefined {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as SourceRecord)
-    : undefined;
-}
 
 function readText(source: SourceRecord | undefined, key: string): string {
   const value = source?.[key];
@@ -34,7 +29,7 @@ function readDate(source: SourceRecord | undefined, key: string): string {
 /** A related record arrives as an object when included and as an id when not. */
 function readPerson(value: unknown): string {
   if (typeof value === 'string') return value;
-  const record = asRecord(value);
+  const record = readRecordOrUndefined(value);
   return (
     readText(record, 'email') ||
     readText(record, 'handle') ||
@@ -81,7 +76,7 @@ function readMediaKind(category: string, url: string): GenerationMediaKind {
  * receipt is stored JSON, so every field is optional.
  */
 export function readDirectives(harness: unknown): string[] {
-  const receipt = asRecord(harness);
+  const receipt = readRecordOrUndefined(harness);
   if (!receipt) return [];
 
   const lines: string[] = [];
@@ -99,7 +94,7 @@ export function readDirectives(harness: unknown): string[] {
   const packs = Array.isArray(receipt.appliedPacks) ? receipt.appliedPacks : [];
   const packLabels = packs
     .map((pack) => {
-      const record = asRecord(pack);
+      const record = readRecordOrUndefined(pack);
       const id = readText(record, 'id');
       const version = readText(record, 'version');
       return id ? (version ? `${id}@${version}` : id) : '';
@@ -118,8 +113,8 @@ export function readDirectives(harness: unknown): string[] {
 /** One ledger row from a generated ingredient (image, video or music). */
 export function toGenerationView(ingredient: object): GenerationView {
   const source = ingredient as SourceRecord;
-  const prompt = asRecord(source.prompt);
-  const metadata = asRecord(source.metadata);
+  const prompt = readRecordOrUndefined(source.prompt);
+  const metadata = readRecordOrUndefined(source.metadata);
   const mediaUrl =
     readText(source, 'cdnUrl') || readText(source, 'ingredientUrl');
   const credits = source.generationCredits;
