@@ -56,6 +56,20 @@ export const OWNED_INBOX_POST_ORDER_BY: Prisma.PostOrderByWithRelationInput[] =
     { createdAt: 'desc' },
   ];
 
+export function ownedPublicInboxPostFilter(
+  platform: Platform,
+  credentialId: string,
+  brandId: string | null | undefined,
+): Prisma.PostWhereInput {
+  return {
+    brandId: brandId ?? undefined,
+    credentialId,
+    externalId: { not: null },
+    platform,
+    AND: [publishedInboxPostStateFilter([PostStatus.PUBLIC])],
+  };
+}
+
 export function publicYoutubeInboxPostFilter(
   credential: Pick<Credential, 'id' | 'brandId'>,
 ): Prisma.PostWhereInput {

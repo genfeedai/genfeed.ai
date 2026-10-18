@@ -1,6 +1,7 @@
 import {
   extensionPublicationAnalyticsDiscoveryFilter,
   OWNED_INBOX_POST_ORDER_BY,
+  ownedPublicInboxPostFilter,
   publicYoutubeInboxPostFilter,
   publishedInboxPostStateFilter,
 } from '@api/collections/posts/services/post-publication-capture.filters';
@@ -85,3 +86,13 @@ it('orders by publish time with nulls last so lifecycle rows keep newest-first',
     { publicationDate: { nulls: 'last', sort: 'desc' } },
     { createdAt: 'desc' },
   ]));
+it('scopes owned public inbox posts to the credential and accepts lifecycle-published rows', () =>
+  expect(
+    ownedPublicInboxPostFilter(Platform.TWITTER, 'credential', null),
+  ).toEqual({
+    brandId: undefined,
+    credentialId: 'credential',
+    externalId: { not: null },
+    platform: Platform.TWITTER,
+    AND: [publishedInboxPostStateFilter([PostStatus.PUBLIC])],
+  }));
