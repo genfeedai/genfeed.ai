@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
+import { getRejectedGrokTrendReason } from '@api/collections/trends/utils/grok-trend-rejection.util';
 import {
   captureTrendRefreshEvidence,
   classifyTrendProviderError,
@@ -23,7 +24,6 @@ import { PinterestService } from '@api/services/integrations/pinterest/services/
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dto';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -68,11 +68,6 @@ export class TrendFetchService {
   private readonly CACHE_PREFIX = 'trends';
   private readonly GLOBAL_TREND_DOCUMENT_TTL_MINUTES = 48 * 60;
   private readonly PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES = 10;
-  private readonly YEAR_TOKEN_PATTERN = /\b(20\d{2})\b/;
-  private readonly HISTORICAL_CONTEXT_PATTERN =
-    /\b(completed|ended|highlights?\s+from|opening ceremony from|closing ceremony from|recap|throwback|archive|from\s+20\d{2})\b/i;
-  private readonly CURRENT_TRIGGER_PATTERN =
-    /\b(today|tonight|this week|now|currently|new|latest|ongoing|live|breaking|just announced|released|launch|current)\b/i;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -196,7 +191,7 @@ export class TrendFetchService {
         region: 'US',
       });
       const validGrokTrends = grokTrends.filter((trend) => {
-        const rejectionReason = this.getRejectedGrokTrendReason(trend);
+        const rejectionReason = getRejectedGrokTrendReason(trend);
 
         if (!rejectionReason) {
           return true;
@@ -293,52 +288,6 @@ export class TrendFetchService {
     }
 
     return tags;
-  }
-
-  private getRejectedGrokTrendReason(
-    trend: GrokTrendData,
-  ): 'historical-context' | 'past-year-token' | null {
-    const currentYear = new Date().getUTCFullYear();
-    const topicYear = this.getPastYearToken(
-      trend.topic,
-      trend.hashtags,
-      currentYear,
-    );
-
-    if (topicYear) {
-      return 'past-year-token';
-    }
-
-    if (
-      this.HISTORICAL_CONTEXT_PATTERN.test(trend.context) &&
-      !this.CURRENT_TRIGGER_PATTERN.test(trend.context)
-    ) {
-      return 'historical-context';
-    }
-
-    return null;
-  }
-
-  private getPastYearToken(
-    topic: string,
-    hashtags: string[],
-    currentYear: number,
-  ): number | null {
-    const values = [topic, ...hashtags];
-
-    for (const value of values) {
-      const match = value.match(this.YEAR_TOKEN_PATTERN);
-      if (!match) {
-        continue;
-      }
-
-      const year = Number(match[1]);
-      if (year < currentYear) {
-        return year;
-      }
-    }
-
-    return null;
   }
 
   /**
