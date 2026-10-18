@@ -1,5 +1,9 @@
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
-import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
+import {
+  isContentCardsUri,
+  MCP_APP_MIME_TYPE,
+  MCP_CARD_RESOURCE_URI,
+} from '@mcp/ui/card-data';
 
 /**
  * Canonical MCP resource URIs. Every surface that advertises or reads a
@@ -58,7 +62,8 @@ export const MCP_RESOURCES: readonly McpResource[] = [
 
 export function isPublicMcpResourceUri(uri: unknown): uri is string {
   return (
-    typeof uri === 'string' &&
-    PUBLIC_MCP_RESOURCES.some((resource) => resource.uri === uri)
+    isContentCardsUri(uri) ||
+    (typeof uri === 'string' &&
+      PUBLIC_MCP_RESOURCES.some((resource) => resource.uri === uri))
   );
 }

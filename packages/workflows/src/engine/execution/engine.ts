@@ -35,6 +35,7 @@ import {
   type EngineExecutionOptions,
   type VideoGenerationGateConfig,
 } from '../video-generation-lineage';
+import { resolveConditionBranchOutput } from './branch-routing';
 import { WorkflowExecutionError } from './execution-error';
 import {
   isFailureControlledNode,
@@ -635,6 +636,16 @@ export class WorkflowEngine {
         const sourceOutput = cache.get(edge.source);
         if (sourceOutput !== undefined) {
           const handleKey = edge.targetHandle ?? edge.source;
+          const branch = resolveConditionBranchOutput(
+            edge.sourceHandle,
+            sourceOutput,
+          );
+          if (branch.isBranch) {
+            if (branch.isTaken) {
+              this.addInput(inputs, handleKey, branch.value);
+            }
+            continue;
+          }
           const sourceKey = edge.sourceHandle ?? edge.targetHandle;
           // A named source handle that an object output does not carry is a
           // mis-wired multi-output node, so the edge stays closed. A scalar

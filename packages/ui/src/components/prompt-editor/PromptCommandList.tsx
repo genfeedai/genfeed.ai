@@ -9,6 +9,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
   AudioLines,
+  Bookmark,
   Calendar,
   ChartColumn,
   ChartLine,
@@ -29,6 +30,7 @@ import {
   Zap,
 } from 'lucide-react';
 import {
+  Fragment,
   type ReactElement,
   type Ref,
   useEffect,
@@ -50,6 +52,7 @@ const COMMAND_ICONS: Record<string, ReactElement> = {
   'generate-image': <Image className="size-4" />,
   hashtags: <Hash className="size-4" />,
   ideas: <Lightbulb className="size-4" />,
+  look: <Bookmark className="size-4" />,
   image: <Image className="size-4" />,
   interview: <Mic className="size-4" />,
   optimization: <Wand className="size-4" />,
@@ -134,30 +137,36 @@ export function PromptCommandList({
       data-testid="prompt-command-list"
     >
       {items.map((item, index) => (
-        <Button
-          className={cn(
-            'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0',
-            index === selectedIndex % items.length
-              ? 'bg-accent text-accent-foreground'
-              : 'text-popover-foreground hover:bg-accent/50',
-          )}
-          key={item.name}
-          onClick={() => command(item)}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          <span className="flex shrink-0 text-muted-foreground">
-            {commandIcon(item)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">
-              /{item.name}
+        <Fragment key={item.name}>
+          {item.group && item.group !== items[index - 1]?.group ? (
+            <span className="block px-3 pb-1 pt-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              {item.group}
             </span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {item.description}
+          ) : null}
+          <Button
+            className={cn(
+              'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0',
+              index === selectedIndex % items.length
+                ? 'bg-accent text-accent-foreground'
+                : 'text-popover-foreground hover:bg-accent/50',
+            )}
+            onClick={() => command(item)}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          >
+            <span className="flex shrink-0 text-muted-foreground">
+              {commandIcon(item)}
             </span>
-          </div>
-        </Button>
+            <div className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">
+                /{item.name}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {item.description}
+              </span>
+            </div>
+          </Button>
+        </Fragment>
       ))}
     </div>
   );

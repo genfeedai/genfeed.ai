@@ -12,6 +12,21 @@ import {
   safeCardUrl,
 } from '@mcp/ui/card-data';
 
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', '[::1]', 'localhost']);
+
+/**
+ * Whether a browser iframe can load media from this URL. A plain-http or
+ * internal-network origin (the files service address behind the API) is
+ * mixed content in the host page and is not a valid CSP source for it.
+ */
+function isBrowserOrigin(url: string): boolean {
+  const { hostname, protocol } = new URL(url);
+  return (
+    protocol === 'https:' ||
+    (protocol === 'http:' && LOOPBACK_HOSTS.has(hostname))
+  );
+}
+
 export function cardResource(
   origins: readonly string[] = ['https://cdn.genfeed.ai'],
   fontUrl = `https://mcp.genfeed.ai${SATOSHI_FONT_RESOURCE_PATH}?v=${MCP_CARD_RESOURCE_HASH}`,
@@ -20,7 +35,7 @@ export function cardResource(
     ...new Set(
       origins.flatMap((value) => {
         const url = safeCardUrl(value);
-        return url ? [new URL(url).origin] : [];
+        return url && isBrowserOrigin(url) ? [new URL(url).origin] : [];
       }),
     ),
   ];

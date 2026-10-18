@@ -42,8 +42,10 @@ export function createPostsGenerationHttpException(
   detail: string,
   title: string,
   status: HttpStatus,
+  cause?: unknown,
 ): HttpException {
-  return new HttpException({ detail, title }, status);
+  // `cause` keeps the original failure on the wrapper so Sentry reports it.
+  return new HttpException({ detail, title }, status, { cause });
 }
 
 export function isOwnedPost(

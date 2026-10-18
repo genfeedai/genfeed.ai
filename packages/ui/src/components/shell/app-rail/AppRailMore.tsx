@@ -9,21 +9,21 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { Separator } from '@ui/primitives/separator';
-import { Ellipsis, Pin, SlidersHorizontal } from 'lucide-react';
+import { Ellipsis, Pin, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /**
  * The overflow entry, ChatGPT-style: apps the member installed but did not
- * put on the rail, one click from opening or pinning, plus the way into
- * customizing the rail.
+ * put on the rail (and core apps the member took off it), one click from
+ * opening or pinning, plus the way back to the default rail.
  */
 export function AppRailMore({
   isSuspended = false,
   items,
-  onCustomize,
   onOpen,
+  onReset,
   onTogglePin,
 }: AppRailMoreProps) {
   const t = useTranslations('common.appRail');
@@ -95,22 +95,22 @@ export function AppRailMore({
             );
           })
         )}
-        {onCustomize ? (
+        {onReset ? (
           <>
             <Separator className="my-1" />
             <Button
               className="w-full justify-start gap-2 px-2"
-              data-testid="app-rail-customize-open"
+              data-testid="app-rail-reset"
               onClick={() => {
                 setIsOpen(false);
-                onCustomize();
+                onReset();
               }}
               type="button"
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
-              <SlidersHorizontal aria-hidden="true" className="size-4" />
-              {t('customize')}
+              <RotateCcw aria-hidden="true" className="size-4" />
+              {t('reset')}
             </Button>
           </>
         ) : null}

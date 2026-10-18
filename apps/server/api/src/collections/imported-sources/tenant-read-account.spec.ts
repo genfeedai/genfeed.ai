@@ -27,7 +27,7 @@ import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-conte
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
-import { MemberRole } from '@genfeedai/contracts';
+import { CredentialPlatform, MemberRole } from '@genfeedai/contracts';
 import type { ImportedSourceSnapshotInput } from '@genfeedai/contracts/api-types/contracts/imported-source.contract';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -635,22 +635,32 @@ describe('ordinary account owner and mutation behavior', () => {
     );
     expect(getOrCreateBalance).toHaveBeenCalledWith(originalOrg);
   });
-  it('ordinary credential account-health retains the original mutation call', async () => {
-    const findMany = vi.fn(async () => [{ id: testId('credential') }]);
+  it('ordinary credential account-health retains the original account assessment mutation', async () => {
+    const credentialId = testId('credential');
+    const findMany = vi.fn(async () => [
+      {
+        id: credentialId,
+        organizationId: originalOrg,
+        brandId: user.brandId,
+        platform: CredentialPlatform.TIKTOK,
+        isConnected: true,
+        warmupSignals: {},
+        warmupThresholds: {},
+      },
+    ]);
+    const groupBy = vi.fn(async (_query: Prisma.PostGroupByArgs) => []);
+    const findEnrollments = vi.fn(async () => []);
+    const executeRaw = vi.fn().mockResolvedValue(1);
     const health = new AccountHealthService({
+      $executeRaw: executeRaw,
       credential: { findMany },
+      post: { groupBy },
+      socialWarmupEnrollment: { findMany: findEnrollments },
     } as unknown as PrismaService);
-    const assess = vi
-      .spyOn(health, 'assessCredentialHealth')
-      .mockResolvedValue(
-        {} as Awaited<
-          ReturnType<AccountHealthService['assessCredentialHealth']>
-        >,
-      );
     const controller = instance(CredentialsPublishingController.prototype, {
       accountHealthService: health,
     });
-    await selected(
+    const result = await selected(
       CredentialsPublishingController.prototype.listBrandAccountHealth,
       () => controller.listBrandAccountHealth(user.brandId, user),
       requestFor({}),
@@ -664,11 +674,56 @@ describe('ordinary account owner and mutation behavior', () => {
         isDeleted: false,
       },
     });
-    expect(assess).toHaveBeenCalledWith({
-      organizationId: originalOrg,
-      brandId: user.brandId,
-      credentialId: testId('credential'),
+    expect(groupBy).toHaveBeenCalledTimes(2);
+    for (const [query] of groupBy.mock.calls) {
+      expect(query).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: originalOrg,
+            credentialId: { in: [credentialId] },
+            isDeleted: false,
+          }),
+        }),
+      );
+    }
+    expect(findEnrollments).toHaveBeenCalledWith({
+      include: {
+        events: {
+          where: {
+            organizationId: originalOrg,
+            brandId: user.brandId,
+            isDeleted: false,
+          },
+        },
+        signals: {
+          where: {
+            organizationId: originalOrg,
+            brandId: user.brandId,
+            isDeleted: false,
+          },
+        },
+      },
+      where: {
+        organizationId: originalOrg,
+        brandId: user.brandId,
+        credentialId: { in: [credentialId] },
+        isDeleted: false,
+      },
     });
+    expect(executeRaw).toHaveBeenCalledOnce();
+    const [query, ...values] = executeRaw.mock.calls[0] as [
+      TemplateStringsArray,
+      ...unknown[],
+    ];
+    expect(query.join('$')).toContain('UPDATE "credentials"');
+    expect(query.join('$')).toContain(
+      'WHERE "id" = $\n        AND "organizationId" = $\n        AND "isDeleted" = false',
+    );
+    expect(values.slice(-2)).toEqual([credentialId, originalOrg]);
+    expect(values).not.toContain(selectedOrg);
+    expect(result).toEqual([
+      expect.objectContaining({ credentialId, assessedAt: expect.any(String) }),
+    ]);
   });
 });
 

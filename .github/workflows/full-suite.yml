@@ -15,9 +15,8 @@
 # A running suite is never cancelled: a newer dispatch only replaces the
 # *pending* run for the same ref and event.
 #
-# ci.yml's master failure tracker (#2510) keys off the `push` event, which this
-# workflow no longer produces, so it stays inert here; a red run is reported by
-# the Master SHA Verdict job below and by the release workflow.
+# The aggregate tracker below reports only complete verdicts for the current
+# default-branch SHA. Historical and feature-branch dispatches cannot change it.
 #
 # Reuses existing workflows via workflow_call — no job logic is duplicated here;
 # this file only orders the public release-prep gates. Community self-hosted image
@@ -173,3 +172,98 @@ jobs:
             test "$VISUAL_RESULT" = skipped
             test "$CONNECTED_RESULT" = skipped
           fi
+
+  master-failure-tracker:
+    name: Master CI failure tracker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Reporting is best-effort: release.yml calls this workflow as verify-suite,
+    # so a tracker API error must not turn a green suite red and block a release.
+    continue-on-error: true
+    concurrency:
+      group: master-ci-failure-tracker
+      cancel-in-progress: false
+    needs: [master-sha-verdict, ci, build-verify, e2e, visual-connected, runtime-acceptance-gate]
+    if: >-
+      !cancelled()
+      && (needs.master-sha-verdict.result == 'failure' || needs.master-sha-verdict.result == 'success')
+      && !contains(needs.*.result, 'cancelled')
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Validate current default-branch SHA
+        id: trusted-head
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { data } = await github.rest.git.getRef({
+              ...context.repo,
+              ref: `heads/${context.payload.repository.default_branch}`,
+            });
+            core.setOutput('current', data.object.sha === context.sha ? 'true' : 'false');
+
+      - name: Checkout failure reporter
+        if: steps.trusted-head.outputs.current == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Read the validated commit subject
+        if: steps.trusted-head.outputs.current == 'true'
+        id: head
+        run: echo "subject=$(git log -1 --format=%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Mint reporter token (Genfeed bot App)
+        if: steps.trusted-head.outputs.current == 'true' && needs.master-sha-verdict.result == 'failure'
+        id: reporter-token
+        uses: ./.github/actions/reporter-token
+        with:
+          client-id: ${{ secrets.GENFEED_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GENFEED_BOT_PRIVATE_KEY }}
+
+      - name: Reconcile aggregate tracking issue
+        if: steps.trusted-head.outputs.current == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          REPOSITORY_TOKEN: ${{ github.token }}
+          HEAD_COMMIT_MESSAGE: ${{ steps.head.outputs.subject }}
+          VERDICT: ${{ needs.master-sha-verdict.result }}
+          CI_RESULT: ${{ needs.ci.result }}
+          BUILD_RESULT: ${{ needs.build-verify.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          VISUAL_RESULT: ${{ needs.visual-connected.result }}
+          CONNECTED_RESULT: ${{ needs.runtime-acceptance-gate.result }}
+        with:
+          github-token: ${{ steps.reporter-token.outputs.token || github.token }}
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { updateMasterCiFailureFromVerdict } = await import(
+              pathToFileURL(path.join(
+                process.env.GITHUB_WORKSPACE,
+                'scripts/ci/master-ci-failure-reporter.mjs',
+              )).href,
+            );
+            const result = await updateMasterCiFailureFromVerdict({
+              github: getOctokit(process.env.REPOSITORY_TOKEN),
+              projectGithub: github,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              defaultBranch: context.payload.repository.default_branch,
+              sha: context.sha,
+              verdict: process.env.VERDICT,
+              results: {
+                ci: process.env.CI_RESULT,
+                'build-verify': process.env.BUILD_RESULT,
+                e2e: process.env.E2E_RESULT,
+                'visual-connected': process.env.VISUAL_RESULT,
+                'runtime-acceptance-gate': process.env.CONNECTED_RESULT,
+              },
+              date: new Date().toISOString().slice(0, 10),
+              headline: process.env.HEAD_COMMIT_MESSAGE || 'unresolved',
+              runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              core,
+            });
+            core.info(JSON.stringify(result));

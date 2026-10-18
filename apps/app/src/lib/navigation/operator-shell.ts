@@ -1,5 +1,9 @@
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  isBrandOnlySettingsPath,
+} from '@genfeedai/contracts/constants';
 import type { AgentConversationRoute } from '@genfeedai/contracts/interfaces';
 import type { Task } from '@services/management/tasks.service';
 
@@ -207,24 +211,6 @@ export function resolveBrandSwitchSurfacePath(brandScopedPath: string): string {
 }
 
 /**
- * Brand settings that only exist under `/:org/:brand/settings/*` — there is no
- * org-level `/:org/~/settings/...` page. Clearing brand selection must not
- * rewrite those to a 404.
- */
-const BRAND_ONLY_SETTINGS_PREFIXES = [
-  APP_ROUTES.SETTINGS.AGENT,
-  APP_ROUTES.SETTINGS.PUBLISHING,
-  APP_ROUTES.SETTINGS.SKILLS,
-  APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-  APP_ROUTES.SETTINGS.KNOWLEDGE,
-  '/settings/brand-kit/guided-setup',
-  '/settings/agent/context',
-  '/settings/brand-kit/content-rules',
-  '/settings/brand-kit',
-  '/library/references',
-] as const;
-
-/**
  * Map a brand-scoped app path to a valid org-scoped (`~`) destination.
  * Shared surfaces (agent, studio, workspace) keep the same path; brand-only
  * settings fall back to the org brands hub.
@@ -242,13 +228,7 @@ export function resolveOrganizationScopePath(brandScopedPath: string): string {
     return APP_ROUTES.AGENT.NEW;
   }
 
-  for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
-    if (path.split(/[?#]/u)[0] === prefix || path.startsWith(`${prefix}/`)) {
-      return APP_ROUTES.SETTINGS.BRANDS;
-    }
-  }
-
-  return path;
+  return isBrandOnlySettingsPath(path) ? APP_ROUTES.SETTINGS.BRANDS : path;
 }
 
 export function getBrandSwitchHref({

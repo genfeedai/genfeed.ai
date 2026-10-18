@@ -6,29 +6,33 @@ import { createContext, type ReactNode, use } from 'react';
 import { useRailPreferences } from '@/components/shell/use-rail-preferences';
 
 interface RailPreferencesContextValue {
+  hiddenAppIds: readonly string[];
   homeAppId: string | null;
   /** True once the saved preferences have been read, or the read failed. */
   isLoaded: boolean;
   pinnedAppIds: readonly string[];
   railAppOrder: readonly string[];
+  resetRail: () => void;
   setHomeAppId: (appId: string | null) => void;
   setRailAppOrder: (order: readonly string[]) => void;
   togglePin: (appId: string) => void;
 }
 
 const RailPreferencesContext = createContext<RailPreferencesContextValue>({
+  hiddenAppIds: [],
   homeAppId: null,
   // Outside a provider there is nothing to wait for.
   isLoaded: true,
   pinnedAppIds: [],
   railAppOrder: [],
+  resetRail: () => {},
   setHomeAppId: () => {},
   setRailAppOrder: () => {},
   togglePin: () => {},
 });
 
 /**
- * The member's rail pins, order and home app, shared by the rail and Explore so a change
+ * The member's rail pins, hidden apps, order and home app, shared by the rail and Explore so a change
  * made in either shows in the other without a reload.
  */
 export function RailPreferencesProvider({ children }: { children: ReactNode }) {

@@ -52,7 +52,7 @@ ENV PATH="/usr/local/bin:${PATH}"
 # ==================================================
 FROM base AS pruner
 
-RUN bun add --global turbo@2.10.7
+RUN bun add --global turbo@2.11.8
 
 WORKDIR /ctx
 

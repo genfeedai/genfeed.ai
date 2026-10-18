@@ -14,7 +14,6 @@ import {
   ListeningEvidence,
   ListeningTopic,
 } from '@genfeedai/models/social/listening-topic.model';
-import { ListeningTopicSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeResource,
@@ -29,12 +28,7 @@ export class ListeningTopicsService extends BaseService<
   UpdateListeningTopicInput
 > {
   constructor(token: string) {
-    super(
-      API_ENDPOINTS.LISTENING_TOPICS,
-      token,
-      ListeningTopic,
-      ListeningTopicSerializer,
-    );
+    super(API_ENDPOINTS.LISTENING_TOPICS, token, ListeningTopic);
   }
 
   public static getInstance(token: string): ListeningTopicsService {

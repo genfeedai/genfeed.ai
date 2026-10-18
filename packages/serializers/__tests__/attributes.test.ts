@@ -879,6 +879,7 @@ describe('Serializer Attributes', () => {
       expect(settingAttributes).toContain('favoriteModelKeys');
       expect(settingAttributes).toContain('favoriteWorkflowIds');
       expect(settingAttributes).toContain('railAppOrder');
+      expect(settingAttributes).toContain('hiddenAppIds');
       expect(settingAttributes).toContain('homeAppId');
       expect(settingAttributes).toContain('isVideoNotificationsEmail');
     });

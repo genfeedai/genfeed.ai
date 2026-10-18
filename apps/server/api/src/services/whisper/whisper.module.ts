@@ -4,7 +4,6 @@ import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -12,7 +11,6 @@ import { Module } from '@nestjs/common';
   imports: [
     ConfigModule,
     FileQueueModule,
-    HttpModule,
     LoggerModule,
     MediaUrlsModule,
     ReplicateModule,

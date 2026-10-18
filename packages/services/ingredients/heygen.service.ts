@@ -26,7 +26,7 @@ import type { AxiosRequestConfig } from 'axios';
 
 export class HeyGenService extends BaseService<IHeyGen> {
   constructor(token: string) {
-    super(API_ENDPOINTS.HEYGEN, token, HeyGen, { serialize: (d) => d });
+    super(API_ENDPOINTS.HEYGEN, token, HeyGen);
   }
 
   public static getInstance(token: string): HeyGenService {

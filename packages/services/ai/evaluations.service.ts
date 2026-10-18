@@ -2,7 +2,6 @@ import { Evaluation } from '@genfeedai/client/models';
 import type { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { IEvaluationTrend } from '@genfeedai/contracts/interfaces';
-import { EvaluationSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -24,7 +23,7 @@ export interface EvaluationTrendsFilters {
 
 export class EvaluationsService extends BaseService<Evaluation> {
   constructor(token: string) {
-    super(API_ENDPOINTS.EVALUATIONS, token, Evaluation, EvaluationSerializer);
+    super(API_ENDPOINTS.EVALUATIONS, token, Evaluation);
   }
 
   public static getInstance(token: string): EvaluationsService {

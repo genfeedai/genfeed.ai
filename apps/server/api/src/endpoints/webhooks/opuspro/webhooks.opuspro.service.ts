@@ -27,17 +27,28 @@ export class OpusProWebhookService {
     try {
       const { callback_id, status, videoUrl, video_url, error } = body;
 
-      await this.microservicesService.notifyWebhook(
-        'opuspro',
-        status || 'unknown',
-        {
-          ...body,
-          metadata: {
-            callbackId: callback_id,
-            timestamp: new Date().toISOString(),
+      // A notification outage must never block finalizing the render.
+      try {
+        await this.microservicesService.notifyWebhook(
+          'opuspro',
+          status || 'unknown',
+          {
+            ...body,
+            metadata: {
+              callbackId: callback_id,
+              timestamp: new Date().toISOString(),
+            },
           },
-        },
-      );
+        );
+      } catch (notifyError: unknown) {
+        this.loggerService.warn(`${url} notification failed, continuing`, {
+          callback_id,
+          error:
+            notifyError instanceof Error
+              ? notifyError.message
+              : String(notifyError),
+        });
+      }
 
       if (!callback_id) {
         this.loggerService.warn(`${url} no callback_id provided`);

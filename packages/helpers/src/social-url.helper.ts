@@ -93,6 +93,14 @@ export class SocialUrlHelper {
     return `https://www.instagram.com/p/${postId}/`;
   }
 
+  /**
+   * TikTok upload ids (`v_pub_url~v2-1.…`, `v_inbox_file~v2.…`) identify a
+   * publish job, not a video. They are not valid in a `/video/` URL.
+   */
+  static isTikTokPublishId(id: string): boolean {
+    return /^v_[a-z_]+~/i.test(id);
+  }
+
   static buildTikTokUrl(videoId: string, username?: string): string {
     if (!videoId) {
       throw new Error('Video ID is required');

@@ -10,7 +10,6 @@ import type {
   IPaginatedResponse,
   IPrepareCampaignPaidActivationInput,
 } from '@genfeedai/contracts/interfaces';
-import { CampaignSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -78,7 +77,7 @@ export class CampaignsService extends BaseService<
   UpdateCampaignInput
 > {
   constructor(token: string) {
-    super(API_ENDPOINTS.CAMPAIGNS, token, Campaign, CampaignSerializer);
+    super(API_ENDPOINTS.CAMPAIGNS, token, Campaign);
   }
 
   public static getInstance(token: string): CampaignsService {

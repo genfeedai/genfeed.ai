@@ -74,6 +74,9 @@ vi.mock('@genfeedai/contracts/constants', () => ({
     `/${orgSlug}/${brandSlug}${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
   createOrganizationAppRoute: (orgSlug: string, routePath = '/') =>
     `/${orgSlug}/~${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
+  isBrandOnlySettingsPath: (pathname: string) =>
+    pathname === '/settings/publishing' ||
+    pathname.startsWith('/settings/publishing/'),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({

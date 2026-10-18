@@ -17,18 +17,14 @@ import { User } from '@genfeedai/models/auth/user.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { Organization } from '@genfeedai/models/organization/organization.model';
 import {
-  NotificationPreferenceSerializer,
-  SettingSerializer,
-  UserSerializer,
-} from '@genfeedai/serializers';
-import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { serializeRequest } from '@services/core/request-serializers';
 
 export class UsersService extends BaseService<User> {
   constructor(token: string) {
-    super(API_ENDPOINTS.USERS, token, User, UserSerializer);
+    super(API_ENDPOINTS.USERS, token, User);
   }
 
   public static getInstance(token: string): UsersService {
@@ -91,7 +87,7 @@ export class UsersService extends BaseService<User> {
     id: string,
     settings: Partial<ISetting>,
   ): Promise<ISetting> {
-    const data = SettingSerializer.serialize(settings);
+    const data = await serializeRequest('SettingSerializer', settings);
     return await this.instance
       .patch<JsonApiResponseDocument>(`/${id}/settings`, data)
       .then((res) => res.data)
@@ -99,7 +95,7 @@ export class UsersService extends BaseService<User> {
   }
 
   public async patchMeSettings(settings: Partial<ISetting>): Promise<ISetting> {
-    const data = SettingSerializer.serialize(settings);
+    const data = await serializeRequest('SettingSerializer', settings);
     return await this.instance
       .patch<JsonApiResponseDocument>('me/settings', data)
       .then((res) => res.data)
@@ -180,7 +176,9 @@ export class UsersService extends BaseService<User> {
   public async patchWorkflowEmailNotificationPreference(
     isEnabled: boolean,
   ): Promise<INotificationPreference> {
-    const data = NotificationPreferenceSerializer.serialize({ isEnabled });
+    const data = await serializeRequest('NotificationPreferenceSerializer', {
+      isEnabled,
+    });
     return await this.instance
       .patch<JsonApiResponseDocument>(
         'me/notification-preferences/workflow-status/email',
@@ -203,7 +201,9 @@ export class UsersService extends BaseService<User> {
   public async patchAgentEmailNotificationPreference(
     isEnabled: boolean,
   ): Promise<INotificationPreference> {
-    const data = NotificationPreferenceSerializer.serialize({ isEnabled });
+    const data = await serializeRequest('NotificationPreferenceSerializer', {
+      isEnabled,
+    });
     return await this.instance
       .patch<JsonApiResponseDocument>(
         'me/notification-preferences/agent-status/email',
@@ -229,7 +229,7 @@ export class UsersService extends BaseService<User> {
   ): Promise<INotificationPreference> {
     const response = await this.instance.patch<JsonApiResponseDocument>(
       `me/notification-preferences/product/${topic}/email`,
-      NotificationPreferenceSerializer.serialize({ isEnabled }),
+      await serializeRequest('NotificationPreferenceSerializer', { isEnabled }),
     );
     return this.extractResource<INotificationPreference>(response.data);
   }

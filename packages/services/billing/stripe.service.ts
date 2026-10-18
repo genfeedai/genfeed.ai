@@ -5,13 +5,13 @@ import type {
   IBillingPortalResponse,
   ICheckoutSessionResponse,
 } from '@genfeedai/contracts/interfaces';
-import { StripeCheckoutSerializer } from '@genfeedai/serializers';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { serializeRequest } from '@services/core/request-serializers';
 
 export class StripeService extends HTTPBaseService {
   constructor(token: string) {
@@ -31,7 +31,7 @@ export class StripeService extends HTTPBaseService {
   public async createCheckoutSession(
     data: CreateCheckoutSessionDto,
   ): Promise<ICheckoutSessionResponse> {
-    const body = StripeCheckoutSerializer.serialize(data);
+    const body = await serializeRequest('StripeCheckoutSerializer', data);
 
     return await this.instance
       .post<JsonApiResponseDocument>('/checkout', body)
