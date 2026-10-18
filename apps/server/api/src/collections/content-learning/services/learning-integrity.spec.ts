@@ -18,7 +18,7 @@ describe('real resource structure precedes provider observation authority', () =
       const instagramCredential = {
         accessToken: 'encrypted',
       } as InstagramCredentialResponse;
-      const http = { get: vi.fn() },
+      const http = { get: vi.fn(), post: vi.fn() },
         logger = { error: vi.fn(), log: vi.fn() };
       const service =
         platform === 'instagram'
@@ -36,13 +36,14 @@ describe('real resource structure precedes provider observation authority', () =
               async () => credential,
               async () => false,
             );
+      const transport = platform === 'instagram' ? http.get : http.post;
       for (const data of [{}, { data: { videos: [] } }]) {
-        http.get.mockReturnValue(of({ data }));
+        transport.mockReturnValue(of({ data }));
         await expect(
           service.getMediaAnalytics('org', 'brand', 'remote', 'credential'),
         ).rejects.toThrow('malformed_provider_response');
       }
-      http.get.mockReturnValue(
+      transport.mockReturnValue(
         of({
           data:
             platform === 'instagram'
