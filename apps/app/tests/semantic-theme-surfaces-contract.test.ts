@@ -52,7 +52,6 @@ const CARD_MIGRATION_SOURCES = [
   'app/(onboarding)/onboarding/(wizard)/providers/providers-status-card.tsx',
   'app/(onboarding)/onboarding/(wizard)/providers/providers-tool-list.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-list.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsProgressView.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/HighlightReviewCard.tsx',
   'packages/components/research/ads/AdsResearchWatchlistPanel.tsx',

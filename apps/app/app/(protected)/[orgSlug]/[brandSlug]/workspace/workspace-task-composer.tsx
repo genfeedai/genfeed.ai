@@ -53,7 +53,7 @@ export function WorkspaceTaskComposer({
     setTaskRequest,
   } = useWorkspaceTaskComposer({ onOpenChange, onTaskCreated });
 
-  const translate = useTranslations('pages.workspaceOverview.taskComposer');
+  const translate = useTranslations('common.taskComposer');
 
   return (
     <Modal.Root open={open} onOpenChange={handleModalOpenChange}>

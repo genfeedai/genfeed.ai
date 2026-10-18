@@ -23,9 +23,7 @@ export function WorkspaceTaskToolbar({
   presets,
   taskMode,
 }: WorkspaceTaskToolbarProps) {
-  const translate = useTranslations(
-    'pages.workspaceOverview.taskComposer.toolbar',
-  );
+  const translate = useTranslations('common.taskComposer.toolbar');
 
   return (
     <PromptBarToolbar

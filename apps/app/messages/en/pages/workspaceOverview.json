@@ -207,23 +207,5 @@
       "label": "Operator tools",
       "description": "Manual and expert surfaces stay available without owning the main navigation."
     }
-  },
-  "taskComposer": {
-    "title": "New Task",
-    "description": "Describe the outcome you want. Genfeed routes it automatically.",
-    "requestLabel": "Task request",
-    "requestPlaceholder": "Create three thumbnail directions for our next launch, then draft a caption.",
-    "keepOpen": "Add another task",
-    "cancel": "Cancel",
-    "create": "Create Task",
-    "creating": "Creating…",
-    "enterHint": "Enter",
-    "toolbar": {
-      "outputType": "Output type",
-      "taskMode": "Task mode",
-      "undo": "Undo",
-      "enhance": "Enhance - 1 credit",
-      "enhancing": "Enhancing…"
-    }
   }
 }

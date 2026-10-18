@@ -2630,5 +2630,23 @@
     "substackTitle": "Import into Substack",
     "substackHint": "Substack has no publishing API. In Substack, open Settings, choose Import, and paste this feed. It lists the brand’s published issues.",
     "copyFeed": "Copy feed URL"
+  },
+  "taskComposer": {
+    "title": "New Task",
+    "description": "Describe the outcome you want. Genfeed routes it automatically.",
+    "requestLabel": "Task request",
+    "requestPlaceholder": "Create three thumbnail directions for our next launch, then draft a caption.",
+    "keepOpen": "Add another task",
+    "cancel": "Cancel",
+    "create": "Create Task",
+    "creating": "Creating…",
+    "enterHint": "Enter",
+    "toolbar": {
+      "outputType": "Output type",
+      "taskMode": "Task mode",
+      "undo": "Undo",
+      "enhance": "Enhance - 1 credit",
+      "enhancing": "Enhancing…"
+    }
   }
 }
