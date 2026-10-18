@@ -34,6 +34,11 @@ const SEEDANCE_DIMENSIONS: Readonly<
   '1080p': { '16:9': [1920, 1080] },
 };
 
+// Providers that bill input megapixels (FLUX.2 klein, dev, flex) are not told
+// the reference sizes at dispatch. Quote the allowance their catalog flat rows
+// were sized for: up to five references totalling about 9 MP.
+const UNMEASURED_INPUT_MEGAPIXELS = 9;
+
 /** Shared price-relevant input projection; runtime validation supplies its frozen pricing profile. */
 export function normalizeModelProviderQuoteRequest(
   profile: ModelBillablePricingProfile,
@@ -109,6 +114,13 @@ export function normalizeModelProviderQuoteRequest(
         quantities[key] = number;
     }
   }
+  if (
+    quantities.inputMegapixels === undefined &&
+    profile.reviewedPricing?.rates.some(
+      (rate) => rate.unit === 'input-megapixel',
+    )
+  )
+    quantities.inputMegapixels = UNMEASURED_INPUT_MEGAPIXELS;
   const nativeVideoRates =
     profile.reviewedPricing?.rates.filter(
       (rate) =>

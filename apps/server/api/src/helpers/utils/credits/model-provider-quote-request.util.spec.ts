@@ -279,4 +279,61 @@ describe('shared provider billable dimension normalization', () => {
       provider: 'genfeed-ai',
     });
   });
+  describe('input-megapixel rates', () => {
+    function klein() {
+      return billableProfile({
+        key: 'black-forest-labs/flux-2-klein-4b',
+        rateVersion: 'test-v1',
+        reviewedPricing: {
+          currency: 'USD',
+          reviewStatus: 'approved',
+          sourceUrl: 'https://replicate.com/black-forest-labs/flux-2-klein-4b',
+          verifiedAt: '2026-10-18T00:00:00.000Z',
+          version: 'test-v1',
+          rates: [
+            {
+              component: 'input',
+              unit: 'input-megapixel',
+              unitPriceUsd: 0.001,
+              when: {},
+            },
+            {
+              component: 'output',
+              unit: 'megapixel',
+              unitPriceUsd: 0.001,
+              when: {},
+              isPerOutput: true,
+            },
+          ],
+        },
+      });
+    }
+    it('quotes the 9 MP reference allowance when dispatch reports no input size', () => {
+      const request = normalizeModelProviderQuoteRequest(
+        klein(),
+        'black-forest-labs/flux-2-klein-4b',
+        { height: 1000, outputs: 1, width: 1000 },
+      );
+      expect(request.inputMegapixels).toBe(9);
+      const quote = quoteModelBillablePricing(
+        klein(),
+        request,
+        1,
+        '2026-10-18',
+      );
+      expect(quote).toMatchObject({ status: 'priced' });
+    });
+    it('keeps an input size the caller measured', () => {
+      expect(
+        normalizeModelProviderQuoteRequest(klein(), 'test/model', {
+          inputMegapixels: 2,
+        }).inputMegapixels,
+      ).toBe(2);
+    });
+    it('adds nothing for a profile without an input-megapixel rate', () => {
+      expect(
+        normalizeModelProviderQuoteRequest(billableProfile(), 'test/model', {}),
+      ).not.toHaveProperty('inputMegapixels');
+    });
+  });
 });
