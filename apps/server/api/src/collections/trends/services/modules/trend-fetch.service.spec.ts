@@ -617,6 +617,51 @@ describe('TrendFetchService', () => {
       });
     });
 
+    it('shares one Apify scrape across organizations instead of paying per scope', async () => {
+      mockApifyService.getInstagramTrends.mockResolvedValue([
+        {
+          growthRate: 10,
+          mentions: 500,
+          platform: 'instagram',
+          topic: '#shared',
+        },
+      ]);
+
+      await service.fetchPlatformTrends('instagram');
+
+      const sharedCall = mockCacheService.set.mock.calls.find(
+        ([key]) => key === 'trends:apify-fallback:instagram',
+      );
+      expect(sharedCall).toBeDefined();
+      expect(sharedCall?.[2]).toMatchObject({ ttl: 6 * 60 * 60 });
+
+      mockCacheService.get.mockImplementation((key: string) =>
+        Promise.resolve(
+          key === 'trends:apify-fallback:instagram' ? sharedCall?.[1] : null,
+        ),
+      );
+      mockApifyService.getInstagramTrends.mockClear();
+
+      await expect(
+        service.fetchPlatformTrends('instagram', 'org-2', 'brand-2'),
+      ).resolves.toEqual([expect.objectContaining({ topic: '#shared' })]);
+      expect(mockApifyService.getInstagramTrends).not.toHaveBeenCalled();
+    });
+
+    it('does not share a failed Apify scrape', async () => {
+      mockApifyService.getInstagramTrends.mockRejectedValue(
+        new Error('Apify unavailable'),
+      );
+
+      await service.fetchPlatformTrends('instagram');
+
+      expect(mockCacheService.set).not.toHaveBeenCalledWith(
+        'trends:apify-fallback:instagram',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
     it('negative-caches total native and fallback failure', async () => {
       mockRedditService.getTrends.mockRejectedValue(
         new Error('Reddit unavailable'),
@@ -806,9 +851,11 @@ describe('TrendFetchService', () => {
 
       await service.fetchPlatformTrends('tiktok');
 
-      expect(mockCacheService.set).toHaveBeenCalledTimes(1);
-      const [, value] = mockCacheService.set.mock.calls[0];
-      expect(value).toEqual([]);
+      expect(mockCacheService.set).toHaveBeenCalledWith(
+        'trends:global:tiktok',
+        [],
+        expect.anything(),
+      );
     });
 
     it('gives an empty result a shorter life than a successful one', async () => {
@@ -856,11 +903,15 @@ describe('TrendFetchService', () => {
       mockApifyService.getTikTokTrends.mockResolvedValue([]);
 
       await service.fetchPlatformTrends('tiktok', 'org-1', 'brand-1');
-      const [personalizedKey] = mockCacheService.set.mock.calls[0];
+      const personalizedKey = mockCacheService.set.mock.calls
+        .map(([key]) => key)
+        .find((key) => key.startsWith('trends:scoped:'));
 
       mockCacheService.set.mockClear();
       await service.fetchPlatformTrends('tiktok');
-      const [globalKey] = mockCacheService.set.mock.calls[0];
+      const globalKey = mockCacheService.set.mock.calls
+        .map(([key]) => key)
+        .find((key) => key.startsWith('trends:global:'));
 
       expect(personalizedKey).toContain('org-1');
       expect(personalizedKey).toContain('brand-1');

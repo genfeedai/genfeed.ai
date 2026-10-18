@@ -216,6 +216,29 @@
       "variations": "Remix {platform} post",
       "setStatus": "Set status to {status}",
       "statusFailed": "Could not update the post status."
+    },
+    "admin": {
+      "columnPost": "Post",
+      "columnPlatform": "Platform",
+      "columnStatus": "Status",
+      "columnDate": "Date",
+      "notScheduled": "Not scheduled",
+      "empty": "No posts found",
+      "untitled": "Untitled",
+      "viewOn": "View on {platform}",
+      "viewPost": "View post",
+      "platformFilter": "Platform",
+      "allPlatforms": "All platforms",
+      "status": {
+        "draft": "Draft",
+        "failed": "Failed",
+        "pending": "Pending",
+        "private": "Private",
+        "processing": "Publishing",
+        "public": "Posted",
+        "scheduled": "Scheduled",
+        "unlisted": "Unlisted"
+      }
     }
   },
   "grid": {

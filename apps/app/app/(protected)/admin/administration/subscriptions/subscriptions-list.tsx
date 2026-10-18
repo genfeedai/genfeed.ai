@@ -1,6 +1,5 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { LazyModalSubscription } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IUser } from '@genfeedai/contracts/interfaces';
@@ -14,7 +13,7 @@ import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { Copy, CreditCard, ExternalLink, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -126,13 +125,11 @@ export default function SubscriptionsList() {
     await clipboardService.copyToClipboard(customerId);
 
   return (
-    <Container
-      label="Subscriptions"
-      description="View subscription plans, billing history, and payment status"
+    <AdminPageShell
+      title="Subscriptions"
       icon={CreditCard}
-      refresh={
-        <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
-      }
+      onRefresh={() => refresh()}
+      isRefreshing={isRefreshing}
     >
       <AppTable<Subscription>
         items={subscriptions || []}
@@ -173,6 +170,6 @@ export default function SubscriptionsList() {
         organizationId={selectedOrgId}
         onConfirm={() => refresh()}
       />
-    </Container>
+    </AdminPageShell>
   );
 }

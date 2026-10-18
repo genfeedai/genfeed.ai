@@ -510,6 +510,43 @@ describe('TrendSourcePreviewService', () => {
       expect(fetchSpy.mock.calls.length).toBeLessThan(trends.length);
     });
 
+    it('spends its few live runs on the most viral trends first', async () => {
+      const fetchSpy = vi
+        .spyOn(sourceItems, 'fetchTrendSourceItems')
+        .mockResolvedValue([]);
+      const trends = Array.from({ length: 10 }, (_, index) =>
+        makeTrend({
+          id: `trend-${index}`,
+          metadata: { hashtags: ['#AI'] },
+          viralityScore: index * 10,
+        }),
+      );
+
+      await service.precomputeTrendSourcePreview(trends, {
+        force: true,
+        writeScope: { organizationId: null },
+      });
+
+      expect(fetchSpy).toHaveBeenCalledTimes(4);
+      expect(
+        fetchSpy.mock.calls.map(([trend]) => String(trend.id)).sort(),
+      ).toEqual(['trend-6', 'trend-7', 'trend-8', 'trend-9']);
+    });
+
+    it('starts no live run when the caller asks only to hydrate', async () => {
+      const fetchSpy = vi
+        .spyOn(sourceItems, 'fetchTrendSourceItems')
+        .mockResolvedValue([]);
+
+      await service.precomputeTrendSourcePreview(makeUncachedTrends(10), {
+        force: true,
+        maxLiveFetches: 0,
+        writeScope: { organizationId: null },
+      });
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     it('logs the trends it skipped instead of silently truncating the batch', async () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
 

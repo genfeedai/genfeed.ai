@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
+import { getRejectedGrokTrendReason } from '@api/collections/trends/utils/grok-trend-rejection.util';
 import {
   captureTrendRefreshEvidence,
   classifyTrendProviderError,
@@ -23,7 +24,6 @@ import { PinterestService } from '@api/services/integrations/pinterest/services/
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dto';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -43,7 +43,7 @@ export class TrendFetchService {
   /**
    * Apify bills per actor run, so this TTL is a spend control, not a freshness
    * knob. It deduplicates retries and manual refreshes inside a six-hour window,
-   * while the canonical twelve-hour schedule still obtains a fresh dataset.
+   * while the canonical daily schedule still obtains a fresh dataset.
    */
   private readonly GLOBAL_TRENDS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
   /**
@@ -57,15 +57,17 @@ export class TrendFetchService {
    * that returns nothing (or is failing) is re-scraped at full rate forever.
    */
   private readonly EMPTY_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes
+  /**
+   * Apify trend scrapes take no organization or brand input, so every scope
+   * buys the same dataset. One shared entry per platform means a refresh in
+   * any org reuses it instead of paying for its own identical run.
+   */
+  private readonly APIFY_TRENDS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
+  private readonly APIFY_EMPTY_TRENDS_TTL_SECONDS = 60 * 60; // 1 hour
   private readonly PERSONALIZED_TWITTER_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes, matches the inspiration-spec ephemeral cache pattern
   private readonly CACHE_PREFIX = 'trends';
   private readonly GLOBAL_TREND_DOCUMENT_TTL_MINUTES = 48 * 60;
   private readonly PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES = 10;
-  private readonly YEAR_TOKEN_PATTERN = /\b(20\d{2})\b/;
-  private readonly HISTORICAL_CONTEXT_PATTERN =
-    /\b(completed|ended|highlights?\s+from|opening ceremony from|closing ceremony from|recap|throwback|archive|from\s+20\d{2})\b/i;
-  private readonly CURRENT_TRIGGER_PATTERN =
-    /\b(today|tonight|this week|now|currently|new|latest|ongoing|live|breaking|just announced|released|launch|current)\b/i;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -189,7 +191,7 @@ export class TrendFetchService {
         region: 'US',
       });
       const validGrokTrends = grokTrends.filter((trend) => {
-        const rejectionReason = this.getRejectedGrokTrendReason(trend);
+        const rejectionReason = getRejectedGrokTrendReason(trend);
 
         if (!rejectionReason) {
           return true;
@@ -232,14 +234,14 @@ export class TrendFetchService {
     nativeReason: 'native_empty' | 'native_failed',
   ): Promise<TrendData[]> {
     try {
-      const apifyTrends = await this.apifyService.getTwitterTrends({
-        limit: 20,
-      });
+      const apifyTrends = await this.getSharedApifyTrends('twitter', () =>
+        this.apifyService.getTwitterTrends({ limit: 20 }),
+      );
       recordTrendProviderOutcome(
         apifyTrends.length ? 'fallback_available' : 'fallback_empty',
         nativeReason,
       );
-      return this.toTrendDataArray(apifyTrends);
+      return apifyTrends;
     } catch (error: unknown) {
       recordTrendProviderOutcome(
         'fallback_failed',
@@ -286,52 +288,6 @@ export class TrendFetchService {
     }
 
     return tags;
-  }
-
-  private getRejectedGrokTrendReason(
-    trend: GrokTrendData,
-  ): 'historical-context' | 'past-year-token' | null {
-    const currentYear = new Date().getUTCFullYear();
-    const topicYear = this.getPastYearToken(
-      trend.topic,
-      trend.hashtags,
-      currentYear,
-    );
-
-    if (topicYear) {
-      return 'past-year-token';
-    }
-
-    if (
-      this.HISTORICAL_CONTEXT_PATTERN.test(trend.context) &&
-      !this.CURRENT_TRIGGER_PATTERN.test(trend.context)
-    ) {
-      return 'historical-context';
-    }
-
-    return null;
-  }
-
-  private getPastYearToken(
-    topic: string,
-    hashtags: string[],
-    currentYear: number,
-  ): number | null {
-    const values = [topic, ...hashtags];
-
-    for (const value of values) {
-      const match = value.match(this.YEAR_TOKEN_PATTERN);
-      if (!match) {
-        continue;
-      }
-
-      const year = Number(match[1]);
-      if (year < currentYear) {
-        return year;
-      }
-    }
-
-    return null;
   }
 
   /**
@@ -390,8 +346,8 @@ export class TrendFetchService {
         }));
       },
       async () =>
-        this.toTrendDataArray(
-          await this.apifyService.getRedditTrends({ limit: 20 }),
+        this.getSharedApifyTrends('reddit', () =>
+          this.apifyService.getRedditTrends({ limit: 20 }),
         ),
       allowApifyFallback,
     );
@@ -486,8 +442,8 @@ export class TrendFetchService {
         }));
       },
       async () =>
-        this.toTrendDataArray(
-          await this.apifyService.getYouTubeTrends({ limit: 20 }),
+        this.getSharedApifyTrends('youtube', () =>
+          this.apifyService.getYouTubeTrends({ limit: 20 }),
         ),
       allowApifyFallback,
     );
@@ -523,11 +479,37 @@ export class TrendFetchService {
         }));
       },
       async () =>
-        this.toTrendDataArray(
-          await this.apifyService.getPinterestTrends({ limit: 20 }),
+        this.getSharedApifyTrends('pinterest', () =>
+          this.apifyService.getPinterestTrends({ limit: 20 }),
         ),
       allowApifyFallback,
     );
+  }
+
+  /**
+   * Run an Apify trend scrape at most once per platform per TTL across every
+   * organization and brand. A scrape that throws is not cached, so the caller's
+   * failure handling and the account-limit breaker still see the error.
+   */
+  private async getSharedApifyTrends(
+    platform: string,
+    scrape: () => Promise<ApifyTrendItem[]>,
+  ): Promise<TrendData[]> {
+    const cacheKey = `${this.CACHE_PREFIX}:apify-fallback:${platform}`;
+    const cached = await this.cacheService.get<TrendData[]>(cacheKey);
+    if (cached) {
+      this.loggerService.debug(`Shared Apify trends cache hit for ${platform}`);
+      return cached;
+    }
+
+    const trends = this.toTrendDataArray(await scrape());
+    await this.cacheService.set(cacheKey, trends, {
+      tags: ['trends', `trends:${platform}`],
+      ttl: trends.length
+        ? this.APIFY_TRENDS_TTL_SECONDS
+        : this.APIFY_EMPTY_TRENDS_TTL_SECONDS,
+    });
+    return trends;
   }
 
   private async fetchNativeFirst(
@@ -582,9 +564,9 @@ export class TrendFetchService {
     brandId?: string,
     allowApifyFallback = true,
   ): Promise<TrendData[]> {
-    const fallback = async () =>
-      this.toTrendDataArray(
-        await this.apifyService.getInstagramTrends({ limit: 20 }),
+    const fallback = () =>
+      this.getSharedApifyTrends('instagram', () =>
+        this.apifyService.getInstagramTrends({ limit: 20 }),
       );
 
     if (!organizationId || !brandId) {
@@ -633,9 +615,9 @@ export class TrendFetchService {
     brandId?: string,
     allowApifyFallback = true,
   ): Promise<TrendData[]> {
-    const fallback = async () =>
-      this.toTrendDataArray(
-        await this.apifyService.getTikTokTrends({ limit: 20 }),
+    const fallback = () =>
+      this.getSharedApifyTrends('tiktok', () =>
+        this.apifyService.getTikTokTrends({ limit: 20 }),
       );
 
     if (!organizationId || !brandId) {

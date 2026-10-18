@@ -38,8 +38,10 @@ export class TrendSourcePreviewService {
    * cost one run per trend. These three bounds are what keep that honest:
    * how many runs a batch may spend, how many may be in flight, and how old a
    * stored preview has to be before `force` is allowed to re-spend on it.
+   * Production billing showed previews at two thirds of Apify spend, so a batch
+   * only previews its most viral trends.
    */
-  private readonly MAX_LIVE_PREVIEW_FETCHES_PER_BATCH = 8;
+  private readonly MAX_LIVE_PREVIEW_FETCHES_PER_BATCH = 4;
   private readonly LIVE_PREVIEW_FETCH_CONCURRENCY = 3;
   private readonly PREVIEW_REFRESH_MIN_AGE_MS = 6 * 60 * 60 * 1000;
   /**
@@ -103,10 +105,15 @@ export class TrendSourcePreviewService {
     options: {
       force?: boolean;
       limit?: number;
+      maxLiveFetches?: number;
       writeScope: { organizationId: string | null };
     },
   ): Promise<TrendEntity[]> {
     const limit = options.limit ?? TREND_SOURCE_PREVIEW_LIMIT;
+    const maxLiveFetches = Math.min(
+      options.maxLiveFetches ?? this.MAX_LIVE_PREVIEW_FETCHES_PER_BATCH,
+      this.MAX_LIVE_PREVIEW_FETCHES_PER_BATCH,
+    );
 
     const candidateIndexes = trends.reduce<number[]>(
       (indexes, trend, index) => {
@@ -118,17 +125,20 @@ export class TrendSourcePreviewService {
       [],
     );
 
-    const fetchIndexes = candidateIndexes.slice(
-      0,
-      this.MAX_LIVE_PREVIEW_FETCHES_PER_BATCH,
-    );
+    const fetchIndexes = candidateIndexes
+      .sort(
+        (left, right) =>
+          (trends[right].viralityScore ?? 0) -
+          (trends[left].viralityScore ?? 0),
+      )
+      .slice(0, maxLiveFetches);
 
     if (candidateIndexes.length > fetchIndexes.length) {
       this.loggerService.warn(
         'Trend source preview batch exceeded its live fetch cap; the remaining trends keep their stored preview until the next pass',
         {
           deferredTrends: candidateIndexes.length - fetchIndexes.length,
-          maxFetchesPerBatch: this.MAX_LIVE_PREVIEW_FETCHES_PER_BATCH,
+          maxFetchesPerBatch: maxLiveFetches,
           requestedTrends: candidateIndexes.length,
         },
       );
