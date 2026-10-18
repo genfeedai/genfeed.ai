@@ -185,7 +185,7 @@ describe('TwitterService', () => {
 
   describe('sendCommentReplyDm', () => {
     it('sends a direct message to commenter', async () => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeTwitterCredential({
           accessToken: 'a',
           refreshToken: 'r',

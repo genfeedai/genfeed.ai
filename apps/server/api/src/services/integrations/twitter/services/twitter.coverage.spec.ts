@@ -364,25 +364,69 @@ describe('TwitterService (coverage)', () => {
   });
 
   describe('refreshToken errors', () => {
-    it('marks disconnected, logs activity, and rethrows when refresh SDK call fails', async () => {
-      const cred = makeCredential({ refreshToken: 'enc-rt' });
-      credentialsService.findOne.mockResolvedValue(cred);
+    it.each([
+      {
+        name: 'invalid_grant',
+        error: Object.assign(new Error('Request failed with code 400'), {
+          code: 400,
+          data: { error: 'invalid_grant', error_description: 'Token revoked' },
+        }),
+      },
+      {
+        name: '401',
+        error: Object.assign(new Error('Request failed with code 401'), {
+          code: 401,
+        }),
+      },
+    ])(
+      'marks disconnected, logs activity, and rethrows on $name',
+      async ({ error }) => {
+        const cred = makeCredential({ refreshToken: 'enc-rt' });
+        credentialsService.findOne.mockResolvedValue(cred);
+        mockRefreshOAuth2Token.mockRejectedValue(error);
 
-      const sdkError = new Error('Token expired');
-      mockRefreshOAuth2Token.mockRejectedValue(sdkError);
+        await expect(service.refreshToken('org', 'brand')).rejects.toBe(error);
 
-      await expect(service.refreshToken('org', 'brand')).rejects.toThrow(
-        'Token expired',
-      );
+        expect(credentialsService.patch).toHaveBeenCalledWith(cred.id, {
+          isConnected: false,
+        });
+        expect(activitiesService.record).toHaveBeenCalledOnce();
+      },
+    );
 
-      // Credential should be patched as disconnected
-      expect(credentialsService.patch).toHaveBeenCalledWith(
-        cred.id,
-        expect.objectContaining({ isConnected: false }),
-      );
-      // Activity logged
-      expect(activitiesService.record).toHaveBeenCalled();
-    });
+    it.each([
+      {
+        name: 'a network error',
+        error: Object.assign(new Error('socket hang up'), {
+          code: 'ECONNRESET',
+        }),
+      },
+      {
+        name: 'a 503',
+        error: Object.assign(new Error('Request failed with code 503'), {
+          code: 503,
+        }),
+      },
+      {
+        name: 'a misconfigured client (invalid_client)',
+        error: Object.assign(new Error('Request failed with code 401'), {
+          code: 401,
+          data: { error: 'invalid_client' },
+        }),
+      },
+    ])(
+      'keeps the credential connected and rethrows on $name',
+      async ({ error }) => {
+        const cred = makeCredential({ refreshToken: 'enc-rt' });
+        credentialsService.findOne.mockResolvedValue(cred);
+        mockRefreshOAuth2Token.mockRejectedValue(error);
+
+        await expect(service.refreshToken('org', 'brand')).rejects.toBe(error);
+
+        expect(credentialsService.patch).not.toHaveBeenCalled();
+        expect(activitiesService.record).not.toHaveBeenCalled();
+      },
+    );
   });
 
   // ── searchRecentTweets ────────────────────────────────────────────────────
@@ -882,7 +926,7 @@ describe('TwitterService (coverage)', () => {
 
   describe('sendCommentReplyDm (error path)', () => {
     it('propagates error when DM send fails', async () => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
       mockV2SendDmInConversation.mockRejectedValue(new Error('DM failed'));
@@ -901,7 +945,7 @@ describe('TwitterService (coverage)', () => {
       vi.mocked(safeFetch).mockImplementation(
         async () => new Response(new TextEncoder().encode('img')),
       );
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
@@ -1082,7 +1126,7 @@ describe('TwitterService (coverage)', () => {
 
   describe('postTweet', () => {
     beforeEach(() => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
@@ -1467,7 +1511,7 @@ describe('TwitterService (coverage)', () => {
 
   describe('repostTweet', () => {
     beforeEach(() => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
@@ -1678,7 +1722,7 @@ describe('TwitterService (coverage)', () => {
         'Twitter credential requires reconnection',
       );
 
-      expect(credentialsService.patch).toHaveBeenCalledTimes(2);
+      expect(credentialsService.patch).toHaveBeenCalledOnce();
       expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
         isConnected: false,
       });
@@ -1725,9 +1769,12 @@ describe('TwitterService (coverage)', () => {
       expect(mockV2Get).not.toHaveBeenCalled();
     });
 
-    it('preserves disconnect/activity and the original failed refresh', async () => {
+    it('preserves disconnect/activity and the original rejected refresh', async () => {
       storeCredential({ accessTokenExpiry: null });
-      const error = new Error('refresh failed');
+      const error = Object.assign(new Error('refresh failed'), {
+        code: 400,
+        data: { error: 'invalid_grant' },
+      });
       mockRefreshOAuth2Token.mockRejectedValue(error);
 
       await expect(readPage()).rejects.toBe(error);
@@ -1746,8 +1793,9 @@ describe('TwitterService (coverage)', () => {
 
       await expect(readPage()).rejects.toBe(error);
 
-      expect(credentialsService.patch).toHaveBeenCalledTimes(2);
-      expect(activitiesService.record).toHaveBeenCalledOnce();
+      // A persistence failure is not a rejected grant: stay connected.
+      expect(credentialsService.patch).toHaveBeenCalledOnce();
+      expect(activitiesService.record).not.toHaveBeenCalled();
       expect(mockV2Get).not.toHaveBeenCalled();
     });
 
@@ -1805,7 +1853,7 @@ describe('TwitterService (coverage)', () => {
       expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
     });
 
-    it('keeps other inbox operations on the forced-refresh dependency', async () => {
+    it('reuses a valid token for the other inbox operations', async () => {
       storeCredential();
       const refresh = vi.spyOn(service, 'refreshToken');
       const valid = vi.spyOn(service, 'getValidCredential');
@@ -1822,8 +1870,43 @@ describe('TwitterService (coverage)', () => {
         'cred-id',
       );
 
-      expect(refresh).toHaveBeenCalledTimes(3);
-      expect(valid).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
+      expect(valid).toHaveBeenCalledTimes(3);
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+    });
+
+    it('publishes with a valid token without rotating the refresh token', async () => {
+      storeCredential();
+      mockV2Tweet.mockResolvedValue({ data: { id: 'tweet-valid' } });
+
+      await expect(
+        service.postTweet('org', 'brand', 'hello', undefined, {}, 'cred-id'),
+      ).resolves.toBe('tweet-valid');
+
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+      expect(vi.mocked(TwitterApi).mock.calls.at(-1)).toEqual([
+        'decrypted:enc-access-token',
+      ]);
+    });
+
+    it('refreshes once before publishing with an expiring token', async () => {
+      storeCredential({ accessTokenExpiry: new Date(now.getTime() + 60_000) });
+      mockV2Tweet.mockResolvedValue({ data: { id: 'tweet-refreshed' } });
+
+      await service.postTweet(
+        'org',
+        'brand',
+        'hello',
+        undefined,
+        {},
+        'cred-id',
+      );
+
+      expect(mockRefreshOAuth2Token).toHaveBeenCalledOnce();
+      expect(vi.mocked(TwitterApi).mock.calls.at(-1)).toEqual([
+        'decrypted:fresh-access',
+      ]);
     });
   });
 
@@ -1961,7 +2044,7 @@ describe('TwitterService (coverage)', () => {
 
   describe('listDirectMessages', () => {
     beforeEach(() => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',
@@ -2057,7 +2140,7 @@ describe('TwitterService (coverage)', () => {
 
   describe('listPostReplies', () => {
     beforeEach(() => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',

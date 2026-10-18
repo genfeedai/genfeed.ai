@@ -118,6 +118,40 @@ describe('CronCredentialsService', () => {
     expect(twitterService.refreshToken).toHaveBeenCalledWith(
       'org-1',
       'brand-1',
+      'cred-1',
+    );
+  });
+
+  it('refreshes each X account of a multi-account brand by its credential id', async () => {
+    credentialsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          brandId: 'brand-1',
+          id: 'cred-a',
+          organizationId: 'org-1',
+          platform: 'TWITTER',
+        },
+        {
+          brandId: 'brand-1',
+          id: 'cred-b',
+          organizationId: 'org-1',
+          platform: 'TWITTER',
+        },
+      ],
+    });
+
+    await service.refreshExpiringTokens();
+
+    expect(twitterService.refreshToken).toHaveBeenCalledTimes(2);
+    expect(twitterService.refreshToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      'cred-a',
+    );
+    expect(twitterService.refreshToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      'cred-b',
     );
   });
 

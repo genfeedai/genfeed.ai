@@ -140,6 +140,25 @@ export function isTwitterClientAuthError(error: unknown): boolean {
   return (status === 401 && hasClientAuthText) || hasClientAuthText;
 }
 
+/**
+ * True when the OAuth2 token endpoint definitively rejected a refresh token
+ * (`invalid_grant`, or a 400/401 response). Network failures, 5xx and rate
+ * limits are transient and return false. `invalid_client` is this deployment's
+ * own app configuration, not the user's grant, so it returns false too.
+ */
+export function isTwitterRefreshTokenRejectedError(error: unknown): boolean {
+  if (isTwitterClientAuthError(error)) {
+    return false;
+  }
+
+  const status = readStatus(error) ?? readAxiosStatus(error);
+  return (
+    status === 400 ||
+    status === 401 ||
+    readOAuthErrorText(error).includes('invalid_grant')
+  );
+}
+
 export function isTwitterAuthorizationError(error: unknown): boolean {
   if (isTwitterScopeOrTierError(error) || isTwitterRateLimitError(error)) {
     return false;

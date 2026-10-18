@@ -260,6 +260,11 @@ describe('CredentialsController', () => {
         failController.refreshCredentialToken(mockRequest, credId, mockUser),
       ).rejects.toThrow(HttpException);
 
+      expect(failingTwitter.refreshToken).toHaveBeenCalledWith(
+        orgId,
+        brandEntityId,
+        credId,
+      );
       expect(credentialsService.patch).toHaveBeenCalledWith(expect.anything(), {
         isConnected: false,
       });

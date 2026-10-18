@@ -21,7 +21,11 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
 interface TokenRefreshService {
-  refreshToken(orgId: string, brandId: string): Promise<unknown>;
+  refreshToken(
+    orgId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<unknown>;
 }
 
 interface RefreshResult {
@@ -134,7 +138,9 @@ export class CronCredentialsService {
               return { credentialId: credential.id, success: false };
             }
 
-            await refresher.refreshToken(orgId, brandId);
+            // Refresh the exact credential: a brand can hold several accounts
+            // on one platform, and the brand-wide lookup rejects that case.
+            await refresher.refreshToken(orgId, brandId, credential.id);
 
             this.logger.log(
               `${url} refreshed token for ${credential.platform}`,

@@ -60,7 +60,11 @@ import {
 import type { Request } from 'express';
 
 interface TokenRefreshService {
-  refreshToken(orgId: string, brandId: string): Promise<unknown>;
+  refreshToken(
+    orgId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<unknown>;
 }
 
 @AutoSwagger()
@@ -218,7 +222,11 @@ export class CredentialsController {
     }
 
     try {
-      await refresher.refreshToken(credentialOrganizationId, credentialBrandId);
+      await refresher.refreshToken(
+        credentialOrganizationId,
+        credentialBrandId,
+        credential.id,
+      );
 
       const updatedCredential = await this.credentialsService.findOne({
         id: credential.id,
