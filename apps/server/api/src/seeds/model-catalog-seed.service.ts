@@ -17,6 +17,8 @@ export type ModelCatalogSeedResult = {
   written: number;
 };
 
+type ModelUpsertOutcome = 'created' | 'unchanged' | 'written';
+
 type ExistingModelRow = {
   aspectRatios: unknown;
   capabilities: unknown;
@@ -144,12 +146,19 @@ export class ModelCatalogSeedService {
     let written = 0;
     let unchanged = 0;
     const failedKeys: string[] = [];
+    const createdKeys: string[] = [];
 
     for (const entry of catalog) {
       try {
         const outcome = await this.upsertEntry(entry);
-        if (outcome === 'written') written += 1;
-        else unchanged += 1;
+        if (outcome === 'unchanged') {
+          unchanged += 1;
+          continue;
+        }
+        written += 1;
+        if (outcome === 'created' && this.isOfferedToOrganizations(entry)) {
+          createdKeys.push(entry.key);
+        }
       } catch (error) {
         failedKeys.push(entry.key);
         this.logger.error(
@@ -166,12 +175,59 @@ export class ModelCatalogSeedService {
       );
     }
 
+    await this.enableForExistingOrganizations(createdKeys);
+
     this.logger.log(
       `Model catalog reconciled (written=${written}, unchanged=${unchanged})`,
       this.context,
     );
 
     return { unchanged, written };
+  }
+
+  /** A new row the catalog ships live to customers, not a hidden or retired one. */
+  private isOfferedToOrganizations(entry: ModelCatalogSeedEntry): boolean {
+    return (
+      entry.isActive &&
+      entry.isPublic !== false &&
+      entry.lifecycle !== ModelLifecycle.RETIRED &&
+      entry.lifecycle !== ModelLifecycle.LEGACY
+    );
+  }
+
+  /**
+   * An organization's enabled-model allowlist is seeded once and never merged,
+   * so a model first published after an organization was created would stay
+   * invisible to it (FLUX 3, Ideogram 4.5). Offer each newly created model to
+   * every organization with an explicit allowlist, once, on the sync that
+   * creates it. Later syncs find the row and never run this, so an
+   * organization that switches the model off keeps it off. Empty allowlists
+   * are skipped: they are re-seeded with the current defaults on read.
+   */
+  private async enableForExistingOrganizations(
+    keys: readonly string[],
+  ): Promise<void> {
+    if (keys.length === 0) return;
+
+    const modelKeys = [...keys];
+    // tenant-scope-ignore: a new platform model is offered to every organization by design
+    const updated = await this.prisma.$executeRaw`
+      UPDATE "organization_settings" AS s
+      SET "enabledModelIds" = s."enabledModelIds" || ARRAY(
+            SELECT k FROM unnest(${modelKeys}::text[]) AS k
+            WHERE k <> ALL(s."enabledModelIds")
+          ),
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE cardinality(s."enabledModelIds") > 0
+        AND EXISTS (
+          SELECT 1 FROM unnest(${modelKeys}::text[]) AS k
+          WHERE k <> ALL(s."enabledModelIds")
+        )`;
+
+    this.logger.log(
+      `Offered ${keys.length} new model(s) to ${updated} organization allowlist(s)`,
+      this.context,
+    );
   }
 
   /**
@@ -337,7 +393,7 @@ export class ModelCatalogSeedService {
 
   private async upsertEntry(
     entry: ModelCatalogSeedEntry,
-  ): Promise<'unchanged' | 'written'> {
+  ): Promise<ModelUpsertOutcome> {
     const shared = this.buildSharedFields(entry);
 
     const createData: Prisma.ModelCreateInput = {
@@ -449,7 +505,7 @@ export class ModelCatalogSeedService {
       update: updateData,
       where: { key: entry.key },
     });
-    return 'written';
+    return existingRow ? 'written' : 'created';
   }
 
   private isSeedOwnedSnapshotMatch(

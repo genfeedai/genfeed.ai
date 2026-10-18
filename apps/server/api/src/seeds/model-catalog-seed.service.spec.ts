@@ -24,6 +24,7 @@ interface UpsertCall {
 
 describe('ModelCatalogSeedService', () => {
   let prisma: {
+    $executeRaw: ReturnType<typeof vi.fn>;
     model: {
       findFirst: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
@@ -46,6 +47,7 @@ describe('ModelCatalogSeedService', () => {
 
   beforeEach(() => {
     prisma = {
+      $executeRaw: vi.fn().mockResolvedValue(0),
       model: {
         // `null` simulates a first-ever boot (every key brand-new) so the
         // pre-existing behavioral tests below — written before the
@@ -109,6 +111,61 @@ describe('ModelCatalogSeedService', () => {
       `Model catalog reconciled (written=${UNIFIED_MODEL_CATALOG.length}, unchanged=0)`,
       'ModelCatalogSeedService',
     );
+  });
+
+  describe('offering new models to existing organizations', () => {
+    const [first, second, third] = UNIFIED_MODEL_CATALOG.filter(
+      (entry) =>
+        entry.isActive &&
+        entry.isPublic !== false &&
+        entry.lifecycle !== ModelLifecycle.LEGACY &&
+        entry.lifecycle !== ModelLifecycle.RETIRED,
+    );
+
+    const offeredKeys = (): string[] =>
+      (prisma.$executeRaw.mock.calls[0]?.[1] ?? []) as string[];
+
+    it('adds only the models created by this sync, in one statement', async () => {
+      prisma.model.findUnique.mockImplementation(
+        ({ where }: { where: { key: string } }) =>
+          Promise.resolve(
+            where.key === first.key ? null : { id: 'row', isDeleted: false },
+          ),
+      );
+
+      await service.reconcileCatalog([first, second, third]);
+
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(offeredKeys()).toEqual([first.key]);
+    });
+
+    it('never offers a model that already has a row, so a switched-off model stays off', async () => {
+      prisma.model.findUnique.mockResolvedValue({
+        id: 'row',
+        isDeleted: false,
+      });
+
+      await service.reconcileCatalog([first, second]);
+
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    });
+
+    it('does not offer hidden, inactive or retired new rows', async () => {
+      await service.reconcileCatalog([
+        { ...first, isActive: false },
+        { ...second, isPublic: false },
+        { ...third, lifecycle: ModelLifecycle.RETIRED },
+      ]);
+
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    });
+
+    it('does not offer anything when an entry fails to reconcile', async () => {
+      prisma.model.upsert.mockRejectedValueOnce(new Error('boom'));
+
+      await expect(service.reconcileCatalog([first, second])).rejects.toThrow();
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    });
   });
 
   it('is idempotent — a second run writes nothing when seed-owned snapshots match', async () => {

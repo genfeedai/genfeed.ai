@@ -41,6 +41,8 @@ last_verified: 2026-10-14
 | Studio elements | Insert-if-missing platform rows (deterministic id) | Renames, edits, activation, deletion |
 | Music defaults | `UNIFIED_MODEL_CATALOG` music entries (no extra seeder) | Same as model catalog |
 
+A model row created by the sync is also offered once to every organization with an explicit `enabledModelIds` allowlist (allowlists are never merged on read); later syncs leave the allowlist alone, so a switched-off model stays off.
+
 Historical data-only migrations `20261004100000_default_studio_elements`, `20261004110000_default_studio_elements_seed_by_id`, and `20261010083000_reconcile_music_catalog_default` stay applied. New catalog corrections go through the sync.
 
 ## When the sync runs
