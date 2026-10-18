@@ -1166,6 +1166,8 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/content/posts/:id',
   '/admin/content/templates',
   '/admin/content/templates/:id',
+  '/admin/content/prompts',
+  '/admin/content/prompts/list',
   '/admin/content/generations',
   '/admin/content/ingredients',
   '/admin/content/ingredients/:type',
