@@ -1,6 +1,7 @@
-import { Platform } from '@genfeedai/contracts';
-import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import { parseTweet } from 'twitter-text';
+import {
+  getPlatformTextLimit,
+  measurePlatformText,
+} from '@genfeedai/helpers/content/platform-text-length.helper';
 
 export type VariationRejectionReason =
   | 'duplicate'
@@ -44,13 +45,10 @@ const similarity = (left: string, right: string): number => {
 };
 
 const exceedsPlatformLimit = (value: string, platform: string): boolean => {
-  const capability = getChannelCapability(platform);
-  if (!capability) return true;
-  const length =
-    platform === Platform.TWITTER
-      ? parseTweet(value).weightedLength
-      : Array.from(value).length;
-  return length > capability.caption.maxLength;
+  const maxLength = getPlatformTextLimit(platform);
+  return (
+    maxLength === undefined || measurePlatformText(value, platform) > maxLength
+  );
 };
 
 export function filterSourcePostVariations(

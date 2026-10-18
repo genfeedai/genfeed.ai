@@ -1,4 +1,11 @@
-import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class OptimizeContentDto {
   @IsString()
@@ -19,4 +26,9 @@ export class OptimizeContentDto {
   @IsOptional()
   @IsString()
   scoreId?: string; // Optional: link to existing score
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maxLength?: number; // Optional: hard length the optimized text must fit
 }

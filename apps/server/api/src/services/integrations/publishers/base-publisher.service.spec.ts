@@ -409,6 +409,27 @@ describe('BasePublisherService', () => {
       expect(result.error).toContain('280');
     });
 
+    it('should count X weighted length, matching account fan-out', () => {
+      // 270 + a 23-weight link fits; the raw URL alone is over 280 code points.
+      const longLink = `https://example.com/${'p'.repeat(300)}`;
+      const fits = makePost({ description: `${'a'.repeat(256)} ${longLink}` });
+      expect(
+        publisher.validatePost(
+          makeContext(fits),
+          publisher.testExtractMediaInfo(fits),
+        ).valid,
+      ).toBe(true);
+
+      // 141 CJK characters weigh 282 on X even though they are 141 code points.
+      const cjk = makePost({ description: '日'.repeat(141) });
+      const result = publisher.validatePost(
+        makeContext(cjk),
+        publisher.testExtractMediaInfo(cjk),
+      );
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('282');
+    });
+
     it('should count the sanitized text, not the raw HTML markup', () => {
       // Raw HTML is over 280 characters; the visible text is well under.
       const post = makePost({

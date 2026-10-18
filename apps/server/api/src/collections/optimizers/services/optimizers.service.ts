@@ -32,6 +32,7 @@ import {
   POSTING_TIME_RECOMMENDATIONS_SCHEMA_NAME,
   postingTimeRecommendationsSchema,
 } from '@genfeedai/contracts/api-types/contracts';
+import { describePlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -158,6 +159,7 @@ export class OptimizersService {
         dto.platform,
         dto.goals,
         onBilling,
+        dto.maxLength,
       );
 
       let optimizationId: string | undefined;
@@ -460,12 +462,14 @@ Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason 
     platform?: string,
     goals?: string[],
     onBilling?: (amount: number) => void,
+    maxLength?: number,
   ): Promise<ContentOptimization> {
     const prompt = this.buildOptimizationPrompt(
       content,
       contentType,
       platform,
       goals,
+      maxLength,
     );
 
     return this.completeStructured(
@@ -506,9 +510,13 @@ suggested text.`;
     contentType: string,
     platform?: string,
     goals?: string[],
+    maxLength?: number,
   ): string {
     const platformText = platform ? ` for ${platform}` : '';
     const goalsText = goals?.length ? ` to achieve: ${goals.join(', ')}` : '';
+    const lengthText = maxLength
+      ? `\n\nThe optimized text must be ${describePlatformTextLimit(platform ?? '', maxLength)}. Open with the strongest hook in the first line and cut words rather than meaning.`
+      : '';
 
     return `Optimize this ${contentType} content${platformText}${goalsText}.
 
@@ -516,7 +524,7 @@ Original: "${content}"
 
 Make it more engaging, clear, and optimized for the platform. List each
 change you made with the field it touches, the original and optimized text,
-and why, and score the overall improvement.`;
+and why, and score the overall improvement.${lengthText}`;
   }
 
   /**

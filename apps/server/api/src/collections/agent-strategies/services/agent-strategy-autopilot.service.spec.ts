@@ -1083,6 +1083,100 @@ describe('AgentStrategyAutopilotService', () => {
     ).not.toHaveBeenCalled();
   });
 
+  function queueOverLengthXDraft(deps: ReturnType<typeof createService>) {
+    queueStrongTextDraft(deps);
+    deps.contentGatewayService.processManualRequest.mockResolvedValue({
+      posts: [
+        {
+          description: `Hook line. ${'a'.repeat(300)}`,
+          id: draftId,
+          targetAttachments: [],
+          targetSettings: { generation: { metadata: {} } },
+        },
+      ],
+      runs: ['run-1'],
+    });
+  }
+
+  it('shortens an over-length X draft once and publishes the version that fits', async () => {
+    const deps = createService();
+    queueOverLengthXDraft(deps);
+    deps.optimizersService.optimizeContent.mockResolvedValue({
+      optimized: 'Hook line. Short enough for X. Reply below.',
+    });
+
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expect(result.contentGenerated).toBe(1);
+    expect(deps.optimizersService.optimizeContent).toHaveBeenCalledTimes(1);
+    expect(deps.optimizersService.optimizeContent).toHaveBeenCalledWith(
+      expect.objectContaining({ maxLength: 280, platform: 'twitter' }),
+      organizationId,
+      userId,
+    );
+    expect(deps.postAccountFanoutService.resolveTargets).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(deps.postAccountFanoutService.resolveTargets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        caption: 'Hook line. Short enough for X. Reply below.',
+      }),
+    );
+  });
+
+  it('holds an X draft that is still over-length after the rewrite for review instead of failing the run', async () => {
+    const deps = createService();
+    queueOverLengthXDraft(deps);
+    deps.optimizersService.optimizeContent.mockResolvedValue({
+      optimized: `Still long. ${'b'.repeat(300)}`,
+    });
+
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expect(result.contentGenerated).toBe(1);
+    expect(deps.optimizersService.optimizeContent).toHaveBeenCalledTimes(1);
+    expect(deps.postAccountFanoutService.resolveTargets).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).not.toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({ reviewDecision: 'REJECTED' }),
+    );
+    expect(
+      deps.turboRunService.createManualReviewTurboRun,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            caption: `Still long. ${'b'.repeat(300)}`,
+            platform: 'twitter',
+            postId: draftId,
+          }),
+        ],
+      }),
+      userId,
+      organizationId,
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'approved',
+      expect.objectContaining({
+        decisionReason: expect.stringContaining(
+          'the twitter limit is 280. Handed off to publishing inbox batch batch-1 to shorten',
+        ),
+      }),
+    );
+  });
+
   it('publishes one post per connected account, sharing a single group', async () => {
     const deps = createService();
 

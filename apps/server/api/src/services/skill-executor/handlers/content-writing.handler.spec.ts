@@ -138,4 +138,44 @@ describe('ContentWritingHandler', () => {
     expect(result.content).toBe('Refined for twitter');
     expect(mockContentGeneratorService.generateContent).toHaveBeenCalled();
   });
+  it('asks the rewrite to fit X and lead with a hook', async () => {
+    mockContentGeneratorService.generateContent.mockResolvedValue([
+      { content: 'Base draft', hashtags: [], patternUsed: 'freeform' },
+    ]);
+    mockLlmDispatcherService.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: 'Short rewrite', role: 'assistant' } }],
+    });
+
+    await handler.execute(baseContext, {
+      platform: 'twitter',
+      topic: 'AI hooks',
+    });
+
+    const [request] = mockLlmDispatcherService.chatCompletion.mock.calls[0];
+    const systemPrompt = request.messages[0].content as string;
+    expect(systemPrompt).toContain('Bold and witty');
+    expect(systemPrompt).toContain('twitter post of 280 characters max');
+    expect(systemPrompt).toContain('each link counts 23');
+    expect(systemPrompt).toContain('strong hook in the first line');
+  });
+
+  it('keeps a base draft that fits X when the rewrite runs over', async () => {
+    mockContentGeneratorService.generateContent.mockResolvedValue([
+      { content: 'Fits on X', hashtags: [], patternUsed: 'freeform' },
+    ]);
+    mockLlmDispatcherService.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: 'a'.repeat(281), role: 'assistant' } }],
+    });
+
+    const result = await handler.execute(baseContext, {
+      platform: 'twitter',
+      topic: 'AI hooks',
+    });
+
+    expect(result.content).toBe('Fits on X');
+    expect(mockLoggerService.warn).toHaveBeenCalledWith(
+      'content-writing rewrite exceeded the platform limit, using base draft',
+      { platform: 'twitter' },
+    );
+  });
 });

@@ -8,6 +8,11 @@ import type {
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import type { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
+import {
+  describePlatformTextLimit,
+  getPlatformTextLimit,
+  measurePlatformText,
+} from '@genfeedai/helpers/content/platform-text-length.helper';
 
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
@@ -198,10 +203,40 @@ export function resolveReportWindow(reportType: AgentStrategyReportType): {
   return { periodEnd, periodStart };
 }
 
+/**
+ * Why a draft is too long for its channel, plus the shorten instruction, or
+ * undefined when it fits or the channel has no known limit. Measured with
+ * `measurePlatformText`, the same count the account fan-out and the
+ * publisher apply.
+ */
+function findPlatformLengthViolation(
+  content: string,
+  platform: string | undefined,
+): { instruction: string; reason: string } | undefined {
+  if (!platform) return undefined;
+  const maxLength = getPlatformTextLimit(platform);
+  if (maxLength === undefined) return undefined;
+  const length = measurePlatformText(content, platform);
+  if (length <= maxLength) return undefined;
+  return {
+    instruction: `Shorten it to ${describePlatformTextLimit(platform, maxLength)}.`,
+    reason: `Draft is ${length} characters; the ${platform} limit is ${maxLength}.`,
+  };
+}
+
+/**
+ * A draft that only needs shortening, which goes to review rather than being
+ * discarded: the fan-out would refuse it, so it must not reach auto-publish.
+ */
+export function isOverLengthRevision(gate: PublishGateResult): boolean {
+  return gate.decision === 'revise' && gate.isOverPlatformLimit === true;
+}
+
 export function scoreTextPublishGate(
   strategy: Pick<AgentStrategyDocument, 'goalProfile' | 'publishPolicy'>,
   content: string,
   analysis: OptimizerAnalysisResult,
+  platform?: string,
 ): PublishGateResult {
   const hasCTA =
     analysis.metadata?.hasCallToAction ??
@@ -210,12 +245,16 @@ export function scoreTextPublishGate(
   const ctaRequired = strategy.goalProfile === 'reach_traffic';
   const minPostScore = strategy.publishPolicy?.minPostScore ?? 70;
   const reasons: string[] = [];
+  const lengthViolation = findPlatformLengthViolation(content, platform);
 
   if (overallScore < minPostScore) {
     reasons.push('Post quality score fell below the publish threshold.');
   }
   if (ctaRequired && !hasCTA) {
     reasons.push('Reach/traffic mode requires a visible call-to-action.');
+  }
+  if (lengthViolation) {
+    reasons.push(lengthViolation.reason);
   }
 
   return {
@@ -225,6 +264,7 @@ export function scoreTextPublishGate(
         : overallScore >= Math.max(50, minPostScore - 10)
           ? 'revise'
           : 'discard',
+    ...(lengthViolation ? { isOverPlatformLimit: true } : {}),
     overallScore,
     reasons:
       reasons.length === 0
@@ -236,6 +276,7 @@ export function scoreTextPublishGate(
           ]
         : reasons,
     revisionInstructions: [
+      ...(lengthViolation ? [lengthViolation.instruction] : []),
       'Strengthen the opening hook.',
       'Improve clarity and readability.',
       'Add a clear call-to-action aligned to traffic intent.',

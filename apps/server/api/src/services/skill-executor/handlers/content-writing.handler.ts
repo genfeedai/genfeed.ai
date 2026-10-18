@@ -8,6 +8,11 @@ import type {
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import {
+  describePlatformTextLimit,
+  getPlatformTextLimit,
+  measurePlatformText,
+} from '@genfeedai/helpers/content/platform-text-length.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -47,6 +52,7 @@ export class ContentWritingHandler implements SkillHandler {
     );
 
     const firstDraft = generated[0];
+    const targetPlatform = generationDto.platform;
 
     let refinedContent = firstDraft.content;
 
@@ -56,7 +62,10 @@ export class ContentWritingHandler implements SkillHandler {
           max_tokens: 400,
           messages: [
             {
-              content: `Rewrite this content in brand voice: ${context.brandVoice}`,
+              content: this.buildRewritePrompt(
+                context.brandVoice,
+                targetPlatform,
+              ),
               role: 'system',
             },
             {
@@ -73,9 +82,21 @@ export class ContentWritingHandler implements SkillHandler {
         context.organizationId,
       );
 
-      const rewritten = completion.choices[0]?.message?.content;
-      if (rewritten) {
+      const rewritten = completion.choices[0]?.message?.content?.trim();
+      if (
+        rewritten &&
+        !this.breaksLimitTheDraftMet(
+          rewritten,
+          firstDraft.content,
+          targetPlatform,
+        )
+      ) {
         refinedContent = rewritten;
+      } else if (rewritten) {
+        this.loggerService.warn(
+          'content-writing rewrite exceeded the platform limit, using base draft',
+          { platform: targetPlatform },
+        );
       }
     } catch (error: unknown) {
       this.loggerService.warn(
@@ -98,6 +119,37 @@ export class ContentWritingHandler implements SkillHandler {
       skillSlug: 'content-writing',
       type: 'text',
     };
+  }
+
+  /**
+   * The rewrite writes for the target channel: its length as the channel
+   * counts it, and the hook in the first line, so autopilot drafts fit before
+   * they reach fan-out.
+   */
+  private buildRewritePrompt(brandVoice: string, platform: string): string {
+    const lengthRule = describePlatformTextLimit(platform);
+    return [
+      brandVoice
+        ? `Rewrite this content in brand voice: ${brandVoice}.`
+        : 'Rewrite this content in the brand voice.',
+      `Write it as one ${platform} post${lengthRule ? ` of ${lengthRule}` : ''}.`,
+      'Open with a strong hook in the first line.',
+      'Return only the post text.',
+    ].join(' ');
+  }
+
+  /** A rewrite never replaces a draft that fit with one that does not. */
+  private breaksLimitTheDraftMet(
+    rewritten: string,
+    draft: string,
+    platform: string,
+  ): boolean {
+    const maxLength = getPlatformTextLimit(platform);
+    return (
+      maxLength !== undefined &&
+      measurePlatformText(rewritten, platform) > maxLength &&
+      measurePlatformText(draft, platform) <= maxLength
+    );
   }
 
   private mapPlatform(platform: string): ContentIntelligencePlatform {

@@ -19,6 +19,7 @@ import {
   getChannelCapability,
   getChannelThreadChildCapability,
 } from '@genfeedai/contracts/api-types/contracts';
+import { measurePlatformText } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 
 type PublisherConfig = {
@@ -237,8 +238,9 @@ export abstract class BasePublisherService implements IPublisher {
    * Validate the outgoing caption length against the channel capability
    * catalog. The catalog is the single source of truth for per-platform
    * limits; platforms without an entry have no known limit and skip the
-   * check. Counts the sanitized text actually sent to the provider, in code
-   * points, matching `validateChannelTargetSettings` in the contract.
+   * check. Counts the sanitized text actually sent to the provider the way
+   * the channel does (`measurePlatformText`: weighted on X, code points
+   * elsewhere), matching the autopilot gate and account fan-out.
    */
   protected validateCaptionLength(
     context: PublishContext,
@@ -249,7 +251,7 @@ export abstract class BasePublisherService implements IPublisher {
     }
 
     const caption = this.sanitizeDescription(context.post.description);
-    const captionLength = Array.from(caption).length;
+    const captionLength = measurePlatformText(caption, this.platform);
     const { maxLength } = capability.caption;
 
     if (captionLength <= maxLength) {

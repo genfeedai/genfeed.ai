@@ -119,6 +119,32 @@ describe('ContentGatewayService', () => {
     expect(result.executions).toEqual(['execution-1']);
   });
 
+  it('passes the brand voice to the skill instead of an empty one', async () => {
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {
+        voice: { audience: ['founders'], style: 'punchy', tone: 'direct' },
+      },
+      id: 'brand',
+    });
+
+    await service.processManualRequest(
+      testId('org'),
+      testId('brand'),
+      'content-writing',
+      { platform: 'twitter', topic: 'hooks' },
+      'user-1',
+    );
+
+    expect(skillWorkflowService.execute).toHaveBeenCalledWith(
+      'content-writing',
+      expect.objectContaining({
+        brandVoice: 'tone: direct; style: punchy; audience: founders',
+      }),
+      { platform: 'twitter', topic: 'hooks' },
+      'user-1',
+    );
+  });
+
   it('rejects a missing brand before workflow execution', async () => {
     brandsService.findOne.mockResolvedValue(null);
     await expect(

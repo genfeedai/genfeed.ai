@@ -31,6 +31,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
+import { describePlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
@@ -798,7 +799,9 @@ Use this proven pattern:
 FORMULA: ${safeFormula}
 EXAMPLE: ${safeExample}
 
-PLACEHOLDERS TO FILL: ${placeholders.join(', ')}`;
+PLACEHOLDERS TO FILL: ${placeholders.join(', ')}
+
+LENGTH: ${this.getPlatformLength(dto.platform)}. Open with a strong hook in the first line.`;
 
     if (playbookInsights) {
       prompt += `
@@ -859,7 +862,7 @@ Return one variation per post.`;
   private getPlatformLength(platform: string): string {
     switch (platform) {
       case 'twitter':
-        return '280 characters max';
+        return describePlatformTextLimit(platform) ?? '280 characters max';
       case 'linkedin':
         return '1500-3000 characters';
       case 'instagram':

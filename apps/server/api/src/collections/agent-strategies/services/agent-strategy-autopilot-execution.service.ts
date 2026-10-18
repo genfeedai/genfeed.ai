@@ -14,6 +14,7 @@ import {
   strategyBrandId as getStrategyBrandId,
   strategyId as getStrategyId,
   strategyOrganizationId as getStrategyOrganizationId,
+  isOverLengthRevision,
   normalizeOpportunitySourceType,
   resolveOpportunityPlatform,
   resolveReviewTurboRunItemFormat,
@@ -61,6 +62,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { createPublishingApprovalsRoute } from '@genfeedai/contracts/constants';
+import { getPlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -240,7 +242,7 @@ export class AgentStrategyAutopilotExecutionService {
       }
       draftContent = revision.content;
       gate = revision.gate;
-    } else if (gate.decision !== 'approved') {
+    } else if (gate.decision !== 'approved' && !isOverLengthRevision(gate)) {
       return this.handleGateRejection({
         draft,
         gate,
@@ -251,12 +253,13 @@ export class AgentStrategyAutopilotExecutionService {
 
     return this.finalizeApprovalAndHandoff({
       evaluateQuality,
-      evaluatedReceipt: draftGenerator
-        ? buildEvaluatedDraftReceipt(
-            draft as unknown as Record<string, unknown>,
-            autopilotMetadata,
-          )
-        : undefined,
+      evaluatedReceipt:
+        draftGenerator && !gate.isOverPlatformLimit
+          ? buildEvaluatedDraftReceipt(
+              draft as unknown as Record<string, unknown>,
+              autopilotMetadata,
+            )
+          : undefined,
       draft,
       draftContent,
       format,
@@ -419,6 +422,7 @@ export class AgentStrategyAutopilotExecutionService {
         content: input.draftContent,
         contentType: 'caption',
         goals: ['engagement', 'reach'],
+        maxLength: getPlatformTextLimit(input.platform),
         platform: input.platform,
       },
       input.organizationId,
@@ -448,7 +452,11 @@ export class AgentStrategyAutopilotExecutionService {
       input.platform,
     );
 
-    if (revisedGate.decision !== 'approved') {
+    // Still too long after the one rewrite: a person shortens it in review.
+    if (
+      revisedGate.decision !== 'approved' &&
+      !isOverLengthRevision(revisedGate)
+    ) {
       await this.postsService.patch(draftId, {
         reviewDecision: PersistedReviewDecision.REJECTED,
         reviewFeedback: revisedGate.reasons.join(' '),
@@ -510,7 +518,8 @@ export class AgentStrategyAutopilotExecutionService {
     if (
       input.format === 'text' &&
       input.opportunity.metadata?.cadencePurpose !== 'reserve' &&
-      shouldAutoPublish(input.strategy)
+      shouldAutoPublish(input.strategy) &&
+      !input.gate.isOverPlatformLimit // fan-out would refuse it
     ) {
       return this.finalizeAutoPublish(input);
     }
@@ -640,8 +649,9 @@ export class AgentStrategyAutopilotExecutionService {
       organizationId,
       'approved',
       {
-        decisionReason:
-          format === 'image'
+        decisionReason: gate.isOverPlatformLimit
+          ? `${gate.reasons.join(' ')} Handed off to publishing inbox batch ${reviewHandoff?.turboRunId} to shorten before publishing.`
+          : format === 'image'
             ? reviewHandoff
               ? `Image passed quality gate and was handed off to publishing inbox batch ${reviewHandoff.turboRunId}.`
               : 'Image passed quality gate and was approved for downstream review/publishing.'
@@ -701,7 +711,7 @@ export class AgentStrategyAutopilotExecutionService {
         organizationId,
       )) as OptimizerAnalysisResult);
 
-    return scoreTextPublishGate(strategy, content, analysis);
+    return scoreTextPublishGate(strategy, content, analysis, platform);
   }
 
   private async createPublishingInboxHandoff(input: {

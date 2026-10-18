@@ -15,6 +15,8 @@ export interface BudgetPacingState {
 
 export interface PublishGateResult {
   decision: 'approved' | 'discard' | 'hold' | 'revise';
+  /** The text is longer than the target channel allows, as it counts it. */
+  isOverPlatformLimit?: boolean;
   overallScore: number;
   reasons: string[];
   revisionInstructions: string[];
