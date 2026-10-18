@@ -7,7 +7,7 @@ description: 'See which services run in a self-hosted Genfeed instance, where da
 
 A self-hosted Genfeed instance is single-tenant: one organization per
 deployment, running entirely on infrastructure you control. The published stack
-is two containers. Boundary spec version: v1.3.1.
+is two containers. Boundary spec version: v1.4.0.
 
 ## What runs
 
@@ -36,6 +36,9 @@ On start, the `genfeed` container:
 | Redis | `6379` | No |
 
 PostgreSQL and Redis are never published on a host port by this stack.
+
+The workers run your scheduled workflows and hired agents on their schedules,
+the same as Genfeed Cloud.
 
 ## Where data lives
 

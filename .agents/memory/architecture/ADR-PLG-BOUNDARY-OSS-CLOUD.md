@@ -6,11 +6,11 @@ Accepted
 
 ## Boundary Spec Version
 
-v1.3.1
+v1.4.0
 
 ## Last Updated
 
-2026-07-06
+2026-10-18
 
 ## Canonical Source
 
@@ -36,8 +36,8 @@ Genfeed follows a hybrid OSS + SaaS model:
 | Local/self-hosted run                           | Yes                       | N/A                    |
 | BYOK execution                                  | Yes                       | Yes                    |
 | Managed inference credits                       | Optional Cloud API bridge | Yes                    |
-| Autonomous agent runs                           | No                        | Yes                    |
-| Scheduling/cron orchestration                   | No                        | Yes                    |
+| Autonomous agent runs                           | Yes                       | Yes                    |
+| Scheduling/cron orchestration                   | Yes (workflow-backed)     | Yes                    |
 | Social publishing connectors                    | Manual export/upload      | Managed integrations   |
 | Cross-workflow analytics and optimization loops | Limited local insight     | Full managed analytics |
 | Team/org controls, billing, quotas              | Runtime-gated off         | Yes                    |
@@ -50,7 +50,7 @@ Genfeed follows a hybrid OSS + SaaS model:
 
 1. OSS must remain useful without a Cloud account.
 2. OSS must preserve workflow build and local/BYOK execution.
-3. Cloud-only value should center on automation, publishing, scheduling, analytics, and collaboration.
+3. Cloud-only value should center on managed inference, managed publishing integrations, analytics at scale, and collaboration. Autonomous agent runs and scheduling are not Cloud-only.
 4. Workflow portability between OSS and Cloud remains a required direction.
 5. Cloud account sync is explicit. Core local records do not replicate to Cloud without a dedicated import, export, or API action.
 
@@ -79,3 +79,4 @@ Multi-tenant organization controls are a SaaS product boundary. Current implemen
 | v1.2.0  | 2026-05-03 | Added V1 execution modes, account-sync contract, and managed inference bridge boundary |
 | v1.3.0  | 2026-06-02 | Added skills, routines, feedback memory, and collaborative learning boundary summary   |
 | v1.3.1  | 2026-07-06 | Aligned multi-tenancy text with #1093 OSS API enforcement boundary                     |
+| v1.4.0  | 2026-10-18 | Autonomous agent runs and workflow-backed scheduling are in OSS self-host (#7343)      |
