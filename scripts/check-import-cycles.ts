@@ -21,9 +21,9 @@ const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
 const EXCLUDED_CYCLE_PATH_PREFIXES = ['packages/contracts/src/interfaces/'];
 const CODE_DIR_HINTS = ['src', 'app', 'packages', 'components', 'lib'];
 // A safety net against a hung madge process, not a performance budget:
-// apps/server/api alone runs past 60s on a 4-vCPU CI runner. The whole check
-// still has to fit the 150s executable-contract child timeout.
-const DEFAULT_MADGE_TIMEOUT_MS = 120_000;
+// apps/server/api alone now runs past 120s on a 4-vCPU CI runner. The whole
+// check still has to fit the 270s executable-contract child timeout.
+const DEFAULT_MADGE_TIMEOUT_MS = 240_000;
 // Workspaces scan in parallel so the full check fits the CI contract timeout.
 const MAX_MADGE_CONCURRENCY = 4;
 const SOURCE_FILE_PATTERN = '*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}';
