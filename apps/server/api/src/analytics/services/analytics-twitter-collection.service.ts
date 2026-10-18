@@ -27,7 +27,6 @@ import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsPersistenceContext,
   BreakoutPublicationSourceV1,
-  IReplyBotCredentialData,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
@@ -89,7 +88,11 @@ export class AnalyticsTwitterCollectionService {
       );
 
       await admitAnalyticsCollection(authorization);
-      const credentialData = this.buildCredentialData(credential);
+      const accessToken = await this.resolveAccessToken(
+        posts[0],
+        credential.id,
+      );
+      await admitAnalyticsCollection(authorization);
       const tweetIds = posts.map((post) => post.externalId);
       const observations = new Map<
         string,
@@ -132,8 +135,7 @@ export class AnalyticsTwitterCollectionService {
         requestStartedAt = new Date();
       const analyticsMap = await this.twitterService.getMediaAnalyticsBatch(
         tweetIds,
-        credentialData.accessToken,
-        credentialData.accessTokenSecret,
+        accessToken,
       );
 
       const receivedAt = new Date();
@@ -369,21 +371,25 @@ export class AnalyticsTwitterCollectionService {
     return credential;
   }
 
-  private buildCredentialData(credential: unknown): IReplyBotCredentialData {
-    if (
-      !isPlainObject(credential) ||
-      typeof credential.accessToken !== 'string'
-    ) {
+  /**
+   * Impressions and organic metrics are only served to the author's own OAuth2
+   * user token, so collection uses the account's token — refreshed when it is
+   * about to expire — rather than the app bearer.
+   */
+  private async resolveAccessToken(
+    post: TwitterAnalyticsCollectionInput['posts'][number],
+    credentialId: string,
+  ): Promise<string> {
+    const { accessToken } = await this.twitterService.getValidCredential(
+      post.organizationId,
+      post.brandId,
+      credentialId,
+    );
+    if (!accessToken) {
       throw new Error('Twitter analytics credential missing accessToken');
     }
 
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret:
-        typeof credential.accessTokenSecret === 'string'
-          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-          : undefined,
-    };
+    return EncryptionUtil.decrypt(accessToken);
   }
 
   private isRateLimitError(error: unknown): boolean {

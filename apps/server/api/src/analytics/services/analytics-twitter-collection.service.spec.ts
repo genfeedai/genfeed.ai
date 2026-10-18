@@ -41,6 +41,9 @@ function createHarness(analytics = new Map<string, unknown>()) {
   } satisfies ServerPostAnalytics;
   const twitter = {
     getMediaAnalyticsBatch: vi.fn().mockResolvedValue(analytics),
+    getValidCredential: vi
+      .fn<ServerTwitterAnalytics['getValidCredential']>()
+      .mockResolvedValue({ accessToken: 'fresh-access-token' }),
   } satisfies ServerTwitterAnalytics;
   const credentials = {
     findAll: vi.fn(),
@@ -111,6 +114,7 @@ describe('AnalyticsTwitterCollectionService', () => {
       denied,
     );
     expect(h.credentials.resolveBrandAccount).not.toHaveBeenCalled();
+    expect(h.twitter.getValidCredential).not.toHaveBeenCalled();
     expect(h.twitter.getMediaAnalyticsBatch).not.toHaveBeenCalled();
     expect(h.collectionState.markFailedBatch).not.toHaveBeenCalled();
     expect(h.collectionState.markReadyBatch).not.toHaveBeenCalled();
@@ -182,6 +186,39 @@ describe('AnalyticsTwitterCollectionService', () => {
         platform: CredentialPlatform.TWITTER,
       }),
     ]);
+  });
+
+  it("reads metrics with the credential's fresh OAuth2 user token", async () => {
+    const harness = createHarness(new Map([['tweet-1', { views: 42 }]]));
+    const decrypt = vi.mocked(EncryptionUtil.decrypt);
+
+    await harness.service.collect(
+      input(),
+      analyticsCollectionAuthorizationFixture,
+    );
+
+    expect(harness.twitter.getValidCredential).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      'credential-1',
+    );
+    expect(decrypt).toHaveBeenCalledWith('fresh-access-token');
+    expect(harness.twitter.getMediaAnalyticsBatch).toHaveBeenCalledWith(
+      ['tweet-1'],
+      'fresh-access-token',
+    );
+  });
+
+  it('fails before the provider read when the credential has no access token', async () => {
+    const harness = createHarness();
+    harness.twitter.getValidCredential.mockResolvedValue({ accessToken: null });
+
+    await expect(
+      harness.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toThrow('Twitter analytics credential missing accessToken');
+
+    expect(harness.twitter.getMediaAnalyticsBatch).not.toHaveBeenCalled();
+    expect(harness.collectionState.markFailedBatch).toHaveBeenCalled();
   });
 
   it('records delayed state and fails when provider data is unavailable', async () => {

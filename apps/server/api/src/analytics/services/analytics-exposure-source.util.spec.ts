@@ -134,7 +134,10 @@ function harness(
   async function collect() {
     if (platform === Platform.TWITTER) {
       const service = new AnalyticsTwitterCollectionService(
-        { getMediaAnalyticsBatch: batchFetch },
+        {
+          getMediaAnalyticsBatch: batchFetch,
+          getValidCredential: vi.fn(async () => credential),
+        },
         analytics,
         credentials,
         state,
