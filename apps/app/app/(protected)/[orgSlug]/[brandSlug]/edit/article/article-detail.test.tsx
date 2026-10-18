@@ -401,9 +401,60 @@ describe('ArticleDetail', () => {
 
     render(<ArticleDetail articleId="article-1" />);
 
-    expect(screen.getByText('SEO Scorecard')).toBeInTheDocument();
+    expect(screen.getByText('SEO score')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Re-score SEO' }));
 
     expect(handleScoreSeo).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the cover image above the editor when the article has one', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        coverImageUrl: 'https://cdn.example.com/cover.jpg',
+        id: 'article-1',
+        label: 'Cover Article',
+        status: 'draft',
+      },
+      form: {
+        category: 'blog',
+        content: '',
+        label: 'Cover Article',
+        status: 'draft',
+        summary: '',
+        tags: '',
+      },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByTestId('article-cover-preview')).toBeInTheDocument();
+  });
+
+  it('summarises article facts on one line instead of an info card', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        id: 'article-1',
+        readingTime: 4,
+        status: 'draft',
+        wordCount: 820,
+      },
+      form: {
+        category: 'blog',
+        content: '',
+        label: 'Facts Article',
+        status: 'draft',
+        summary: '',
+        tags: '',
+      },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByTestId('article-facts')).toHaveTextContent(
+      '820 words · 4 min read',
+    );
+    expect(screen.queryByText('Article Info')).not.toBeInTheDocument();
   });
 });

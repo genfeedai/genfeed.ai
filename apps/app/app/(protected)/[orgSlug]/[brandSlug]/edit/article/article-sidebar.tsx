@@ -1,7 +1,7 @@
 import { ArticleStatus, formatEnumLabel } from '@genfeedai/contracts';
 import type { ArticleSidebarProps } from '@props/edit/article-sidebar.props';
-import Card from '@ui/card/Card';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
+import InspectorSection from '@ui/posts/post-detail-sidebar/InspectorSection';
 import ArticleDeliveryCard from './article-delivery-card';
 import ArticlePublicPageCard from './article-public-page-card';
 
@@ -14,13 +14,32 @@ export default function ArticleSidebar({
   onScoreSeo,
   delivery,
 }: ArticleSidebarProps) {
+  const isPublished = form.status === ArticleStatus.PUBLISHED;
+  const facts = article
+    ? [
+        formatEnumLabel(form.status),
+        `${article.wordCount || 0} words`,
+        `${article.readingTime || 0} min read`,
+        form.category,
+      ]
+    : [];
+
   return (
     <div className="space-y-4">
+      {article && (
+        <p
+          className="text-xs capitalize text-muted-foreground"
+          data-testid="article-facts"
+        >
+          {facts.join(' · ')}
+        </p>
+      )}
+
       {article && (
         <ArticlePublicPageCard
           article={article}
           destination={destination}
-          isPublished={form.status === ArticleStatus.PUBLISHED}
+          isPublished={isPublished}
           summary={form.summary}
           title={form.label}
         />
@@ -38,44 +57,26 @@ export default function ArticleSidebar({
       )}
 
       {article && (
-        <SeoScorecard
-          score={article.seoScore}
-          scorecard={article.seoBreakdown}
-          contentTypeLabel="article"
-          isScoring={isScoringSeo}
-          hasUnsavedChanges={isDirty}
-          onScore={onScoreSeo}
-        />
-      )}
-
-      {article && (
-        <Card bodyClassName="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">
-            Article Info
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Status</span>
-              <span className="font-medium">
-                {formatEnumLabel(form.status)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Words</span>
-              <span className="font-medium">{article.wordCount || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Reading time</span>
-              <span className="font-medium">
-                {article.readingTime || 0} min
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Category</span>
-              <span className="font-medium capitalize">{form.category}</span>
-            </div>
-          </div>
-        </Card>
+        <InspectorSection
+          title="SEO"
+          summary={
+            typeof article.seoScore === 'number'
+              ? `${Math.round(article.seoScore)}/100`
+              : 'Not scored'
+          }
+          isDefaultOpen={!isPublished}
+          testId="article-seo"
+        >
+          <SeoScorecard
+            variant="embedded"
+            score={article.seoScore}
+            scorecard={article.seoBreakdown}
+            contentTypeLabel="article"
+            isScoring={isScoringSeo}
+            hasUnsavedChanges={isDirty}
+            onScore={onScoreSeo}
+          />
+        </InspectorSection>
       )}
     </div>
   );
