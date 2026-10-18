@@ -141,8 +141,12 @@ export class IngredientsController {
       });
     }
 
+    // API-key identity travels with the actor so a key's role cap applies.
     const { brandIds } = await this.brandAccess.resolve({
+      apiKeyId: user.apiKeyId,
+      isApiKey: user.isApiKey,
       organizationId,
+      scopes: user.scopes,
       userId,
     });
 

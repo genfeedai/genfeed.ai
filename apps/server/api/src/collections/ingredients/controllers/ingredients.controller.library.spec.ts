@@ -316,8 +316,23 @@ describe('IngredientsController — Library axes', () => {
       expect(andBranches(aggregate)).toContainEqual({
         brandId: { in: assigned },
       });
+      expect(brandAccess.resolve).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId, userId }),
+      );
+    });
+
+    it('passes API-key identity to the brand access check', async () => {
+      await controller.findAll(
+        mockRequest,
+        { allBrands: true } as IngredientsQueryDto,
+        { ...mockUser, apiKeyId: 'key_1', isApiKey: true, scopes: ['read'] },
+      );
+
       expect(brandAccess.resolve).toHaveBeenCalledWith({
+        apiKeyId: 'key_1',
+        isApiKey: true,
         organizationId,
+        scopes: ['read'],
         userId,
       });
     });
