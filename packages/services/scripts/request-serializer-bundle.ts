@@ -1,9 +1,14 @@
-import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import {
+  finalizeRequestSerializerInput,
+  readPinnedAppRuntime,
+} from './request-serializer-build-receipt';
+
+export { readPinnedAppRuntime } from './request-serializer-build-receipt';
 
 const coverage = z.enum(['exact', 'unsupported', 'not_a_chunk']);
 const recordSchema = z.discriminatedUnion('type', [
@@ -84,6 +89,14 @@ export type BundleFailureDiagnostic = {
 
 type VerificationOptions = {
   originalSources?: readonly string[];
+  compilerInput?: Pick<
+    ReturnType<typeof finalizeRequestSerializerInput>,
+    | 'resourcePath'
+    | 'buildId'
+    | 'artifacts'
+    | 'preflightSha256'
+    | 'compilerCallbacks'
+  >;
   onFailure?: (diagnostic: BundleFailureDiagnostic) => void;
 };
 
@@ -291,35 +304,96 @@ export function verifyRequestSerializerBundle(
       );
     }
     const sources = sourcesFor(files);
-    for (const required of [
-      '/packages/services/core/request-serializers.runtime.ts',
-      '/packages/serializers/',
-      '/node_modules/ts-jsonapi/',
-      '/node_modules/lodash/',
-    ]) {
-      if (!sources.some((source) => source.includes(required)))
-        fail(`Missing deferred ${required}: ${route}`, chunkEvidence);
-    }
     const contributions = parts.filter((part) => files.includes(part.filename));
-    for (const required of [
-      '/packages/serializers/src/',
-      '/node_modules/ts-jsonapi/',
-      '/node_modules/lodash/',
-    ]) {
-      if (!contributions.some((part) => part.source_path.includes(required)))
-        fail(
-          `Missing original source-map provenance ${required}: ${route}`,
-          chunkEvidence,
-        );
-    }
-    for (const source of options.originalSources ?? []) {
+    let authenticatedPackageInput = null;
+    if (options.compilerInput) {
+      const exactSource = `[project]/${options.compilerInput.resourcePath}`;
       if (
-        !contributions.some((part) => part.source_path.endsWith(`/${source}`))
+        options.compilerInput.resourcePath !==
+        'packages/serializers/dist/request-runtime.bundle.js'
       )
+        fail('Unexpected authenticated compiler resource', chunkEvidence);
+      const artifactModules = records.filter(
+        (record) =>
+          record.type === 'module' &&
+          record.path === exactSource &&
+          record.ident.startsWith(`${exactSource} [app-client] (ecmascript)`),
+      );
+      if (!artifactModules.length)
+        fail('Missing exact global app-client compiler module', chunkEvidence);
+      const actualParts = contributions.filter(
+        (part) => part.source_path === exactSource && part.size > 0,
+      );
+      if (!actualParts.length)
         fail(
-          `Missing original source-map input ${source}: ${route}`,
+          'Missing exact positive compiler input source part',
           chunkEvidence,
         );
+      const wrapper =
+        '[project]/packages/services/core/request-serializers.runtime.ts';
+      if (
+        !files.some((filename) =>
+          outputs
+            .get(filename)
+            ?.modules.some((ident) => modules.get(ident) === wrapper),
+        )
+      )
+        fail('Missing actual runtime wrapper output membership', chunkEvidence);
+      for (const required of [
+        'packages/serializers/src/',
+        'node_modules/ts-jsonapi/',
+        'node_modules/lodash/',
+      ]) {
+        if (
+          !options.originalSources?.some((source) =>
+            source.startsWith(required),
+          )
+        )
+          fail(
+            `Missing authenticated package source ${required}`,
+            chunkEvidence,
+          );
+      }
+      authenticatedPackageInput = {
+        ...options.compilerInput,
+        globalModuleIdentities: artifactModules.map((record) =>
+          record.type === 'module' ? record.ident : '',
+        ),
+        positiveSourceParts: actualParts.length,
+        originalPackageSourceFiles: options.originalSources?.length ?? 0,
+        evidence:
+          'Actual byte-identical compiler callback and immutable package JS/map/provenance; global module index and positive optimized-output source part. Original source identities come from the authenticated package map, not synthetic analyzer parts.',
+      };
+    } else {
+      for (const required of [
+        '/packages/services/core/request-serializers.runtime.ts',
+        '/packages/serializers/',
+        '/node_modules/ts-jsonapi/',
+        '/node_modules/lodash/',
+      ]) {
+        if (!sources.some((source) => source.includes(required)))
+          fail(`Missing deferred ${required}: ${route}`, chunkEvidence);
+      }
+      for (const required of [
+        '/packages/serializers/src/',
+        '/node_modules/ts-jsonapi/',
+        '/node_modules/lodash/',
+      ]) {
+        if (!contributions.some((part) => part.source_path.includes(required)))
+          fail(
+            `Missing original source-map provenance ${required}: ${route}`,
+            chunkEvidence,
+          );
+      }
+      for (const source of options.originalSources ?? []) {
+        if (
+          !contributions.some((part) => part.source_path.endsWith(`/${source}`))
+        )
+          fail(
+            `Missing original source-map input ${source}: ${route}`,
+            chunkEvidence,
+          );
+      }
     }
     return {
       route,
@@ -327,7 +401,10 @@ export function verifyRequestSerializerBundle(
       forbiddenInitialSources: 0,
       deferred: {
         ...chunkEvidence,
-        originalSourceFiles: options.originalSources?.length ?? null,
+        originalSourceFiles: options.compilerInput
+          ? null
+          : (options.originalSources?.length ?? null),
+        authenticatedPackageInput,
         requiredSources: {
           canonical: sources.filter((source) =>
             source.includes('/packages/serializers/'),
@@ -356,27 +433,6 @@ export function verifyRequestSerializerBundle(
   };
 }
 
-export function readPinnedAppRuntime(appDirectory = path.resolve('apps/app')) {
-  const appManifest = z
-    .object({ dependencies: z.object({ next: z.string() }) })
-    .parse(
-      JSON.parse(readFileSync(path.join(appDirectory, 'package.json'), 'utf8')),
-    );
-  const appRequire = createRequire(path.join(appDirectory, 'package.json'));
-  const nextManifest = z
-    .object({ version: z.string() })
-    .parse(appRequire('next/package.json'));
-  if (nextManifest.version !== appManifest.dependencies.next)
-    throw new Error('Bundle proof requires the pinned Next.js runtime');
-  return {
-    nextVersion: nextManifest.version,
-    pinnedNextVersion: appManifest.dependencies.next,
-    sourceSha: execFileSync('git', ['rev-parse', 'HEAD'], {
-      encoding: 'utf8',
-    }).trim(),
-  };
-}
-
 if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
@@ -392,9 +448,16 @@ if (
     .filter(Boolean)
     .map((line) => JSON.parse(line));
   const runtime = readPinnedAppRuntime();
+  const compilerInput = finalizeRequestSerializerInput(process.cwd(), runtime);
   const packageProof = z
     .object({
       schemaVersion: z.literal(1),
+      output: z.literal('packages/serializers/dist/request-runtime.bundle.js'),
+      sourceMap: z.literal(
+        'packages/serializers/dist/request-runtime.bundle.js.map',
+      ),
+      sha256: z.string().regex(/^[a-f0-9]{64}$/),
+      sourceMapSha256: z.string().regex(/^[a-f0-9]{64}$/),
       inputs: z.record(
         z.string(),
         z.object({
@@ -433,6 +496,77 @@ if (
         ),
       ),
     );
+  if (
+    packageProof.sha256 !== compilerInput.artifacts.javaScript.sha256 ||
+    packageProof.sourceMapSha256 !== compilerInput.artifacts.sourceMap.sha256
+  )
+    throw new Error(
+      'Compiler input does not authenticate the actual original source map',
+    );
+  const actualMap = z
+    .object({
+      version: z.literal(3),
+      sources: z.array(z.string()).max(512),
+      sourcesContent: z.array(z.string().nullable()).max(512),
+      sourceRoot: z.string().optional(),
+      mappings: z.string().min(1),
+    })
+    .parse(JSON.parse(readFileSync(packageProof.sourceMap, 'utf8')));
+  if (actualMap.sources.length !== actualMap.sourcesContent.length)
+    throw new Error('Incomplete authenticated source-map content');
+  const mapIdentities = new Map(
+    actualMap.sources.map((source, index) => {
+      const absolute = path.resolve(
+        path.dirname(packageProof.sourceMap),
+        actualMap.sourceRoot ?? '',
+        source,
+      );
+      const relative = path
+        .relative(process.cwd(), absolute)
+        .split(path.sep)
+        .join('/');
+      const marker = absolute.lastIndexOf('/node_modules/');
+      const identity =
+        relative.startsWith('../') && marker !== -1
+          ? absolute.slice(marker + 1)
+          : relative;
+      return [identity, actualMap.sourcesContent[index]];
+    }),
+  );
+  const sha256 = (content: string) =>
+    createHash('sha256').update(content).digest('hex');
+  for (const [inputPath, input] of Object.entries(packageProof.inputs)) {
+    for (const original of input.originalSources) {
+      if (!mapIdentities.has(original.path))
+        throw new Error(
+          `Missing authenticated original identity: ${original.path}`,
+        );
+      const content = mapIdentities.get(original.path);
+      if (content === null) {
+        if (
+          original.contentSha256 !== null ||
+          original.evidence !== 'local-map-identity-only' ||
+          !input.sourceMaps.length ||
+          !inputPath.startsWith('node_modules/')
+        )
+          throw new Error('Unproven null vendor source identity');
+      } else if (
+        typeof content !== 'string' ||
+        sha256(content) !== original.contentSha256 ||
+        original.evidence === 'local-map-identity-only'
+      )
+        throw new Error(
+          `Changed authenticated original content: ${original.path}`,
+        );
+      if (
+        original.path.startsWith('packages/serializers/src/') &&
+        (original.evidence !== 'source-content-and-disk' ||
+          sha256(readFileSync(original.path, 'utf8')) !==
+            original.contentSha256)
+      )
+        throw new Error('Changed canonical source content');
+    }
+  }
   const originalSources = [
     ...new Set(
       Object.values(packageProof.inputs).flatMap((input) =>
@@ -451,6 +585,7 @@ if (
     process.argv[4] ? [process.argv[4]] : undefined,
     {
       originalSources,
+      compilerInput,
       onFailure: (diagnostic) => {
         writeFileSync(
           out,

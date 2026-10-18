@@ -91,6 +91,58 @@ function graph() {
   ];
 }
 
+const artifactPath = 'packages/serializers/dist/request-runtime.bundle.js';
+const artifactModule = `[project]/${artifactPath} [app-client] (ecmascript)`;
+const originalSources = [
+  'packages/serializers/src/index.ts',
+  'node_modules/ts-jsonapi/lib/index.ts',
+  'node_modules/lodash/lodash.js',
+];
+const descriptor = (source: string) => ({
+  path: source,
+  sha256: 'a'.repeat(64),
+  bytes: 1000,
+});
+const compilerInput = {
+  resourcePath: artifactPath,
+  buildId: '00000000-0000-4000-8000-000000000001',
+  preflightSha256: 'b'.repeat(64),
+  compilerCallbacks: 1,
+  artifacts: {
+    javaScript: descriptor(artifactPath),
+    sourceMap: descriptor(`${artifactPath}.map`),
+    provenance: descriptor(
+      'packages/serializers/dist/request-runtime.provenance.json',
+    ),
+  },
+} as const;
+function compiledGraph() {
+  return [
+    ...graph()
+      .filter((record) => record.type !== 'part')
+      .map((record) =>
+        record.type === 'output' &&
+        'filename' in record &&
+        record.filename === '[client-fs]/write.js'
+          ? { ...record, modules: ['runtime'] }
+          : record,
+      ),
+    {
+      type: 'module',
+      ident: artifactModule,
+      path: `[project]/${artifactPath}`,
+    },
+    ...REQUEST_SERIALIZER_BUNDLE_ROUTES.map((route) => ({
+      type: 'part',
+      route,
+      filename: '[client-fs]/write.js',
+      source_path: `[project]/${artifactPath}`,
+      size: 1000,
+      compressed_size: 400,
+    })),
+  ];
+}
+
 describe('serializer bundle evidence', () => {
   it('proves initial absence and a single deferred group including concatenated canonical code', () => {
     const report = verifyRequestSerializerBundle(graph());
@@ -369,5 +421,132 @@ describe('serializer bundle evidence', () => {
     ).toThrow(
       '"javaScriptChunks":2,"javaScriptOutputs":["[client-fs]/write.js","[client-fs]/vendor.js"],"alreadyInitialJavaScriptChunks":0',
     );
+  });
+  it('joins authenticated actual input with the global native module index and concatenated positive output part', () => {
+    const result = verifyRequestSerializerBundle(compiledGraph(), undefined, {
+      compilerInput,
+      originalSources,
+    });
+    expect(result.routes[1].deferred).toMatchObject({
+      javaScriptChunks: 1,
+      originalSourceFiles: null,
+      requiredSources: { canonical: 1, tsJsonapi: 0, lodash: 0 },
+      authenticatedPackageInput: {
+        globalModuleIdentities: [artifactModule],
+        positiveSourceParts: 1,
+        originalPackageSourceFiles: 3,
+        preflightSha256: compilerInput.preflightSha256,
+      },
+    });
+    expect(
+      result.routes[1].deferred?.newOutputEvidence[0].sources.canonical,
+    ).toMatchObject({ modules: 0, sourceParts: 1 });
+  });
+
+  it('rejects part-only or wrong-path global compiler module evidence', () => {
+    for (const records of [
+      compiledGraph().filter(
+        (record) => !('ident' in record) || record.ident !== artifactModule,
+      ),
+      compiledGraph().map((record) =>
+        'ident' in record && record.ident === artifactModule
+          ? { ...record, path: '[project]/other/request-runtime.bundle.js' }
+          : record,
+      ),
+    ])
+      expect(() =>
+        verifyRequestSerializerBundle(records, undefined, {
+          compilerInput,
+          originalSources,
+        }),
+      ).toThrow('exact global app-client');
+  });
+
+  it('rejects global-index-only, wrong-path or zero-byte optimized source parts', () => {
+    for (const records of [
+      compiledGraph().filter((record) => record.type !== 'part'),
+      compiledGraph().map((record) =>
+        record.type === 'part'
+          ? {
+              ...record,
+              source_path: '[project]/other/request-runtime.bundle.js',
+            }
+          : record,
+      ),
+      compiledGraph().map((record) =>
+        record.type === 'part' ? { ...record, size: 0 } : record,
+      ),
+    ])
+      expect(() =>
+        verifyRequestSerializerBundle(records, undefined, {
+          compilerInput,
+          originalSources,
+        }),
+      ).toThrow('exact positive compiler input');
+  });
+
+  it('requires actual runtime wrapper membership in the single new output independently of the global index', () => {
+    const records = compiledGraph().map((record) =>
+      record.type === 'output' &&
+      'filename' in record &&
+      record.filename === '[client-fs]/write.js'
+        ? { ...record, modules: [] }
+        : record,
+    );
+    expect(() =>
+      verifyRequestSerializerBundle(records, undefined, {
+        compilerInput,
+        originalSources,
+      }),
+    ).toThrow('actual runtime wrapper');
+  });
+
+  it('retains strict initial absence and one-new-request constraints for authenticated package input', () => {
+    const leak = [
+      ...compiledGraph(),
+      {
+        type: 'part',
+        route: REQUEST_SERIALIZER_BUNDLE_ROUTES[1],
+        filename: '[client-fs]/initial.js',
+        source_path: `[project]/${artifactPath}`,
+        size: 1000,
+        compressed_size: 400,
+      },
+    ];
+    expect(() =>
+      verifyRequestSerializerBundle(leak, undefined, {
+        compilerInput,
+        originalSources,
+      }),
+    ).toThrow('initial');
+    const split = compiledGraph().map((record) =>
+      record.type === 'group' && 'kind' in record && record.kind === 'async'
+        ? {
+            ...record,
+            outputs: ['[client-fs]/write.js', '[client-fs]/vendor.js'],
+          }
+        : record,
+    );
+    expect(() =>
+      verifyRequestSerializerBundle(split, undefined, {
+        compilerInput,
+        originalSources,
+      }),
+    ).toThrow('exactly one deferred');
+  });
+
+  it.each([
+    'packages/serializers/src/',
+    'node_modules/ts-jsonapi/',
+    'node_modules/lodash/',
+  ])('cannot omit original package evidence for %s', (prefix) => {
+    expect(() =>
+      verifyRequestSerializerBundle(compiledGraph(), undefined, {
+        compilerInput,
+        originalSources: originalSources.filter(
+          (source) => !source.startsWith(prefix),
+        ),
+      }),
+    ).toThrow('authenticated package source');
   });
 });

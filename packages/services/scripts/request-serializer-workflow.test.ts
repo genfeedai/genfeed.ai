@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -39,6 +40,7 @@ function runScript(
   isolated = false,
   failProof = false,
   failReceipt = false,
+  failInput = false,
 ) {
   if (!command) throw new Error('Missing workflow shell');
   const directory = mkdtempSync(
@@ -54,6 +56,7 @@ const path = require('node:path');
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.CALL_LOG, JSON.stringify({ bin: path.basename(process.argv[1]), args }) + '\\n');
 if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^...')) process.exit(17);
+if (process.env.FAIL_INPUT === '1' && args.includes('--finalize-input')) { fs.writeFileSync(args[2], JSON.stringify({ status: 'failed' })); process.exit(29); }
 if (process.env.FAIL_RECEIPT === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) process.exit(19);
 if (process.env.ISOLATED === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) {
   fs.mkdirSync(path.dirname(args[2]), { recursive: true });
@@ -87,6 +90,7 @@ if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/r
       FAIL_UPSTREAM: failUpstream ? '1' : '0',
       FAIL_PROOF: failProof ? '1' : '0',
       FAIL_RECEIPT: failReceipt ? '1' : '0',
+      FAIL_INPUT: failInput ? '1' : '0',
       ISOLATED: isolated ? '1' : '0',
     },
   });
@@ -97,7 +101,7 @@ if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/r
   return {
     status: result.status,
     calls,
-    ...(failProof
+    ...(failProof || failInput
       ? {
           proofFiles: readdirSync(path.join(directory, '.bundle-size')).filter(
             (file) =>
@@ -105,6 +109,59 @@ if (process.env.FAIL_PROOF === '1' && args.includes('packages/services/scripts/r
           ),
         }
       : {}),
+  };
+}
+
+function runBaselineReceipt(
+  matchedKey: string,
+  exactHit: boolean,
+  includeBaseline = true,
+) {
+  const step = workflow
+    .split('      - name: Retain serializer comparison baseline\n')[1]
+    ?.split('\n      - name:')[0];
+  const command = step
+    ?.match(/ {8}run: \|\n((?: {10}[^\n]*(?:\n|$))+)/)?.[1]
+    .replace(/^ {10}/gm, '');
+  if (!command) throw new Error('Missing baseline retention shell');
+  const directory = mkdtempSync(
+    path.join(os.tmpdir(), 'serializer-baseline-contract-'),
+  );
+  temporaryDirectories.push(directory);
+  mkdirSync(path.join(directory, '.bundle-size'));
+  const baseline =
+    '{"app":"app","routes":[{"route":"/login","firstLoadGzipBytes":100}]}\n';
+  if (includeBaseline)
+    writeFileSync(path.join(directory, '.bundle-size/baseline.json'), baseline);
+  const result = spawnSync('/bin/bash', ['-euo', 'pipefail', '-c', command], {
+    cwd: directory,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      BUNDLE_BASE_SHA: 'a'.repeat(40),
+      BUNDLE_SOURCE_SHA: 'b'.repeat(40),
+      BUNDLE_REQUESTED_CACHE_KEY: `bundle-baseline-app-${'a'.repeat(40)}`,
+      BUNDLE_MATCHED_CACHE_KEY: matchedKey,
+      BUNDLE_EXACT_CACHE_HIT: exactHit ? 'true' : 'false',
+    },
+  });
+  const retained = path.join(
+    directory,
+    '.bundle-size/request-serializers-baseline.json',
+  );
+  const identity = path.join(
+    directory,
+    '.bundle-size/request-serializers-baseline-identity.json',
+  );
+  const receipt: unknown = existsSync(identity)
+    ? JSON.parse(readFileSync(identity, 'utf8'))
+    : undefined;
+  return {
+    status: result.status,
+    stderr: result.stderr,
+    retained: existsSync(retained) ? readFileSync(retained, 'utf8') : null,
+    baseline,
+    receipt,
   };
 }
 
@@ -183,19 +240,33 @@ describe('pinned serializer bundle workflow', () => {
     ];
     expect(runScript(proofScript, 'app', false, true)).toEqual({
       status: 0,
-      calls: routes.flatMap((route, index) => [
-        { bin: 'bunx', args: ['next', 'analyze', 'export', '--route', route] },
+      calls: [
         {
           bin: 'bun',
           args: [
             'run',
-            'packages/services/scripts/request-serializer-bundle.ts',
-            '.bundle-size/request-serializers.graph.jsonl',
-            `.bundle-size/request-serializers-${index}.json`,
-            route,
+            'packages/services/scripts/request-serializer-build-receipt.ts',
+            '.bundle-size/request-serializers-input.json',
+            '--finalize-input',
           ],
         },
-      ]),
+        ...routes.flatMap((route, index) => [
+          {
+            bin: 'bunx',
+            args: ['next', 'analyze', 'export', '--route', route],
+          },
+          {
+            bin: 'bun',
+            args: [
+              'run',
+              'packages/services/scripts/request-serializer-bundle.ts',
+              '.bundle-size/request-serializers.graph.jsonl',
+              `.bundle-size/request-serializers-${index}.json`,
+              route,
+            ],
+          },
+        ]),
+      ],
     });
   });
 
@@ -220,7 +291,7 @@ describe('pinned serializer bundle workflow', () => {
       true,
     );
     expect(result.status).toBe(23);
-    expect(result.calls).toHaveLength(12);
+    expect(result.calls).toHaveLength(13);
     expect(result.proofFiles).toEqual([
       'request-serializers-0.json',
       'request-serializers-1.json',
@@ -228,6 +299,7 @@ describe('pinned serializer bundle workflow', () => {
       'request-serializers-3.json',
       'request-serializers-build.json',
       'request-serializers-initial.json',
+      'request-serializers-input.json',
       'request-serializers-package.json',
     ]);
     expect(proofStep).toContain('id: serializer_proof');
@@ -235,6 +307,123 @@ describe('pinned serializer bundle workflow', () => {
     expect(workflow).toContain(
       "!cancelled() && (steps.serializer_proof.outcome == 'success' || steps.serializer_proof.outcome == 'failure')",
     );
+  });
+
+  it('restores and retains the exact master cache before a failing serializer proof', () => {
+    const restoreIndex = workflow.indexOf('      - name: Restore baseline\n');
+    const retainIndex = workflow.indexOf(
+      '      - name: Retain serializer comparison baseline\n',
+    );
+    const proofIndex = workflow.indexOf(
+      '      - name: Verify deferred request serializers\n',
+    );
+    expect(restoreIndex).toBeGreaterThan(0);
+    expect(restoreIndex).toBeLessThan(retainIndex);
+    expect(retainIndex).toBeLessThan(proofIndex);
+    const restoreStep = workflow
+      .split('      - name: Restore baseline\n')[1]
+      ?.split('\n      - name:')[0];
+    expect(restoreStep).toContain('id: baseline_cache');
+    expect(restoreStep).toContain('restore-keys:');
+    const result = runBaselineReceipt(
+      `bundle-baseline-app-${'a'.repeat(40)}`,
+      true,
+    );
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.retained).toBe(result.baseline);
+    expect(result.receipt).toEqual({
+      schemaVersion: 1,
+      app: 'app',
+      sourceSha: 'b'.repeat(40),
+      baseSha: 'a'.repeat(40),
+      requestedCacheKey: `bundle-baseline-app-${'a'.repeat(40)}`,
+      matchedCacheKey: `bundle-baseline-app-${'a'.repeat(40)}`,
+      exactCacheHit: true,
+      baselineAvailable: true,
+      eligibleForSameBaseComparison: true,
+    });
+  });
+
+  it('retains fallback evidence without labeling it a fair same-base comparison', () => {
+    const result = runBaselineReceipt(
+      `bundle-baseline-app-${'c'.repeat(40)}`,
+      false,
+    );
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.retained).toBe(result.baseline);
+    expect(result.receipt).toMatchObject({
+      matchedCacheKey: `bundle-baseline-app-${'c'.repeat(40)}`,
+      exactCacheHit: false,
+      baselineAvailable: true,
+      eligibleForSameBaseComparison: false,
+    });
+    const mismatchedHit = runBaselineReceipt(
+      `bundle-baseline-app-${'c'.repeat(40)}`,
+      true,
+    );
+    expect(mismatchedHit.status, mismatchedHit.stderr).toBe(0);
+    expect(mismatchedHit.receipt).toMatchObject({
+      eligibleForSameBaseComparison: false,
+    });
+  });
+
+  it('records an unavailable baseline without fabricating a fair comparison or blocking absolute reports', () => {
+    const result = runBaselineReceipt('', false, false);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.retained).toBeNull();
+    expect(result.receipt).toMatchObject({
+      matchedCacheKey: '',
+      exactCacheHit: false,
+      baselineAvailable: false,
+      eligibleForSameBaseComparison: false,
+    });
+    const missingExact = runBaselineReceipt(
+      `bundle-baseline-app-${'a'.repeat(40)}`,
+      true,
+      false,
+    );
+    expect(missingExact.status, missingExact.stderr).toBe(0);
+    expect(missingExact.receipt).toMatchObject({
+      exactCacheHit: true,
+      baselineAvailable: false,
+      eligibleForSameBaseComparison: false,
+    });
+  });
+
+  it('keeps graph diagnostics and a failing conclusion when actual compiler input cannot be authenticated', () => {
+    const proofStep = workflow
+      .split('      - name: Verify deferred request serializers\n')[1]
+      ?.split('\n      - name:')[0];
+    const proofScript = proofStep
+      ?.match(/ {8}run: \|\n((?: {10}[^\n]*(?:\n|$))+)/)?.[1]
+      .replace(/^ {10}/gm, '');
+    const result = runScript(
+      proofScript,
+      'app',
+      false,
+      true,
+      false,
+      false,
+      true,
+    );
+    expect(result.status).toBe(29);
+    expect(result.calls).toHaveLength(9);
+    expect(result.proofFiles).toContain('request-serializers-input.json');
+    expect(buildStep).toContain(
+      'GENFEED_REQUEST_SERIALIZER_PROOF=1 NODE_OPTIONS=',
+    );
+    const config = readFileSync(
+      path.join(root, 'apps/app/next.config.ts'),
+      'utf8',
+    );
+    const rule = config
+      .split("process.env.GENFEED_REQUEST_SERIALIZER_PROOF === '1'")[1]
+      ?.split('root: path.resolve(appDir')[0];
+    expect(rule).toContain("condition: { all: ['browser', 'production'] }");
+    expect(rule).toContain(
+      "'packages/serializers/dist/request-runtime.bundle.js'",
+    );
+    expect(rule).not.toMatch(/\bas\s*:/);
   });
 
   it('uploads only the known proof JSON glob from its hidden evidence directory', () => {

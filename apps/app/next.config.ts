@@ -564,6 +564,22 @@ config.turbopack = {
     '@ui/forms/base/form-control/FormControl':
       '../../packages/ui/src/primitives/field.tsx',
   },
+  ...(process.env.GENFEED_REQUEST_SERIALIZER_PROOF === '1'
+    ? {
+        rules: {
+          ...(config.turbopack?.rules ?? {}),
+          'packages/serializers/dist/request-runtime.bundle.js': {
+            condition: { all: ['browser', 'production'] },
+            loaders: [
+              path.resolve(
+                appDir,
+                '../../scripts/request-serializer-input-loader.cjs',
+              ),
+            ],
+          },
+        },
+      }
+    : {}),
   root: path.resolve(appDir, '../..'),
 };
 
