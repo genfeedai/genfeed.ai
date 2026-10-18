@@ -23,24 +23,19 @@ function collectLeaves(
 
 describe('Agent terminology catalogs', () => {
   it('calls the agent object an Agent on every agent surface', () => {
-    const { agentCreation, agentDetail, agentHub, autopilot } =
-      common.automation;
+    const { agentCreation, agentDetail, agentHub } = common.automation;
     const retired = [
       ...collectLeaves(agentCreation, 'agentCreation'),
       ...collectLeaves(agentDetail, 'agentDetail'),
       ...collectLeaves(agentHub, 'agentHub'),
-      ...collectLeaves(autopilot, 'autopilot'),
     ].filter((entry) => RETIRED_AGENT_NAME.test(entry.value));
 
     expect(retired).toEqual([]);
   });
 
-  it('names the agent settings, its name field, and its edit action as Agent', () => {
-    const { agentHub, autopilot } = common.automation;
+  it('names the agent edit action as Agent', () => {
+    const { agentHub } = common.automation;
 
-    expect(autopilot.title).toBe('Agent settings');
-    expect(autopilot.agentName).toBe('Agent name');
-    expect(autopilot.save).toBe('Save agent');
     expect(agentHub.edit).toBe('Edit agent');
     expect(Object.values(agentHub)).not.toContain('Schedule');
   });

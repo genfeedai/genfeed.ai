@@ -10,7 +10,6 @@ import {
   AGENT_TYPE_DEFAULTS,
   AGENT_TYPE_ICON_COMPONENTS,
   AGENT_TYPE_LABELS,
-  AGENT_TYPE_OPTIONS,
   getAgentTypeIcon,
   getAgentTypeLabel,
 } from './agent-type-display';
@@ -25,8 +24,7 @@ describe('agent-type-display', () => {
     }
   });
 
-  it('exposes one option per AgentType and falls back for unknown values', () => {
-    expect(AGENT_TYPE_OPTIONS).toHaveLength(Object.values(AgentType).length);
+  it('falls back for unknown values', () => {
     expect(getAgentTypeLabel(AgentType.X_CONTENT)).toBe('X Content');
     expect(getAgentTypeLabel('not-a-type')).toBe('not-a-type');
     expect(getAgentTypeLabel(undefined)).toBe('');

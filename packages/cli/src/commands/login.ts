@@ -292,18 +292,18 @@ function escapeHtml(str: string): string {
 }
 
 function callbackPage(title: string, message: string, success: boolean): string {
-  const color = success ? '#7C3AED' : '#ef4444';
+  const color = success ? '#10B981' : '#FF6166';
   const icon = success ? '&#10003;' : '&#10007;';
   const safeTitle = escapeHtml(title);
   const safeMessage = escapeHtml(message);
   return `<!DOCTYPE html>
 <html><head><title>gf - ${safeTitle}</title>
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0a0a0a; color: #fafafa; }
-  .card { text-align: center; padding: 3rem; border-radius: 1rem; border: 1px solid #333; max-width: 400px; }
+  body { font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #000000; color: #EDEDED; }
+  .card { text-align: center; padding: 3rem; border-radius: 1rem; border: 1px solid #333333; background: #0A0A0A; max-width: 400px; }
   .icon { font-size: 3rem; color: ${color}; margin-bottom: 1rem; }
   h1 { font-size: 1.5rem; margin: 0 0 0.5rem; }
-  p { color: #888; margin: 0; }
+  p { color: #A1A1A1; margin: 0; }
 </style></head>
 <body><div class="card">
   <div class="icon">${icon}</div>

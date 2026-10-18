@@ -442,7 +442,7 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text bold color="#7C3AED">
+      <Text bold color="#EDEDED">
         GF · Genfeed terminal content workspace
       </Text>
       <Text dimColor>
@@ -460,7 +460,7 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
       ))}
       {pendingInput ? <Text color="yellow">Input requested: {pendingInput.prompt}</Text> : null}
       <Text>
-        <Text color="#7C3AED">{busy ? '…' : '›'}</Text> {input}
+        <Text color="#EDEDED">{busy ? '…' : '›'}</Text> {input}
         {!busy ? <Text inverse> </Text> : null}
       </Text>
     </Box>

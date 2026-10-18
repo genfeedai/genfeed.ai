@@ -1,13 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { summarizeGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.summary';
 import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
@@ -80,32 +79,22 @@ export default function GenerationSetupFrontDoor({
         )
         ?.focus();
   }
-  const isAutoModel = isAutoGenerationModelKey(setup.values.modelKey);
-  const selectedModel = isAutoModel
-    ? undefined
-    : models.find((model) => model.key === setup.values.modelKey);
-  const modelLabel = isAutoModel
-    ? translate('auto')
-    : (selectedModel?.label ?? setup.values.modelKey);
+  const {
+    hasLookFields,
+    hasOutputFields,
+    modelLabel,
+    outputLabel,
+    selectedModel,
+  } = summarizeGenerationSetup({
+    autoLabel: translate('auto'),
+    capabilities,
+    formatDuration: (seconds) => translate('durationSeconds', { seconds }),
+    inputControls,
+    lookOptions,
+    models,
+    setup,
+  });
   const TypeIcon = getModelCategoryIcon(setup.values.type, selectedModel);
-  const duration =
-    setup.values.type === 'music'
-      ? normalizeMusicSettings(setup.values.modelKey, setup.values).duration
-      : setup.values.duration;
-  const outputLabel = [
-    capabilities.hasAspectRatio && setup.values.aspectRatio,
-    capabilities.hasDuration &&
-      duration &&
-      translate('durationSeconds', { seconds: duration }),
-    capabilities.hasOutputs && `x${setup.values.outputs}`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  const hasLookFields = Object.entries(lookOptions).some(
-    ([key, options]) =>
-      (options?.length ?? 0) > 0 &&
-      !(key === 'resolution' && inputControls?.mediaKind === 'video'),
-  );
   const sections: {
     id: GenerationSetupCustomizeSectionId;
     label: string;
@@ -127,14 +116,7 @@ export default function GenerationSetupFrontDoor({
       label: translate('model'),
       value: modelLabel,
     });
-  if (
-    capabilities.hasAspectRatio ||
-    capabilities.hasDuration ||
-    capabilities.hasOutputs ||
-    capabilities.hasStyle ||
-    capabilities.hasInstrumentalToggle ||
-    capabilities.hasLyrics
-  )
+  if (hasOutputFields)
     sections.push({
       id: 'output',
       label: translate('output'),

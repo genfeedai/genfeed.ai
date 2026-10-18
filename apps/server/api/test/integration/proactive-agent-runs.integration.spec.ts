@@ -1328,4 +1328,136 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
       expired.reviewItemId,
     );
   }, 60_000);
+
+  // #7338: auto-publish is earned per platform. Once LinkedIn graduated, the
+  // agent's next background text draft is scheduled by the publish gate with
+  // no review card left for a human.
+  async function runOptedInAgent(config: {
+    autonomyMode?: string;
+    isGraduated: boolean;
+    organizationAutonomyDefault?: string;
+  }) {
+    const agent = await fixture.createAgent();
+    const { autonomyMode: _stored, ...storedConfig } = runtimeRecord(
+      agent.config,
+    );
+    await fixture.prisma.agentStrategy.update({
+      where: {
+        id: agent.id,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+      data: {
+        config: toPrismaJson({
+          ...storedConfig,
+          ...(config.autonomyMode ? { autonomyMode: config.autonomyMode } : {}),
+        }),
+        policies: toPrismaJson({
+          ...runtimeRecord(agent.policies),
+          publishPolicy: {
+            autoPublishEnabled: true,
+            autoPublishAfterApprovals: 5,
+            ...(config.isGraduated
+              ? {
+                  platformStates: {
+                    linkedin: { approvalStreak: 5, autoPublishEnabled: true },
+                  },
+                }
+              : {}),
+          },
+        }),
+      },
+    });
+    await fixture.prisma.brand.update({
+      where: { id: fixture.brandId, organizationId: fixture.organizationId },
+      data: {
+        agentConfig: toPrismaJson({
+          voice: { tone: 'precise' },
+          autoPublish: { enabled: true },
+        }),
+      },
+    });
+    if (config.organizationAutonomyDefault)
+      await fixture.prisma.organizationSetting.upsert({
+        where: { organizationId: fixture.organizationId },
+        create: {
+          organizationId: fixture.organizationId,
+          agentPolicy: toPrismaJson({
+            autonomyDefault: config.organizationAutonomyDefault,
+          }),
+        },
+        update: {
+          agentPolicy: toPrismaJson({
+            autonomyDefault: config.organizationAutonomyDefault,
+          }),
+        },
+      });
+    const run = await fixture.dispatch(agent.id);
+    fixture.startWorkers();
+    await fixture.waitForExecution(String(run.executionId));
+    return fixture.prisma.post.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        agentStrategyId: agent.id,
+        isDeleted: false,
+      },
+      include: { publishApproval: true },
+    });
+  }
+
+  async function expectScheduledWithoutReviewCard(
+    post: Awaited<ReturnType<typeof runOptedInAgent>>,
+  ) {
+    expect(post).toMatchObject({
+      platform: 'linkedin',
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+    expect(post.publishApproval).toMatchObject({ status: 'approved' });
+    if (!post.reviewTurboRunId || !post.reviewItemId)
+      throw new Error('Scheduled draft lost its run attribution');
+    expect(
+      await fixture.prisma.turboRunItem.findFirstOrThrow({
+        where: {
+          id: post.reviewItemId,
+          turboRunId: post.reviewTurboRunId,
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toMatchObject({ reviewDecision: 'APPROVED' });
+    expect(
+      await fixture.prisma.mcpApproval.count({
+        where: { organizationId: fixture.organizationId, isDeleted: false },
+      }),
+    ).toBe(0);
+    expect(
+      await fixture.prisma.agentPublishAudit.count({
+        where: {
+          organizationId: fixture.organizationId,
+          decision: AgentPublishDecision.DENIED,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(0);
+  }
+
+  it('schedules an AUTO_PUBLISH agent text draft on a graduated platform without a review card', async () => {
+    await expectScheduledWithoutReviewCard(
+      await runOptedInAgent({
+        autonomyMode: 'AUTO_PUBLISH',
+        isGraduated: true,
+      }),
+    );
+  }, 60_000);
+
+  // No platform has graduated here, so only the organization default can make
+  // this agent publish on its own.
+  it('uses the organization autonomy default for an agent with no mode of its own', async () => {
+    await expectScheduledWithoutReviewCard(
+      await runOptedInAgent({
+        isGraduated: false,
+        organizationAutonomyDefault: 'AUTO_PUBLISH',
+      }),
+    );
+  }, 60_000);
 });

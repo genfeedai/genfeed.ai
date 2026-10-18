@@ -50,6 +50,7 @@ import AgentActivitySection from './AgentActivitySection';
 import AgentDetailNeedsYou from './AgentDetailNeedsYou';
 import AgentLatestReport from './AgentLatestReport';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
+import AgentStrategyPublishToggles from './AgentStrategyPublishToggles';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
 import { buildAgentDetailFacts } from './agent-detail-facts.helper';
 import { useAgentDetailPosts } from './use-agent-detail-posts';
@@ -419,6 +420,12 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         <AgentLatestReport
           agentId={agentId}
           key={`report-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
+        />
+
+        <AgentStrategyPublishToggles
+          agentId={agentId}
+          strategy={strategy}
+          onSaved={refresh}
         />
 
         <AgentWorkflowBindCard
