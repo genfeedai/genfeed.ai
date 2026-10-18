@@ -10,5 +10,20 @@
   "open": "Open template {name}",
   "details": "View details",
   "system": "System",
-  "search": "Search templates"
+  "search": "Search templates",
+  "detailTemplate": "Template",
+  "detailLoadError": "Failed to load template",
+  "detailPremium": "Premium",
+  "detailNotFound": "The template you are looking for does not exist or has been deleted.",
+  "detailOverview": "Overview",
+  "detailDifficulty": "Difficulty:",
+  "detailContent": "Content",
+  "detailKey": "Key",
+  "detailPrompt": "Prompt:",
+  "detailStyle": "Style",
+  "detailMood": "Mood",
+  "detailAspectRatio": "Aspect Ratio",
+  "detailDuration": "Duration",
+  "detailSeconds": "{count} seconds",
+  "detailStructure": "Structure"
 }

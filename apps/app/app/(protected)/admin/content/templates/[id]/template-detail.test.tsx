@@ -1,6 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import messages from '../../../../../../messages/en/pages/adminTemplates.json';
 import TemplateDetail from './template-detail';
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    (messages as Record<string, string>)[key].replace(
+      /\{(\w+)\}/g,
+      (_, name: string) => String(values?.[name]),
+    ),
+}));
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
