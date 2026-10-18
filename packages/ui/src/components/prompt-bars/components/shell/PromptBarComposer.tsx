@@ -50,6 +50,8 @@ export default function PromptBarComposer({
   ...props
 }: PromptBarComposerProps) {
   const isRestingVisible = isResting && !banner;
+  // Handlers attach only while resting, so server-rendered previews stay valid RSC output.
+  const shouldExpandOnPress = isRestingVisible && onExpand !== undefined;
 
   return (
     <PromptBarShell
@@ -59,14 +61,22 @@ export default function PromptBarComposer({
       className={cn(PROMPT_BAR_SURFACE_CLASS, className)}
       data-prompt-bar-composer=""
       data-resting={isRestingVisible ? 'true' : undefined}
-      onFocusCapture={(event) => {
-        props.onFocusCapture?.(event);
-        if (isRestingVisible) onExpand?.();
-      }}
-      onPointerDownCapture={(event) => {
-        props.onPointerDownCapture?.(event);
-        if (isRestingVisible) onExpand?.();
-      }}
+      onFocusCapture={
+        shouldExpandOnPress
+          ? (event) => {
+              props.onFocusCapture?.(event);
+              onExpand();
+            }
+          : props.onFocusCapture
+      }
+      onPointerDownCapture={
+        shouldExpandOnPress
+          ? (event) => {
+              props.onPointerDownCapture?.(event);
+              onExpand();
+            }
+          : props.onPointerDownCapture
+      }
     >
       {isRestingVisible ? null : beforeBody}
       <PromptBarBody
