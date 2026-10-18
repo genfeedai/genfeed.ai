@@ -28,7 +28,12 @@ export interface RemainingVideoFamilyDispatchSpec {
   aspectRatioField?: 'aspect_ratio' | 'ratio';
   durationField?: 'duration' | 'seconds';
   extraDefaults?: Record<string, boolean | number | string>;
-  firstFrameField?: 'image' | 'image_url' | 'input_reference' | 'start_image';
+  firstFrameField?:
+    | 'first_frame_image'
+    | 'image'
+    | 'image_url'
+    | 'input_reference'
+    | 'start_image';
   lastFrameField?:
     | 'end_image'
     | 'end_image_url'
@@ -411,6 +416,21 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             nativeFields: ['image'],
           },
         ),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        durationField: 'duration',
+        firstFrameField: 'image',
+        modelLabel: 'Hailuo',
+        resolutionField: 'resolution',
+      },
+    },
+    {
+      // Fast takes its first frame as `first_frame_image`; the dispatch
+      // adapter rejects a compiled request that sends it as `image`.
+      compilerId: HAILUO_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
         profile(
           'hailuo-2-3-fast-capability',
           MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
@@ -423,7 +443,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
       spec: {
         aspectRatioField: 'aspect_ratio',
         durationField: 'duration',
-        firstFrameField: 'image',
+        firstFrameField: 'first_frame_image',
         modelLabel: 'Hailuo',
         resolutionField: 'resolution',
       },

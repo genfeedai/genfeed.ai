@@ -165,6 +165,37 @@ describe('compileRemainingVideoGenerationBrief', () => {
     },
   );
 
+  it.each([
+    [MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3, 'image', 'first_frame_image'],
+    [
+      MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      'first_frame_image',
+      'image',
+    ],
+  ])(
+    'sends the %s first frame as %s and not %s',
+    (modelKey, expectedField, otherField) => {
+      const brief = videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'off',
+        intent: { objective: 'the product turns to camera' },
+        mediaKind: 'video',
+        output: {},
+        references: [{ assetId: 'frame-1', role: 'first_frame' }],
+        version: 1,
+      });
+
+      const result = compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(modelKey),
+        modelKey,
+      });
+
+      expect(result.dispatch[expectedField]).toBe('frame-1');
+      expect(result.dispatch).not.toHaveProperty(otherField);
+    },
+  );
+
   it('requires a first frame for Kling v2.1', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],
