@@ -1,5 +1,6 @@
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -26,6 +27,11 @@ const makeTrend = (overrides: Record<string, unknown> = {}): TrendEntity =>
 describe('TrendSourceItemsService', () => {
   let service: TrendSourceItemsService;
   let apify: ApifyMock;
+  let cache: {
+    generateKey: ReturnType<typeof vi.fn>;
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     apify = {
@@ -36,10 +42,17 @@ describe('TrendSourceItemsService', () => {
       searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
 
+    cache = {
+      generateKey: vi.fn((...parts: (string | number)[]) => parts.join(':')),
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrendSourceItemsService,
         { provide: ApifyService, useValue: apify },
+        { provide: CacheService, useValue: cache },
       ],
     }).compile();
 
@@ -63,6 +76,46 @@ describe('TrendSourceItemsService', () => {
       const [item] = await service.fetchTrendSourceItems(makeTrend(), 5);
       expect(item.publishedAt).toBeUndefined();
       expect(item.sourceClassification?.sourceTimestamp).toBeUndefined();
+    });
+
+    it('serves a repeated search from the shared cache instead of a second billed run', async () => {
+      apify.searchInstagramByHashtag.mockResolvedValue([
+        { caption: 'first', id: 'ig-1', shortCode: 'abc' },
+      ]);
+
+      const first = await service.fetchTrendSourceItems(makeTrend(), 5);
+      const [cacheKey, cachedItems] = cache.set.mock.calls[0];
+      cache.get.mockImplementation((key: string) =>
+        Promise.resolve(key === cacheKey ? cachedItems : null),
+      );
+      apify.searchInstagramByHashtag.mockClear();
+
+      const second = await service.fetchTrendSourceItems(
+        makeTrend({ id: 'trend-from-another-org' }),
+        5,
+      );
+
+      expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
+      expect(second).toHaveLength(first.length);
+    });
+
+    it('caches an empty search for a shorter window so a quiet term is not re-bought', async () => {
+      await service.fetchTrendSourceItems(makeTrend(), 5);
+
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.any(String),
+        [],
+        expect.objectContaining({ ttl: 60 * 60 }),
+      );
+    });
+
+    it('does not cache a search that throws', async () => {
+      apify.searchInstagramByHashtag.mockRejectedValue(new Error('boom'));
+
+      await expect(
+        service.fetchTrendSourceItems(makeTrend(), 5),
+      ).rejects.toThrow('boom');
+      expect(cache.set).not.toHaveBeenCalled();
     });
 
     it('returns [] for an unsupported platform', async () => {

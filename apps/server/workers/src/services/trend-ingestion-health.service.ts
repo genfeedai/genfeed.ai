@@ -12,7 +12,7 @@ import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
-// The existing schedule runs at 00:15 and 12:15 UTC. Only closed windows count.
+// The schedule runs once a day at 00:15 UTC. Only closed windows count.
 const SCHEDULE_OFFSET_MS = 15 * 60 * 1000;
 // Upper bound on simultaneous per-scope health queries in one cron run.
 export const HEALTH_LOOKUP_CONCURRENCY = 10;
@@ -164,7 +164,7 @@ export class TrendIngestionHealthService {
         sourceId,
         now,
         'Trend ingestion missed two scheduled windows',
-        `${dataset.platform} ${dataset.dataset} has no successful refresh in two completed 12-hour windows. Last attempt: ${receipt?.lastAttemptAt ?? 'not recorded'}. Outcome: ${receipt?.outcome ?? 'not recorded'}. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
+        `${dataset.platform} ${dataset.dataset} has no successful refresh in two completed 24-hour windows. Last attempt: ${receipt?.lastAttemptAt ?? 'not recorded'}. Outcome: ${receipt?.outcome ?? 'not recorded'}. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
         false,
       );
     }
@@ -213,7 +213,7 @@ export class TrendIngestionHealthService {
       const aggregateMissed = evaluated.filter((entry) => entry.isMissed);
       // Aggregate incident: closes as soon as the global outage ends.
       await this.reconcileIncident({
-        description: `${platform} trends has no successful refresh in two completed 12-hour windows for ${aggregateMissed.length} of ${platformTargets.length} connected tenant scopes. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
+        description: `${platform} trends has no successful refresh in two completed 24-hour windows for ${aggregateMissed.length} of ${platformTargets.length} connected tenant scopes. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
         evaluated: isGlobalOutage ? evaluated : [],
         now,
         recoveredDescription: (latestSuccess) =>
@@ -233,7 +233,7 @@ export class TrendIngestionHealthService {
       for (const sourceId of sourceIds) {
         const scoped = evaluatedBySource.get(sourceId) ?? [];
         await this.reconcileIncident({
-          description: `${platform} trends has no successful refresh in two completed 12-hour windows for one connected tenant scope while the global refresh is healthy. Inspect that tenant's provider credentials and rate limits, then retry this dataset.`,
+          description: `${platform} trends has no successful refresh in two completed 24-hour windows for one connected tenant scope while the global refresh is healthy. Inspect that tenant's provider credentials and rate limits, then retry this dataset.`,
           evaluated: isGlobalOutage ? [] : scoped,
           now,
           recoveredDescription: (latestSuccess) =>

@@ -125,6 +125,42 @@ describe('AnalyticsSyncService action operations', () => {
     expect(empty.items[0]).not.toHaveProperty('promptUsed');
   });
 
+  it('never fabricates clicks or revenue the provider did not report', async () => {
+    analyticsFindMany.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        clicks: null,
+        date: NOW,
+        id: 'analytics-1',
+        platform: 'tiktok',
+        postId: 'post-1',
+        totalComments: 5,
+        totalLikes: 10,
+        totalSaves: 0,
+        totalShares: 0,
+        totalViews: 100,
+      },
+    ]);
+    postFindMany.mockResolvedValue([
+      { brandId: 'brand-1', description: 'Hook', id: 'post-1' },
+    ]);
+    const { items } = await service.discoverItems({ organizationId: 'org-1' });
+    expect(items[0]).not.toHaveProperty('clicks');
+
+    await service.persistItem('org-1', items[0]);
+    const write = performanceUpsert.mock.calls[0][0];
+    expect(write.create).not.toHaveProperty('revenue');
+    expect(write.create.data.clicks).toBeUndefined();
+    expect(write.create).toMatchObject({
+      data: { hookUsed: 'Hook', platform: 'tiktok', views: 100 },
+      performanceScore: 100,
+      platform: 'tiktok',
+    });
+    await expect(
+      service.persistItem('org-1', { ...items[0], clicks: 'many' }),
+    ).rejects.toThrow('clicks must be a finite number');
+  });
+
   it('fails discovery when a record cannot resolve its tenant post', async () => {
     analyticsFindMany.mockResolvedValue([
       {

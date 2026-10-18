@@ -5,6 +5,10 @@ import {
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
+import {
+  PERFORMANCE_WINNER_KIND,
+  PERFORMANCE_WINNER_SOURCE,
+} from '@api/services/harness/harness-context-sources.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
@@ -149,12 +153,12 @@ export class HarnessWinnerPromotionService {
           content: candidate.content,
           metadata: {
             engagementRate: candidate.item.engagementRate,
-            kind: 'performance_winner',
+            kind: PERFORMANCE_WINNER_KIND,
             origin: candidate.item.origin,
             platform: candidate.item.platform,
             postId,
             promotedAt: new Date().toISOString(),
-            source: 'harness-winner-promotion',
+            source: PERFORMANCE_WINNER_SOURCE,
           },
           relevanceWeight: 1,
         },
@@ -166,16 +170,16 @@ export class HarnessWinnerPromotionService {
           contextBaseId,
           data: {
             content: candidate.content,
-            kind: 'performance_winner',
+            kind: PERFORMANCE_WINNER_KIND,
             origin: candidate.item.origin,
             metadata: {
               engagementRate: candidate.item.engagementRate,
-              kind: 'performance_winner',
+              kind: PERFORMANCE_WINNER_KIND,
               origin: candidate.item.origin,
               platform: candidate.item.platform,
               postId,
               promotedAt: new Date().toISOString(),
-              source: 'harness-winner-promotion',
+              source: PERFORMANCE_WINNER_SOURCE,
             },
             relevanceWeight: 1,
           } as Prisma.InputJsonValue,

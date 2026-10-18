@@ -1,6 +1,5 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import {
   AnalyticsProvider,
   useAnalyticsContext,
@@ -8,7 +7,7 @@ import {
 import { Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import DateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
 
@@ -17,11 +16,10 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
     useAnalyticsContext();
 
   return (
-    <Container
-      label="Analytics"
-      description="Track platform performance, usage statistics, and growth metrics"
+    <AdminPageShell
+      title="Analytics"
       icon={ChartColumn}
-      headerTabs={{
+      tabs={{
         fullWidth: false,
         tabs: [
           { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, label: 'Overview' },
@@ -36,10 +34,9 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
           },
         ],
       }}
-      refresh={
-        <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
-      }
-      right={
+      onRefresh={triggerRefresh}
+      isRefreshing={isRefreshing}
+      dropdowns={
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {toolbarNode}
           <DateRangePicker
@@ -50,7 +47,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       }
     >
       {children}
-    </Container>
+    </AdminPageShell>
   );
 }
 

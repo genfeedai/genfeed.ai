@@ -1,6 +1,8 @@
 'use client';
 
 import SystemEmailPerformance from '@app/(protected)/admin/administration/system-emails/system-email-performance';
+import SystemEmailRangeFilter from '@app/(protected)/admin/administration/system-emails/system-email-range-filter';
+import { useSystemEmailRange } from '@app/(protected)/admin/administration/system-emails/use-system-email-range';
 import {
   buildLifecycleSystemEmailAction,
   type LifecycleSystemEmailDefinition,
@@ -11,12 +13,11 @@ import { AdminSystemEmailsService } from '@services/admin/system-emails.service'
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Container from '@ui/layout/container/Container';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Mail } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -49,6 +50,7 @@ export default function SystemEmailsPage() {
   const [emails, setEmails] = useState<LifecycleSystemEmailDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const range = useSystemEmailRange();
 
   const notificationsService = NotificationsService.getInstance();
   const getSystemEmailsService = useAuthedService((token: string) =>
@@ -94,16 +96,14 @@ export default function SystemEmailsPage() {
   }, [loadEmails]);
 
   return (
-    <Container
-      label="System emails"
-      description="Platform-owned lifecycle emails, delivery outcomes, and conversion attribution"
+    <AdminPageShell
+      title="System emails"
       icon={Mail}
-      moduleChrome
-      refresh={
-        <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
-      }
+      onRefresh={handleRefresh}
+      isRefreshing={isRefreshing}
+      filters={<SystemEmailRangeFilter range={range} />}
     >
-      <SystemEmailPerformance />
+      <SystemEmailPerformance query={range.query} />
       {isLoading ? (
         <div className="grid gap-4">
           {SYSTEM_EMAIL_SKELETON_KEYS.map((key) => (
@@ -237,6 +237,6 @@ export default function SystemEmailsPage() {
           </div>
         </WorkspaceSurface>
       )}
-    </Container>
+    </AdminPageShell>
   );
 }
