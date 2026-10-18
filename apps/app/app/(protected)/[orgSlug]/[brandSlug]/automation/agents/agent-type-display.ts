@@ -1,5 +1,4 @@
 import { AgentType, Platform } from '@genfeedai/contracts';
-import { PUBLISH_PLATFORMS } from '@genfeedai/contracts/constants';
 import type { AgentTypeIcon } from '@genfeedai/props/automation/agent-type-display.props';
 import {
   Clapperboard,
@@ -112,21 +111,6 @@ export const AGENT_TYPE_DEFAULTS: Record<
     platforms: [Platform.LINKEDIN, Platform.YOUTUBE],
   },
 };
-
-const publishPlatformValues = {
-  [Platform.YOUTUBE]: Platform.YOUTUBE,
-  [Platform.TIKTOK]: Platform.TIKTOK,
-  [Platform.INSTAGRAM]: Platform.INSTAGRAM,
-  [Platform.TWITTER]: Platform.TWITTER,
-  [Platform.LINKEDIN]: Platform.LINKEDIN,
-};
-
-export const AGENT_PLATFORM_OPTIONS: readonly Platform[] = [
-  ...new Set([
-    ...PUBLISH_PLATFORMS.map(({ platform }) => publishPlatformValues[platform]),
-    ...Object.values(AGENT_TYPE_DEFAULTS).flatMap(({ platforms }) => platforms),
-  ]),
-];
 
 export const AGENT_TYPE_OPTIONS = (Object.values(AgentType) as AgentType[]).map(
   (value) => ({

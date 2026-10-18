@@ -288,15 +288,16 @@ describe('AgentDetailPage', () => {
     const actions = screen.getByTestId('header-actions');
     expect(actions.querySelectorAll('button')).toHaveLength(4);
     expect(actions).toHaveTextContent('Run now');
-    expect(actions).toHaveTextContent('Schedule');
+    expect(actions).toHaveTextContent('Edit agent');
+    expect(actions).not.toHaveTextContent('Schedule');
     expect(actions).toHaveTextContent('Run workflow');
     expect(actions).toHaveTextContent('Deactivate');
   });
 
-  it('opens schedule changes in the agent conversation', () => {
+  it('opens agent changes in the agent conversation', () => {
     render(<AgentDetailPage agentId="strategy-1" />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit agent' }));
     expect(openConversation).toHaveBeenCalledWith(
       'Update the content agent "Content agent" (id: strategy-1). Brand id: brand-1.',
     );

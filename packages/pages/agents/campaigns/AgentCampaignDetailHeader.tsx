@@ -53,7 +53,7 @@ export default function AgentCampaignDetailHeader({
         gridCols={{ desktop: 4, mobile: 2 }}
         items={[
           {
-            description: 'Active agent strategies',
+            description: 'Active agents',
             label: 'Agents Running',
             value: status?.agentsRunning ?? 0,
           },

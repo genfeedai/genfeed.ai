@@ -69,7 +69,9 @@ test.describe('Automation — Core Interactions', () => {
       .click();
     const dock = authenticatedPage.getByTestId('agent-dock');
     await expect(dock).toBeVisible();
-    await expect(dock).toContainText('Set up a content agent for this brand.');
+    await expect(dock).toContainText(
+      'Help me hire an agent to create recurring content for this brand.',
+    );
     await expect(dock).toContainText('save_content_agent');
     await expect(
       authenticatedPage.getByRole('heading', {
