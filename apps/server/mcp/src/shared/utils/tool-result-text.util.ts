@@ -128,6 +128,7 @@ function brandLines(
         : [],
     )
     .slice(0, BRAND_NAMES_SHOWN);
+  if (names.length === 0) return [`Brands: ${profile.brandCount}`];
   const remaining = profile.brandCount - names.length;
   return [
     `Brands (${profile.brandCount}): ${names.join(', ')}${

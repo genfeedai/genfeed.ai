@@ -209,7 +209,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check validate_scheduler_target before resume or publish-now. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
+      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check validate_scheduler_target before publish-now, and list_brand_publishing_readiness to confirm the selected credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
     name: 'control_scheduled_release',
     parameters: {
       properties: {

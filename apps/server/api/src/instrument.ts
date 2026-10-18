@@ -1,3 +1,4 @@
+import { isClientAbortedRequest } from '@api/helpers/utils/client-aborted-request/client-aborted-request.util';
 import { getSentryConfig } from '@libs/config/sentry.config';
 import { init } from '@sentry/nestjs';
 
@@ -19,13 +20,18 @@ const config = getSentryConfig({ serviceName: 'api' });
 if (config) {
   init({
     ...config,
-    beforeSend(event) {
+    beforeSend(event, hint) {
       // Drop bot/scanner probe errors (404s on .php, .env, wp-*, etc.)
       const url = String(
         event.request?.url || event.tags?.url || event.transaction || '',
       );
       if (url.includes('/email-performance/click/')) return null;
       if (BOT_PROBE_PATTERNS.some((p) => p.test(url))) {
+        return null;
+      }
+
+      // Drop uploads the client abandoned mid-body (API-GENFEED-AI-89)
+      if (isClientAbortedRequest(hint.originalException)) {
         return null;
       }
 

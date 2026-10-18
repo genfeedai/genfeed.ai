@@ -47,6 +47,12 @@ describe('MCP readable tool results', () => {
     expect(text).not.toMatch(/private|brand-other/);
   });
 
+  it('reads a count when the brand names are unavailable (#7276)', () => {
+    expect(accountToolText({ profile: { brandCount: 3, role: 'user' } })).toBe(
+      'Connected to Genfeed.\nRole: User\nBrands: 3',
+    );
+  });
+
   it('points a caller with no brands at the app and an admin (#7176)', () => {
     const text = accountToolText(
       { profile: { brandCount: 0, brands: [], role: 'user' } },

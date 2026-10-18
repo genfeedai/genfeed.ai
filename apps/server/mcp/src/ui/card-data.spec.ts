@@ -363,6 +363,38 @@ describe('MCP Apps card contract', () => {
     ]);
   });
 
+  it('reads a release delivered as a JSON:API resource (#7276)', () => {
+    const view = buildCardView('get_scheduled_release', {
+      attributes: {
+        baseContent: 'Launch day',
+        scheduledAt: '2026-10-20T09:00:00.000Z',
+        status: 'SCHEDULED',
+        targets: [{ executionState: 'queued', platform: 'linkedin' }],
+        title: 'Launch',
+      },
+      id: 'release-1',
+      type: 'post-groups',
+    });
+
+    expect(view?.cards[0]).toMatchObject({
+      date: '2026-10-20T09:00:00.000Z',
+      id: 'release-1',
+      status: 'Scheduled',
+      title: 'Launch',
+    });
+    expect(view?.cards[0].facts).toEqual([
+      { label: 'Channels', value: 'linkedin (Queued)' },
+    ]);
+  });
+
+  it('shows the brand count when names are unavailable (#7276)', () => {
+    const view = buildCardView('get_account', {
+      profile: { brandCount: 3, organizationName: 'Acme Studio' },
+    });
+
+    expect(view?.cards[0].facts).toEqual([{ label: 'Brands', value: '3' }]);
+  });
+
   it('retains text, resource links, and original structured data', () => {
     const result = {
       content: [

@@ -372,7 +372,7 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
           ...(brandCount === 0
             ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
             : brandCount !== undefined
-              ? fact('Brands', brandNames.join(', '))
+              ? fact('Brands', brandNames.join(', ') || String(brandCount))
               : []),
           ...(typeof profile.isOnboardingCompleted === 'boolean'
             ? fact(
@@ -434,7 +434,10 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
 }
 
 /** Scheduled release tools: the release, its status and where it goes. */
-function buildReleaseView(data: Record<string, unknown>): McpCardView {
+function buildReleaseView(resource: Record<string, unknown>): McpCardView {
+  // The release arrives as a JSON:API resource: its fields sit under
+  // `attributes`, beside the top-level `id`.
+  const data = { ...resource, ...record(resource.attributes) };
   const targets = (Array.isArray(data.targets) ? data.targets : []).map(record);
   const channels = targets
     .map((target) => {
