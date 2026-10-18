@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import messages from '../../../../../../messages/en/pages/adminTemplates.json';
 import TemplateDetail from './template-detail';
 
-// Stable like next-intl's `t`: a new function per render re-runs the load effect.
+// Stable like the real hook: a new `t` per render re-runs the load effect,
+// which resets the template to loading.
 const translate = vi.hoisted(
   () => (key: string, values?: Record<string, unknown>) =>
     (messages as Record<string, string>)[key].replace(

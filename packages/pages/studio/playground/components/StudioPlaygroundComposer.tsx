@@ -90,6 +90,7 @@ import { buildStudioPresetCommands } from '@pages/studio/playground/utils/studio
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
+import GenerationSetupSectionChips from '@ui/dropdowns/generation-setup/GenerationSetupSectionChips';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
 import {
   applyGenerationSetupPreset,
@@ -1261,6 +1262,29 @@ export default function StudioPlaygroundComposer({
                 size={ButtonSize.XS}
                 textTransform="none"
                 variant={ButtonVariant.GHOST}
+              />
+            ) : null}
+            {/* Last, so it takes the free width and compacts first. */}
+            {isAdvancedMode ? (
+              <GenerationSetupSectionChips
+                capabilities={capabilities}
+                favoriteModelKeys={favoriteModelKeys}
+                inputControls={inputControls}
+                isPresetsLoading={isPresetsLoading}
+                lookOptions={lookOptions}
+                models={isModelChoiceVisible ? models : []}
+                onApplyPreset={handleApplyPreset}
+                onDeletePreset={handleDeletePreset}
+                onFavoriteToggle={onFavoriteToggle}
+                onResetField={handleResetField}
+                onSavePreset={handleSavePreset}
+                onSetField={handleSetField}
+                outputControls={outputControls}
+                presets={presets}
+                reasons={reasons}
+                referenceCount={crunReferenceCount ?? attachedAssets.length}
+                setup={setupForComposer}
+                typeOptions={typeOptions}
               />
             ) : null}
           </>
