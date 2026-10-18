@@ -7,6 +7,7 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { DEFAULT_POST_ENHANCEMENT_PROMPT } from '@api/collections/posts/constants/post-enhancement-default-prompt.constant';
 import { HookPlatform } from '@api/collections/posts/dto/generate-hooks.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -17,6 +18,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { CredentialPlatform, SystemPromptKey } from '@genfeedai/contracts';
@@ -92,6 +94,7 @@ Tweet 3: Tech innovation is changing the world.`,
   };
   const mockTemplatesService = {
     getRenderedPrompt: vi.fn().mockResolvedValue('Generated prompt template'),
+    renderPrompt: vi.fn().mockReturnValue('Built-in rewrite prompt'),
   };
   const mockPostDraftGenerationService = { generateDraftText: vi.fn() };
   const mockPostAccountGenerationService = {
@@ -297,6 +300,39 @@ Tweet 3: Tech innovation is changing the world.`,
         expect.objectContaining({ tone: 'professional' }),
         organizationId,
       );
+    });
+
+    it('falls back to the built-in prompt when the template row is missing', async () => {
+      mockTemplatesService.getRenderedPrompt.mockRejectedValueOnce(
+        new NotFoundException('Template', 'prompt.post.enhancement'),
+      );
+
+      await service.enhanceDescription(
+        mockPost,
+        { prompt: 'Improve' },
+        identity,
+      );
+
+      expect(mockTemplatesService.renderPrompt).toHaveBeenCalledWith(
+        DEFAULT_POST_ENHANCEMENT_PROMPT,
+        expect.objectContaining({ userRequest: 'Improve' }),
+      );
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.objectContaining({ prompt: 'Built-in rewrite prompt' }),
+        organizationId,
+      );
+    });
+
+    it('does not mask other template failures', async () => {
+      mockTemplatesService.getRenderedPrompt.mockRejectedValueOnce(
+        new Error('database unavailable'),
+      );
+
+      await expect(
+        service.enhanceDescription(mockPost, { prompt: 'Improve' }, identity),
+      ).rejects.toThrow('database unavailable');
+      expect(mockTemplatesService.renderPrompt).not.toHaveBeenCalled();
     });
 
     // #5375: BYOK — the resolved org key must reach the actual dispatch.
