@@ -321,7 +321,7 @@ test.describe('Clip Factory', () => {
 
     await expect(authenticatedPage).toHaveURL(new RegExp(CLIPS_URL));
     await expect(authenticatedPage.getByLabel(/youtube url/i)).toBeVisible();
-    await expect(authenticatedPage.locator('#youtube-url')).toHaveAttribute(
+    await expect(authenticatedPage.getByLabel(/youtube url/i)).toHaveAttribute(
       'type',
       'url',
     );

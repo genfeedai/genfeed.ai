@@ -468,12 +468,11 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await promptEditor.click();
     await authenticatedPage.keyboard.type('A lighthouse at dawn, drone orbit');
 
-    await expect(
-      authenticatedPage.getByTestId('studio-draft-status'),
-    ).toHaveText('Draft saved');
-    expect(draftStore.saved()).toMatchObject({
-      prompt: 'A lighthouse at dawn, drone orbit',
-    });
+    // The composer no longer shows a "Draft saved" label; wait for the
+    // debounced autosave to land in the draft store before reloading.
+    await expect
+      .poll(() => draftStore.saved())
+      .toMatchObject({ prompt: 'A lighthouse at dawn, drone orbit' });
 
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 
