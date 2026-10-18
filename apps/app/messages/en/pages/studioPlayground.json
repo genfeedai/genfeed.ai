@@ -302,5 +302,12 @@
     "recent": "Recent assets",
     "loadedOnly": "Related assets shown here may be incomplete. Recent assets are shown separately.",
     "unavailable": "This asset is no longer available in the current workspace."
+  },
+  "composerContext": {
+    "ariaLabel": "Suggestions for this prompt",
+    "clearSelection": "Clear selection",
+    "moreLike": "More like",
+    "moreLikeAria": "More like {name}",
+    "savedLooks": "Saved looks"
   }
 }

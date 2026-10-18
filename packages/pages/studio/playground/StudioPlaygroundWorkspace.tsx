@@ -45,6 +45,7 @@ import type {
 import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { isAutoStudioModelKey } from '@genfeedai/pricing';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
+import type { PromptBarContextItem } from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
@@ -114,6 +115,7 @@ import {
   recipeFromIngredient,
   recipeFromRepromptData,
   settingsPatchFromRecipe,
+  studioAssetAccessibleLabel,
   studioIngredientAccessibleLabel,
 } from '@pages/studio/playground/utils/studio-playground-recipe';
 import {
@@ -160,7 +162,15 @@ import {
 } from '@ui/primitives/select';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
-import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
+import {
+  ImageIcon,
+  ImagePlus,
+  LayoutGrid,
+  RotateCcw,
+  Rows3,
+  Sparkles,
+  Video,
+} from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -187,6 +197,8 @@ interface StudioContentReference {
  */
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
+/** Recent images offered as "More like" in the composer while it is empty. */
+const COMPOSER_RECENT_LIMIT = 4;
 const EMPTY_ATTACHMENTS: AttachmentItem[] = [];
 
 // Auto defers to the router, which can pick a start/end-frame model, so a
@@ -281,6 +293,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const {
     extraExtensions: promptCommandExtensions,
     resolveSubmit: resolvePromptCommands,
+    setContext: setPromptCommandContext,
   } = usePromptCommandExtension({
     surface: SkillSurface.STUDIO,
     recognizedSkillSlugs,
@@ -2394,6 +2407,95 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     [handleAttachGeneratedReference],
   );
 
+  const translateInspectorActions = useTranslations(
+    'common.videoCreativeActions.inspector',
+  );
+  const composerContextGroups = useMemo(() => {
+    const selection: PromptBarContextItem[] = [];
+    if (selectedJob && !isFocusedPreview) {
+      const mention = studioJobToContentMention(selectedJob);
+      const isImage = selectedJob.type === 'image' && selectedJob.ingredient;
+      selection.push({
+        icon: <ImageIcon className="size-3.5" />,
+        id: `selected-${selectedJob.id}`,
+        isIconOnly: Boolean(mention?.thumbnailUrl && isImage),
+        label: studioAssetAccessibleLabel(selectedJob),
+        onRemove: handleCloseInspector,
+        onSelect: handleOpenFocusedPreview,
+        removeLabel: translate('composerContext.clearSelection'),
+        thumbnailUrl: isImage ? mention?.thumbnailUrl : undefined,
+      });
+      if (isImage && selectedJob.ingredient) {
+        const ingredient = selectedJob.ingredient;
+        selection.push(
+          {
+            icon: <Sparkles className="size-3.5" />,
+            id: 'variation',
+            label: translateInspectorActions('createVariation'),
+            onSelect: () => handleRemixJob(selectedJob),
+          },
+          {
+            icon: <Video className="size-3.5" />,
+            id: 'animate',
+            label: translateInspectorActions('animate'),
+            onSelect: () => assetActions.onConvertToVideo(ingredient),
+          },
+        );
+      }
+      if (canUseGeneratedReference(selectedJob)) {
+        selection.push({
+          icon: <ImagePlus className="size-3.5" />,
+          id: 'reference',
+          label: translate('useAsReference'),
+          onSelect: () => handleUseGeneratedReference(selectedJob),
+        });
+      }
+    }
+    const recent: PromptBarContextItem[] =
+      type === 'image'
+        ? visibleJobs
+            .flatMap((job) => {
+              if (job.type !== 'image' || !job.ingredient) return [];
+              const thumbnailUrl = studioJobToContentMention(job)?.thumbnailUrl;
+              return thumbnailUrl ? [{ job, thumbnailUrl }] : [];
+            })
+            .slice(0, COMPOSER_RECENT_LIMIT)
+            .map(({ job, thumbnailUrl }) => ({
+              ariaLabel: translate('composerContext.moreLikeAria', {
+                name: studioAssetAccessibleLabel(job),
+              }),
+              id: `recent-${job.id}`,
+              isIconOnly: true,
+              label: studioAssetAccessibleLabel(job),
+              onSelect: () => handleRemixJob(job),
+              thumbnailUrl,
+            }))
+        : [];
+    return {
+      recent: {
+        id: 'recent',
+        items: recent,
+        label: translate('composerContext.moreLike'),
+      },
+      selection: selection.length
+        ? { id: 'selection', items: selection }
+        : undefined,
+    };
+  }, [
+    assetActions,
+    canUseGeneratedReference,
+    handleCloseInspector,
+    handleOpenFocusedPreview,
+    handleRemixJob,
+    handleUseGeneratedReference,
+    isFocusedPreview,
+    selectedJob,
+    translate,
+    translateInspectorActions,
+    type,
+    visibleJobs,
+  ]);
+
   const remixableVideos = attachments.filter(
     (attachment: AttachmentItem) =>
       attachment.kind === 'video' &&
@@ -2659,6 +2761,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                   ) : null
                 }
                 attachedAssets={attachedAssets}
+                contextGroups={composerContextGroups}
                 crunQuote={crunModel ? crunQuote : undefined}
                 isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
                 crunReferenceCount={crunPreparedIntent.referenceIds.length}
@@ -2679,6 +2782,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 onCancelEnhancePrompt={cancelEnhance}
                 onEnhancePrompt={handleEnhancePrompt}
                 onOpenLibrary={handleOpenLibrary}
+                onPromptCommandContextChange={setPromptCommandContext}
                 onPromptChange={(value) => {
                   clearCrunRestore();
                   setPrompt(value);
