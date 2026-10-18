@@ -25,6 +25,7 @@ export default function ModelsList({
   onPricingDetails,
   renderExpandedRow,
   renderToolbar,
+  renderCostAction,
   beforeList,
   onRefresh,
 }: ModelsListProps) {
@@ -59,6 +60,7 @@ export default function ModelsList({
     scope,
     onRefreshRegister,
     onRefresh,
+    renderCostAction,
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);

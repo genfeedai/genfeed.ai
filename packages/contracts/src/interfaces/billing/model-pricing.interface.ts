@@ -216,6 +216,32 @@ export interface AdminModelPricingRow {
   providerPricingSyncedAt: string | null;
 }
 
+/** One model touched by a "Fix pricing" run. */
+export interface ModelPricingFixEntry {
+  id: string;
+  key: string;
+}
+
+export interface ModelPricingFixUnresolved extends ModelPricingFixEntry {
+  /** Why nothing could be done automatically (needs a manual price). */
+  reason: string;
+}
+
+/**
+ * What a "Fix pricing" run did. Pending provider rates are approved on the
+ * spot; models with no rates yet get a provider price sync queued; the rest
+ * need an operator to set the price by hand.
+ */
+export interface ModelPricingFixResult {
+  /** Pending provider rates approved, so the model now bills at them. */
+  approved: ModelPricingFixEntry[];
+  /** No rates loaded yet: the provider price import was queued for these. */
+  syncQueued: Array<ModelPricingFixEntry & { provider: string }>;
+  /** The model's rates changed while fixing; run it again. */
+  changed: ModelPricingFixEntry[];
+  unresolved: ModelPricingFixUnresolved[];
+}
+
 export interface AdminModelPricingReport {
   id: string;
   retrievedAt: string;

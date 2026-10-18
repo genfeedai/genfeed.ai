@@ -765,3 +765,120 @@ describe('derived reviewed variant report samples', () => {
     expect(row.attention.some((item) => item.level === 'red')).toBe(false);
   });
 });
+
+describe('fixing model pricing', () => {
+  function pricingRow(overrides: Record<string, unknown>) {
+    return {
+      attention: [],
+      attentionLevel: null,
+      id: 'model',
+      isRateApprovalAvailable: false,
+      key: 'provider/model',
+      pending: null,
+      provider: 'replicate',
+      reasons: [],
+      ...overrides,
+    };
+  }
+
+  function buildService(rows: ReturnType<typeof pricingRow>[]) {
+    const service = new AdminModelPricingService({} as never);
+    vi.spyOn(service, 'getReport').mockResolvedValue({ rows } as never);
+    const approveRates = vi.spyOn(service, 'approveRates');
+    return { approveRates, service };
+  }
+
+  it('approves pending rates, queues a sync for models without rates and reports the rest', async () => {
+    const { service, approveRates } = buildService([
+      pricingRow({
+        attentionLevel: 'red',
+        id: 'approvable',
+        isRateApprovalAvailable: true,
+        key: 'fal/approvable',
+        pending: { version: 'rates-v2' },
+        provider: 'fal',
+      }),
+      pricingRow({
+        attentionLevel: 'red',
+        id: 'no-rates',
+        key: 'replicate/no-rates',
+      }),
+      pricingRow({
+        attention: [{ level: 'red', reason: 'Price missing' }],
+        attentionLevel: 'red',
+        id: 'manual',
+        key: 'openai/manual',
+        provider: 'openai',
+      }),
+      pricingRow({ id: 'fine', key: 'fal/fine', provider: 'fal' }),
+    ]);
+    approveRates.mockResolvedValue({} as never);
+
+    const result = await service.fixPricing('operator-1');
+
+    expect(approveRates).toHaveBeenCalledTimes(1);
+    expect(approveRates).toHaveBeenCalledWith(
+      'approvable',
+      'operator-1',
+      'rates-v2',
+    );
+    expect(result).toEqual({
+      approved: [{ id: 'approvable', key: 'fal/approvable' }],
+      changed: [],
+      syncQueued: [
+        { id: 'no-rates', key: 'replicate/no-rates', provider: 'replicate' },
+      ],
+      unresolved: [
+        { id: 'manual', key: 'openai/manual', reason: 'Price missing' },
+      ],
+    });
+  });
+
+  it('fixes only the named models', async () => {
+    const { service, approveRates } = buildService([
+      pricingRow({
+        attentionLevel: 'orange',
+        id: 'one',
+        isRateApprovalAvailable: true,
+        pending: { version: 'v2' },
+      }),
+      pricingRow({
+        attentionLevel: 'orange',
+        id: 'two',
+        isRateApprovalAvailable: true,
+        pending: { version: 'v2' },
+      }),
+    ]);
+    approveRates.mockResolvedValue({} as never);
+
+    const result = await service.fixPricing('operator-1', ['two']);
+
+    expect(approveRates).toHaveBeenCalledTimes(1);
+    expect(result.approved.map((entry) => entry.id)).toEqual(['two']);
+  });
+
+  it('reports a model whose rates changed mid-run instead of failing the run', async () => {
+    const { service, approveRates } = buildService([
+      pricingRow({
+        attentionLevel: 'red',
+        id: 'raced',
+        isRateApprovalAvailable: true,
+        pending: { version: 'v2' },
+      }),
+      pricingRow({
+        attentionLevel: 'red',
+        id: 'fine',
+        isRateApprovalAvailable: true,
+        pending: { version: 'v3' },
+      }),
+    ]);
+    approveRates
+      .mockRejectedValueOnce(new ConflictException('changed'))
+      .mockResolvedValueOnce({} as never);
+
+    const result = await service.fixPricing('operator-1');
+
+    expect(result.changed.map((entry) => entry.id)).toEqual(['raced']);
+    expect(result.approved.map((entry) => entry.id)).toEqual(['fine']);
+  });
+});

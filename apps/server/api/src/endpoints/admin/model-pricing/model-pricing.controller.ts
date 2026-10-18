@@ -31,6 +31,9 @@ const approveBodySchema = z
 const syncProviders = Object.keys(
   PROVIDER_PRICE_SYNC_TASKS,
 ) as ProviderPriceSyncProvider[];
+const fixBodySchema = z
+  .object({ modelIds: z.array(modelIdSchema).max(500).optional() })
+  .strict();
 const syncBodySchema = z
   .object({ provider: z.enum(['all', ...syncProviders]).default('all') })
   .strict();
@@ -70,6 +73,30 @@ export class AdminModelPricingController {
     const providers =
       parsed.data.provider === 'all' ? syncProviders : [parsed.data.provider];
     return { queued: await this.priceSync.enqueue(providers) };
+  }
+
+  /**
+   * "Fix pricing" / "Fix all pricing": approve the pending provider rates of
+   * the given models (every model that needs it when none are given) and queue
+   * the provider price import for models that have no rates loaded yet.
+   */
+  @Post('fix')
+  @HttpCode(200)
+  @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
+  async fix(@Req() request: Request, @Body() body: unknown) {
+    const parsed = fixBodySchema.safeParse(body ?? {});
+    if (!parsed.success)
+      throw new BadRequestException('modelIds must be a list of model ids');
+    const fixedBy = request.context?.userId;
+    if (!fixedBy) throw new UnauthorizedException();
+    const result = await this.pricing.fixPricing(fixedBy, parsed.data.modelIds);
+    const providers = [
+      ...new Set(result.syncQueued.map((entry) => entry.provider)),
+    ].filter((provider): provider is ProviderPriceSyncProvider =>
+      syncProviders.includes(provider as ProviderPriceSyncProvider),
+    );
+    if (providers.length > 0) await this.priceSync.enqueue(providers);
+    return result;
   }
 
   /**

@@ -2,8 +2,8 @@
 
 import { ComponentSize } from '@genfeedai/contracts';
 import type { AdminModelsToolbarProps } from '@props/admin/models.props';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Container from '@ui/layout/container/Container';
+import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Cpu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -21,36 +21,28 @@ export default function AdminModelsToolbar({
 }: AdminModelsToolbarProps) {
   const translate = useTranslations('pages.models');
   return (
-    <Container
-      label={translate('title')}
+    <AdminPageShell
+      title={translate('title')}
       icon={Cpu}
-      titleVisibility="sr-only"
-      moduleChrome
-      isTopbarPinned
-      leading={
-        <div className="flex items-center gap-2">
-          <div className="w-48 sm:w-64">
-            <FormSearchbar
-              ariaLabel={translate('searchModels')}
-              onSearch={onSearch}
-              placeholder={translate('searchModels')}
-              size={ComponentSize.SM}
-              value={searchTerm}
-            />
-          </div>
-          <AdminModelsFilters category={category} />
+      search={
+        <div className="w-48 sm:w-64">
+          <FormSearchbar
+            ariaLabel={translate('searchModels')}
+            onSearch={onSearch}
+            placeholder={translate('searchModels')}
+            size={ComponentSize.SM}
+            value={searchTerm}
+          />
         </div>
       }
-      right={<AdminModelsActions />}
-      iconActions={
-        <>
-          {iconActions}
-          <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
-        </>
-      }
-      iconActionsPlacement="after-controls"
+      filters={<AdminModelsFilters category={category} />}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      download={iconActions}
+      dropdowns={<AdminOrgBrandUrlFilter />}
+      primaryAction={<AdminModelsActions />}
     >
       {children}
-    </Container>
+    </AdminPageShell>
   );
 }

@@ -4,12 +4,18 @@ import type { AdminModelPricingRow } from '@genfeedai/contracts/interfaces';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import FixPricingButton from './fix-pricing-button';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
 import ModelPricingDetails from './model-pricing-details';
 
 const fixture = vi.hoisted(() => ({
   approveRates: vi.fn(),
+  fixPricing: vi.fn(),
+  notifyError: vi.fn(),
+  notifySuccess: vi.fn(),
+  openConfirm: vi.fn(),
   getReport: vi.fn(),
   getService: vi.fn(),
 }));
@@ -24,6 +30,17 @@ vi.mock('next-intl', async () => {
     useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };
 });
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useConfirmModal: () => ({ openConfirm: fixture.openConfirm }),
+}));
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: fixture.notifyError,
+      success: fixture.notifySuccess,
+    }),
+  },
+}));
 vi.mock('@services/admin/model-pricing.service', () => ({
   AdminModelPricingService: { getInstance: vi.fn() },
 }));
@@ -141,6 +158,12 @@ beforeEach(() => {
   fixture.getService.mockResolvedValue(fixture);
   fixture.getReport.mockResolvedValue(report([red, orange, row({})]));
   fixture.approveRates.mockResolvedValue(report([red, row({})]));
+  fixture.fixPricing.mockResolvedValue({
+    approved: [],
+    changed: [],
+    syncQueued: [],
+    unresolved: [],
+  });
 });
 
 describe('model pricing attention (#6196)', () => {
@@ -222,6 +245,90 @@ describe('model pricing attention (#6196)', () => {
       ),
     ).toBeInTheDocument();
     await waitFor(() => expect(fixture.getReport).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('fix all pricing', () => {
+  it('asks for confirmation, then fixes every model that needs it', async () => {
+    fixture.fixPricing.mockResolvedValue({
+      approved: [{ id: 'orange', key: 'minimax/hailuo-2.3-fast' }],
+      changed: [],
+      syncQueued: [],
+      unresolved: [],
+    });
+    show();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Fix all pricing' }),
+    );
+    expect(fixture.fixPricing).not.toHaveBeenCalled();
+    expect(fixture.openConfirm).toHaveBeenCalledTimes(1);
+    await fixture.openConfirm.mock.calls[0][0].onConfirm();
+
+    await waitFor(() =>
+      expect(fixture.fixPricing).toHaveBeenCalledWith(undefined),
+    );
+    await waitFor(() =>
+      expect(fixture.notifySuccess).toHaveBeenCalledWith(
+        'Approved the rates for 1 model.',
+      ),
+    );
+    await waitFor(() => expect(fixture.getReport).toHaveBeenCalledTimes(2));
+  });
+
+  it('reports models that still need a price set by hand', async () => {
+    fixture.fixPricing.mockResolvedValue({
+      approved: [],
+      changed: [],
+      syncQueued: [],
+      unresolved: [{ id: 'red', key: 'genfeed-ai/z-image-turbo', reason: 'x' }],
+    });
+    show();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Fix all pricing' }),
+    );
+    await fixture.openConfirm.mock.calls[0][0].onConfirm();
+
+    await waitFor(() =>
+      expect(fixture.notifyError).toHaveBeenCalledWith(
+        '1 model needs a price set by hand.',
+      ),
+    );
+  });
+});
+
+describe('fix pricing on a model row', () => {
+  function showButton(modelId: string) {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <FixPricingButton model={{ id: modelId, label: 'Model' } as IModel} />
+      </QueryClientProvider>,
+    );
+  }
+
+  it('fixes just that model', async () => {
+    showButton('red');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Fix pricing: Model' }),
+    );
+
+    await waitFor(() =>
+      expect(fixture.fixPricing).toHaveBeenCalledWith(['red']),
+    );
+  });
+
+  it('is absent for a model whose pricing is fine', async () => {
+    showButton('clean');
+
+    await waitFor(() => expect(fixture.getReport).toHaveBeenCalled());
+    expect(
+      screen.queryByRole('button', { name: /Fix pricing/ }),
+    ).not.toBeInTheDocument();
   });
 });
 

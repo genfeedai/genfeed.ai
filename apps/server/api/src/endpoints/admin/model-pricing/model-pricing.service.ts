@@ -9,7 +9,9 @@ import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
   ModelPricingEvidence,
+  ModelPricingFixResult,
 } from '@genfeedai/contracts/interfaces';
+import { PROVIDER_PRICE_SYNC_TASKS } from '@genfeedai/contracts/queue';
 import {
   describeProviderRateChanges,
   enumerateReviewedVariantSelectors,
@@ -435,6 +437,19 @@ export function projectAdminModelPricing(
   };
 }
 
+/** A row an operator can act on: missing or changed provider pricing. */
+function needsPricingFix(row: AdminModelPricingRow): boolean {
+  return (
+    row.isRateApprovalAvailable ||
+    row.attentionLevel === 'red' ||
+    row.attentionLevel === 'orange'
+  );
+}
+
+function isSyncProvider(provider: string): boolean {
+  return Object.hasOwn(PROVIDER_PRICE_SYNC_TASKS, provider);
+}
+
 function configuredMargin(
   setting: { marginMultiplierGeneration: number | null } | null,
 ): number | null {
@@ -584,5 +599,54 @@ export class AdminModelPricingService {
         retrievedAt.toISOString(),
       );
     });
+  }
+
+  /**
+   * Reprice models whose provider pricing is missing or changed. Pending
+   * provider rates are approved now, which is the operator's explicit approval
+   * (the caller is a superadmin pressing "Fix pricing"). Models with no rates
+   * loaded yet are reported so the controller can queue the provider price
+   * import; the rest need a hand-set price. Pass `modelIds` to fix specific
+   * rows, omit it to fix every row that needs it.
+   */
+  async fixPricing(
+    approvedBy: string,
+    modelIds?: readonly string[],
+  ): Promise<ModelPricingFixResult> {
+    const report = await this.getReport('model-pricing-fix');
+    const wanted = modelIds?.length ? new Set(modelIds) : null;
+    const rows = report.rows.filter(
+      (row) => (wanted === null || wanted.has(row.id)) && needsPricingFix(row),
+    );
+    const result: ModelPricingFixResult = {
+      approved: [],
+      changed: [],
+      syncQueued: [],
+      unresolved: [],
+    };
+    for (const row of rows) {
+      const entry = { id: row.id, key: row.key };
+      const pendingVersion = row.pending?.version;
+      if (row.isRateApprovalAvailable && pendingVersion) {
+        try {
+          await this.approveRates(row.id, approvedBy, pendingVersion);
+          result.approved.push(entry);
+        } catch (error) {
+          if (!(error instanceof ConflictException)) throw error;
+          result.changed.push(entry);
+        }
+      } else if (isSyncProvider(row.provider)) {
+        result.syncQueued.push({ ...entry, provider: row.provider });
+      } else {
+        result.unresolved.push({
+          ...entry,
+          reason:
+            row.attention[0]?.reason ??
+            row.reasons[0] ??
+            'No provider rates to approve',
+        });
+      }
+    }
+    return result;
   }
 }

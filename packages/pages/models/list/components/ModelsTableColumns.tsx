@@ -31,7 +31,7 @@ import {
 import { Switch } from '@ui/primitives/switch';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { LockKeyhole } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 export type ModelsTableTranslate = (
   key: string,
@@ -52,6 +52,7 @@ export type BuildModelsTableColumnsParams = {
   onOpenDetails: (model: IModel) => void;
   togglingModelId: string | null;
   models: IModel[];
+  renderCostAction?: (model: IModel) => ReactNode;
   translate: ModelsTableTranslate;
 };
 
@@ -346,6 +347,7 @@ export function buildModelsTableColumns({
   onOpenDetails,
   togglingModelId,
   models,
+  renderCostAction,
   translate,
 }: BuildModelsTableColumnsParams): TableColumn<IModel>[] {
   const getRegistryStatus = (model: IModel) => {
@@ -498,6 +500,7 @@ export function buildModelsTableColumns({
             ) : (
               cost
             )}
+            {isAdminScope ? renderCostAction?.(model) : null}
           </div>
         );
       },
