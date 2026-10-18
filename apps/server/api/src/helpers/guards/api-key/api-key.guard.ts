@@ -65,7 +65,17 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new UnauthorizedException('IP address not allowed');
     }
 
-    const rateLimit = await this.apiKeysService.checkRateLimit(apiKey);
+    // A switchable MCP session may be acting in another of its user's
+    // organizations. The key row keeps its issued organization (the action
+    // origin proof is signed against it); only the request identity moves.
+    const organizationId =
+      await this.apiKeysService.resolveEffectiveOrganizationId(apiKey);
+
+    const rateLimit = await this.apiKeysService.checkRateLimit(
+      organizationId === apiKey.organizationId
+        ? apiKey
+        : { ...apiKey, organizationId },
+    );
     if (!rateLimit.allowed) {
       const response = context.switchToHttp().getResponse();
       response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
@@ -98,21 +108,22 @@ export class ApiKeyAuthGuard implements CanActivate {
     // trust this ambient value as if it were that stricter signal.
     const requestScopedBrandId =
       (await this.apiKeysService.resolveValidDefaultBrandId(
-        apiKey.organizationId,
+        organizationId,
         apiKey.defaultBrandId,
-      )) ??
-      (await this.apiKeysService.resolveAnyBrandId(apiKey.organizationId));
+      )) ?? (await this.apiKeysService.resolveAnyBrandId(organizationId));
 
     // Attach user info to request for downstream use
     request.user = {
       actionOrigin: this.apiKeysService.resolveActionOrigin(apiKey),
       apiKeyId,
+      canSwitchOrganizations:
+        this.apiKeysService.canSwitchOrganizations(apiKey),
       mcpAccessMode: this.apiKeysService.readMcpAccessMode(apiKey),
       brandId: requestScopedBrandId ?? '',
       id: apiKey.userId,
       isApiKey: true,
       isSuperAdmin: false,
-      organizationId: apiKey.organizationId,
+      organizationId,
       scopes: apiKey.scopes,
       userId: apiKey.userId,
     };

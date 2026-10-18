@@ -23,5 +23,8 @@ and therefore no `brandId` for `generate`.
 **How to apply:** do not "fix" an owner seeing `Role: User` by widening the API-key
 role cap or by reading the membership role in the MCP server; grant the scope at
 consent. Existing tokens keep the old scopes until the client reconnects. The MCP
-e2e suite (`apps/server/mcp/test/e2e`) pins the journey. There is no per-call org
-switching: the token is bound to one org at consent, and `list_orgs` is read-only.
+e2e suite (`apps/server/mcp/test/e2e`) pins the journey. Org switching is
+opt-in: with the consent checkbox ticked (2+ orgs, not the Claude connector) the
+session key stores `canSwitchOrganizations`, `switch_org` records the chosen org in
+`activeOrganizationId`, and the API key guard honours it only while the user's
+membership there is live. The key row itself never changes org.

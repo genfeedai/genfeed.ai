@@ -364,6 +364,38 @@ describe('OAuthRefreshTokenService', () => {
     );
   });
 
+  it('keeps the organization switching choice and the active organization across rotation', async () => {
+    const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+      buildHarness();
+    const original = seedApiKey({
+      metadata: {
+        activeOrganizationId: 'org-2',
+        canSwitchOrganizations: true,
+        clientName: 'Claude Code',
+        grantId: 'grant-1',
+        kind: 'mcp-oauth-session',
+        resource,
+      },
+    });
+    seedRefreshToken('refresh-plain-token-original', {
+      apiKeyId: original.id,
+    });
+
+    await service.refresh(refreshGrant('refresh-plain-token-original'));
+
+    expect(apiKeysService.rotateWithKey).toHaveBeenCalledWith(
+      original.id,
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          activeOrganizationId: 'org-2',
+          canSwitchOrganizations: true,
+        }),
+        organizationId: 'org-1',
+      }),
+      'mcp',
+    );
+  });
+
   it('rejects an expired refresh token without issuing a token', async () => {
     const { apiKeysService, seedApiKey, seedRefreshToken, service } =
       buildHarness();

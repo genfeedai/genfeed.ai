@@ -8,7 +8,11 @@ import {
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
 } from '@genfeedai/contracts';
-import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
+import {
+  CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+  MCP_ACTIVE_ORGANIZATION_METADATA_KEY,
+  MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY,
+} from '@genfeedai/contracts/constants';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -316,6 +320,36 @@ describe('ApiKeysService', () => {
       );
     });
 
+    it('keeps organization switching only on trusted issuance', async () => {
+      const metadata = {
+        [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: 'org-2',
+        [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: true,
+        kind: 'mcp-oauth-session',
+      };
+      const payload = {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'MCP',
+        metadata,
+        organizationId: 'org-1',
+        scopes: ['videos:read'],
+        userId: 'user-1',
+      };
+
+      const userMade = createValidationHarness();
+      await userMade.createWithKey(payload);
+      expect(userMade.create).toHaveBeenCalledWith(
+        expect.objectContaining({ metadata: { kind: 'mcp-oauth-session' } }),
+      );
+
+      const issued = createValidationHarness();
+      await issued.createWithKey(payload, ActionOrigin.MCP);
+      expect(issued.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining(metadata),
+        }),
+      );
+    });
+
     it('rejects trusted issuance when action-origin signing is unavailable', async () => {
       const service = createValidationHarness();
       Object.defineProperty(service, 'configService', {
@@ -609,5 +643,143 @@ describe('MCP OAuth policy metadata', () => {
     });
     expect(service.hasTrustedMcpOriginProof(undefined, true)).toBe(false);
     expect(service.hasTrustedMcpOriginProof('wrong-proof', true)).toBe(false);
+  });
+});
+
+describe('MCP organization switching', () => {
+  const sessionKey = (metadata: Record<string, unknown> = {}) =>
+    ({
+      id: 'key-1',
+      metadata: {
+        kind: 'mcp-oauth-session',
+        [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: true,
+        ...metadata,
+      },
+      organizationId: 'org-1',
+      userId: 'user-1',
+    }) as unknown as ApiKeyDocument;
+
+  function createSwitchHarness(isMember = true) {
+    const service = Object.create(ApiKeysService.prototype) as ApiKeysService;
+    const prisma = {
+      organization: {
+        findFirst: vi.fn().mockResolvedValue(isMember ? { id: 'org-2' } : null),
+      },
+    };
+    const delegate = { update: vi.fn().mockResolvedValue({}) };
+    Object.defineProperty(service, 'prisma', { value: prisma });
+    Object.defineProperty(service, 'delegate', { value: delegate });
+    return { delegate, prisma, service };
+  }
+
+  it('allows switching only for an OAuth session the user opted in', () => {
+    const { service } = createSwitchHarness();
+    expect(service.canSwitchOrganizations(sessionKey())).toBe(true);
+    expect(
+      service.canSwitchOrganizations(
+        sessionKey({ [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: false }),
+      ),
+    ).toBe(false);
+    expect(
+      service.canSwitchOrganizations({
+        metadata: { [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: true },
+      } as unknown as ApiKeyDocument),
+    ).toBe(false);
+  });
+
+  describe('resolveEffectiveOrganizationId', () => {
+    it('uses the key organization without a lookup when nothing was switched', async () => {
+      const { prisma, service } = createSwitchHarness();
+
+      await expect(
+        service.resolveEffectiveOrganizationId(sessionKey()),
+      ).resolves.toBe('org-1');
+      expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('ignores a recorded organization on a session that cannot switch', async () => {
+      const { prisma, service } = createSwitchHarness();
+
+      await expect(
+        service.resolveEffectiveOrganizationId(
+          sessionKey({
+            [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: 'org-2',
+            [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: false,
+          }),
+        ),
+      ).resolves.toBe('org-1');
+      expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('moves to the recorded organization while the membership is live', async () => {
+      const { prisma, service } = createSwitchHarness();
+
+      await expect(
+        service.resolveEffectiveOrganizationId(
+          sessionKey({ [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: 'org-2' }),
+        ),
+      ).resolves.toBe('org-2');
+      expect(prisma.organization.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          id: 'org-2',
+          isDeleted: false,
+          members: {
+            some: { isActive: true, isDeleted: false, userId: 'user-1' },
+          },
+        },
+      });
+    });
+
+    it('falls back to the key organization once the membership is gone', async () => {
+      const { service } = createSwitchHarness(false);
+
+      await expect(
+        service.resolveEffectiveOrganizationId(
+          sessionKey({ [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: 'org-2' }),
+        ),
+      ).resolves.toBe('org-1');
+    });
+  });
+
+  describe('switchActiveOrganization', () => {
+    it('records the organization on the session without moving the key', async () => {
+      const { delegate, service } = createSwitchHarness();
+
+      await expect(
+        service.switchActiveOrganization(sessionKey(), 'org-2'),
+      ).resolves.toBe(true);
+      expect(delegate.update).toHaveBeenCalledWith({
+        data: {
+          metadata: expect.objectContaining({
+            [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: 'org-2',
+            kind: 'mcp-oauth-session',
+          }),
+        },
+        where: { id: 'key-1', organizationId: 'org-1' },
+      });
+    });
+
+    it('refuses an organization the user is not an active member of', async () => {
+      const { delegate, service } = createSwitchHarness(false);
+
+      await expect(
+        service.switchActiveOrganization(sessionKey(), 'org-9'),
+      ).resolves.toBe(false);
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses a session that was not approved for switching', async () => {
+      const { delegate, prisma, service } = createSwitchHarness();
+
+      await expect(
+        service.switchActiveOrganization(
+          sessionKey({ [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: false }),
+          'org-2',
+        ),
+      ).resolves.toBe(false);
+      expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
   });
 });

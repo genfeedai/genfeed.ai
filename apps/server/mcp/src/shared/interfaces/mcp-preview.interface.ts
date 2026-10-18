@@ -1,4 +1,7 @@
-import type { McpCard } from '@mcp/shared/interfaces/mcp-app.interface';
+import type {
+  McpCard,
+  McpOrganizationSwitcher,
+} from '@mcp/shared/interfaces/mcp-app.interface';
 
 export interface PreviewBridge {
   origins: readonly string[];
@@ -11,6 +14,12 @@ export interface PreviewProps {
   result: unknown;
   notice: string;
   bridge: PreviewBridge;
+}
+export interface OrganizationSwitcherProps {
+  error: string;
+  isSwitching: boolean;
+  onSwitch(organizationId: string): void;
+  switcher: McpOrganizationSwitcher;
 }
 export interface CardPreviewProps {
   item: McpCard;

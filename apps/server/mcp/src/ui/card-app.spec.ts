@@ -815,3 +815,108 @@ it('lists only origins a browser iframe can load in the card CSP', () => {
   expect(domains).not.toContain('http://files.genfeed.internal:3012');
   expect(domains).not.toContain('http://media.example');
 });
+
+describe('organization switcher', () => {
+  const organizations = [
+    { id: 'org-a', isActive: true, label: 'Acme' },
+    { id: 'org-b', isActive: false, label: 'Beta' },
+  ];
+
+  it('shows the active organization in a dropdown with its brands', () => {
+    result('list_orgs', {
+      activeOrganizationId: 'org-a',
+      brands: [
+        { id: 'brand-1', label: 'Acme Main' },
+        { id: 'brand-2', label: 'Acme Labs' },
+      ],
+      canSwitchOrganizations: true,
+      organizations,
+    });
+
+    const trigger = document.querySelector('[role="combobox"]');
+    expect(trigger?.textContent).toContain('Acme');
+    expect(document.body.textContent).toContain('Acme Main');
+    expect(document.body.textContent).toContain('Acme Labs');
+    expect(document.body.textContent).not.toContain('Switching is off');
+  });
+
+  it('shows the organization as plain text when switching is off', () => {
+    result('list_orgs', {
+      activeOrganizationId: 'org-a',
+      brands: [],
+      canSwitchOrganizations: false,
+      organizations,
+    });
+
+    expect(document.querySelector('[role="combobox"]')).toBeNull();
+    expect(document.body.textContent).toContain('Acme');
+    expect(document.body.textContent).toContain('Switching is off');
+    expect(document.body.textContent).toContain(
+      'No brands in this organization yet.',
+    );
+  });
+
+  it('switches organization through the host and shows the new brands', async () => {
+    result('list_orgs', {
+      activeOrganizationId: 'org-a',
+      brands: [{ id: 'brand-1', label: 'Acme Main' }],
+      canSwitchOrganizations: true,
+      organizations,
+    });
+    window.HTMLElement.prototype.scrollIntoView = () => undefined;
+    window.HTMLElement.prototype.hasPointerCapture = () => false;
+    window.HTMLElement.prototype.releasePointerCapture = () => undefined;
+
+    const trigger = document.querySelector<HTMLElement>('[role="combobox"]');
+    if (!trigger) throw new Error('Missing organization dropdown');
+    trigger.dispatchEvent(
+      new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowDown' }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    const option = [
+      ...document.querySelectorAll<HTMLElement>('[role="option"]'),
+    ].find((item) => item.textContent === 'Beta');
+    if (!option) throw new Error('Missing Beta option');
+    option.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    option.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(
+        ([data]) => data as { id?: number; method?: string; params?: unknown },
+      )
+      .find((data) => data.method === 'tools/call');
+    expect(call?.params).toEqual({
+      arguments: { organization: 'org-b' },
+      name: 'switch_org',
+    });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window.parent,
+        data: {
+          jsonrpc: '2.0',
+          id: call?.id,
+          result: {
+            structuredContent: {
+              genfeedCards: buildCardView('switch_org', {
+                activeOrganizationId: 'org-b',
+                brands: [{ id: 'brand-9', label: 'Beta Studio' }],
+                canSwitchOrganizations: true,
+                organizations: [
+                  { id: 'org-a', isActive: false, label: 'Acme' },
+                  { id: 'org-b', isActive: true, label: 'Beta' },
+                ],
+              }),
+            },
+          },
+        },
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(document.body.textContent).toContain('Beta Studio');
+    expect(document.body.textContent).not.toContain('Acme Main');
+  });
+});

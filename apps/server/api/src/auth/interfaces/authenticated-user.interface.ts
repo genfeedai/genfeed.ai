@@ -17,6 +17,8 @@ export interface AuthenticatedUser {
   brandId: string;
   isSuperAdmin?: boolean;
   apiKeyId?: string;
+  /** The MCP session may move between its user's organizations. */
+  canSwitchOrganizations?: boolean;
   mcpAccessMode?: McpAccessMode;
   actionOrigin?: ActionOrigin;
   scopes?: string[];

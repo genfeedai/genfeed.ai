@@ -60,6 +60,7 @@ describe('ApiKeyAuthGuard', () => {
     mockContext = createMockExecutionContext({ request });
 
     const mockApiKeysService = {
+      canSwitchOrganizations: vi.fn().mockReturnValue(false),
       checkRateLimit: vi.fn(),
       findByKey: vi.fn(),
       hasScope: vi.fn(),
@@ -71,6 +72,11 @@ describe('ApiKeyAuthGuard', () => {
       // #5219: request-scoped brandId resolution — no key default brand by
       // default, falling back to some brand in the org (never the org id).
       resolveAnyBrandId: vi.fn().mockResolvedValue(mockFallbackBrandId),
+      resolveEffectiveOrganizationId: vi
+        .fn()
+        .mockImplementation(async (key: { organizationId: string }) =>
+          String(key.organizationId),
+        ),
       resolveValidDefaultBrandId: vi.fn().mockResolvedValue(undefined),
       updateLastUsed: vi.fn(),
     };
@@ -295,6 +301,7 @@ describe('ApiKeyAuthGuard', () => {
       expect(mutatedRequest.user).toEqual({
         actionOrigin: ActionOrigin.API,
         apiKeyId: mockApiKey.id.toString(),
+        canSwitchOrganizations: false,
         mcpAccessMode: 'standard',
         // #5219: brandId is a resolved brand, never the organization id (the
         // prior bug here) — this key has no valid default brand, so it falls
@@ -314,6 +321,49 @@ describe('ApiKeyAuthGuard', () => {
       expect(apiKeysService.updateLastUsed).toHaveBeenCalledWith(
         mockApiKey.id.toString(),
         '192.168.1.1',
+      );
+    });
+
+    it('acts in the organization a switchable session moved to', async () => {
+      const switchedOrganizationId = testId('org', 9);
+      mockContext = createMockExecutionContext({ request });
+      vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
+      vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
+      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
+      vi.spyOn(apiKeysService, 'canSwitchOrganizations').mockReturnValue(true);
+      vi.spyOn(
+        apiKeysService,
+        'resolveEffectiveOrganizationId',
+      ).mockResolvedValue(switchedOrganizationId);
+
+      await guard.canActivate(mockContext);
+
+      const mutatedRequest = mockContext.switchToHttp().getRequest();
+      expect(mutatedRequest.user).toMatchObject({
+        canSwitchOrganizations: true,
+        organizationId: switchedOrganizationId,
+        userId: mockApiKey.userId.toString(),
+      });
+      // Tier and brand follow the organization in use; the key row is untouched.
+      expect(apiKeysService.checkRateLimit).toHaveBeenCalledWith({
+        ...mockApiKey,
+        organizationId: switchedOrganizationId,
+      });
+      expect(apiKeysService.resolveValidDefaultBrandId).toHaveBeenCalledWith(
+        switchedOrganizationId,
+        mockApiKey.defaultBrandId,
+      );
+      expect(apiKeysService.resolveAnyBrandId).toHaveBeenCalledWith(
+        switchedOrganizationId,
+      );
+      expect(apiKeysService.resolveActionOrigin).toHaveBeenCalledWith(
+        mockApiKey,
       );
     });
 

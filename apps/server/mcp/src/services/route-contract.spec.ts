@@ -144,6 +144,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/organizations/controllers/organizations.controller.ts',
     prefix: 'organizations',
   },
+  authSwitchOrganization: {
+    file: 'auth/controllers/auth-switch-organization.controller.ts',
+    prefix: 'auth',
+  },
   adsGateway: {
     file: 'services/ads-gateway/ads-gateway.controller.ts',
     prefix: 'ads',
@@ -424,6 +428,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: '',
     controller: 'organizations',
     tools: ['list_orgs'],
+  },
+  {
+    method: 'Post',
+    sub: 'switch-organization',
+    controller: 'authSwitchOrganization',
+    tools: ['switch_org'],
   },
   {
     method: 'Get',

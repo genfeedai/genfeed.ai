@@ -22,6 +22,8 @@ import {
 } from '@genfeedai/contracts';
 import {
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+  MCP_ACTIVE_ORGANIZATION_METADATA_KEY,
+  MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY,
   MCP_OAUTH_SESSION_KIND,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -29,6 +31,7 @@ import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { RedisService } from '@libs/redis/redis.service';
 import {
   BadRequestException,
@@ -443,6 +446,95 @@ export class ApiKeysService extends BaseService<
     return metadata.kind === MCP_OAUTH_SESSION_KIND;
   }
 
+  /** Whether the user let this MCP session move between their organizations. */
+  canSwitchOrganizations(apiKey: ApiKeyDocument): boolean {
+    return (
+      this.isMcpOAuthSession(apiKey) &&
+      (apiKey.metadata as Record<string, unknown>)[
+        MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY
+      ] === true
+    );
+  }
+
+  /**
+   * The organization this key acts in right now. The key row never moves
+   * organizations; a switchable MCP session records the chosen organization in
+   * its metadata, and it is honoured only while the user is still an active
+   * member there. Anything else falls back to the organization the key was
+   * issued for.
+   */
+  async resolveEffectiveOrganizationId(
+    apiKey: ApiKeyDocument,
+  ): Promise<string> {
+    if (!this.canSwitchOrganizations(apiKey)) {
+      return apiKey.organizationId;
+    }
+
+    const active = (apiKey.metadata as Record<string, unknown>)[
+      MCP_ACTIVE_ORGANIZATION_METADATA_KEY
+    ];
+    if (
+      typeof active !== 'string' ||
+      active.length === 0 ||
+      active === apiKey.organizationId
+    ) {
+      return apiKey.organizationId;
+    }
+
+    return (await this.hasActiveMembership(apiKey.userId, active))
+      ? active
+      : apiKey.organizationId;
+  }
+
+  /**
+   * Point a switchable MCP session at another organization the user belongs
+   * to. Returns false when the session may not switch or the user has no live
+   * membership there; the caller turns that into a 403.
+   */
+  async switchActiveOrganization(
+    apiKey: ApiKeyDocument,
+    organizationId: string,
+  ): Promise<boolean> {
+    if (
+      !this.canSwitchOrganizations(apiKey) ||
+      !(await this.hasActiveMembership(apiKey.userId, organizationId))
+    ) {
+      return false;
+    }
+
+    // The row belongs to its issued organization, whichever one the request
+    // is currently acting in, so write it under that tenant.
+    await runWithTenantContext({ organizationId: apiKey.organizationId }, () =>
+      this.delegate.update({
+        where: { id: apiKey.id, organizationId: apiKey.organizationId },
+        data: {
+          metadata: {
+            ...(apiKey.metadata as Record<string, unknown>),
+            [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: organizationId,
+          } as Prisma.InputJsonValue,
+        },
+      }),
+    );
+    return true;
+  }
+
+  // Organization is a root model, so this relation-filtered read does not
+  // inherit the request tenant; the member filter is the tenant boundary.
+  private async hasActiveMembership(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const organization = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: {
+        id: organizationId,
+        isDeleted: false,
+        members: { some: { userId, isActive: true, isDeleted: false } },
+      },
+    });
+    return organization !== null;
+  }
+
   readMcpAccessMode(apiKey: ApiKeyDocument): McpAccessMode {
     if (!this.isMcpOAuthSession(apiKey)) return 'standard';
     const metadata = apiKey.metadata as Record<string, unknown>;
@@ -491,8 +583,18 @@ export class ApiKeysService extends BaseService<
       [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _untrustedProof,
       [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]:
         _untrustedConnectGenfeedVerification,
-      ...safeMetadata
+      ...untrustedMetadata
     } = dto.metadata ?? {};
+    // Organization switching is granted only by the OAuth consent flow, which
+    // issues its keys with a trusted origin; a caller-supplied value is dropped.
+    const {
+      [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: _untrustedActiveOrganization,
+      [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: _untrustedCanSwitch,
+      ...unprivilegedMetadata
+    } = untrustedMetadata;
+    const safeMetadata = trustedOrigin
+      ? untrustedMetadata
+      : unprivilegedMetadata;
     if (!trustedOrigin) {
       return dto.metadata ? safeMetadata : undefined;
     }

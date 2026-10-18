@@ -5,6 +5,8 @@ import {
 } from '@genfeedai/actions';
 import {
   MCP_ACCESS_MODE_METADATA_KEY,
+  MCP_ACTIVE_ORGANIZATION_METADATA_KEY,
+  MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY,
   MCP_OAUTH_SESSION_KIND,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -18,14 +20,24 @@ import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations
  */
 export type McpOAuthSessionLineage = {
   accessMode?: McpAccessMode;
+  /** The organization the user switched this connection to, if any. */
+  activeOrganizationId?: string;
+  /** The user allowed this connection to switch organizations at consent. */
+  canSwitchOrganizations?: boolean;
   clientName?: string | null;
   grantId: string;
 };
 
 export function buildMcpOAuthSessionMetadata(
   resource: string,
-  { accessMode, clientName, grantId }: McpOAuthSessionLineage,
-): Record<string, string> {
+  {
+    accessMode,
+    activeOrganizationId,
+    canSwitchOrganizations,
+    clientName,
+    grantId,
+  }: McpOAuthSessionLineage,
+): Record<string, string | boolean> {
   const name = clientName?.trim();
   return {
     [MCP_ACCESS_MODE_METADATA_KEY]: mostRestrictiveMcpAccessMode(
@@ -36,6 +48,14 @@ export function buildMcpOAuthSessionMetadata(
     kind: MCP_OAUTH_SESSION_KIND,
     resource,
     ...(name ? { clientName: name } : {}),
+    ...(canSwitchOrganizations
+      ? {
+          [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: true,
+          ...(activeOrganizationId
+            ? { [MCP_ACTIVE_ORGANIZATION_METADATA_KEY]: activeOrganizationId }
+            : {}),
+        }
+      : {}),
   };
 }
 
@@ -55,6 +75,11 @@ export function readMcpOAuthSessionLineage(
 
   return {
     accessMode: parseMcpAccessMode(record[MCP_ACCESS_MODE_METADATA_KEY]),
+    activeOrganizationId: readMetadataString(
+      MCP_ACTIVE_ORGANIZATION_METADATA_KEY,
+    ),
+    canSwitchOrganizations:
+      record[MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY] === true,
     clientName: readMetadataString('clientName'),
     grantId: readMetadataString('grantId') ?? fallbackGrantId,
   };

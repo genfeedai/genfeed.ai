@@ -70,6 +70,11 @@ export const CONNECT_GENFEED_VERIFICATION_METADATA_KEY = 'connectGenfeed';
 export const MCP_OAUTH_SESSION_KIND = 'mcp-oauth-session';
 
 export const MCP_ACCESS_MODE_METADATA_KEY = 'mcpAccessMode';
+/** Session-key metadata: the user allowed organization switching at consent. */
+export const MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY =
+  'canSwitchOrganizations';
+/** Session-key metadata: the organization the connection is currently in. */
+export const MCP_ACTIVE_ORGANIZATION_METADATA_KEY = 'activeOrganizationId';
 export const MCP_CLAUDE_SCOPE_CEILING: readonly string[] =
   API_KEY_SCOPE_PRESETS.mcp.filter(
     (scope) =>

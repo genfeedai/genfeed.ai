@@ -69,6 +69,8 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   get_posts: 'post',
   get_scheduled_release: 'summary',
   list_assets: 'media',
+  list_orgs: 'summary',
+  switch_org: 'summary',
   transform_media: 'media',
   update_scheduled_release: 'summary',
 };
@@ -433,6 +435,46 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
   };
 }
 
+/**
+ * `list_orgs` / `switch_org`: the organization dropdown plus the brands of the
+ * organization the connection works inside. Identifiers stay in the
+ * structured data; the card shows names.
+ */
+function buildOrganizationsView(data: Record<string, unknown>): McpCardView {
+  const activeId = text(data, 'activeOrganizationId');
+  const choices = (Array.isArray(data.organizations) ? data.organizations : [])
+    .slice(0, 50)
+    .map((value) => {
+      const row = record(value);
+      const id = text(row, 'id');
+      return {
+        id,
+        isActive: id === activeId || (!activeId && row.isActive === true),
+        label: text(row, 'label', 'name') || 'Organization',
+      };
+    })
+    .filter((choice) => choice.id);
+  const brands = (Array.isArray(data.brands) ? data.brands : [])
+    .slice(0, 24)
+    .map((value) => {
+      const row = record(value);
+      return summaryCard(text(row, 'label', 'name') || 'Brand', [], {
+        id: text(row, 'id'),
+      });
+    });
+  return {
+    cards: brands,
+    layout: 'organizations',
+    organizations: {
+      activeId: choices.find((choice) => choice.isActive)?.id ?? '',
+      canSwitch: data.canSwitchOrganizations === true && choices.length > 1,
+      choices,
+    },
+    title: 'Workspace',
+    total: brands.length,
+  };
+}
+
 /** Scheduled release tools: the release, its status and where it goes. */
 function buildReleaseView(resource: Record<string, unknown>): McpCardView {
   // The release arrives as a JSON:API resource: its fields sit under
@@ -480,6 +522,9 @@ export function buildCardView(
   const data = record(payload);
   if (name === 'get_account') return buildAccountView(data);
   if (name === 'get_brands') return buildBrandsView(data);
+  if (name === 'list_orgs' || name === 'switch_org') {
+    return buildOrganizationsView(data);
+  }
   if (baseKind === 'summary') return buildReleaseView(data);
   if (name === 'get_posts' && Array.isArray(data.gapDays)) {
     return buildCalendarView(data);

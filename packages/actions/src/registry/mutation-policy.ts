@@ -183,6 +183,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   start_brand_interview: 'approval-required',
   start_outreach_sequence: 'approval-required',
   submit_brand_interview_answer: 'approval-required',
+  switch_org: 'direct',
   tag_social_conversation: 'direct',
   transfer_agent_conversation: 'approval-required',
   transform_media: 'direct',

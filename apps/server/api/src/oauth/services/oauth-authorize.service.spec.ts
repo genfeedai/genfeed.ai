@@ -839,6 +839,83 @@ describe('Claude resource grant', () => {
   });
 });
 
+describe('Organization switching grant', () => {
+  async function approve(
+    organizationCount: number,
+    overrides: Partial<OAuthAuthorizeDecisionDto>,
+    approvedResource = resource,
+  ) {
+    const { apiKeysService, organizations, prisma, service } = buildHarness();
+    for (let index = 2; index <= organizationCount; index += 1) {
+      organizations.push(makeOrganization(`org-${index}`));
+    }
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision({ organizationId: 'org-1', ...overrides }),
+    );
+    await service.exchangeToken({
+      client_id: clientId,
+      code: new URL(authorization.redirectUrl).searchParams.get(
+        'code',
+      ) as string,
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource: approvedResource,
+    });
+    return { apiKeysService, prisma };
+  }
+
+  it('records the choice on the code and the session key when the user opted in', async () => {
+    const { apiKeysService, prisma } = await approve(2, {
+      allowOrganizationSwitching: true,
+    });
+
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ canSwitchOrganizations: true }),
+    });
+    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ canSwitchOrganizations: true }),
+      }),
+      'mcp',
+    );
+  });
+
+  it.each([
+    ['is not asked for', 2, { allowOrganizationSwitching: false }],
+    ['is omitted', 2, {}],
+    ['has no second organization', 1, { allowOrganizationSwitching: true }],
+  ])('keeps switching off when it %s', async (_name, count, overrides) => {
+    const { apiKeysService, prisma } = await approve(count, overrides);
+
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ canSwitchOrganizations: false }),
+    });
+    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.not.objectContaining({
+          canSwitchOrganizations: expect.anything(),
+        }),
+      }),
+      'mcp',
+    );
+  });
+
+  it('never grants switching on the Claude connector resource', async () => {
+    const claudeResource = `${resource}/claude`;
+    const { prisma } = await approve(
+      2,
+      { allowOrganizationSwitching: true, resource: claudeResource },
+      claudeResource,
+    );
+
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ canSwitchOrganizations: false }),
+    });
+  });
+});
+
 describe('OAuth consent HTTP tenant context', () => {
   let app: INestApplication;
   let harness: ReturnType<typeof buildHarness>;

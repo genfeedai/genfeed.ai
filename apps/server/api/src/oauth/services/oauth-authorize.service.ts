@@ -52,6 +52,7 @@ const ORGANIZATION_ADMIN_ROLE_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 type McpOAuthAuthCodeRecord = {
+  canSwitchOrganizations: boolean;
   clientId: string;
   codeChallenge: string;
   expiresAt: Date;
@@ -187,6 +188,12 @@ export class OAuthAuthorizeService {
       resource,
       organization.members.map((member) => member.role.key),
     );
+    // Switching only means something with a second organization to switch to,
+    // and the Claude connector tool set has no way to use it.
+    const canSwitchOrganizations =
+      dto.allowOrganizationSwitching === true &&
+      organizations.length > 1 &&
+      resolveMcpAccessModeForResource(resource) !== 'claude';
     const code = toBase64Url(randomBytes(32));
     const expiresAt = new Date(Date.now() + MCP_OAUTH_CODE_TTL_MS);
     const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');
@@ -199,6 +206,7 @@ export class OAuthAuthorizeService {
     });
     await this.prisma.mcpOAuthAuthCode.create({
       data: {
+        canSwitchOrganizations,
         clientId: dto.client_id,
         codeChallenge: dto.code_challenge,
         codeChallengeMethod: dto.code_challenge_method,
@@ -270,6 +278,7 @@ export class OAuthAuthorizeService {
         expiresAt: expiresAt.toISOString(),
         label: 'MCP OAuth',
         metadata: buildMcpOAuthSessionMetadata(record.resource, {
+          canSwitchOrganizations: record.canSwitchOrganizations,
           clientName: client.clientName,
           grantId: record.id,
         }),

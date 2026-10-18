@@ -11,7 +11,12 @@ export type McpCardKind =
 export type McpMediaKind = 'audio' | 'image' | 'video';
 
 /** How the content-card view arranges its cards. */
-export type McpCardLayout = 'calendar' | 'cards' | 'media' | 'posts';
+export type McpCardLayout =
+  | 'calendar'
+  | 'cards'
+  | 'media'
+  | 'organizations'
+  | 'posts';
 
 export interface McpCardAuthor {
   name?: string;
@@ -71,12 +76,30 @@ export interface McpCalendarView {
   draftsCount: number;
 }
 
+/** One organization the signed-in user can work in. */
+export interface McpOrganizationChoice {
+  id: string;
+  isActive: boolean;
+  label: string;
+}
+
+/** The organization dropdown of the workspace card. */
+export interface McpOrganizationSwitcher {
+  /** The organization this connection works inside; empty when unknown. */
+  activeId: string;
+  /** The user approved organization switching for this connection. */
+  canSwitch: boolean;
+  choices: McpOrganizationChoice[];
+}
+
 export interface McpCardView {
   title: string;
   cards: McpCard[];
   total: number;
   layout: McpCardLayout;
   calendar?: McpCalendarView;
+  /** Set on the workspace card; `cards` then list the active organization's brands. */
+  organizations?: McpOrganizationSwitcher;
 }
 
 export interface McpAppResult {

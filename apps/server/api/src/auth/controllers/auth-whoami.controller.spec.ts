@@ -143,6 +143,7 @@ describe('AuthWhoamiController', () => {
 
       expect(result).toEqual({
         data: {
+          canSwitchOrganizations: false,
           isApiKey: false,
           organization: {
             id: 'org_abc',
@@ -158,6 +159,22 @@ describe('AuthWhoamiController', () => {
           },
         },
       });
+    });
+
+    it('reports whether the session may switch organizations', async () => {
+      mockMembersService.findOne.mockResolvedValue({ role: { key: 'user' } });
+
+      const result = await controller.whoami(
+        buildReq({
+          canSwitchOrganizations: true,
+          id: 'auth_user_123',
+          isApiKey: true,
+          organizationId: 'org_abc',
+          userId: 'user_1',
+        }),
+      );
+
+      expect(result.data.canSwitchOrganizations).toBe(true);
     });
 
     it('resolves the organization role from the active membership', async () => {

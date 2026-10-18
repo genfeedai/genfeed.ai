@@ -47,6 +47,14 @@ export class OAuthAuthorizeDecisionDto {
   @Length(1, 200)
   organizationId?: string;
 
+  /**
+   * Let this connection move between the user's organizations. Honored only
+   * when the user belongs to more than one; every switch re-checks membership.
+   */
+  @IsOptional()
+  @IsBoolean()
+  allowOrganizationSwitching?: boolean;
+
   @IsBoolean()
   approved!: boolean;
 }

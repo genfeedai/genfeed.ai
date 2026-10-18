@@ -19,6 +19,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import Card from '@ui/card/Card';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { SelectField } from '@ui/primitives/select';
 import { ArrowUpRight, Check, Lock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -116,6 +117,7 @@ export default function OAuthConsentContent() {
     Awaited<ReturnType<OrganizationsService['getMyOrganizations']>>
   >([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
+  const [isSwitchingAllowed, setIsSwitchingAllowed] = useState(false);
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
   const [organizationError, setOrganizationError] = useState<string | null>(
     null,
@@ -237,6 +239,9 @@ export default function OAuthConsentContent() {
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
+  // Switching needs a second organization and a tool set that can use it.
+  const canSwitchOrganizations = !isClaude && organizations.length > 1;
+
   async function submitDecision(approved: boolean): Promise<void> {
     if (
       approved &&
@@ -262,6 +267,10 @@ export default function OAuthConsentContent() {
         `${EnvironmentService.apiEndpoint}/oauth/authorize/decision`,
         {
           body: JSON.stringify({
+            allowOrganizationSwitching:
+              approved && canSwitchOrganizations
+                ? isSwitchingAllowed
+                : undefined,
             approved,
             client_id: searchParams.get('client_id'),
             code_challenge: searchParams.get('code_challenge'),
@@ -450,6 +459,27 @@ export default function OAuthConsentContent() {
                       </option>
                     ))}
                   </SelectField>
+                )}
+
+                {canSwitchOrganizations && (
+                  <Checkbox
+                    isChecked={isSwitchingAllowed}
+                    isDisabled={consentState.isSubmitting}
+                    label={
+                      <span className="space-y-0.5">
+                        <span className="block text-sm font-medium">
+                          {translateOrganization('switching.label')}
+                        </span>
+                        <span className="block text-sm text-muted-foreground">
+                          {translateOrganization('switching.description')}
+                        </span>
+                      </span>
+                    }
+                    name="consent-organization-switching"
+                    onCheckedChange={(checked) =>
+                      setIsSwitchingAllowed(checked === true)
+                    }
+                  />
                 )}
               </div>
 

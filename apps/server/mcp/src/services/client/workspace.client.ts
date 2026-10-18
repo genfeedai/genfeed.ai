@@ -1,4 +1,7 @@
-import type { OrganizationOption } from '@genfeedai/contracts/interfaces';
+import type {
+  OrganizationOption,
+  OrganizationOptionBrand,
+} from '@genfeedai/contracts/interfaces';
 import type { CreditsUsage } from '@mcp/shared/interfaces/post.interface';
 import type { AxiosResponse } from 'axios';
 import type { BaseApiClient } from './base-api-client';
@@ -65,6 +68,48 @@ export class WorkspaceClient {
         return Array.isArray(data) ? (data as OrganizationOption[]) : [];
       },
       this.base.failWith('Failed to list organizations'),
+    );
+  }
+
+  /** Whether the user let this connection move between organizations. */
+  canSwitchOrganizations(): Promise<boolean> {
+    return this.base.request(
+      'checking organization switching',
+      async (http) => {
+        const response = await http.get('/auth/whoami');
+        return response.data?.data?.canSwitchOrganizations === true;
+      },
+      this.base.failWith('Failed to read the connection'),
+    );
+  }
+
+  switchOrganization(organizationId: string): Promise<void> {
+    this.base.logger.debug('Switching organization', { organizationId });
+
+    return this.base.request(
+      'switching organization',
+      async (http) => {
+        await http.post('/auth/switch-organization', { organizationId });
+      },
+      this.base.failWithDetail('Failed to switch organization'),
+    );
+  }
+
+  /** Brands the caller can see in the organization this connection is in. */
+  listBrands(): Promise<OrganizationOptionBrand[]> {
+    return this.base.request(
+      'listing brands',
+      async (http) => {
+        const response = await http.get('/brands');
+        return this.base
+          .unwrapList<JsonApiResource>(response)
+          .map((brand) => ({
+            id: brand.id || String(brand.attributes?.id || ''),
+            label: String(brand.attributes?.label || 'Brand'),
+          }))
+          .filter((brand) => brand.id);
+      },
+      this.base.failWith('Failed to list brands'),
     );
   }
 

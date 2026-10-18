@@ -181,7 +181,11 @@
         "error": "Organizations could not be loaded. Reload this page to try again.",
         "label": "Organization",
         "loading": "Loading organizations…",
-        "placeholder": "Choose an organization"
+        "placeholder": "Choose an organization",
+        "switching": {
+          "description": "Lets this client move between the organizations you belong to. Your role in each one is checked every time.",
+          "label": "Switch between my organizations"
+        }
       },
       "callbackHost": {
         "unknownClient": "the requesting client"

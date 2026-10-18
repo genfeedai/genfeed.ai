@@ -198,6 +198,59 @@ describe('OAuthConsentPage', () => {
     });
   });
 
+  describe('with several organizations', () => {
+    beforeEach(() => {
+      getMyOrganizationsMock.mockResolvedValue([
+        { id: 'org-1', label: 'First workspace', isActive: true },
+        { id: 'org-2', label: 'Second workspace', isActive: false },
+      ]);
+      mockDecisionResponse();
+    });
+
+    async function chooseFirstOrganization() {
+      render(<OAuthConsentPage />);
+      fireEvent.change(await screen.findByLabelText('Organization'), {
+        target: { value: 'org-1' },
+      });
+      return screen.getByRole('checkbox', {
+        name: /Switch between my organizations/,
+      });
+    }
+
+    it('keeps organization switching off unless the user ticks it', async () => {
+      const toggle = await chooseFirstOrganization();
+      expect(toggle).not.toBeChecked();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+      await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+      expect(lastDecisionBody()).toMatchObject({
+        allowOrganizationSwitching: false,
+      });
+    });
+
+    it('sends the switching choice when the user allows it', async () => {
+      const toggle = await chooseFirstOrganization();
+      fireEvent.click(toggle);
+      expect(toggle).toBeChecked();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+      await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+      expect(lastDecisionBody()).toMatchObject({
+        allowOrganizationSwitching: true,
+      });
+    });
+  });
+
+  it('offers no switching with a single organization', async () => {
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');
+  });
+
   it('shows the sole organization and grants it without another step', async () => {
     mockDecisionResponse();
     render(<OAuthConsentPage />);

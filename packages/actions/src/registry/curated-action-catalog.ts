@@ -567,6 +567,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'ui',
   },
   { name: 'suggest_next_steps', surfaces: ['agent'], toolset: 'ui' },
+  { name: 'switch_org', surfaces: ['mcp'], toolset: 'onboarding' },
   {
     name: 'tag_social_conversation',
     surfaces: ['mcp'],

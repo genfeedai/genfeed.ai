@@ -23,6 +23,8 @@ describe('MCP Apps card contract', () => {
       'get_account',
       'get_brands',
       'get_scheduled_release',
+      'list_orgs',
+      'switch_org',
     ]) {
       const tool = tools.find((item) => item.name === name);
       expect(tool, name).toBeDefined();
@@ -332,6 +334,48 @@ describe('MCP Apps card contract', () => {
       brand: { id: 'b1', label: 'Acme', slug: 'acme' },
     });
     expect(one?.cards).toHaveLength(1);
+  });
+
+  it('builds the workspace card from the organizations and the active brands', () => {
+    const data = {
+      activeOrganizationId: 'org-b',
+      brands: [{ id: 'brand-1', label: 'Beta Studio' }],
+      canSwitchOrganizations: true,
+      organizations: [
+        { id: 'org-a', isActive: false, label: 'Acme' },
+        { id: 'org-b', isActive: true, label: 'Beta' },
+      ],
+    };
+    for (const name of ['list_orgs', 'switch_org']) {
+      const view = buildCardView(name, data);
+      expect(view?.layout).toBe('organizations');
+      expect(view?.cards.map((card) => card.title)).toEqual(['Beta Studio']);
+      expect(view?.organizations).toEqual({
+        activeId: 'org-b',
+        canSwitch: true,
+        choices: [
+          { id: 'org-a', isActive: false, label: 'Acme' },
+          { id: 'org-b', isActive: true, label: 'Beta' },
+        ],
+      });
+    }
+  });
+
+  it('offers no switching with a single organization or without consent', () => {
+    expect(
+      buildCardView('list_orgs', {
+        canSwitchOrganizations: true,
+        organizations: [{ id: 'org-a', isActive: true, label: 'Acme' }],
+      })?.organizations?.canSwitch,
+    ).toBe(false);
+    expect(
+      buildCardView('list_orgs', {
+        organizations: [
+          { id: 'org-a', isActive: true, label: 'Acme' },
+          { id: 'org-b', isActive: false, label: 'Beta' },
+        ],
+      })?.organizations?.canSwitch,
+    ).toBe(false);
   });
 
   it('summarizes a scheduled release with its channels and state', () => {

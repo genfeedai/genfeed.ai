@@ -2229,6 +2229,9 @@ model McpOAuthAuthCode {
   organizationId      String
   userEmail           String?
   userName            String?
+  // The user ticked "switch between my organizations" at consent, so the
+  // session key may move among the user's live memberships.
+  canSwitchOrganizations Boolean @default(false)
   expiresAt           DateTime
   usedAt              DateTime?
   createdAt           DateTime  @default(now())

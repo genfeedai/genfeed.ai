@@ -7,6 +7,7 @@ import type {
   IPublishingProviderReadiness,
   IReleaseGroup,
   OrganizationOption,
+  OrganizationOptionBrand,
 } from '@genfeedai/contracts/interfaces';
 import type {
   ArticleDraftInput,
@@ -511,6 +512,18 @@ export class ClientService {
 
   listOrganizations(): Promise<OrganizationOption[]> {
     return this.workspace.listOrganizations();
+  }
+
+  canSwitchOrganizations(): Promise<boolean> {
+    return this.workspace.canSwitchOrganizations();
+  }
+
+  switchOrganization(organizationId: string): Promise<void> {
+    return this.workspace.switchOrganization(organizationId);
+  }
+
+  listBrands(): Promise<OrganizationOptionBrand[]> {
+    return this.workspace.listBrands();
   }
 
   listPersonas(

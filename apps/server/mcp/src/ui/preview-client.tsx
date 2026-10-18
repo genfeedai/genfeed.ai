@@ -5,12 +5,14 @@ import type {
   McpCard,
   McpCardMedia,
   McpCardView,
+  McpOrganizationSwitcher,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 import type {
   CardPreviewProps,
   DescriptionProps,
   ImagePreview,
   MediaPreviewProps,
+  OrganizationSwitcherProps,
   PendingResponse,
   PreviewBridge,
   PreviewProps,
@@ -35,6 +37,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { Progress } from '@ui/primitives/progress';
+import { SelectField } from '@ui/primitives/select';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { NextIntlClientProvider } from 'next-intl';
@@ -147,19 +150,44 @@ function cards(value: unknown): McpCard[] {
         .filter((item): item is McpCard => Boolean(item))
     : [];
 }
+function readOrganizations(
+  value: unknown,
+): McpOrganizationSwitcher | undefined {
+  const switcher = record(value);
+  if (!Array.isArray(switcher.choices)) return undefined;
+  return {
+    activeId: text(switcher.activeId),
+    canSwitch: switcher.canSwitch === true,
+    choices: switcher.choices.slice(0, 50).flatMap((entry) => {
+      const choice = record(entry);
+      return text(choice.id)
+        ? [
+            {
+              id: text(choice.id),
+              isActive: choice.isActive === true,
+              label: text(choice.label) || 'Organization',
+            },
+          ]
+        : [];
+    }),
+  };
+}
 function readView(result: unknown): McpCardView | undefined {
   const data = record(result);
   const view = record(record(data.structuredContent).genfeedCards);
   if (data.isError || !Array.isArray(view.cards)) return undefined;
   const calendar = record(view.calendar);
   return {
+    organizations: readOrganizations(view.organizations),
     cards: cards(view.cards),
     title: text(view.title) || 'Genfeed content',
     total:
       typeof view.total === 'number' && Number.isFinite(view.total)
         ? Math.max(0, view.total)
         : view.cards.length,
-    layout: ['posts', 'media', 'calendar'].includes(text(view.layout))
+    layout: ['posts', 'media', 'calendar', 'organizations'].includes(
+      text(view.layout),
+    )
       ? (view.layout as McpCardView['layout'])
       : 'cards',
     calendar: {
@@ -720,8 +748,61 @@ function localCalendarDays(days: McpCalendarDay[]) {
     posts: (posts.get(date) || []).sort((a, b) => a.date.localeCompare(b.date)),
   }));
 }
+function OrganizationSwitcher({
+  error,
+  isSwitching,
+  onSwitch,
+  switcher,
+}: OrganizationSwitcherProps) {
+  const active = switcher.choices.find(
+    (choice) => choice.id === switcher.activeId,
+  );
+  return (
+    <div className="mb-3 space-y-1.5">
+      {switcher.canSwitch ? (
+        <SelectField
+          isDisabled={isSwitching}
+          label="Organization"
+          name="mcp-organization"
+          value={switcher.activeId || undefined}
+          onChange={(event) => onSwitch(event.target.value)}
+        >
+          {switcher.choices.map((choice) => (
+            <option key={choice.id} value={choice.id}>
+              {choice.label}
+            </option>
+          ))}
+        </SelectField>
+      ) : (
+        <>
+          <Text size="xs" color="muted">
+            Organization
+          </Text>
+          <Text as="p" size="sm">
+            {active?.label || 'Not available'}
+          </Text>
+        </>
+      )}
+      {switcher.choices.length > 1 && !switcher.canSwitch && (
+        <Text size="xs" color="muted">
+          Switching is off for this connection. Reconnect and turn on
+          &ldquo;Switch between my organizations&rdquo; to move between them.
+        </Text>
+      )}
+      {error && (
+        <Text as="p" role="alert" size="xs" color="destructive">
+          {error}
+        </Text>
+      )}
+    </div>
+  );
+}
 function Preview({ result, notice, bridge }: PreviewProps) {
-  const view = useMemo(() => readView(result), [result]);
+  const [switched, setSwitched] = useState<McpCardView | undefined>();
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState('');
+  const resultView = useMemo(() => readView(result), [result]);
+  const view = switched ?? resultView;
   const [image, setImage] = useState<ImagePreview | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const closeButton = useRef<HTMLButtonElement | null>(null);
@@ -732,6 +813,8 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         .request('ui/request-display-mode', { mode: 'inline' })
         .catch(() => undefined);
     setImage(null);
+    setSwitched(undefined);
+    setSwitchError('');
     bridge.resize();
   }, [result, bridge]);
   const days = localCalendarDays(view?.calendar?.days || []);
@@ -747,6 +830,33 @@ function Preview({ result, notice, bridge }: PreviewProps) {
             .filter(Boolean)
             .join('\n')
         : '';
+  function switchOrganization(organizationId: string) {
+    if (!organizationId || organizationId === view?.organizations?.activeId)
+      return;
+    setIsSwitching(true);
+    setSwitchError('');
+    bridge
+      .request('tools/call', {
+        name: 'switch_org',
+        arguments: { organization: organizationId },
+      })
+      .then((next) => {
+        const fresh = readView(next);
+        if (fresh?.organizations) setSwitched(fresh);
+        else setSwitchError('Could not switch organization.');
+      })
+      .catch((error: unknown) =>
+        setSwitchError(
+          error instanceof Error && error.message
+            ? error.message
+            : 'Could not switch organization.',
+        ),
+      )
+      .finally(() => {
+        setIsSwitching(false);
+        bridge.resize();
+      });
+  }
   function openImage(src: string, title: string, trigger: HTMLElement) {
     returnFocus.current = trigger;
     setImage({ src, title, trigger });
@@ -794,6 +904,14 @@ function Preview({ result, notice, bridge }: PreviewProps) {
             </Badge>
           </div>
         )}
+        {view?.organizations && (
+          <OrganizationSwitcher
+            error={switchError}
+            isSwitching={isSwitching}
+            onSwitch={switchOrganization}
+            switcher={view.organizations}
+          />
+        )}
         <Text
           as="p"
           role="status"
@@ -811,7 +929,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                 ? ''
                 : view.layout === 'calendar'
                   ? 'No days in this calendar window.'
-                  : 'No content found.')}
+                  : view.layout === 'organizations'
+                    ? 'No brands in this organization yet.'
+                    : 'No content found.')}
         </Text>
         <div
           id="cards"

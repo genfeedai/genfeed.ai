@@ -57,6 +57,7 @@ export class AuthWhoamiController {
 
     return {
       data: {
+        canSwitchOrganizations: user?.canSwitchOrganizations === true,
         isApiKey,
         mcpAccessMode: user?.mcpAccessMode,
         organization: {
