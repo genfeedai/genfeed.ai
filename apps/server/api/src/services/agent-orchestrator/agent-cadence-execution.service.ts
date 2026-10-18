@@ -140,46 +140,18 @@ export class AgentCadenceExecutionService {
               return { creditsUsed: result.creditsUsed };
             const caption = data.content;
             if (media) {
-              const asset = await this.media.generate(
-                media,
-                buildCadenceMediaPrompt(input.opportunity.topic, caption),
-                {
-                  organizationId: state.organizationId,
-                  runId: state.executionId,
-                  sourceActionId: `${input.opportunity.id}:${media.kind}`,
-                  strategyId,
-                  userId: state.userId,
-                },
-              );
-              if (!asset.isGenerated) {
-                await this.adoptDraft(
-                  state,
-                  strategyId,
-                  strategy.brandId ?? undefined,
-                  input,
-                  data,
-                  { rejectionReason: asset.reason },
-                );
-                return {
-                  creditsUsed: opportunitySpend,
-                  heldReason: `${asset.reason} Its caption draft was rejected; no media draft was created.`,
-                };
-              }
-              charged += media.credits;
-              opportunitySpend += media.credits;
-              const draft = await this.adoptDraft(
+              const outcome = await this.generateMediaDraft(
                 state,
                 strategyId,
                 strategy.brandId ?? undefined,
                 input,
                 data,
-                { asset, kind: media.kind },
+                media,
+                opportunitySpend,
               );
-              generatedCount++;
-              return {
-                draft: draft as PostDocument,
-                creditsUsed: opportunitySpend,
-              };
+              charged += outcome.mediaCredits;
+              if (outcome.result.draft) generatedCount++;
+              return outcome.result;
             }
             const draft = await this.adoptDraft(
               state,
@@ -300,6 +272,63 @@ export class AgentCadenceExecutionService {
         'The receipt-bound cadence draft is no longer available in this scope.',
       );
     return draft;
+  }
+
+  /**
+   * Dispatches the quoted media for a generated caption and adopts the media
+   * draft. A failed dispatch rejects the caption draft and holds the
+   * opportunity; media credits are charged only for a generated asset.
+   */
+  private async generateMediaDraft(
+    state: PreparedAgentTurnState,
+    strategyId: string,
+    brandId: string | undefined,
+    input: Parameters<CadenceDraftGenerator>[0],
+    data: Record<string, unknown>,
+    media: Extract<CadenceMediaQuote, { isAvailable: true }>,
+    captionSpend: number,
+  ): Promise<{
+    mediaCredits: number;
+    result: Awaited<ReturnType<CadenceDraftGenerator>>;
+  }> {
+    const asset = await this.media.generate(
+      media,
+      buildCadenceMediaPrompt(input.opportunity.topic, String(data.content)),
+      {
+        organizationId: state.organizationId,
+        runId: state.executionId,
+        sourceActionId: `${input.opportunity.id}:${media.kind}`,
+        strategyId,
+        userId: state.userId,
+      },
+    );
+    if (!asset.isGenerated) {
+      await this.adoptDraft(state, strategyId, brandId, input, data, {
+        rejectionReason: asset.reason,
+      });
+      return {
+        mediaCredits: 0,
+        result: {
+          creditsUsed: captionSpend,
+          heldReason: `${asset.reason} Its caption draft was rejected; no media draft was created.`,
+        },
+      };
+    }
+    const draft = await this.adoptDraft(
+      state,
+      strategyId,
+      brandId,
+      input,
+      data,
+      {
+        asset,
+        kind: media.kind,
+      },
+    );
+    return {
+      mediaCredits: media.credits,
+      result: { draft, creditsUsed: captionSpend + media.credits },
+    };
   }
 
   /** Null for text; otherwise the authoritative quote media dispatch will be held to. */

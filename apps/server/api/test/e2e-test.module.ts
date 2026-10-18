@@ -46,7 +46,6 @@ import { TaskRoutingService } from '@api/collections/tasks/services/task-routing
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -270,10 +269,6 @@ export const TASK_E2E_MOCK_PROVIDERS = [
 
 export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
   {
-    provide: AutonomousProducerInstallService,
-    useValue: { installOnOptIn: () => Promise.resolve({}) },
-  },
-  {
     provide: CacheInvalidationService,
     useValue: {
       invalidate: () => Promise.resolve(),
@@ -372,6 +367,7 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
       ensureDefaultBundle: () =>
         Promise.resolve({ isConfigured: false, items: [] }),
       getStatus: () => Promise.resolve({ isConfigured: false, items: [] }),
+      installContentEngineOnOptIn: () => Promise.resolve(),
     },
   },
   {

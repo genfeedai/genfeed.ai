@@ -98,9 +98,9 @@ describe('BrandsService', () => {
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
   let defaultRecurringContentService: {
+    installContentEngineOnOptIn: ReturnType<typeof vi.fn>;
     updateScheduleFromAgentConfig: ReturnType<typeof vi.fn>;
   };
-  let producerInstall: { installOnOptIn: ReturnType<typeof vi.fn> };
   let skillsService: {
     assertAccessibleSkillSlugs: ReturnType<typeof vi.fn>;
   };
@@ -154,9 +154,9 @@ describe('BrandsService', () => {
       warn: vi.fn(),
     } as unknown as LoggerService;
     defaultRecurringContentService = {
+      installContentEngineOnOptIn: vi.fn().mockResolvedValue(undefined),
       updateScheduleFromAgentConfig: vi.fn().mockResolvedValue(undefined),
     };
-    producerInstall = { installOnOptIn: vi.fn().mockResolvedValue({}) };
     skillsService = {
       assertAccessibleSkillSlugs: vi.fn().mockResolvedValue(undefined),
     };
@@ -226,7 +226,6 @@ describe('BrandsService', () => {
         voiceDefault: vi.fn(async (ref) => ref),
       } as never,
       brandAccessFixture(prisma as never),
-      producerInstall as never,
     );
   });
 
@@ -2321,7 +2320,7 @@ describe('BrandsService', () => {
 
     const principal = { organizationId: orgId, userId: 'user-1' };
 
-    it('installs the content engine when an authenticated caller opts the brand in', async () => {
+    it('hands the before/after config and caller to the content-engine opt-in install', async () => {
       withStoredConfig({ strategy: { contentTypes: ['post'] } });
 
       await service.updateAgentConfig(
@@ -2331,31 +2330,17 @@ describe('BrandsService', () => {
         principal,
       );
 
-      expect(producerInstall.installOnOptIn).toHaveBeenCalledWith({
+      expect(
+        defaultRecurringContentService.installContentEngineOnOptIn,
+      ).toHaveBeenCalledWith({
         organizationId: orgId,
+        previousAgentConfig: { strategy: { contentTypes: ['post'] } },
         principal,
-        producer: 'contentEngine',
+        updatedAgentConfig: {
+          autoPublish: { enabled: true },
+          strategy: { contentTypes: ['post'] },
+        },
       });
-    });
-
-    it('never installs on a system write or a brand that was already opted in', async () => {
-      withStoredConfig({ strategy: { contentTypes: ['post'] } });
-      await service.updateAgentConfig(brandId, orgId, {
-        autoPublish: { enabled: true },
-      } as never);
-
-      withStoredConfig({
-        autoPublish: { enabled: true },
-        strategy: { contentTypes: ['post'] },
-      });
-      await service.updateAgentConfig(
-        brandId,
-        orgId,
-        { persona: 'Rewritten' },
-        principal,
-      );
-
-      expect(producerInstall.installOnOptIn).not.toHaveBeenCalled();
     });
 
     it('validates enabled skill slugs at the persistence boundary', async () => {

@@ -56,8 +56,6 @@ import {
 } from '@api/collections/shared/slug-allocation.util';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import type { GenerateTurboIdeasDto } from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
-import { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
-import { isContentEngineOptedIn } from '@api/collections/workflows/autonomous-producers/content-engine-opt-in.util';
 import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import {
   CACHE_PATTERNS,
@@ -130,7 +128,6 @@ export class BrandsService extends BaseService<
     private readonly brandLifecycleService: BrandLifecycleService,
     private readonly heygenIdentityService: HeyGenIdentityService,
     public readonly brandAccessService: BrandAccessService,
-    private readonly autonomousProducerInstallService: AutonomousProducerInstallService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -750,20 +747,12 @@ export class BrandsService extends BaseService<
       );
     }
 
-    // Turning the content engine on is its explicit opt-in: install its
-    // workflow so it runs without a manual catalog step. Only an
-    // authenticated caller opts in; system writes never install.
-    if (
-      principal &&
-      !isContentEngineOptedIn(currentConfig) &&
-      isContentEngineOptedIn(updatedConfig)
-    ) {
-      await this.autonomousProducerInstallService.installOnOptIn({
-        organizationId: orgId,
-        principal,
-        producer: 'contentEngine',
-      });
-    }
+    await this.defaultRecurringContentService.installContentEngineOnOptIn({
+      organizationId: orgId,
+      previousAgentConfig: currentConfig,
+      principal,
+      updatedAgentConfig: updatedConfig,
+    });
 
     return updatedBrand;
   }

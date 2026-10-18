@@ -16,6 +16,8 @@ import {
   strategyOrganizationId as getStrategyOrganizationId,
   normalizeOpportunitySourceType,
   resolveOpportunityPlatform,
+  resolveReviewTurboRunItemFormat,
+  scoreImagePublishGate,
   scoreTextPublishGate,
   shouldAutoPublish,
   strategySkillSlugs,
@@ -560,7 +562,7 @@ export class AgentStrategyAutopilotExecutionService {
     const reviewHandoff = await this.createPublishingInboxHandoff({
       draftContent,
       draftId,
-      format: this.resolveReviewTurboRunItemFormat(platform),
+      format: resolveReviewTurboRunItemFormat(platform),
       gate,
       opportunity,
       organizationId,
@@ -623,7 +625,7 @@ export class AgentStrategyAutopilotExecutionService {
           ? await this.createPublishingInboxHandoff({
               draftContent,
               draftId,
-              format: this.resolveReviewTurboRunItemFormat(platform),
+              format: resolveReviewTurboRunItemFormat(platform),
               gate,
               opportunity,
               organizationId,
@@ -684,45 +686,7 @@ export class AgentStrategyAutopilotExecutionService {
         organizationId,
       )) as ImageEvaluationResult;
 
-      const technicalOverall = Number(
-        evaluation?.scores?.technical?.overall ?? evaluation?.overallScore ?? 0,
-      );
-      const brandOverall = Number(
-        evaluation?.scores?.brand?.overall ?? evaluation?.overallScore ?? 0,
-      );
-      const engagementOverall = Number(
-        evaluation?.scores?.engagement?.overall ??
-          evaluation?.overallScore ??
-          0,
-      );
-      const overallScore = Number(evaluation?.overallScore ?? 0);
-
-      return {
-        decision:
-          overallScore >= (strategy.publishPolicy?.minImageScore ?? 75)
-            ? 'approved'
-            : 'hold',
-        overallScore,
-        reasons:
-          overallScore >= (strategy.publishPolicy?.minImageScore ?? 75)
-            ? ['Image cleared the autopilot quality gate.']
-            : ['Image quality score did not meet the publish threshold.'],
-        revisionInstructions:
-          overallScore >= (strategy.publishPolicy?.minImageScore ?? 75)
-            ? []
-            : [
-                'Improve composition and scroll-stop strength.',
-                'Increase brand fit and reduce visible generation artifacts.',
-              ],
-        scoreBreakdown: {
-          artifactRisk: technicalOverall,
-          brandFit: brandOverall,
-          composition: technicalOverall,
-          lightingContrast: technicalOverall,
-          overlayLegibility: technicalOverall,
-          scrollStopStrength: engagementOverall,
-        },
-      };
+      return scoreImagePublishGate(strategy, evaluation);
     }
 
     const analysis =
@@ -831,22 +795,6 @@ export class AgentStrategyAutopilotExecutionService {
       postId: reviewItem?.postId,
       reviewItemId: reviewItem?.id,
     };
-  }
-
-  private resolveReviewTurboRunItemFormat(
-    platform?: string,
-  ): ReviewTurboRunItemFormat {
-    const normalizedPlatform = platform?.toLowerCase();
-
-    if (
-      normalizedPlatform === 'beehiiv' ||
-      normalizedPlatform === 'substack' ||
-      normalizedPlatform === 'email'
-    ) {
-      return 'newsletter';
-    }
-
-    return 'post';
   }
 
   private async createPublishingInboxActivity(input: {

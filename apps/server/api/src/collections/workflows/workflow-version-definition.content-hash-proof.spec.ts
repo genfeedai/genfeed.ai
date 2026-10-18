@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { buildVisualProjectWorkflowDefinition } from '@api/collections/visual-projects/services/visual-project-workflow-definition';
+import type { AutonomousProducerInstallService } from '@api/collections/workflows/autonomous-producers/autonomous-producer-install.service';
 import { SystemWorkflowDefinitionRegistrarService } from '@api/collections/workflows/services/system-workflow-definition-registrar.service';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -509,6 +510,7 @@ describe('workflow contentHash byte-identity with the pre-#5912 serializer', () 
         {} as PrismaService,
         { debug: vi.fn(), log: vi.fn() } as unknown as LoggerService,
         {} as ModuleRef,
+        {} as AutonomousProducerInstallService,
       );
       const tx = {
         workflow: {
@@ -562,6 +564,7 @@ describe('workflow contentHash byte-identity with the pre-#5912 serializer', () 
       {} as PrismaService,
       { debug: vi.fn(), log: vi.fn() } as unknown as LoggerService,
       {} as ModuleRef,
+      {} as AutonomousProducerInstallService,
     );
     const tx = {
       workflow: {
