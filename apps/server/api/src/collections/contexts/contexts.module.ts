@@ -11,7 +11,6 @@ import { KnowledgeSpacesController } from '@api/collections/contexts/controllers
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
-import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
@@ -45,7 +44,6 @@ import { Module } from '@nestjs/common';
     KnowledgeCaptureService,
     KnowledgeRefreshService,
     KnowledgeSelectionService,
-    KnowledgeLegacyBackfillService,
     KnowledgeTranscriptIngestService,
   ],
   imports: [
@@ -68,7 +66,6 @@ import { Module } from '@nestjs/common';
     KnowledgeCaptureService,
     KnowledgeRefreshService,
     KnowledgeSelectionService,
-    KnowledgeLegacyBackfillService,
     KnowledgeTranscriptIngestService,
   ],
 })
