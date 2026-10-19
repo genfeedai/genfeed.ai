@@ -87,7 +87,6 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 
 describe('AgentChatInput', () => {
   beforeEach(() => {
@@ -565,62 +564,6 @@ describe('AgentChatInput', () => {
 
     // Tray shows the typed reference chip label (no separate "N reference" count).
     expect(screen.getByText('^post:post-1')).toBeInTheDocument();
-  });
-
-  it('migrates legacy content mentions into visual reference tiles (deduped with workspace selection)', async () => {
-    const draftScopeKey = 'acme:thread-overlap:1';
-    writeConversationComposerDocument(
-      draftScopeKey,
-      {
-        content: [
-          {
-            content: [
-              { text: 'Review ', type: 'text' },
-              {
-                attrs: {
-                  contentId: 'post-1',
-                  contentTitle: 'Launch post',
-                  contentType: 'post',
-                },
-                type: 'contentMention',
-              },
-            ],
-            type: 'paragraph',
-          },
-        ],
-        type: 'doc',
-      },
-      'Review Launch post',
-    );
-
-    render(
-      <ConversationComposerShellProvider
-        artifactReferences={[
-          {
-            brandId: 'brand-1',
-            kind: 'post',
-            organizationId: 'org-1',
-            recordId: 'post-1',
-            serializer: 'post',
-          },
-        ]}
-        contextLabel="Brand Workspace overview"
-        draftScopeKey={draftScopeKey}
-        portalTarget={null}
-        shellState="canvas"
-      >
-        <AgentChatInput onSend={vi.fn()} />
-      </ConversationComposerShellProvider>,
-    );
-
-    const tray = await screen.findByRole('group', {
-      name: 'Composer attachments and references',
-    });
-    // Legacy ^ tokens become visual tiles; same id as workspace selection → one entry.
-    expect(
-      within(tray).getByLabelText('Referenced content: Launch post: Skipped'),
-    ).toBeInTheDocument();
-    expect(within(tray).queryByText('^Launch post')).not.toBeInTheDocument();
   });
 
   it('marks a stale cross-brand post as skipped and accepts the remaining prompt', async () => {

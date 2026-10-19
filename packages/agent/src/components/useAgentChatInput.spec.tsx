@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/agent/components/useAgentChatInput';
 import {
   attachContentToConversationDraft,
+  writeConversationComposerContentReferences,
   writeConversationComposerDocument,
   writeDismissedSurfaceReferenceKeys,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
@@ -349,24 +350,7 @@ describe('useAgentChatInput references', () => {
         content: [
           {
             content: [
-              { text: 'Compare ', type: 'text' },
-              {
-                attrs: {
-                  contentId: 'post-1',
-                  contentTitle: 'Launch post',
-                  contentType: 'post',
-                },
-                type: 'contentMention',
-              },
-              { text: ' with ', type: 'text' },
-              {
-                attrs: {
-                  contentId: 'post-2',
-                  contentTitle: 'Campaign brief',
-                  contentType: 'post',
-                },
-                type: 'contentMention',
-              },
+              { text: 'Compare Launch post with Campaign brief', type: 'text' },
             ],
             type: 'paragraph',
           },
@@ -375,6 +359,10 @@ describe('useAgentChatInput references', () => {
       },
       'Compare Launch post with Campaign brief',
     );
+    writeConversationComposerContentReferences(draftScopeKey, [
+      { contentTitle: 'Launch post', contentType: 'post', id: 'post-1' },
+      { contentTitle: 'Campaign brief', contentType: 'post', id: 'post-2' },
+    ]);
   });
 
   it('deduplicates displayed stable IDs without changing workspace selections', async () => {
@@ -387,8 +375,7 @@ describe('useAgentChatInput references', () => {
       expect(result.current.editor).not.toBeNull();
     });
 
-    // Legacy `contentMention` nodes migrate into visual reference tiles, so a
-    // content entry carries its type/title instead of a `^` caret token.
+    // A content entry carries its type/title instead of a `^` caret token.
     expect(result.current.references).toEqual([
       {
         contentType: 'post',
@@ -413,7 +400,7 @@ describe('useAgentChatInput references', () => {
       await result.current.handleSend();
     });
 
-    // Legacy posts have no known canonical brand; only verified workspace
+    // These posts carry no known canonical brand; only verified workspace
     // references can be sent until the posts are picked again.
     expect(onSend).toHaveBeenCalledWith(
       expect.any(String),

@@ -282,28 +282,25 @@ describe('resolveDesktopCliRuntimeBlocker', () => {
 describe('resolveThreadRuntimeOption', () => {
   const catalog = buildAgentRuntimeCatalog({ desktopTools: DESKTOP_TOOLS });
 
-  it('prefers runtimeKey, then requestedModel, then Auto', () => {
+  it('resolves by runtimeKey, then falls back to Auto', () => {
     expect(
       resolveThreadRuntimeOption({
         catalog,
-        thread: { requestedModel: 'ignored', runtimeKey: 'hosted/openrouter' },
+        thread: { runtimeKey: 'hosted/openrouter' },
       }).key,
     ).toBe('hosted/openrouter');
 
     expect(
       resolveThreadRuntimeOption({
         catalog,
-        thread: {
-          requestedModel: 'meta/meta-llama-3.1-405b-instruct',
-          runtimeKey: 'missing',
-        },
+        thread: { runtimeKey: 'missing' },
       }).key,
-    ).toBe('hosted/replicate');
+    ).toBe('');
 
     expect(
       resolveThreadRuntimeOption({
         catalog,
-        thread: { requestedModel: '', runtimeKey: '' },
+        thread: { runtimeKey: '' },
       }).key,
     ).toBe('');
   });

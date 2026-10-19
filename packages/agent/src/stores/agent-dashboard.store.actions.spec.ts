@@ -129,22 +129,6 @@ describe('agent-dashboard.store actions', () => {
     expect(snapshot.isAgentModified).toBe(true);
   });
 
-  it('getLocalSnapshot falls back to the legacy storage key', () => {
-    localStorage.setItem(
-      'genfeed-agent-dashboard-blocks',
-      JSON.stringify({
-        blocks: [makeMetricCard('legacy')],
-        isAgentModified: false,
-      }),
-    );
-
-    const snapshot = useAgentDashboardStore.getState().getLocalSnapshot();
-
-    expect(snapshot.blocks[0]).toEqual(
-      expect.objectContaining({ id: 'legacy' }),
-    );
-  });
-
   it('getLocalSnapshot survives corrupted storage', () => {
     localStorage.setItem(AGENT_DASHBOARD_STORAGE_KEY, '{not json');
 
