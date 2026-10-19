@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { MediaPromptBrandEnhancementException } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
+import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
@@ -282,6 +283,26 @@ describe('MediaPromptEnhancementService', () => {
         code: MEDIA_PROMPT_BRAND_ENHANCEMENT_FAILED_ERROR_CODE,
       });
       expect(promptEnhancement.enhance).not.toHaveBeenCalled();
+    });
+
+    it('logs which integrity check failed without any brand content', async () => {
+      const { service, snapshots, logger } = setup();
+      snapshots.preview.mockRejectedValue(
+        new BrandIdentityIntegrityError(
+          'rules_schema_invalid',
+          'generationRules.0',
+        ),
+      );
+      const error = await stopOf(service.enhance(input));
+      expect(error.stage).toBe('brand_identity');
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Media prompt brand enhancement failed; generation stopped',
+        expect.objectContaining({
+          integrityDetail: 'generationRules.0',
+          integrityReason: 'rules_schema_invalid',
+          stage: 'brand_identity',
+        }),
+      );
     });
 
     it('stops when no brand identity can be pinned and runs no enhancement work', async () => {
