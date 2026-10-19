@@ -13,6 +13,16 @@ interface ArticleFeed {
   createdAt?: Date;
 }
 
+/** A feed carries the newest items only; readers never page through RSS. */
+const RSS_ITEM_LIMIT = 50;
+
+/** Newest published first, `id` keeps the cut stable across ties. */
+const RSS_FEED_ORDER = [
+  { publishedAt: -1 },
+  { createdAt: -1 },
+  { id: -1 },
+] as const;
+
 @Injectable()
 export class RssService {
   private readonly apiUrl: string;
@@ -48,9 +58,9 @@ export class RssService {
           scope: ArticleScope.PUBLIC,
           ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
-        orderBy: { createdAt: -1, publishedAt: -1 },
+        orderBy: RSS_FEED_ORDER,
       },
-      { pagination: false },
+      { limit: RSS_ITEM_LIMIT, pagination: false },
     );
     const articles = result.docs as ArticleFeed[];
 
@@ -92,9 +102,9 @@ export class RssService {
           ...(await this.articlesService.publicArticleScope.buildWhere()),
           userId: userId,
         },
-        orderBy: { createdAt: -1, publishedAt: -1 },
+        orderBy: RSS_FEED_ORDER,
       },
-      { pagination: false },
+      { limit: RSS_ITEM_LIMIT, pagination: false },
     );
     const articles = result.docs as ArticleFeed[];
 
@@ -136,9 +146,9 @@ export class RssService {
           scope: ArticleScope.PUBLIC,
           ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
-        orderBy: { createdAt: -1, publishedAt: -1 },
+        orderBy: RSS_FEED_ORDER,
       },
-      { pagination: false },
+      { limit: RSS_ITEM_LIMIT, pagination: false },
     );
     const articles = result.docs as ArticleFeed[];
 
@@ -180,9 +190,9 @@ export class RssService {
           scope: ArticleScope.PUBLIC,
           ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
-        orderBy: { createdAt: -1, publishedAt: -1 },
+        orderBy: RSS_FEED_ORDER,
       },
-      { pagination: false },
+      { limit: RSS_ITEM_LIMIT, pagination: false },
     );
     const articles = result.docs as ArticleFeed[];
 

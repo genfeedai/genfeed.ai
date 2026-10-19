@@ -10,7 +10,6 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Image from 'next/image';
 
 const TWITTER_CHAR_LIMIT = 280;
@@ -82,6 +81,7 @@ function PostPreviewMedia({ ingredient }: { ingredient: IIngredient }) {
 function PostPreviewItem({
   content,
   media = [],
+  status,
   index,
   isLast,
 }: PostPreviewItemProps) {
@@ -100,16 +100,10 @@ function PostPreviewItem({
 
       <div className="flex-1">
         <Card bodyClassName="p-4">
-          {content ? (
-            <LazyRichTextEditor
-              value={content}
-              onChange={() => {}}
-              readOnly={true}
-              showToolbar={false}
-              toolbarMode="hidden"
-              minHeight={{ desktop: 50, mobile: 50 }}
-              className="pointer-events-none"
-            />
+          {textContent ? (
+            <p className="whitespace-pre-wrap text-base text-foreground">
+              {textContent}
+            </p>
           ) : (
             <p className="text-sm text-foreground/40 italic">Empty post</p>
           )}
@@ -117,6 +111,7 @@ function PostPreviewItem({
             <PostPreviewMedia key={ingredient.id} ingredient={ingredient} />
           ))}
           <div className="mt-2 flex items-center justify-end gap-2">
+            {status}
             <span
               className={`text-xs tabular-nums ${isOverLimit ? 'text-error font-medium' : 'text-foreground/50'}`}
             >
@@ -162,6 +157,7 @@ export default function ThreadPreviewPanel({
             id={post.id || `post-${index}`}
             content={post.content}
             media={post.media}
+            status={post.status}
             index={index}
             isLast={index === allPosts.length - 1}
           />

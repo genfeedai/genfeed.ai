@@ -8,9 +8,9 @@ import type { Brand } from '@models/organization/brand.model';
 import type { Link as LinkModel } from '@models/social/link.model';
 import NotFoundPage from '@pages/not-found/not-found-page';
 import ProfileArticles from '@web-components/profile/ProfileArticles';
+import ProfileEmptyState from '@web-components/profile/ProfileEmptyState';
 import ProfileFooter from '@web-components/profile/ProfileFooter';
 import ProfileImages from '@web-components/profile/ProfileImages';
-import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
 import '@styles/masonry.css';
@@ -39,6 +39,18 @@ function ProfileContent({
   if (!brand) {
     return <NotFoundPage homeHref="/" homeLabel="Go to Home" />;
   }
+
+  const hasContent =
+    (links?.length ?? 0) > 0 ||
+    videos.length > 0 ||
+    images.length > 0 ||
+    articles.length > 0 ||
+    Boolean(
+      brand.youtubeUrl ||
+        brand.tiktokUrl ||
+        brand.instagramUrl ||
+        brand.twitterUrl,
+    );
 
   return (
     <div className="max-w-md mx-auto w-full space-y-6">
@@ -118,13 +130,17 @@ function ProfileContent({
         </div>
       )}
 
-      <ProfileVideos videos={videos} />
-      <ProfileImages images={images} />
-      <ProfileArticles articles={articles} />
+      {hasContent ? (
+        <>
+          <ProfileVideos videos={videos} />
+          <ProfileImages images={images} />
+          <ProfileArticles articles={articles} />
+        </>
+      ) : (
+        <ProfileEmptyState handle={handle} />
+      )}
 
-      <ProfileSignupCta handle={handle} referralCode={referralCode} />
-
-      <ProfileFooter />
+      <ProfileFooter handle={handle} referralCode={referralCode} />
     </div>
   );
 }

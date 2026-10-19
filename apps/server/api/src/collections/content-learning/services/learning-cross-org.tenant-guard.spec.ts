@@ -143,18 +143,24 @@ describe('content-learning cross-organization paths (CLOUD tenant guard)', () =>
       guard('ContentLearningAccount', 'findMany', args);
       return [{ id: 'acct-1' }];
     });
+    const count = vi.fn(async (args: unknown) => {
+      guard('ContentLearningAccount', 'count', args);
+      return 1;
+    });
     const controller = new ContentLearningAdminController(
       {} as never,
       {} as never,
       {} as never,
       {} as never,
-      { contentLearningAccount: { findMany } } as unknown as PrismaService,
+      {
+        contentLearningAccount: { count, findMany },
+      } as unknown as PrismaService,
     );
 
     await expect(
       runWithTenantContext({ organizationId: 'org-admin' }, () =>
         controller.accounts({} as never, { limit: 20, page: 1 } as never),
       ),
-    ).resolves.toMatchObject({ docs: [{ id: 'acct-1' }] });
+    ).resolves.toMatchObject({ docs: [{ id: 'acct-1' }], totalDocs: 1 });
   });
 });

@@ -12,6 +12,8 @@ export interface ExternalVoiceFindAllOptions {
   providers?: VoiceProvider[];
   search?: string;
   isActive?: boolean;
+  /** Admin view: list deactivated entries too. Ignored when `isActive` is set. */
+  includeInactive?: boolean;
 }
 
 export interface ExternalVoiceFindRangeOptions
@@ -97,7 +99,13 @@ export class ExternalVoiceCatalogService {
   private buildWhere(
     options: ExternalVoiceFindAllOptions,
   ): Prisma.ExternalVoiceWhereInput {
-    const { provider, providers, search, isActive = true } = options;
+    const {
+      provider,
+      providers,
+      search,
+      includeInactive = false,
+      isActive = includeInactive ? undefined : true,
+    } = options;
     const where: Prisma.ExternalVoiceWhereInput = {};
 
     if (isActive !== undefined) {

@@ -118,7 +118,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@services/content/release-groups.service', () => ({
   ReleaseGroupsService: {
     getInstance: () => ({
-      findAll: () =>
+      findAllPages: () =>
         mocks.upcomingReleases === null
           ? new Promise(() => {})
           : Promise.resolve(mocks.upcomingReleases),

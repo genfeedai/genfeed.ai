@@ -348,8 +348,6 @@ describe('LightingsList', () => {
       await registerRefresh.mock.calls[0][0]();
     });
     expect(mocks.refetch).toHaveBeenCalled();
-    expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-      'Lightings refreshed',
-    );
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
   });
 });

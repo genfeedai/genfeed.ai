@@ -70,7 +70,7 @@ vi.mock('@pages/posts/release/release-detail-drawer', () => ({
   default: () => null,
 }));
 
-vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
+vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   default: () => null,
 }));
 

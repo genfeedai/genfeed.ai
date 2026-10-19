@@ -5,6 +5,7 @@ import AnalyticsOrganizationsList from './analytics-organizations-list';
 
 const mocks = vi.hoisted(() => ({
   getOrganizationsWithStats: vi.fn(),
+  setToolbarNode: vi.fn(),
 }));
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
@@ -14,6 +15,7 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
       startDate: new Date('2026-04-08T00:00:00.000Z'),
     },
     refreshTrigger: 0,
+    setToolbarNode: mocks.setToolbarNode,
   })),
 }));
 
@@ -34,7 +36,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the heading and sort control immediately while organizations are loading', () => {
+  it('renders the table skeleton and hands the sort control to the subbar while loading', () => {
     mocks.getOrganizationsWithStats.mockReturnValueOnce(
       new Promise(() => undefined),
     );
@@ -42,9 +44,10 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     render(<AnalyticsOrganizationsList />);
 
     expect(
-      screen.getByRole('heading', { name: /All Organizations/ }),
-    ).toBeVisible();
+      screen.queryByRole('heading', { name: /All Organizations/ }),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('skeleton-table')).toBeVisible();
+    expect(mocks.setToolbarNode).toHaveBeenCalledWith(expect.anything());
   });
 
   it('renders the organizations table once loading resolves', async () => {
@@ -63,7 +66,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       expect(screen.queryByTestId('skeleton-table')).not.toBeInTheDocument();
     });
     expect(
-      screen.getByRole('heading', { name: /All Organizations/ }),
-    ).toBeVisible();
+      screen.queryByRole('heading', { name: /All Organizations/ }),
+    ).not.toBeInTheDocument();
   });
 });

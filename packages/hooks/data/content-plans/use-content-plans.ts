@@ -9,6 +9,10 @@ import { useQuery } from '@tanstack/react-query';
 export interface UseContentPlansOptions {
   brandId?: string;
   enabled?: boolean;
+  /** Page size; only meaningful together with `page`. */
+  limit?: number;
+  /** 1-based server page; the API's default page size applies without it. */
+  page?: number;
 }
 
 export interface UseContentPlansReturn {
@@ -34,9 +38,13 @@ export function useContentPlans(
       if (!token || !options.brandId) return [];
 
       const service = ContentPlansService.getInstance(token);
-      return service.list(options.brandId, signal);
+      return service.list(
+        options.brandId,
+        { limit: options.limit, page: options.page },
+        signal,
+      );
     },
-    queryKey: ['content-plans', options.brandId],
+    queryKey: ['content-plans', options.brandId, options.page, options.limit],
   });
 
   return {

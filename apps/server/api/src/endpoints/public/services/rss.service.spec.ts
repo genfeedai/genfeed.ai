@@ -102,6 +102,7 @@ describe('RssService', () => {
 
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
+          orderBy: [{ publishedAt: -1 }, { createdAt: -1 }, { id: -1 }],
           where: {
             isDeleted: false,
             organizationId: 'genfeed-org',
@@ -110,7 +111,25 @@ describe('RssService', () => {
             status: 'PUBLISHED',
           },
         }),
-        { pagination: false },
+        { limit: 50, pagination: false },
+      );
+    });
+
+    it.each([
+      ['user', (service: RssService) => service.generateUserFeed('user-1')],
+      ['brand', (service: RssService) => service.generateBrandFeed('brand-1')],
+      [
+        'organization',
+        (service: RssService) => service.generateOrganizationFeed('org-1'),
+      ],
+    ])('caps the %s feed at the newest 50 items', async (_name, generate) => {
+      await generate(service);
+
+      expect(articlesService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ publishedAt: -1 }, { createdAt: -1 }, { id: -1 }],
+        }),
+        { limit: 50, pagination: false },
       );
     });
 

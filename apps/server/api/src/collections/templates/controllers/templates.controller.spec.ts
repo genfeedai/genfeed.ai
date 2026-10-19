@@ -139,7 +139,10 @@ describe('TemplatesController', () => {
   describe('findAll', () => {
     it('should return all templates', async () => {
       const templates = [mockTemplate];
-      mockTemplatesService.findAll.mockResolvedValue(templates);
+      mockTemplatesService.findAll.mockResolvedValue({
+        docs: templates,
+        totalDocs: 1,
+      });
 
       const result = await controller.findAll(mockReq, mockUser, {});
 
@@ -330,16 +333,20 @@ describe('TemplatesController', () => {
   describe('findAll with sort=popular', () => {
     it('should pass sort and limit filters through to the service', async () => {
       const popular = [mockTemplate];
-      mockTemplatesService.findAll.mockResolvedValue(popular);
+      mockTemplatesService.findAll.mockResolvedValue({
+        docs: popular,
+        totalDocs: 1,
+      });
 
       const result = await controller.findAll(mockReq, mockUser, {
         limit: 20,
+        page: 2,
         sort: 'popular',
       });
 
       expect(service.findAll).toHaveBeenCalledWith(
         mockUser.organizationId,
-        expect.objectContaining({ limit: 20, sort: 'popular' }),
+        expect.objectContaining({ limit: 20, page: 2, sort: 'popular' }),
       );
       expect(result).toEqual(popular);
     });

@@ -89,11 +89,11 @@ describe('PostDetailNeedsYou', () => {
   });
 
   it('surfaces a failed post with a retry action', () => {
-    const onPublishNow = vi.fn();
+    const onRetryPublish = vi.fn();
     render(
       <PostDetailNeedsYou
         isPublished={false}
-        onPublishNow={onPublishNow}
+        onRetryPublish={onRetryPublish}
         onReviewHref="/review"
         post={buildPost({
           reviewDecision: ReviewDecision.APPROVED,
@@ -112,7 +112,33 @@ describe('PostDetailNeedsYou', () => {
       ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Retry publish' }));
-    expect(onPublishNow).toHaveBeenCalledTimes(1);
+    expect(onRetryPublish).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the reason X recorded for a failed post', () => {
+    render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onRetryPublish={vi.fn()}
+        onReviewHref="/review"
+        post={buildPost({
+          status: PostStatus.FAILED,
+          targetError: {
+            code: '403',
+            isRetryable: false,
+            message:
+              'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+          },
+          targetExecutionState: TargetExecutionState.FAILED,
+        })}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId('post-needs-you-row-failed')).getByText(
+        'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('surfaces a post with review lineage and an unset decision, linking to the review queue', () => {

@@ -25,7 +25,8 @@ export default function ModelsList({
   onPricingDetails,
   renderExpandedRow,
   renderToolbar,
-  renderCostAction,
+  rowActions,
+  isModelPinned,
   beforeList,
   onRefresh,
 }: ModelsListProps) {
@@ -60,7 +61,7 @@ export default function ModelsList({
     scope,
     onRefreshRegister,
     onRefresh,
-    renderCostAction,
+    isModelPinned,
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -95,6 +96,7 @@ export default function ModelsList({
           },
       ...(isAdminScope
         ? [
+            ...(rowActions ?? []),
             {
               icon: <CircleCheck />,
               isVisible: (model: IModel) =>
@@ -154,6 +156,7 @@ export default function ModelsList({
     [
       isAdminScope,
       isPricingInline,
+      rowActions,
       translate,
       handleViewDetails,
       openConfirm,

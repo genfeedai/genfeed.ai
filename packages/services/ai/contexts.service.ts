@@ -4,6 +4,7 @@
  * Backend: /contexts
  */
 
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type {
   IEnhancedPrompt,
   IRAGEnhanceRequest,
@@ -15,9 +16,13 @@ import { getRequestOrganizationHeaders } from '@services/core/interceptor.servic
 import {
   deserializeCollection,
   deserializeResource,
+  type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
+
+/** Safety ceiling for the page walk: 50 x 100 context bases. */
+const MAX_CONTEXT_PAGES = 50;
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 const contextInstances = new ServiceInstanceManager<ContextsServiceClass>();
@@ -87,14 +92,27 @@ class ContextsServiceClass {
     return context;
   }
 
+  /** Every context base, walking the API's pages. */
   async listContexts(): Promise<ContextRecord[]> {
-    return this.request(
-      '/contexts',
-      'GET',
-      undefined,
-      'Failed to list contexts',
-      'collection',
-    );
+    const contexts: ContextRecord[] = [];
+    let totalPages = 1;
+
+    for (
+      let page = 1;
+      page <= Math.min(totalPages, MAX_CONTEXT_PAGES);
+      page += 1
+    ) {
+      const document = await this.request<JsonApiResponseDocument>(
+        `/contexts?limit=${MAX_PAGE_SIZE}&page=${page}`,
+        'GET',
+        undefined,
+        'Failed to list contexts',
+      );
+      contexts.push(...deserializeCollection<ContextRecord>(document));
+      totalPages = document.links?.pagination?.pages ?? 1;
+    }
+
+    return contexts;
   }
 
   async getContext(id: string): Promise<ContextRecord> {

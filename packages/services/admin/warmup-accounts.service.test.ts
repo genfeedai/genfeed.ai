@@ -1,4 +1,5 @@
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
+import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGet = vi.fn();
@@ -76,6 +77,26 @@ describe('AdminWarmupAccountsService', () => {
         id: 'warmup-1',
       },
     ]);
+  });
+
+  it('forwards page and limit and records the page totals', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: [],
+        links: { pagination: { limit: 10, page: 3, pages: 5, total: 42 } },
+      },
+    });
+    const signal = new AbortController().signal;
+
+    await service.getWarmupAccounts({ limit: 10, page: 3 }, signal);
+
+    expect(mockGet).toHaveBeenCalledWith('', {
+      params: { limit: 10, page: 3 },
+      signal,
+    });
+    expect(PagesService.getCurrentPage()).toBe(3);
+    expect(PagesService.getTotalPages()).toBe(5);
+    expect(PagesService.getTotalDocs()).toBe(42);
   });
 
   it('posts create requests and deserializes the created resource', async () => {

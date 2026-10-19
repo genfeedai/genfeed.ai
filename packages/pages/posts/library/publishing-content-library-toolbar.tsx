@@ -5,6 +5,8 @@ import type { PublishingContentTypeFilter } from '@pages/posts/library/publishin
 import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
 import PostsSourceSelect from '@pages/posts/list/components/PostsSourceSelect';
 import type { PostsSourceFilter } from '@pages/posts/list/posts-list-query';
+import type { PublishingContentAccount } from '@props/posts/publishing-content-entry.props';
+import DropdownChannel from '@ui/dropdowns/channel/DropdownChannel';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -23,6 +25,7 @@ interface FilterOption {
 
 export interface PublishingContentLibraryToolbarProps {
   showSearch?: boolean;
+  accountOptions: PublishingContentAccount[];
   channelOptions: FilterOption[];
   channelValue: string;
   searchValue: string;
@@ -59,6 +62,7 @@ export function PublishingContentLibrarySearch({
 
 export default function PublishingContentLibraryToolbar({
   showSearch = true,
+  accountOptions,
   channelOptions,
   channelValue,
   searchValue,
@@ -111,22 +115,13 @@ export default function PublishingContentLibraryToolbar({
         </SelectContent>
       </Select>
 
-      <Select value={channelValue} onValueChange={onChannelChange}>
-        <SelectTrigger
-          aria-label="Channel"
-          className={ghostSelectTriggerClassName}
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All channels</SelectItem>
-          {channelOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <DropdownChannel
+        accounts={accountOptions}
+        ariaLabel="Channel"
+        channels={channelOptions}
+        value={channelValue}
+        onChange={onChannelChange}
+      />
 
       <PostsSourceSelect
         onSourceChange={onSourceChange}

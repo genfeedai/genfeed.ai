@@ -280,6 +280,53 @@ describe('IngredientsController — Library axes', () => {
       );
     });
 
+    it('drops the organization bound for a superadmin listing every organization', async () => {
+      await controller.findAll(
+        mockRequest,
+        { allOrganizations: true } as IngredientsQueryDto,
+        { ...mockUser, isSuperAdmin: true },
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(
+        andBranches(aggregate).some((branch) => 'organizationId' in branch),
+      ).toBe(false);
+      expect(andBranches(aggregate).some((branch) => 'brandId' in branch)).toBe(
+        false,
+      );
+      expect(aggregate.where.isDeleted).toBe(false);
+    });
+
+    it('keeps the organization bound when a superadmin narrows to one organization', async () => {
+      const otherOrganizationId = testId('org', 2);
+
+      await controller.findAll(
+        mockRequest,
+        {
+          allOrganizations: true,
+          organizationId: otherOrganizationId,
+        } as IngredientsQueryDto,
+        { ...mockUser, isSuperAdmin: true },
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate)).toContainEqual({
+        organizationId: otherOrganizationId,
+      });
+    });
+
+    it('refuses allOrganizations for anyone who is not a superadmin', async () => {
+      await expect(
+        controller.findAll(
+          mockRequest,
+          { allOrganizations: true } as IngredientsQueryDto,
+          mockUser,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
+    });
+
     it('limits allBrands to the brands a restricted member is assigned to', async () => {
       const assigned = [brandId, testId('brand', 2)];
       brandAccess.resolve.mockResolvedValueOnce({ brandIds: assigned });

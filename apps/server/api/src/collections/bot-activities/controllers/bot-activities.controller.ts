@@ -48,17 +48,13 @@ export class BotActivitiesController {
     @CurrentUser() user: User,
   ) {
     const readScope = resolveTenantReadScope(user);
-    const { activities, total } =
-      await this.botActivitiesService.findWithFilters(
-        readScope.organizationId,
-        readScope.brandId,
-        query,
-      );
+    const result = await this.botActivitiesService.findWithFilters(
+      readScope.organizationId,
+      readScope.brandId,
+      query,
+    );
 
-    return serializeCollection(req, BotActivitySerializer, {
-      docs: activities,
-      total,
-    });
+    return serializeCollection(req, BotActivitySerializer, result);
   }
 
   /**

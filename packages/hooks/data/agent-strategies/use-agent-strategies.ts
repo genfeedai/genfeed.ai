@@ -13,6 +13,10 @@ export interface UseAgentStrategiesOptions {
   brandId?: string;
   enabled?: boolean;
   isActive?: boolean;
+  /** Page size; only meaningful together with `page`. */
+  limit?: number;
+  /** When set, fetch only this server page. Omit to load every strategy. */
+  page?: number;
 }
 
 export interface UseAgentStrategiesReturn {
@@ -41,6 +45,8 @@ export function useAgentStrategies(
       options.brandId,
       options.agentType,
       options.isActive,
+      options.page,
+      options.limit,
     ],
     queryFn: async () => {
       const token = await resolveAuthToken(getToken);
@@ -51,6 +57,7 @@ export function useAgentStrategies(
         agentType: options.agentType,
         brandId: options.brandId,
         isActive: options.isActive,
+        ...(options.page ? { limit: options.limit, page: options.page } : {}),
       });
     },
   });

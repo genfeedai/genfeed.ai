@@ -9,6 +9,7 @@ import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
   APP_ROUTES,
+  ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
@@ -28,6 +29,7 @@ import { isCancelledRequest } from '@services/core/operation-error';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -42,7 +44,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isApiKeyLimitReached } from './api-key-create-error';
@@ -158,6 +160,8 @@ function AuthorizedApiKeysContent({
   const translate = useTranslations('common.settings.apiKeys');
   const { isReady, settings } = useBrand();
   const { orgHref } = useOrgUrl();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const selfHostedDeployment = isSelfHostedDeployment();
   const hasProductApiAccess =
     selfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
@@ -250,7 +254,7 @@ function AuthorizedApiKeysContent({
         const service = await acquireService(isCurrentFetch);
         if (!service || !isCurrentFetch()) return;
         const apiKeys = await service.findAll(
-          { limit: 100 },
+          { limit: ITEMS_PER_PAGE, page: currentPage },
           signal ?? pageControllerRef.current?.signal,
         );
 
@@ -272,7 +276,7 @@ function AuthorizedApiKeysContent({
         }
       }
     },
-    [acquireService, currentOperation, loadErrorMessage],
+    [acquireService, currentOperation, currentPage, loadErrorMessage],
   );
 
   useEffect(() => {
@@ -739,6 +743,7 @@ function AuthorizedApiKeysContent({
                     </div>
                   </div>
                 ))}
+                <AutoPagination showTotal totalLabel="keys" />
               </div>
             )}
           </div>

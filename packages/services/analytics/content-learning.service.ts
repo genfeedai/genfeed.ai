@@ -15,6 +15,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { recordPageTotals } from '@services/core/page-totals';
 export class ContentLearningService extends HTTPBaseService {
   constructor(token: string) {
     super(
@@ -132,15 +133,18 @@ export class ContentLearningService extends HTTPBaseService {
       body,
     );
   }
-  adminList(
+  async adminList(
     resource: 'accounts' | 'datasets' | 'runs' | 'releases',
+    params: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
   ) {
-    return this.list<LearningResourceView>(
+    const response = await this.instance.get<JsonApiResponseDocument>(
       `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ADMIN_CONTENT_LEARNING}/${resource}`,
-      {},
-      signal,
+      { params, signal },
     );
+    // Feeds AutoPagination, which reads the totals from PagesService.
+    recordPageTotals(response.data, params);
+    return deserializeCollection<LearningResourceView>(response.data);
   }
   createDataset(body: LearningDatasetInput) {
     return this.mutate<LearningResourceView>(

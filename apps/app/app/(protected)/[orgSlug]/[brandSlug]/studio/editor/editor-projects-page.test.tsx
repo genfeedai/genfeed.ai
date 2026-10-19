@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   fireEvent,
   render,
@@ -28,6 +29,7 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
   captureAnalyticsEvent: vi.fn(),
   deleteProject: vi.fn(),
   findAll: vi.fn(),
@@ -36,6 +38,16 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
   notificationError: vi.fn(),
   updateProject: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/~/studio/editor',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => mocks.searchParams,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -141,6 +153,7 @@ describe('EditorProjectsPage', () => {
       },
     );
     mocks.hasUnstableTranslator = false;
+    mocks.searchParams = new URLSearchParams();
     localStorage.clear();
     mocks.getEditorService.mockResolvedValue({
       delete: mocks.deleteProject,
@@ -180,6 +193,32 @@ describe('EditorProjectsPage', () => {
     const all = within(screen.getByTestId('editor-projects-all'));
     expect(all.getAllByRole('link', { name: /^Open Cut/ })).toHaveLength(6);
     expect(all.queryByTestId('editor-project-thumbnail-project-5')).toBeNull();
+  });
+
+  it('requests the server page from the URL and renders pagination', async () => {
+    mocks.searchParams = new URLSearchParams('page=2');
+    mocks.findAll.mockResolvedValue([
+      {
+        id: 'project-9',
+        name: 'Older cut',
+        status: 'draft',
+        tracks: [],
+        updatedAt: '2026-09-01T12:00:00Z',
+      },
+    ]);
+    render(<EditorProjectsPage />);
+
+    const all = within(await screen.findByTestId('editor-projects-all'));
+    expect(all.getByRole('link', { name: 'Open Older cut' })).toBeVisible();
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      { limit: ITEMS_PER_PAGE, page: 2 },
+      expect.any(AbortSignal),
+    );
+    // "Recent" previews the newest projects, which only the first page holds.
+    expect(screen.queryByTestId('editor-projects-recent')).toBeNull();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
   });
 
   it('loads video editor projects and deletes a project from the list', async () => {

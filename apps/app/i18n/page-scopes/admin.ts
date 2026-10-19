@@ -1,5 +1,6 @@
 import activities from '../../messages/en/pages/activities.json';
 import adminCreditHolds from '../../messages/en/pages/adminCreditHolds.json';
+import adminEconomics from '../../messages/en/pages/adminEconomics.json';
 import adminFlags from '../../messages/en/pages/adminFlags.json';
 import adminGenerations from '../../messages/en/pages/adminGenerations.json';
 import adminModelPricing from '../../messages/en/pages/adminModelPricing.json';
@@ -41,6 +42,7 @@ const messages = {
   adminTemplates,
   adminTrainings,
   adminCreditHolds,
+  adminEconomics,
   adminGenerations,
   adminWorkflows,
   adminVoices,

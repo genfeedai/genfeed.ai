@@ -91,6 +91,7 @@ export * from './billing/billing-account.interface';
 export * from './billing/cost-report.interface';
 export * from './billing/credits.interface';
 export * from './billing/crun-generation-quote.interface';
+export * from './billing/economics.interface';
 export * from './billing/generation-credit-calculation.interface';
 export * from './billing/llm-vendor-cost.interface';
 export * from './billing/managed-credits.interface';

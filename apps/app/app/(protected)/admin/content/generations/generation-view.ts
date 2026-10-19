@@ -118,9 +118,16 @@ export function toGenerationView(ingredient: object): GenerationView {
   const mediaUrl =
     readText(source, 'cdnUrl') || readText(source, 'ingredientUrl');
   const credits = source.generationCredits;
+  const mediaKind = readMediaKind(readText(source, 'category'), mediaUrl);
+  // A failed run keeps the requested width/height but has no media to frame, so
+  // only real image/video results take their own ratio; the placeholder stays
+  // compact instead of a tall empty card.
+  const hasFramedMedia = mediaKind === 'image' || mediaKind === 'video';
 
   return {
-    aspectRatio: readAspectRatio(source, metadata),
+    aspectRatio: hasFramedMedia
+      ? readAspectRatio(source, metadata)
+      : PLACEHOLDER_ASPECT_RATIO,
     compiled: readText(source, 'generationPrompt'),
     createdAt: readDate(source, 'createdAt'),
     credits: typeof credits === 'number' ? credits : null,
@@ -129,7 +136,7 @@ export function toGenerationView(ingredient: object): GenerationView {
     error: readText(source, 'generationError') || readText(metadata, 'error'),
     id: readText(source, 'id'),
     kind: 'generation',
-    mediaKind: readMediaKind(readText(source, 'category'), mediaUrl),
+    mediaKind,
     mediaUrl,
     model: readText(source, 'modelUsed') || readText(source, 'model'),
     negative: readText(source, 'negativePrompt'),

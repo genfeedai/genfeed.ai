@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
 import { AutoCreateContextDto } from '@api/collections/contexts/dto/autocreate.dto';
+import { ContextsQueryDto } from '@api/collections/contexts/dto/contexts-query.dto';
 import { CreateContextDto } from '@api/collections/contexts/dto/create-context.dto';
 import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.dto';
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
@@ -58,7 +59,7 @@ export class ContextsController {
   }
 
   /**
-   * Get all context bases
+   * List context bases, one page at a time
    */
   @TenantReadPolicy('selected')
   @Get()
@@ -66,18 +67,20 @@ export class ContextsController {
   async findAll(
     @Req() req: Request,
     @CurrentUser() user: User,
-    @Query('category') category?: string,
-    @Query('isActive') isActive?: string,
-    @Query('search') search?: string,
+    @Query() query: ContextsQueryDto = new ContextsQueryDto(),
   ) {
     const organization = resolveTenantReadScope(user).organizationId;
 
-    const docs = await this.contextsService.findAll(organization, {
-      category,
-      isActive: isActive ? isActive === 'true' : undefined,
-      search,
-    });
-    return serializeCollection(req, ContextBaseSerializer, { docs });
+    const result = await this.contextsService.findAll(
+      organization,
+      {
+        category: query.category,
+        isActive: query.isActive ? query.isActive === 'true' : undefined,
+        search: query.search,
+      },
+      { limit: query.limit, page: query.page },
+    );
+    return serializeCollection(req, ContextBaseSerializer, result);
   }
 
   /**

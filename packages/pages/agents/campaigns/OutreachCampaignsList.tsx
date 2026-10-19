@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant, CampaignStatus } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -16,9 +16,10 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Plus, Rocket } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -27,6 +28,8 @@ import OutreachCampaignsTable from './OutreachCampaignsTable';
 
 export default function OutreachCampaignsList() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const { href } = useOrgUrl();
   const translate = useTranslations('common.outreachCampaign');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
@@ -39,7 +42,10 @@ export default function OutreachCampaignsList() {
 
   const notificationsService = NotificationsService.getInstance();
 
+  // `campaigns` is every campaign (the KPIs summarise all of them); the table
+  // shows only the current server page.
   const [campaigns, setCampaigns] = useState<OutreachCampaign[]>([]);
+  const [pageCampaigns, setPageCampaigns] = useState<OutreachCampaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -48,7 +54,7 @@ export default function OutreachCampaignsList() {
   );
 
   const loadCampaigns = useCallback(
-    async (refresh = false) => {
+    async (refresh = false, signal?: AbortSignal) => {
       if (!isFetchReady) {
         return;
       }
@@ -60,22 +66,39 @@ export default function OutreachCampaignsList() {
 
       try {
         const service = await getService();
-        const fetchedCampaigns = await service.findAllByOrganization(
-          organizationId,
-          brandId,
-        );
+        const [fetchedCampaigns, fetchedPage] = await Promise.all([
+          service.findAllByOrganization(organizationId, brandId, signal),
+          service.findPageByOrganization(
+            organizationId,
+            { brandId, limit: ITEMS_PER_PAGE, page: currentPage },
+            signal,
+          ),
+        ]);
+        if (signal?.aborted) {
+          return;
+        }
         setCampaigns(fetchedCampaigns);
+        setPageCampaigns(fetchedPage);
         logger.info('Loaded campaigns', { count: fetchedCampaigns.length });
       } catch (error) {
+        if (
+          signal?.aborted ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
+          return;
+        }
         logger.error('Failed to load campaigns', error);
         notificationsService.error(translate('notifications.loadFailed'));
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (!signal?.aborted) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
     [
       brandId,
+      currentPage,
       getService,
       isFetchReady,
       notificationsService,
@@ -85,10 +108,23 @@ export default function OutreachCampaignsList() {
   );
 
   useEffect(() => {
-    if (isFetchReady) {
-      loadCampaigns();
+    if (!isFetchReady) {
+      return;
     }
+    const controller = new AbortController();
+    void loadCampaigns(false, controller.signal);
+    return () => controller.abort();
   }, [isFetchReady, loadCampaigns]);
+
+  const patchCampaign = useCallback(
+    (id: string, patch: Partial<OutreachCampaign>) => {
+      const apply = (items: OutreachCampaign[]) =>
+        items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+      setCampaigns(apply);
+      setPageCampaigns(apply);
+    },
+    [],
+  );
 
   const handleStartCampaign = useCallback(
     async (campaign: OutreachCampaign) => {
@@ -96,13 +132,7 @@ export default function OutreachCampaignsList() {
         const service = await getService();
         await service.start(campaign.id);
 
-        setCampaigns((prev) =>
-          prev.map((item) =>
-            item.id === campaign.id
-              ? { ...item, status: CampaignStatus.ACTIVE }
-              : item,
-          ),
-        );
+        patchCampaign(campaign.id, { status: CampaignStatus.ACTIVE });
 
         notificationsService.success(
           translate('notifications.started', { label: campaign.label }),
@@ -112,7 +142,7 @@ export default function OutreachCampaignsList() {
         notificationsService.error(translate('notifications.startFailed'));
       }
     },
-    [getService, notificationsService, translate],
+    [getService, notificationsService, patchCampaign, translate],
   );
 
   const handlePauseCampaign = useCallback(
@@ -121,13 +151,7 @@ export default function OutreachCampaignsList() {
         const service = await getService();
         await service.pause(campaign.id);
 
-        setCampaigns((prev) =>
-          prev.map((item) =>
-            item.id === campaign.id
-              ? { ...item, status: CampaignStatus.PAUSED }
-              : item,
-          ),
-        );
+        patchCampaign(campaign.id, { status: CampaignStatus.PAUSED });
 
         notificationsService.success(
           translate('notifications.paused', { label: campaign.label }),
@@ -137,7 +161,7 @@ export default function OutreachCampaignsList() {
         notificationsService.error(translate('notifications.pauseFailed'));
       }
     },
-    [getService, notificationsService, translate],
+    [getService, notificationsService, patchCampaign, translate],
   );
 
   const handleCompleteCampaign = useCallback(
@@ -146,13 +170,7 @@ export default function OutreachCampaignsList() {
         const service = await getService();
         await service.complete(campaign.id);
 
-        setCampaigns((prev) =>
-          prev.map((item) =>
-            item.id === campaign.id
-              ? { ...item, status: CampaignStatus.COMPLETED }
-              : item,
-          ),
-        );
+        patchCampaign(campaign.id, { status: CampaignStatus.COMPLETED });
 
         notificationsService.success(
           translate('notifications.completed', { label: campaign.label }),
@@ -162,7 +180,7 @@ export default function OutreachCampaignsList() {
         notificationsService.error(translate('notifications.completeFailed'));
       }
     },
-    [getService, notificationsService, translate],
+    [getService, notificationsService, patchCampaign, translate],
   );
 
   const handleCreateCampaign = useCallback(() => {
@@ -186,7 +204,10 @@ export default function OutreachCampaignsList() {
         const service = await getService();
         await service.delete(campaign.id);
 
-        setCampaigns((prev) => prev.filter((item) => item.id !== campaign.id));
+        const withoutCampaign = (items: OutreachCampaign[]) =>
+          items.filter((item) => item.id !== campaign.id);
+        setCampaigns(withoutCampaign);
+        setPageCampaigns(withoutCampaign);
         notificationsService.success(
           translate('notifications.deleted', { label: campaign.label }),
         );
@@ -255,7 +276,7 @@ export default function OutreachCampaignsList() {
         />
 
         <OutreachCampaignsTable
-          campaigns={campaigns}
+          campaigns={pageCampaigns}
           isLoading={isLoading}
           onStart={handleStartCampaign}
           onPause={handlePauseCampaign}
@@ -263,6 +284,9 @@ export default function OutreachCampaignsList() {
           onConfigure={handleConfigureCampaign}
           onDelete={handleDeleteCampaign}
         />
+        {!isLoading && pageCampaigns.length > 0 ? (
+          <AutoPagination showTotal totalLabel="sequences" />
+        ) : null}
       </div>
     </Container>
   );

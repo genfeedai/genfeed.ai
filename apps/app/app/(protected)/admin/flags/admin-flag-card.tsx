@@ -19,12 +19,17 @@ export default function AdminFlagCard({
   effectiveFlags,
   flagKey,
   flags,
-  isDisabled,
+  isSaving,
   nestedKeys,
   onToggle,
 }: AdminFlagCardProps) {
   const translate = useTranslations('pages.adminFlags');
   const label = translate(`flags.${flagKey}.label`);
+  // A save locks every switch, but stays at full opacity so the page does not
+  // flash dim on each toggle; only switches held off by a parent look dimmed.
+  const savingClassName = isSaving
+    ? 'disabled:cursor-wait disabled:opacity-100'
+    : undefined;
 
   /** The highest switched-off flag above `key`, which is what keeps it off. */
   function blockingAncestorOf(key: PlatformFlagKey): PlatformFlagKey | null {
@@ -74,7 +79,8 @@ export default function AdminFlagCard({
         <Switch
           aria-label={label}
           isChecked={flags[flagKey]}
-          isDisabled={isDisabled}
+          isDisabled={isSaving}
+          switchClassName={savingClassName}
           onCheckedChange={(isOn) => onToggle(flagKey, isOn)}
         />
       }
@@ -88,7 +94,10 @@ export default function AdminFlagCard({
                 label={translate(`flags.${key}.label`)}
                 description={describe(key)}
                 isChecked={flags[key]}
-                isDisabled={isDisabled || blockingAncestorOf(key) !== null}
+                isDisabled={isSaving || blockingAncestorOf(key) !== null}
+                switchClassName={
+                  blockingAncestorOf(key) !== null ? undefined : savingClassName
+                }
                 onCheckedChange={(isOn) => onToggle(key, isOn)}
               />
             </div>

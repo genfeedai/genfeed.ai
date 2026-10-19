@@ -57,9 +57,27 @@ describe('toGenerationView', () => {
     });
   });
 
+  it('uses the compact placeholder for a failed run that requested portrait dimensions', () => {
+    expect(
+      toGenerationView({
+        category: 'IMAGE',
+        height: 1024,
+        id: 'ing-3',
+        status: 'FAILED',
+        width: 576,
+      }).aspectRatio,
+    ).toBe(1);
+  });
+
   it('clamps extreme aspect ratios and falls back for an id-only owner', () => {
     expect(
-      toGenerationView({ height: 100, id: 'a', width: 5000 }).aspectRatio,
+      toGenerationView({
+        category: 'IMAGE',
+        cdnUrl: 'https://x/a.png',
+        height: 100,
+        id: 'a',
+        width: 5000,
+      }).aspectRatio,
     ).toBe(2.4);
     expect(
       toGenerationView({ id: 'a', organization: 'org-9', user: 'user-9' }),

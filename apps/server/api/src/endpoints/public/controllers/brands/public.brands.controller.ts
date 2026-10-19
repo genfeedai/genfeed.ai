@@ -1,4 +1,5 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
@@ -99,6 +100,7 @@ export class PublicBrandsController {
     };
 
     const data = await this.brandsService.findAll(aggregate, options);
+    data.docs = await this.attachPublicBrandAssets(data.docs);
 
     return serializeCollection(request, BrandSerializer, data);
   }
@@ -134,7 +136,11 @@ export class PublicBrandsController {
       return { data: null, message: 'Brand not found' };
     }
 
-    return serializeSingle(request, BrandSerializer, data);
+    return serializeSingle(
+      request,
+      BrandSerializer,
+      await this.attachPublicBrandAsset(data),
+    );
   }
 
   @Get(':brandId')
@@ -164,7 +170,11 @@ export class PublicBrandsController {
       return { data: null, message: 'Brand not found' };
     }
 
-    return serializeSingle(request, BrandSerializer, data);
+    return serializeSingle(
+      request,
+      BrandSerializer,
+      await this.attachPublicBrandAsset(data),
+    );
   }
 
   @Get(':brandId/referral')
@@ -418,5 +428,48 @@ export class PublicBrandsController {
 
     const data = await this.articlesService.findAll(aggregate, options);
     return serializeCollection(request, ArticleSerializer, data);
+  }
+
+  /**
+   * Resolve the brand's logo and banner onto a public response.
+   *
+   * The Brand table has no logo/banner columns — they are `Asset` rows keyed by
+   * `parentBrandId` — so a row served straight from `findOne` carries neither,
+   * and the public profile rendered without an avatar or banner. Only the
+   * assets are attached here: credentials stay out of public payloads.
+   */
+  private async attachPublicBrandAsset(
+    brand: BrandDocument,
+  ): Promise<BrandDocument> {
+    const [decorated] = await this.attachPublicBrandAssets([brand]);
+
+    return decorated ?? brand;
+  }
+
+  private async attachPublicBrandAssets(
+    brands: BrandDocument[],
+  ): Promise<BrandDocument[]> {
+    const brandsByOrganization = new Map<string, BrandDocument[]>();
+
+    for (const brand of brands) {
+      const organizationId = brand.organizationId;
+
+      if (typeof organizationId !== 'string' || !organizationId) {
+        continue;
+      }
+
+      const group = brandsByOrganization.get(organizationId) ?? [];
+      group.push(brand);
+      brandsByOrganization.set(organizationId, group);
+    }
+
+    for (const [organizationId, group] of brandsByOrganization) {
+      await this.brandsService.attachBrandKitAssetRelations(
+        group,
+        organizationId,
+      );
+    }
+
+    return brands;
   }
 }

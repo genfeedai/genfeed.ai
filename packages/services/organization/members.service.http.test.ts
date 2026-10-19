@@ -35,7 +35,7 @@ describe('MembersService invitation HTTP methods', () => {
     const result = await service.listInvitations('delivery-failed');
 
     expect(http.get).toHaveBeenCalledWith('/invitations', {
-      params: { status: 'delivery-failed' },
+      params: { limit: 100, page: 1, status: 'delivery-failed' },
     });
     expect(result).toEqual([
       expect.objectContaining({
@@ -45,6 +45,26 @@ describe('MembersService invitation HTTP methods', () => {
         status: 'delivery-failed',
       }),
     ]);
+  });
+
+  it('walks every invitation page', async () => {
+    const withPages = (id: string, page: number) => ({
+      ...collectionDocument([{ email: `${id}@example.com`, id }]),
+      links: { pagination: { limit: 100, page, pages: 2, total: 101 } },
+    });
+    http.get
+      .mockResolvedValueOnce(axiosResponse(withPages('inv_1', 1)))
+      .mockResolvedValueOnce(axiosResponse(withPages('inv_2', 2)));
+
+    const result = await service.listInvitations();
+
+    expect(result.map((invitation) => invitation.id)).toEqual([
+      'inv_1',
+      'inv_2',
+    ]);
+    expect(http.get).toHaveBeenNthCalledWith(2, '/invitations', {
+      params: { limit: 100, page: 2 },
+    });
   });
 
   it('retries delivery on the existing invitation resource', async () => {

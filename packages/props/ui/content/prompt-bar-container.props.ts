@@ -69,9 +69,17 @@ export interface PromptBarContainerProps {
    * - inflow: reserved space in normal layout flow
    * - inflow-desktop: fixed on mobile, in-flow on desktop
    * - surface-fixed: anchored to the nearest relative container instead of the viewport
+   * - sticky-bottom: pinned to the bottom of the scroll container, even when
+   *   the content is shorter than the view (parent must be a flex column
+   *   that fills the scroll container)
    * @default "fixed"
    */
-  layoutMode?: 'fixed' | 'inflow' | 'inflow-desktop' | 'surface-fixed';
+  layoutMode?:
+    | 'fixed'
+    | 'inflow'
+    | 'inflow-desktop'
+    | 'surface-fixed'
+    | 'sticky-bottom';
 
   /**
    * Root overlay node. Used to pad the transcript by the live stack height

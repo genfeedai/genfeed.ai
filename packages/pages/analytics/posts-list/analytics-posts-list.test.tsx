@@ -44,7 +44,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
-vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
+vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (
     <div data-testid="post-detail-overlay">{postId ?? 'closed'}</div>

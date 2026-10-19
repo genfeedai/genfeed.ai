@@ -285,6 +285,7 @@ function makePreset(overrides: Record<string, unknown> = {}) {
     key: 'launch_video',
     label: 'Launch Video',
     organization: { id: 'org-1', label: 'Acme Org' },
+    organizationId: 'org-1',
     ...overrides,
   };
 }
@@ -300,6 +301,7 @@ function mockPresetsQuery(
       isActive: false,
       label: 'Image Preset',
       organization: {},
+      organizationId: null,
     }),
   ],
 ) {
@@ -374,19 +376,48 @@ describe('PresetsList', () => {
     expect(mocks.openModal).toHaveBeenCalled();
   });
 
-  it('renders a platform default when a preset has no organization', () => {
+  it('renders a platform default as System when a preset has no organization', () => {
     mockPresetsQuery([
       makePreset({
         id: 'preset-platform',
         label: 'Platform Default',
         organization: undefined,
+        organizationId: null,
       }),
     ]);
 
     render(<PresetsList scope={PageScope.SUPERADMIN} />);
 
     expect(screen.getByText('Platform Default')).toBeInTheDocument();
-    expect(screen.getByText('Genfeed.ai')).toBeInTheDocument();
+    expect(screen.getByText('System')).toBeInTheDocument();
+    expect(screen.queryByText('Genfeed.ai')).not.toBeInTheDocument();
+  });
+
+  it('marks an organization preset with its organization, not System', () => {
+    mockPresetsQuery([
+      makePreset({ organization: undefined, organizationId: 'org-1' }),
+    ]);
+
+    render(<PresetsList scope={PageScope.SUPERADMIN} />);
+
+    expect(screen.getByText('Organization')).toBeInTheDocument();
+    expect(screen.queryByText('System')).not.toBeInTheDocument();
+  });
+
+  it('shows a dash instead of "undefined" for a preset with no key or category', () => {
+    mockPresetsQuery([
+      makePreset({
+        category: undefined,
+        id: 'preset-blank',
+        key: undefined,
+        label: undefined,
+        organizationId: null,
+      }),
+    ]);
+
+    render(<PresetsList scope={PageScope.SUPERADMIN} />);
+
+    expect(screen.queryByText('undefined')).not.toBeInTheDocument();
   });
 
   it('toggles active presets and reports update failures', async () => {
@@ -398,11 +429,9 @@ describe('PresetsList', () => {
       expect(mocks.patch).toHaveBeenCalledWith('preset-1', {
         isActive: false,
       });
-      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-        'Preset deactivated',
-      );
       expect(mocks.refetch).toHaveBeenCalledTimes(1);
     });
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
 
     mocks.patch.mockRejectedValueOnce(new Error('patch failed'));
     fireEvent.click(screen.getByRole('button', { name: 'Inactive' }));

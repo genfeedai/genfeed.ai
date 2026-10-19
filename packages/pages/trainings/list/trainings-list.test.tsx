@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PageScope, SubscriptionTier } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ITraining } from '@genfeedai/contracts/interfaces';
 import TrainingsList from '@pages/trainings/list/trainings-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,7 +10,10 @@ import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockFindAllPages = vi.fn();
+const mockFindAll = vi.fn();
+const searchParamsState = vi.hoisted(() => ({
+  current: new URLSearchParams(''),
+}));
 const mockSubscribe = vi.fn(() => () => undefined);
 const mockOpenConfirm = vi.fn();
 
@@ -56,7 +60,7 @@ vi.mock('@services/ai/trainings.service', () => ({
   TrainingsService: {
     getInstance: () => ({
       delete: vi.fn(),
-      findAllPages: mockFindAllPages,
+      findAll: mockFindAll,
       patch: vi.fn(),
     }),
   },
@@ -71,7 +75,11 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => '/trainings',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => searchParamsState.current,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 function buildTraining(overrides: Partial<ITraining> = {}): ITraining {
@@ -115,8 +123,9 @@ describe('TrainingsList', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    searchParamsState.current = new URLSearchParams('');
     brandState.settings = { subscriptionTier: SubscriptionTier.SCALE };
-    mockFindAllPages.mockResolvedValue([buildTraining()]);
+    mockFindAll.mockResolvedValue([buildTraining()]);
   });
 
   it('renders the fetched trainings in the table', async () => {
@@ -128,8 +137,24 @@ describe('TrainingsList', () => {
     expect(screen.getByText('brandstyle')).toBeInTheDocument();
   });
 
+  it('requests the URL page with the page size and renders pagination', async () => {
+    searchParamsState.current = new URLSearchParams('page=2');
+
+    renderTrainingsList(PageScope.SUPERADMIN);
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenCalledWith(
+        { limit: ITEMS_PER_PAGE, page: 2 },
+        expect.anything(),
+      );
+    });
+    expect(
+      await screen.findByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
   it('renders the empty state when no trainings come back', async () => {
-    mockFindAllPages.mockResolvedValue([]);
+    mockFindAll.mockResolvedValue([]);
 
     renderTrainingsList();
 

@@ -1200,6 +1200,37 @@ describe('StudioPlaygroundComposer', () => {
     expect(studioLooksMocks.deleteLook).toHaveBeenCalledWith('preset-1');
   });
 
+  it('offers the system templates for the type in the setup popover and applies one', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="My existing topic"
+        settings={settings}
+        type="image"
+      />,
+    );
+    const props = generationSetupPopoverMocks.props as {
+      onApplySystemPreset: (id: string) => void;
+      systemPresets: { id: string; label: string }[];
+    };
+
+    expect(props.systemPresets.map((preset) => preset.label)).toEqual([
+      'Profile picture',
+      'Banner',
+      'YouTube thumbnail',
+    ]);
+
+    props.onApplySystemPreset(
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+    );
+    expect(storeMocks.applyPreset).toHaveBeenCalledWith(
+      'studio:image',
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+      { ...STUDIO_SYSTEM_PRESETS[1].values, type: 'image' },
+      getDefaultGenerationSetupValues('image'),
+    );
+  });
+
   it('applies a system image template from / and preserves the existing prompt', () => {
     const onContextChange = vi.fn();
     render(

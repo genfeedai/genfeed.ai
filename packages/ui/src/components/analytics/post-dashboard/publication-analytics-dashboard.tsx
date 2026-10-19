@@ -85,7 +85,6 @@ export default function PostAnalyticsDashboard({
 
       setAnalytics(data.summary);
       setLastRefreshed(new Date(data.lastRefreshed));
-      notificationsService.success('Analytics refreshed successfully');
       setIsRefreshing(false);
     } catch (error) {
       const status = getErrorStatus(error);

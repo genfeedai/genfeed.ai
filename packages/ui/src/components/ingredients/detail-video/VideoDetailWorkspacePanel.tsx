@@ -40,7 +40,7 @@ type VideoDetailWorkspacePanelProps = {
   evaluation: IEvaluation | undefined;
   isEvaluating: boolean;
   onEvaluate: () => Promise<void>;
-  onReload?: (skipNotification?: boolean) => Promise<void>;
+  onReload?: () => Promise<void>;
   updateMetadataHook: (
     field: string,
     value: string,
@@ -133,7 +133,7 @@ export default function VideoDetailWorkspacePanel({
             ingredient={currentVideo}
             onTagsUpdate={(tags: ITag[]) => {
               logger.info('Tags updated', { tags });
-              onReload?.(true);
+              onReload?.();
             }}
           />
         )}

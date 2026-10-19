@@ -16,3 +16,6 @@ export enum AgentFailureReason {
   PROVIDER_UNAVAILABLE = 'PROVIDER_UNAVAILABLE',
   UNKNOWN = 'UNKNOWN',
 }
+
+/** Admin failure-feed filter: runs still needing attention, handled ones, or both. */
+export type AgentFailureResolution = 'open' | 'resolved' | 'all';

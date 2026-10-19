@@ -7,7 +7,7 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
-import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
@@ -352,7 +352,7 @@ export default function ReviewQueueView({
           className="max-w-xl mx-auto"
         />
       )}
-      <PostDetailOverlay
+      <PostDetailPanel
         postId={selectedPostId}
         scope={PageScope.PUBLISHING}
         onClose={onClosePostDetail}

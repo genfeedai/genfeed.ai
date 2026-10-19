@@ -25,13 +25,17 @@ export class MembersService extends BaseService<Member> {
   public async listInvitations(
     status?: IMemberInvitation['status'],
   ): Promise<IMemberInvitation[]> {
-    return this.instance
-      .get<JsonApiResponseDocument>('/invitations', {
-        params: status ? { status } : undefined,
-      })
-      .then((response) =>
-        this.extractCollection<IMemberInvitation>(response.data),
+    // The API pages invitations; the settings table shows them all.
+    return this.collectAllPages<IMemberInvitation>({}, async (pageQuery) => {
+      const response = await this.instance.get<JsonApiResponseDocument>(
+        '/invitations',
+        { params: { ...pageQuery, ...(status ? { status } : {}) } },
       );
+      return {
+        items: this.extractCollection<IMemberInvitation>(response.data),
+        totalPages: response.data.links?.pagination?.pages ?? 1,
+      };
+    });
   }
 
   public async resendInvitation(

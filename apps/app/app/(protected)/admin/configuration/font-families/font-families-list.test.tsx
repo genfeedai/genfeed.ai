@@ -300,9 +300,7 @@ describe('FontFamiliesList', () => {
     await act(async () => {
       await onRefresh.mock.calls[0][0]();
     });
-    expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-      'Font families refreshed',
-    );
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Font Family' }));
     expect(mocks.openModal).toHaveBeenCalled();

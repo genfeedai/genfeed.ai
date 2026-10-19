@@ -1,6 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, FontFamily } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  FONT_FAMILY_METADATA,
+  FontFamily,
+  resolveFontFamily,
+} from '@genfeedai/contracts';
 import type {
   BrandKitFieldKey,
   IBrandKitDraft,
@@ -64,11 +70,10 @@ const GUIDANCE_EXTENSIONS = ['.csv', '.json', '.md', '.markdown', '.txt'];
 const FONT_FAMILY_OPTIONS: ReadonlyArray<{
   label: string;
   value: FontFamily;
-}> = [
-  { label: 'Montserrat Black', value: FontFamily.MONTSERRAT_BLACK },
-  { label: 'Montserrat Bold', value: FontFamily.MONTSERRAT_BOLD },
-  { label: 'Montserrat Regular', value: FontFamily.MONTSERRAT_REGULAR },
-];
+}> = Object.values(FontFamily).map((value) => ({
+  label: FONT_FAMILY_METADATA[value].label,
+  value,
+}));
 
 const APPLY_FIELD_CONFIGS: ManualApplyFieldConfig[] = [
   { key: 'description', label: 'Description' },
@@ -81,17 +86,13 @@ const APPLY_FIELD_CONFIGS: ManualApplyFieldConfig[] = [
   { key: 'voiceStyle', label: 'Voice style' },
 ];
 
-/** Prisma wire is UPPERCASE; app FontFamily is lowercase-hyphen. */
+/** Select values are the Prisma FontFamily labels; unknown fonts pass through. */
 function normalizeFontFamily(value: string | undefined | null): string {
   if (!value) {
     return '';
   }
 
-  const normalized = value.trim().toLowerCase().replaceAll('_', '-');
-  const match = FONT_FAMILY_OPTIONS.find(
-    (option) => option.value === normalized,
-  );
-  return match?.value ?? normalized;
+  return resolveFontFamily(value) ?? value.trim();
 }
 
 /** Native `<input type="color">` requires `#rrggbb`. */

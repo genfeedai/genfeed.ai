@@ -2,6 +2,8 @@ export interface WorkflowExecutionListQueryParams {
   brandId?: string;
   limit?: number;
   offset?: number;
+  /** 1-based server page; sent with `limit`. */
+  page?: number;
   sort?: string;
   status?: string;
   strategyId?: string;
@@ -20,7 +22,10 @@ export interface WorkflowExecutionStats {
 }
 
 export interface WorkflowExecutionSummaryQueryParams
-  extends Omit<WorkflowExecutionListQueryParams, 'limit' | 'offset' | 'sort'> {
+  extends Omit<
+    WorkflowExecutionListQueryParams,
+    'limit' | 'offset' | 'page' | 'sort'
+  > {
   dayStart: string;
   dayEnd: string;
 }

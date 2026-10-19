@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { IAgentMemoryEntry } from '@genfeedai/contracts/interfaces';
 import type { OrgMemoryEntry } from '@props/settings/org-memory.props';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -8,6 +9,13 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+
+interface OrgMemoryPage {
+  docs: OrgMemoryEntry[];
+  page: number;
+  totalDocs: number;
+  totalPages: number;
+}
 
 export class AgentMemoriesService extends HTTPBaseService {
   constructor(token: string) {
@@ -53,10 +61,25 @@ export class AgentMemoriesService extends HTTPBaseService {
     return deserializeResource<IAgentMemoryEntry>(response.data);
   }
 
-  async listOrganization(): Promise<OrgMemoryEntry[]> {
-    return await this.instance
-      .get<OrgMemoryEntry[]>('/organization')
-      .then((res) => res.data);
+  /**
+   * One server page of brand and org-wide memories, newest first. The API
+   * answers with a page envelope; its totals are published for
+   * `<AutoPagination />`.
+   */
+  async listOrganization(
+    query: { limit?: number; page?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<OrgMemoryEntry[]> {
+    const { data } = await this.instance.get<OrgMemoryPage>('/organization', {
+      params: query,
+      signal,
+    });
+    if (query.page) {
+      PagesService.setCurrentPage(data.page);
+      PagesService.setTotalPages(data.totalPages);
+      PagesService.setTotalDocs(data.totalDocs);
+    }
+    return data.docs;
   }
 
   async archive(memoryId: string): Promise<OrgMemoryEntry> {

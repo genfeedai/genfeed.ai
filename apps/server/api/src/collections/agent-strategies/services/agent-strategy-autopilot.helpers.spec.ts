@@ -1,5 +1,7 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import {
+  resolveOpportunityFormat,
   scoreTextPublishGate,
   shouldAutoPublish,
   strategySkillSlugs,
@@ -129,5 +131,92 @@ describe('scoreTextPublishGate length check', () => {
     expect(
       scoreTextPublishGate(strategy, 'a'.repeat(5000), strongAnalysis).decision,
     ).toBe('approved');
+  });
+
+  it('holds each thread post to the X limit instead of the whole thread', () => {
+    const fits = ['a'.repeat(280), 'b'.repeat(280), 'c'.repeat(200)];
+    expect(
+      scoreTextPublishGate(
+        strategy,
+        fits.join('\n\n'),
+        strongAnalysis,
+        'twitter',
+        fits,
+      ).decision,
+    ).toBe('approved');
+
+    const gate = scoreTextPublishGate(
+      strategy,
+      'joined',
+      strongAnalysis,
+      'twitter',
+      ['a'.repeat(100), 'b'.repeat(290)],
+    );
+    expect(gate.isOverPlatformLimit).toBe(true);
+    expect(gate.reasons).toContain(
+      'Thread post 2 is 290 characters; the twitter limit is 280.',
+    );
+    expect(gate.revisionInstructions[0]).toContain('Shorten thread post 2');
+  });
+});
+
+describe('resolveOpportunityFormat', () => {
+  const opportunity = (id: string, formats = ['text']) =>
+    ({
+      formatCandidates: formats,
+      id,
+    }) as unknown as AgentStrategyOpportunityDocument;
+  const ids = Array.from({ length: 400 }, (_, index) => `opportunity-${index}`);
+  const threadShare = (strategy: Partial<AgentStrategyDocument>) =>
+    ids.filter(
+      (id) =>
+        resolveOpportunityFormat(
+          strategy as AgentStrategyDocument,
+          opportunity(id),
+          'twitter',
+          true,
+        ) === 'thread',
+    ).length / ids.length;
+
+  it('writes about a quarter of X text slots as threads by default', () => {
+    expect(threadShare({})).toBeGreaterThan(0.15);
+    expect(threadShare({})).toBeLessThan(0.35);
+  });
+
+  it('follows the strategy thread share, from none to every slot', () => {
+    expect(threadShare({ contentMix: { threadPercent: 0 } })).toBe(0);
+    expect(threadShare({ contentMix: { threadPercent: 100 } })).toBe(1);
+  });
+
+  it('keeps an opportunity in the same format on every run', () => {
+    const strategy = {} as AgentStrategyDocument;
+    const first = ids.map((id) =>
+      resolveOpportunityFormat(strategy, opportunity(id), 'twitter', true),
+    );
+    expect(
+      ids.map((id) =>
+        resolveOpportunityFormat(strategy, opportunity(id), 'twitter', true),
+      ),
+    ).toEqual(first);
+  });
+
+  it('never writes threads off X, for media, or without the cadence generator', () => {
+    const strategy = {
+      contentMix: { threadPercent: 100 },
+    } as unknown as AgentStrategyDocument;
+    expect(
+      resolveOpportunityFormat(strategy, opportunity('a'), 'linkedin', true),
+    ).toBe('text');
+    expect(
+      resolveOpportunityFormat(
+        strategy,
+        opportunity('a', ['image', 'text']),
+        'twitter',
+        true,
+      ),
+    ).toBe('image');
+    expect(
+      resolveOpportunityFormat(strategy, opportunity('a'), 'twitter', false),
+    ).toBe('text');
   });
 });

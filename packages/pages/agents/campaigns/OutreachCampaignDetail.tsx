@@ -15,6 +15,7 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
@@ -287,6 +288,8 @@ export default function OutreachCampaignDetail() {
               targets={targets}
               isRefreshing={isRefreshing}
             />
+
+            <AutoPagination showTotal totalLabel="targets" />
           </>
         ) : (
           <div

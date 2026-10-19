@@ -71,6 +71,7 @@ export default function PromptBarContainer({
     layoutMode === 'surface-fixed' &&
       'absolute bottom-0 left-0 right-0 pointer-events-none',
     layoutMode === 'inflow' && 'relative w-full',
+    layoutMode === 'sticky-bottom' && 'sticky bottom-0 mt-auto w-full',
     layoutMode === 'inflow-desktop' &&
       'fixed bottom-0 left-0 right-0 pointer-events-none md:static md:pointer-events-auto',
     className,
@@ -84,6 +85,7 @@ export default function PromptBarContainer({
     layoutMode === 'fixed' && 'px-5 pb-5',
     layoutMode === 'surface-fixed' && 'px-0 pb-3',
     layoutMode === 'inflow' && 'px-0 pb-0',
+    layoutMode === 'sticky-bottom' && 'px-0 pb-4',
     layoutMode === 'inflow-desktop' && 'px-5 pb-5 md:px-0 md:pb-0',
   );
 
@@ -114,6 +116,7 @@ export default function PromptBarContainer({
             topContent ? 'h-16' : 'h-12',
             layoutMode === 'surface-fixed' && (topContent ? 'h-14' : 'h-10'),
             layoutMode === 'inflow' && (topContent ? 'h-12' : 'h-10'),
+            layoutMode === 'sticky-bottom' && (topContent ? 'h-12' : 'h-10'),
             topFadeClassName,
           )}
         />

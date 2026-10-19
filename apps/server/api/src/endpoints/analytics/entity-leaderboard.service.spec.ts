@@ -97,6 +97,9 @@ describe('EntityLeaderboardService', () => {
       count: vi.fn(),
       groupBy: vi.fn(),
     },
+    member: {
+      groupBy: vi.fn(),
+    },
     organization: {
       count: vi.fn(),
       findMany: vi.fn(),
@@ -122,7 +125,10 @@ describe('EntityLeaderboardService', () => {
     vi.clearAllMocks();
 
     mockPrismaService.$queryRaw.mockResolvedValue([]);
+    mockPrismaService.brand.count.mockResolvedValue(0);
     mockPrismaService.brand.groupBy.mockResolvedValue([]);
+    mockPrismaService.member.groupBy.mockResolvedValue([]);
+    mockPrismaService.organization.count.mockResolvedValue(0);
     mockPrismaService.organization.findMany.mockResolvedValue([]);
     mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
 
@@ -145,6 +151,30 @@ describe('EntityLeaderboardService', () => {
     });
   });
 
+  // The first raw query of every list call ranks one page of entity ids in the
+  // database; the rest are the per-entity analytics lookups for those ids.
+  const rankRows = (...ids: string[]) =>
+    ids.map((entityId) => ({ entity_id: entityId }));
+
+  const analyticsRow = (
+    entityId: string,
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    avg_engagement_rate: 0,
+    entity_id: entityId,
+    platforms: [],
+    total_comments: BigInt(0),
+    total_likes: BigInt(0),
+    total_saves: BigInt(0),
+    total_shares: BigInt(0),
+    total_views: BigInt(0),
+    unique_posts: BigInt(0),
+    ...overrides,
+  });
+
+  // ==========================================================================
+  // getOrganizationsLeaderboard
+  // ==========================================================================
   describe('getOrganizationsLeaderboard', () => {
     const mockOrgId = 'org-cuid-1';
     const mockOrgs = [
@@ -162,28 +192,27 @@ describe('EntityLeaderboardService', () => {
       mockPrismaService.$queryRaw.mockResolvedValue([]);
     });
 
-    it('should return empty array when no organizations exist', async () => {
-      mockOrganizationsService.findAll.mockResolvedValue({ docs: [] });
-
+    it('should return empty array and skip hydration when no organizations rank', async () => {
       const result = await service.getOrganizationsLeaderboard();
 
       expect(result).toEqual([]);
+      expect(mockOrganizationsService.findAll).not.toHaveBeenCalled();
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
     });
 
     it('should return organizations with analytics', async () => {
-      // $queryRaw is called twice: getCurrentAnalytics, getPreviousEngagement
       mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(rankRows(mockOrgId))
         .mockResolvedValueOnce([
-          {
-            entity_id: mockOrgId,
+          analyticsRow(mockOrgId, {
             avg_engagement_rate: 5.5,
-            total_views: BigInt(1000),
-            total_likes: BigInt(100),
             total_comments: BigInt(50),
-            total_shares: BigInt(25),
+            total_likes: BigInt(100),
             total_saves: BigInt(10),
+            total_shares: BigInt(25),
+            total_views: BigInt(1000),
             unique_posts: BigInt(2),
-          },
+          }),
         ])
         .mockResolvedValueOnce([]); // previous period
 
@@ -199,17 +228,17 @@ describe('EntityLeaderboardService', () => {
 
     it('should calculate growth percentage correctly', async () => {
       mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(rankRows(mockOrgId))
         .mockResolvedValueOnce([
-          {
-            entity_id: mockOrgId,
+          analyticsRow(mockOrgId, {
             avg_engagement_rate: 5,
-            total_views: BigInt(200),
-            total_likes: BigInt(100),
             total_comments: BigInt(50),
-            total_shares: BigInt(25),
+            total_likes: BigInt(100),
             total_saves: BigInt(25),
+            total_shares: BigInt(25),
+            total_views: BigInt(200),
             unique_posts: BigInt(1),
-          },
+          }),
         ])
         .mockResolvedValueOnce([
           { entity_id: mockOrgId, total_engagement: BigInt(100) },
@@ -223,17 +252,17 @@ describe('EntityLeaderboardService', () => {
 
     it('should handle 100% growth for new orgs with no previous data', async () => {
       mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(rankRows(mockOrgId))
         .mockResolvedValueOnce([
-          {
-            entity_id: mockOrgId,
+          analyticsRow(mockOrgId, {
             avg_engagement_rate: 3,
-            total_views: BigInt(100),
-            total_likes: BigInt(10),
             total_comments: BigInt(5),
-            total_shares: BigInt(2),
+            total_likes: BigInt(10),
             total_saves: BigInt(1),
+            total_shares: BigInt(2),
+            total_views: BigInt(100),
             unique_posts: BigInt(1),
-          },
+          }),
         ])
         .mockResolvedValueOnce([]); // no previous data
 
@@ -242,35 +271,19 @@ describe('EntityLeaderboardService', () => {
       expect(result[0].growth).toBe(100);
     });
 
-    it('should sort by views when sort=VIEWS', async () => {
-      const org1 = { id: 'org-1', label: 'Org1' };
-      const org2 = { id: 'org-2', label: 'Org2' };
+    it('should keep the order the database ranked the organizations in', async () => {
       mockOrganizationsService.findAll.mockResolvedValue({
-        docs: [org1, org2],
+        // Hydration order is arbitrary; rank order must win.
+        docs: [
+          { id: 'org-1', label: 'Org1' },
+          { id: 'org-2', label: 'Org2' },
+        ],
       });
-
       mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(rankRows('org-2', 'org-1'))
         .mockResolvedValueOnce([
-          {
-            entity_id: 'org-1',
-            avg_engagement_rate: 0,
-            total_views: BigInt(100),
-            total_likes: BigInt(50),
-            total_comments: BigInt(0),
-            total_shares: BigInt(0),
-            total_saves: BigInt(0),
-            unique_posts: BigInt(0),
-          },
-          {
-            entity_id: 'org-2',
-            avg_engagement_rate: 0,
-            total_views: BigInt(500),
-            total_likes: BigInt(10),
-            total_comments: BigInt(0),
-            total_shares: BigInt(0),
-            total_saves: BigInt(0),
-            unique_posts: BigInt(0),
-          },
+          analyticsRow('org-1', { total_views: BigInt(100) }),
+          analyticsRow('org-2', { total_views: BigInt(500) }),
         ])
         .mockResolvedValueOnce([]);
 
@@ -280,17 +293,20 @@ describe('EntityLeaderboardService', () => {
         LeaderboardSort.VIEWS,
       );
 
-      expect(result[0].organization.name).toBe('Org2');
+      expect(result.map((item) => item.organization.name)).toEqual([
+        'Org2',
+        'Org1',
+      ]);
+      expect(result.map((item) => item.rank)).toEqual([1, 2]);
       expect(result[0].totalViews).toBe(500);
     });
 
-    it('should respect limit parameter', async () => {
-      const orgs = Array.from({ length: 20 }, (_, i) => ({
-        id: `org-${i}`,
-        label: `Org ${i}`,
-      }));
-      mockOrganizationsService.findAll.mockResolvedValue({ docs: orgs });
-      mockPrismaService.$queryRaw.mockResolvedValue([]);
+    it('should push the limit into the ranking query and look up only those ids', async () => {
+      const rankedIds = Array.from({ length: 5 }, (_, i) => `org-${i}`);
+      const capturedQueries = captureQueryRawCalls([rankRows(...rankedIds)]);
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: rankedIds.map((id) => ({ id, label: id })),
+      });
 
       const result = await service.getOrganizationsLeaderboard(
         undefined,
@@ -300,15 +316,77 @@ describe('EntityLeaderboardService', () => {
       );
 
       expect(result).toHaveLength(5);
+      const [rankQuery, ...lookups] = capturedQueries;
+      expect(rankQuery.sql).toContain('LIMIT ? OFFSET ?');
+      expect(rankQuery.values.slice(-2)).toEqual([5, 0]);
+      expect(lookups).toHaveLength(2);
+      for (const lookup of lookups) {
+        expect(lookup.values).toContainEqual(rankedIds);
+      }
+    });
+
+    it('should rank in SQL by the metric mapped from the sort enum', async () => {
+      const cases: Array<[LeaderboardSort, string]> = [
+        [LeaderboardSort.VIEWS, 'SUM("totalViews") AS metric'],
+        [LeaderboardSort.POSTS, 'COUNT(DISTINCT "postId") AS metric'],
+        [
+          LeaderboardSort.ENGAGEMENT,
+          'SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS metric',
+        ],
+      ];
+
+      for (const [sort, metric] of cases) {
+        const capturedQueries = captureQueryRawCalls([[]]);
+
+        await service.getOrganizationsLeaderboard(
+          undefined,
+          undefined,
+          sort,
+          10,
+        );
+
+        expect(capturedQueries[0].sql).toContain(metric);
+        expect(capturedQueries[0].sql).toContain(
+          'ORDER BY COALESCE(m.metric, 0) DESC, e."createdAt" DESC, e."id" DESC',
+        );
+      }
+    });
+
+    it('should rank live organizations only, including those with no analytics', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getOrganizationsLeaderboard();
+
+      expect(capturedQueries[0].sql).toContain('FROM "organizations" e');
+      expect(capturedQueries[0].sql).toContain('LEFT JOIN');
+      expect(capturedQueries[0].sql).toContain('e."isDeleted" = false');
+    });
+
+    it('should hydrate only the ranked ids and exclude deleted organizations', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows(mockOrgId));
+
+      await service.getOrganizationsLeaderboard();
+
+      expect(mockOrganizationsService.findAll).toHaveBeenCalledWith(
+        { where: { id: { in: [mockOrgId] }, isDeleted: false } },
+        { pagination: false },
+      );
     });
 
     it('should parameterize organization ids and date windows in raw analytics queries', async () => {
-      const capturedQueries = captureQueryRawCalls([[], []]);
+      const capturedQueries = captureQueryRawCalls([
+        rankRows(mockOrgId),
+        [],
+        [],
+      ]);
 
       await service.getOrganizationsLeaderboard('2025-01-01', '2025-01-31');
 
-      expect(capturedQueries).toHaveLength(2);
-      for (const query of capturedQueries) {
+      expect(capturedQueries).toHaveLength(3);
+      const [rankQuery, ...lookups] = capturedQueries;
+      expect(rankQuery.sql).toContain('"date" >= ?');
+      expect(rankQuery.sql).toContain('"date" <= ?');
+      for (const query of lookups) {
         expect(query.sql).toContain('"organizationId" = ANY(?::text[])');
         expect(query.sql).toContain('"date" >= ?');
         expect(query.sql).toContain('"date" <= ?');
@@ -340,28 +418,27 @@ describe('EntityLeaderboardService', () => {
       mockPrismaService.$queryRaw.mockResolvedValue([]);
     });
 
-    it('should return empty array when no brands exist', async () => {
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
-
+    it('should return empty array and skip hydration when no brands rank', async () => {
       const result = await service.getBrandsLeaderboard();
 
       expect(result).toEqual([]);
+      expect(mockBrandsService.findAll).not.toHaveBeenCalled();
     });
 
     it('should return brands with analytics', async () => {
       mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(rankRows(mockBrandId))
         .mockResolvedValueOnce([
-          {
-            entity_id: mockBrandId,
+          analyticsRow(mockBrandId, {
             avg_engagement_rate: 8.5,
-            total_views: BigInt(2000),
-            total_likes: BigInt(200),
-            total_comments: BigInt(100),
-            total_shares: BigInt(50),
-            total_saves: BigInt(20),
-            unique_posts: BigInt(1),
             platforms: [CredentialPlatform.YOUTUBE, CredentialPlatform.TIKTOK],
-          },
+            total_comments: BigInt(100),
+            total_likes: BigInt(200),
+            total_saves: BigInt(20),
+            total_shares: BigInt(50),
+            total_views: BigInt(2000),
+            unique_posts: BigInt(1),
+          }),
         ])
         .mockResolvedValueOnce([]);
 
@@ -374,35 +451,18 @@ describe('EntityLeaderboardService', () => {
       expect(result[0].activePlatforms).toContain(CredentialPlatform.YOUTUBE);
     });
 
-    it('should sort by posts when sort=POSTS', async () => {
-      const brand1 = { id: 'brand-1', label: 'Brand1', org: { label: 'Org1' } };
-      const brand2 = { id: 'brand-2', label: 'Brand2', org: { label: 'Org2' } };
-      mockBrandsService.findAll.mockResolvedValue({ docs: [brand1, brand2] });
-
+    it('should keep the order the database ranked the brands in', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [
+          { id: 'brand-1', label: 'Brand1' },
+          { id: 'brand-2', label: 'Brand2' },
+        ],
+      });
       mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(rankRows('brand-2', 'brand-1'))
         .mockResolvedValueOnce([
-          {
-            entity_id: 'brand-1',
-            avg_engagement_rate: 0,
-            total_views: BigInt(100),
-            total_likes: BigInt(0),
-            total_comments: BigInt(0),
-            total_shares: BigInt(0),
-            total_saves: BigInt(0),
-            unique_posts: BigInt(1),
-            platforms: [],
-          },
-          {
-            entity_id: 'brand-2',
-            avg_engagement_rate: 0,
-            total_views: BigInt(50),
-            total_likes: BigInt(0),
-            total_comments: BigInt(0),
-            total_shares: BigInt(0),
-            total_saves: BigInt(0),
-            unique_posts: BigInt(3),
-            platforms: [],
-          },
+          analyticsRow('brand-1', { unique_posts: BigInt(1) }),
+          analyticsRow('brand-2', { unique_posts: BigInt(3) }),
         ])
         .mockResolvedValueOnce([]);
 
@@ -412,13 +472,13 @@ describe('EntityLeaderboardService', () => {
         LeaderboardSort.POSTS,
       );
 
-      expect(result[0].name).toBe('Brand2');
+      expect(result.map((brand) => brand.name)).toEqual(['Brand2', 'Brand1']);
       expect(result[0].totalPosts).toBe(3);
     });
 
-    it('should scope BrandsService.findAll to the given organizationId', async () => {
+    it('should scope ranking and hydration to the given organizationId', async () => {
       const orgId = 'org-scoped-xyz';
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+      const capturedQueries = captureQueryRawCalls([rankRows(mockBrandId)]);
 
       await service.getBrandsLeaderboard(
         undefined,
@@ -428,30 +488,60 @@ describe('EntityLeaderboardService', () => {
         orgId,
       );
 
+      expect(capturedQueries[0].sql).toContain('e."organizationId" = ?');
+      expect(capturedQueries[0].sql).toContain('AND "organizationId" = ?');
+      expect(
+        capturedQueries[0].values.filter((value) => value === orgId),
+      ).toHaveLength(2);
       expect(mockBrandsService.findAll).toHaveBeenCalledWith(
-        { where: { isDeleted: false, organizationId: orgId } },
+        {
+          where: {
+            id: { in: [mockBrandId] },
+            isDeleted: false,
+            organizationId: orgId,
+          },
+        },
         { pagination: false },
       );
     });
 
-    it('should NOT include organizationId filter when no organizationId provided to getBrandsLeaderboard', async () => {
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+    it('should NOT include an organizationId filter when none is provided', async () => {
+      const capturedQueries = captureQueryRawCalls([rankRows(mockBrandId)]);
 
       await service.getBrandsLeaderboard();
 
+      expect(capturedQueries[0].sql).not.toContain('"organizationId" = ?');
       expect(mockBrandsService.findAll).toHaveBeenCalledWith(
-        { where: { isDeleted: false } },
+        { where: { id: { in: [mockBrandId] }, isDeleted: false } },
         { pagination: false },
       );
     });
 
+    it('should rank live brands only, including those with no analytics', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getBrandsLeaderboard();
+
+      expect(capturedQueries[0].sql).toContain('FROM "brands" e');
+      expect(capturedQueries[0].sql).toContain('LEFT JOIN');
+      expect(capturedQueries[0].sql).toContain('e."isDeleted" = false');
+      expect(capturedQueries[0].sql).toContain('GROUP BY "brandId"');
+    });
+
     it('should parameterize brand ids and date windows in raw analytics queries', async () => {
-      const capturedQueries = captureQueryRawCalls([[], []]);
+      const capturedQueries = captureQueryRawCalls([
+        rankRows(mockBrandId),
+        [],
+        [],
+      ]);
 
       await service.getBrandsLeaderboard('2025-01-01', '2025-01-31');
 
-      expect(capturedQueries).toHaveLength(2);
-      for (const query of capturedQueries) {
+      expect(capturedQueries).toHaveLength(3);
+      const [rankQuery, ...lookups] = capturedQueries;
+      expect(rankQuery.sql).toContain('"date" >= ?');
+      expect(rankQuery.sql).toContain('"date" <= ?');
+      for (const query of lookups) {
         expect(query.sql).toContain('"brandId" = ANY(?::text[])');
         expect(query.sql).toContain('"date" >= ?');
         expect(query.sql).toContain('"date" <= ?');
@@ -468,14 +558,16 @@ describe('EntityLeaderboardService', () => {
       mockOrganizationsService.findAll.mockResolvedValue({ docs: [] });
       mockPrismaService.$queryRaw.mockResolvedValue([]);
       mockPrismaService.brand.groupBy.mockResolvedValue([]);
+      mockPrismaService.organization.count.mockResolvedValue(0);
     });
 
-    it('should return paginated response', async () => {
-      const orgs = Array.from({ length: 25 }, (_, i) => ({
-        id: `org-${i}`,
-        label: `Org ${i}`,
-      }));
-      mockOrganizationsService.findAll.mockResolvedValue({ docs: orgs });
+    it('should return a database-paged response', async () => {
+      const rankedIds = Array.from({ length: 10 }, (_, i) => `org-${i}`);
+      const capturedQueries = captureQueryRawCalls([rankRows(...rankedIds)]);
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: rankedIds.map((id) => ({ id, label: id })),
+      });
+      mockPrismaService.organization.count.mockResolvedValue(25);
 
       const result = await service.getOrganizationsWithStats(
         undefined,
@@ -489,10 +581,33 @@ describe('EntityLeaderboardService', () => {
       expect(result.pagination.limit).toBe(10);
       expect(result.pagination.total).toBe(25);
       expect(result.pagination.totalPages).toBe(3);
+      expect(capturedQueries[0].values.slice(-2)).toEqual([10, 0]);
+      expect(mockPrismaService.organization.count).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
     });
 
-    it('should include brand counts per org', async () => {
+    it('should offset the ranking query by the requested page', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+      mockPrismaService.organization.count.mockResolvedValue(25);
+
+      const result = await service.getOrganizationsWithStats(
+        undefined,
+        undefined,
+        3,
+        10,
+      );
+
+      expect(capturedQueries[0].values.slice(-2)).toEqual([10, 20]);
+      // A page past the end is empty but still reports the real total.
+      expect(result.data).toEqual([]);
+      expect(result.pagination.total).toBe(25);
+      expect(mockOrganizationsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('should include brand counts per org, for the page only', async () => {
       const orgId = 'org-cuid-1';
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows(orgId));
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [{ id: orgId, label: 'Test Org' }],
       });
@@ -503,6 +618,36 @@ describe('EntityLeaderboardService', () => {
       const result = await service.getOrganizationsWithStats();
 
       expect(result.data[0].totalBrands).toBe(5);
+      expect(mockPrismaService.brand.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isDeleted: false, organizationId: { in: [orgId] } },
+        }),
+      );
+    });
+
+    it('should not count brands when the page is empty', async () => {
+      await service.getOrganizationsWithStats();
+
+      expect(mockPrismaService.brand.groupBy).not.toHaveBeenCalled();
+    });
+
+    it('should include active member counts per org', async () => {
+      const orgId = 'org-cuid-2';
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [{ id: orgId, label: 'Test Org' }],
+      });
+      mockPrismaService.member.groupBy.mockResolvedValue([
+        { organizationId: orgId, _count: { id: 3 } },
+      ]);
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(result.data[0].totalMembers).toBe(3);
+      expect(mockPrismaService.member.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true, isDeleted: false },
+        }),
+      );
     });
   });
 
@@ -513,15 +658,16 @@ describe('EntityLeaderboardService', () => {
     beforeEach(() => {
       mockBrandsService.findAll.mockResolvedValue({ docs: [] });
       mockPrismaService.$queryRaw.mockResolvedValue([]);
+      mockPrismaService.brand.count.mockResolvedValue(0);
     });
 
-    it('should return paginated response', async () => {
-      const brands = Array.from({ length: 30 }, (_, i) => ({
-        id: `brand-${i}`,
-        label: `Brand ${i}`,
-        org: { label: 'Org' },
-      }));
-      mockBrandsService.findAll.mockResolvedValue({ docs: brands });
+    it('should return a database-paged response', async () => {
+      const rankedIds = Array.from({ length: 10 }, (_, i) => `brand-${i}`);
+      const capturedQueries = captureQueryRawCalls([rankRows(...rankedIds)]);
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: rankedIds.map((id) => ({ id, label: id })),
+      });
+      mockPrismaService.brand.count.mockResolvedValue(30);
 
       const result = await service.getBrandsWithStats(
         undefined,
@@ -533,11 +679,80 @@ describe('EntityLeaderboardService', () => {
       expect(result.data).toHaveLength(10);
       expect(result.pagination.page).toBe(2);
       expect(result.pagination.total).toBe(30);
+      expect(result.pagination.totalPages).toBe(3);
+      expect(capturedQueries[0].values.slice(-2)).toEqual([10, 10]);
     });
 
-    it('should scope BrandsService.findAll to the given organizationId', async () => {
+    it('applies the name search to the ranking query and the total, not in memory', async () => {
+      const capturedQueries = captureQueryRawCalls([rankRows('acme-1')]);
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [{ id: 'acme-1', label: 'Acme 1' }],
+      });
+      mockPrismaService.brand.count.mockResolvedValue(12);
+
+      const result = await service.getBrandsWithStats(
+        undefined,
+        undefined,
+        2,
+        10,
+        LeaderboardSort.ENGAGEMENT,
+        undefined,
+        ' ACME ',
+      );
+
+      expect(capturedQueries[0].sql).toContain('e."label" ILIKE ?');
+      expect(capturedQueries[0].values).toContain('%ACME%');
+      expect(mockPrismaService.brand.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          label: { contains: 'ACME', mode: 'insensitive' },
+        },
+      });
+      expect(result.pagination.total).toBe(12);
+      expect(result.pagination.totalPages).toBe(2);
+    });
+
+    it('escapes LIKE wildcards in the name search', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getBrandsWithStats(
+        undefined,
+        undefined,
+        1,
+        10,
+        LeaderboardSort.ENGAGEMENT,
+        undefined,
+        '50%_off\\',
+      );
+
+      expect(capturedQueries[0].values).toContain('%50\\%\\_off\\\\%');
+    });
+
+    it('ignores a blank search', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getBrandsWithStats(
+        undefined,
+        undefined,
+        1,
+        10,
+        LeaderboardSort.ENGAGEMENT,
+        undefined,
+        '   ',
+      );
+
+      expect(capturedQueries[0].sql).not.toContain('ILIKE');
+      expect(mockPrismaService.brand.count).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
+    });
+
+    it('should scope ranking, count and hydration to the given organizationId', async () => {
       const orgId = 'org-stats-scoped';
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+      const capturedQueries = captureQueryRawCalls([rankRows('brand-1')]);
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [{ id: 'brand-1', label: 'Brand 1', organizationId: orgId }],
+      });
 
       await service.getBrandsWithStats(
         undefined,
@@ -548,21 +763,34 @@ describe('EntityLeaderboardService', () => {
         orgId,
       );
 
+      expect(capturedQueries[0].sql).toContain('e."organizationId" = ?');
+      expect(mockPrismaService.brand.count).toHaveBeenCalledWith({
+        where: { isDeleted: false, organizationId: orgId },
+      });
       expect(mockBrandsService.findAll).toHaveBeenCalledWith(
-        { where: { isDeleted: false, organizationId: orgId } },
+        {
+          where: {
+            id: { in: ['brand-1'] },
+            isDeleted: false,
+            organizationId: orgId,
+          },
+        },
         { pagination: false },
       );
     });
 
-    it('should NOT include organizationId filter when no organizationId provided to getBrandsWithStats', async () => {
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+    it('should NOT include an organizationId filter when none is provided', async () => {
+      const capturedQueries = captureQueryRawCalls([rankRows('brand-1')]);
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [{ id: 'brand-1', label: 'Brand 1' }],
+      });
 
       await service.getBrandsWithStats();
 
-      expect(mockBrandsService.findAll).toHaveBeenCalledWith(
-        { where: { isDeleted: false } },
-        { pagination: false },
-      );
+      expect(capturedQueries[0].sql).not.toContain('"organizationId" = ?');
+      expect(mockPrismaService.brand.count).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
     });
   });
 
@@ -584,10 +812,16 @@ describe('EntityLeaderboardService', () => {
       organizationId,
     });
 
+    /** Rank and hydrate exactly these docs, as the database page would. */
+    const givenRankedBrands = (docs: ReturnType<typeof brandDoc>[]) => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(
+        rankRows(...docs.map((doc) => doc.id)),
+      );
+      mockBrandsService.findAll.mockResolvedValue({ docs });
+    };
+
     it('resolves brand logos from Asset rows, not the dead brand.logo alias', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
+      givenRankedBrands([brandDoc('brand-1', 'org-1')]);
       mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(
         new Map([['brand-1', 'https://cdn.example.com/logos/asset-a']]),
       );
@@ -598,9 +832,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('leaves a brand logo undefined when no live logo asset exists', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
+      givenRankedBrands([brandDoc('brand-1', 'org-1')]);
       mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
 
       const result = await service.getBrandsLeaderboard();
@@ -609,13 +841,11 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('groups brand ids by owning organization for the batched read', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [
-          brandDoc('brand-1', 'org-1'),
-          brandDoc('brand-2', 'org-1'),
-          brandDoc('brand-3', 'org-2'),
-        ],
-      });
+      givenRankedBrands([
+        brandDoc('brand-1', 'org-1'),
+        brandDoc('brand-2', 'org-1'),
+        brandDoc('brand-3', 'org-2'),
+      ]);
 
       await service.getBrandsLeaderboard();
 
@@ -628,11 +858,11 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('resolves a whole page of brands in one batched call, not one per brand', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: Array.from({ length: 25 }, (_, index) =>
+      givenRankedBrands(
+        Array.from({ length: 25 }, (_, index) =>
           brandDoc(`brand-${index}`, 'org-1'),
         ),
-      });
+      );
 
       await service.getBrandsLeaderboard();
 
@@ -640,9 +870,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('resolves brand logos on the paginated stats path too', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
+      givenRankedBrands([brandDoc('brand-1', 'org-1')]);
       mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(
         new Map([['brand-1', 'https://cdn.example.com/logos/asset-a']]),
       );
@@ -653,6 +881,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('reads organization avatars from authProviderLogoUrl, not the dead org.logo alias', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows('org-1'));
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [
           {
@@ -672,6 +901,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('leaves an organization avatar undefined when the auth provider supplied none', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows('org-1'));
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [{ id: 'org-1', authProviderLogoUrl: null, label: 'Test Org' }],
       });
@@ -682,6 +912,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('reads organization avatars from authProviderLogoUrl on the paginated stats path too', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows('org-1'));
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [
           {
@@ -698,11 +929,13 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('resolves logos only for the ranked page, not the whole brand table', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: Array.from({ length: 25 }, (_, index) =>
+      // The database returns just the page; hydration and logos never see the
+      // other 20 brands.
+      givenRankedBrands(
+        Array.from({ length: 5 }, (_, index) =>
           brandDoc(`brand-${index}`, 'org-1'),
         ),
-      });
+      );
 
       await service.getBrandsLeaderboard(
         undefined,
@@ -716,23 +949,7 @@ describe('EntityLeaderboardService', () => {
       expect(brandIdsByOrganization.get('org-1')).toHaveLength(5);
     });
 
-    it('resolves logos only for the requested page on the paginated path', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: Array.from({ length: 30 }, (_, index) =>
-          brandDoc(`brand-${index}`, 'org-1'),
-        ),
-      });
-
-      await service.getBrandsWithStats(undefined, undefined, 2, 10);
-
-      const [brandIdsByOrganization] =
-        mockBrandsService.resolveBrandLogoUrls.mock.calls[0];
-      expect(brandIdsByOrganization.get('org-1')).toHaveLength(10);
-    });
-
     it('does not resolve brand logos when the page is empty', async () => {
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
-
       await service.getBrandsLeaderboard();
 
       expect(mockBrandsService.resolveBrandLogoUrls).not.toHaveBeenCalled();
@@ -759,10 +976,16 @@ describe('EntityLeaderboardService', () => {
       organizationId,
     });
 
+    /** Rank and hydrate exactly these docs, as the database page would. */
+    const givenRankedBrands = (docs: ReturnType<typeof brandDoc>[]) => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(
+        rankRows(...docs.map((doc) => doc.id)),
+      );
+      mockBrandsService.findAll.mockResolvedValue({ docs });
+    };
+
     it('resolves organizationName from Organization rows, not the dead brand.org alias', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
+      givenRankedBrands([brandDoc('brand-1', 'org-1')]);
       mockPrismaService.organization.findMany.mockResolvedValue([
         { id: 'org-1', label: 'Real Org' },
       ]);
@@ -774,9 +997,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('falls back to Unknown when the organization row is missing', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
+      givenRankedBrands([brandDoc('brand-1', 'org-1')]);
       mockPrismaService.organization.findMany.mockResolvedValue([]);
 
       const result = await service.getBrandsLeaderboard();
@@ -785,9 +1006,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('takes organizationId from the scalar FK and never from the org alias', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', undefined)],
-      });
+      givenRankedBrands([brandDoc('brand-1', undefined)]);
 
       const result = await service.getBrandsLeaderboard();
 
@@ -796,9 +1015,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('scopes the organization read to live rows by id', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
+      givenRankedBrands([brandDoc('brand-1', 'org-1')]);
 
       await service.getBrandsLeaderboard();
 
@@ -810,11 +1027,11 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('reads a page of brands in one batched query with deduplicated org ids', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: Array.from({ length: 25 }, (_, index) =>
+      givenRankedBrands(
+        Array.from({ length: 25 }, (_, index) =>
           brandDoc(`brand-${index}`, index % 2 === 0 ? 'org-1' : 'org-2'),
         ),
-      });
+      );
 
       await service.getBrandsLeaderboard(
         undefined,
@@ -829,11 +1046,11 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('resolves names only for the ranked page, not the whole brand table', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: Array.from({ length: 25 }, (_, index) =>
+      givenRankedBrands(
+        Array.from({ length: 5 }, (_, index) =>
           brandDoc(`brand-${index}`, `org-${index}`),
         ),
-      });
+      );
 
       await service.getBrandsLeaderboard(
         undefined,
@@ -847,9 +1064,7 @@ describe('EntityLeaderboardService', () => {
     });
 
     it('resolves names on the paginated stats path too', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
+      givenRankedBrands([brandDoc('brand-1', 'org-1')]);
       mockPrismaService.organization.findMany.mockResolvedValue([
         { id: 'org-1', label: 'Real Org' },
       ]);
@@ -860,22 +1075,7 @@ describe('EntityLeaderboardService', () => {
       expect(result.data[0].organizationId).toBe('org-1');
     });
 
-    it('resolves names only for the requested page on the paginated path', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: Array.from({ length: 30 }, (_, index) =>
-          brandDoc(`brand-${index}`, `org-${index}`),
-        ),
-      });
-
-      await service.getBrandsWithStats(undefined, undefined, 2, 10);
-
-      const [{ where }] = mockPrismaService.organization.findMany.mock.calls[0];
-      expect(where.id.in).toHaveLength(10);
-    });
-
     it('does not query organizations when the page is empty', async () => {
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
-
       await service.getBrandsLeaderboard();
 
       expect(mockPrismaService.organization.findMany).not.toHaveBeenCalled();

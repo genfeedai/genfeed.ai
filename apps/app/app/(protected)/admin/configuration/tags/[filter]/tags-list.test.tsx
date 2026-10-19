@@ -1,11 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TagsList from './tags-list';
 
 const mocks = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
   deleteTag: vi.fn(),
   findAll: vi.fn(),
   findOrganizationTags: vi.fn(),
@@ -86,6 +88,10 @@ vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({
     setQueryData: mocks.setQueryData,
   }),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@ui/display/badge/Badge', () => ({
@@ -194,14 +200,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: mocks.replace,
   }),
-  useSearchParams: () => ({
-    get: (key: string) => {
-      if (key === 'organization') return 'org-1';
-      if (key === 'brand') return 'brand-1';
-      return null;
-    },
-    toString: () => 'organization=org-1&brand=brand-1&page=2',
-  }),
+  useSearchParams: () => mocks.searchParams,
 }));
 
 function makeTag(overrides: Record<string, unknown> = {}) {
@@ -258,6 +257,9 @@ function mockTagsQuery(
 describe('TagsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.searchParams = new URLSearchParams(
+      'organization=org-1&brand=brand-1&page=2',
+    );
     mocks.deleteTag.mockResolvedValue({ ok: true });
     mocks.findAll.mockResolvedValue([]);
     mocks.findOrganizationTags.mockResolvedValue([]);
@@ -276,9 +278,50 @@ describe('TagsList', () => {
       expect(mocks.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: 'brand-1',
+          limit: ITEMS_PER_PAGE,
           organization: 'org-1',
+          page: 2,
           sort: 'createdAt: -1',
         }),
+      );
+    });
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
+  it('keys the query on the page and resets it when the search changes', async () => {
+    const filters = {
+      format: '',
+      model: '',
+      provider: '',
+      search: '',
+      sort: 'createdAt',
+      status: '',
+      type: '',
+    };
+    const { rerender } = render(
+      <TagsList
+        filter="all"
+        scope={PageScope.SUPERADMIN}
+        externalFilters={filters}
+      />,
+    );
+    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(mocks.useQuery.mock.calls.at(-1)?.[0].queryKey).toContain(2);
+
+    rerender(
+      <TagsList
+        filter="all"
+        scope={PageScope.SUPERADMIN}
+        externalFilters={{ ...filters, search: 'launch' }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/admin/configuration/tags/all?organization=org-1&brand=brand-1',
+        { scroll: false },
       );
     });
   });

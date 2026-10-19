@@ -245,3 +245,51 @@ describe('ContentPlansService CLOUD tenant guard', () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
+
+describe('ContentPlansService.listByBrand', () => {
+  it('returns one tenant-scoped page with a total from the same filter', async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        config: { name: 'Plan' },
+        id: 'plan-1',
+        label: 'Plan',
+        organizationId: 'org-1',
+      },
+    ]);
+    const count = vi.fn().mockResolvedValue(31);
+    const service = new ContentPlansService(
+      { contentPlan: { count, findMany } } as unknown as PrismaService,
+      {
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as LoggerService,
+    );
+
+    const result = await service.listByBrand('org-1', 'brand-1', {
+      limit: 15,
+      page: 3,
+      skip: 30,
+    });
+
+    const where = {
+      brandId: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    };
+    expect(findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 30,
+      take: 15,
+      where,
+    });
+    expect(count).toHaveBeenCalledWith({ where });
+    expect(result).toMatchObject({
+      limit: 15,
+      page: 3,
+      totalDocs: 31,
+      totalPages: 3,
+    });
+    expect(result.docs).toHaveLength(1);
+  });
+});

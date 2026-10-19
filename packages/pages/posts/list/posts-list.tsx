@@ -3,7 +3,7 @@
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { PageScope, PostStatus } from '@genfeedai/contracts';
 import type { IPost, IPreset } from '@genfeedai/contracts/interfaces';
-import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import AdminPostsTable from '@pages/posts/list/components/AdminPostsTable';
 import PostsGrid from '@pages/posts/list/components/PostsGrid';
 import PostsListToolbar, {
@@ -294,7 +294,7 @@ export default function PostsList({
         </>
       )}
 
-      <PostDetailOverlay
+      <PostDetailPanel
         postId={selectedPostId}
         scope={scope}
         onClose={() => setSelectedPostId(null)}

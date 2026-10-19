@@ -391,21 +391,17 @@ export function useModalIngredient({
     [refreshChildIngredients],
   );
 
-  const handleReload = async (skipNotification?: boolean) => {
+  const handleReload = async () => {
     if (ingredient?.id) {
       await findAllIngredientChildren(ingredient.id);
 
       onConfirm?.();
-
-      if (!skipNotification) {
-        notificationsService.success('Refreshed successfully');
-      }
     }
   };
 
   const handleTextOverlaySuccess = () => {
     setShowTextOverlayPanel(false);
-    handleReload(true);
+    handleReload();
   };
 
   const handleScopeChange = useCallback(

@@ -17,11 +17,13 @@ import { LearningRunService } from '@api/collections/content-learning/services/l
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ContentLearningAccountSerializer,
   ContentLearningDatasetSerializer,
@@ -61,61 +63,106 @@ export class ContentLearningAdminController {
     private readonly releases: LearningReleaseService,
     private readonly prisma: PrismaService,
   ) {}
+  /** One database page plus the total, for the JSON:API `pagination` links. */
+  private async page<T>(
+    query: LearningQueryDto,
+    load: (window: { skip: number; take: number }) => Promise<T[]>,
+    count: () => Promise<number>,
+  ): Promise<AggregatePaginateResult<T>> {
+    const [docs, totalDocs] = await Promise.all([
+      load({ skip: (query.page - 1) * query.limit, take: query.limit }),
+      count(),
+    ]);
+    return buildPaginatedResult(docs, totalDocs, query.page, query.limit);
+  }
   @Get('accounts') async accounts(
     @Req() request: Request,
     @Query() query: LearningQueryDto,
   ) {
-    return serializeCollection(request, ContentLearningAccountSerializer, {
-      docs: await crossOrgUnsafe(
-        async () =>
-          // tenant-scope-ignore: superadmin inventory is platform-wide
-          await this.prisma.contentLearningAccount.findMany({
-            where: { isDeleted: false },
-            take: query.limit,
-            skip: (query.page - 1) * query.limit,
-            orderBy: { updatedAt: 'desc' },
-          }),
+    const where = { isDeleted: false };
+    return serializeCollection(
+      request,
+      ContentLearningAccountSerializer,
+      await crossOrgUnsafe(() =>
+        this.page(
+          query,
+          ({ skip, take }) =>
+            // tenant-scope-ignore: superadmin inventory is platform-wide
+            this.prisma.contentLearningAccount.findMany({
+              orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+              skip,
+              take,
+              where,
+            }),
+          () =>
+            // tenant-scope-ignore: superadmin inventory is platform-wide
+            this.prisma.contentLearningAccount.count({ where }),
+        ),
       ),
-    });
+    );
   }
   @Get('datasets') async datasetList(
     @Req() request: Request,
     @Query() query: LearningQueryDto,
   ) {
-    return serializeCollection(request, ContentLearningDatasetSerializer, {
-      docs: await this.prisma.contentLearningDataset.findMany({
-        where: { isDeleted: false },
-        take: query.limit,
-        skip: (query.page - 1) * query.limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-    });
+    const where = { isDeleted: false };
+    return serializeCollection(
+      request,
+      ContentLearningDatasetSerializer,
+      await this.page(
+        query,
+        ({ skip, take }) =>
+          this.prisma.contentLearningDataset.findMany({
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip,
+            take,
+            where,
+          }),
+        () => this.prisma.contentLearningDataset.count({ where }),
+      ),
+    );
   }
   @Get('runs') async runList(
     @Req() request: Request,
     @Query() query: LearningQueryDto,
   ) {
-    return serializeCollection(request, ContentLearningRunSerializer, {
-      docs: await this.prisma.contentLearningRun.findMany({
-        where: { isDeleted: false },
-        take: query.limit,
-        skip: (query.page - 1) * query.limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-    });
+    const where = { isDeleted: false };
+    return serializeCollection(
+      request,
+      ContentLearningRunSerializer,
+      await this.page(
+        query,
+        ({ skip, take }) =>
+          this.prisma.contentLearningRun.findMany({
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip,
+            take,
+            where,
+          }),
+        () => this.prisma.contentLearningRun.count({ where }),
+      ),
+    );
   }
   @Get('releases') async releaseList(
     @Req() request: Request,
     @Query() query: LearningQueryDto,
   ) {
-    return serializeCollection(request, ContentLearningReleaseSerializer, {
-      docs: await this.prisma.contentLearningRelease.findMany({
-        where: { isDeleted: false },
-        take: query.limit,
-        skip: (query.page - 1) * query.limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-    });
+    const where = { isDeleted: false };
+    return serializeCollection(
+      request,
+      ContentLearningReleaseSerializer,
+      await this.page(
+        query,
+        ({ skip, take }) =>
+          this.prisma.contentLearningRelease.findMany({
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip,
+            take,
+            where,
+          }),
+        () => this.prisma.contentLearningRelease.count({ where }),
+      ),
+    );
   }
   @Post('datasets') async createDataset(
     @Req() request: Request,

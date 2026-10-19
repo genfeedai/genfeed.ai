@@ -31,7 +31,7 @@ describe('WatchlistsController', () => {
   beforeEach(() => {
     watchlistsService = {
       create: vi.fn(),
-      findAllByAccount: vi.fn().mockResolvedValue([]),
+      findAllByAccount: vi.fn().mockResolvedValue({ docs: [] }),
       findByHandle: vi.fn().mockResolvedValue(null),
       findOne: vi.fn(),
       patch: vi.fn(),
@@ -60,13 +60,20 @@ describe('WatchlistsController', () => {
           platform: 'tiktok',
         },
       ];
-      watchlistsService.findAllByAccount.mockResolvedValue(items);
+      watchlistsService.findAllByAccount.mockResolvedValue({
+        docs: items,
+        limit: 20,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      });
 
       const result = await controller.findAll(mockRequest, mockUser);
 
       expect(watchlistsService.findAllByAccount).toHaveBeenCalledWith(
         brandId,
         orgId,
+        { limit: 20, page: 1 },
       );
       expect(result).toBeDefined();
     });

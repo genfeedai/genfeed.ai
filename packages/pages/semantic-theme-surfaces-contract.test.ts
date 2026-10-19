@@ -73,7 +73,6 @@ describe('page semantic theme surfaces', () => {
       'border-white',
       'border-border',
     ],
-    ['posts/detail/PostDetailOverlay.tsx', 'border-white', 'border-border'],
     [
       'brands/components/sidebar/BrandDetailManualKitCard.tsx',
       'border-white',

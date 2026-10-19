@@ -6,6 +6,7 @@ import {
   MemberRole,
   PersonaAvailabilityMode,
 } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   fireEvent,
   render,
@@ -123,6 +124,16 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     }
     return mocks.getImagesService;
   },
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/main/library/references',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -345,6 +356,20 @@ describe('LibraryCharactersPage', () => {
       owningBrandName: 'Personal brand',
       referenceIngredientIds: [],
     };
+
+    it('pages the character list from the server', async () => {
+      mocks.listCharacters.mockResolvedValue([privateCharacter]);
+      render(<LibraryCharactersPage />);
+
+      expect(await screen.findByText('Ben')).toBeVisible();
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toBeVisible();
+      expect(mocks.listCharacters).toHaveBeenCalledWith(
+        { limit: ITEMS_PER_PAGE, page: 1 },
+        expect.any(AbortSignal),
+      );
+    });
 
     it('shows a shared badge with the owning brand and brand count', async () => {
       mocks.listCharacters.mockResolvedValue([

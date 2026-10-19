@@ -12,6 +12,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 type MockDelegate = {
+  count: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
@@ -25,6 +26,7 @@ describe('WatchlistsService persistence boundary', () => {
 
   beforeEach(() => {
     delegate = {
+      count: vi.fn().mockResolvedValue(0),
       create: vi.fn().mockImplementation(({ data }) =>
         Promise.resolve({
           ...data,
@@ -117,7 +119,10 @@ describe('WatchlistsService persistence boundary', () => {
         '@creator',
         'org-1',
       );
-      await service.findAllByAccount('brand-1', 'org-1');
+      await service.findAllByAccount('brand-1', 'org-1', {
+        limit: 20,
+        page: 1,
+      });
       await service.updateMetrics('watchlist-1', 'org-1', { followers: 10 });
       await service.patch('watchlist-1', { label: 'New label' }, []);
     });
@@ -139,5 +144,43 @@ describe('WatchlistsService persistence boundary', () => {
         where: { id: 'watchlist-1', isDeleted: false, organizationId: 'org-1' },
       }),
     );
+  });
+
+  it('pages a brand watchlist with skip/take and a matching count', async () => {
+    delegate.findMany.mockResolvedValue([
+      { config: {}, id: 'watchlist-3' },
+      { config: {}, id: 'watchlist-2' },
+    ]);
+    delegate.count.mockResolvedValue(45);
+
+    const result = await service.findAllByAccount('brand-1', 'org-1', {
+      limit: 20,
+      page: 3,
+    });
+
+    const where = {
+      brandId: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    };
+    expect(delegate.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 40,
+      take: 20,
+      where,
+    });
+    expect(delegate.count).toHaveBeenCalledWith({ where });
+    expect(result).toMatchObject({
+      hasNextPage: false,
+      hasPrevPage: true,
+      limit: 20,
+      page: 3,
+      totalDocs: 45,
+      totalPages: 3,
+    });
+    expect(result.docs.map((doc) => doc.id)).toEqual([
+      'watchlist-3',
+      'watchlist-2',
+    ]);
   });
 });

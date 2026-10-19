@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import { API_ENDPOINTS, MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type {
   ISavedAd,
   SaveAdInput,
@@ -12,6 +12,9 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
+/** Safety ceiling for the page walk: 50 x 100 saved ads. */
+const MAX_SAVED_AD_PAGES = 50;
+
 export class SavedAdsService extends HTTPBaseService {
   constructor(token: string) {
     super(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.SAVED_ADS}`, token);
@@ -24,10 +27,25 @@ export class SavedAdsService extends HTTPBaseService {
     ) as SavedAdsService;
   }
 
-  async list(brandId: string): Promise<ISavedAd[]> {
-    return this.instance
-      .get<JsonApiResponseDocument>('', { params: { brandId } })
-      .then((response) => extractCollection<ISavedAd>(response.data));
+  /** Every saved ad for the brand, walking the API's pages. */
+  async list(brandId: string, signal?: AbortSignal): Promise<ISavedAd[]> {
+    const savedAds: ISavedAd[] = [];
+    let totalPages = 1;
+
+    for (
+      let page = 1;
+      page <= Math.min(totalPages, MAX_SAVED_AD_PAGES);
+      page += 1
+    ) {
+      const response = await this.instance.get<JsonApiResponseDocument>('', {
+        params: { brandId, limit: MAX_PAGE_SIZE, page },
+        signal,
+      });
+      savedAds.push(...extractCollection<ISavedAd>(response.data));
+      totalPages = response.data.links?.pagination?.pages ?? 1;
+    }
+
+    return savedAds;
   }
 
   async save(inputs: SaveAdInput[]): Promise<ISavedAd[]> {

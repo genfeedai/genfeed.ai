@@ -382,7 +382,7 @@ export function buildLlmsFull(
   s.push('## Pricing');
   s.push('');
   s.push(
-    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, API access on paid plans, and unlimited team seats. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} includes one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.scale.creditRateAdvantage} better rate, higher API limits, and unlimited team seats. API access is included on every plan. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} includes one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
   );
   s.push('');
 

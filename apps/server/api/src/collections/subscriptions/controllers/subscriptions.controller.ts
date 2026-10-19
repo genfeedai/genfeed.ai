@@ -305,17 +305,6 @@ export class SubscriptionsController {
       const subscriptions =
         paginated.docs as unknown as SubscriptionRowSource[];
 
-      if (
-        paginated.totalDocs > subscriptions.length &&
-        paginated.page === 1 &&
-        !options.pagination
-      ) {
-        this._loggerService.warn(
-          'SubscriptionsController.getCreditUsage result truncated by pagination',
-          { returned: subscriptions.length, totalDocs: paginated.totalDocs },
-        );
-      }
-
       const organizationIds = Array.from(
         new Set(
           subscriptions

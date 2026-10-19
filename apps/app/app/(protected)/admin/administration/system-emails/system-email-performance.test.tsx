@@ -92,9 +92,10 @@ describe('SystemEmailPerformance', () => {
     });
     render(<SystemEmailPerformance query={query} />);
     expect(await screen.findByText('custom-template')).toBeInTheDocument();
-    expect(screen.getByText('80.0% of accepted')).toBeInTheDocument();
-    expect(screen.getByText('40.0% of accepted')).toBeInTheDocument();
-    expect(screen.getByText('20.0% of accepted')).toBeInTheDocument();
+    expect(screen.getByText('80.0%')).toBeInTheDocument();
+    expect(screen.getByText('40.0%')).toBeInTheDocument();
+    expect(screen.getByText('20.0%')).toBeInTheDocument();
+    expect(screen.getAllByText('% of accepted')).toHaveLength(3);
     expect(screen.getByText('Opens (approx.)')).toBeInTheDocument();
     expect(screen.getByText(/not causal lift/)).toBeInTheDocument();
   });
