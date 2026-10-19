@@ -531,19 +531,23 @@ describe('PostDetail standalone composer', () => {
     ).toBeVisible();
   });
 
-  it('preserves the overlay sidebar and existing view-mode controls', () => {
+  it('renders the sidebar presentation without the view-mode controls', () => {
     render(
-      <PostDetail
-        postId="post-1"
-        scope={PageScope.PUBLISHING}
-        presentation="overlay"
-      />,
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <PostDetail
+          postId="post-1"
+          scope={PageScope.PUBLISHING}
+          presentation="sidebar"
+        />
+      </ContextSidebarProvider>,
     );
+    const inspector = screen.getByTestId('inspector-outlet');
     expect(
-      screen.queryByRole('button', { name: 'Preview' }),
+      within(inspector).queryByRole('button', { name: 'Preview' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('target-preview')).toBeVisible();
-    expect(screen.getByTestId('post-sidebar')).toBeVisible();
+    expect(within(inspector).getByTestId('engagement-preview')).toBeVisible();
+    expect(within(inspector).getByTestId('post-sidebar')).toBeVisible();
   });
 
   it('preserves custom sidebar hosts in embedded pages', () => {

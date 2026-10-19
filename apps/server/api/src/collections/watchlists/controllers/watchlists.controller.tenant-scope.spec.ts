@@ -11,6 +11,8 @@ import {
 } from '@api-test/helpers/tenant-read.fixture';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
+const PAGING = { limit: 20, page: 1 };
+
 describe('WatchlistsController tenant reads (#6176)', () => {
   function setup() {
     const mock = vi.fn().mockResolvedValue({ docs: [] });
@@ -28,6 +30,7 @@ describe('WatchlistsController tenant reads (#6176)', () => {
     const { controller, mock } = setup();
     const user = adminUser;
     const query = {
+      ...PAGING,
       organizationId: targetOrganizationId,
       brandId: targetBrandId,
     };
@@ -41,7 +44,7 @@ describe('WatchlistsController tenant reads (#6176)', () => {
   it('rejects a member foreign organization before reading', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = { ...PAGING, organizationId: targetOrganizationId };
     const request = tenantReadRequest(user, query);
     await expect(controller.findAll(request, user, query)).rejects.toThrow(
       ForbiddenException,
@@ -52,7 +55,7 @@ describe('WatchlistsController tenant reads (#6176)', () => {
   it('keeps the session organization for a member without an override', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = {};
+    const query = { ...PAGING };
     const request = tenantReadRequest(user);
     await controller.findAll(request, user, query);
     expect(mock.mock.calls[0]?.[1]).toBe(sessionOrganizationId);
@@ -73,7 +76,7 @@ describe('WatchlistsController tenant reads (#6176)', () => {
   it('requires an explicit brand for a cross-organization list', async () => {
     const { controller, mock } = setup();
     const user = adminUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = { ...PAGING, organizationId: targetOrganizationId };
     const request = tenantReadRequest(user, query);
     await expect(controller.findAll(request, user, query)).rejects.toThrow(
       BadRequestException,
@@ -85,6 +88,7 @@ describe('WatchlistsController tenant reads (#6176)', () => {
     const { controller, mock } = setup();
     await expect(
       controller.findAll(tenantReadRequest(), memberUser, {
+        ...PAGING,
         brandId: targetBrandId,
       }),
     ).rejects.toThrow(ForbiddenException);

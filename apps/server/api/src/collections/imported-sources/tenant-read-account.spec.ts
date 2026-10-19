@@ -370,7 +370,8 @@ describe('account selected data and original authorization', () => {
     });
     const result = await selected(
       MembersController.prototype.listInvitations,
-      () => controller.listInvitations(requestFor(), {}, user),
+      () =>
+        controller.listInvitations(requestFor(), { limit: 20, page: 1 }, user),
     );
     expect((result as JsonApiCollectionResponse).data.map((r) => r.id)).toEqual(
       [invitations[1].id],
