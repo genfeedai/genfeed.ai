@@ -10,6 +10,7 @@ export type AdminRailCategoryId =
   | 'admin-overview'
   | 'admin-content'
   | 'admin-automation'
+  | 'admin-economics'
   | 'admin-configuration'
   | 'admin-administration';
 

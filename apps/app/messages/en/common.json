@@ -2573,6 +2573,10 @@
       "label": "AI & Automation",
       "description": "Models, trainings, bots and workflows."
     },
+    "adminEconomics": {
+      "label": "Economics",
+      "description": "Revenue, provider cost, margins and tracking coverage."
+    },
     "adminConfiguration": {
       "label": "Configuration",
       "description": "Elements, presets, fonts and tags."

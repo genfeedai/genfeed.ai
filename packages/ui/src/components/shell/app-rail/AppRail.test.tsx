@@ -369,8 +369,8 @@ describe('AppRail', () => {
     );
     const nav = screen.getByTestId('app-rail');
     const categories = screen.getByTestId('app-rail-admin-categories');
-    // The divider is the group's first child, followed by the five categories.
-    expect(categories.querySelectorAll('a')).toHaveLength(5);
+    // The divider is the group's first child, followed by the six categories.
+    expect(categories.querySelectorAll('a')).toHaveLength(6);
     expect(categories.firstElementChild?.tagName).toBe('DIV');
     expect(categories.firstElementChild).toHaveClass('my-1', 'w-5');
     // No empty app-loop group between the back button and the categories.

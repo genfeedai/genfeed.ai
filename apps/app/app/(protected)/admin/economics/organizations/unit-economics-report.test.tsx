@@ -2,13 +2,13 @@ import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
-import UnitEconomicsReport from './unit-economics-report';
 import {
-  buildUnitEconomicsRange,
-  buildUnitEconomicsTableRows,
+  buildEconomicsRange,
   formatMarginPercent,
   formatUsd,
-} from './unit-economics-report.util';
+} from '../economics-report.util';
+import UnitEconomicsReport from './unit-economics-report';
+import { buildUnitEconomicsTableRows } from './unit-economics-report.util';
 
 const metrics = {
   agentChatCredits: 0,
@@ -103,7 +103,7 @@ describe('unit economics report helpers', () => {
 
   it('builds an inclusive UTC day range', () => {
     expect(
-      buildUnitEconomicsRange(30, new Date('2026-09-30T12:00:00.000Z')),
+      buildEconomicsRange(30, new Date('2026-09-30T12:00:00.000Z')),
     ).toEqual({ from: '2026-09-01', to: '2026-09-30' });
   });
 
@@ -160,7 +160,11 @@ describe('UnitEconomicsReport', () => {
     const free = within(freeRow as HTMLElement);
     expect(free.getByText('<0.1')).toBeInTheDocument();
     expect(free.getByText('-$0.0021')).toBeInTheDocument();
-    expect(free.getByText('—', { selector: 'span' })).toBeInTheDocument();
+    // No margin % without revenue, and no "Free" for zero generation credits.
+    expect(free.getAllByText('—', { selector: 'span' }).length).toBeGreaterThan(
+      1,
+    );
+    expect(free.queryByText('Free')).not.toBeInTheDocument();
 
     expect(screen.getByText('Total')).toBeInTheDocument();
   });

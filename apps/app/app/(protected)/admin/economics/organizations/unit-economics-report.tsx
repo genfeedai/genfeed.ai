@@ -30,14 +30,18 @@ import { ArrowLeft, Scale } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  buildUnitEconomicsRange,
-  buildUnitEconomicsTableRows,
+  buildEconomicsRange,
+  DEFAULT_ECONOMICS_PERIOD_DAYS,
+  ECONOMICS_PERIOD_DAYS,
   formatMarginPercent,
   formatUsd,
-  UNIT_ECONOMICS_PERIOD_DAYS,
-} from './unit-economics-report.util';
+} from '../economics-report.util';
+import { buildUnitEconomicsTableRows } from './unit-economics-report.util';
 
-const DEFAULT_PERIOD_DAYS = '30';
+/** A report column has no free credits: zero spend is a dash, not "Free". */
+function formatCredits(credits: number): string {
+  return credits === 0 ? '—' : formatCreditCost(credits);
+}
 
 function isUnitEconomicsSortKey(key: string): key is UnitEconomicsSortKey {
   return [
@@ -55,7 +59,7 @@ function isUnitEconomicsSortKey(key: string): key is UnitEconomicsSortKey {
 
 export default function UnitEconomicsReport() {
   const translate = useTranslations('pages.unitEconomics');
-  const [periodDays, setPeriodDays] = useState(DEFAULT_PERIOD_DAYS);
+  const [periodDays, setPeriodDays] = useState(DEFAULT_ECONOMICS_PERIOD_DAYS);
   const [drillDown, setDrillDown] = useState<UnitEconomicsDrillDown | null>(
     null,
   );
@@ -68,7 +72,7 @@ export default function UnitEconomicsReport() {
     AdminUnitEconomicsService.getInstance(token),
   );
   const range = useMemo(
-    () => buildUnitEconomicsRange(Number(periodDays)),
+    () => buildEconomicsRange(Number(periodDays)),
     [periodDays],
   );
 
@@ -137,13 +141,13 @@ export default function UnitEconomicsReport() {
     {
       header: translate('columns.agentChatCredits'),
       key: 'agentChatCredits',
-      render: (row) => numberCell(formatCreditCost(row.agentChatCredits), row),
+      render: (row) => numberCell(formatCredits(row.agentChatCredits), row),
       sortable: true,
     },
     {
       header: translate('columns.generationCredits'),
       key: 'generationCredits',
-      render: (row) => numberCell(formatCreditCost(row.generationCredits), row),
+      render: (row) => numberCell(formatCredits(row.generationCredits), row),
       sortable: true,
       sortLabel: translate('columns.generationCreditsSort'),
     },
@@ -233,7 +237,7 @@ export default function UnitEconomicsReport() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {UNIT_ECONOMICS_PERIOD_DAYS.map((days) => (
+            {ECONOMICS_PERIOD_DAYS.map((days) => (
               <SelectItem key={days} value={String(days)}>
                 {translate('period', { days })}
               </SelectItem>

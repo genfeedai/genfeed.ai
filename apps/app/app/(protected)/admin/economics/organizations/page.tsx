@@ -1,5 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import UnitEconomicsReport from '@protected/administration/unit-economics/unit-economics-report';
+import UnitEconomicsReport from '@protected/economics/organizations/unit-economics-report';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Unit Economics');
