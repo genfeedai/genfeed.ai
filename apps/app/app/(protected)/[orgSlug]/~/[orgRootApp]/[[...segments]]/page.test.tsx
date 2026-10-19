@@ -190,18 +190,6 @@ vi.mock('../../../[brandSlug]/publishing/overview/page', () => ({
   default: () => <div data-testid="publishing-overview-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/publishing/content/page', () => ({
-  // Mirrors the real page: a redirect into the posts list.
-  default: async ({
-    params,
-  }: {
-    params: Promise<{ brandSlug: string; orgSlug: string }>;
-  }) => {
-    const { brandSlug, orgSlug } = await params;
-    redirectMock(`/${orgSlug}/${brandSlug}/publishing/posts?`);
-  },
-}));
-
 vi.mock('../../../[brandSlug]/publishing/review/review-queue-content', () => ({
   default: () => <div data-testid="publishing-review-queue" />,
 }));
@@ -593,22 +581,6 @@ describe('OrgRootAppPage', () => {
         }),
       ).rejects.toThrow('NEXT_NOT_FOUND');
       expect(redirectMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each([['content', '/acme/~/publishing/posts?']])(
-    'redirects the org publishing %s route into the posts list',
-    async (segment, destination) => {
-      await expect(
-        OrgRootAppPage({
-          params: Promise.resolve({
-            orgRootApp: 'publishing',
-            orgSlug: 'acme',
-            segments: [segment],
-          }),
-        }),
-      ).rejects.toThrow();
-      expect(redirectMock).toHaveBeenCalledWith(destination);
     },
   );
 

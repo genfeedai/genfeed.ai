@@ -264,17 +264,14 @@ export default function PublishingContentLibrary({
   const channel = requestedChannel;
   const status = useMemo(() => {
     const values = parsedSearchParams.getAll('status');
-    const legacyValues = parsedSearchParams.getAll('executionState');
     const publication = parsedSearchParams.get('publicationState');
     const selected = values.length
       ? values
-      : legacyValues.length
-        ? legacyValues
-        : publication === 'posted'
-          ? ['published']
-          : publication === 'not-posted'
-            ? ['not-posted']
-            : [];
+      : publication === 'posted'
+        ? ['published']
+        : publication === 'not-posted'
+          ? ['not-posted']
+          : [];
     return selected
       .filter((value) => value !== 'all')
       .map((value) => (value === 'public' ? 'published' : value));
@@ -344,7 +341,6 @@ export default function PublishingContentLibrary({
         params.delete('item');
       }
       if (key === 'status') {
-        params.delete('executionState');
         params.delete('publicationState');
       }
       if (key !== 'page') {
