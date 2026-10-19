@@ -12,12 +12,15 @@ import type { Job } from 'bullmq';
 import type { Mock } from 'vitest';
 
 // Mock fs module
-vi.mock('fs', () => ({
-  existsSync: vi.fn().mockReturnValue(true),
-  mkdirSync: vi.fn(),
-  statSync: vi.fn().mockReturnValue({ size: 4096 }),
-  writeFileSync: vi.fn(),
-}));
+vi.mock('fs', () => {
+  const fsMock = {
+    existsSync: vi.fn().mockReturnValue(true),
+    mkdirSync: vi.fn(),
+    statSync: vi.fn().mockReturnValue({ size: 4096 }),
+    writeFileSync: vi.fn(),
+  };
+  return { ...fsMock, default: fsMock };
+});
 
 // Mock services
 class MockFFmpegService {

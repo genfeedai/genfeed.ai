@@ -4,6 +4,12 @@ import userEvent from '@testing-library/user-event';
 import DropdownChannel from '@ui/dropdowns/channel/DropdownChannel';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const accounts = [
   {
     avatarUrl: null,
