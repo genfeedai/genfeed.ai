@@ -1,9 +1,9 @@
-import { ElementDto } from '@api/shared/dto/element/element.dto';
+import { PlatformElementDto } from '@api/shared/dto/element/platform-element.dto';
 import { ModelCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 
-export class CreateElementBlacklistDto extends ElementDto {
+export class CreateElementBlacklistDto extends PlatformElementDto {
   @IsEnum(ModelCategory)
   @IsOptional()
   @ApiProperty({

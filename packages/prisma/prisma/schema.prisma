@@ -6724,17 +6724,21 @@ model CampaignTarget {
 
 model ElementBlacklist {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  isDefault      Boolean  @default(false)
+  sortOrder      Int      @default(0)
 
   category String?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_blacklists_scope_idx")
   @@map("elements_blacklists")
 }
 

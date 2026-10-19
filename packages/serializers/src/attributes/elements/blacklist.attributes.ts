@@ -9,4 +9,6 @@ export const elementBlacklistAttributes = createEntityAttributes([
   'isActive',
   'isDefault',
   'isFavorite',
+  'isPlatformDefault',
+  'sortOrder',
 ]);

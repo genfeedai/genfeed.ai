@@ -1067,6 +1067,7 @@ export function usePromptBarState({
     dragError,
     endFrame,
     enhancePrompt,
+    filteredBlacklists,
     filteredCameraMovements,
     filteredCameras,
     filteredFontFamilies,

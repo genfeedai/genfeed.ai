@@ -65,6 +65,79 @@ describe('ElementsBlacklistsController', () => {
   it('should have loggerService injected', () => {
     expect(controller.loggerService).toBeDefined();
   });
+  describe('buildFindAllQuery', () => {
+    const orgId = testId('org');
+
+    it('reads active platform defaults plus the caller organization', () => {
+      const { where } = controller.buildFindAllQuery(
+        { id: 'auth-user', organizationId: orgId } as never,
+        {} as never,
+      );
+
+      expect(where).toEqual({
+        isDeleted: false,
+        OR: [
+          { isActive: true, organizationId: null },
+          { organizationId: orgId },
+        ],
+      });
+    });
+
+    it('lets a superadmin see inactive platform defaults too', () => {
+      const { where } = controller.buildFindAllQuery(
+        { id: 'auth-user', isSuperAdmin: true, organizationId: orgId } as never,
+        {} as never,
+      );
+
+      expect(where).toEqual({
+        isDeleted: false,
+        OR: [{ organizationId: null }, { organizationId: orgId }],
+      });
+    });
+
+    it('filters by category and searches label and description', () => {
+      const { where } = controller.buildFindAllQuery(
+        { id: 'auth-user', organizationId: orgId } as never,
+        { category: 'image', value: 'text' } as never,
+      );
+
+      expect(where).toMatchObject({
+        AND: [
+          {
+            OR: [
+              { label: { contains: 'text', mode: 'insensitive' } },
+              { description: { contains: 'text', mode: 'insensitive' } },
+            ],
+          },
+        ],
+        category: 'image',
+      });
+    });
+  });
+
+  describe('enrichCreateDto', () => {
+    const dto = { key: 'text', label: 'No text' } as never;
+
+    it('creates a platform default for a superadmin', () => {
+      const enriched = controller.enrichCreateDto(dto, {
+        id: 'auth-user',
+        isSuperAdmin: true,
+        organizationId: testId('org'),
+      } as never);
+
+      expect(enriched).toMatchObject({ key: 'text', organizationId: null });
+    });
+
+    it('refuses a platform default from a non-superadmin', () => {
+      expect(() =>
+        controller.enrichCreateDto(
+          { ...(dto as object), isPlatformDefault: true } as never,
+          { id: 'auth-user', organizationId: testId('org') } as never,
+        ),
+      ).toThrow();
+    });
+  });
+
   describe('update', () => {
     const orgId = testId('org');
     const entryId = testId('blacklist');

@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   FormDropdownOption as DropdownFieldOption,
+  IElementBlacklist,
   IElementCamera,
   IElementCameraMovement,
   IElementLens,
@@ -117,6 +118,7 @@ export interface PromptBarInternalContextValue {
   filteredLenses: IElementLens[];
   filteredCameraMovements: IElementCameraMovement[];
   filteredMoods: IElementMood[];
+  filteredBlacklists: IElementBlacklist[];
 
   selectedPreset: string;
   setSelectedPreset: Dispatch<SetStateAction<string>>;

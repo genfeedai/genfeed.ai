@@ -19,12 +19,14 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { BlacklistsService } from '@services/elements/blacklists.service';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import Badge from '@ui/display/badge/Badge';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalBlacklist } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 
 function blacklistsReducer(
@@ -92,6 +94,8 @@ function BlacklistsListContent({
     onRefreshingChangeRef.current = onRefreshingChange;
   });
 
+  const scopeTranslate = useTranslations('ui.elementPlatformFields');
+
   const columns: TableColumn<ElementBlacklist>[] = [
     {
       header: 'Label',
@@ -106,6 +110,16 @@ function BlacklistsListContent({
         <Badge variant="outline" size={ComponentSize.SM} className="uppercase">
           {blacklist.category ?? 'Undefined'}
         </Badge>
+      ),
+    },
+    {
+      header: scopeTranslate('scopeHeader'),
+      key: 'isPlatformDefault',
+      render: (blacklist: ElementBlacklist) => (
+        <ElementScopeBadge
+          isActive={blacklist.isActive}
+          isPlatformDefault={blacklist.isPlatformDefault}
+        />
       ),
     },
     {

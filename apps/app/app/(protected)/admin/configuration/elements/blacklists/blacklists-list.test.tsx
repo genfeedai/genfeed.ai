@@ -25,6 +25,13 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: mocks.openModal,
 }));
