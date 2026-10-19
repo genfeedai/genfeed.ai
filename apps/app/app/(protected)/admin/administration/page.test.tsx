@@ -9,7 +9,8 @@ describe('app/(protected)/admin/administration/page.tsx', () => {
       'utf8',
     );
 
-    expect(source).toContain('permanentRedirect');
-    expect(source).toContain('ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS');
+    expect(source).toContain(
+      'permanentRedirect(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS)',
+    );
   });
 });
