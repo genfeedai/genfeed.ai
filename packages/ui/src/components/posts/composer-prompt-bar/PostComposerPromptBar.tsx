@@ -335,78 +335,78 @@ export default function PostComposerPromptBar({
     ) : null;
 
   return (
-      <PromptBarContainer
-        className={className}
-        layoutMode="sticky-bottom"
-        maxWidth="full"
-        topContent={
-          resultPanel || isPresetRowVisible ? (
-            <div className="grid gap-3 pb-3">
-              {resultPanel}
-              {isPresetRowVisible ? (
-                <PromptBarSuggestions
-                  suggestions={presetItems}
-                  maxSuggestions={presetItems.length}
-                  isDisabled={isRunning || !hasTargetContent}
-                  onSuggestionSelect={(item) =>
-                    runPreset(item.id as PostComposerPresetKey)
-                  }
-                />
-              ) : null}
-            </div>
-          ) : undefined
+    <PromptBarContainer
+      className={className}
+      layoutMode="sticky-bottom"
+      maxWidth="full"
+      topContent={
+        resultPanel || isPresetRowVisible ? (
+          <div className="grid gap-3 pb-3">
+            {resultPanel}
+            {isPresetRowVisible ? (
+              <PromptBarSuggestions
+                suggestions={presetItems}
+                maxSuggestions={presetItems.length}
+                isDisabled={isRunning || !hasTargetContent}
+                onSuggestionSelect={(item) =>
+                  runPreset(item.id as PostComposerPresetKey)
+                }
+              />
+            ) : null}
+          </div>
+        ) : undefined
+      }
+    >
+      <PromptBarComposer
+        data-testid="post-composer-prompt-bar"
+        density="compact"
+        beforeBody={
+          <p className="flex items-center gap-1.5 px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
+            {translate('actingOn')}
+            <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
+              {targetLabel}
+            </span>
+          </p>
         }
       >
-        <PromptBarComposer
-          data-testid="post-composer-prompt-bar"
+        <PromptEditor
+          ariaLabel={translate('instructionAria')}
+          value={prompt}
+          isDisabled={isRunning}
+          placeholder={translate('placeholder')}
+          onValueChange={setPrompt}
+          onSubmit={() => void handleSubmit()}
+          className="min-h-12"
+        />
+        <PromptBarToolbar
           density="compact"
-          beforeBody={
-            <p className="flex items-center gap-1.5 px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
-              {translate('actingOn')}
-              <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
-                {targetLabel}
-              </span>
-            </p>
+          leading={
+            <PromptBarCompactSelect
+              ariaLabel={translate('toneAria')}
+              density="compact"
+              isDisabled={isRunning}
+              options={toneSelectOptions}
+              value={tone}
+              onChange={(value) => setTone(value as TweetTone)}
+            />
           }
-        >
-          <PromptEditor
-            ariaLabel={translate('instructionAria')}
-            value={prompt}
-            isDisabled={isRunning}
-            placeholder={translate('placeholder')}
-            onValueChange={setPrompt}
-            onSubmit={() => void handleSubmit()}
-            className="min-h-12"
-          />
-          <PromptBarToolbar
-            density="compact"
-            leading={
-              <PromptBarCompactSelect
-                ariaLabel={translate('toneAria')}
+          trailing={
+            <>
+              <span className="text-2xs text-muted-foreground">
+                {translate('creditPerRun')}
+              </span>
+              <PromptBarSendButton
+                ariaLabel={translate('rewrite')}
                 density="compact"
-                isDisabled={isRunning}
-                options={toneSelectOptions}
-                value={tone}
-                onChange={(value) => setTone(value as TweetTone)}
+                isDisabled={isSubmitDisabled || !hasTargetContent}
+                isLoading={pendingLabel === customLabel}
+                onClick={() => void handleSubmit()}
+                tooltip={translate('rewrite')}
               />
-            }
-            trailing={
-              <>
-                <span className="text-2xs text-muted-foreground">
-                  {translate('creditPerRun')}
-                </span>
-                <PromptBarSendButton
-                  ariaLabel={translate('rewrite')}
-                  density="compact"
-                  isDisabled={isSubmitDisabled || !hasTargetContent}
-                  isLoading={pendingLabel === customLabel}
-                  onClick={() => void handleSubmit()}
-                  tooltip={translate('rewrite')}
-                />
-              </>
-            }
-          />
-        </PromptBarComposer>
-      </PromptBarContainer>
+            </>
+          }
+        />
+      </PromptBarComposer>
+    </PromptBarContainer>
   );
 }

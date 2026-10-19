@@ -1211,7 +1211,6 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/economics/revenue',
   '/admin/economics/costs',
   '/admin/economics/organizations',
-  '/admin/economics/coverage',
   '/admin/administration/referrals',
   '/admin/administration/announcements',
   '/admin/administration/system-emails',

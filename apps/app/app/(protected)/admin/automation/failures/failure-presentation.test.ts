@@ -34,10 +34,10 @@ describe('summarizeFailureError', () => {
   it('collapses nested node prefixes and contract violations', () => {
     expect(
       summarizeFailureError(
-        'Nodes failed: infer-turn: Nodes failed: execute-tool: Action contract output validation failed [action=generate_content_batch workflow=w version=v run=r node=n] $.approvalId: must NOT have additional properties; $.approvalStatus: must NOT have additional properties',
+        'Nodes failed: infer-turn: Nodes failed: execute-tool: Action contract output validation failed [action=generate_turbo_content workflow=w version=v run=r node=n] $.approvalId: must NOT have additional properties; $.approvalStatus: must NOT have additional properties',
       ),
     ).toBe(
-      'Action contract output validation failed for generate_content_batch (2 schema violations)',
+      'Action contract output validation failed for generate_turbo_content (2 schema violations)',
     );
   });
 

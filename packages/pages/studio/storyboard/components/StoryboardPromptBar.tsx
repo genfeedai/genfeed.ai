@@ -21,38 +21,38 @@ export default function StoryboardPromptBar({
 }: StoryboardPromptBarProps) {
   const translate = useTranslations('pages.studioStoryboard.promptBar');
   return (
-      <PromptBarContainer
-        className="pt-6"
-        layoutMode="sticky-bottom"
-        maxWidth="4xl"
-        showTopFade
-        topContent={
-          error ? (
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Alert type={AlertCategory.ERROR}>{error}</Alert>
-              <Button
-                label={translate('retry')}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-                onClick={onRetry}
-              />
-            </div>
-          ) : undefined
+    <PromptBarContainer
+      className="pt-6"
+      layoutMode="sticky-bottom"
+      maxWidth="4xl"
+      showTopFade
+      topContent={
+        error ? (
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Alert type={AlertCategory.ERROR}>{error}</Alert>
+            <Button
+              label={translate('retry')}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              onClick={onRetry}
+            />
+          </div>
+        ) : undefined
+      }
+    >
+      <AgentChatInput
+        disabled={isDisabled}
+        isAgentControlsHidden
+        onSend={(content) => {
+          void onSubmit(content);
+          return true;
+        }}
+        placeholder={
+          hasShots
+            ? translate('changesPlaceholder')
+            : translate('briefPlaceholder')
         }
-      >
-        <AgentChatInput
-          disabled={isDisabled}
-          isAgentControlsHidden
-          onSend={(content) => {
-            void onSubmit(content);
-            return true;
-          }}
-          placeholder={
-            hasShots
-              ? translate('changesPlaceholder')
-              : translate('briefPlaceholder')
-          }
-        />
-      </PromptBarContainer>
+      />
+    </PromptBarContainer>
   );
 }

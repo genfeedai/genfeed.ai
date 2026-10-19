@@ -16,6 +16,21 @@ export type CrossOrgUnsafeBaselineEntry = {
 
 export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
   [
+    // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
+    {
+      file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
+      line: 249,
+    },
+    // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
+    {
+      file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
+      line: 293,
+    },
+    // Platform-owned system workflow ids are read under the system principal.
+    {
+      file: 'apps/server/api/src/collections/workflow-executions/services/workflow-execution-query.util.ts',
+      line: 36,
+    },
     // Historical trend analysis intentionally reads only the shared global corpus; the Prisma where remains pinned to organizationId:null.
     {
       file: 'apps/server/api/src/collections/trends/services/modules/trend-analysis.service.ts',
@@ -99,7 +114,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 197,
+      line: 201,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
@@ -243,7 +258,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin content-learning account inventory and health.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 69,
+      line: 86,
     },
     // #6120: platform emergency pause locates any organization's learning
     // account.
@@ -288,18 +303,18 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // an organization.
     {
       file: 'apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts',
-      line: 120,
+      line: 125,
     },
     // #6120: superadmin platform-wide announcement history.
     {
       file: 'apps/server/api/src/endpoints/admin/announcements/announcements.service.ts',
-      line: 153,
+      line: 160,
     },
     // #6120: runAsPlatformAdmin for the IP-whitelisted, superadmin-guarded
     // warm-up provisioning in the target customer organization.
     {
       file: 'apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.controller.ts',
-      line: 220,
+      line: 214,
     },
     // #6120: superadmin all-organizations analytics when no organization is
     // named.

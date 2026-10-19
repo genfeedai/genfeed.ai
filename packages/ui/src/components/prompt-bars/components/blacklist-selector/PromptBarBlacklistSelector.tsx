@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { Ban } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback } from 'react';
 import { useWatch } from 'react-hook-form';
 
@@ -25,6 +26,7 @@ const PromptBarBlacklistSelector = memo(function PromptBarBlacklistSelector({
   isDisabled,
   onChange,
 }: PromptBarBlacklistSelectorProps) {
+  const translate = useTranslations('ui.promptBarBlacklist');
   const selectedKeys =
     useWatch({ control: form.control, name: 'blacklist' }) ?? [];
 
@@ -56,9 +58,9 @@ const PromptBarBlacklistSelector = memo(function PromptBarBlacklistSelector({
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           isDisabled={isDisabled}
-          tooltip="Avoid"
+          tooltip={translate('avoid')}
           tooltipPosition="top"
-          ariaLabel="Choose what to avoid"
+          ariaLabel={translate('chooseWhatToAvoid')}
           className={cn(
             'relative h-8 rounded-lg px-2 hover:bg-accent normal-case flex items-center gap-2',
             selectedCount > 0 ? 'text-foreground' : 'text-foreground/70',
@@ -75,7 +77,9 @@ const PromptBarBlacklistSelector = memo(function PromptBarBlacklistSelector({
       </PopoverTrigger>
 
       <PopoverContent align="start" side="top" className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-foreground/70">Avoid</p>
+        <p className="text-xs font-medium text-foreground/70">
+          {translate('avoid')}
+        </p>
 
         {blacklists.map((blacklist) => (
           <Checkbox
