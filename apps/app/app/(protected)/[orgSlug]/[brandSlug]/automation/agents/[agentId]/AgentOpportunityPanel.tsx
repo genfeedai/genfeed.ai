@@ -8,6 +8,7 @@ import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { useTranslations } from 'next-intl';
 
 export default function AgentOpportunityPanel({
   opportunities,
@@ -15,19 +16,23 @@ export default function AgentOpportunityPanel({
   selectedOpportunity,
   isOpportunitiesLoading,
 }: AgentOpportunityPanelProps) {
+  const translate = useTranslations(
+    'common.automation.agentDetail.opportunityPanel',
+  );
+
   return (
     <InsetSurface className="p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-medium text-foreground">
-            Review context
+            {translate('reviewContext')}
           </h3>
           <p className="mt-1 text-sm text-foreground/55">
-            Opened from the publishing inbox with agent opportunity context.
+            {translate('reviewContextDescription')}
           </p>
         </div>
         <Badge variant="secondary">
-          {selectedOpportunity?.sourceType ?? 'Loading'}
+          {selectedOpportunity?.sourceType ?? translate('loading')}
         </Badge>
       </div>
 
@@ -36,50 +41,53 @@ export default function AgentOpportunityPanel({
         className="mt-4 gap-3 text-sm md:grid-cols-2"
       >
         <InsetSurface className="p-3" density="compact" tone="contrast">
-          <DefinitionTerm>Opportunity</DefinitionTerm>
+          <DefinitionTerm>{translate('opportunity')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
             className="mt-1 text-foreground/85"
           >
             {selectedOpportunity?.topic ??
               (isOpportunitiesLoading
-                ? 'Loading opportunity...'
+                ? translate('loadingOpportunity')
                 : requestedOpportunityId)}
           </DefinitionDetail>
         </InsetSurface>
         <InsetSurface className="p-3" density="compact" tone="contrast">
-          <DefinitionTerm>Status</DefinitionTerm>
+          <DefinitionTerm>{translate('status')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
             className="mt-1 capitalize text-foreground/85"
           >
             {selectedOpportunity?.status ??
-              (isOpportunitiesLoading ? 'Loading' : 'Unavailable')}
+              (isOpportunitiesLoading
+                ? translate('loading')
+                : translate('unavailable'))}
           </DefinitionDetail>
         </InsetSurface>
         <InsetSurface className="p-3" density="compact" tone="contrast">
-          <DefinitionTerm>Reason</DefinitionTerm>
+          <DefinitionTerm>{translate('reason')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
             className="mt-1 text-foreground/85"
           >
-            {selectedOpportunity?.decisionReason ?? 'Not recorded'}
+            {selectedOpportunity?.decisionReason ?? translate('notRecorded')}
           </DefinitionDetail>
         </InsetSurface>
         <InsetSurface className="p-3" density="compact" tone="contrast">
-          <DefinitionTerm>Expected traffic</DefinitionTerm>
+          <DefinitionTerm>{translate('expectedTraffic')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
             className="mt-1 text-foreground/85"
           >
-            {selectedOpportunity?.expectedTrafficScore ?? 'Not recorded'}
+            {selectedOpportunity?.expectedTrafficScore ??
+              translate('notRecorded')}
           </DefinitionDetail>
         </InsetSurface>
       </DefinitionList>
 
       <div className="mt-4 space-y-2">
         <h4 className="text-sm font-medium text-foreground">
-          Open opportunities
+          {translate('openOpportunities')}
         </h4>
         {opportunities.length > 0 ? (
           <InsetSurface className="overflow-hidden p-0">
@@ -88,7 +96,10 @@ export default function AgentOpportunityPanel({
                 data-testid={`agent-opportunity-${opportunity.id}`}
                 density="compact"
                 key={opportunity.id}
-                meta={`${opportunity.sourceType} · priority ${opportunity.priorityScore}`}
+                meta={translate('opportunityMeta', {
+                  priority: opportunity.priorityScore,
+                  source: opportunity.sourceType,
+                })}
                 title={opportunity.topic}
                 trailing={
                   <Badge className="capitalize" variant="secondary">
@@ -101,11 +112,11 @@ export default function AgentOpportunityPanel({
         ) : (
           <p className="text-sm text-foreground/55">
             {isOpportunitiesLoading
-              ? 'Loading opportunities...'
-              : 'No open opportunities on this page.'}
+              ? translate('loadingOpportunities')
+              : translate('noOpenOpportunities')}
           </p>
         )}
-        <AutoPagination showTotal totalLabel="opportunities" />
+        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
       </div>
     </InsetSurface>
   );

@@ -189,21 +189,22 @@ test.describe('Core Content Loop', () => {
       }),
     ).toBeVisible();
 
+    await mockPostDetail(authenticatedPage, contentLoopPost);
     await authenticatedPage.goto(
       `/analytics/posts?postId=${String(contentLoopPost.id)}`,
     );
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`analytics/posts\\?postId=${String(contentLoopPost.id)}`),
     );
-    const postDetail = authenticatedPage.getByRole('dialog', {
-      name: 'Post detail',
-    });
+    // The selected post opens in the shell's right context sidebar, titled
+    // with the post's label, with a link to its editor.
+    const postDetail = authenticatedPage.getByTestId('post-detail-panel');
     await expect(postDetail).toBeVisible();
     await expect(
-      postDetail.getByRole('heading', { name: 'Post detail' }),
-    ).toBeVisible();
+      authenticatedPage.getByTestId('context-sidebar-title'),
+    ).toHaveText('Core Loop Draft');
     await expect(
-      postDetail.getByRole('button', { name: 'Open page' }),
+      postDetail.getByRole('link', { name: 'Open editor' }),
     ).toBeVisible();
   });
 });

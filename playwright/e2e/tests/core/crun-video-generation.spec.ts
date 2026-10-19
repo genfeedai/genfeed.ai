@@ -5,7 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
 import type { CrunVideoQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -410,40 +410,27 @@ async function installFixture(
   await editor.fill('A ceramic bird on a desk');
   return { previews, consumes, ownedId, ownedUrl, composer, editor };
 }
-async function openGenerationSetup(page: Page, summary: string) {
+async function expectGenerationSetup(page: Page, summary: string) {
   const setup = page.getByRole('button', { name: /^Generation setup:/ });
   await expect(setup).toHaveAccessibleName(`Generation setup: ${summary}`);
-  await setup.click();
 }
-// Advanced mode also renders Model/Output/Look chips in the prompt-bar
-// toolbar with the same "Configure <section>" names, so scope to the setup
-// popover (the dialog holding the Auto/Advanced switch).
-function setupDialog(page: Page): Locator {
-  return page.getByRole('dialog').filter({
-    has: page.getByRole('button', { name: 'Auto', exact: true }),
-  });
-}
+// Advanced mode lists Model/Output/Look as chips in the prompt-bar toolbar;
+// each chip opens only its own section.
 async function openConfiguration(page: Page, section: string) {
-  await setupDialog(page)
+  await page
+    .getByTestId('generation-setup-section-chips')
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }
-// #6775: per-model Crun controls live in the setup popover's Output section
-// (Advanced mode), not in the prompt-bar toolbar.
+// #6775: per-model Crun controls live in the Output chip's popover (Advanced
+// mode), not in the prompt-bar toolbar itself.
 async function openOutputControls(page: Page) {
-  const setup = page.getByRole('button', { name: /^Generation setup:/ });
-  await setup.click();
   await openConfiguration(page, 'Output');
 }
 async function closeGenerationSetup(page: Page) {
-  // Two layers: the Output submenu, then the setup popover itself.
-  await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   await expect(
-    setupDialog(page).getByRole('button', {
-      name: 'Configure Output',
-      exact: true,
-    }),
+    page.getByRole('dialog', { name: 'Output', exact: true }),
   ).toHaveCount(0);
 }
 async function expectSubmitTooltip(page: Page, statusName: string) {
@@ -614,7 +601,7 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
   expect(fixture.previews.at(-1)?.crunControls).not.toHaveProperty(
     'aspectRatio',
   );
-  await openGenerationSetup(page, 'Kling 2.5 Turbo Pro · 16:9 · 5s');
+  await expectGenerationSetup(page, 'Kling 2.5 Turbo Pro · 16:9 · 5s');
   await openConfiguration(page, 'Output');
   await expect(
     page.getByText('Aspect ratio comes from the frames', { exact: true }),

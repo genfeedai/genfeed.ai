@@ -48,24 +48,40 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+type HealthBadgeLabelKey =
+  | 'healthHealthy'
+  | 'healthInsufficientData'
+  | 'healthManual'
+  | 'healthUnderperforming'
+  | 'healthWatch';
+
 const HEALTH_BADGES: Record<
   AccountEvaluationState,
-  { label: string; variant: 'success' | 'warning' | 'error' | 'secondary' }
+  {
+    labelKey: HealthBadgeLabelKey;
+    variant: 'success' | 'warning' | 'error' | 'secondary';
+  }
 > = {
-  [AccountEvaluationState.HEALTHY]: { label: 'Healthy', variant: 'success' },
+  [AccountEvaluationState.HEALTHY]: {
+    labelKey: 'healthHealthy',
+    variant: 'success',
+  },
   [AccountEvaluationState.INSUFFICIENT_DATA]: {
-    label: 'Not enough data',
+    labelKey: 'healthInsufficientData',
     variant: 'secondary',
   },
   [AccountEvaluationState.UNDERPERFORMING]: {
-    label: 'Underperforming',
+    labelKey: 'healthUnderperforming',
     variant: 'error',
   },
-  [AccountEvaluationState.WATCH]: { label: 'Watch', variant: 'warning' },
+  [AccountEvaluationState.WATCH]: {
+    labelKey: 'healthWatch',
+    variant: 'warning',
+  },
 };
 
 const MANUAL_HEALTH_BADGE = {
-  label: 'Manual',
+  labelKey: 'healthManual',
   variant: 'secondary',
 } as const;
 
@@ -232,14 +248,14 @@ export default function AnalyticsAccounts() {
     () => (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <FormSearchbar
-          ariaLabel="Search accounts"
+          ariaLabel={translate('searchAccounts')}
           className="w-full sm:w-44"
           value={search}
           onChange={(event) => {
             setSearch(event.target.value);
             resetPage();
           }}
-          placeholder="Search accounts"
+          placeholder={translate('searchAccounts')}
         />
         <Select
           value={metric}
@@ -248,8 +264,11 @@ export default function AnalyticsAccounts() {
             resetPage();
           }}
         >
-          <SelectTrigger aria-label="Rank by metric" className="h-9 w-32">
-            <SelectValue placeholder="Metric" />
+          <SelectTrigger
+            aria-label={translate('rankByMetric')}
+            className="h-9 w-32"
+          >
+            <SelectValue placeholder={translate('metric')} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={AnalyticsMetric.VIEWS}>
@@ -264,16 +283,16 @@ export default function AnalyticsAccounts() {
           </SelectContent>
         </Select>
         <Input
-          aria-label="Evaluation weeks"
+          aria-label={translate('evaluationWeeks')}
           className="h-9 w-20"
           min={1}
-          placeholder="Weeks"
+          placeholder={translate('weeks')}
           type="number"
           value={windowWeeks}
           onChange={(event) => setWindowWeeks(event.target.value)}
         />
         <Button
-          label="Save evaluation"
+          label={translate('saveEvaluation')}
           variant={ButtonVariant.SECONDARY}
           onClick={async () => {
             if (!organizationId) {
@@ -321,7 +340,7 @@ export default function AnalyticsAccounts() {
     () => [
       {
         key: 'account',
-        header: 'Account',
+        header: translate('account'),
         render: (row) => (
           <AccountCell connection={toConnection(row.identity)} />
         ),
@@ -330,7 +349,7 @@ export default function AnalyticsAccounts() {
         ? [
             {
               key: 'brand',
-              header: 'Brand',
+              header: translate('brand'),
               render: (row: IAccountAnalytics) =>
                 row.identity.brandLabel ? (
                   <span className="flex min-w-0 items-center gap-2">
@@ -351,49 +370,58 @@ export default function AnalyticsAccounts() {
         : []),
       {
         key: 'platform',
-        header: 'Platform',
+        header: translate('platform'),
         render: (row) =>
           formatPlatformLabel(row.identity.platform) ?? row.identity.platform,
       },
       {
         key: 'posts',
         header: (
-          <AnalyticsMetricLabel metric="posts">Posts</AnalyticsMetricLabel>
+          <AnalyticsMetricLabel metric="posts">
+            {translate('posts')}
+          </AnalyticsMetricLabel>
         ),
         render: (row) => String(row.publishedPosts),
       },
       {
         key: 'metric',
         header: (
-          <AnalyticsMetricLabel metric={metric}>Metric</AnalyticsMetricLabel>
+          <AnalyticsMetricLabel metric={metric}>
+            {translate('metric')}
+          </AnalyticsMetricLabel>
         ),
         render: (row) => metricLabel(row, metric),
       },
       {
         key: 'health',
-        header: 'Health',
+        header: translate('health'),
         render: (row) => {
           const badge =
             (row.evaluation && HEALTH_BADGES[row.evaluation.state]) ||
             MANUAL_HEALTH_BADGE;
-          return <Badge variant={badge.variant}>{badge.label}</Badge>;
+          return (
+            <Badge variant={badge.variant}>{translate(badge.labelKey)}</Badge>
+          );
         },
       },
     ],
-    [brandLogoById, isBrandColumnVisible, metric],
+    [brandLogoById, isBrandColumnVisible, metric, translate],
   );
 
   return (
     <>
       <Table
-        ariaLabel="Accounts"
+        ariaLabel={translate('accounts')}
         error={error ? { title: error, onRetry: triggerRefresh } : undefined}
         columns={columns}
-        emptyLabel="No connected accounts"
+        emptyLabel={translate('noConnectedAccounts')}
         getRowKey={(row) => row.identity.credentialId}
         getRowLink={(row) => ({
           href: `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${row.identity.credentialId}`,
-          label: row.identity.label || row.identity.externalHandle || 'Account',
+          label:
+            row.identity.label ||
+            row.identity.externalHandle ||
+            translate('account'),
         })}
         isLoading={isLoading}
         items={list?.accounts ?? []}

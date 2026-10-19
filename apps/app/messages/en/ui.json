@@ -712,6 +712,11 @@
     "avoid": "Avoid",
     "chooseWhatToAvoid": "Choose what to avoid"
   },
+  "creationHeatmap": {
+    "cellTitle": "{day}: {count, plural, one {# item} other {# items}}",
+    "less": "Less",
+    "more": "More"
+  },
   "brandCreate": {
     "title": "New brand",
     "description": "Paste a website to autofill name and description, or enter details manually. Finish setup on the brand page after create.",

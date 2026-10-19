@@ -18,6 +18,11 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/brand-x${path}` }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const mockUseStreak = vi.mocked(useStreak);
 
 function mockStreak(overrides: Partial<ReturnType<typeof useStreak>> = {}) {
