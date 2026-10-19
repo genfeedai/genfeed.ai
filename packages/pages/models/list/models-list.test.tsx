@@ -211,6 +211,60 @@ describe('ModelsList', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('puts an extra row action in the actions section beside edit', async () => {
+    const onClick = vi.fn();
+    renderModelsList(PageScope.SUPERADMIN, undefined, {
+      onPricingDetails: vi.fn(),
+      rowActions: [
+        {
+          icon: <span>wrench</span>,
+          isVisible: (model) => model.id === 'model-1',
+          onClick,
+          tooltip: 'Fix pricing',
+        },
+      ],
+    });
+
+    const [fix] = await screen.findAllByRole('button', { name: 'Fix pricing' });
+    if (!fix) throw new Error('Missing fix action');
+    expect(fix.closest('td')).toBe(
+      screen.getAllByRole('button', { name: 'Edit model' })[0]?.closest('td'),
+    );
+    fireEvent.click(fix);
+
+    expect(onClick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'model-1' }),
+    );
+  });
+
+  it('leads the first page with models that need attention, including ones sorted onto later pages', async () => {
+    const needsAttention = buildModel({
+      id: 'zebra',
+      key: 'zebra/model',
+      label: 'Zebra Model',
+    });
+    mockFindAll.mockResolvedValue([
+      buildModel({ id: 'alpha', key: 'alpha/model', label: 'Alpha Model' }),
+      buildModel({ id: 'beta', key: 'beta/model', label: 'Beta Model' }),
+    ]);
+    mockFindAllPages.mockResolvedValue([
+      buildModel({ id: 'alpha', key: 'alpha/model', label: 'Alpha Model' }),
+      needsAttention,
+    ]);
+    renderModelsList(PageScope.SUPERADMIN, undefined, {
+      isModelPinned: (model) => model.id === 'zebra',
+    });
+
+    await screen.findByText('Alpha Model');
+    const labels = screen
+      .getAllByRole('row')
+      .map((row) => row.textContent ?? '')
+      .filter((text) => /(Alpha|Beta|Zebra) Model/.test(text))
+      .map((text) => /(Alpha|Beta|Zebra)/.exec(text)?.[1]);
+
+    expect(labels).toEqual(['Zebra', 'Alpha', 'Beta']);
+  });
+
   it('includes retired models on the admin All listing', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
