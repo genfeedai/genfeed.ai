@@ -76,6 +76,7 @@ export interface UsePostDetailReturn {
   handleContentSave: () => Promise<void>;
   handleScheduleSave: () => Promise<void>;
   handlePublishNow: () => Promise<void>;
+  handleRetryPublish: () => Promise<void>;
   handlePublishViaTikTokApp: () => Promise<void>;
   handleAddToThread: () => Promise<void>;
   handleAddThreadPosts: (descriptions: string[]) => Promise<void>;
@@ -253,6 +254,7 @@ export function usePostDetail({
     handleGenerateIllustration: media.handleGenerateIllustration,
     handlePerTweetEnhance: actions.handlePerTweetEnhance,
     handlePublishNow: actions.handlePublishNow,
+    handleRetryPublish: actions.handleRetryPublish,
     handlePublishViaTikTokApp: actions.handlePublishViaTikTokApp,
     handleQuickAction: actions.handleQuickAction,
     handleScheduleSave: actions.handleScheduleSave,

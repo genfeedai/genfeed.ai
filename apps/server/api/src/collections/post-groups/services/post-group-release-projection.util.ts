@@ -1,10 +1,10 @@
 import type {
   ReleaseGroupListQuery,
+  ReleaseListProjection,
   SchedulerPostGroup,
   SchedulerPostTarget,
 } from '@api/collections/post-groups/services/post-group.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
-import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@genfeedai/helpers';
 
 const RELEASE_TITLE_MAX_LENGTH = 80;
@@ -75,7 +75,7 @@ export function toSyntheticReleaseGroup(
 }
 
 export function matchesReleaseListQuery(
-  release: IReleaseGroup,
+  release: ReleaseListProjection,
   query: ReleaseGroupListQuery,
 ): boolean {
   if (query.startDate && query.endDate) {
@@ -162,7 +162,7 @@ export function matchesReleaseListQuery(
   return true;
 }
 
-function getEarliestSchedule(release: IReleaseGroup): number {
+function getEarliestSchedule(release: ReleaseListProjection): number {
   const schedules = [
     release.scheduledAt,
     ...(release.targets ?? []).map((target) => target.scheduledAt),
@@ -175,7 +175,7 @@ function getEarliestSchedule(release: IReleaseGroup): number {
 }
 
 function releaseSortValue(
-  release: IReleaseGroup,
+  release: ReleaseListProjection,
   field: string | undefined,
 ): number | null {
   const value =
@@ -188,8 +188,8 @@ function releaseSortValue(
 }
 
 export function compareReleaseProjections(
-  left: IReleaseGroup,
-  right: IReleaseGroup,
+  left: ReleaseListProjection,
+  right: ReleaseListProjection,
   query: ReleaseGroupListQuery,
 ): number {
   const sort =

@@ -159,12 +159,7 @@
   },
   "inactiveUnderParent": "Off while {parent} is off.",
   "needsParent": "Needs {parent}.",
-  "status": {
-    "on": "On",
-    "off": "Off"
-  },
   "loadErrorTitle": "Flags could not be loaded",
   "loadErrorFallback": "The platform settings API did not answer. Check your administrator access and allowed IP address, then reload.",
-  "saveError": "Failed to save the flag",
-  "saved": "{label} switched {state}"
+  "saveError": "Failed to save the flag"
 }

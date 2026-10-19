@@ -484,8 +484,20 @@ describe('content mandatory selected-data regressions', () => {
       ),
     };
     const campaignTargetsService = {
-      findByCampaign: vi.fn((_id: string, org: string) =>
-        Promise.resolve(orgRows(org)),
+      countByCampaignStatus: vi.fn(() => Promise.resolve({})),
+      findPageByCampaign: vi.fn((_id: string, org: string) =>
+        Promise.resolve({
+          docs: orgRows(org),
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: 20,
+          nextPage: null,
+          page: 1,
+          pagingCounter: 1,
+          prevPage: null,
+          totalDocs: orgRows(org).length,
+          totalPages: 1,
+        }),
       ),
     };
     const service = new OutreachCampaignTargetOperationsService(
@@ -497,8 +509,13 @@ describe('content mandatory selected-data regressions', () => {
     const c = instance(OutreachCampaignTargetsController.prototype, {
       targetOperationsService: service,
     });
+    const targetsQuery = { limit: 20, page: 1 };
     expect(
-      await selectedRead(() => c.getTargets(testId('campaign'), actor)),
+      (
+        await selectedRead(() =>
+          c.getTargets(testId('campaign'), actor, targetsQuery),
+        )
+      ).data,
     ).toEqual([tenantRows[1]]);
     expect(outreachCampaignsService.findOneById).toHaveBeenLastCalledWith(
       testId('campaign'),
@@ -506,7 +523,11 @@ describe('content mandatory selected-data regressions', () => {
       selectedBrand,
     );
     expect(
-      await selectedRead(() => service.getTargets(testId('campaign'), actor)),
+      (
+        await selectedRead(() =>
+          service.getTargets(testId('campaign'), actor, targetsQuery),
+        )
+      ).data,
     ).toEqual([tenantRows[0]]);
     expect(outreachCampaignsService.findOneById).toHaveBeenLastCalledWith(
       testId('campaign'),
@@ -1055,38 +1076,58 @@ describe('inherited catalog forwarding', () => {
 
 describe('selected required-brand data filters', () => {
   it('saved ads use selected explicit brand and refuse foreign selection without a brand before data', async () => {
+    const paging = { limit: 20, page: 1 };
     const savedAdsService = {
-      list: vi.fn((organizationId: string, brandId: string) =>
-        Promise.resolve(
-          tenantRows.filter(
-            (row) =>
-              row.organizationId === organizationId && row.brandId === brandId,
-          ),
-        ),
-      ),
+      list: vi.fn((organizationId: string, brandId: string) => {
+        const docs = tenantRows.filter(
+          (row) =>
+            row.organizationId === organizationId && row.brandId === brandId,
+        );
+        return Promise.resolve({
+          docs,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: 20,
+          nextPage: null,
+          page: 1,
+          pagingCounter: 1,
+          prevPage: null,
+          totalDocs: docs.length,
+          totalPages: 1,
+        });
+      }),
     };
     const controller = new SavedAdsController(savedAdsService as never);
     expect(
-      await selectedRead(() => controller.list(request, actor, selectedBrand)),
-    ).toEqual({ data: [tenantRows[1]] });
+      (
+        await selectedRead(() =>
+          controller.list(request, actor, {
+            ...paging,
+            brandId: selectedBrand,
+          }),
+        )
+      ).data,
+    ).toEqual([tenantRows[1]]);
     expect(savedAdsService.list).toHaveBeenCalledWith(
       selectedOrg,
       selectedBrand,
+      paging,
     );
     const prior = savedAdsService.list.mock.calls.length;
     await expect(
       runWithTenantReadScope(
         { organizationId: selectedOrg, isOrganizationOverride: true },
-        () => controller.list(request, actor),
+        () => controller.list(request, actor, paging),
       ),
     ).rejects.toThrow('A brand is required');
     expect(savedAdsService.list).toHaveBeenCalledTimes(prior);
-    expect(await controller.list(request, actor)).toEqual({
-      data: [tenantRows[0]],
-    });
+    expect((await controller.list(request, actor, paging)).data).toEqual([
+      tenantRows[0],
+    ]);
     expect(savedAdsService.list).toHaveBeenLastCalledWith(
       originalOrg,
       actor.brandId,
+      paging,
     );
   });
 });

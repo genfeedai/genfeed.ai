@@ -1,14 +1,16 @@
+import type { MarginInputMode } from '@genfeedai/contracts';
 import type {
   IBrandVisionModelOptions,
   IPlatformFeatureSettings,
   TypedDecisionMode,
+  TypedDecisionProviderName,
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
-/** Tabs of /admin platform settings; every tab's fields save together. */
+/** Pages of /admin/settings; every page's fields save together. */
 export type PlatformSettingsTab =
   | 'billing'
-  | 'decisions'
+  | 'ai'
   | 'agent'
   | 'media'
   | 'providers'
@@ -35,7 +37,7 @@ export type PlatformRequiredTextFeatureSettingKey = {
     : never;
 }[keyof IPlatformFeatureSettings];
 
-/** A titled group of fields inside one platform settings tab. */
+/** A titled group of fields inside one platform settings page. */
 export interface PlatformSettingsGroupProps {
   children: ReactNode;
   description?: string;
@@ -49,7 +51,7 @@ export type PlatformNumericFeatureSettingKey = {
     : never;
 }[keyof IPlatformFeatureSettings];
 
-/** The product feature switches of one /admin platform settings tab (#5407). */
+/** The product feature switches of one /admin/settings page (#5407). */
 export interface PlatformFeatureSettingsFieldsProps {
   /** Catalog models an operator can pick for brand OCR and brand detection. */
   brandVisionModels: IBrandVisionModelOptions;
@@ -93,4 +95,38 @@ export interface PlatformModeSettingFieldProps<
   modes: readonly TMode[];
   onChange: (mode: TMode) => void;
   value: TMode;
+}
+
+/** The margin multipliers an operator edits as percentages on /admin/settings/billing. */
+export interface PlatformMarginFieldsState {
+  agentChatPercentInput: string;
+  agentChatReadout: string;
+  generationPercentInput: string;
+  generationReadout: string;
+  marginInputMode: MarginInputMode;
+  /** `margin` or `markup`, for the field labels. */
+  modeUnit: 'margin' | 'markup';
+  onAgentChatPercentInputChange: (value: string) => void;
+  onGenerationPercentInputChange: (value: string) => void;
+  onModeChange: (mode: string) => void;
+}
+
+/**
+ * The platform settings every /admin/settings page edits. The settings layout
+ * owns the one copy, so a single Save writes every page's fields together.
+ */
+export interface PlatformSettingsContextValue {
+  brandVisionModels: IBrandVisionModelOptions;
+  featureSettings: IPlatformFeatureSettings;
+  isEmailDeliveryConfigured: boolean;
+  isLoading: boolean;
+  isRefreshing: boolean;
+  isSaving: boolean;
+  margins: PlatformMarginFieldsState;
+  onFeatureFieldValidityChange: (fieldId: string, isValid: boolean) => void;
+  onFeatureSettingsChange: (next: IPlatformFeatureSettings) => void;
+  onTypedDecisionProviderChange: (provider: TypedDecisionProviderName) => void;
+  refresh: () => Promise<void>;
+  save: () => Promise<void>;
+  typedDecisionProvider: TypedDecisionProviderName;
 }

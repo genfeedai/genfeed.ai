@@ -259,6 +259,7 @@
     "resetModel": "Reset model to agent",
     "resetPriority": "Reset priority to agent",
     "resetPriorityTooltip": "Reset Auto priority to the agent. The model stays as set.",
+    "savedPresets": "Saved",
     "searchField": "Search {field}",
     "searchFieldPlaceholder": "Search {field}\u2026",
     "searchFields": "Search fields\u2026",
@@ -271,6 +272,7 @@
     "showLegacyModels": "Show legacy models",
     "style": "Style",
     "stylePlaceholder": "e.g. synthwave, upbeat, 80s retro",
+    "systemPresets": "System",
     "text": "Text",
     "type": "Type",
     "unpinPreset": "Unpin preset"

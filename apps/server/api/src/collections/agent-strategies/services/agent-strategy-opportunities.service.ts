@@ -82,6 +82,8 @@ export class AgentStrategyOpportunitiesService {
     organizationId: string,
     options: {
       includeDeleted?: boolean;
+      /** Newest-first row cap applied in the query. */
+      limit?: number;
       statuses?: AgentStrategyOpportunityStatus[];
     } = {},
   ): Promise<AgentStrategyOpportunityDocument[]> {
@@ -97,6 +99,7 @@ export class AgentStrategyOpportunitiesService {
         ...(statusFilters?.length ? { OR: statusFilters } : {}),
       },
       orderBy: { createdAt: 'desc' },
+      ...(options.limit ? { take: options.limit } : {}),
     });
 
     return records
@@ -115,8 +118,10 @@ export class AgentStrategyOpportunitiesService {
   listOpenByStrategy(
     strategyId: string,
     organizationId: string,
+    limit?: number,
   ): Promise<AgentStrategyOpportunityDocument[]> {
     return this.listByStrategy(strategyId, organizationId, {
+      limit,
       statuses: ['approved', 'generating', 'held', 'queued', 'revising'],
     });
   }

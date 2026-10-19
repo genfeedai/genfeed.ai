@@ -9,6 +9,7 @@ import UsersList from './users-list';
 
 const mocks = vi.hoisted(() => ({
   findAll: vi.fn(),
+  copyToClipboard: vi.fn(),
   impersonateUser: vi.fn(),
   loggerError: vi.fn(),
   notificationsError: vi.fn(),
@@ -52,6 +53,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     factory('token-1'),
 }));
 
+vi.mock('@services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: () => ({ copyToClipboard: mocks.copyToClipboard }),
+  },
+}));
+
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,
@@ -88,6 +95,7 @@ vi.mock('@ui/display/table/Table', () => ({
     items,
     emptyLabel,
     getRowKey,
+    onRowClick,
   }: {
     actions: Array<{
       isVisible?: (item: IUser) => boolean;
@@ -102,6 +110,7 @@ vi.mock('@ui/display/table/Table', () => ({
     emptyLabel: string;
     getRowKey: (item: IUser, index: number) => string;
     items: IUser[];
+    onRowClick?: (item: IUser) => void;
   }) => {
     if (items.length === 0) {
       return <div>{emptyLabel}</div>;
@@ -113,6 +122,13 @@ vi.mock('@ui/display/table/Table', () => ({
         ))}
         {items.map((item, index) => (
           <div key={getRowKey(item, index)}>
+            <button
+              type="button"
+              aria-label={`Open ${item.email}`}
+              onClick={() => onRowClick?.(item)}
+            >
+              Row
+            </button>
             {columns.map((column) => (
               <span key={column.key} data-testid={`${item.id}-${column.key}`}>
                 {column.render?.(item) ??
@@ -186,6 +202,7 @@ describe('UsersList', () => {
 
   beforeEach(() => {
     mocks.findAll.mockReset();
+    mocks.copyToClipboard.mockReset();
     mocks.impersonateUser.mockReset();
     mocks.loggerError.mockReset();
     mocks.notificationsError.mockReset();
@@ -241,45 +258,6 @@ describe('UsersList', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows each user’s first-touch signup source', () => {
-    mocks.useQuery.mockReturnValue({
-      data: [
-        {
-          ...regularUser,
-          signupAttribution: {
-            landingPath: '/studio',
-            referrerDomain: 'chatgpt.com',
-          },
-        },
-        {
-          ...superAdminUser,
-          signupAttribution: { utmMedium: 'launch', utmSource: 'producthunt' },
-        },
-        { ...betterAuthUser, signupAttribution: {} },
-        { ...betterAuthUser, id: 'user-4' },
-      ],
-      error: null,
-      isFetching: false,
-      isLoading: false,
-      refetch: mocks.refetch,
-    });
-
-    render(<UsersList />);
-
-    expect(screen.getByTestId('user-1-signupAttribution')).toHaveTextContent(
-      'chatgpt.com → /studio',
-    );
-    expect(screen.getByTestId('user-2-signupAttribution')).toHaveTextContent(
-      'producthunt / launch',
-    );
-    expect(screen.getByTestId('user-3-signupAttribution')).toHaveTextContent(
-      'Direct',
-    );
-    expect(screen.getByTestId('user-4-signupAttribution')).toHaveTextContent(
-      'Unknown',
-    );
-  });
-
   it('shows Better Auth names plus valid joined and last-connected dates', () => {
     mocks.useQuery.mockReturnValue({
       data: [betterAuthUser],
@@ -303,9 +281,9 @@ describe('UsersList', () => {
     );
   });
 
-  it('shows Never when the user has not connected yet', () => {
+  it('shows a dash, not a placeholder sentence, for missing values', () => {
     mocks.useQuery.mockReturnValue({
-      data: [{ ...betterAuthUser, lastActiveAt: null }],
+      data: [{ ...betterAuthUser, lastActiveAt: null, name: null }],
       error: null,
       isFetching: false,
       isLoading: false,
@@ -314,8 +292,50 @@ describe('UsersList', () => {
 
     render(<UsersList />);
 
-    expect(screen.getByTestId('user-3-lastActiveAt')).toHaveTextContent(
-      'Never',
+    expect(screen.getByTestId('user-3-name')).toHaveTextContent('—');
+    expect(screen.getByTestId('user-3-name')).not.toHaveTextContent('No name');
+    expect(screen.getByTestId('user-3-lastActiveAt')).toHaveTextContent('—');
+    expect(screen.queryByText('Source')).not.toBeInTheDocument();
+  });
+
+  it('links the name to the user page and the email to a mailto', () => {
+    render(<UsersList />);
+
+    expect(screen.getByRole('link', { name: 'Jane Doe' })).toHaveAttribute(
+      'href',
+      `${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/user-1`,
+    );
+    expect(
+      screen.getByRole('link', { name: 'jane@example.com' }),
+    ).toHaveAttribute('href', 'mailto:jane@example.com');
+  });
+
+  it('copies the email without opening the row overlay', async () => {
+    render(<UsersList />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Copy jane@example.com' }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.copyToClipboard).toHaveBeenCalledWith('jane@example.com');
+    });
+  });
+
+  it('opens a detail overlay when a row is clicked', () => {
+    render(<UsersList />);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open jane@example.com' }),
+    );
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open full profile' }),
+    ).toHaveAttribute(
+      'href',
+      `${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/user-1`,
     );
   });
 

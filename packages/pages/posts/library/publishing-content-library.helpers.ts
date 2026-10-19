@@ -116,10 +116,10 @@ function resolvePostFormat(post: IPost): PublishingContentFormat | undefined {
   return undefined;
 }
 
-function toAccounts(
+export function createPublishingContentAccounts(
   credentials: (ICredential | undefined)[],
-): PublishingContentAccount[] | undefined {
-  const accounts = credentials.flatMap((credential) =>
+): PublishingContentAccount[] {
+  return credentials.flatMap((credential) =>
     credential
       ? [
           {
@@ -135,6 +135,12 @@ function toAccounts(
         ]
       : [],
   );
+}
+
+function toAccounts(
+  credentials: (ICredential | undefined)[],
+): PublishingContentAccount[] | undefined {
+  const accounts = createPublishingContentAccounts(credentials);
   return accounts.length > 0 ? accounts : undefined;
 }
 
@@ -266,6 +272,19 @@ export function createPublishingContentLibraryItems({
   ].sort(newestFirst);
 }
 
+const CHANNEL_ACCOUNT_PREFIX = 'account:';
+
+function matchesChannel(
+  item: PublishingContentLibraryItem,
+  channel: string,
+): boolean {
+  if (channel.startsWith(CHANNEL_ACCOUNT_PREFIX)) {
+    const accountId = channel.slice(CHANNEL_ACCOUNT_PREFIX.length);
+    return item.accounts?.some((account) => account.id === accountId) ?? false;
+  }
+  return (item.channels ?? [item.channel]).includes(channel);
+}
+
 export function filterPublishingContentLibraryItems(
   items: PublishingContentLibraryItem[],
   filters: PublishingContentLibraryFilters,
@@ -277,10 +296,7 @@ export function filterPublishingContentLibraryItems(
       return false;
     }
 
-    if (
-      filters.channel !== 'all' &&
-      !(item.channels ?? [item.channel]).includes(filters.channel)
-    ) {
+    if (filters.channel !== 'all' && !matchesChannel(item, filters.channel)) {
       return false;
     }
 

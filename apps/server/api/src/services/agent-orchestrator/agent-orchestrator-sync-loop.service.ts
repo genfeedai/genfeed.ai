@@ -33,6 +33,10 @@ import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/u
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
+import {
+  AGENT_WRAP_UP_INSTRUCTION,
+  isAgentWrapUpRound,
+} from '@api/services/agent-orchestrator/utils/agent-round-budget.util';
 import { buildAgentSyncResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-sync-response-metadata.util';
 import {
   extractThreadEnvelope,
@@ -91,6 +95,7 @@ export class AgentOrchestratorSyncLoopService {
     source: AgentChatRequest['source'];
     terminalContent: string | undefined;
     threadId: string;
+    toolChoice: 'auto' | 'none';
     tools: Parameters<typeof buildAgentChatCompletionParams>[0]['tools'];
     turnCost: number;
     userContent: string;
@@ -137,6 +142,7 @@ export class AgentOrchestratorSyncLoopService {
             seedTitle: input.seedTitle,
             sessionId: input.threadId,
             source: input.source,
+            toolChoice: input.toolChoice,
             tools: input.tools,
           }),
           input.context.organizationId,
@@ -359,6 +365,11 @@ export class AgentOrchestratorSyncLoopService {
     const { seedTitle, turnCost } = params;
     const { terminalContent } = loopState;
     const isTerminalCompletion = Boolean(terminalContent);
+    const isWrapUpRound =
+      !isTerminalCompletion && isAgentWrapUpRound(round, AGENT_MAX_TOOL_ROUNDS);
+    if (isWrapUpRound) {
+      messages.push({ content: AGENT_WRAP_UP_INSTRUCTION, role: 'system' });
+    }
     const maximumRoundCredits =
       terminalContent || turnCost === 0
         ? 0
@@ -401,6 +412,7 @@ export class AgentOrchestratorSyncLoopService {
       source: request.source,
       terminalContent,
       threadId,
+      toolChoice: isWrapUpRound ? 'none' : 'auto',
       tools,
       turnCost,
       userContent: request.content,

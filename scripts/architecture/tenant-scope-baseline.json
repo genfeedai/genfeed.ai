@@ -585,14 +585,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "warmupAccount",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "3001d3fe967441a4dff5",
-      "method": "findMany",
-      "model": "WarmupAccount",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "brand",
       "file": "apps/server/api/src/endpoints/analytics/analytics.service.ts",
       "fingerprint": "4a66efa4b076e79886f0",
@@ -607,14 +599,6 @@
       "method": "count",
       "model": "Ingredient",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "brand",
-      "file": "apps/server/api/src/endpoints/analytics/entity-leaderboard.service.ts",
-      "fingerprint": "8690e2835301aa417c36",
-      "method": "groupBy",
-      "model": "Brand",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "orgIntegration",

@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { ContentPlanStatus } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getSeeds: vi.fn(),
   getWeeklySummary: vi.fn(),
   loggerError: vi.fn(),
+  page: null as string | null,
   refresh: vi.fn(),
   success: vi.fn(),
   useContentPlans: vi.fn(),
@@ -47,7 +49,18 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@hooks/data/content-plans/use-content-plans', () => ({
-  useContentPlans: () => mocks.useContentPlans(),
+  useContentPlans: (options: unknown) => mocks.useContentPlans(options),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/org/acme/brand/demo/automation/overview',
+  useSearchParams: () => ({
+    get: (key: string) => (key === 'page' ? mocks.page : null),
+  }),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -282,10 +295,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/org/acme/brand/demo/automation/overview',
-}));
-
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../../tests/next-intl.stub'
@@ -328,6 +337,19 @@ describe('ContentPlansSection', () => {
       plans: [makePlan()],
       refresh: mocks.refresh,
     });
+  });
+
+  it('requests the server page from the URL and renders pagination', () => {
+    mocks.page = '2';
+    render(<ContentPlansSection />);
+
+    expect(mocks.useContentPlans).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 2 }),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+    mocks.page = null;
   });
 
   it('renders plans with a cold-start badge and seed summary', () => {

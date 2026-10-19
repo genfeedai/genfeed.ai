@@ -196,17 +196,11 @@
     "retry": "Retry",
     "retryScheduled": "Retry scheduled"
   },
-  "tabs": {
-    "billing": "Billing",
-    "decisions": "AI",
-    "agent": "Agent",
-    "media": "Media",
-    "providers": "Providers",
-    "accounts": "Accounts",
-    "notifications": "Notifications"
-  },
+  "title": "Platform settings",
   "marginsHeading": "Margins",
-  "saveHint": "Saves every tab at once. Changes apply to every server within 15 seconds, with no deploy.",
+  "marginInputModeLabel": "Margin input mode",
+  "marginInputModeHelp": "Changes how the two margin fields below are typed and read. Billing always stores and applies the multiplier — this never changes a price.",
+  "saveHint": "Saves every settings page at once. Changes apply to every server within 15 seconds, with no deploy.",
   "saveButton": "Save settings",
   "savingButton": "Saving",
   "typedDecisionsHeading": "Typed decisions",

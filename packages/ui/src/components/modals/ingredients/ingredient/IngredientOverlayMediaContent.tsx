@@ -28,7 +28,7 @@ type Props = {
   isAddingTextOverlay: boolean;
   isUpdating: boolean;
   // Handlers
-  onReload: (skipNotification?: boolean) => Promise<void>;
+  onReload: () => Promise<void>;
   onShareVideo: () => void;
   onPublishVideo: (ingredient: IIngredient) => void;
   onDownloadVideo: (video: IIngredient) => Promise<undefined>;

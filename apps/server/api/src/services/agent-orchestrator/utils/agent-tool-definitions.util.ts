@@ -223,13 +223,15 @@ export function buildAgentChatCompletionParams(params: {
   source?: AgentChatRequest['source'];
   tools: OpenRouterTool[];
   sessionId?: string;
+  /** `none` keeps the tool definitions but forbids calling them (wrap-up round). */
+  toolChoice?: 'auto' | 'none';
 }): {
   max_tokens: number;
   messages: OpenRouterMessage[];
   model: string;
   plugins?: OpenRouterPlugin[];
   temperature: number;
-  tool_choice: 'auto';
+  tool_choice: 'auto' | 'none';
   tools: OpenRouterTool[];
 } {
   // The web policy is judged on the model the turn REQUESTED, not on the key
@@ -281,7 +283,7 @@ export function buildAgentChatCompletionParams(params: {
       ? { session_id: params.sessionId }
       : {}),
     temperature: 0.7,
-    tool_choice: 'auto',
+    tool_choice: params.toolChoice ?? 'auto',
     tools: resolveProviderToolDefinitions(dispatchModel, params.tools),
   };
 }

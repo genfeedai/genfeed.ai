@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
+import PromptBarBlacklistSelector from '@ui/prompt-bars/components/blacklist-selector/PromptBarBlacklistSelector';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';
 import PromptBarFolderSelector from '@ui/prompt-bars/components/folder-selector/PromptBarFolderSelector';
 import PromptBarMetadataSelectors from '@ui/prompt-bars/components/metadata-selectors/PromptBarMetadataSelectors';
@@ -50,7 +51,9 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
       ctx.currentConfig.buttons?.style ||
       ctx.currentConfig.buttons?.camera ||
       ctx.currentConfig.buttons?.mood ||
-      ctx.currentConfig.buttons?.fontFamily;
+      ctx.currentConfig.buttons?.fontFamily ||
+      (ctx.currentConfig.buttons?.blacklist &&
+        ctx.filteredBlacklists.length > 0);
     const hasTags = Boolean(ctx.currentConfig.buttons?.tags);
     const hasFolder = Boolean(ctx.folders?.length);
 
@@ -97,6 +100,16 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
             });
           }}
         />
+
+        {ctx.currentConfig.buttons?.blacklist && (
+          <PromptBarBlacklistSelector
+            blacklists={ctx.filteredBlacklists}
+            form={ctx.form}
+            controlClass={ctx.controlClass}
+            isDisabled={ctx.isDisabledState}
+            onChange={ctx.triggerConfigChange}
+          />
+        )}
 
         {hasTags && (
           <DropdownTags

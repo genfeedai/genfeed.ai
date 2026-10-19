@@ -1,6 +1,7 @@
 import { SubscriptionTier } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  FREE_API_RATE_LIMIT,
   FREE_SEAT_LIMIT,
   getApiEntitlementForTier,
   getApiRateLimitForTier,
@@ -56,18 +57,20 @@ describe('getPlanEntitlementForTier', () => {
 });
 
 describe('API entitlements', () => {
-  it('denies API access to free tiers', () => {
-    expect(hasApiAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasApiAccess(null)).toBe(false);
+  it('grants API access to free tiers, and to tiers it cannot resolve', () => {
+    expect(hasApiAccess(SubscriptionTier.FREE)).toBe(true);
+    expect(hasApiAccess(null)).toBe(true);
   });
 
-  it('grants API access from Scale upward', () => {
+  it('grants API access on every paid tier', () => {
     expect(hasApiAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasApiAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 
   it('returns per-tier rate limits', () => {
-    expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(0);
+    expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(
+      FREE_API_RATE_LIMIT,
+    );
     expect(getApiRateLimitForTier(SubscriptionTier.SCALE)).toBe(
       SCALE_API_RATE_LIMIT,
     );

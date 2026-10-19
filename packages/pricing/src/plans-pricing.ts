@@ -1,4 +1,5 @@
 import { ceilDecimalPricingRatio } from './decimal-pricing';
+import { FREE_API_RATE_LIMIT } from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -365,6 +366,7 @@ export const websitePlans: WebsitePlanProps[] = [
       '1 seat, 1 workspace',
       'Unlimited brands and channels',
       'Watermarked exports',
+      `API access (${FREE_API_RATE_LIMIT} requests/min)`,
     ],
     interval: 'payg',
     label: PLAN_LABELS.payg,
@@ -388,7 +390,7 @@ export const websitePlans: WebsitePlanProps[] = [
       'Any model, Ultra quality',
       'Brand model training',
       'Automation, Messages, Discovery',
-      'API and BYOK',
+      'Higher API limits and BYOK',
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
@@ -475,7 +477,7 @@ export function formatTierLabel(
     return fallback;
   }
 
-  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
+  if (Object.hasOwn(PLAN_LABELS, tier)) {
     return PLAN_LABELS[tier as PlanTier];
   }
 

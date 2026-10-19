@@ -30,8 +30,8 @@ is the only formatter; the ledger keeps full precision):
 - Model pickers: `≈ X credits / message` from `getMessageCostEstimatesMap`
   (average-message token footprint; display only, never billing).
 
-**Unit economics (platform admin only):** Admin → Administration → Unit
-Economics (`/admin/administration/unit-economics`, `GET /v1/admin/unit-economics`,
+**Unit economics (platform admin only):** Admin → Economics → Organizations
+(`/admin/economics/organizations`, `GET /v1/admin/unit-economics`,
 super-admin + IP allowlist) joins credit usage, `llm_vendor_costs` (now with
 `userId`), `media_vendor_costs`, and `billing_revenue_events`. Stripe checkout and
 invoice webhooks write `billing_revenue_events` idempotently per Stripe object

@@ -73,55 +73,14 @@ export function toUnitEconomicsMetrics(
   };
 }
 
-export function sumUnitEconomicsAggregates(
-  aggregates: readonly UnitEconomicsAggregate[],
-): UnitEconomicsAggregate {
-  return aggregates.reduce<UnitEconomicsAggregate>(
-    (total, aggregate) => ({
-      agentChatCredits: total.agentChatCredits + aggregate.agentChatCredits,
-      agentTurns: total.agentTurns + aggregate.agentTurns,
-      generationCredits: total.generationCredits + aggregate.generationCredits,
-      llmProviderCostMicros:
-        total.llmProviderCostMicros + aggregate.llmProviderCostMicros,
-      mediaProviderCostMicros:
-        total.mediaProviderCostMicros + aggregate.mediaProviderCostMicros,
-      revenueMinor: total.revenueMinor + aggregate.revenueMinor,
-    }),
-    { ...EMPTY_UNIT_ECONOMICS_AGGREGATE },
-  );
-}
-
-/**
- * Rows plus a totals row. Totals re-derive the margin from summed money —
- * averaging per-row percentages would weight a $1 org like a $10k one.
- * Rows sort by provider cost, the number an operator scans first.
- */
-export function buildUnitEconomicsRows(
-  inputs: readonly UnitEconomicsRowInput[],
-): {
-  rows: IUnitEconomicsRow[];
-  totals: IUnitEconomicsMetrics;
-} {
-  const rows = inputs
-    .map((input) => ({
-      ...toUnitEconomicsMetrics(input.aggregate),
-      id: input.id,
-      label: input.label,
-      topModels: input.topModels,
-    }))
-    .sort(
-      (left, right) =>
-        right.llmProviderCostUsd +
-          right.mediaProviderCostUsd -
-          (left.llmProviderCostUsd + left.mediaProviderCostUsd) ||
-        right.revenueUsd - left.revenueUsd ||
-        left.label.localeCompare(right.label),
-    );
-
+/** One row's metrics plus identity; the database has already ordered the rows. */
+export function buildUnitEconomicsRow(
+  input: UnitEconomicsRowInput,
+): IUnitEconomicsRow {
   return {
-    rows,
-    totals: toUnitEconomicsMetrics(
-      sumUnitEconomicsAggregates(inputs.map((input) => input.aggregate)),
-    ),
+    ...toUnitEconomicsMetrics(input.aggregate),
+    id: input.id,
+    label: input.label,
+    topModels: input.topModels,
   };
 }

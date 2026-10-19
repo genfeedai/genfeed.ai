@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant, ContentRunStatus } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -19,6 +19,7 @@ import Badge from '@ui/display/badge/Badge';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -29,8 +30,9 @@ import {
 } from '@ui/primitives/select';
 import { CirclePlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 const ALL_STATUSES = 'all';
 
@@ -70,6 +72,25 @@ export default function ContentRunListPage() {
   const isBrandReady = isBrandResourceReady(collectionScope);
   const { href } = useOrgUrl();
   const [status, setStatus] = useState<string>(ALL_STATUSES);
+  const pathname = usePathname();
+  const { replace } = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
+
+  // A new filter changes the result set, so restart from the first page.
+  const handleStatusChange = useCallback(
+    (nextStatus: string) => {
+      setStatus(nextStatus);
+      const params = new URLSearchParams(searchParamsString);
+      if (params.has('page')) {
+        params.delete('page');
+        const query = params.toString();
+        replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      }
+    },
+    [pathname, replace, searchParamsString],
+  );
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
   );
@@ -85,23 +106,29 @@ export default function ContentRunListPage() {
     // staleTime, and initialData is treated as a fresh cache entry, so the
     // list would mount empty and skip the fetch until something invalidated it.
     placeholderData: EMPTY_RUNS,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!brandId) {
         return EMPTY_RUNS;
       }
       const service = await getContentRunsService();
-      return service.list(brandId, {
-        status:
-          status === ALL_STATUSES ? undefined : (status as ContentRunStatus),
-      });
+      return service.list(
+        brandId,
+        {
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          status:
+            status === ALL_STATUSES ? undefined : (status as ContentRunStatus),
+        },
+        signal,
+      );
     },
-    queryKey: ['content-runs', brandId, status],
+    queryKey: ['content-runs', brandId, status, currentPage],
   });
 
   const isInitialFetch = isFetching && data.length === 0;
 
   const statusFilter = (
-    <Select value={status} onValueChange={setStatus}>
+    <Select value={status} onValueChange={handleStatusChange}>
       <SelectTrigger
         aria-label={translate('statusFilter')}
         className="min-w-36"
@@ -148,19 +175,22 @@ export default function ContentRunListPage() {
       {(!isError || data.length > 0) && !isInitialFetch && isBrandReady ? (
         <div className="space-y-4">
           {data.length ? (
-            <Card bodyClassName="p-0">
-              <div className="divide-y divide-border">
-                {data.map((run) => (
-                  <ContentRunRow
-                    key={getRunId(run)}
-                    detailHref={href(
-                      `${APP_ROUTES.AUTOMATION.CONTENT_RUNS}/${getRunId(run)}`,
-                    )}
-                    run={run}
-                  />
-                ))}
-              </div>
-            </Card>
+            <>
+              <Card bodyClassName="p-0">
+                <div className="divide-y divide-border">
+                  {data.map((run) => (
+                    <ContentRunRow
+                      key={getRunId(run)}
+                      detailHref={href(
+                        `${APP_ROUTES.AUTOMATION.CONTENT_RUNS}/${getRunId(run)}`,
+                      )}
+                      run={run}
+                    />
+                  ))}
+                </div>
+              </Card>
+              <AutoPagination showTotal totalLabel="runs" />
+            </>
           ) : (
             <CardEmpty
               icon={Sparkles}
@@ -178,7 +208,7 @@ export default function ContentRunListPage() {
                 status !== ALL_STATUSES
                   ? {
                       label: translate('clearFilter'),
-                      onClick: () => setStatus(ALL_STATUSES),
+                      onClick: () => handleStatusChange(ALL_STATUSES),
                     }
                   : undefined
               }

@@ -21,10 +21,10 @@ export default function StoryboardPromptBar({
 }: StoryboardPromptBarProps) {
   const translate = useTranslations('pages.studioStoryboard.promptBar');
   return (
-    <div className="sticky bottom-4 z-10 mx-auto mt-6 w-full max-w-4xl">
       <PromptBarContainer
-        layoutMode="inflow"
-        maxWidth="full"
+        className="pt-6"
+        layoutMode="sticky-bottom"
+        maxWidth="4xl"
         showTopFade
         topContent={
           error ? (
@@ -54,6 +54,5 @@ export default function StoryboardPromptBar({
           }
         />
       </PromptBarContainer>
-    </div>
   );
 }

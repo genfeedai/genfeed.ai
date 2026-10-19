@@ -17,6 +17,10 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: () => <button type="button">Refresh</button>,
 }));
 
+vi.mock('@ui/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
+  default: () => <div data-testid="admin-org-filter" />,
+}));
+
 vi.mock('@ui/content/filters-button/FiltersButton', () => ({
   default: () => <button type="button">Filters</button>,
 }));
@@ -48,5 +52,27 @@ describe('IngredientsLayoutToolbar', () => {
       'href',
       '/demo/FUDNEWS/agent/new',
     );
+  });
+
+  it('puts the organization filter in the admin subbar only', () => {
+    const props = {
+      config: {
+        filterOptions: {},
+        showGenerateLink: false,
+        showUpload: false,
+        showViewToggle: false,
+        visibleFilters: {},
+      },
+      filters: { format: '', provider: '', search: '', status: '', type: '' },
+      onFiltersChange: vi.fn(),
+    };
+
+    const { rerender } = render(
+      <IngredientsLayoutToolbar {...props} scope={PageScope.SUPERADMIN} />,
+    );
+    expect(screen.getByTestId('admin-org-filter')).toBeInTheDocument();
+
+    rerender(<IngredientsLayoutToolbar {...props} scope={PageScope.BRAND} />);
+    expect(screen.queryByTestId('admin-org-filter')).not.toBeInTheDocument();
   });
 });

@@ -2577,6 +2577,10 @@
       "label": "AI & Automation",
       "description": "Models, trainings, bots and workflows."
     },
+    "adminEconomics": {
+      "label": "Economics",
+      "description": "Revenue, provider cost, margins and tracking coverage."
+    },
     "adminConfiguration": {
       "label": "Configuration",
       "description": "Elements, presets, fonts and tags."
@@ -2584,6 +2588,10 @@
     "adminAdministration": {
       "label": "Administration",
       "description": "Organizations, users, billing and flags."
+    },
+    "adminSettings": {
+      "label": "Settings",
+      "description": "Platform billing, AI, agent, media and provider settings."
     }
   },
   "windowChrome": {

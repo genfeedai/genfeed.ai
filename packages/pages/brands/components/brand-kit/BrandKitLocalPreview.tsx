@@ -1,5 +1,6 @@
 'use client';
 
+import { FONT_FAMILY_METADATA, resolveFontFamily } from '@genfeedai/contracts';
 import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -46,15 +47,10 @@ function previewFontStyle(font: string): {
   fontWeight?: number;
 } {
   if (!font || font === 'inherit') return {};
-  const fontWeight = font.endsWith('_BLACK')
-    ? 900
-    : font.endsWith('_BOLD')
-      ? 700
-      : undefined;
-  return {
-    fontFamily: /^MONTSERRAT_/u.test(font) ? 'Montserrat, sans-serif' : font,
-    ...(fontWeight ? { fontWeight } : {}),
-  };
+  const known = resolveFontFamily(font);
+  if (!known) return { fontFamily: font };
+  const { cssFamily, cssWeight } = FONT_FAMILY_METADATA[known];
+  return { fontFamily: `${cssFamily}, sans-serif`, fontWeight: cssWeight };
 }
 
 function readPreviewSocialLinks(value: unknown): BrandPreviewSocialLink[] {

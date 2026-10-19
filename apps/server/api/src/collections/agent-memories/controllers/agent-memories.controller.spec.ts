@@ -163,9 +163,16 @@ describe('AgentMemoriesController', () => {
         mockEntries as never,
       );
 
-      const result = await controller.listOrganization(mockUser);
+      const result = await controller.listOrganization(mockUser, {
+        limit: 15,
+        page: 2,
+      });
 
-      expect(memoriesService.listForOrganization).toHaveBeenCalledWith(ORG_ID);
+      expect(memoriesService.listForOrganization).toHaveBeenCalledWith(ORG_ID, {
+        limit: 15,
+        page: 2,
+        skip: 15,
+      });
       expect(result).toEqual(mockEntries);
     });
   });

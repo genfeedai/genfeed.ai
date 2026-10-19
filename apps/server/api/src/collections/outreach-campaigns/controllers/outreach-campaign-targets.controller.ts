@@ -1,6 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
-import { OutreachCampaignTargetOperationsService } from '@api/collections/outreach-campaigns/services/outreach-campaign-target-operations.service';
+import { CampaignTargetsQueryDto } from '@api/collections/outreach-campaigns/dto/campaign-targets-query.dto';
+import {
+  type CampaignTargetsPage,
+  OutreachCampaignTargetOperationsService,
+} from '@api/collections/outreach-campaigns/services/outreach-campaign-target-operations.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -19,6 +23,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
@@ -73,10 +78,12 @@ export class OutreachCampaignTargetsController {
   getTargets(
     @Param('id') id: string,
     @CurrentUser() user: User,
-  ): Promise<unknown[]> {
+    @Query() query: CampaignTargetsQueryDto,
+  ): Promise<CampaignTargetsPage> {
     return this.targetOperationsService.getTargets(
       id,
       user,
+      query,
       resolveTenantReadScope(user),
     );
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   getSystemWorkflowMetadata,
   type IFeaturedWorkflowSummary,
@@ -19,6 +20,7 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import {
   ChevronDown,
@@ -28,6 +30,7 @@ import {
   PinOff,
   Trash2,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -101,6 +104,8 @@ export default function WorkflowsPage() {
   );
   const getCatalogService = useAuthedService(createWorkflowApiService);
   const notificationsService = NotificationsService.getInstance();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const { openConfirmDelete } = useConfirmDeleteModal();
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -164,10 +169,15 @@ export default function WorkflowsPage() {
       try {
         const service = await getWorkflowsService();
         const [fetchedWorkflows] = await Promise.all([
-          service.findAllPages({
-            includeSystem: true,
-            sort: 'createdAt: -1',
-          }),
+          service.findAll(
+            {
+              includeSystem: true,
+              limit: ITEMS_PER_PAGE,
+              page: currentPage,
+              sort: 'createdAt: -1',
+            },
+            signal,
+          ),
           loadPins(signal),
           loadCatalog(signal),
         ]);
@@ -190,6 +200,7 @@ export default function WorkflowsPage() {
       }
     },
     [
+      currentPage,
       getWorkflowsService,
       loadCatalog,
       loadPins,
@@ -500,6 +511,7 @@ export default function WorkflowsPage() {
           getRowKey={(workflow) => workflow.id}
           emptyLabel={translate('empty')}
         />
+        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
       </div>
     </AdminPageShell>
   );

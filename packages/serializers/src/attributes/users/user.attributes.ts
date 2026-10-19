@@ -7,6 +7,7 @@ export const userAttributes = createEntityAttributes([
   'firstName',
   'lastName',
   'email',
+  'lastActiveAt',
   'avatar',
   'platformRole',
   'isOnboardingCompleted',

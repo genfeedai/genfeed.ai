@@ -6,7 +6,7 @@ import {
   ComponentSize,
   ViewType,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
@@ -30,6 +30,7 @@ import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import {
@@ -41,8 +42,9 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 const CAMPAIGNS_COLLECTION_SURFACE = 'automation.campaigns';
 
@@ -337,7 +339,20 @@ function getCampaignKey(campaign: AgentCampaign): string {
 
 export default function AgentCampaignsPage() {
   const translate = useTranslations('common.agentCampaign.collection');
-  const { campaigns, error, isLoading, refresh } = useAgentCampaigns();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+  // The "All" collection is server-paged; the stats strip and "Needs you" are
+  // derived from every campaign so a program on page 2 never goes unnoticed.
+  const {
+    campaigns: pagedCampaigns,
+    error,
+    isLoading,
+    refresh: refreshPage,
+  } = useAgentCampaigns({ limit: ITEMS_PER_PAGE, page: currentPage });
+  const { campaigns, refresh: refreshAll } = useAgentCampaigns();
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshPage(), refreshAll()]);
+  }, [refreshAll, refreshPage]);
   const { href } = useOrgUrl();
   const { view, setView } = useCollectionViewPreference({
     defaultView: ViewType.LIST,
@@ -349,7 +364,7 @@ export default function AgentCampaignsPage() {
     [campaigns],
   );
 
-  const hasCampaigns = campaigns.length > 0;
+  const hasCampaigns = pagedCampaigns.length > 0 || campaigns.length > 0;
   // A failed refetch keeps showing the Programs already loaded; only a
   // failure with nothing to show replaces the collection with the error.
   const hasLoadError = error !== null && !isLoading && !hasCampaigns;
@@ -433,20 +448,21 @@ export default function AgentCampaignsPage() {
             }
             isCountVisible
             isLoading={isLoading}
-            itemCount={campaigns.length}
+            itemCount={pagedCampaigns.length}
             title={translate('all')}
           >
             <CollectionView
               data-testid="campaign-collection"
               getItemKey={getCampaignKey}
               isLoading={isLoading}
-              items={campaigns}
+              items={pagedCampaigns}
               maxColumns={3}
               renderGridItem={renderCampaignCard}
               renderListItem={renderCampaignRow}
               view={view}
             />
           </CollectionSection>
+          <AutoPagination showTotal totalLabel="programs" />
         </div>
       )}
     </Container>

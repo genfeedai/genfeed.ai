@@ -50,10 +50,12 @@ import type {
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -146,12 +148,22 @@ export class IngredientsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const brandId = await this.resolveLibraryBrandFilter(
-      query,
-      tenant,
-      user,
-      request,
-    );
+    // Superadmin operator view across every organization. Without an
+    // `organizationId` narrowing it to one tenant, the organization bound is
+    // dropped and an explicit `brandId` is the only brand axis.
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    if (query.allOrganizations && !isSuperAdmin) {
+      throw new ForbiddenException({
+        detail: 'Listing every organization is limited to platform admins',
+        title: 'Forbidden',
+      });
+    }
+    const isAllOrganizations =
+      query.allOrganizations === true && !query.organizationId;
+
+    const brandId = isAllOrganizations
+      ? query.brandId
+      : await this.resolveLibraryBrandFilter(query, tenant, user, request);
 
     // `categories` is the multi-select Library type axis; `category` stays for
     // single-type callers. Both normalize to Prisma labels.
@@ -196,7 +208,9 @@ export class IngredientsController {
         // prepend `isDeleted: false` and make the Trash place always empty.
         isDeleted: QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted),
         AND: [
-          { organizationId: tenant.organizationId },
+          ...(isAllOrganizations
+            ? []
+            : [{ organizationId: tenant.organizationId }]),
           libraryBrandWhere(brandId),
           categoryFilter,
           // A selected shelf owns the status axis outright.
@@ -223,13 +237,21 @@ export class IngredientsController {
       query.paging === 'cursor'
         ? resolveKeysetSort(handleQuerySort(query.sort))
         : null;
-    const data = keysetSort
-      ? await this.ingredientsService.findAllByKeyset(aggregate, {
-          cursor: decodeKeysetCursor(query.cursor, keysetSort),
-          limit: options.limit,
-          sort: keysetSort,
-        })
-      : await this.ingredientsService.findAll(aggregate, options);
+    const listIngredients = async () =>
+      keysetSort
+        ? await this.ingredientsService.findAllByKeyset(aggregate, {
+            cursor: decodeKeysetCursor(query.cursor, keysetSort),
+            limit: options.limit,
+            sort: keysetSort,
+          })
+        : await this.ingredientsService.findAll(aggregate, options);
+    const data = isAllOrganizations
+      ? await crossOrgUnsafe(
+          async () =>
+            // tenant-scope-ignore: superadmin operator library across every organization, gated by the allOrganizations superadmin check above
+            await listIngredients(),
+        )
+      : await listIngredients();
     return serializeCollection(
       request,
       IngredientSerializer,

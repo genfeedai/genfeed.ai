@@ -163,7 +163,8 @@ export class VideosController {
 
       const latestData = await this.videosService.findAll(latestAggregate, {
         limit: Math.min(Number(query.limit) || 10, 50),
-        pagination: false,
+        page: 1,
+        pagination: true,
       });
 
       return serializeCollection(

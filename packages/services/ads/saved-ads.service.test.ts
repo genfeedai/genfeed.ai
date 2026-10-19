@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import { collectionDocument } from '@services/__mocks__/http.mock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SavedAdsService } from './saved-ads.service';
 
@@ -37,6 +38,34 @@ describe('SavedAdsService client', () => {
     expect(http.patch).toHaveBeenCalledWith('', [expect.any(Object)]);
     expect(http.delete).toHaveBeenCalledWith('', {
       data: [expect.any(Object)],
+    });
+  });
+
+  it("walks every page of a brand's saved ads", async () => {
+    const service = new SavedAdsService('token');
+    const document = (id: string, page: number) => ({
+      data: {
+        ...collectionDocument([{ brandId: 'brand-1', id }]),
+        links: { pagination: { limit: 100, page, pages: 2, total: 101 } },
+      },
+    });
+    const http: MockHttpClient = {
+      delete: vi.fn(),
+      get: vi
+        .fn()
+        .mockResolvedValueOnce(document('saved-1', 1))
+        .mockResolvedValueOnce(document('saved-2', 2)),
+      patch: vi.fn(),
+      post: vi.fn(),
+    };
+    (service as TestableService).instance = http;
+
+    const savedAds = await service.list('brand-1');
+
+    expect(savedAds.map((ad) => ad.id)).toEqual(['saved-1', 'saved-2']);
+    expect(http.get).toHaveBeenNthCalledWith(2, '', {
+      params: { brandId: 'brand-1', limit: 100, page: 2 },
+      signal: undefined,
     });
   });
 });

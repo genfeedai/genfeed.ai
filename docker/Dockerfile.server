@@ -344,6 +344,9 @@ COPY --from=production-deps /usr/src/app/packages/ ./packages/
 COPY --from=builder /usr/src/app/apps/server/dist ./apps/server/dist
 COPY --from=builder /usr/src/app/apps/server/files/src/remotion ./apps/server/files/src/remotion
 COPY --from=builder /usr/src/app/apps/server/files/remotion-bundle ./apps/server/files/remotion-bundle
+# Static TTFs the files service burns into clips (drawtext fontfile=). Not part of
+# the dist output, so without this every overlay render misses its font.
+COPY --from=builder /usr/src/app/apps/server/files/public/assets/fonts ./apps/server/files/public/assets/fonts
 COPY --from=production-deps /usr/src/app/node_modules ./node_modules
 
 # First-party product skills (`skills/*/SKILL.md`) are the in-app catalog seed.

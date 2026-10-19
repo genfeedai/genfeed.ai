@@ -34,6 +34,17 @@ import {
 export class IngredientsQueryDto extends BaseQueryDto {
   @ApiProperty({
     description:
+      'Superadmin only: list assets across every organization. Ignored when ' +
+      '`organizationId` narrows the read to one tenant; any other caller gets a 403.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  allOrganizations?: boolean;
+
+  @ApiProperty({
+    description:
       'List every brand in the organization (and unbranded assets), ignoring ' +
       'the session brand. An explicit `brandId` still narrows the list.',
     required: false,

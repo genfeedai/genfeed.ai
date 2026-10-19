@@ -13,6 +13,7 @@ import {
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type {
@@ -20,6 +21,7 @@ import type {
   ModalPostProps,
 } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
+import { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { splitTextIntoThread } from '@helpers/formatting/thread-split/thread-split.helper';
@@ -29,12 +31,22 @@ import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import ModalPostSimpleActions from './ModalPostSimpleActions';
 import ModalPostSimpleFields from './ModalPostSimpleFields';
 import ModalPostSimpleHeader from './ModalPostSimpleHeader';
 
 const EMPTY_ARRAY: never[] = [];
+
+/** How a new post leaves the modal; the lifecycle follows from it, never from a field. */
+type PostSubmitIntent = 'draft' | 'publish' | 'schedule';
 
 /** Connected for livestream chat only; there is no publish path, so never offer it as a post target. */
 const NON_POSTING_PLATFORMS: ReadonlySet<string> = new Set([Platform.RESTREAM]);
@@ -154,14 +166,63 @@ export default function ModalPost({
   const adoptedDraftRef = useRef<{ platform: string; postId: string } | null>(
     null,
   );
+  const submitIntentRef = useRef<PostSubmitIntent>('draft');
+  const isIntentArmedRef = useRef(false);
+  const getReleaseGroupsService = useAuthedService(
+    useCallback((token: string) => ReleaseGroupsService.getInstance(token), []),
+  );
+
+  const publishCreatedNow = useCallback(
+    async (postIds: string[]) => {
+      const releases = await getReleaseGroupsService();
+      await Promise.all(
+        postIds.map(async (postId) => {
+          const release = await releases.ensureFromPost(postId);
+          await releases.publishTargetNow(release.id, postId);
+        }),
+      );
+    },
+    [getReleaseGroupsService],
+  );
+
+  // The post is already saved as a draft when publishing fails, so the modal
+  // closes with a clear message instead of inviting a duplicate submit.
+  const publishNowOrKeepDraft = useCallback(
+    async (postIds: string[]) => {
+      try {
+        await publishCreatedNow(postIds);
+        notificationsService.success('Publishing now');
+      } catch (error) {
+        logger.error('Failed to publish a new post now', error);
+        notificationsService.error(
+          'Saved as a draft, but publishing failed. Publish it from the post page.',
+        );
+      }
+    },
+    [notificationsService, publishCreatedNow],
+  );
 
   const customSubmitHandler = useCallback(
     async (
       service: unknown,
       entity: typeof post,
-      formData: PostModalSchema,
+      submitted: PostModalSchema,
     ) => {
       const postsService = service as PostsService;
+      const intent = submitIntentRef.current;
+      submitIntentRef.current = 'draft';
+      // A new post is a draft, a schedule or an immediate publish. Publishing
+      // starts from a saved draft, so only a schedule carries a lifecycle.
+      const formData: PostModalSchema = isEditMode
+        ? submitted
+        : {
+            ...submitted,
+            scheduledDate: intent === 'schedule' ? submitted.scheduledDate : '',
+            targetExecutionState:
+              intent === 'schedule'
+                ? TargetExecutionState.SCHEDULED
+                : TargetExecutionState.DRAFT,
+          };
 
       const selectedCredential = credentials.find(
         (c) => c.id === formData.credentialId,
@@ -286,6 +347,12 @@ export default function ModalPost({
         }
         logger.info('POST /publishing success');
 
+        if (intent === 'publish') {
+          await publishNowOrKeepDraft(
+            created.flatMap((item) => (item.id ? [item.id] : [])),
+          );
+        }
+
         if (onCreatedRef.current && created[0]?.id) {
           onCreatedRef.current(created[0].id);
         }
@@ -355,6 +422,10 @@ export default function ModalPost({
         );
         logger.info(`${url} success`);
 
+        if (intent === 'publish' && result?.id) {
+          await publishNowOrKeepDraft([result.id]);
+        }
+
         if (onCreatedRef.current && result?.id) {
           onCreatedRef.current(result.id);
         }
@@ -370,6 +441,7 @@ export default function ModalPost({
       credentials,
       post,
       brandId,
+      publishNowOrKeepDraft,
     ],
   );
 
@@ -436,6 +508,39 @@ export default function ModalPost({
   const handleCancel = useCallback(() => {
     closeModal();
   }, [closeModal]);
+
+  const submitWithIntent = useCallback(
+    (intent: PostSubmitIntent) => {
+      submitIntentRef.current = intent;
+      isIntentArmedRef.current = true;
+      formRef.current?.requestSubmit();
+    },
+    [formRef],
+  );
+  // Enter in a field submits natively and always means "save draft", even
+  // after an earlier publish or schedule attempt failed validation.
+  const handleFormSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      if (!isIntentArmedRef.current) {
+        submitIntentRef.current = 'draft';
+      }
+      isIntentArmedRef.current = false;
+      return onSubmit(event);
+    },
+    [onSubmit],
+  );
+  const handleSaveDraft = useCallback(
+    () => submitWithIntent('draft'),
+    [submitWithIntent],
+  );
+  const handlePublishNow = useCallback(
+    () => submitWithIntent('publish'),
+    [submitWithIntent],
+  );
+  const handleSchedule = useCallback(
+    () => submitWithIntent('schedule'),
+    [submitWithIntent],
+  );
 
   // Called by Modal's onClose after modal is closed - just cleanup, don't re-close
   const handleModalClosed = useCallback(() => {
@@ -586,10 +691,6 @@ export default function ModalPost({
   const isTitleError =
     isTitleRequired && (!titleValue || titleValue.trim() === '');
 
-  const hasIngredients =
-    (post?.ingredients?.length ?? 0) > 0 ||
-    (form.watch('ingredients')?.length ?? 0) > 0;
-
   const getModalContent = () => {
     if (isEditMode) {
       return {
@@ -622,10 +723,10 @@ export default function ModalPost({
     <Modal
       id={modalId}
       accessibleTitle={modalTitle}
-      modalBoxClassName="max-w-2xl"
+      modalBoxClassName="max-w-4xl"
       onClose={handleModalClosed}
     >
-      <Form spacing="section" ref={formRef} onSubmit={onSubmit}>
+      <Form spacing="section" ref={formRef} onSubmit={handleFormSubmit}>
         <ModalPostSimpleHeader
           title={modalTitle}
           description={modalDescription}
@@ -662,8 +763,6 @@ export default function ModalPost({
           isOverLimit={isOverLimit}
           isTitleRequired={isTitleRequired}
           isTitleError={isTitleError}
-          hasIngredients={hasIngredients}
-          browserTimezone={browserTimezone}
           onDraftGenerated={(draft) => {
             adoptedDraftRef.current = draft;
           }}
@@ -678,6 +777,18 @@ export default function ModalPost({
           isThreadReply={isThreadReply}
           isHandoff={isDestinationComposer && destination !== null}
           isThread={isDestinationComposer && isThread}
+          hasPublishChoices={!isEditMode && !isThreadReply}
+          hasAccount={Boolean(form.watch('credentialId'))}
+          browserTimezone={browserTimezone}
+          scheduledDate={form.watch('scheduledDate')}
+          onScheduledDateChange={(scheduledDate) =>
+            form.setValue('scheduledDate', scheduledDate, {
+              shouldValidate: true,
+            })
+          }
+          onSaveDraft={handleSaveDraft}
+          onPublishNow={handlePublishNow}
+          onSchedule={handleSchedule}
           onContinue={handleContinue}
           showViewDetailsButton={showViewDetailsButton}
           onViewDetails={onViewDetails}

@@ -13,7 +13,7 @@ import {
 } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
-import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
@@ -346,7 +346,7 @@ export default function AnalyticsPlatformDetail({
         </div>
       </Card>
 
-      <PostDetailOverlay
+      <PostDetailPanel
         postId={selectedPostId}
         scope={PageScope.ANALYTICS}
         onClose={() => setSelectedPostId(null)}

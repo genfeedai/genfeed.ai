@@ -516,6 +516,7 @@ describe('original ownership regressions', () => {
       undefined,
       undefined,
       undefined,
+      expect.objectContaining({ limit: expect.any(Number), page: 1 }),
     );
   });
   it('owner transfer discovery retains original actor', async () => {

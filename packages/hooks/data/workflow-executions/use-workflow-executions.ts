@@ -145,7 +145,13 @@ export function useWorkflowExecutions(
       if (!token)
         throw new Error('Authentication is required to load workflow activity');
       const service = WorkflowExecutionsService.getInstance(token);
-      const { limit: _limit, offset: _offset, sort: _sort, ...scope } = params;
+      const {
+        limit: _limit,
+        offset: _offset,
+        page: _page,
+        sort: _sort,
+        ...scope
+      } = params;
       // Stats and the execution list are fetched independently: a stats
       // failure (a 400 from the 26-hour window check, a transient 5xx, or an
       // older API during rollout) must not drop the execution list.

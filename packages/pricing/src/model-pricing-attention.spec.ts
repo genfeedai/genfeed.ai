@@ -8,6 +8,7 @@ import {
   enumerateReviewedVariantSelectors,
   isModelPricingRed,
   type ModelPricingAttentionInput,
+  needsModelPricingFix,
 } from './model-pricing-attention';
 
 const now = new Date('2026-10-05T00:00:00Z');
@@ -299,5 +300,34 @@ describe('derived variant catalog classification', () => {
         }),
       ]),
     );
+  });
+});
+
+describe('needsModelPricingFix', () => {
+  it('flags a row with any attention or an approvable rate, and nothing else', () => {
+    expect(
+      needsModelPricingFix({
+        attentionLevel: 'red',
+        isRateApprovalAvailable: false,
+      }),
+    ).toBe(true);
+    expect(
+      needsModelPricingFix({
+        attentionLevel: 'orange',
+        isRateApprovalAvailable: false,
+      }),
+    ).toBe(true);
+    expect(
+      needsModelPricingFix({
+        attentionLevel: null,
+        isRateApprovalAvailable: true,
+      }),
+    ).toBe(true);
+    expect(
+      needsModelPricingFix({
+        attentionLevel: null,
+        isRateApprovalAvailable: false,
+      }),
+    ).toBe(false);
   });
 });

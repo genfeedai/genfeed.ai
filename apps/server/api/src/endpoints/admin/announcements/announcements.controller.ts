@@ -4,6 +4,10 @@ import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/an
 import { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -18,6 +22,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -58,21 +63,19 @@ export class AnnouncementsController {
 
   @Get()
   @ApiOperation({ summary: 'Get announcement broadcast history' })
-  async getHistory(@Req() request: Request) {
+  async getHistory(
+    @Query() query: PaginationQueryDto,
+    @Req() request: Request,
+  ) {
     try {
-      const announcements = await this.adminAnnouncementsService.getHistory();
-      return serializeCollection(request, AnnouncementSerializer, {
-        docs: announcements,
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: announcements.length,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: announcements.length,
-        totalPages: 1,
-      });
+      const announcements = await this.adminAnnouncementsService.getHistory(
+        resolvePageWindow(query),
+      );
+      return serializeCollection(
+        request,
+        AnnouncementSerializer,
+        announcements,
+      );
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'getHistory');
     }

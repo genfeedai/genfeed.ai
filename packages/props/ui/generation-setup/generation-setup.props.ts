@@ -51,6 +51,13 @@ export interface GenerationSetupImageEditingMode {
   onChange: (next: boolean) => void;
 }
 
+/** A platform-owned preset offered to every organization; it can be applied, never deleted. */
+export interface GenerationSetupSystemPreset {
+  description?: string;
+  id: string;
+  label: string;
+}
+
 export interface GenerationSetupPopoverProps {
   showPresets?: boolean;
   /** One compact entry point for Studio's type and settings. */
@@ -72,6 +79,7 @@ export interface GenerationSetupPopoverProps {
   onFavoriteToggle: (modelKey: string) => void;
   lookOptions: GenerationSetupLookOptions;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   isPresetsLoading?: boolean;
   /** Forwarded to the trigger — see `GenerationSetupTriggerProps.isTypeCommitted`. */
   isTypeCommitted?: boolean;
@@ -79,6 +87,7 @@ export interface GenerationSetupPopoverProps {
   triggerLabel?: string;
   onSetField: GenerationSetupFieldSetter;
   onApplyPreset: (preset: IStudioLook) => void;
+  onApplySystemPreset?: (presetId: string) => void;
   onSavePreset: (label: string) => void;
   onDeletePreset?: (presetId: string) => void;
   onResetField: (key: GenerationSetupFieldKey) => void;
@@ -167,6 +176,11 @@ export type GenerationSetupSectionChipsProps = Omit<
   'initialSection' | 'onBack'
 >;
 
+/**
+ * Advanced mode's menu rows. Model, Output and Look are toolbar chips
+ * (`GenerationSetupSectionChips`), so the menu only carries what the toolbar
+ * does not show.
+ */
 export interface GenerationSetupFrontDoorProps {
   activeSection?: GenerationSetupCustomizeSectionId;
   onCloseSection?: () => void;
@@ -174,26 +188,22 @@ export interface GenerationSetupFrontDoorProps {
   showPresets?: boolean;
   showEnhancementSettings?: boolean;
   capabilities: StudioPlaygroundCapabilities;
-  inputControls?: CrunInputControls;
   isDisabled?: boolean;
-  lookOptions: GenerationSetupLookOptions;
-  models: readonly IModel[];
   onCustomize: (section: GenerationSetupCustomizeSectionId) => void;
-  onResetAll: () => void;
-  onSetField: GenerationSetupFieldSetter;
-  onTypeChange?: (type: GenerationSetupType) => void;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   setup: GenerationSetup;
-  typeOptions: readonly GenerationSetupTypeOption[];
 }
 
 export interface GenerationSetupPresetsSectionProps {
   isDisabled?: boolean;
   isPresetsLoading?: boolean;
   onApplyPreset: (preset: IStudioLook) => void;
+  onApplySystemPreset?: (presetId: string) => void;
   onDeletePreset?: (presetId: string) => void;
   onSavePreset: (label: string) => void;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   setup: GenerationSetup;
 }
 
@@ -214,8 +224,6 @@ export interface GenerationSetupOptionPickerProps {
 }
 
 export type GenerationSetupCustomizeSectionId =
-  | 'type'
-  | 'enhancement'
   | 'brand'
   | 'look'
   | 'model'
@@ -224,7 +232,7 @@ export type GenerationSetupCustomizeSectionId =
 
 export interface GenerationSetupCustomizePanelProps {
   typeOptions: readonly GenerationSetupTypeOption[];
-  onTypeChange?: (type: GenerationSetupType) => void;
+  showEnhancementSettings?: boolean;
   inputControls?: CrunInputControls;
   referenceCount?: number;
   capabilities: StudioPlaygroundCapabilities;
@@ -233,8 +241,10 @@ export interface GenerationSetupCustomizePanelProps {
   initialSection: GenerationSetupCustomizeSectionId;
   isPresetsLoading?: boolean;
   onApplyPreset: (preset: IStudioLook) => void;
+  onApplySystemPreset?: (presetId: string) => void;
   onDeletePreset?: (presetId: string) => void;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   isDisabled?: boolean;
   lookOptions: GenerationSetupLookOptions;
   models: readonly IModel[];
@@ -282,6 +292,8 @@ export interface GenerationSetupOutputSectionProps {
 }
 
 export interface GenerationSetupBrandSectionProps {
+  capabilities: StudioPlaygroundCapabilities;
+  showEnhancementSettings?: boolean;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
@@ -293,7 +305,8 @@ export interface GenerationSetupSavePresetRowProps {
   onSavePreset: (label: string) => void;
 }
 
-export interface GenerationSetupAutoTypePickerProps {
+export interface GenerationSetupTypePickerProps {
+  hasHint?: boolean;
   imageEditing?: GenerationSetupImageEditingMode;
   isDisabled?: boolean;
   onTypeChange?: (type: GenerationSetupType) => void;

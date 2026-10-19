@@ -39,6 +39,7 @@ describe('ElementsService.findAllElements', () => {
     await service.findAllElements('org-1');
 
     for (const type of [
+      'blacklists',
       'cameraMovements',
       'cameras',
       'lenses',
@@ -63,19 +64,6 @@ describe('ElementsService.findAllElements', () => {
         { pagination: false },
       );
     }
-  });
-
-  it('keeps blacklists organization-only', async () => {
-    const { service, services } = buildService();
-
-    await service.findAllElements('org-1');
-
-    expect(services.blacklists.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { isDeleted: false, organizationId: 'org-1' },
-      }),
-      { pagination: false },
-    );
   });
 
   it('lists defaults first, flagged, then own elements', async () => {
@@ -113,21 +101,43 @@ describe('ElementsService.findAllElements', () => {
     expect(styles).toEqual([]);
   });
 
-  it('never returns blacklists or other organizations without an organization', async () => {
+  it('only returns active platform defaults without an organization', async () => {
     const { service, services } = buildService();
 
-    const result = await service.findAllElements(undefined);
+    await service.findAllElements(undefined);
 
-    expect(services.blacklists.findAll).not.toHaveBeenCalled();
-    expect(result.blacklists).toEqual([]);
-    expect(services.styles.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          isDeleted: false,
-          OR: [{ isActive: true, organizationId: null }],
+    for (const type of ['blacklists', 'styles'] as const) {
+      expect(services[type].findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            OR: [{ isActive: true, organizationId: null }],
+          },
+        }),
+        { pagination: false },
+      );
+    }
+  });
+
+  it('lists blacklist defaults flagged ahead of own blacklists', async () => {
+    const { service } = buildService({
+      blacklists: [
+        {
+          createdAt: new Date('2026-02-01'),
+          key: 'mine',
+          organizationId: 'org-1',
         },
-      }),
-      { pagination: false },
-    );
+        { key: 'text', organizationId: null, sortOrder: 0 },
+      ],
+    });
+
+    const { blacklists } = await service.findAllElements('org-1');
+
+    expect(
+      blacklists.map((entry) => [entry.key, entry.isPlatformDefault]),
+    ).toEqual([
+      ['text', true],
+      ['mine', false],
+    ]);
   });
 });

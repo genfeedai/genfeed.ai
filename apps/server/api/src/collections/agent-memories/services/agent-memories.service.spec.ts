@@ -25,6 +25,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 describe('AgentMemoriesService', () => {
   let service: AgentMemoriesService;
   let agentMemoryDelegate: {
+    count: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
@@ -48,6 +49,7 @@ describe('AgentMemoriesService', () => {
   beforeEach(() => {
     billingMock.isEnabled = false;
     agentMemoryDelegate = {
+      count: vi.fn().mockResolvedValue(0),
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -183,7 +185,7 @@ describe('AgentMemoriesService', () => {
     billingMock.isEnabled = true;
     agentMemoryDelegate.findMany.mockResolvedValue([]);
 
-    await service.listForOrganization(orgId);
+    await service.listForOrganization(orgId, { limit: 15, page: 1, skip: 0 });
 
     expect(agentMemoryDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -198,10 +200,45 @@ describe('AgentMemoriesService', () => {
     );
   });
 
-  it('refuses org-wide listing when organization billing is off', async () => {
-    await expect(service.listForOrganization(orgId)).rejects.toBeInstanceOf(
-      ForbiddenException,
+  it('pages the org-wide listing and reports the tenant-scoped total', async () => {
+    billingMock.isEnabled = true;
+    agentMemoryDelegate.findMany.mockResolvedValue([{ id: 'm1' }]);
+    agentMemoryDelegate.count.mockResolvedValue(31);
+
+    const result = await service.listForOrganization(orgId, {
+      limit: 15,
+      page: 3,
+      skip: 30,
+    });
+
+    const where = {
+      isDeleted: false,
+      organizationId: orgId,
+      scope: { in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG] },
+    };
+    expect(agentMemoryDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: 30,
+        take: 15,
+        where,
+      }),
     );
+    expect(agentMemoryDelegate.count).toHaveBeenCalledWith({ where });
+    expect(result).toMatchObject({
+      docs: [{ id: 'm1' }],
+      hasNextPage: false,
+      limit: 15,
+      page: 3,
+      totalDocs: 31,
+      totalPages: 3,
+    });
+  });
+
+  it('refuses org-wide listing when organization billing is off', async () => {
+    await expect(
+      service.listForOrganization(orgId, { limit: 15, page: 1, skip: 0 }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(agentMemoryDelegate.findMany).not.toHaveBeenCalled();
   });
 

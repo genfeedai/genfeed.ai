@@ -23,5 +23,7 @@
   "tableLabel": "Unit economics",
   "title": "Unit Economics",
   "titleDrillDown": "Unit Economics · {label}",
-  "total": "Total"
+  "total": "Total",
+  "totalLabel": "organizations",
+  "totalLabelUsers": "users"
 }

@@ -8,11 +8,13 @@ import type {
   ProviderOption,
 } from '@props/studio/clips.props';
 import Container from '@ui/layout/container/Container';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
 import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import ClipModeSelector from './components/ClipModeSelector';
@@ -59,6 +61,8 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
     projects,
   } = useStudioClipProjects({ isEnabled: !projectId });
   const clipsPage = useStudioClipsPage({ projectId });
+  const searchParams = useSearchParams();
+  const isFirstPage = (Number(searchParams.get('page')) || 1) === 1;
 
   const hasProjects = projects.length > 0;
   const listHref = href(APP_ROUTES.STUDIO.CLIPS);
@@ -107,10 +111,14 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
                 {hasProjects ? <ClipsPresetShelf /> : null}
                 <ClipsProjectList
                   isLoading={isListLoading}
+                  isRecentVisible={isFirstPage}
                   projects={projects}
                   onRename={renameProject}
                   onDelete={deleteProject}
                 />
+                {hasProjects && !isListLoading ? (
+                  <AutoPagination showTotal totalLabel="projects" />
+                ) : null}
               </>
             )}
           </>

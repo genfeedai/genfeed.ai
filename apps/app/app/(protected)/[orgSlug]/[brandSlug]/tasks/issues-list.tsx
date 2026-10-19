@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
@@ -21,6 +22,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import {
   Dialog,
@@ -186,6 +188,7 @@ export default function IssuesList() {
     searchParams.get('view') === ViewType.KANBAN
       ? ViewType.KANBAN
       : ViewType.LIST;
+  const currentPage = Number(searchParams.get('page')) || 1;
   const statusParam = searchParams.get('status');
   const statusFilter: TaskStatus | '' =
     statusParam && STATUS_ORDER.includes(statusParam as TaskStatus)
@@ -226,6 +229,8 @@ export default function IssuesList() {
         ...(statusFilter ? { status: statusFilter } : {}),
         // Brand selected → filter. Brand cleared on org Workspace → all brands.
         ...(brandId ? { brandId } : {}),
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
       });
       if (!controller.signal.aborted) {
         dispatch({ type: 'SET_ISSUES', payload: result });
@@ -240,7 +245,7 @@ export default function IssuesList() {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
-  }, [brandId, getTasksService, statusFilter]);
+  }, [brandId, currentPage, getTasksService, statusFilter]);
 
   const handleCreateIssue = useCallback(async () => {
     if (!createTitle.trim() || isCreating) return;
@@ -281,6 +286,8 @@ export default function IssuesList() {
       const params = new URLSearchParams(searchParams.toString());
       if (value) params.set(key, value);
       else params.delete(key);
+      // A new filter changes the result set, so restart from the first page.
+      if (key === 'status') params.delete('page');
       router.replace(`${pathname}${params.size ? `?${params}` : ''}`, {
         scroll: false,
       });
@@ -542,6 +549,9 @@ export default function IssuesList() {
           ))}
         </div>
       )}
+      {!isLoading && hasItems ? (
+        <AutoPagination showTotal totalLabel="tasks" />
+      ) : null}
       <Dialog
         open={showCreateDialog}
         onOpenChange={(open) =>

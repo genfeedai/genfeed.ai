@@ -108,11 +108,15 @@ describe('useWorkflowExecutions summary', () => {
           strategyId: 'agent-1',
           limit: 5,
           offset: 20,
+          page: 3,
           sort: '-createdAt',
         }),
       { wrapper: createQueryWrapper() },
     );
     await waitFor(() => expect(result.current.stats.total).toBe(52));
+    expect(listMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ limit: 5, page: 3 }),
+    );
     expect(result.current.executions).toEqual([]);
     expect(result.current.stats.completedToday).toBe(2);
     expect(statsMock).toHaveBeenLastCalledWith({

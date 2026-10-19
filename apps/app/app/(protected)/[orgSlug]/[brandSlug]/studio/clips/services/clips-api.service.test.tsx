@@ -1,4 +1,5 @@
 import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import { PagesService } from '@services/content/pages.service';
 import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
@@ -56,6 +57,33 @@ describe('ClipsApiService', () => {
       Authorization: 'Bearer token-org',
       [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
     });
+  });
+
+  it('requests a brand-scoped server page and records the pagination totals', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: [],
+          links: { pagination: { limit: 15, page: 2, pages: 5, total: 70 } },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const service = new ClipsApiService(vi.fn().mockResolvedValue('token'));
+    await service.listProjects({ brandId: 'brand-1', limit: 15, page: 2 });
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    expect(url.pathname).toBe('/v1/clip-projects');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      brandId: 'brand-1',
+      limit: '15',
+      page: '2',
+      sort: '-createdAt',
+    });
+    expect(PagesService.getCurrentPage()).toBe(2);
+    expect(PagesService.getTotalPages()).toBe(5);
+    expect(PagesService.getTotalDocs()).toBe(70);
   });
 
   it('lists clip projects from the collection endpoint', async () => {

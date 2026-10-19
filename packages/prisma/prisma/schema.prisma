@@ -41,6 +41,12 @@ enum FontFamily {
   MONTSERRAT_BLACK
   MONTSERRAT_BOLD
   MONTSERRAT_REGULAR
+  INTER_BOLD
+  POPPINS_BOLD
+  BEBAS_NEUE
+  ANTON
+  ARCHIVO_BLACK
+  BANGERS
 }
 
 enum IngredientCategory {
@@ -5302,6 +5308,9 @@ model WorkflowExecution {
   failureReason     AgentFailureReason?
   failure           Json?
   error             String?
+  /// Set when a platform admin marks a failed run as handled (admin failure feed).
+  failureResolvedAt DateTime?
+  failureResolvedBy String?
   startedAt         DateTime?
   completedAt       DateTime?
   isDeleted         Boolean                 @default(false)
@@ -6724,17 +6733,21 @@ model CampaignTarget {
 
 model ElementBlacklist {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  isDefault      Boolean  @default(false)
+  sortOrder      Int      @default(0)
 
   category String?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_blacklists_scope_idx")
   @@map("elements_blacklists")
 }
 

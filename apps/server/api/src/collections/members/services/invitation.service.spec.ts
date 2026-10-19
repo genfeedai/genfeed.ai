@@ -23,6 +23,7 @@ interface MockPrisma {
   brand: { findFirst: MockFn };
   $transaction: MockFn;
   invitation: {
+    count: MockFn;
     create: MockFn;
     findMany: MockFn;
     findFirst: MockFn;
@@ -150,6 +151,7 @@ function buildPrisma(): MockPrisma {
     },
     $transaction: vi.fn(),
     invitation: {
+      count: vi.fn(),
       create: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -403,24 +405,39 @@ describe('InvitationService', () => {
   });
 
   describe('listInvitations', () => {
-    it('filters by pending status when requested', async () => {
+    it('filters by pending status and pages in SQL', async () => {
       const { prisma, service } = buildService();
       prisma.invitation.findMany.mockResolvedValue([makeInvitation()]);
+      prisma.invitation.count.mockResolvedValue(41);
+      const where = {
+        acceptedAt: null,
+        expiresAt: { gt: now },
+        isDeleted: false,
+        organizationId: orgId,
+        revokedAt: null,
+        status: 'pending',
+      };
 
-      const result = await service.listInvitations(orgId, 'pending');
+      const result = await service.listInvitations(orgId, 'pending', {
+        limit: 20,
+        page: 2,
+      });
 
       expect(prisma.invitation.findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
-        where: {
-          acceptedAt: null,
-          expiresAt: { gt: now },
-          isDeleted: false,
-          organizationId: orgId,
-          revokedAt: null,
-          status: 'pending',
-        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: 20,
+        take: 20,
+        where,
       });
-      expect(result).toEqual([
+      expect(prisma.invitation.count).toHaveBeenCalledWith({ where });
+      expect(result).toMatchObject({
+        hasNextPage: true,
+        limit: 20,
+        page: 2,
+        totalDocs: 41,
+        totalPages: 3,
+      });
+      expect(result.docs).toEqual([
         expect.objectContaining({
           id: 'inv_123',
           status: 'pending',
@@ -428,14 +445,17 @@ describe('InvitationService', () => {
       ]);
     });
 
-    it('returns all invitations when no status filter is provided', async () => {
+    it('returns the first page of all invitations when no status filter is provided', async () => {
       const { prisma, service } = buildService();
       prisma.invitation.findMany.mockResolvedValue([makeInvitation()]);
+      prisma.invitation.count.mockResolvedValue(1);
 
-      await service.listInvitations(orgId);
+      await service.listInvitations(orgId, undefined, { limit: 20, page: 1 });
 
       expect(prisma.invitation.findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: 0,
+        take: 20,
         where: {
           isDeleted: false,
           organizationId: orgId,

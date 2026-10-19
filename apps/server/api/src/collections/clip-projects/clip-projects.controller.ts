@@ -115,7 +115,10 @@ export class ClipProjectsController {
         organizationId: tenant.organizationId,
         ...(tenant.isOrganizationOverride && tenant.brandId
           ? { brandId: tenant.brandId }
-          : {}),
+          : query.brandId
+            ? // A brand's list also shows org-wide projects that have no brand.
+              { OR: [{ brandId: null }, { brandId: query.brandId }] }
+            : {}),
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)
