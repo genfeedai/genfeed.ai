@@ -15,6 +15,7 @@ export interface CreativePatternExample {
 
 export interface CreativePatternDocument extends Omit<CreativePattern, 'data'> {
   avgPerformanceScore?: number;
+  computedAt?: Date | string;
   data?: Record<string, unknown>;
   description?: string;
   examples?: CreativePatternExample[];
@@ -23,7 +24,9 @@ export interface CreativePatternDocument extends Omit<CreativePattern, 'data'> {
   label?: string;
   patternType?: string;
   platform?: string | null;
+  sampleSize?: number;
   scope?: string;
+  source?: string;
   validUntil?: Date | string;
   [key: string]: unknown;
 }

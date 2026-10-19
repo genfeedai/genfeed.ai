@@ -908,7 +908,7 @@ export class AdsResearchService {
     platform: AdsResearchPlatform;
     industry?: string;
   }) {
-    const patterns = await this.creativePatternsService.findAll({
+    const patterns = await this.creativePatternsService.findRanked({
       organizationId: params.organizationId,
       platform: this.toPatternPlatform(params.platform),
       scope: 'public',

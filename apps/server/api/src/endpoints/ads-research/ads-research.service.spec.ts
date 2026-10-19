@@ -50,7 +50,7 @@ describe('AdsResearchService', () => {
     findTopPerformers: vi.fn(),
   };
   const creativePatternsService = {
-    findAll: vi.fn(),
+    findRanked: vi.fn(),
   };
   const credentialsService = {
     findConnectedAccounts: vi.fn(),
@@ -72,7 +72,7 @@ describe('AdsResearchService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     adPerformanceService.findTopPerformers.mockResolvedValue([]);
-    creativePatternsService.findAll.mockResolvedValue([]);
+    creativePatternsService.findRanked.mockResolvedValue([]);
     credentialsService.findConnectedAccounts.mockResolvedValue([]);
 
     service = new AdsResearchService(
@@ -158,7 +158,7 @@ describe('AdsResearchService', () => {
     });
     // Creative patterns are keyed by the storage platform name, which is
     // `tiktok` for TikTok (unlike meta → facebook, google → google_ads).
-    expect(creativePatternsService.findAll).toHaveBeenCalledWith({
+    expect(creativePatternsService.findRanked).toHaveBeenCalledWith({
       organizationId: 'org-1',
       platform: AdsPlatform.TIKTOK,
       scope: 'public',
@@ -183,7 +183,7 @@ describe('AdsResearchService', () => {
       });
       // Creative patterns are keyed by the storage platform name, which is
       // `x_ads` for X (unlike meta → facebook, google → google_ads).
-      expect(creativePatternsService.findAll).toHaveBeenCalledWith({
+      expect(creativePatternsService.findRanked).toHaveBeenCalledWith({
         organizationId: 'org-1',
         platform: 'x_ads',
         scope: 'public',

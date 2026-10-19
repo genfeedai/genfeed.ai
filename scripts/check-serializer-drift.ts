@@ -490,6 +490,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'vote:Vote': ['entity'],
   'watchlist:Watchlist': [],
   'ad-watched-advertiser:AdWatchedAdvertiser': [],
+  'creative-pattern:CreativePattern': [],
   'workflow:Workflow': ['cloudSync', 'key', 'nextRunAt', 'tasks'],
   'agent-thread:AgentThread': [
     'attentionState',
@@ -788,7 +789,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'campaign-target:CampaignTarget': INTERNAL_MODEL_REASON,
   'content-pattern:ContentPattern': ANALYTICS_MODEL_REASON,
   'content-score:ContentScore': ANALYTICS_MODEL_REASON,
-  'creative-pattern:CreativePattern': ANALYTICS_MODEL_REASON,
   'creator-analysis:CreatorAnalysis': ANALYTICS_MODEL_REASON,
   'credit-balance:CreditBalance': OPERATIONAL_MODEL_REASON,
   'customer-instance:CustomerInstance': INTERNAL_MODEL_REASON,

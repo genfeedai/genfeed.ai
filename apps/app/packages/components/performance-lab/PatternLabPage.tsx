@@ -11,6 +11,7 @@ import type {
 } from '@props/analytics/performance-lab.props';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { FlaskConical } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useId, useState } from 'react';
 
 const PLATFORM_OPTIONS = [
@@ -119,6 +121,11 @@ function FilterSelect<T extends string>({
 
 export default function PatternLabPage({ className }: PatternLabPageProps) {
   const analyticsContext = useOptionalAnalyticsContext();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const surfaceFilters = analyticsContext?.filters;
   const setSurfaceFilter = analyticsContext?.setFilter;
   const [localPlatform, setLocalPlatform] = useState<string>('');
@@ -138,30 +145,49 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
     scope: scope || undefined,
   };
 
-  const { patterns, isLoading, error } = usePatternContext(filters);
+  const { patterns, isLoading, error } = usePatternContext(
+    filters,
+    currentPage,
+  );
+
+  // A new filter changes what the pages hold, so start again from page 1.
+  const resetPage = useCallback(() => {
+    const params = new URLSearchParams(searchParamsString);
+    if (!params.has('page')) {
+      return;
+    }
+    params.delete('page');
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParamsString]);
 
   const handlePlatformChange = useCallback(
     (value: string) => {
       setLocalPlatform(value);
       setSurfaceFilter?.('platform', value || undefined);
+      resetPage();
     },
-    [setSurfaceFilter],
+    [resetPage, setSurfaceFilter],
   );
 
   const handlePatternTypeChange = useCallback(
     (value: PatternType | '') => {
       setLocalPatternType(value);
       setSurfaceFilter?.('patternType', value || undefined);
+      resetPage();
     },
-    [setSurfaceFilter],
+    [resetPage, setSurfaceFilter],
   );
 
   const handleScopeChange = useCallback(
     (value: string) => {
       setLocalScope(value);
       setSurfaceFilter?.('visibility', value || undefined);
+      resetPage();
     },
-    [setSurfaceFilter],
+    [resetPage, setSurfaceFilter],
   );
 
   const filterBar = (
@@ -235,10 +261,16 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {patterns.map((pattern) => (
             <PatternCard
-              key={`${pattern.patternType}-${pattern.label}`}
+              key={pattern.id ?? `${pattern.patternType}-${pattern.label}`}
               pattern={pattern}
             />
           ))}
+        </div>
+      )}
+
+      {!isLoading && !error && (patterns.length > 0 || currentPage > 1) && (
+        <div className="mt-4">
+          <AutoPagination showTotal totalLabel="patterns" />
         </div>
       )}
     </Container>
