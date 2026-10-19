@@ -6,8 +6,11 @@ import {
 import type { AgentOpportunityPanelProps } from '@props/automation/agent-opportunity-panel.props';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { ListRow } from '@ui/lists/list-row/ListRow';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 
 export default function AgentOpportunityPanel({
+  opportunities,
   requestedOpportunityId,
   selectedOpportunity,
   isOpportunitiesLoading,
@@ -73,6 +76,37 @@ export default function AgentOpportunityPanel({
           </DefinitionDetail>
         </InsetSurface>
       </DefinitionList>
+
+      <div className="mt-4 space-y-2">
+        <h4 className="text-sm font-medium text-foreground">
+          Open opportunities
+        </h4>
+        {opportunities.length > 0 ? (
+          <InsetSurface className="overflow-hidden p-0">
+            {opportunities.map((opportunity) => (
+              <ListRow
+                data-testid={`agent-opportunity-${opportunity.id}`}
+                density="compact"
+                key={opportunity.id}
+                meta={`${opportunity.sourceType} · priority ${opportunity.priorityScore}`}
+                title={opportunity.topic}
+                trailing={
+                  <Badge className="capitalize" variant="secondary">
+                    {opportunity.status}
+                  </Badge>
+                }
+              />
+            ))}
+          </InsetSurface>
+        ) : (
+          <p className="text-sm text-foreground/55">
+            {isOpportunitiesLoading
+              ? 'Loading opportunities...'
+              : 'No open opportunities on this page.'}
+          </p>
+        )}
+        <AutoPagination showTotal totalLabel="opportunities" />
+      </div>
     </InsetSurface>
   );
 }

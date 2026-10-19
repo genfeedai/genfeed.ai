@@ -16,10 +16,14 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { parseOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
 import { PageQueryDto } from '@api/helpers/dto/page-query.dto';
+import { PaginationQueryDto } from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { transformPaginationFormat } from '@api/shared/utils/pagination-transform/pagination-transform.util';
@@ -27,7 +31,10 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
-import { AgentStrategySerializer } from '@genfeedai/serializers';
+import {
+  AgentStrategyOpportunitySerializer,
+  AgentStrategySerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -307,10 +314,22 @@ export class AgentStrategiesController extends BaseCRUDController<
   @TenantReadPolicy('mutating')
   @Get(':id/opportunities')
   @ApiOperation({ summary: 'Refresh and list strategy opportunities' })
-  async listOpportunities(@Param('id') id: string, @CurrentUser() user: User) {
-    return this.agentStrategyAutopilotService.listStrategyOpportunities(
-      id,
-      user.organizationId,
+  async listOpportunities(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Query() query: PaginationQueryDto,
+  ) {
+    const opportunities =
+      await this.agentStrategyAutopilotService.listStrategyOpportunities(
+        id,
+        user.organizationId,
+        query,
+      );
+    return serializeCollection(
+      request,
+      AgentStrategyOpportunitySerializer,
+      opportunities,
     );
   }
 

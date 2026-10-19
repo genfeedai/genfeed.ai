@@ -2,6 +2,7 @@ export * from '@serializers/configs/automation/agent-brand-context.config';
 export * from '@serializers/configs/automation/agent-campaign.config';
 export * from '@serializers/configs/automation/agent-memory.config';
 export * from '@serializers/configs/automation/agent-strategy.config';
+export * from '@serializers/configs/automation/agent-strategy-opportunity.config';
 export * from '@serializers/configs/automation/agent-transfer.config';
 export * from '@serializers/configs/automation/bot.config';
 export * from '@serializers/configs/automation/bot-activity.config';

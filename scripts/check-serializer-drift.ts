@@ -109,6 +109,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'nextRunAt',
     'weeklyResetAt',
   ],
+  'agent-strategy-opportunity:AgentStrategyOpportunity': [],
   'article:Article': [
     'aiGeneration',
     'evaluation',
@@ -779,7 +780,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'ad-performance:AdPerformance': ANALYTICS_MODEL_REASON,
   'agent-goal:AgentGoal': INTERNAL_MODEL_REASON,
   'agent-message:AgentMessage': INTERNAL_MODEL_REASON,
-  'agent-strategy-opportunity:AgentStrategyOpportunity': ANALYTICS_MODEL_REASON,
   'agent-strategy-report:AgentStrategyReport': ANALYTICS_MODEL_REASON,
   'agent-thread-event:AgentThreadEvent': OPERATIONAL_MODEL_REASON,
   'agent-thread-snapshot:AgentThreadSnapshot': OPERATIONAL_MODEL_REASON,

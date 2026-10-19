@@ -2,6 +2,10 @@ import type { AgentStrategyDocument } from '@api/collections/agent-strategies/sc
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import {
+  strategyId as getStrategyId,
+  strategyOrganizationId as getStrategyOrganizationId,
+} from '@api/collections/agent-strategies/services/agent-strategy-autopilot.helpers';
 import type {
   AgentStrategyPerformanceSnapshot,
   BudgetPacingState,
@@ -19,6 +23,11 @@ import {
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  type PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
+import type { PaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -28,9 +37,6 @@ export type {
   BudgetPacingState,
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
-
-/** The opportunities endpoint returns at most this many open rows, newest first. */
-const OPEN_OPPORTUNITY_LIST_LIMIT = 100;
 
 @Injectable()
 export class AgentStrategyAutopilotService {
@@ -46,18 +52,25 @@ export class AgentStrategyAutopilotService {
     private readonly logger?: LoggerService,
   ) {}
 
+  /**
+   * Refreshes the strategy's opportunities, then returns one database page of
+   * the open ones, highest priority first.
+   */
   async listStrategyOpportunities(
     strategyIdValue: string,
     organizationId: string,
-  ): Promise<AgentStrategyOpportunityDocument[]> {
+    query?: PaginationQueryDto,
+  ): Promise<PaginatedResult<AgentStrategyOpportunityDocument>> {
     const strategy = await this.requireStrategy(
       strategyIdValue,
       organizationId,
     );
-    return this.planningService.refreshOpportunities(
-      strategy,
-      false,
-      OPEN_OPPORTUNITY_LIST_LIMIT,
+    const { limit, page } = resolvePageWindow(query);
+    await this.planningService.collectOpportunities(strategy);
+    return this.opportunitiesService.listOpenPageByStrategy(
+      getStrategyId(strategy),
+      getStrategyOrganizationId(strategy),
+      { limit, page },
     );
   }
 

@@ -5,6 +5,11 @@ import type {
   IBrand,
 } from '@genfeedai/contracts/interfaces';
 import { BaseService } from '@services/core/base.service';
+import {
+  deserializeCollection,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
+import { recordPageTotals } from '@services/core/page-totals';
 
 export interface AgentStrategyBudgetCap {
   creditBudget: number;
@@ -324,11 +329,22 @@ export class AgentStrategiesService extends BaseService<
     return response.data;
   }
 
-  async listOpportunities(id: string): Promise<AgentStrategyOpportunity[]> {
-    const response = await this.instance.get<AgentStrategyOpportunity[]>(
+  /**
+   * One server page of the strategy's open opportunities, highest priority
+   * first. Passing `page` publishes the totals for `<AutoPagination />`.
+   */
+  async listOpportunities(
+    id: string,
+    query: { limit?: number; page?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<AgentStrategyOpportunity[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
       `/${id}/opportunities`,
+      { params: query, signal },
     );
-    return response.data;
+    recordPageTotals(response.data, query);
+
+    return deserializeCollection<AgentStrategyOpportunity>(response.data);
   }
 
   /** The newest page of the strategy's report history (20 by default). */

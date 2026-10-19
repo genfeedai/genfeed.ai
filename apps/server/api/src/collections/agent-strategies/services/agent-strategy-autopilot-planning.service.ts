@@ -83,22 +83,31 @@ export class AgentStrategyAutopilotPlanningService {
     };
   }
 
-  async refreshOpportunities(
+  /**
+   * Settles publications, then discovers and records new opportunities. The
+   * caller reads the opportunities it needs, in the shape it needs, afterwards.
+   */
+  async collectOpportunities(
     strategy: AgentStrategyDocument,
     refreshTrends = false,
-    listLimit?: number,
-  ): Promise<AgentStrategyOpportunityDocument[]> {
+  ): Promise<void> {
     await this.performanceService.reconcilePublications(strategy);
     const context = this.buildOpportunityContext(strategy);
 
     await this.collectTrendOpportunities(strategy, context, refreshTrends);
     await this.collectEventOpportunities(strategy, context);
     await this.collectEvergreenOpportunities(strategy, context);
+  }
+
+  async refreshOpportunities(
+    strategy: AgentStrategyDocument,
+    refreshTrends = false,
+  ): Promise<AgentStrategyOpportunityDocument[]> {
+    await this.collectOpportunities(strategy, refreshTrends);
 
     return this.opportunitiesService.listOpenByStrategy(
-      context.strategyId,
-      context.strategyOrganizationId,
-      listLimit,
+      getStrategyId(strategy),
+      getStrategyOrganizationId(strategy),
     );
   }
 
