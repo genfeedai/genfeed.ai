@@ -137,7 +137,7 @@
     "apps/app/app/(protected)/admin/administration/referrals/referral-rewards-list.tsx": 10,
     "apps/app/app/(protected)/admin/administration/roles/roles-list.tsx": 10,
     "apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx": 12,
-    "apps/app/app/(protected)/admin/administration/system-emails/system-emails-page.tsx": 13,
+    "apps/app/app/(protected)/admin/administration/system-emails/system-emails-page.tsx": 12,
     "apps/app/app/(protected)/admin/automation/bots/bots-page.tsx": 6,
     "apps/app/app/(protected)/admin/automation/trainings/[id]/images/training-images-tab.tsx": 7,
     "apps/app/app/(protected)/admin/automation/trainings/[id]/sources/training-sources-tab.tsx": 1,
