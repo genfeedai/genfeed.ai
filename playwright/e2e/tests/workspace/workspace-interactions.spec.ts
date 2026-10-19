@@ -155,11 +155,18 @@ test.describe('Workspace — deep interactions', () => {
       brandPath(APP_ROUTES.WORKSPACE.INBOX_UNREAD),
     );
 
-    const historyItem = authenticatedPage
+    const historyRow = authenticatedPage
       .getByTestId('workspace-inbox')
-      .getByText('Launch caption', { exact: true });
-    await expect(historyItem).toBeVisible();
-    await historyItem.click();
+      .getByRole('row', { name: /Launch caption/ });
+    await expect(
+      historyRow.getByRole('link', { name: 'Launch caption', exact: true }),
+    ).toBeVisible();
+    // Clicking the row opens the sidebar; the task name is a link to the
+    // detail page, so click the row's cell padding rather than the name.
+    await historyRow
+      .locator('td')
+      .first()
+      .click({ position: { x: 4, y: 4 } });
     // The selected task opens the context sidebar; closing it deselects.
     const contextSidebar = authenticatedPage.getByRole('complementary', {
       name: 'Selection details',
