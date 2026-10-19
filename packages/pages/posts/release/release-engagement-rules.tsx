@@ -130,6 +130,7 @@ export default function ReleaseEngagementRules({
   const [mode, setMode] = useState(EngagementRuleMode.APPROVAL);
   const [isEnabled, setIsEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   const handleCreate = useCallback(async () => {
     const parsedThreshold = Number(threshold);
@@ -168,11 +169,14 @@ export default function ReleaseEngagementRules({
 
   const handleToggle = useCallback(
     async (rule: IEngagementRule, nextEnabled: boolean) => {
+      setIsToggling(true);
       try {
         await update(rule.id, { isEnabled: nextEnabled });
       } catch (error) {
         logger.error('Failed to update engagement rule', error);
         notifications.error('Failed to update automation rule');
+      } finally {
+        setIsToggling(false);
       }
     },
     [notifications, update],
@@ -201,6 +205,7 @@ export default function ReleaseEngagementRules({
             <Switch
               aria-label={`Enable ${metricLabel(rule.metric)} rule`}
               isChecked={rule.isEnabled}
+              isDisabled={isToggling}
               onChange={(event: ChangeEvent<HTMLInputElement>) => {
                 void handleToggle(rule, event.target.checked);
               }}

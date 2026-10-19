@@ -67,8 +67,10 @@ function nestedFlagKeysOf(key: PlatformFlagKey): PlatformFlagKey[] {
 /**
  * Admin → Flags (#5468): every platform-wide on/off switch on one page —
  * one card per module with its surfaces and features listed inside, then
- * shell-wide features, then what is released to every cloud organization. Each switch saves at once, like a PostHog toggle; the
- * API and every app shell pick the change up within the settings cache TTL.
+ * shell-wide features, then what is released to every cloud organization. Each switch saves at once, like a PostHog toggle, with no success
+ * toast (the switch is the confirmation); every switch is locked until the save
+ * lands. The API and every app shell pick the change up within the settings
+ * cache TTL.
  */
 export default function AdminFlagsPage() {
   const translate = useTranslations('pages.adminFlags');
@@ -136,12 +138,6 @@ export default function AdminFlagsPage() {
       setFlags(parsePlatformFlags(updated.flags));
       // Open shells in this browser re-read the flags now; others within a minute.
       notifyPlatformFlagsChanged();
-      notificationsService.success(
-        translate('saved', {
-          label: translate(`flags.${key}.label`),
-          state: translate(isOn ? 'status.on' : 'status.off'),
-        }),
-      );
     } catch (error) {
       logger.error('Failed to save platform flag', error);
       setFlags(previous);
@@ -181,17 +177,19 @@ export default function AdminFlagsPage() {
                 {translate(`sections.${section.id}.description`)}
               </Text>
             </div>
-            <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+            {/* Columns pack cards of different heights with no empty rows. */}
+            <div className="gap-4 lg:columns-2 2xl:columns-3">
               {section.keys.map((key) => (
-                <AdminFlagCard
-                  key={key}
-                  flagKey={key}
-                  nestedKeys={nestedFlagKeysOf(key)}
-                  flags={flags}
-                  effectiveFlags={effectiveFlags}
-                  isDisabled={savingKey !== null}
-                  onToggle={handleToggle}
-                />
+                <div key={key} className="mb-4 break-inside-avoid">
+                  <AdminFlagCard
+                    flagKey={key}
+                    nestedKeys={nestedFlagKeysOf(key)}
+                    flags={flags}
+                    effectiveFlags={effectiveFlags}
+                    isSaving={savingKey !== null}
+                    onToggle={handleToggle}
+                  />
+                </div>
               ))}
             </div>
           </section>

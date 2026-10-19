@@ -51,6 +51,7 @@ function PresetsListContent({
     useAdminOrgBrandParams();
 
   const [selectedPreset, setSelectedPreset] = useState<Preset | null>();
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -116,19 +117,19 @@ function PresetsListContent({
     const url = `PATCH /presets/${preset.id}`;
     const newValue = !preset.isActive;
 
+    setIsTogglingActive(true);
     try {
       const service = await getPresetsService();
       await service.patch(preset.id, {
         isActive: newValue,
       });
 
-      notificationsService.success(
-        `Preset ${newValue ? 'activated' : 'deactivated'}`,
-      );
       refreshPresets();
     } catch (error) {
       logger.error(`${url} failed`, error);
       notificationsService.error('Failed to update preset');
+    } finally {
+      setIsTogglingActive(false);
     }
   };
 
@@ -178,7 +179,7 @@ function PresetsListContent({
         <Switch
           isChecked={preset.isActive}
           onChange={() => handleToggleActive(preset)}
-          isDisabled={scope !== PageScope.SUPERADMIN}
+          isDisabled={scope !== PageScope.SUPERADMIN || isTogglingActive}
         />
       ),
     },
