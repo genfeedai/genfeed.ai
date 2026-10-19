@@ -78,8 +78,6 @@
   "scripts": {
     "build": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed && nest build api-harness-profile-seed && nest build api-reference-data-sync",
     "build:prod": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed && nest build api-harness-profile-seed && nest build api-reference-data-sync && cd api && (bun run sentry:sourcemaps || true)",
-    "backfill:brand-default-kit:dry": "bun run scripts/backfill-brand-default-kit.ts",
-    "backfill:brand-default-kit:live": "bun run scripts/backfill-brand-default-kit.ts --live",
     "cleanup:orphan-social-oauth:dry": "bun run scripts/cleanup-orphan-social-oauth.ts",
     "cleanup:orphan-social-oauth:live": "bun run scripts/cleanup-orphan-social-oauth.ts --live",
     "deps:update": "bunx npm-check-updates -u --reject typescript,better-auth && bun install",
