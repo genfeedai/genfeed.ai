@@ -133,7 +133,7 @@ export default function VideoDetailWorkspacePanel({
             ingredient={currentVideo}
             onTagsUpdate={(tags: ITag[]) => {
               logger.info('Tags updated', { tags });
-              onReload?.(true);
+              onReload?.();
             }}
           />
         )}
