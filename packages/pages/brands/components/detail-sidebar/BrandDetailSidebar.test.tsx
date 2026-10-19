@@ -1,3 +1,4 @@
+import { CredentialPlatform } from '@genfeedai/contracts';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
 import { render, screen } from '@testing-library/react';
@@ -21,14 +22,12 @@ vi.mock('@pages/brands/components/sidebar/BrandDetailSocialMediaCard', () => ({
 vi.mock(
   '@pages/brands/components/sidebar/BrandDetailExternalLinksCard',
   () => ({
-    default: () => <div>External Links Card</div>,
-  }),
-);
-
-vi.mock(
-  '@pages/brands/components/sidebar/BrandDetailSocialSummaryCard',
-  () => ({
-    default: () => <div>Social Summary Card</div>,
+    default: ({ social }: { social?: { connectedSocialCount: number } }) => (
+      <div>
+        External Links Card
+        {social ? ` (${social.connectedSocialCount} social)` : ''}
+      </div>
+    ),
   }),
 );
 
@@ -85,21 +84,36 @@ describe('BrandDetailSidebar', () => {
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
     expect(screen.getByText('Social Media Card')).toBeInTheDocument();
     expect(screen.getByText('External Links Card')).toBeInTheDocument();
-    expect(screen.queryByText('Social Summary Card')).not.toBeInTheDocument();
+    expect(screen.queryByText(/social\)/)).not.toBeInTheDocument();
   });
 
-  it('renders social summary and inline links when only social manage href is set', () => {
+  it('merges social into the links card when only social manage href is set', () => {
     render(
       <BrandDetailSidebar
         {...props}
         manageSocialHref="/org/brand/settings/connected-accounts"
+        socialConnections={[
+          {
+            credentialId: 'cred-1',
+            externalId: 'ext-1',
+            isConnected: true,
+            platform: CredentialPlatform.INSTAGRAM,
+          },
+          {
+            credentialId: 'cred-2',
+            externalId: 'ext-2',
+            isConnected: true,
+            platform: CredentialPlatform.GOOGLE_ADS,
+          },
+        ]}
       />,
     );
 
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
-    expect(screen.getByText('Social Summary Card')).toBeInTheDocument();
-    expect(screen.getByText('External Links Card')).toBeInTheDocument();
+    // Google Ads is an ad account, not a social profile, so it is not counted.
+    expect(
+      screen.getByText('External Links Card (1 social)'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Social Media Card')).not.toBeInTheDocument();
-    expect(screen.queryByText('Links Summary Card')).not.toBeInTheDocument();
   });
 });

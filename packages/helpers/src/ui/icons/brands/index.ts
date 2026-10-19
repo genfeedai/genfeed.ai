@@ -8,6 +8,7 @@ export { FluxIcon } from './flux-icon';
 export { GenfeedIcon } from './genfeed-icon';
 export { GhostIcon } from './ghost-icon';
 export { GithubIcon } from './github-icon';
+export { GoogleAdsIcon } from './google-ads-icon';
 export { GoogleColorIcon } from './google-color-icon';
 export { GoogleIcon } from './google-icon';
 export { HackerNewsIcon } from './hacker-news-icon';

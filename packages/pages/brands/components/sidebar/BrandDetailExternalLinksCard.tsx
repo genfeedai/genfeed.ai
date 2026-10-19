@@ -1,8 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { getAccountConnectionStatus } from '@pages/brands/components/integrations/account-connection-status.util';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -13,6 +11,9 @@ import { useMemo } from 'react';
 const EMPTY_STATE_CLASSNAME =
   'rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground';
 
+const SECTION_LABEL_CLASSNAME =
+  'text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground';
+
 function isManualLinkCategory(category: string | undefined): boolean {
   return (
     !category ||
@@ -21,130 +22,67 @@ function isManualLinkCategory(category: string | undefined): boolean {
   );
 }
 
-function connectionLabel(connection: {
-  handle?: string | null;
-  label?: string | null;
-  name?: string | null;
-  platform: string;
-}): string {
-  return (
-    connection.name ||
-    connection.label ||
-    (connection.handle ? `@${connection.handle.replace(/^@/, '')}` : null) ||
-    connection.platform
-  );
+function formatConnected(socialCount: number, adCount: number): string {
+  const connected = `${socialCount} connected`;
+  if (adCount === 0) {
+    return connected;
+  }
+  return `${connected} · ${adCount} ad ${adCount === 1 ? 'account' : 'accounts'}`;
 }
 
 /**
- * Manual external URLs (website / other) + read-only connected socials.
- * Social OAuth is managed on /settings/connected-accounts — not typed as freeform links.
+ * One card for everything a brand links out to: the connected-accounts summary
+ * (count + Manage — the accounts themselves live on /settings/connected-accounts)
+ * and manual website / other URLs. Without `social`, the full connect card owns
+ * socials and this renders as plain website links.
  */
 export default function BrandDetailExternalLinksCard({
   links,
   onOpenLinkModal,
-  socialConnections = [],
-  manageSocialHref,
+  social,
 }: BrandDetailExternalLinksCardProps) {
   const manualLinks = useMemo(
     () => links.filter((link) => isManualLinkCategory(link.category)),
     [links],
   );
   const hasManualLinks = manualLinks.length > 0;
-  // `socialConnections` can now include a disconnected-but-not-deleted or
-  // identity-less credential (it stays visible so the accounts table can
-  // offer "Needs reconnect") — this read-only profile list only ever means
-  // genuinely connected accounts, so it filters on the same status helper
-  // the table uses rather than a raw `isConnected` check.
-  const connectedSocialConnections = useMemo(
-    () =>
-      socialConnections.filter(
-        (connection) => getAccountConnectionStatus(connection) === 'connected',
-      ),
-    [socialConnections],
-  );
-  const hasSocialConnections = connectedSocialConnections.length > 0;
 
   return (
     <Card
-      label="External Links"
-      description="Websites and other URLs. Social profiles come from connected accounts."
+      label={social ? 'Social & links' : 'Website links'}
+      description={
+        social
+          ? 'Connected accounts for publishing and ads, plus your websites.'
+          : 'Websites and other URLs.'
+      }
+      headerAction={
+        social ? (
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            className="h-8 shrink-0 px-2.5 text-xs"
+          >
+            <Link href={social.manageHref}>Manage</Link>
+          </Button>
+        ) : undefined
+      }
     >
       <div className="flex flex-col gap-3">
-        {hasSocialConnections ? (
-          <div className="space-y-2">
-            <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Connected social
+        {social ? (
+          <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
+            <p className={SECTION_LABEL_CLASSNAME}>Accounts</p>
+            <p className="mt-1 text-sm text-foreground/90">
+              {formatConnected(
+                social.connectedSocialCount,
+                social.connectedAdAccountCount,
+              )}
             </p>
-            <div className="flex flex-col gap-1.5">
-              {connectedSocialConnections.map((connection) => {
-                const label = connectionLabel(connection);
-                const icon = getPlatformIcon(connection.platform, 'size-3.5');
-                const rowClassName =
-                  'flex min-w-0 items-center gap-2 rounded-md bg-background-secondary px-3 py-2 text-xs shadow-border';
-
-                const rowContent = (
-                  <>
-                    {icon}
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {label}
-                    </span>
-                    <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
-                      {connection.platform}
-                    </span>
-                  </>
-                );
-
-                if (connection.url) {
-                  return (
-                    <Link
-                      key={connection.credentialId}
-                      href={connection.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${rowClassName} transition-colors hover:bg-background`}
-                    >
-                      {rowContent}
-                    </Link>
-                  );
-                }
-
-                // A connected account without a derivable profile URL (e.g. no
-                // handle captured) is still worth surfacing, but a bare `<div>`
-                // here was a dead end — route it to Social settings instead of
-                // rendering a non-interactive row.
-                if (manageSocialHref) {
-                  return (
-                    <Link
-                      key={connection.credentialId}
-                      href={manageSocialHref}
-                      className={`${rowClassName} transition-colors hover:bg-background`}
-                    >
-                      {rowContent}
-                    </Link>
-                  );
-                }
-
-                return null;
-              })}
-            </div>
-          </div>
-        ) : manageSocialHref ? (
-          <div className={EMPTY_STATE_CLASSNAME}>
-            No social accounts connected.{' '}
-            <Link
-              href={manageSocialHref}
-              className="font-medium text-foreground underline-offset-2 hover:underline"
-            >
-              Connect under Social
-            </Link>
-            .
           </div>
         ) : null}
 
         <div className="space-y-2">
-          <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Websites & other
-          </p>
+          <p className={SECTION_LABEL_CLASSNAME}>Websites & other</p>
           {hasManualLinks ? (
             manualLinks.map((link) => (
               <div key={link.id} className="flex gap-1.5">

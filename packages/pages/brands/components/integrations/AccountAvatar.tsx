@@ -1,5 +1,6 @@
 'use client';
 
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { AccountAvatarProps } from '@props/pages/brand-integrations.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -7,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import {
   getConnectionInitials,
   getConnectionLabel,
+  isSocialProfilePlatform,
 } from './account-connection-status.util';
 
 // Sized to match the two call sites this replaces: the compact sidebar
@@ -29,6 +31,11 @@ const FALLBACK_TEXT_CLASSNAME = {
   sm: 'text-2xs',
 } as const;
 
+const LOGO_SIZE_CLASSNAME = {
+  md: 'size-6',
+  sm: 'size-5',
+} as const;
+
 const BADGE_SIZE_CLASSNAME = {
   md: 'size-5 [&_svg]:size-3',
   sm: 'size-4.5 [&_svg]:size-3',
@@ -47,6 +54,14 @@ export default function AccountAvatar({
 }: AccountAvatarProps) {
   const translate = useTranslations('pages.brandSocialMedia');
   const label = getConnectionLabel(connection);
+  // Ad accounts have no profile picture, so the initials ("S" for an account
+  // named shipshit.dev) say nothing — the platform logo is the avatar instead,
+  // which also makes the corner badge redundant.
+  const isLogoAvatar =
+    !connection.avatarUrl && !isSocialProfilePlatform(connection.platform);
+  const logo = isLogoAvatar
+    ? getPlatformIcon(connection.platform, LOGO_SIZE_CLASSNAME[size])
+    : null;
 
   return (
     <span className="relative shrink-0">
@@ -63,17 +78,19 @@ export default function AccountAvatar({
         <AvatarFallback
           className={`${FALLBACK_TEXT_CLASSNAME[size]} font-semibold text-foreground/70`}
         >
-          {getConnectionInitials(connection)}
+          {logo ?? getConnectionInitials(connection)}
         </AvatarFallback>
       </Avatar>
-      <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5">
-        <PlatformBadge
-          platform={connection.platform}
-          showLabel={false}
-          variant="solid"
-          className={`${BADGE_SIZE_CLASSNAME[size]} justify-center rounded-full p-0`}
-        />
-      </span>
+      {logo ? null : (
+        <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5">
+          <PlatformBadge
+            platform={connection.platform}
+            showLabel={false}
+            variant="solid"
+            className={`${BADGE_SIZE_CLASSNAME[size]} justify-center rounded-full p-0`}
+          />
+        </span>
+      )}
     </span>
   );
 }

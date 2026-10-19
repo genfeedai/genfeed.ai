@@ -2,18 +2,23 @@
 
 import { isPublicAssetScope } from '@genfeedai/helpers';
 
+import {
+  getAccountConnectionStatus,
+  isSocialProfilePlatform,
+} from '@pages/brands/components/integrations/account-connection-status.util';
 import BrandDetailAccountSettingsCard from '@pages/brands/components/sidebar/BrandDetailAccountSettingsCard';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
-import BrandDetailSocialSummaryCard from '@pages/brands/components/sidebar/BrandDetailSocialSummaryCard';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
+import { useMemo } from 'react';
 
 /**
- * Public-profile column: visibility + social accounts + external links.
+ * Public-profile column: visibility + social accounts + website links.
  *
- * - Social: `manageSocialHref` → summary linking to /settings/connected-accounts (OAuth page).
- *   Otherwise full connect card + modal.
- * - Links: always the inline list + ModalBrandLink. No dedicated settings page —
+ * - With `manageSocialHref`, one "Social & links" card: connected count + Manage
+ *   (OAuth lives on /settings/connected-accounts) above the website links.
+ * - Otherwise the full connect card, with a separate website-links card.
+ * - Links are always the inline list + ModalBrandLink. No dedicated settings page —
  *   external URLs are simple CRUD, not an OAuth surface.
  */
 export default function BrandDetailSidebar({
@@ -28,6 +33,24 @@ export default function BrandDetailSidebar({
   onRefreshBrand,
 }: BrandDetailSidebarProps) {
   const isPublic = isPublicAssetScope(brand.scope);
+  const social = useMemo(() => {
+    if (!manageSocialHref) {
+      return undefined;
+    }
+
+    const connected = socialConnections.filter(
+      (connection) => getAccountConnectionStatus(connection) === 'connected',
+    );
+    const connectedSocialCount = connected.filter((connection) =>
+      isSocialProfilePlatform(connection.platform),
+    ).length;
+
+    return {
+      connectedAdAccountCount: connected.length - connectedSocialCount,
+      connectedSocialCount,
+      manageHref: manageSocialHref,
+    };
+  }, [manageSocialHref, socialConnections]);
 
   return (
     <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
@@ -37,12 +60,7 @@ export default function BrandDetailSidebar({
         onToggle={onTogglePublicProfile}
       />
 
-      {manageSocialHref ? (
-        <BrandDetailSocialSummaryCard
-          connectedPlatformsCount={connectedPlatformsCount}
-          manageHref={manageSocialHref}
-        />
-      ) : (
+      {manageSocialHref ? null : (
         <BrandDetailSocialMediaCard
           brandId={brand.id}
           connections={socialConnections}
@@ -53,8 +71,7 @@ export default function BrandDetailSidebar({
 
       <BrandDetailExternalLinksCard
         links={links}
-        socialConnections={socialConnections}
-        manageSocialHref={manageSocialHref}
+        social={social}
         onOpenLinkModal={onOpenLinkModal}
       />
     </div>

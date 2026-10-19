@@ -1,7 +1,7 @@
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
   FacebookIcon,
-  GoogleColorIcon,
+  GoogleAdsIcon,
   InstagramIcon,
   LinkedinIcon,
   MastodonIcon,
@@ -36,10 +36,10 @@ const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
     Icon: Star,
   },
   google_ads: {
-    // GoogleColorIcon carries the four brand fills; the class only sizes it.
+    // GoogleAdsIcon carries the three brand fills; the class only sizes it.
     colorClass: 'text-foreground',
     displayName: 'GoogleAdsIcon',
-    Icon: GoogleColorIcon,
+    Icon: GoogleAdsIcon,
   },
   instagram: {
     colorClass: 'text-pink-500',

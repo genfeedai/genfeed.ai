@@ -1,9 +1,6 @@
-import { CredentialPlatform, LinkCategory } from '@genfeedai/contracts';
+import { LinkCategory } from '@genfeedai/contracts';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
-import type {
-  BrandDetailExternalLinksCardProps,
-  BrandDetailSocialConnection,
-} from '@props/pages/brand-detail.props';
+import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -19,29 +16,12 @@ function makeLink(overrides: Partial<ExternalLink> = {}): ExternalLink {
   } as ExternalLink;
 }
 
-function makeConnection(
-  overrides: Partial<BrandDetailSocialConnection> = {},
-): BrandDetailSocialConnection {
-  // Genuinely connected by default (externalId + a profile url) — tests
-  // that care about the disconnected/no-identity/no-url edge cases
-  // override those fields explicitly rather than relying on an implicit
-  // "missing field means disconnected" default.
-  return {
-    credentialId: 'cred-1',
-    externalId: 'ext-1',
-    isConnected: true,
-    platform: CredentialPlatform.INSTAGRAM,
-    url: 'https://instagram.com/acme',
-    ...overrides,
-  };
-}
-
 describe('BrandDetailExternalLinksCard', () => {
   it('should render without crashing', () => {
     render(
       <BrandDetailExternalLinksCard links={[]} onOpenLinkModal={vi.fn()} />,
     );
-    expect(screen.getByText('External Links')).toBeInTheDocument();
+    expect(screen.getByText('Website links')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /add website link/i }),
     ).toBeInTheDocument();
@@ -113,98 +93,56 @@ describe('BrandDetailExternalLinksCard', () => {
     expect(onOpenLinkModal).toHaveBeenCalledWith(link);
   });
 
-  it('links a connected account out to its profile when a url exists', () => {
+  it('shows the website-links title without a connected-accounts summary', () => {
     render(
-      <BrandDetailExternalLinksCard
-        links={[]}
-        onOpenLinkModal={vi.fn()}
-        socialConnections={[
-          makeConnection({
-            credentialId: 'cred-1',
-            name: 'Acme HQ',
-            url: 'https://instagram.com/acme',
-          }),
-        ]}
-      />,
+      <BrandDetailExternalLinksCard links={[]} onOpenLinkModal={vi.fn()} />,
     );
 
-    expect(screen.getByRole('link', { name: /Acme HQ/ })).toHaveAttribute(
-      'href',
-      'https://instagram.com/acme',
-    );
+    expect(screen.getByText('Website links')).toBeInTheDocument();
+    expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+    expect(screen.queryByText(/connected/)).not.toBeInTheDocument();
   });
 
-  it('drops a connected account with no profile url and no manage-social href', () => {
+  it('merges the connected count, Manage and website links into one card', () => {
     render(
       <BrandDetailExternalLinksCard
-        links={[]}
+        links={[makeLink({ label: 'Website' })]}
         onOpenLinkModal={vi.fn()}
-        socialConnections={[
-          makeConnection({
-            credentialId: 'cred-2',
-            handle: '@acme_x',
-            platform: CredentialPlatform.TWITTER,
-            url: undefined,
-          }),
-        ]}
+        social={{
+          connectedAdAccountCount: 0,
+          connectedSocialCount: 4,
+          manageHref: '/settings/connected-accounts',
+        }}
       />,
     );
 
-    // No derivable profile url and nowhere else to send the click — a bare
-    // non-interactive row is worse than not showing it at all.
-    expect(screen.queryByText('@acme_x')).not.toBeInTheDocument();
-  });
-
-  it('routes a connected account with no profile url to Social settings when a manage href is available', () => {
-    render(
-      <BrandDetailExternalLinksCard
-        links={[]}
-        manageSocialHref="/settings/connected-accounts"
-        onOpenLinkModal={vi.fn()}
-        socialConnections={[
-          makeConnection({
-            credentialId: 'cred-2',
-            handle: '@acme_x',
-            platform: CredentialPlatform.TWITTER,
-            url: undefined,
-          }),
-        ]}
-      />,
-    );
-
-    expect(screen.getByText('@acme_x').closest('a')).toHaveAttribute(
+    expect(screen.getByText('Social & links')).toBeInTheDocument();
+    expect(screen.getByText('4 connected')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Manage' })).toHaveAttribute(
       'href',
       '/settings/connected-accounts',
     );
+    expect(screen.getByText('Website')).toBeInTheDocument();
+    // Connected accounts are summarised, never repeated as rows.
+    expect(screen.queryByText('INSTAGRAM')).not.toBeInTheDocument();
   });
 
   it.each([
-    [{ label: 'Acme Label', name: null }, 'Acme Label'],
-    [{ handle: 'acme_handle' }, '@acme_handle'],
-    [{}, CredentialPlatform.INSTAGRAM],
-  ])('falls back through the connection label chain', (overrides, expected) => {
+    [1, '4 connected · 1 ad account'],
+    [2, '4 connected · 2 ad accounts'],
+  ])('counts ad accounts apart from social profiles (%i)', (ads, expected) => {
     render(
       <BrandDetailExternalLinksCard
         links={[]}
         onOpenLinkModal={vi.fn()}
-        socialConnections={[makeConnection(overrides)]}
+        social={{
+          connectedAdAccountCount: ads,
+          connectedSocialCount: 4,
+          manageHref: '/settings/connected-accounts',
+        }}
       />,
     );
 
-    expect(screen.getAllByText(expected).length).toBeGreaterThan(0);
-  });
-
-  it('shows the connect prompt when there are no connections but a manage href', () => {
-    render(
-      <BrandDetailExternalLinksCard
-        links={[]}
-        manageSocialHref="/settings/connected-accounts"
-        onOpenLinkModal={vi.fn()}
-      />,
-    );
-
-    expect(
-      screen.getByRole('link', { name: 'Connect under Social' }),
-    ).toHaveAttribute('href', '/settings/connected-accounts');
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 });

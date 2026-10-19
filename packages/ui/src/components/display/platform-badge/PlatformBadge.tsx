@@ -5,6 +5,7 @@ import {
   DevIcon,
   FacebookIcon,
   GhostIcon,
+  GoogleAdsIcon,
   HackerNewsIcon,
   InstagramIcon,
   LinkedinIcon,
@@ -79,6 +80,15 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     icon: GhostIcon,
     iconColor: 'text-foreground',
     label: 'Ghost',
+    textColor: 'text-foreground',
+  },
+  google_ads: {
+    bgColor: 'bg-foreground/10',
+    // The mark is multi-coloured, so it sits on a white chip in the solid variant.
+    solidBgColor: 'bg-white',
+    icon: GoogleAdsIcon,
+    iconColor: 'text-foreground',
+    label: 'Google Ads',
     textColor: 'text-foreground',
   },
   hacker_news: {
