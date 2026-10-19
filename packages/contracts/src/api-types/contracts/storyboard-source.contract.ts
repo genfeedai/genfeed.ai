@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GENERATION_PROMPT_AUTHORS } from '../../interfaces/content/generation-harness.interface';
 import {
   brandRemixSourceSelectorSchema,
   brandRemixSourceSnapshotSchema,
@@ -15,6 +16,8 @@ export const storyboardBriefSourceSchema = z
     kind: z.literal('brief'),
     brief: z.string().trim().max(2_000),
     seedImageAssetId: storyboardIdSchema.optional(),
+    /** Set when the brief started as an agent draft (#7341); absent means the member wrote it. */
+    author: z.enum(GENERATION_PROMPT_AUTHORS).optional(),
   })
   .strict()
   .refine(

@@ -145,6 +145,40 @@ describe('Storyboard shared composer', () => {
     );
     expect(mocks.create).not.toHaveBeenCalled();
   });
+  it('saves an agent brief sent unchanged as agent-authored', async () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(screen.getByRole('button', { name: 'Agent brief' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: expect.objectContaining({ author: 'agent', kind: 'brief' }),
+        }),
+      ),
+    );
+  });
+  it("saves an edited agent brief as agent_edited, and a preset after it as the member's", async () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(screen.getByRole('button', { name: 'Agent brief' }));
+    const editor = screen.getByLabelText('Brief') as HTMLTextAreaElement;
+    fireEvent.change(editor, {
+      target: { value: `${editor.value}\n3. (3s) Logo end card` },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          source: expect.objectContaining({ author: 'agent_edited' }),
+        }),
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
+    expect(mocks.create.mock.calls[1][0].source).not.toHaveProperty('author');
+  });
   it('saves the brief with a usable default duration, then navigates to its scoped project', async () => {
     render(<StoryboardCreate />);
     expect(screen.getByTestId('storyboard-composer')).toBeInTheDocument();
