@@ -24,12 +24,14 @@ describe('VoiceLibraryService', () => {
     userId: 'canonical-user-1',
   } as User;
   let voicesService: { findAll: ReturnType<typeof vi.fn> };
-  let catalogService: { findAll: ReturnType<typeof vi.fn> };
+  let catalogService: { findPage: ReturnType<typeof vi.fn> };
   let service: VoiceLibraryService;
 
   beforeEach(async () => {
     voicesService = { findAll: vi.fn().mockResolvedValue({ docs: [] }) };
-    catalogService = { findAll: vi.fn().mockResolvedValue([]) };
+    catalogService = {
+      findPage: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+    };
     const module = await Test.createTestingModule({
       providers: [
         VoiceLibraryService,
@@ -132,22 +134,25 @@ describe('VoiceLibraryService', () => {
   });
 
   it('falls back to the platform catalog when the org has no voice ingredients', async () => {
-    catalogService.findAll.mockResolvedValue([
-      {
-        createdAt: new Date('2026-01-01'),
-        externalId: 'eleven-rachel',
-        externalProvider: DbVoiceProvider.ELEVENLABS,
-        id: 'catalog-1',
-        isActive: true,
-        isDefaultSelectable: true,
-        isFeatured: false,
-        language: 'en',
-        name: 'Rachel',
-        providerData: {},
-        sampleAudioUrl: 'https://example.test/rachel.mp3',
-        updatedAt: new Date('2026-01-02'),
-      },
-    ]);
+    catalogService.findPage.mockResolvedValue({
+      docs: [
+        {
+          createdAt: new Date('2026-01-01'),
+          externalId: 'eleven-rachel',
+          externalProvider: DbVoiceProvider.ELEVENLABS,
+          id: 'catalog-1',
+          isActive: true,
+          isDefaultSelectable: true,
+          isFeatured: false,
+          language: 'en',
+          name: 'Rachel',
+          providerData: {},
+          sampleAudioUrl: 'https://example.test/rachel.mp3',
+          updatedAt: new Date('2026-01-02'),
+        },
+      ],
+      totalDocs: 1,
+    });
 
     const result = await service.findAll(
       user,
@@ -158,8 +163,11 @@ describe('VoiceLibraryService', () => {
       }),
     );
 
-    expect(catalogService.findAll).toHaveBeenCalledWith({
+    expect(catalogService.findPage).toHaveBeenCalledWith({
       isActive: true,
+      limit: 12,
+      page: 1,
+      providers: expect.arrayContaining(['ELEVENLABS', 'HEYGEN']),
       search: undefined,
     });
     expect(result.docs).toEqual([
@@ -183,7 +191,63 @@ describe('VoiceLibraryService', () => {
       tenantReadQuery(VoicesQueryDto, {}),
     );
 
-    expect(catalogService.findAll).not.toHaveBeenCalled();
+    expect(catalogService.findPage).not.toHaveBeenCalled();
     expect(result.docs).toEqual([{ id: 'cloned-1', isCloned: true }]);
+  });
+
+  it('slices the catalog in the database and reports the real page count', async () => {
+    const row = (id: string) => ({
+      createdAt: new Date('2026-01-01'),
+      externalId: id,
+      externalProvider: DbVoiceProvider.ELEVENLABS,
+      id,
+      isActive: true,
+      isDefaultSelectable: true,
+      isFeatured: false,
+      language: null,
+      name: id,
+      providerData: {},
+      sampleAudioUrl: null,
+      updatedAt: new Date('2026-01-02'),
+    });
+    catalogService.findPage.mockResolvedValue({
+      docs: [row('c-13'), row('c-14')],
+      totalDocs: 14,
+    });
+
+    const result = await service.findAll(
+      user,
+      tenantReadQuery(VoicesQueryDto, { limit: 12, page: 2 }),
+    );
+
+    expect(catalogService.findPage).toHaveBeenCalledTimes(1);
+    expect(catalogService.findPage).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 12, page: 2 }),
+    );
+    expect(result).toMatchObject({
+      hasNextPage: false,
+      hasPrevPage: true,
+      page: 2,
+      pagingCounter: 13,
+      totalDocs: 14,
+      totalPages: 2,
+    });
+    expect(result.docs).toHaveLength(2);
+  });
+
+  it('serves the last catalog page when the requested page is past the end', async () => {
+    catalogService.findPage
+      .mockResolvedValueOnce({ docs: [], totalDocs: 14 })
+      .mockResolvedValueOnce({ docs: [], totalDocs: 14 });
+
+    const result = await service.findAll(
+      user,
+      tenantReadQuery(VoicesQueryDto, { limit: 12, page: 9 }),
+    );
+
+    expect(catalogService.findPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2 }),
+    );
+    expect(result).toMatchObject({ page: 2, totalPages: 2 });
   });
 });

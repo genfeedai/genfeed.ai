@@ -34,6 +34,9 @@ const serviceInstances = new ServiceInstanceManager<BaseService<unknown>>();
  */
 const MAX_COLLECTED_PAGES = 50;
 
+/** Pages requested at once after the first, so a fetch-all stays gentle on the API. */
+const COLLECT_PAGE_CONCURRENCY = 5;
+
 /**
  * Base service class for API operations with type-safe request payloads.
  *
@@ -345,16 +348,24 @@ export abstract class BaseService<
         : MAX_PAGE_SIZE;
     const limit = Math.min(requestedLimit, MAX_PAGE_SIZE);
 
-    const collected: D[] = [];
-    let page = 1;
-    let totalPages = 1;
+    // Page 1 reports how many pages exist; the rest are independent, so they
+    // go out together instead of one round trip after another.
+    const first = await fetchPage({ ...query, limit, page: 1 });
+    const totalPages = Math.max(1, first.totalPages);
+    const lastPage = Math.min(totalPages, MAX_COLLECTED_PAGES);
+    const collected: D[] = [...first.items];
 
-    do {
-      const result = await fetchPage({ ...query, limit, page });
-      collected.push(...result.items);
-      totalPages = Math.max(1, result.totalPages);
-      page += 1;
-    } while (page <= totalPages && page <= MAX_COLLECTED_PAGES);
+    for (let start = 2; start <= lastPage; start += COLLECT_PAGE_CONCURRENCY) {
+      const end = Math.min(start + COLLECT_PAGE_CONCURRENCY - 1, lastPage);
+      const batch = await Promise.all(
+        Array.from({ length: end - start + 1 }, (_, index) =>
+          fetchPage({ ...query, limit, page: start + index }),
+        ),
+      );
+      for (const result of batch) {
+        collected.push(...result.items);
+      }
+    }
 
     if (totalPages > MAX_COLLECTED_PAGES) {
       logger.warn('Fetch-all stopped at the page ceiling', {

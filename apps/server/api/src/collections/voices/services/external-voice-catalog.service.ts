@@ -1,15 +1,28 @@
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ExternalVoice, VoiceProvider } from '@genfeedai/prisma';
+import { ExternalVoice, type Prisma, VoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
 export interface ExternalVoiceFindAllOptions {
   provider?: VoiceProvider;
+  /** Several providers at once; takes precedence over `provider`. */
+  providers?: VoiceProvider[];
   search?: string;
   isActive?: boolean;
+}
+
+export interface ExternalVoiceFindPageOptions
+  extends ExternalVoiceFindAllOptions {
+  limit: number;
+  page: number;
+}
+
+export interface ExternalVoicePage {
+  docs: ExternalVoice[];
+  totalDocs: number;
 }
 
 export interface ExternalVoicePatchDto {
@@ -52,30 +65,56 @@ export class ExternalVoiceCatalogService {
   ) {}
 
   findAll(options: ExternalVoiceFindAllOptions = {}): Promise<ExternalVoice[]> {
-    const { provider, search, isActive = true } = options;
+    return this.prisma.externalVoice.findMany({
+      orderBy: [{ name: 'asc' }],
+      where: this.buildWhere(options),
+    });
+  }
 
-    const where: {
-      isActive?: boolean;
-      externalProvider?: VoiceProvider;
-      OR?: Array<{ name: { contains: string; mode: 'insensitive' } }>;
-    } = {};
+  /**
+   * One page of the catalog, sliced in the database. The library picker walks
+   * the whole catalog page by page, so reading every row to slice a page in
+   * memory made each request cost the full catalog.
+   */
+  async findPage(
+    options: ExternalVoiceFindPageOptions,
+  ): Promise<ExternalVoicePage> {
+    const { limit, page, providers, ...filters } = options;
+    const where = this.buildWhere({ ...filters, providers });
+    const [docs, totalDocs] = await Promise.all([
+      this.prisma.externalVoice.findMany({
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.externalVoice.count({ where }),
+    ]);
+
+    return { docs, totalDocs };
+  }
+
+  private buildWhere(
+    options: ExternalVoiceFindAllOptions,
+  ): Prisma.ExternalVoiceWhereInput {
+    const { provider, providers, search, isActive = true } = options;
+    const where: Prisma.ExternalVoiceWhereInput = {};
 
     if (isActive !== undefined) {
       where.isActive = isActive;
     }
 
-    if (provider) {
+    if (providers && providers.length > 0) {
+      where.externalProvider = { in: providers };
+    } else if (provider) {
       where.externalProvider = provider;
     }
 
     if (search) {
-      where.OR = [{ name: { contains: search, mode: 'insensitive' } }];
+      where.name = { contains: search, mode: 'insensitive' };
     }
 
-    return this.prisma.externalVoice.findMany({
-      orderBy: [{ name: 'asc' }],
-      where,
-    });
+    return where;
   }
 
   findActive(

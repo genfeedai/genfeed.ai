@@ -10,6 +10,8 @@ describe('ExternalVoiceCatalogService.syncFromProviders', () => {
 
   let prisma: {
     externalVoice: {
+      count: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
       upsert: ReturnType<typeof vi.fn>;
     };
@@ -20,6 +22,8 @@ describe('ExternalVoiceCatalogService.syncFromProviders', () => {
   beforeEach(() => {
     prisma = {
       externalVoice: {
+        count: vi.fn().mockResolvedValue(0),
+        findMany: vi.fn().mockResolvedValue([]),
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
         upsert: vi.fn().mockResolvedValue({ createdAt: now, updatedAt: now }),
       },
@@ -57,5 +61,31 @@ describe('ExternalVoiceCatalogService.syncFromProviders', () => {
     await service.syncFromProviders([VoiceProvider.HEYGEN]);
 
     expect(prisma.externalVoice.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('reads one page from the database with a matching count', async () => {
+    prisma.externalVoice.findMany.mockResolvedValue([{ id: 'v1' }]);
+    prisma.externalVoice.count.mockResolvedValue(250);
+
+    const page = await service.findPage({
+      limit: 100,
+      page: 3,
+      providers: [VoiceProvider.ELEVENLABS],
+      search: 'ali',
+    });
+
+    const where = {
+      externalProvider: { in: [VoiceProvider.ELEVENLABS] },
+      isActive: true,
+      name: { contains: 'ali', mode: 'insensitive' },
+    };
+    expect(prisma.externalVoice.findMany).toHaveBeenCalledWith({
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      skip: 200,
+      take: 100,
+      where,
+    });
+    expect(prisma.externalVoice.count).toHaveBeenCalledWith({ where });
+    expect(page).toEqual({ docs: [{ id: 'v1' }], totalDocs: 250 });
   });
 });

@@ -14,7 +14,7 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientCategory, VoiceProvider } from '@genfeedai/contracts';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { TenantIsolationError } from '@libs/prisma/tenant-guard';
 import {
   BadRequestException,
@@ -139,42 +139,40 @@ export class VoiceLibraryService {
     providers: ReturnType<typeof parseVoiceProviders>;
     search?: string;
   }): Promise<AggregatePaginateResult<IngredientDocument>> {
-    const catalog = await this.externalVoiceCatalogService.findAll({
-      isActive: params.isActive,
-      search: params.search,
-    });
-    const allowedProviders = new Set<VoiceProvider>(params.providers);
-    const docs = catalog
-      .map((voice) => toLibraryVoiceDocument(voice))
-      .filter((voice) => {
-        if (allowedProviders.size === 0) {
-          return true;
-        }
+    const fetchPage = (page: number) =>
+      this.externalVoiceCatalogService.findPage({
+        isActive: params.isActive,
+        limit: params.limit,
+        page,
+        providers: params.providers,
+        search: params.search,
+      });
+    const requestedPage = Math.max(params.page, 1);
+    let result = await fetchPage(requestedPage);
+    const lastPage = Math.max(1, Math.ceil(result.totalDocs / params.limit));
+    const page = Math.min(requestedPage, lastPage);
+    if (page !== requestedPage) {
+      // Past the last page: serve the last one rather than an empty page.
+      result = await fetchPage(page);
+    }
 
-        return (
-          typeof voice.provider === 'string' &&
-          allowedProviders.has(voice.provider as VoiceProvider)
-        );
-      })
-      .map((voice) => voice as IngredientDocument);
-
-    const totalDocs = docs.length;
-    const totalPages = Math.max(1, Math.ceil(totalDocs / params.limit) || 1);
-    const page = Math.min(Math.max(params.page, 1), totalPages);
+    const { totalDocs } = result;
+    const pageDocs = result.docs.map(
+      (voice) => toLibraryVoiceDocument(voice) as IngredientDocument,
+    );
     const start = (page - 1) * params.limit;
-    const pageDocs = docs.slice(start, start + params.limit);
 
     return {
       docs: pageDocs,
-      hasNextPage: page < totalPages && totalDocs > 0,
+      hasNextPage: page < lastPage && totalDocs > 0,
       hasPrevPage: page > 1,
       limit: params.limit,
-      nextPage: page < totalPages ? page + 1 : null,
+      nextPage: page < lastPage ? page + 1 : null,
       page,
       pagingCounter: totalDocs === 0 ? 0 : start + 1,
       prevPage: page > 1 ? page - 1 : null,
       totalDocs,
-      totalPages,
+      totalPages: lastPage,
     };
   }
 
