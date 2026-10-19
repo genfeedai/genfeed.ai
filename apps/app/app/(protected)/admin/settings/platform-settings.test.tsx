@@ -6,6 +6,7 @@ vi.mock('./system-notifications-panel', () => ({
 }));
 
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
+import type { PlatformSettingsTab } from '@props/admin/platform-settings.props';
 import {
   fireEvent,
   render,
@@ -20,9 +21,11 @@ import {
   isValidElement,
   type ReactElement,
   type ReactNode,
+  useState,
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import PlatformSettingsPage from './platform-settings-page';
+import PlatformSettingsLayout from './layout';
+import PlatformSettingsSection from './platform-settings-section';
 
 expect.extend(domMatchers);
 
@@ -38,6 +41,7 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   getBrandVisionModels: vi.fn(),
   getSettings: vi.fn(),
+  push: vi.fn(),
   success: vi.fn(),
   updateSettings: vi.fn(),
   warning: vi.fn(),
@@ -51,13 +55,17 @@ const getPlatformSettingsService = vi.hoisted(() =>
   })),
 );
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mocks.push }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getPlatformSettingsService,
 }));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../tests/next-intl.stub'
+    '../../../../tests/next-intl.stub'
   );
 
   const translations = new Map<
@@ -101,36 +109,30 @@ vi.mock('@ui/display/skeleton/skeleton', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    description,
-    headerTabs,
     label,
+    refresh,
+    right,
   }: {
     children: ReactNode;
-    description: string;
-    headerTabs?: {
-      activeTab: string;
-      onTabChange: (tabId: string) => void;
-      tabs: { id: string; label: string }[];
-    };
     label: string;
+    refresh?: ReactNode;
+    right?: ReactNode;
   }) => (
     <section aria-label={label}>
-      <p>{description}</p>
-      <div role="tablist">
-        {headerTabs?.tabs.map((tab) => (
-          <button
-            key={tab.id}
-            aria-selected={headerTabs.activeTab === tab.id}
-            onClick={() => headerTabs.onTabChange(tab.id)}
-            role="tab"
-            type="button"
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div data-testid="subbar">
+        {refresh}
+        {right}
       </div>
       {children}
     </section>
+  ),
+}));
+
+vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
+  default: ({ onClick }: { onClick: () => void }) => (
+    <button onClick={onClick} type="button">
+      Refresh
+    </button>
   ),
 }));
 
@@ -264,7 +266,45 @@ function fieldIn(group: string, label: string): HTMLElement {
   );
 }
 
-/** Switch the page to a settings tab once it has loaded. */
+const PAGES: readonly { label: string; tab: PlatformSettingsTab }[] = [
+  { label: 'Billing', tab: 'billing' },
+  { label: 'AI', tab: 'ai' },
+  { label: 'Agent', tab: 'agent' },
+  { label: 'Media', tab: 'media' },
+  { label: 'Providers', tab: 'providers' },
+  { label: 'Accounts', tab: 'accounts' },
+  { label: 'Notifications', tab: 'notifications' },
+];
+
+/**
+ * The settings layout with its pages swapped by a stand-in for the rail: the
+ * layout (and so the settings state) stays mounted while the page changes,
+ * as it does between /admin/settings routes.
+ */
+function PlatformSettingsPage() {
+  const [tab, setTab] = useState<PlatformSettingsTab>('billing');
+
+  return (
+    <PlatformSettingsLayout>
+      <nav>
+        {PAGES.map((page) => (
+          <button
+            key={page.tab}
+            aria-current={tab === page.tab ? 'page' : undefined}
+            onClick={() => setTab(page.tab)}
+            role="tab"
+            type="button"
+          >
+            {page.label}
+          </button>
+        ))}
+      </nav>
+      <PlatformSettingsSection tab={tab} />
+    </PlatformSettingsLayout>
+  );
+}
+
+/** Open a settings page once the settings have loaded. */
 async function openTab(name: string): Promise<void> {
   await screen.findByRole('button', { name: /save settings/i });
   fireEvent.click(screen.getByRole('tab', { name }));
@@ -285,7 +325,7 @@ const DETECT_OPTION = {
   providerCostUsd: 0.000225,
 };
 
-describe('PlatformSettingsPage', () => {
+describe('Platform settings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getBrandVisionModels.mockResolvedValue({
@@ -329,6 +369,8 @@ describe('PlatformSettingsPage', () => {
     expect(screen.getByTestId('platform-margin-input-mode')).toHaveValue(
       'MARGIN',
     );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'AI' }));
     expect(screen.getByTestId('platform-typed-decision-provider')).toHaveValue(
       'jev',
     );
@@ -384,9 +426,8 @@ describe('PlatformSettingsPage', () => {
   it('saves the typed-decision provider an operator selected', async () => {
     render(<PlatformSettingsPage />);
 
-    const select = await screen.findByTestId(
-      'platform-typed-decision-provider',
-    );
+    await openTab('AI');
+    const select = screen.getByTestId('platform-typed-decision-provider');
     fireEvent.change(select, { target: { value: 'none' } });
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
@@ -419,7 +460,7 @@ describe('PlatformSettingsPage', () => {
     });
     render(<PlatformSettingsPage />);
 
-    await screen.findByTestId('platform-typed-decision-provider');
+    await screen.findByRole('button', { name: /save settings/i });
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
     await waitFor(() => {
@@ -448,14 +489,14 @@ describe('PlatformSettingsPage', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled();
   });
 
-  describe('tabs', () => {
-    it('opens on Billing and shows one settings tab at a time', async () => {
+  describe('pages', () => {
+    it('opens on Billing and shows one settings page at a time', async () => {
       render(<PlatformSettingsPage />);
 
       await screen.findByRole('button', { name: /save settings/i });
       expect(screen.getByRole('tab', { name: 'Billing' })).toHaveAttribute(
-        'aria-selected',
-        'true',
+        'aria-current',
+        'page',
       );
       expect(
         screen.queryByRole('switch', { name: /media perception/i }),
@@ -471,7 +512,27 @@ describe('PlatformSettingsPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('keeps edits from every tab and saves them together', async () => {
+    it('puts Save in the subbar, after refresh', async () => {
+      render(<PlatformSettingsPage />);
+
+      const subbar = await screen.findByTestId('subbar');
+      const buttons = within(subbar).getAllByRole('button');
+      expect(buttons.map((button) => button.textContent)).toEqual([
+        'Refresh',
+        'Save settings',
+      ]);
+    });
+
+    it('reloads the settings on refresh', async () => {
+      render(<PlatformSettingsPage />);
+
+      await screen.findByLabelText('Generation margin (%)');
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+
+      await waitFor(() => expect(mocks.getSettings).toHaveBeenCalledTimes(2));
+    });
+
+    it('keeps edits from every page and saves them together', async () => {
       render(<PlatformSettingsPage />);
 
       await openTab('Media');
@@ -497,23 +558,36 @@ describe('PlatformSettingsPage', () => {
       expect(payload?.systemEventsEnabledAt).toEqual(expect.any(String));
     });
 
-    it('opens the tab holding an invalid field when a save is refused', async () => {
+    it('opens Billing when a save is refused over an invalid margin', async () => {
+      render(<PlatformSettingsPage />);
+
+      fireEvent.change(await screen.findByLabelText('Generation margin (%)'), {
+        target: { value: '100' },
+      });
+      fireEvent.click(screen.getByRole('tab', { name: 'Agent' }));
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      expect(mocks.updateSettings).not.toHaveBeenCalled();
+      expect(mocks.push).toHaveBeenCalledWith('/admin/settings/billing');
+    });
+
+    it('drops an invalid entry when its page is left, so it never blocks a save elsewhere', async () => {
       render(<PlatformSettingsPage />);
 
       await openTab('AI');
       fireEvent.change(fieldIn('Untrusted content', 'Min confidence'), {
         target: { value: '1.5' },
       });
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Enter a number from 0 to 1',
+      );
       fireEvent.click(screen.getByRole('tab', { name: 'Billing' }));
       fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
-      expect(mocks.updateSettings).not.toHaveBeenCalled();
-      expect(screen.getByRole('tab', { name: 'AI' })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      );
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Enter a number from 0 to 1',
+      await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalled());
+      const [payload] = mocks.updateSettings.mock.calls[0] ?? [];
+      expect(payload?.untrustedContentMinConfidence).toBe(
+        SAVED_SWITCHES.untrustedContentMinConfidence,
       );
     });
 
@@ -564,20 +638,20 @@ describe('PlatformSettingsPage', () => {
       expect(
         screen.getByRole('switch', { name: /media perception/i }),
       ).not.toBeChecked();
-      fireEvent.click(screen.getByRole('tab', { name: 'Accounts' }));
-      expect(
-        screen.getByRole('switch', { name: /require email verification/i }),
-      ).toBeChecked();
       expect(screen.getByTestId('platform-moderation-mode')).toHaveValue(
         'live',
       );
       expect(screen.getByLabelText('Sexual')).toHaveValue(0.4);
       expect(screen.getByLabelText('Violence')).toHaveValue(null);
-      fireEvent.click(screen.getByRole('tab', { name: 'AI' }));
-      expect(fieldIn('Task routing', 'Min confidence')).toHaveValue(0.9);
+      fireEvent.click(screen.getByRole('tab', { name: 'Accounts' }));
+      expect(
+        screen.getByRole('switch', { name: /require email verification/i }),
+      ).toBeChecked();
       expect(
         screen.getByText('Recording since 2026-09-20T10:00:00.000Z'),
       ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('tab', { name: 'AI' }));
+      expect(fieldIn('Task routing', 'Min confidence')).toHaveValue(0.9);
     });
 
     it('makes email verification unavailable when no mailer is configured', async () => {
@@ -715,7 +789,8 @@ describe('PlatformSettingsPage', () => {
     it('offers only off and shadow on a shadow-capped decision point', async () => {
       render(<PlatformSettingsPage />);
 
-      const select = await screen.findByTestId('platform-task-routing-mode');
+      await openTab('AI');
+      const select = screen.getByTestId('platform-task-routing-mode');
       const options = Array.from(select.querySelectorAll('option')).map(
         (option) => option.getAttribute('value'),
       );

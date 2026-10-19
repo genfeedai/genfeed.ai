@@ -133,7 +133,6 @@
     "apps/app/app/(protected)/admin/administration/announcements/announcement-history-list.tsx": 5,
     "apps/app/app/(protected)/admin/administration/announcements/announcements-page.tsx": 3,
     "apps/app/app/(protected)/admin/administration/credit-usage/credit-usage-list.tsx": 11,
-    "apps/app/app/(protected)/admin/administration/platform-settings/platform-settings-page.tsx": 2,
     "apps/app/app/(protected)/admin/administration/referrals/referral-rewards-list.tsx": 10,
     "apps/app/app/(protected)/admin/administration/roles/roles-list.tsx": 10,
     "apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx": 12,

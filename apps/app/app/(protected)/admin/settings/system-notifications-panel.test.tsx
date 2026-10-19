@@ -28,7 +28,7 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../tests/next-intl.stub'
+    '../../../../tests/next-intl.stub'
   );
   const t = translateFromCatalog('pages.platformSettings.notifications');
   return { useTranslations: () => t };

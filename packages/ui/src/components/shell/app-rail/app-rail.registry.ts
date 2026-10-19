@@ -26,6 +26,7 @@ import {
   Radar,
   Rocket,
   Scissors,
+  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -323,6 +324,16 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     id: 'admin-administration',
     label: 'adminAdministration.label',
     route: () => APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
+  },
+  {
+    activePathRoots: [APP_ROUTES.ADMIN.SETTINGS.ROOT],
+    adminMenuGroup: 'Settings',
+    description: 'adminSettings.description',
+    group: 'admin-category',
+    icon: Settings,
+    id: 'admin-settings',
+    label: 'adminSettings.label',
+    route: () => APP_ROUTES.ADMIN.SETTINGS.BILLING,
   },
 ];
 

@@ -50,8 +50,8 @@ type BrandVisionModelSettingKey =
 
 /**
  * Product feature switches (#5407): every operator decision that used to be
- * an env var, rendered one platform settings tab at a time. The page owns the
- * state and saves every tab together.
+ * an env var, rendered one settings page at a time. The settings layout owns the
+ * state and saves every page together.
  */
 export default function PlatformFeatureSettingsFields({
   brandVisionModels,
@@ -771,8 +771,8 @@ export default function PlatformFeatureSettingsFields({
   const SECTION_RENDERERS: Record<PlatformSettingsTab, () => ReactNode> = {
     accounts: renderAccounts,
     agent: renderAgent,
+    ai: renderDecisions,
     billing: renderBilling,
-    decisions: renderDecisions,
     media: renderMedia,
     notifications: renderNotifications,
     providers: renderProviders,
