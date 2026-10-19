@@ -72,6 +72,11 @@ const mockAccessState = vi.hoisted(() => ({
   isAssetGateLocked: false,
   isSuperAdmin: false,
 }));
+const mockDesktop = vi.hoisted(() => ({
+  isDesktop: false,
+  openExternalPath: vi.fn(),
+  platformRole: 'USER' as string,
+}));
 const mockOrgUrl = vi.hoisted(() => ({
   brandSlug: 'brand' as string | undefined,
   orgSlug: 'acme' as string | undefined,
@@ -92,6 +97,7 @@ vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
 }));
 
 vi.mock('@genfeedai/contracts', () => ({
+  PlatformRole: { SUPERADMIN: 'SUPERADMIN', USER: 'USER' },
   SettingsSurface: {
     BRAND: 'brand',
     ORGANIZATION: 'organization',
@@ -184,6 +190,21 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
     },
     settings: brandContextState.settings,
     settingsLoading: brandContextState.settingsLoading,
+  }),
+}));
+
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
+  useOptionalUser: () => ({
+    currentUser: { platformRole: mockDesktop.platformRole },
+  }),
+}));
+vi.mock(
+  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
+  () => ({ useIsDesktopClient: () => mockDesktop.isDesktop }),
+);
+vi.mock('@/lib/desktop/runtime', () => ({
+  getDesktopBridge: () => ({
+    app: { openExternalPath: mockDesktop.openExternalPath },
   }),
 }));
 
@@ -317,6 +338,9 @@ describe('AppProtectedRail', () => {
     mockPathname.value = '/acme/brand/workspace';
     mockAccessState.isAssetGateLocked = false;
     mockAccessState.isSuperAdmin = false;
+    mockDesktop.isDesktop = false;
+    mockDesktop.openExternalPath.mockReset();
+    mockDesktop.platformRole = 'USER';
     mockOrgUrl.brandSlug = 'brand';
     mockOrgUrl.orgSlug = 'acme';
     appRailSpy.mockClear();
@@ -504,6 +528,61 @@ describe('AppProtectedRail', () => {
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ showAdmin: true }),
+    );
+  });
+
+  it('offers a desktop platform admin Admin in the system browser', () => {
+    mockDesktop.isDesktop = true;
+    mockDesktop.platformRole = 'SUPERADMIN';
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    const props = appRailSpy.mock.lastCall?.[0] as {
+      onOpenAdminExternally?: (href: string) => void;
+      showAdmin: boolean;
+    };
+    expect(props.showAdmin).toBe(true);
+
+    props.onOpenAdminExternally?.('/admin/overview/dashboard');
+    expect(mockDesktop.openExternalPath).toHaveBeenCalledWith(
+      '/admin/overview/dashboard',
+    );
+  });
+
+  it('keeps Admin in the shell where the API already grants super admin', () => {
+    mockDesktop.isDesktop = true;
+    mockDesktop.platformRole = 'SUPERADMIN';
+    mockAccessState.isSuperAdmin = true;
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        onOpenAdminExternally: undefined,
+        showAdmin: true,
+      }),
+    );
+  });
+
+  it('hides Admin from desktop members without the platform role', () => {
+    mockDesktop.isDesktop = true;
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        onOpenAdminExternally: undefined,
+        showAdmin: false,
+      }),
+    );
+  });
+
+  it('never opens Admin externally on the web', () => {
+    mockDesktop.platformRole = 'SUPERADMIN';
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        onOpenAdminExternally: undefined,
+        showAdmin: false,
+      }),
     );
   });
 

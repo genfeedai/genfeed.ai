@@ -3,8 +3,11 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { PlatformRole } from '@genfeedai/contracts';
 import { normalizeRailAppOrder } from '@genfeedai/contracts/constants';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AppRail } from '@ui/shell/app-rail/AppRail';
@@ -20,6 +23,7 @@ import {
   captureAppRailNavigation,
   captureAppRailReorder,
 } from '@/lib/analytics/app-rail-analytics';
+import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { isAgentOnboardingPathname } from '@/lib/navigation/agent-onboarding-path';
 import {
   appendSearchParamsToHref,
@@ -39,6 +43,14 @@ function AppProtectedRailContent({
   const { installedAppIds, moduleAccess, modulePreferences } =
     useAvailableRailApps();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
+  const isDesktop = useIsDesktopClient();
+  const hasPlatformRole =
+    useOptionalUser()?.currentUser?.platformRole === PlatformRole.SUPERADMIN;
+  // Super-admin power is judged on the caller's IP. Desktop reaches the API
+  // through the app origin's `/v1` rewrite, which hides that address, so the
+  // API never grants it there. The account role still earns the Admin entry,
+  // and it opens in the system browser, where the address is the member's own.
+  const isAdminInBrowser = isDesktop && hasPlatformRole && !isSuperAdmin;
   const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
     useOrgUrl();
   const { brandAwareAppSlug, effectiveBrandSlug, effectiveOrgSlug } =
@@ -112,6 +124,10 @@ function AppProtectedRailContent({
     [currentHref, searchParams],
   );
 
+  const openAdminInBrowser = useCallback((href: string) => {
+    void getDesktopBridge()?.app.openExternalPath(href);
+  }, []);
+
   if (!effectiveOrgSlug) {
     return null;
   }
@@ -146,6 +162,7 @@ function AppProtectedRailContent({
       modulePreferences={modulePreferences}
       hiddenAppIds={hiddenAppIds}
       onNavigate={onNavigate}
+      onOpenAdminExternally={isAdminInBrowser ? openAdminInBrowser : undefined}
       onRailAppOrderChange={setRailAppOrder}
       onResetRail={resetRail}
       onTogglePin={togglePin}
@@ -154,7 +171,7 @@ function AppProtectedRailContent({
       railAppOrder={effectiveRailAppOrder}
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
-      showAdmin={isAdminChrome || isSuperAdmin}
+      showAdmin={isAdminChrome || isSuperAdmin || isAdminInBrowser}
     />
   );
 }
