@@ -47,8 +47,41 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ListSkillsOptions {
+  /** Only skills the runtime injects while a brand has no explicit selection. */
+  isDefault?: boolean;
+  /** Narrow to skills that handle one modality (a `multi` skill matches when it is the only one). */
+  modality?: string;
+  /** Case-insensitive match over name and description. */
+  search?: string;
+  /** Narrow to one skill source. */
+  source?: string;
+  /** Narrow to one workflow stage. */
+  stage?: string;
   /** Narrow the catalog to skills offered on one composer surface. */
   surface?: SkillSurface;
+}
+
+function matchesSkillFilters(
+  doc: SkillDocument,
+  options: ListSkillsOptions,
+): boolean {
+  const { isDefault, modality, search, source, stage } = options;
+  const query = search?.trim().toLowerCase();
+  const modalities = doc.modalities ?? [];
+
+  return (
+    (isDefault === undefined || Boolean(doc.isDefault) === isDefault) &&
+    (!source || doc.source === source) &&
+    (!stage || doc.workflowStage === stage) &&
+    (!modality ||
+      modalities.includes(modality) ||
+      (modalities.length === 1 && modalities.includes('multi'))) &&
+    (!query ||
+      (doc.name ?? '').toLowerCase().includes(query) ||
+      String(doc.description ?? '')
+        .toLowerCase()
+        .includes(query))
+  );
 }
 
 export interface ResolveBrandSkillsOptions {
@@ -433,14 +466,25 @@ export class SkillsService {
         orderBy: [{ createdAt: 'desc' }],
         where: await this.visibleSkillWhere(organizationId, userId),
       });
-    const docs = results.map((r) => this.normalizeSkill(r));
     const { surface } = options;
 
-    // `surfaces` lives in the `config` JSON and is derived for rows that
-    // predate it, so the surface filter cannot push down into Prisma.
-    return surface
-      ? docs.filter((doc) => isSkillOnSurface(doc, surface))
-      : docs;
+    // `surfaces`, `source`, `modalities` and the rest live in the `config`
+    // JSON (and `surfaces` is derived for rows that predate it), so these
+    // filters cannot push down into Prisma. The visible set is the catalog
+    // plus one organization's skills, so it stays small; the caller slices
+    // the page after per-actor visibility is applied.
+    return results
+      .map((r) => this.normalizeSkill(r))
+      .filter(
+        (doc) =>
+          (!surface || isSkillOnSurface(doc, surface)) &&
+          matchesSkillFilters(doc, options),
+      )
+      .sort(
+        (left, right) =>
+          (left.name ?? '').localeCompare(right.name ?? '') ||
+          String(left.id).localeCompare(String(right.id)),
+      );
   }
 
   async getAvailableForOrg(organizationId: string): Promise<SkillDocument[]> {

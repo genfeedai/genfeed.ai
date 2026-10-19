@@ -7,7 +7,7 @@ import {
 } from '@contexts/user/brand-context/brand-context.helpers';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ModalEnum } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   closeModal,
   isModalOpen,
@@ -17,6 +17,7 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import type {
   SkillsPageAction as PageAction,
   SkillsPageState as PageState,
@@ -33,11 +34,24 @@ import {
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import { useParams, useRouter } from 'next/navigation';
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import SkillDetailSheet from './skill-detail-sheet';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
 import SkillFilters from './skill-filters';
@@ -270,7 +284,11 @@ function pageReducer(state: PageState, action: PageAction): PageState {
 export default function BrandSettingsSkillsPage() {
   const translate = useTranslations('common.settings.skills');
   const params = useParams<{ brandSlug: string; orgSlug: string }>();
-  const { push } = useRouter();
+  const { push, replace } = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const { href } = useOrgUrl();
   const { getToken, userId, sessionId, isSignedIn } = useAuthIdentity();
   const routedOrganization = useRoutedOrganization();
@@ -346,10 +364,8 @@ export default function BrandSettingsSkillsPage() {
   const skills =
     catalogScopeKeyRef.current === scopeKey ? catalogSkillsState : [];
 
-  const defaultSkillSlugs = useMemo(
-    () => skills.filter((skill) => skill.isDefault).map((skill) => skill.slug),
-    [skills],
-  );
+  // The table shows one server page, so the defaults come from their own query.
+  const [defaultSkillSlugs, setDefaultSkillSlugs] = useState<string[]>([]);
   const {
     enabledSlugs,
     isLoading: isTogglingSkill,
@@ -369,6 +385,28 @@ export default function BrandSettingsSkillsPage() {
     },
     [getToken, organizationId, translate],
   );
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const pageQuery = useMemo(
+    () => ({
+      limit: ITEMS_PER_PAGE,
+      modality: modalityFilter === 'all' ? undefined : modalityFilter,
+      page: currentPage,
+      search: debouncedSearchQuery,
+      source: sourceFilter === 'all' ? undefined : sourceFilter,
+      stage: stageFilter === 'all' ? undefined : stageFilter,
+    }),
+    [
+      currentPage,
+      debouncedSearchQuery,
+      modalityFilter,
+      sourceFilter,
+      stageFilter,
+    ],
+  );
+  const pageQueryRef = useRef(pageQuery);
+  pageQueryRef.current = pageQuery;
+  const loadedPageQueryKeyRef = useRef('');
 
   const refreshCatalog = useCallback(async () => {
     const lifecycle = lifecycleRef.current;
@@ -394,8 +432,16 @@ export default function BrandSettingsSkillsPage() {
     try {
       const service = await acquireService(isCurrent);
       if (!isCurrent() || !service) return;
-      const catalogSkills = await service.listSkills();
+      loadedPageQueryKeyRef.current = JSON.stringify([
+        scopeKey,
+        pageQueryRef.current,
+      ]);
+      const [catalogSkills, defaultSkills] = await Promise.all([
+        service.listSkillsPage(pageQueryRef.current),
+        service.listSkills({ isDefault: true }),
+      ]);
       if (!isCurrent()) return;
+      setDefaultSkillSlugs(defaultSkills.map((skill) => skill.slug));
       catalogScopeKeyRef.current = scopeKey;
       dispatch({ type: 'LOAD_SUCCESS', skills: catalogSkills });
       lifecycleRef.current.importSent = false;
@@ -420,30 +466,59 @@ export default function BrandSettingsSkillsPage() {
     };
   }, [refreshCatalog]);
 
-  const filteredSkills = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+  // A different search, source, modality or stage starts over at page 1.
+  const filterSignature = JSON.stringify([
+    debouncedSearchQuery,
+    modalityFilter,
+    sourceFilter,
+    stageFilter,
+  ]);
+  const previousFilterSignatureRef = useRef(filterSignature);
+  useEffect(() => {
+    if (previousFilterSignatureRef.current === filterSignature) return;
+    previousFilterSignatureRef.current = filterSignature;
+    const params = new URLSearchParams(searchParamsString);
+    if (!params.has('page')) return;
+    params.delete('page');
+    const queryString = params.toString();
+    replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [filterSignature, pathname, replace, searchParamsString]);
 
-    return skills
-      .filter((skill) => {
-        const sourceMatches =
-          sourceFilter === 'all' || skill.source === sourceFilter;
-        const modalityMatches =
-          modalityFilter === 'all' ||
-          skill.modalities.includes(modalityFilter) ||
-          (skill.modalities.length === 1 && skill.modalities.includes('multi'));
-        const stageMatches =
-          stageFilter === 'all' || skill.workflowStage === stageFilter;
-        const searchMatches =
-          normalizedQuery.length === 0 ||
-          skill.name.toLowerCase().includes(normalizedQuery) ||
-          skill.description.toLowerCase().includes(normalizedQuery);
-
-        return (
-          sourceMatches && modalityMatches && stageMatches && searchMatches
+  // Page and filter changes reload just the table page; the first load and
+  // the import reset go through refreshCatalog.
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  useEffect(() => {
+    if (!isScopeMatch || catalogScopeKeyRef.current !== scopeKey) return;
+    const queryKey = JSON.stringify([scopeKey, pageQuery]);
+    if (loadedPageQueryKeyRef.current === queryKey) return;
+    loadedPageQueryKeyRef.current = queryKey;
+    const controller = new AbortController();
+    setIsPageLoading(true);
+    void (async () => {
+      try {
+        const service = await acquireService(() => !controller.signal.aborted);
+        if (!service || controller.signal.aborted) return;
+        const pageSkills = await service.listSkillsPage(
+          pageQuery,
+          controller.signal,
         );
-      })
-      .sort((left, right) => left.name.localeCompare(right.name));
-  }, [modalityFilter, searchQuery, skills, sourceFilter, stageFilter]);
+        if (controller.signal.aborted) return;
+        dispatch({ type: 'LOAD_SUCCESS', skills: pageSkills });
+      } catch {
+        if (controller.signal.aborted) return;
+        loadedPageQueryKeyRef.current = '';
+        dispatch({
+          type: 'LOAD_ERROR',
+          message: translate('errors.loadFailed'),
+        });
+      } finally {
+        if (!controller.signal.aborted) setIsPageLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [acquireService, isScopeMatch, pageQuery, scopeKey, translate]);
 
   // Derive selectedSkill from the full catalog (not the filtered list) so the
   // open detail sheet keeps showing its skill even if a filter change would
@@ -733,7 +808,7 @@ export default function BrandSettingsSkillsPage() {
       if (!operation.isCurrent()) return;
       if (hydrated.id !== selectedSkill.id)
         throw new Error('Skill details unavailable');
-      const catalog = await service.listSkills();
+      const catalog = await service.listSkillsPage(pageQueryRef.current);
       if (!operation.isCurrent()) return;
       dispatch({ type: 'LOAD_SUCCESS', skills: catalog });
       dispatch({ type: 'HYDRATE_SKILL', skill: hydrated });
@@ -834,7 +909,7 @@ export default function BrandSettingsSkillsPage() {
       if (!operation.isCurrent() || !service) return;
       await service.archiveSkill(selectedSkill.id);
       if (!operation.isCurrent()) return;
-      const catalog = await service.listSkills();
+      const catalog = await service.listSkillsPage(pageQueryRef.current);
       if (!operation.isCurrent()) return;
       dispatch({ type: 'LOAD_SUCCESS', skills: catalog });
       dispatch({ type: 'CLEAR_SELECTED_SKILL' });
@@ -1053,12 +1128,15 @@ export default function BrandSettingsSkillsPage() {
 
       <SkillsTable
         enabledSlugs={enabledSlugs}
-        isLoading={isLoading}
+        isLoading={isLoading || isPageLoading}
         pendingSlugs={pendingSlugs}
         onSkillSelect={handleSkillSelect}
         onToggleSkill={(slug) => void toggleSkill(slug)}
-        skills={filteredSkills}
+        skills={skills}
       />
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="skills" />
+      </div>
 
       <SkillDetailSheet
         versions={{

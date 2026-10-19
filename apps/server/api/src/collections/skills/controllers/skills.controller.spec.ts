@@ -7,6 +7,7 @@ import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentSkillCategory, SkillSurface } from '@genfeedai/contracts';
@@ -159,10 +160,51 @@ describe('SkillsController', () => {
     );
   });
 
+  it('returns the requested page with pagination links and passes the filters through', async () => {
+    const skill = (id: string) => ({
+      description: '',
+      id,
+      isEnabled: true,
+      name: id,
+      slug: id,
+    });
+    mockService.listAllForOrg.mockResolvedValue(['a', 'b', 'c'].map(skill));
+
+    const response = (await controller.listSkills(mockReq, mockUser, {
+      limit: 2,
+      modality: 'video',
+      page: 2,
+      q: 'cap',
+      source: 'custom',
+      stage: 'creation',
+    })) as {
+      data: unknown[];
+      links: { pagination: Record<string, number> };
+    };
+
+    expect(mockService.listAllForOrg).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        modality: 'video',
+        search: 'cap',
+        source: 'custom',
+        stage: 'creation',
+      }),
+      'user-1',
+    );
+    expect(response.data).toHaveLength(1);
+    expect(response.links.pagination).toEqual({
+      limit: 2,
+      page: 2,
+      pages: 2,
+      total: 3,
+    });
+  });
+
   it('narrows the catalog to a composer surface', async () => {
     mockService.listAllForOrg.mockResolvedValue([]);
 
-    await controller.listSkills(mockReq, mockUser, 'studio');
+    await controller.listSkills(mockReq, mockUser, { surface: 'studio' });
 
     expect(mockService.listAllForOrg).toHaveBeenCalledWith(
       'org-1',
@@ -174,7 +216,7 @@ describe('SkillsController', () => {
   it('treats an empty surface as no filter', async () => {
     mockService.listAllForOrg.mockResolvedValue([]);
 
-    await controller.listSkills(mockReq, mockUser, '');
+    await controller.listSkills(mockReq, mockUser, { surface: '' });
 
     expect(mockService.listAllForOrg).toHaveBeenCalledWith(
       'org-1',
@@ -185,7 +227,7 @@ describe('SkillsController', () => {
 
   it('rejects an unknown surface rather than returning the whole catalog', async () => {
     await expect(
-      controller.listSkills(mockReq, mockUser, 'publishing'),
+      controller.listSkills(mockReq, mockUser, { surface: 'publishing' }),
     ).rejects.toMatchObject({ status: 400 });
 
     expect(mockService.listAllForOrg).not.toHaveBeenCalled();
@@ -652,17 +694,15 @@ describe('selected skill list actual controller and capability boundary', () => 
         interceptor.intercept(skillListExecution(req), {
           handle: () =>
             defer(() =>
-              controller.listSkills(
-                req as unknown as Request,
-                selectedUser,
-                'studio',
-              ),
+              controller.listSkills(req as unknown as Request, selectedUser, {
+                surface: 'studio',
+              }),
             ),
         }),
       );
       expect(listAllForOrg).toHaveBeenCalledWith(
         organizationId,
-        { surface: SkillSurface.STUDIO },
+        expect.objectContaining({ surface: SkillSurface.STUDIO }),
         selectedUser.userId,
       );
       expect(present).toHaveBeenCalledWith(
@@ -670,9 +710,11 @@ describe('selected skill list actual controller and capability boundary', () => 
         documents,
       );
       expect(result).toEqual(
-        serializeCollection(req as unknown as Request, SkillSerializer, {
-          docs: filtered,
-        }),
+        serializeCollection(
+          req as unknown as Request,
+          SkillSerializer,
+          buildPaginatedResult(filtered, filtered.length, 1, 20),
+        ),
       );
       expect(req.user).toBe(selectedUser);
       expect(req.context).toBe(context);
@@ -813,9 +855,11 @@ describe('selected skill list actual controller and capability boundary', () => 
       );
       expect(visible.some((document) => document.id === 'hidden')).toBe(false);
       expect(result).toEqual(
-        serializeCollection(req as unknown as Request, SkillSerializer, {
-          docs: visible,
-        }),
+        serializeCollection(
+          req as unknown as Request,
+          SkillSerializer,
+          buildPaginatedResult(visible, visible.length, 1, 20),
+        ),
       );
       expect(req.user).toBe(selectedUser);
       expect(req.context.organizationId).toBe(selectedUser.organizationId);
