@@ -1,10 +1,5 @@
 import { get, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
 export interface Insight {
   id: string;
@@ -50,12 +45,12 @@ export interface GrowthPrediction {
 }
 
 export async function getInsights(limit = 5): Promise<Insight[]> {
-  const response = await get<JsonApiCollectionResponse>(`/insights?limit=${limit}`);
+  const response = await get<JsonApiDocument>(`/insights?limit=${limit}`);
   return flattenCollection<Insight>(response);
 }
 
 export async function getForecast(topic: string, platform?: string): Promise<Forecast> {
-  const response = await post<JsonApiSingleResponse>('/insights/forecast', {
+  const response = await post<JsonApiDocument>('/insights/forecast', {
     platform,
     topic,
   });
@@ -63,12 +58,12 @@ export async function getForecast(topic: string, platform?: string): Promise<For
 }
 
 export async function getViralAnalysis(content: string): Promise<ViralAnalysis> {
-  const response = await post<JsonApiSingleResponse>('/insights/viral', { content });
+  const response = await post<JsonApiDocument>('/insights/viral', { content });
   return flattenSingle<ViralAnalysis>(response);
 }
 
 export async function getContentGaps(): Promise<ContentGap[]> {
-  const response = await get<JsonApiCollectionResponse>('/insights/gaps');
+  const response = await get<JsonApiDocument>('/insights/gaps');
   return flattenCollection<ContentGap>(response);
 }
 
@@ -76,13 +71,13 @@ export async function getPostingTimes(
   platform = 'instagram',
   timezone = 'UTC'
 ): Promise<PostingTime[]> {
-  const response = await get<JsonApiCollectionResponse>(
+  const response = await get<JsonApiDocument>(
     `/insights/times?platform=${platform}&timezone=${timezone}`
   );
   return flattenCollection<PostingTime>(response);
 }
 
 export async function getGrowthPrediction(platform = 'instagram'): Promise<GrowthPrediction> {
-  const response = await get<JsonApiSingleResponse>(`/insights/growth?platform=${platform}`);
+  const response = await get<JsonApiDocument>(`/insights/growth?platform=${platform}`);
   return flattenSingle<GrowthPrediction>(response);
 }

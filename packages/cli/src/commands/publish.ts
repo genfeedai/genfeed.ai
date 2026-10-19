@@ -2,12 +2,7 @@ import { checkbox, input } from '@inquirer/prompts';
 import { Command } from 'commander';
 import ora from 'ora';
 import { get, post, requireAuth } from '@/api/client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from '@/api/json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from '@/api/json-api';
 import { formatSuccess, formatWarning, print } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 
@@ -56,7 +51,7 @@ export const publishCommand = new Command('publish')
       await requireAuth();
 
       const spinner = ora('Fetching connected accounts...').start();
-      const credentialsResponse = await get<JsonApiCollectionResponse>('/credentials');
+      const credentialsResponse = await get<JsonApiDocument>('/credentials');
       const credentials = flattenCollection<Credential>(credentialsResponse);
       spinner.stop();
 
@@ -160,7 +155,7 @@ export const publishCommand = new Command('publish')
         }
 
         try {
-          const response = await post<JsonApiSingleResponse>('/posts', payload);
+          const response = await post<JsonApiDocument>('/posts', payload);
           const result = flattenSingle<PublishResponse>(response);
           results.push({
             credentialId: credential.id,

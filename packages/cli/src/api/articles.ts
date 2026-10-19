@@ -1,11 +1,6 @@
 import type { PersistedArticleStatus } from '@genfeedai/contracts';
 import { get, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
 /** Mirrors `ArticleGenerationType` in the API's `GenerateArticlesDto`. */
 export type ArticleGenerationType = 'standard' | 'x-article';
@@ -90,21 +85,17 @@ export async function generateArticle(
   signal?: AbortSignal
 ): Promise<Article | Article[]> {
   const response = signal
-    ? await post<JsonApiCollectionResponse | JsonApiSingleResponse>(
-        GENERATIONS_PATH,
-        { ...request },
-        { signal }
-      )
-    : await post<JsonApiCollectionResponse | JsonApiSingleResponse>(GENERATIONS_PATH, {
+    ? await post<JsonApiDocument | JsonApiDocument>(GENERATIONS_PATH, { ...request }, { signal })
+    : await post<JsonApiDocument | JsonApiDocument>(GENERATIONS_PATH, {
         ...request,
       });
 
   return request.type === 'x-article'
-    ? flattenSingle<Article>(response as JsonApiSingleResponse)
-    : flattenCollection<Article>(response as JsonApiCollectionResponse);
+    ? flattenSingle<Article>(response as JsonApiDocument)
+    : flattenCollection<Article>(response as JsonApiDocument);
 }
 
 export async function getArticle(id: string): Promise<Article> {
-  const response = await get<JsonApiSingleResponse>(`/articles/${id}`);
+  const response = await get<JsonApiDocument>(`/articles/${id}`);
   return flattenSingle<Article>(response);
 }

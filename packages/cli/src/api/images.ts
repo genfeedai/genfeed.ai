@@ -1,7 +1,7 @@
 import type { IngredientStatus } from '@genfeedai/contracts';
 import { withPublicMediaUrl } from '@/utils/media-status';
 import { get, post } from './client';
-import { flattenSingle, type JsonApiSingleResponse } from './json-api';
+import { flattenSingle, type JsonApiDocument } from './json-api';
 
 export interface Image {
   id: string;
@@ -62,12 +62,12 @@ export async function createImage(
   signal?: AbortSignal
 ): Promise<Image> {
   const response = signal
-    ? await post<JsonApiSingleResponse>('/images', request, { signal })
-    : await post<JsonApiSingleResponse>('/images', request);
+    ? await post<JsonApiDocument>('/images', request, { signal })
+    : await post<JsonApiDocument>('/images', request);
   return withPublicMediaUrl(flattenSingle<Image>(response));
 }
 
 export async function getImage(id: string, signal?: AbortSignal): Promise<Image> {
-  const response = await get<JsonApiSingleResponse>(`/images/${id}`, { signal });
+  const response = await get<JsonApiDocument>(`/images/${id}`, { signal });
   return withPublicMediaUrl(flattenSingle<Image>(response));
 }

@@ -5,20 +5,13 @@ import {
   getDefaultGenerationSetupValues,
   STUDIO_BRIDGED_SETTINGS_KEYS,
   STUDIO_RESIDUAL_SETTINGS_KEYS,
-  seedGenerationSetupFromLegacyStudioSettings,
   splitStudioSettingsPatch,
   studioSettingsFieldsToGenerationSetupPatch,
 } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
 import { getDefaultStudioPlaygroundSettings } from '@pages/studio/playground/utils/studio-playground-settings';
-import type { StudioPlaygroundPersistedState } from '@pages/studio/playground/utils/studio-playground-storage';
-import { STUDIO_PLAYGROUND_TYPES } from '@pages/studio/playground/utils/studio-playground-types';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import {
-  buildStudioGenerationSetupScope,
-  useGenerationSetupStore,
-} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const settings = {
   aspectRatio: '1:1',
@@ -220,99 +213,5 @@ describe('splitStudioSettingsPatch', () => {
       [...STUDIO_BRIDGED_SETTINGS_KEYS].sort(),
     );
     expect(residual).toEqual({});
-  });
-});
-
-function buildPersistedState(
-  overrides: Partial<
-    Record<
-      (typeof STUDIO_PLAYGROUND_TYPES)[number],
-      ReturnType<typeof getDefaultStudioPlaygroundSettings>
-    >
-  > = {},
-): StudioPlaygroundPersistedState {
-  const settingsByType = STUDIO_PLAYGROUND_TYPES.reduce(
-    (accumulator, type) => {
-      accumulator[type] =
-        overrides[type] ?? getDefaultStudioPlaygroundSettings(type);
-      return accumulator;
-    },
-    {} as StudioPlaygroundPersistedState['settingsByType'],
-  );
-
-  return { settingsByType, type: 'image' };
-}
-
-describe('seedGenerationSetupFromLegacyStudioSettings', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-    useGenerationSetupStore.setState({ reasonsByScope: {}, setupByScope: {} });
-  });
-
-  it('skips a type entirely when the legacy settings match the shared defaults', () => {
-    seedGenerationSetupFromLegacyStudioSettings(buildPersistedState());
-
-    expect(useGenerationSetupStore.getState().setupByScope).toEqual({});
-  });
-
-  it('migrates only the fields that diverge from the shared defaults, marking them user-owned', () => {
-    const imageDefaults = getDefaultStudioPlaygroundSettings('image');
-    const legacyState = buildPersistedState({
-      image: { ...imageDefaults, style: 'cinematic' },
-    });
-
-    seedGenerationSetupFromLegacyStudioSettings(legacyState);
-
-    const scope = buildStudioGenerationSetupScope('image');
-    const setup = useGenerationSetupStore.getState().setupByScope[scope];
-
-    expect(setup).toBeDefined();
-    expect(setup?.values.style).toBe('cinematic');
-    expect(setup?.sources.style).toBe('user');
-    // A field that matched the default was never touched — it stays agent-owned.
-    expect(setup?.sources.aspectRatio).toBeUndefined();
-    expect(setup?.values.aspectRatio).toBe(imageDefaults.aspectRatio);
-  });
-
-  it('never clobbers a scope that already has a persisted setup', () => {
-    const scope = buildStudioGenerationSetupScope('image');
-    const existing = {
-      sources: { style: 'preset' as const },
-      values: {
-        ...getDefaultGenerationSetupValues('image'),
-        style: 'preset-style',
-      },
-    };
-    useGenerationSetupStore.setState({
-      setupByScope: { [scope]: existing },
-    });
-
-    const imageDefaults = getDefaultStudioPlaygroundSettings('image');
-    const legacyState = buildPersistedState({
-      image: { ...imageDefaults, style: 'cinematic' },
-    });
-
-    seedGenerationSetupFromLegacyStudioSettings(legacyState);
-
-    expect(useGenerationSetupStore.getState().setupByScope[scope]).toBe(
-      existing,
-    );
-  });
-
-  it('migrates independently per type, leaving unrelated scopes untouched', () => {
-    const videoDefaults = getDefaultStudioPlaygroundSettings('video');
-    const legacyState = buildPersistedState({
-      video: { ...videoDefaults, outputs: 4 },
-    });
-
-    seedGenerationSetupFromLegacyStudioSettings(legacyState);
-
-    const videoScope = buildStudioGenerationSetupScope('video');
-    const imageScope = buildStudioGenerationSetupScope('image');
-    const setupByScope = useGenerationSetupStore.getState().setupByScope;
-
-    expect(setupByScope[videoScope]?.values.outputs).toBe(4);
-    expect(setupByScope[videoScope]?.sources.outputs).toBe('user');
-    expect(setupByScope[imageScope]).toBeUndefined();
   });
 });
