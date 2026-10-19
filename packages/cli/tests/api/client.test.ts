@@ -222,6 +222,37 @@ describe('api/client', () => {
       });
     });
 
+    it('reports a 429 as a rate limit or missing API access, with the retry delay', async () => {
+      mockFetch.mockResolvedValue({});
+      await get('/anything');
+
+      const rejection = lastClientOptions().onResponseError?.({
+        response: {
+          _data: { message: 'Rate limit exceeded', statusCode: 429 },
+          headers: new Headers({ 'retry-after': '60' }),
+          status: 429,
+        },
+      });
+      await expect(rejection).rejects.toBeInstanceOf(ApiError);
+      await expect(rejection).rejects.toMatchObject({
+        message: expect.stringContaining('Retry in 60s'),
+        statusCode: 429,
+      });
+      await expect(rejection).rejects.not.toBeInstanceOf(AuthError);
+    });
+
+    it('reports a bodiless 429 without a retry delay', async () => {
+      mockFetch.mockResolvedValue({});
+      await get('/anything');
+
+      await expect(
+        lastClientOptions().onResponseError?.({ response: { status: 429 } })
+      ).rejects.toMatchObject({
+        message: 'Rate limited: too many requests, or your plan has no API access.',
+        statusCode: 429,
+      });
+    });
+
     it('throws ApiError with the status for other errors', async () => {
       mockFetch.mockResolvedValue({});
       await get('/anything');

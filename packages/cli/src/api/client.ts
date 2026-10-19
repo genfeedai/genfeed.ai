@@ -41,6 +41,16 @@ async function createClient() {
         );
       }
 
+      if (response.status === 429) {
+        const retryAfter = response.headers?.get('retry-after');
+        const wait = retryAfter ? ` Retry in ${retryAfter}s.` : '';
+        throw new ApiError(
+          `Rate limited: too many requests, or your plan has no API access.${wait}`,
+          response.status,
+          'Check your plan and API rate limit in Genfeed settings'
+        );
+      }
+
       throw new ApiError(
         body?.message ?? `Request failed with status ${response.status}`,
         response.status
