@@ -20,17 +20,6 @@ import type { WorkflowData, WorkflowStore, WorkflowSummary } from '../types';
 import { getWorkflowPersistence } from '../workflowPersistence';
 
 /**
- * Normalize edges loaded from storage to use React Flow edge types.
- * Migrates legacy 'bezier' type to 'default'.
- */
-function normalizeEdgeTypes(edges: WorkflowEdge[]): WorkflowEdge[] {
-  return edges.map((edge) => ({
-    ...edge,
-    type: edge.type === 'bezier' ? 'default' : edge.type,
-  }));
-}
-
-/**
  * Hydrate workflow nodes with default data from NODE_DEFINITIONS.
  * Ensures all required fields exist even for nodes saved before new fields were added.
  */
@@ -193,10 +182,9 @@ export const createPersistenceSlice: StateCreator<
   loadWorkflow: (workflow) => {
     const hydratedNodes = hydrateWorkflowNodes(workflow.nodes);
     const resolvedEdgeStyle = resolveGraphEdgeStyle(workflow.edgeStyle);
-    const normalizedEdges = normalizeEdgeTypes(workflow.edges);
     const edges = hasRecordEdgeStyle(workflow.edgeStyle)
-      ? normalizedEdges
-      : normalizedEdges.map((edge) => ({
+      ? workflow.edges
+      : workflow.edges.map((edge) => ({
           ...edge,
           type: resolvedEdgeStyle,
         }));

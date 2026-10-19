@@ -146,7 +146,7 @@ describe('edgeStyle preference registry', () => {
     },
   );
 
-  it('migrates a loaded legacy record before its next save', async () => {
+  it('normalizes an unknown loaded record style before its next save', async () => {
     service.getById.mockResolvedValueOnce({
       ...savedWorkflow,
       edgeStyle: 'bezier',

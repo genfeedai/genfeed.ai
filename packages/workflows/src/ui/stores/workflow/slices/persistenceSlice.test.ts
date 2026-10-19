@@ -181,9 +181,9 @@ describe('persistenceSlice — comments', () => {
 });
 
 describe('persistenceSlice — loadWorkflow', () => {
-  it('hydrates node defaults and normalizes bezier edges', () => {
+  it('hydrates node defaults and applies the edge style preference', () => {
     const file = makeFile({
-      edges: [makeEdge('a', 'b', { type: 'bezier' as WorkflowEdge['type'] })],
+      edges: [makeEdge('a', 'b', { type: 'default' })],
       name: 'Loaded Flow',
       nodes: [
         makeNode('a', 'prompt', { prompt: 'hello' }),

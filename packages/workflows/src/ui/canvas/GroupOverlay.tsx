@@ -523,7 +523,7 @@ function GroupControlsOverlayComponent() {
 export const GroupBackgroundsPortal = memo(GroupBackgroundsPortalComponent);
 export const GroupControlsOverlay = memo(GroupControlsOverlayComponent);
 
-// Legacy export for backwards compatibility - combines both portals
+// Combines both portals
 function GroupOverlayComponent() {
   return (
     <>

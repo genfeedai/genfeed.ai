@@ -91,14 +91,6 @@
   --color-error: hsl(var(--destructive));
   --color-error-foreground: hsl(var(--destructive-foreground));
 
-  /* "-content" suffix aliases → shadcn "-foreground" for backward compatibility */
-  --color-primary-content: hsl(var(--primary-foreground));
-  --color-secondary-content: hsl(var(--secondary-foreground));
-  --color-success-content: hsl(var(--success-foreground));
-  --color-warning-content: hsl(var(--warning-foreground));
-  --color-info-content: hsl(var(--info-foreground));
-  --color-error-content: hsl(var(--destructive-foreground));
-
   /* Radius — references the canonical scale in packages/ui/web-tokens.css.
      Holds NO values; this block only registers the tokens so Tailwind emits
      the rounded-* utilities. Values live once in web-tokens.css. */
