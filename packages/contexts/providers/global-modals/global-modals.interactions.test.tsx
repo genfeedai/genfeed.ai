@@ -4,7 +4,6 @@
 import type { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IAsset,
-  ICredential,
   IIngredient,
   IMetadata,
   IPost,
@@ -14,16 +13,13 @@ import { act, render, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GlobalModalsProvider,
-  useBrandOverlay,
+  useBrandCreateModal,
   useConfirmDeleteModal,
   useConfirmModal,
-  useCredentialModal,
   useExportModal,
   useGalleryModal,
   useGenerateIllustrationModal,
-  useIngredientOverlay,
   useMetadataModal,
-  usePostMetadataOverlay,
   usePostModal,
   usePostRemixModal,
   usePromptModal,
@@ -85,10 +81,8 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 }));
 
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
-  LazyBrandOverlay: makeStub('BrandOverlay'),
-  LazyIngredientOverlay: makeStub('IngredientOverlay'),
+  LazyModalBrandCreate: makeStub('ModalBrandCreate'),
   LazyModalConfirm: makeStub('ModalConfirm'),
-  LazyModalCredential: makeStub('ModalCredential'),
   LazyModalExport: makeStub('ModalExport'),
   LazyModalGallery: makeStub('ModalGallery'),
   LazyModalGenerateIllustration: makeStub('ModalGenerateIllustration'),
@@ -98,7 +92,6 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalPostRepurpose: makeStub('ModalPostRepurpose'),
   LazyModalPrompt: makeStub('ModalPrompt'),
   LazyModalUpload: makeStub('ModalUpload'),
-  LazyPostMetadataOverlay: makeStub('PostMetadataOverlay'),
 }));
 
 vi.mock('@ui/modals', () => ({
@@ -106,16 +99,13 @@ vi.mock('@ui/modals', () => ({
 }));
 
 interface HarnessApi {
-  brandOverlay: ReturnType<typeof useBrandOverlay>;
+  brandCreate: ReturnType<typeof useBrandCreateModal>;
   confirm: ReturnType<typeof useConfirmModal>;
   confirmDelete: ReturnType<typeof useConfirmDeleteModal>;
-  credential: ReturnType<typeof useCredentialModal>;
   exportModal: ReturnType<typeof useExportModal>;
   gallery: ReturnType<typeof useGalleryModal>;
   generateIllustration: ReturnType<typeof useGenerateIllustrationModal>;
-  ingredientOverlay: ReturnType<typeof useIngredientOverlay>;
   metadata: ReturnType<typeof useMetadataModal>;
-  postMetadata: ReturnType<typeof usePostMetadataOverlay>;
   postModal: ReturnType<typeof usePostModal>;
   postRemix: ReturnType<typeof usePostRemixModal>;
   prompt: ReturnType<typeof usePromptModal>;
@@ -130,16 +120,13 @@ let api: HarnessApi;
 
 function Harness(): null {
   api = {
-    brandOverlay: useBrandOverlay(),
+    brandCreate: useBrandCreateModal(),
     confirm: useConfirmModal(),
     confirmDelete: useConfirmDeleteModal(),
-    credential: useCredentialModal(),
     exportModal: useExportModal(),
     gallery: useGalleryModal(),
     generateIllustration: useGenerateIllustrationModal(),
-    ingredientOverlay: useIngredientOverlay(),
     metadata: useMetadataModal(),
-    postMetadata: usePostMetadataOverlay(),
     postModal: usePostModal({
       onClose: postCloseMock,
       onRefresh: postRefreshMock,
@@ -179,14 +166,11 @@ describe('GlobalModals hooks outside the provider', () => {
     ['useConfirmModal', () => useConfirmModal()],
     ['useUploadModal', () => useUploadModal()],
     ['useGalleryModal', () => useGalleryModal()],
-    ['useIngredientOverlay', () => useIngredientOverlay()],
     ['useExportModal', () => useExportModal()],
-    ['useCredentialModal', () => useCredentialModal()],
     ['usePromptModal', () => usePromptModal()],
     ['useConfirmDeleteModal', () => useConfirmDeleteModal()],
     ['useMetadataModal', () => useMetadataModal()],
-    ['useBrandOverlay', () => useBrandOverlay()],
-    ['usePostMetadataOverlay', () => usePostMetadataOverlay()],
+    ['useBrandCreateModal', () => useBrandCreateModal()],
     ['useGenerateIllustrationModal', () => useGenerateIllustrationModal()],
     ['usePostRemixModal', () => usePostRemixModal()],
   ];
@@ -391,28 +375,6 @@ describe('GlobalModals interactions', () => {
     });
   });
 
-  it('opens and closes the ingredient overlay, invoking onConfirm', () => {
-    renderProvider();
-    const onConfirm = vi.fn();
-    const ingredient = makeIngredient('ing_7');
-
-    act(() => {
-      api.ingredientOverlay.openIngredientOverlay(ingredient, onConfirm);
-    });
-    expect(captured.record.IngredientOverlay?.ingredient).toBe(ingredient);
-
-    act(() => {
-      getCallback<() => void>('IngredientOverlay', 'onConfirm')();
-    });
-    expect(onConfirm).toHaveBeenCalledTimes(1);
-
-    captured.record = {};
-    act(() => {
-      api.ingredientOverlay.closeIngredientOverlay();
-    });
-    expect(captured.record.IngredientOverlay).toBeUndefined();
-  });
-
   it('opens the export modal and closes after exporting', () => {
     renderProvider();
     const onExport = vi.fn();
@@ -435,28 +397,6 @@ describe('GlobalModals interactions', () => {
       api.exportModal.closeExport();
     });
     expect(captured.record.ModalExport).toBeUndefined();
-  });
-
-  it('opens the credential modal and confirms', () => {
-    renderProvider();
-    const onConfirm = vi.fn();
-    const credential = { id: 'cred_1' } as unknown as ICredential;
-
-    act(() => {
-      api.credential.openCredentialModal(credential, onConfirm);
-    });
-    expect(captured.record.ModalCredential?.credential).toBe(credential);
-
-    act(() => {
-      getCallback<() => void>('ModalCredential', 'onConfirm')();
-    });
-    expect(onConfirm).toHaveBeenCalledTimes(1);
-
-    captured.record = {};
-    act(() => {
-      api.credential.closeCredentialModal();
-    });
-    expect(captured.record.ModalCredential).toBeUndefined();
   });
 
   it('opens the prompt modal and forwards the confirmed prompt text', () => {
@@ -555,19 +495,20 @@ describe('GlobalModals interactions', () => {
     });
   });
 
-  it('brand overlay confirm without a created brand reloads user and brands', async () => {
+  it('brand create confirm without a created brand reloads user and brands', async () => {
     renderProvider();
     const onConfirm = vi.fn();
 
     act(() => {
-      api.brandOverlay.openBrandOverlay(null, onConfirm, 'overview');
+      api.brandCreate.openBrandCreateModal(onConfirm);
     });
-    expect(captured.record.BrandOverlay?.initialView).toBe('overview');
+    expect(captured.record.ModalBrandCreate).toBeDefined();
 
     await act(async () => {
-      await getCallback<
-        (isRefreshing?: boolean, createdBrandId?: string) => Promise<void>
-      >('BrandOverlay', 'onConfirm')();
+      await getCallback<(createdBrandId?: string) => Promise<void>>(
+        'ModalBrandCreate',
+        'onConfirm',
+      )();
     });
 
     expect(patchMeBrandMock).not.toHaveBeenCalled();
@@ -577,22 +518,23 @@ describe('GlobalModals interactions', () => {
 
     captured.record = {};
     act(() => {
-      api.brandOverlay.closeBrandOverlay();
+      api.brandCreate.closeBrandCreateModal();
     });
-    expect(captured.record.BrandOverlay).toBeUndefined();
+    expect(captured.record.ModalBrandCreate).toBeUndefined();
   });
 
-  it('brand overlay confirm selects a newly created brand', async () => {
+  it('brand create confirm selects a newly created brand', async () => {
     renderProvider();
 
     act(() => {
-      api.brandOverlay.openBrandOverlay(null);
+      api.brandCreate.openBrandCreateModal();
     });
 
     await act(async () => {
-      await getCallback<
-        (isRefreshing?: boolean, createdBrandId?: string) => Promise<void>
-      >('BrandOverlay', 'onConfirm')(false, 'brand_new');
+      await getCallback<(createdBrandId?: string) => Promise<void>>(
+        'ModalBrandCreate',
+        'onConfirm',
+      )('brand_new');
     });
 
     expect(patchMeBrandMock).toHaveBeenCalledWith('brand_new');
@@ -600,18 +542,19 @@ describe('GlobalModals interactions', () => {
     expect(refreshBrandsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('brand overlay confirm recovers when selecting the created brand fails', async () => {
+  it('brand create confirm recovers when selecting the created brand fails', async () => {
     patchMeBrandMock.mockRejectedValueOnce(new Error('boom'));
     renderProvider();
 
     act(() => {
-      api.brandOverlay.openBrandOverlay(null);
+      api.brandCreate.openBrandCreateModal();
     });
 
     await act(async () => {
-      await getCallback<
-        (isRefreshing?: boolean, createdBrandId?: string) => Promise<void>
-      >('BrandOverlay', 'onConfirm')(false, 'brand_bad');
+      await getCallback<(createdBrandId?: string) => Promise<void>>(
+        'ModalBrandCreate',
+        'onConfirm',
+      )('brand_bad');
     });
 
     expect(loggerErrorMock).toHaveBeenCalledWith(
@@ -620,35 +563,6 @@ describe('GlobalModals interactions', () => {
     );
     expect(reloadMock).toHaveBeenCalledTimes(1);
     expect(refreshBrandsMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('opens the post metadata overlay and closes on confirm and on close', () => {
-    renderProvider();
-    const onConfirm = vi.fn();
-    const post = makePost('post_1');
-
-    act(() => {
-      api.postMetadata.openPostMetadataOverlay(post, onConfirm);
-    });
-    expect(captured.record.PostMetadataOverlay?.post).toBe(post);
-
-    act(() => {
-      getCallback<() => void>('PostMetadataOverlay', 'onConfirm')();
-    });
-    expect(onConfirm).toHaveBeenCalledTimes(1);
-
-    act(() => {
-      api.postMetadata.openPostMetadataOverlay(post);
-    });
-    act(() => {
-      getCallback<() => void>('PostMetadataOverlay', 'onConfirm')();
-    });
-    act(() => {
-      api.postMetadata.openPostMetadataOverlay(post);
-    });
-    act(() => {
-      getCallback<() => void>('PostMetadataOverlay', 'onClose')();
-    });
   });
 
   it('opens the generate illustration modal and closes after confirm', () => {

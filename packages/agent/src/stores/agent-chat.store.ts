@@ -52,12 +52,13 @@ import type {
   OnboardingChecklistStatus,
   OnboardingChecklistStep,
 } from '@genfeedai/props/ui/agent/agent-onboarding.props';
-import { AGENT_PANEL_OPEN_KEY } from '@genfeedai/services/core/agent-overlay-coordination.service';
 import {
   adoptNewScopeSetup,
   buildAgentGenerationSetupScope,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { create } from 'zustand';
+
+const AGENT_PANEL_OPEN_KEY = 'genfeed-agent-panel-open';
 
 export type TerminalSessionKind = 'claude' | 'codex' | 'genfeed' | 'shell';
 

@@ -36,7 +36,7 @@ export type SkillDetailCardProps = {
   skillDraft: SkillDraft;
 };
 
-export type SkillDetailSheetProps = SkillDetailCardProps & {
+export type SkillDetailPanelProps = SkillDetailCardProps & {
   versions?: SkillVersionsPanelProps;
   error?: string | null;
   onArchiveSkill?: () => void;

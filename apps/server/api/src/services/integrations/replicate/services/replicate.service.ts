@@ -37,6 +37,15 @@ function readFiniteNumber(value: unknown): number | undefined {
   return value;
 }
 
+/** Only an explicit opt-out is forwarded; reasoning stays on the model default otherwise. */
+function isReasoningDisabled(value: unknown): boolean {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    (value as { enabled?: unknown }).enabled === false
+  );
+}
+
 function hasMediaUrl(value: unknown): boolean {
   return (
     !!value &&
@@ -553,6 +562,9 @@ export class ReplicateService {
         max_tokens: maxTokens,
         messages,
         model: modelIdentifier,
+        ...(isReasoningDisabled(input.reasoning)
+          ? { reasoning: { enabled: false } }
+          : {}),
         temperature,
       },
       apiKeyOverride,

@@ -531,6 +531,28 @@ const UI_TEST_MESSAGES = {
         title: 'Generate Profile Picture',
       },
     },
+    brandCreate: {
+      cancel: 'Cancel',
+      description:
+        'Paste a website to autofill name and description, or enter details manually. Finish setup on the brand page after create.',
+      descriptionField: {
+        label: 'Description',
+        placeholder: 'What this brand is about',
+      },
+      label: { label: 'Label', placeholder: 'Acme' },
+      slug: { label: 'Slug', placeholder: 'acme' },
+      submit: 'Create brand',
+      submitting: 'Creating…',
+      title: 'New brand',
+      website: {
+        description:
+          'We’ll scrape the public site for label, slug, and description.',
+        label: 'Website',
+        load: 'Load from site',
+        loading: 'Loading…',
+        placeholder: 'https://example.com',
+      },
+    },
     elementPlatformFields: {
       activeHelp: 'Inactive elements are hidden from pickers.',
       activeLabel: 'Active',

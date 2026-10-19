@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom/vitest';
-import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
+import {
+  AnalyticsProvider,
+  useAnalyticsContext,
+} from '@contexts/analytics/analytics-context';
 import type { IViralHooksResult } from '@genfeedai/contracts/interfaces';
 import {
   fireEvent,
@@ -18,9 +21,23 @@ class MockIntersectionObserver {
   unobserve() {}
 }
 
+/** Stands in for the analytics layout, which owns the subbar. */
+function SubbarHost() {
+  const { toolbarNode, triggerRefresh } = useAnalyticsContext();
+  return (
+    <div>
+      <button type="button" onClick={triggerRefresh}>
+        Refresh
+      </button>
+      {toolbarNode}
+    </div>
+  );
+}
+
 function analyticsHooksTree(brandId?: string) {
   return (
     <AnalyticsProvider>
+      <SubbarHost />
       <AnalyticsHooks brandId={brandId} />
     </AnalyticsProvider>
   );
@@ -53,21 +70,35 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
+// A stable translator, as next-intl returns, so the toolbar memo holds.
+vi.mock('next-intl', () => {
+  const translate = (key: string) => key;
+  return { useTranslations: () => translate };
+});
 
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectTrigger: ({ children }: { children: ReactNode }) => (
-    <button type="button">{children}</button>
-  ),
-  SelectValue: ({ placeholder }: { placeholder?: string }) => (
-    <span>{placeholder}</span>
+vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+  default: ({
+    facets,
+  }: {
+    facets: Array<{
+      key: string;
+      options: Array<{ label: string; value: string }>;
+      onChange: (value: string) => void;
+    }>;
+  }) => (
+    <div>
+      {facets.flatMap((facet) =>
+        facet.options.map((option) => (
+          <button
+            key={`${facet.key}:${option.value}`}
+            type="button"
+            onClick={() => facet.onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        )),
+      )}
+    </div>
   ),
 }));
 
@@ -84,40 +115,25 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@ui-constants/platform.constant', () => ({
-  PLATFORM_CONFIGS_ARRAY: [
-    {
-      color: '#111111',
-      icon: ({ className }: { className?: string }) => (
-        <span className={className}>TT</span>
-      ),
-      id: 'tiktok',
-      label: 'TikTok',
-    },
-    {
-      color: '#222222',
-      icon: ({ className }: { className?: string }) => (
-        <span className={className}>IG</span>
-      ),
-      id: 'instagram',
-      label: 'Instagram',
-    },
-  ],
-}));
-
-vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
-  default: ({
-    isRefreshing,
-    onClick,
-  }: {
-    isRefreshing?: boolean;
-    onClick: () => void;
-  }) => (
-    <button disabled={isRefreshing} type="button" onClick={onClick}>
-      Refresh
-    </button>
-  ),
-}));
+vi.mock('@ui/display/platform-badge/PlatformBadge', () => {
+  const labels: Record<string, string> = {
+    instagram: 'Instagram',
+    tiktok: 'TikTok',
+  };
+  return {
+    default: ({
+      platform,
+      showLabel = true,
+    }: {
+      platform: string;
+      showLabel?: boolean;
+    }) => (
+      <span role="img" aria-label={labels[platform]}>
+        {showLabel ? labels[platform] : null}
+      </span>
+    ),
+  };
+});
 
 vi.mock('@ui/card/Card', () => ({
   default: ({ children }: { children: ReactNode }) => (
@@ -144,6 +160,7 @@ vi.mock('@ui/display/table/Table', () => ({
     isLoading,
     items,
   }: {
+    label?: string;
     columns: Array<{
       header: string;
       render?: (item: T) => ReactNode;
@@ -179,24 +196,6 @@ vi.mock('@ui/display/table/Table', () => ({
       </table>
     );
   },
-}));
-
-vi.mock('@ui/layout/container/Container', () => ({
-  default: ({
-    children,
-    description,
-    label,
-  }: {
-    children: ReactNode;
-    description?: string;
-    label?: string;
-  }) => (
-    <main>
-      <h1>{label}</h1>
-      <p>{description}</p>
-      {children}
-    </main>
-  ),
 }));
 
 /**
@@ -306,11 +305,12 @@ describe('AnalyticsHooks', () => {
   it('renders hook analytics and refreshes with brand query params', async () => {
     render(analyticsHooksTree());
 
-    expect(screen.getByText('Viral Hooks')).toBeVisible();
     expect(await screen.findByText('Winning hook video')).toBeVisible();
+    // The breadcrumb is the only title: no heading or description in content.
+    expect(screen.queryByText('Viral Hooks')).toBeNull();
     expect(
-      screen.getByText('Analyze hooks and engagement patterns.'),
-    ).toBeVisible();
+      screen.queryByText('Analyze hooks and engagement patterns.'),
+    ).toBeNull();
 
     // Stat cards
     expect(screen.getByText('Posts Analyzed')).toBeVisible();
@@ -373,15 +373,24 @@ describe('AnalyticsHooks', () => {
     await waitFor(() => expect(mocks.getViralHooks).toHaveBeenCalledTimes(2));
   });
 
+  it('filters by outlier tier from the subbar filter menu', async () => {
+    render(analyticsHooksTree());
+    await screen.findByText('Winning hook video');
+
+    fireEvent.click(screen.getByRole('button', { name: 'breakoutsOnly' }));
+
+    await waitFor(() =>
+      expect(mocks.getViralHooks).toHaveBeenLastCalledWith(
+        expect.objectContaining({ minOutlierTier: 'breakout' }),
+      ),
+    );
+  });
+
   it('renders the page shell while hook data is loading', () => {
     mocks.getViralHooks.mockReturnValue(new Promise(() => {}));
 
     render(analyticsHooksTree());
 
-    expect(screen.getByText('Viral Hooks')).toBeVisible();
-    expect(
-      screen.getByText('Analyze hooks and engagement patterns.'),
-    ).toBeVisible();
     expect(screen.getByText('Posts Analyzed')).toBeVisible();
     expect(screen.getByText('Hook Patterns')).toBeVisible();
     expect(screen.getByText('Best Hook Avg Engagement')).toBeVisible();
@@ -395,9 +404,10 @@ describe('AnalyticsHooks', () => {
 
     render(analyticsHooksTree('brand-prop'));
 
-    expect(await screen.findByText('Viral Hooks')).toBeVisible();
-    expect(screen.getAllByText('N/A')).toHaveLength(2);
-    expect(screen.getAllByText('No data available').length).toBeGreaterThan(0);
+    expect(await screen.findAllByText('-')).toHaveLength(2);
+    // Platforms without data are hidden, not rendered as empty cards.
+    expect(screen.queryByTestId('hook-platform-tiktok')).toBeNull();
+    expect(screen.queryByText('No data available')).toBeNull();
     expect(
       screen.getByText('No top hook patterns detected yet.'),
     ).toBeVisible();
@@ -411,18 +421,19 @@ describe('AnalyticsHooks', () => {
     mocks.organizationId = null;
     const { rerender } = render(analyticsHooksTree());
 
-    expect(screen.getByText('Viral Hooks')).toBeVisible();
+    expect(screen.getByText('Posts Analyzed')).toBeVisible();
     expect(mocks.getAnalyticsService).not.toHaveBeenCalled();
 
     mocks.organizationId = 'org-1';
     mocks.getViralHooks.mockRejectedValueOnce(new Error('hooks failed'));
     rerender(analyticsHooksTree());
 
-    expect(await screen.findByText('Viral Hooks')).toBeVisible();
-    expect(mocks.loggerError).toHaveBeenCalledWith(
-      'GET /analytics/hooks failed',
-      expect.any(Error),
+    await waitFor(() =>
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        'GET /analytics/hooks failed',
+        expect.any(Error),
+      ),
     );
-    expect(screen.getAllByText('N/A')).toHaveLength(2);
+    expect(screen.getAllByText('-')).toHaveLength(2);
   });
 });

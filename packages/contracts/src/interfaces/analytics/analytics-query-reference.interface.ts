@@ -17,6 +17,7 @@ export type AnalyticsQueryFilterKey =
   | 'show'
   | 'sort'
   | 'source'
+  | 'tier'
   | 'timeframe'
   | 'visibility';
 

@@ -47,7 +47,7 @@ export interface GenerationRowProps {
   onOpen: (generation: GenerationView) => void;
 }
 
-export interface GenerationDetailSheetProps {
+export interface GenerationDetailPanelProps {
   generation: GenerationView | null;
   onClose: () => void;
 }

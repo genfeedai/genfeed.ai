@@ -1,3 +1,7 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import '@testing-library/jest-dom/vitest';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
 import { MediaType } from '@genfeedai/contracts';
@@ -204,24 +208,6 @@ vi.mock('@ui/primitives/select', () => ({
     </button>
   ),
   SelectValue: () => null,
-}));
-
-vi.mock('@ui/primitives/dialog', () => ({
-  Dialog: ({ children, open }: { children?: ReactNode; open?: boolean }) =>
-    open ? <div role="dialog">{children}</div> : null,
-  DialogContent: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogDescription: ({ children }: { children?: ReactNode }) => (
-    <p>{children}</p>
-  ),
-  DialogFooter: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogHeader: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogTitle: ({ children }: { children?: ReactNode }) => <h2>{children}</h2>,
 }));
 
 vi.mock('next/link', () => ({
@@ -953,19 +939,27 @@ describe('WorkflowTemplatesPage', () => {
     });
   });
 
-  it('opens a details dialog from the overflow menu', async () => {
-    await renderLoadedPage();
+  it('opens template details in the right sidebar from the overflow menu', async () => {
+    render(
+      <ContextSidebarProvider>
+        <WorkflowTemplatesPage />
+        <ContextSidebarOutlet />
+      </ContextSidebarProvider>,
+    );
+    await waitFor(() => {
+      expect(
+        within(allSection()).getByText('Daily digest'),
+      ).toBeInTheDocument();
+    });
 
     const { menu, user } = await openOverflow(digestRow());
     await user.click(
       within(menu).getByRole('menuitem', { name: 'View details' }),
     );
 
-    const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByRole('heading', { name: 'Daily digest' }),
-    ).toBeVisible();
-    expect(within(dialog).getByText('App-owned automation.')).toBeVisible();
+    const panel = await screen.findByTestId('workflow-template-details-panel');
+    expect(within(panel).getByText('App-owned automation.')).toBeVisible();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('keeps the official catalog when templates fail, with a scoped retry', async () => {

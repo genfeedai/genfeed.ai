@@ -233,6 +233,14 @@ export interface StudioPlaygroundStarterCharacterCandidate
   hasReferenceImage?: boolean;
 }
 
+/** Agent-written drafts shown above the starter ideas (#7341). */
+export interface StudioPlaygroundAgentProposalsProps {
+  brandId?: string;
+  isDisabled?: boolean;
+  onSelect: (selection: StudioPlaygroundStarterSelection) => void;
+  type: StudioPlaygroundType;
+}
+
 export interface StudioPlaygroundStarterIdeasProps {
   character?: StudioPlaygroundStarterCharacter;
   isDisabled?: boolean;

@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import { ModalEnum } from '@genfeedai/contracts';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import type { Article } from '@models/content/article.model';
@@ -41,9 +45,11 @@ function render(ui: ReactElement) {
 }
 
 const mockFindAll = vi.fn();
+const mockGetWebsiteTraffic = vi.fn();
 
 const getArticlesServiceMock = async () => ({
   findAll: mockFindAll,
+  getWebsiteTraffic: mockGetWebsiteTraffic,
 });
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -97,6 +103,10 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   useConfirmModal: vi.fn(() => ({
     openConfirm: vi.fn(),
   })),
+}));
+
+vi.mock('next/dynamic', () => ({
+  default: () => () => <div>Daily traffic chart</div>,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -187,6 +197,45 @@ describe('ArticlesList', () => {
     expect(
       screen.queryByText('Failed to load articles'),
     ).not.toBeInTheDocument();
+  });
+
+  it('opens the article and its traffic in the right sidebar while the title links to the editor', async () => {
+    const user = userEvent.setup();
+    mockFindAll.mockResolvedValue([buildArticle()]);
+    mockGetWebsiteTraffic.mockResolvedValue({
+      articleId: 'article-1',
+      days: [],
+      period: '30d',
+      reason: null,
+      status: 'available',
+      totalResourceClicks: 3,
+      totalViews: 42,
+    });
+
+    render(
+      <ContextSidebarProvider>
+        <ArticlesList />
+        <ContextSidebarOutlet testId="rail" />
+      </ContextSidebarProvider>,
+    );
+
+    const titleLink = await screen.findByRole('link', {
+      name: 'Open My Draft',
+    });
+    expect(titleLink.getAttribute('href')).toContain('article-1');
+    expect(screen.queryByTestId('article-traffic-panel')).toBeNull();
+
+    await user.click(screen.getByText('vincent'));
+
+    const panel = await screen.findByTestId('article-traffic-panel');
+    expect(screen.getByTestId('rail')).toContainElement(panel);
+    await screen.findByText('Website views');
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(mockGetWebsiteTraffic).toHaveBeenCalledWith(
+      'article-1',
+      '30d',
+      expect.any(AbortSignal),
+    );
   });
 
   it('should render without crashing', async () => {

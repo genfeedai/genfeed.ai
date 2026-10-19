@@ -1,4 +1,5 @@
 import activities from '../../messages/en/pages/activities.json';
+import adminAgents from '../../messages/en/pages/adminAgents.json';
 import adminCreditHolds from '../../messages/en/pages/adminCreditHolds.json';
 import adminEconomics from '../../messages/en/pages/adminEconomics.json';
 import adminFlags from '../../messages/en/pages/adminFlags.json';
@@ -37,6 +38,7 @@ const messages = {
   adminOrganizationReleases,
   adminFlags,
   platformSettings,
+  adminAgents,
   adminUsers,
   unitEconomics,
   adminTemplates,

@@ -21,14 +21,15 @@ import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.s
 import { logger } from '@services/core/logger.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { getPersuasionHighlight } from './persuasion-highlight.util';
 
 export type TopVideosTimeframe = Timeframe.H24 | Timeframe.H72 | Timeframe.D7;
 
 const TOP_VIDEOS_CACHE_TTL = 30 * 60 * 1000;
-const TOP_VIDEOS_TIMEFRAMES: readonly string[] = [
+export const DEFAULT_TOP_VIDEOS_TIMEFRAME = Timeframe.H72;
+export const TOP_VIDEOS_TIMEFRAMES: readonly TopVideosTimeframe[] = [
   Timeframe.H24,
   Timeframe.H72,
   Timeframe.D7,
@@ -86,7 +87,6 @@ export function useBrandTopVideos() {
   const { brandId } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
   const analyticsContext = useOptionalAnalyticsContext();
-  const setSurfaceFilter = analyticsContext?.setFilter;
   const restoredTimeframe = analyticsContext?.filters?.timeframe;
   const getVideosService = useAuthedService((token: string) =>
     VideosService.getInstance(token),
@@ -95,19 +95,10 @@ export function useBrandTopVideos() {
     OutlierBaselinesService.getInstance(token),
   );
 
-  const [localTimeframe, setLocalTimeframe] = useState<TopVideosTimeframe>(
-    Timeframe.H72,
-  );
-  const timeframe = TOP_VIDEOS_TIMEFRAMES.includes(restoredTimeframe ?? '')
-    ? (restoredTimeframe as TopVideosTimeframe)
-    : localTimeframe;
-  const setTimeframe = useCallback(
-    (value: TopVideosTimeframe) => {
-      setLocalTimeframe(value);
-      setSurfaceFilter?.('timeframe', value);
-    },
-    [setSurfaceFilter],
-  );
+  // The timeframe is a subbar filter owned by the page; this reads it.
+  const timeframe =
+    TOP_VIDEOS_TIMEFRAMES.find((option) => option === restoredTimeframe) ??
+    DEFAULT_TOP_VIDEOS_TIMEFRAME;
 
   const evaluationScopeKey = useEvaluationReadScopeKey();
   const {
@@ -207,7 +198,6 @@ export function useBrandTopVideos() {
     isLoading,
     isUsingCachedVideos: videoRead?.isCached ?? false,
     retryRead,
-    setTimeframe,
     timeframe,
     videos,
   };

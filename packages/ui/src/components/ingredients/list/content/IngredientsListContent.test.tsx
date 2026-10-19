@@ -220,7 +220,6 @@ const baseIngredient = {
 function renderContent(
   overrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
 ) {
-  const onOpenIngredientModal = vi.fn();
   const onOpenLightbox = vi.fn(() => false);
 
   const renderElement = () => (
@@ -246,11 +245,9 @@ function renderContent(
       onGenerateCaptions={vi.fn()}
       onReverse={vi.fn()}
       onMirror={vi.fn()}
-      onSeeDetails={vi.fn()}
       onUpdateParent={vi.fn()}
       onRefresh={vi.fn()}
       onPublishIngredient={vi.fn()}
-      onOpenIngredientModal={onOpenIngredientModal}
       onOpenLightbox={onOpenLightbox}
       onClearFilters={vi.fn()}
       onSetIngredients={vi.fn()}
@@ -270,7 +267,7 @@ function renderContent(
     rerender(renderElement());
   };
 
-  return { onOpenIngredientModal, onOpenLightbox, rerenderContent, unmount };
+  return { onOpenLightbox, rerenderContent, unmount };
 }
 
 const videoIngredient = {
@@ -537,7 +534,7 @@ describe('IngredientsListContent', () => {
   });
 
   it('inspects avatar rows in organization scope like a brand', () => {
-    const { onOpenIngredientModal, onOpenLightbox } = renderContent();
+    const { onOpenLightbox } = renderContent();
     const row = screen.getByText('Avatar Source').closest('tr');
 
     expect(row).not.toBeNull();
@@ -545,7 +542,6 @@ describe('IngredientsListContent', () => {
     fireEvent.click(within(row as HTMLElement).getByTestId('action-button'));
 
     expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
-    expect(onOpenIngredientModal).not.toHaveBeenCalled();
     expect(onOpenLightbox).not.toHaveBeenCalled();
   });
 
@@ -810,7 +806,7 @@ describe('IngredientsListContent inspector handoff', () => {
     'inspects brand list row, thumbnail, title and View for $category',
     (ingredient) => {
       const onSelectionChange = vi.fn();
-      const { onOpenLightbox, onOpenIngredientModal } = renderContent({
+      const { onOpenLightbox } = renderContent({
         filteredIngredients: [ingredient],
         onSelectionChange,
         scope: PageScope.BRAND,
@@ -839,7 +835,6 @@ describe('IngredientsListContent inspector handoff', () => {
       }
       expect(row).toHaveAttribute('tabindex', '0');
       expect(onOpenLightbox).not.toHaveBeenCalled();
-      expect(onOpenIngredientModal).not.toHaveBeenCalled();
     },
   );
 
@@ -897,19 +892,44 @@ describe('IngredientsListContent inspector handoff', () => {
     ]);
   });
 
-  it('preserves superadmin list row semantics', () => {
+  it('inspects a superadmin row in the sidebar like the workspace does', () => {
     const onSelectionChange = vi.fn();
-    const { onOpenIngredientModal, onOpenLightbox } = renderContent({
+    const { onOpenLightbox } = renderContent({
       onSelectionChange,
       scope: PageScope.SUPERADMIN,
     });
     const row = screen.getByText('Avatar Source').closest('tr') as HTMLElement;
     fireEvent.click(row);
-    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(setSelectedAsset).toHaveBeenCalledExactlyOnceWith(baseIngredient);
+    expect(revealSidebar).toHaveBeenCalled();
     expect(onSelectionChange).not.toHaveBeenCalled();
-    expect(onOpenIngredientModal).not.toHaveBeenCalled();
     expect(onOpenLightbox).not.toHaveBeenCalled();
-    expect(row).not.toHaveAttribute('tabindex');
+    expect(row).toHaveAttribute('tabindex', '0');
+  });
+
+  it('links a superadmin asset name to its admin page without opening the sidebar', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...baseIngredient, category: IngredientCategory.IMAGE },
+      ],
+      scope: PageScope.SUPERADMIN,
+      singularType: IngredientCategory.IMAGE,
+      viewMode: 'list',
+    });
+    setSelectedAsset.mockClear();
+
+    const name = screen.getByRole('link', { name: 'Avatar Source' });
+    expect(name).toHaveAttribute('href', '/admin/images/avatar-source-1');
+    fireEvent.click(name);
+    expect(setSelectedAsset).not.toHaveBeenCalled();
+  });
+
+  it('leaves the asset name as text in the workspace', () => {
+    renderContent({ scope: PageScope.BRAND, viewMode: 'list' });
+
+    expect(
+      screen.queryByRole('link', { name: 'Avatar Source' }),
+    ).not.toBeInTheDocument();
   });
 
   it('selects a clicked brand asset instead of opening the lightbox', () => {
@@ -1187,10 +1207,9 @@ describe('IngredientsListContent generation ledger columns', () => {
 });
 
 describe('Library See Details sidebar routing', () => {
-  it('selects the asset without opening its overlay or toggling it off', () => {
+  it('selects the asset without opening the lightbox or toggling it off', () => {
     const onSelectionChange = vi.fn();
-    const onSeeDetails = vi.fn();
-    const { onOpenIngredientModal, onOpenLightbox } = renderContent({
+    const { onOpenLightbox } = renderContent({
       scope: PageScope.BRAND,
       singularType: IngredientCategory.IMAGE,
       filteredIngredients: [
@@ -1198,20 +1217,16 @@ describe('Library See Details sidebar routing', () => {
       ],
       selectedIngredientIds: [baseIngredient.id],
       onSelectionChange,
-      onSeeDetails,
     });
     fireEvent.click(screen.getByRole('button', { name: 'See Details' }));
     expect(setSelectedAsset).toHaveBeenCalledWith(
       expect.objectContaining({ id: baseIngredient.id }),
     );
     expect(onSelectionChange).not.toHaveBeenCalled();
-    expect(onSeeDetails).not.toHaveBeenCalled();
     expect(revealSidebar).toHaveBeenCalled();
-    expect(onOpenIngredientModal).not.toHaveBeenCalled();
     expect(onOpenLightbox).not.toHaveBeenCalled();
   });
-  it('preserves details behavior outside the Library workspace', () => {
-    const onSeeDetails = vi.fn();
+  it('inspects in the sidebar for the superadmin lists too', () => {
     const onSelectionChange = vi.fn();
     renderContent({
       scope: PageScope.SUPERADMIN,
@@ -1220,10 +1235,9 @@ describe('Library See Details sidebar routing', () => {
         { ...baseIngredient, category: IngredientCategory.IMAGE },
       ],
       onSelectionChange,
-      onSeeDetails,
     });
     fireEvent.click(screen.getByRole('button', { name: 'See Details' }));
-    expect(onSeeDetails).toHaveBeenCalledWith(
+    expect(setSelectedAsset).toHaveBeenCalledWith(
       expect.objectContaining({ id: baseIngredient.id }),
     );
     expect(onSelectionChange).not.toHaveBeenCalled();

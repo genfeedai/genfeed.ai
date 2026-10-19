@@ -1,5 +1,6 @@
 'use client';
 
+import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ICreativePattern } from '@genfeedai/contracts/interfaces';
 import type { PatternLabFilters } from '@genfeedai/props/analytics/performance-lab.props';
@@ -25,6 +26,7 @@ export function usePatternContext(
   page: number = 1,
 ): UsePatternContextReturn {
   const { brandId } = useCollectionScope();
+  const refreshTrigger = useOptionalAnalyticsContext()?.refreshTrigger ?? 0;
   const getCreativePatternsService = useAuthedService((token: string) =>
     CreativePatternsService.getInstance(token),
   );
@@ -32,6 +34,7 @@ export function usePatternContext(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTrigger explicitly re-reads the patterns.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -85,6 +88,7 @@ export function usePatternContext(
     filters?.scope,
     getCreativePatternsService,
     page,
+    refreshTrigger,
   ]);
 
   return { error, isLoading, patterns };

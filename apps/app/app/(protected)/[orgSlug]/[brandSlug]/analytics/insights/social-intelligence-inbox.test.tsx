@@ -134,7 +134,6 @@ describe('SocialIntelligenceInbox', () => {
 
   it.each([
     ['loading', 'Loading social intelligence…'],
-    ['empty', 'No listening themes yet'],
     ['forbidden', 'You do not have access to this social intelligence inbox'],
     ['rate_limited', 'Social sources are rate limited'],
     ['failed', 'Social intelligence could not be loaded'],
@@ -154,19 +153,23 @@ describe('SocialIntelligenceInbox', () => {
     }
   });
 
-  it('renders the page shell while the inbox is loading', () => {
+  it('renders nothing for an empty inbox so the page empty state speaks once', () => {
+    mockInbox({ items: [], state: 'empty' });
+    render(
+      <SocialIntelligenceInbox organizationId="org-1" brandId="brand-1" />,
+    );
+
+    expect(screen.queryByText('No listening themes yet')).toBeNull();
+  });
+
+  it('keeps its own title out of the content while the inbox is loading', () => {
     mockInbox({ items: [], state: 'loading' });
 
     render(
       <SocialIntelligenceInbox organizationId="org-1" brandId="brand-1" />,
     );
 
-    expect(screen.getByText('Social intelligence inbox')).toBeVisible();
-    expect(
-      screen.getByText(
-        'Review attributable listening themes before creating downstream work.',
-      ),
-    ).toBeVisible();
+    expect(screen.queryByText('Social intelligence inbox')).toBeNull();
     expect(screen.getByText('Loading social intelligence…')).toBeVisible();
   });
 

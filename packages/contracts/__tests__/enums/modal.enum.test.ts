@@ -3,8 +3,8 @@ import { ModalEnum } from '../../src/enums/modal.enum';
 
 describe('modal.enum', () => {
   describe('ModalEnum', () => {
-    it('should have 62 members', () => {
-      expect(Object.values(ModalEnum)).toHaveLength(62);
+    it('should have 58 members', () => {
+      expect(Object.values(ModalEnum)).toHaveLength(58);
     });
 
     it('should have correct values', () => {
@@ -24,7 +24,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.CLIP).toBe('modal-clip');
       expect(ModalEnum.CONFIRM).toBe('modal-confirm');
       expect(ModalEnum.CREDITS_REQUIRED).toBe('modal-credits-required');
-      expect(ModalEnum.CREDENTIAL).toBe('modal-credential');
       expect(ModalEnum.ERROR_DEBUG).toBe('modal-error-debug');
       expect(ModalEnum.EXPORT).toBe('modal-export');
       expect(ModalEnum.FOLDER).toBe('modal-folder');
@@ -35,7 +34,6 @@ describe('modal.enum', () => {
       );
       expect(ModalEnum.IDEA).toBe('modal-idea');
       expect(ModalEnum.IMAGE_TO_VIDEO).toBe('modal-image-to-video');
-      expect(ModalEnum.INGREDIENT).toBe('modal-ingredient');
       expect(ModalEnum.KNOWLEDGE_BASE).toBe('modal-knowledge-base');
       expect(ModalEnum.LENS).toBe('modal-lens');
       expect(ModalEnum.LIGHTING).toBe('modal-lighting');
@@ -49,7 +47,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.ONBOARDING).toBe('modal-onboarding');
       expect(ModalEnum.POST_COMPOSE).toBe('modal-post-compose');
       expect(ModalEnum.POST_BATCH).toBe('modal-post-batch');
-      expect(ModalEnum.POST_METADATA).toBe('modal-post-metadata');
       expect(ModalEnum.POST_REMIX).toBe('modal-post-remix');
       expect(ModalEnum.PRESET).toBe('modal-preset');
       expect(ModalEnum.PROMPT).toBe('modal-prompt');

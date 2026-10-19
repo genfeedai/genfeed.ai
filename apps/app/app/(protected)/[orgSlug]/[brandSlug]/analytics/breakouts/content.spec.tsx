@@ -1,8 +1,11 @@
+import {
+  AnalyticsProvider,
+  useAnalyticsContext,
+} from '@genfeedai/contexts/analytics/analytics-context';
 import type {
   BreakoutResponsePage,
   BreakoutResponseView,
 } from '@genfeedai/contracts/interfaces';
-import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -44,9 +47,18 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org-a/brand-a${path}` }),
 }));
-vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: ContainerProps) => <div>{children}</div>,
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: undefined }),
 }));
+
+function RefreshProbe() {
+  const { triggerRefresh } = useAnalyticsContext();
+  return (
+    <button type="button" onClick={triggerRefresh}>
+      Refresh
+    </button>
+  );
+}
 
 function response(
   brandId = 'brand-a',
@@ -143,10 +155,35 @@ describe('brand-scoped Breakouts read page', () => {
       {},
       expect.any(AbortSignal),
     );
-    await user.click(
-      screen.getByRole('button', { name: 'Refresh breakout responses' }),
+  });
+
+  it('re-reads the list and detail when the subbar Refresh fires', async () => {
+    const user = userEvent.setup();
+    const view = render(
+      <AnalyticsProvider>
+        <RefreshProbe />
+        <BreakoutsContent />
+      </AnalyticsProvider>,
     );
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Inspect breakout original-brand-a',
+      }),
+    );
+    await screen.findByText('No follow-up outputs have been reserved.');
+    await user.click(view.getByRole('button', { name: 'Refresh' }));
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.detail).toHaveBeenCalledTimes(2));
+  });
+
+  it('keeps the page title, description and Refresh out of the content', async () => {
+    render(<BreakoutsContent />);
+    await screen.findByText('10× the comparable median');
+
+    expect(
+      screen.queryByRole('button', { name: /refresh/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Inspect breakout evidence/)).toBeNull();
   });
 
   it('clears rendered list and detail immediately when the selected brand changes', async () => {
@@ -261,20 +298,21 @@ describe('brand-scoped Breakouts read page', () => {
       total: 21,
     });
     render(<BreakoutsContent />);
-    await screen.findByText('Page 1 of 2 · 21 responses');
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    await screen.findByText('21 responses');
+    expect(
+      screen.getByRole('link', { name: /previous page/i }),
+    ).toHaveAttribute('aria-disabled', 'true');
     await user.click(
       screen.getByRole('button', { name: 'Inspect breakout original-brand-a' }),
     );
     await screen.findByText('Response details');
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByText('Page 2 of 2 · 21 responses');
+    await user.click(screen.getByRole('link', { name: /next page/i }));
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
     expect(mocks.list).toHaveBeenLastCalledWith(
       'brand-a',
       { limit: 20, page: 2 },
       expect.any(AbortSignal),
     );
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     expect(screen.queryByText('Response details')).not.toBeInTheDocument();
   });
 

@@ -647,6 +647,27 @@ describe('ReplicateService', () => {
       );
     });
 
+    it('forwards an explicit reasoning opt-out to OpenRouter', async () => {
+      const chatCompletion = vi.fn().mockResolvedValue({
+        choices: [{ message: { content: 'done' } }],
+      });
+      const { service } = createHarness({}, { chatCompletion });
+
+      await service.generateTextCompletionSync(
+        MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST,
+        {
+          max_tokens: 500,
+          messages: [{ content: 'Rewrite', role: 'user' }],
+          reasoning: { enabled: false },
+        },
+      );
+
+      expect(chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({ reasoning: { enabled: false } }),
+        undefined,
+      );
+    });
+
     it('maps Gemini-style prompt plus system_instruction onto OpenRouter messages', async () => {
       const chatCompletion = vi.fn().mockResolvedValue({
         choices: [{ message: { content: 'mapped' } }],

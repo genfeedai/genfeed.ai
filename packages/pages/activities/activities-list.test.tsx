@@ -1,6 +1,11 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import { ActivityKey, PageScope } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import ActivitiesList from '@pages/activities/activities-list';
+import type { ActivitiesListProps } from '@props/content/activities.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -16,7 +21,7 @@ vi.mock('next/image', () => ({
 const mockRefresh = vi.fn(() => Promise.resolve());
 const mockMarkActivitiesAsRead = vi.fn(() => Promise.resolve());
 const mockToggleActivityRead = vi.fn(() => Promise.resolve());
-const mockOpenIngredientOverlay = vi.fn();
+const mockOpenIngredientSidebar = vi.fn();
 const mockRouterPush = vi.fn();
 
 let mockActivities: IActivity[] = [];
@@ -45,11 +50,15 @@ vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useIngredientOverlay: () => ({
-    openIngredientOverlay: mockOpenIngredientOverlay,
+vi.mock(
+  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  () => ({
+    useIngredientSidebar: () => ({
+      closeIngredientSidebar: vi.fn(),
+      openIngredientSidebar: mockOpenIngredientSidebar,
+    }),
   }),
-}));
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/activities',
@@ -90,6 +99,19 @@ function buildActivity(overrides: Partial<IActivity> = {}): IActivity {
     value: 'Published to instagram',
     ...overrides,
   } as unknown as IActivity;
+}
+
+function renderWithSidebar(scope: ActivitiesListProps['scope']) {
+  return render(
+    <ContextSidebarProvider>
+      <ActivitiesList
+        scope={scope}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />
+      <ContextSidebarOutlet testId="rail" />
+    </ContextSidebarProvider>,
+  );
 }
 
 describe('ActivitiesList', () => {
@@ -304,15 +326,37 @@ describe('ActivitiesList', () => {
     expect(screen.getByText('No activity yet')).toBeInTheDocument();
   });
 
+  describe('row sidebar', () => {
+    it('opens the sidebar from a row and keeps the name as the link', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          entityId: 'ing-9',
+          entityModel: 'Ingredient',
+          id: 'failed-image',
+          key: ActivityKey.IMAGE_FAILED,
+          value: JSON.stringify({ error: 'Provider timed out' }),
+        }),
+      ];
+      renderWithSidebar(PageScope.ORGANIZATION);
+
+      await user.click(screen.getByText(/Provider timed out/));
+
+      const rail = screen.getByTestId('rail');
+      const panel = await within(rail).findByTestId('activity-detail-panel');
+      expect(within(panel).getByRole('link', { name: 'Open' })).toHaveAttribute(
+        'href',
+        '/acme/news/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ing-9',
+      );
+      expect(
+        screen.getAllByRole('link', { name: /failed to generate/i })[0],
+      ).toHaveAttribute('href', expect.stringContaining('asset=ing-9'));
+    });
+  });
+
   describe('admin scope', () => {
     function renderAdmin() {
-      return render(
-        <ActivitiesList
-          scope={PageScope.SUPERADMIN}
-          isStatsEnabled={false}
-          isFiltersEnabled={false}
-        />,
-      );
+      return renderWithSidebar(PageScope.SUPERADMIN);
     }
 
     it('never links into the activity owner’s account', () => {
@@ -335,6 +379,27 @@ describe('ActivitiesList', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('offers no Open link in the sidebar', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          entityId: 'ing-9',
+          entityModel: 'Ingredient',
+          id: 'failed-image',
+          key: ActivityKey.IMAGE_FAILED,
+          value: JSON.stringify({ error: 'Provider timed out' }),
+        }),
+      ];
+      renderAdmin();
+
+      await user.click(screen.getByText(/Provider timed out/));
+
+      const panel = await screen.findByTestId('activity-detail-panel');
+      expect(
+        within(panel).queryByRole('link', { name: 'Open' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('opens the activity detail when a row is clicked', async () => {
       const user = userEvent.setup();
       mockActivities = [
@@ -350,7 +415,7 @@ describe('ActivitiesList', () => {
 
       await user.click(screen.getByText(/Provider timed out/));
 
-      const dialog = await screen.findByRole('dialog');
+      const dialog = await screen.findByTestId('activity-detail-panel');
       expect(within(dialog).getByText('org-123')).toBeInTheDocument();
       expect(within(dialog).getByText('user-456')).toBeInTheDocument();
       expect(within(dialog).getByRole('alert')).toHaveTextContent(
@@ -373,7 +438,7 @@ describe('ActivitiesList', () => {
 
       await user.click(screen.getAllByRole('row')[1]);
 
-      const dialog = await screen.findByRole('dialog');
+      const dialog = await screen.findByTestId('activity-detail-panel');
       expect(
         within(dialog).getByRole('link', { name: /view on instagram/i }),
       ).toHaveAttribute('href', 'https://instagram.com/p/abc');

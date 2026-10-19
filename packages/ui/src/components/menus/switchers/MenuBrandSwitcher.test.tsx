@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPush = vi.fn();
 const mockPatchMeBrand = vi.hoisted(() => vi.fn());
 const mockReloadUser = vi.hoisted(() => vi.fn());
+const mockOpenBrandCreateModal = vi.hoisted(() => vi.fn());
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 let capturedMinWidth: number | undefined;
@@ -46,8 +47,8 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
-    useBrandOverlay: () => ({
-      openBrandOverlay: vi.fn(),
+    useBrandCreateModal: () => ({
+      openBrandCreateModal: mockOpenBrandCreateModal,
     }),
   }),
 );
@@ -202,6 +203,9 @@ describe('MenuBrandSwitcher', () => {
     expect(capturedFooterActions.map((action) => action.label)).toEqual([
       'New Brand',
     ]);
+
+    capturedFooterActions[0]?.onAction?.();
+    expect(mockOpenBrandCreateModal).toHaveBeenCalledTimes(1);
     expect(capturedItems[0]?.trailingAction?.ariaLabel).toBe(
       'Open Test Brand settings',
     );

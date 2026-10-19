@@ -1,30 +1,27 @@
 'use client';
 
 import PatternCard from '@app-components/performance-lab/PatternCard';
-import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
+import {
+  useAnalyticsToolbar,
+  useOptionalAnalyticsContext,
+} from '@genfeedai/contexts/analytics/analytics-context';
 import { AlertCategory } from '@genfeedai/contracts';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { usePatternContext } from '@hooks/data/analytics/use-pattern-context/use-pattern-context';
 import type {
   PatternLabFilters,
   PatternLabPageProps,
 } from '@props/analytics/performance-lab.props';
+import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Alert from '@ui/feedback/alert/Alert';
-import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { FlaskConical } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 const PLATFORM_OPTIONS = [
-  { label: 'All Platforms', value: '' },
   { label: 'TikTok', value: 'tiktok' },
   { label: 'Instagram', value: 'instagram' },
   { label: 'Facebook', value: 'facebook' },
@@ -32,22 +29,18 @@ const PLATFORM_OPTIONS = [
   { label: 'Google Ads', value: 'google_ads' },
 ] as const;
 
-const PATTERN_TYPE_OPTIONS: Array<{ label: string; value: PatternType | '' }> =
-  [
-    { label: 'All Types', value: '' },
-    { label: 'Hook Formula', value: 'hook_formula' },
-    { label: 'CTA Formula', value: 'cta_formula' },
-    { label: 'Content Structure', value: 'content_structure' },
-    { label: 'Caption Formula', value: 'caption_formula' },
-    { label: 'Visual Style', value: 'visual_style' },
-  ];
+const PATTERN_TYPE_OPTIONS: Array<{ label: string; value: PatternType }> = [
+  { label: 'Hook Formula', value: 'hook_formula' },
+  { label: 'CTA Formula', value: 'cta_formula' },
+  { label: 'Content Structure', value: 'content_structure' },
+  { label: 'Caption Formula', value: 'caption_formula' },
+  { label: 'Visual Style', value: 'visual_style' },
+];
 
 const SCOPE_OPTIONS = [
-  { label: 'All', value: '' },
   { label: 'Public', value: 'public' },
   { label: 'Private', value: 'private' },
 ] as const;
-const ALL_FILTER_VALUE = '__all__';
 
 const SKELETON_IDS = ['s1', 's2', 's3', 's4', 's5', 's6'];
 
@@ -68,53 +61,6 @@ function PatternCardSkeleton() {
         <div className="h-3 w-full bg-background-tertiary" />
         <div className="h-3 w-4/5 bg-background-tertiary" />
       </div>
-    </div>
-  );
-}
-
-function FilterSelect<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: ReadonlyArray<{ label: string; value: T }>;
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  const selectId = useId();
-  return (
-    <div className="flex flex-col gap-1">
-      <label
-        className="text-2xs text-foreground/40 uppercase tracking-wider"
-        htmlFor={selectId}
-      >
-        {label}
-      </label>
-      <Select
-        value={value || (ALL_FILTER_VALUE as T)}
-        onValueChange={(nextValue) =>
-          onChange((nextValue === ALL_FILTER_VALUE ? '' : nextValue) as T)
-        }
-      >
-        <SelectTrigger
-          className="min-w-[140px] bg-background text-xs"
-          id={selectId}
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((opt) => (
-            <SelectItem
-              key={opt.value || ALL_FILTER_VALUE}
-              value={opt.value || ALL_FILTER_VALUE}
-            >
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
     </div>
   );
 }
@@ -190,38 +136,60 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
     [resetPage, setSurfaceFilter],
   );
 
-  const filterBar = (
-    <div className="flex flex-wrap items-end gap-4 mb-6">
-      <FilterSelect
-        label="Platform"
-        options={PLATFORM_OPTIONS}
-        value={platform}
-        onChange={handlePlatformChange}
+  const toolbar = useMemo(() => {
+    const facets: FilterMenuFacet[] = [
+      {
+        defaultValue: '',
+        key: 'platform',
+        label: 'Platform',
+        onChange: handlePlatformChange,
+        options: PLATFORM_OPTIONS,
+        selection: 'single',
+        value: platform,
+      },
+      {
+        defaultValue: '',
+        key: 'patternType',
+        label: 'Pattern type',
+        onChange: (value) => handlePatternTypeChange(value as PatternType | ''),
+        options: PATTERN_TYPE_OPTIONS,
+        selection: 'single',
+        value: patternType,
+      },
+      {
+        defaultValue: '',
+        key: 'scope',
+        label: 'Scope',
+        onChange: handleScopeChange,
+        options: SCOPE_OPTIONS,
+        selection: 'single',
+        value: scope,
+      },
+    ];
+
+    return (
+      <AnalyticsFilterMenu
+        facets={facets}
+        onClear={() => {
+          handlePlatformChange('');
+          handlePatternTypeChange('');
+          handleScopeChange('');
+        }}
       />
-      <FilterSelect
-        label="Pattern Type"
-        options={PATTERN_TYPE_OPTIONS}
-        value={patternType}
-        onChange={handlePatternTypeChange}
-      />
-      <FilterSelect
-        label="Scope"
-        options={SCOPE_OPTIONS}
-        value={scope}
-        onChange={handleScopeChange}
-      />
-    </div>
-  );
+    );
+  }, [
+    handlePatternTypeChange,
+    handlePlatformChange,
+    handleScopeChange,
+    patternType,
+    platform,
+    scope,
+  ]);
+
+  useAnalyticsToolbar(toolbar);
 
   return (
-    <Container
-      label="Performance Lab"
-      description="Creative patterns from real performance data."
-      icon={FlaskConical}
-      className={className}
-    >
-      {filterBar}
-
+    <div className={className}>
       {error && !isLoading && (
         <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
@@ -242,19 +210,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       )}
 
       {!isLoading && !error && patterns.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="p-4 bg-background-tertiary mb-4">
-            <FlaskConical className="size-8 text-foreground/30" />
-          </div>
-          <h3 className="font-medium text-foreground/70 mb-1">
-            No patterns found
-          </h3>
-          <p className="text-sm text-foreground/40 max-w-sm">
-            {platform || patternType || scope
-              ? 'No patterns match your current filters. Try adjusting the selection.'
-              : 'No creative patterns available yet. Patterns are extracted from your performance data.'}
-          </p>
-        </div>
+        <CardEmptyContent icon={FlaskConical} label="No patterns found" />
       )}
 
       {!isLoading && !error && patterns.length > 0 && (
@@ -273,6 +229,6 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
           <AutoPagination showTotal totalLabel="patterns" />
         </div>
       )}
-    </Container>
+    </div>
   );
 }

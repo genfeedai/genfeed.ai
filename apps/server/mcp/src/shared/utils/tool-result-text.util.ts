@@ -97,8 +97,54 @@ export function formatToolData(value: unknown): string {
   return fields(value, 0) || 'No additional details returned.';
 }
 
+const HARNESS_SOURCES: Readonly<Record<string, string>> = {
+  brand: 'brand setting',
+  default: 'default',
+  organization: 'organization setting',
+  request: 'this call',
+};
+
+function text(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+/**
+ * Announces what a generation actually sent to the provider, so clients that
+ * show only text content still see it. Identifiers, Knowledge and learning
+ * receipts stay in structuredContent.
+ */
+export function harnessReceiptText(payload: unknown): string | undefined {
+  const receipt = isRecord(payload) ? payload.generationHarness : undefined;
+  if (!isRecord(receipt)) return undefined;
+  const sent = text(receipt.enhancedPrompt);
+  if (!sent) return undefined;
+  const isApplied = receipt.status === 'applied';
+  const source = HARNESS_SOURCES[String(receipt.source)];
+  const packs = (
+    Array.isArray(receipt.appliedPacks) ? receipt.appliedPacks : []
+  )
+    .flatMap((pack) =>
+      isRecord(pack) && text(pack.id)
+        ? [`${pack.id}${text(pack.version) ? ` ${pack.version}` : ''}`]
+        : [],
+    )
+    .join(', ');
+  const original = text(receipt.originalPrompt);
+  return [
+    `Prompt enhancement: ${isApplied ? 'applied' : 'skipped'}${source ? ` (${source})` : ''}`,
+    isApplied ? 'Prompt sent to the model:' : 'Prompt sent unchanged:',
+    sent,
+    ...(isApplied && original && original !== sent
+      ? ['Your original prompt:', original]
+      : []),
+    ...(packs ? [`Applied packs: ${packs}`] : []),
+  ].join('\n');
+}
+
 export function dataToolResult(data: unknown, label?: string) {
-  const body = formatToolData(data);
+  const body = [formatToolData(data), harnessReceiptText(data)]
+    .filter(Boolean)
+    .join('\n\n');
   return {
     content: [
       { type: 'text' as const, text: label ? `${label}\n\n${body}` : body },

@@ -1,3 +1,4 @@
+import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { LucideIcon } from 'lucide-react';
 
 export type StoryboardPresetFormat = '9:16' | '16:9' | '1:1';
@@ -48,4 +49,11 @@ export interface StoryboardShotStripProps {
 export interface StoryboardPresetThumbnailProps {
   src: string;
   className?: string;
+}
+
+/** Agent-written storyboard briefs shown above the presets (#7341). */
+export interface StoryboardAgentBriefsProps {
+  brandId?: string;
+  isDisabled?: boolean;
+  onSelect: (proposal: StudioStoryboardProposal) => void;
 }

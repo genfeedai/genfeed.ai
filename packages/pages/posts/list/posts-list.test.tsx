@@ -133,12 +133,19 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
+vi.mock(
+  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  () => ({
+    useIngredientSidebar: () => ({
+      closeIngredientSidebar: vi.fn(),
+      openIngredientSidebar: vi.fn(),
+    }),
+  }),
+);
+
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
   useConfirmDeleteModal: () => ({
     openConfirmDelete: vi.fn(),
-  }),
-  useIngredientOverlay: () => ({
-    openIngredientOverlay: vi.fn(),
   }),
   usePostRemixModal: () => ({
     openPostRemixModal: vi.fn(),

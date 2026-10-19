@@ -406,16 +406,21 @@ export function buildModelsTableColumns({
         <div className="flex min-w-0 items-center gap-3">
           <ModelAvatar model={model} />
           <div className="min-w-0">
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              textTransform="none"
-              className="text-left font-medium text-foreground hover:underline"
-              ariaLabel={`View details for ${model.label}`}
-              onClick={() => onOpenDetails(model)}
-            >
-              {model.label}
-            </Button>
+            {/* Outside the admin the row opens the model in the sidebar. */}
+            {isAdminScope ? (
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                textTransform="none"
+                className="text-left font-medium text-foreground hover:underline"
+                ariaLabel={`View details for ${model.label}`}
+                onClick={() => onOpenDetails(model)}
+              >
+                {model.label}
+              </Button>
+            ) : (
+              <span className="font-medium text-foreground">{model.label}</span>
+            )}
             {formatCategoryConfidence(model) ? (
               <span className="block text-2xs text-muted-foreground">
                 {formatCategoryConfidence(model)}

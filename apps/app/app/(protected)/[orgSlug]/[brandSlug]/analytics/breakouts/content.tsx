@@ -1,5 +1,6 @@
 'use client';
 
+import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import type {
   BreakoutResponsePage,
   BreakoutResponseView,
@@ -9,7 +10,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { BreakoutResponsesContentProps } from '@props/analytics/breakout-response-detail.props';
 import { BreakoutResponsesService } from '@services/analytics/breakout-responses.service';
-import Container from '@ui/layout/container/Container';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
@@ -30,7 +32,7 @@ function ScopedBreakoutResponses({
     BreakoutResponsesService.forOrganization(token, organizationId),
   );
   const [page, setPage] = useState(1);
-  const [refresh, setRefresh] = useState(0);
+  const refresh = useOptionalAnalyticsContext()?.refreshTrigger ?? 0;
   const [result, setResult] = useState<BreakoutResponsePage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -109,15 +111,6 @@ function ScopedBreakoutResponses({
   const currentDetail = detail?.id === selectedId ? detail : null;
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
-        <Button
-          ariaLabel={t('refreshLabel')}
-          isDisabled={isLoading}
-          onClick={() => setRefresh((value) => value + 1)}
-        >
-          {t('refresh')}
-        </Button>
-      </div>
       {isLoading ? (
         <Text as="p" role="status">
           {t('loading')}
@@ -127,7 +120,7 @@ function ScopedBreakoutResponses({
           {error}
         </Text>
       ) : currentResult?.docs.length === 0 ? (
-        <Text as="p">{t('empty')}</Text>
+        <CardEmptyContent label={t('empty')} />
       ) : (
         <div className="space-y-3">
           {currentResult?.docs.map((response) => (
@@ -178,39 +171,17 @@ function ScopedBreakoutResponses({
           ))}
         </div>
       )}
-      {currentResult && (
-        <nav
-          className="flex flex-wrap items-center justify-between gap-3"
-          aria-label={t('paginationLabel')}
-        >
-          <Text size="sm">
-            {t('pageSummary', {
-              page: currentResult.page,
-              pages: Math.max(1, currentResult.pages),
-              total: currentResult.total,
-            })}
-          </Text>
-          <div className="flex gap-2">
-            <Button
-              isDisabled={page <= 1 || isLoading}
-              onClick={() => {
-                setSelectedId(null);
-                setPage((value) => value - 1);
-              }}
-            >
-              {t('previous')}
-            </Button>
-            <Button
-              isDisabled={page >= currentResult.pages || isLoading}
-              onClick={() => {
-                setSelectedId(null);
-                setPage((value) => value + 1);
-              }}
-            >
-              {t('next')}
-            </Button>
-          </div>
-        </nav>
+      {currentResult && currentResult.total > 0 && (
+        <Pagination
+          currentPage={currentResult.page}
+          onPageChange={(nextPage) => {
+            setSelectedId(null);
+            setPage(nextPage);
+          }}
+          totalItems={currentResult.total}
+          totalLabel={t('totalLabel')}
+          totalPages={Math.max(1, currentResult.pages)}
+        />
       )}
       {selectedId && (
         <div className="space-y-4 rounded-lg border border-border p-5">
@@ -252,7 +223,7 @@ export default function BreakoutsContent() {
     strategyId,
   ]);
   return (
-    <Container label={t('title')} description={t('description')}>
+    <div>
       {!isReady ? (
         <Text as="p" role="status">
           {t('loadingBrandContext')}
@@ -267,6 +238,6 @@ export default function BreakoutsContent() {
           strategyId={strategyId}
         />
       )}
-    </Container>
+    </div>
   );
 }

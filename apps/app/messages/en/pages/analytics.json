@@ -61,7 +61,6 @@
   },
   "topVideos": {
     "title": "Top videos",
-    "description": "Your recent videos ranked by evaluated score, with the persuasion signal behind each one.",
     "timeframe": "Timeframe",
     "timeframes": {
       "24h": "Last 24 hours",
@@ -75,7 +74,8 @@
       "views": "Views",
       "engagement": "Engagement",
       "score": "Score"
-    }
+    },
+    "totalLabel": "videos"
   },
   "metricDefinitions": {
     "comments": "Comments recorded across the selected published content.",
@@ -136,17 +136,13 @@
     "outliersFirst": "Outliers first"
   },
   "outliers": {
-    "allPlatforms": "All platforms",
-    "allTiers": "All tiers",
     "analyzeHook": "Analyze hook",
     "baseline": "Baseline",
     "breakoutTier": "Breakout (10x+)",
     "computed": "Computed",
     "contributingPosts": "Contributing posts",
-    "description": "Posts ranked by how far they beat their account baseline, not by raw views.",
     "empty": "No outlier posts for these filters",
     "excludedPosts": "Excluded posts",
-    "heading": "Outliers",
     "instagram": "Instagram",
     "insufficient": "Insufficient data — this account needs at least 5 eligible posts",
     "tiktok": "TikTok",
@@ -157,6 +153,7 @@
     "medianViews": "Median views",
     "noContributors": "No contributing posts in this snapshot.",
     "noExcluded": "No excluded posts.",
+    "openPost": "Open post",
     "outlierTier": "Outlier (3x+)",
     "pinnedUnknown": "pinned unknown",
     "platform": "Platform",
@@ -172,7 +169,10 @@
     "unknownEligibility": "Unknown eligibility",
     "unknownEligibilityReady": "Pinned and promoted state was available for this account.",
     "views": "Views",
-    "window": "Window"
+    "window": "Window",
+    "postsLabel": "Outlier posts",
+    "postsTotalLabel": "posts",
+    "loadError": "Unable to load outlier posts"
   },
   "accounts": {
     "errorTitle": "Account analytics error",
@@ -311,12 +311,8 @@
     }
   },
   "breakouts": {
-    "title": "Breakouts",
-    "description": "Inspect breakout evidence and follow-up response status.",
     "loadingBrandContext": "Loading brand context…",
     "selectBrand": "Select a brand to inspect its breakout responses.",
-    "refreshLabel": "Refresh breakout responses",
-    "refresh": "Refresh",
     "loading": "Loading breakout responses…",
     "empty": "No breakout responses have been detected for this brand.",
     "loadError": "Unable to load breakout responses. Your access may have changed.",
@@ -331,10 +327,6 @@
     "responseState": "Response state: {state}",
     "inspectLabel": "Inspect breakout {externalId}",
     "inspect": "Inspect response",
-    "paginationLabel": "Breakout response pagination",
-    "pageSummary": "Page {page} of {pages} · {total} responses",
-    "previous": "Previous",
-    "next": "Next",
     "closeDetails": "Close details",
     "loadingDetails": "Loading response details…",
     "detail": {
@@ -418,7 +410,8 @@
         "ledger_usage_unavailable": "Current spending or reserved credits could not be verified.",
         "policy_unreadable": "The agent budget or posting policy could not be verified."
       }
-    }
+    },
+    "totalLabel": "responses"
   },
   "winners": {
     "allPosts": "All posts",

@@ -37,6 +37,7 @@ export const ANALYTICS_FILTER_SEARCH_KEYS = Object.freeze({
   show: 'show',
   sort: 'sort',
   source: 'source',
+  tier: 'tier',
   timeframe: 'timeframe',
   visibility: 'visibility',
 } satisfies Record<AnalyticsQueryFilterKey, string>);
@@ -99,7 +100,7 @@ function resolveDescriptor(route: string): AnalyticsSurfaceDescriptor {
   if (route === '/analytics/hooks') {
     return {
       cacheMinutes: 15,
-      filterKeys: ['postId'],
+      filterKeys: ['postId', 'tier'],
       label: 'Hook performance',
       maxVisibleResults: 100,
       metrics: ['views', 'likes', 'comments', 'shares', 'engagementRate'],
@@ -110,7 +111,7 @@ function resolveDescriptor(route: string): AnalyticsSurfaceDescriptor {
     return {
       cacheMinutes: 15,
       defaultFilters: { timeframe: '72h' },
-      filterKeys: ['platform', 'timeframe'],
+      filterKeys: ['platform', 'tier', 'timeframe'],
       label: 'Outliers',
       maxVisibleResults: 50,
       metrics: ['views'],
@@ -192,6 +193,11 @@ function normalizeFilterValue(
   }
   if (key === 'metric' || key === 'sort') {
     return getAnalyticsMetricDefinitionKey(normalized) ? normalized : undefined;
+  }
+  if (key === 'tier') {
+    return ['breakout', 'outlier'].includes(normalized)
+      ? normalized
+      : undefined;
   }
   if (key === 'timeframe') {
     return ['24h', '72h', '7d', '30d', '90d'].includes(normalized)
