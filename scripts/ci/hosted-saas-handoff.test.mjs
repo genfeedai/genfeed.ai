@@ -603,8 +603,14 @@ test('notifies release watch when production deploy succeeds, before npm and pub
   );
   assert.match(notify, /trigger: production-deploy/);
   assert.match(notify, /permissions:\n {6}contents: read\n/);
-  assert.doesNotMatch(notify, /id-token:|packages:|issues:|actions:|pull-requests:/);
-  assert.doesNotMatch(notify, /publish-packages|promote-community|publish-release/);
+  assert.doesNotMatch(
+    notify,
+    /id-token:|packages:|issues:|actions:|pull-requests:/,
+  );
+  assert.doesNotMatch(
+    notify,
+    /publish-packages|promote-community|publish-release/,
+  );
   assert.doesNotMatch(notify, /secrets:\s*inherit/);
   assert.deepEqual(jobSecretMapping(notify), [
     'RELEASE_WATCH_WEBHOOK_URL',
