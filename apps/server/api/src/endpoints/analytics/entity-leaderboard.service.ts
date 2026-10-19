@@ -368,6 +368,18 @@ export class EntityLeaderboardService {
     );
   }
 
+  /** Count active, non-deleted members grouped by organization */
+  private async countMembersByOrganization(): Promise<Map<string, number>> {
+    const memberCountRows = await this.prisma.member.groupBy({
+      by: ['organizationId'],
+      where: { isActive: true, isDeleted: false },
+      _count: { id: true },
+    });
+    return new Map<string, number>(
+      memberCountRows.map((row) => [row.organizationId, row._count.id]),
+    );
+  }
+
   /** Sort entities/stats descending by the metric mapped from the sort enum */
   private sortByMetric<T>(items: T[], sort: LeaderboardSort): T[] {
     const field = SORT_FIELD_MAP[sort];
@@ -512,7 +524,10 @@ export class EntityLeaderboardService {
       range,
     );
 
-    const brandCountMap = await this.countBrandsByOrganization();
+    const [brandCountMap, memberCountMap] = await Promise.all([
+      this.countBrandsByOrganization(),
+      this.countMembersByOrganization(),
+    ]);
 
     const orgsWithStats = rows.map(
       ({ entity, prevEngagement, stats }) =>
@@ -524,7 +539,7 @@ export class EntityLeaderboardService {
           name: entity.label || entity.name || 'Unknown',
           totalBrands: brandCountMap.get(entity.id) || 0,
           totalEngagement: stats.totalEngagement,
-          totalMembers: 0,
+          totalMembers: memberCountMap.get(entity.id) || 0,
           totalPosts: stats.totalPosts,
           totalViews: stats.totalViews,
         }),

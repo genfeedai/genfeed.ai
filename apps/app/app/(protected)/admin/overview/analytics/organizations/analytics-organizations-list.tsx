@@ -18,13 +18,18 @@ import {
 import { logger } from '@services/core/logger.service';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import FormDropdown from '@ui/primitives/dropdown-field';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { format } from 'date-fns';
-import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  type ChangeEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -34,7 +39,7 @@ import {
 export default function AnalyticsOrganizationsList({
   basePath = APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS,
 }: AnalyticsOrganizationsListProps) {
-  const { dateRange, refreshTrigger } = useAnalyticsContext();
+  const { dateRange, refreshTrigger, setToolbarNode } = useAnalyticsContext();
 
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
@@ -78,15 +83,41 @@ export default function AnalyticsOrganizationsList({
     }
   }, [refreshTrigger, fetchData]);
 
-  const handleSortChange = (e: ChangeEvent<HTMLSelectElement>) => {
+  const handleSortChange = useCallback((value: string) => {
     setSort(
-      e.target.value as
+      value as
         | AnalyticsMetric.ENGAGEMENT
         | AnalyticsMetric.VIEWS
         | AnalyticsMetric.POSTS,
     );
     setPage(1);
-  };
+  }, []);
+
+  const toolbar = useMemo(
+    () => (
+      <Select value={sort} onValueChange={handleSortChange}>
+        <SelectTrigger
+          aria-label="Sort organization analytics"
+          className="w-full sm:w-44"
+        >
+          <SelectValue placeholder="Sort by" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={AnalyticsMetric.ENGAGEMENT}>
+            Sort by Engagement
+          </SelectItem>
+          <SelectItem value={AnalyticsMetric.VIEWS}>Sort by Views</SelectItem>
+          <SelectItem value={AnalyticsMetric.POSTS}>Sort by Posts</SelectItem>
+        </SelectContent>
+      </Select>
+    ),
+    [sort, handleSortChange],
+  );
+
+  useEffect(() => {
+    setToolbarNode(toolbar);
+    return () => setToolbarNode(null);
+  }, [setToolbarNode, toolbar]);
 
   const orgs = data?.data || [];
   const pagination = data?.pagination;
@@ -181,32 +212,6 @@ export default function AnalyticsOrganizationsList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">
-          All Organizations
-          {pagination && (
-            <span className="text-sm font-normal text-foreground/60 ml-2">
-              ({pagination.total} total)
-            </span>
-          )}
-        </h2>
-        <FormDropdown
-          name="sort"
-          icon={<ArrowUpDown className="size-4" />}
-          label="Sort"
-          variant={ButtonVariant.SECONDARY}
-          className="h-10 px-3 gap-2 text-sm flex-shrink-0"
-          value={sort}
-          onChange={handleSortChange}
-          isFullWidth={false}
-          options={[
-            { key: AnalyticsMetric.ENGAGEMENT, label: 'By Engagement' },
-            { key: AnalyticsMetric.VIEWS, label: 'By Views' },
-            { key: AnalyticsMetric.POSTS, label: 'By Posts' },
-          ]}
-        />
-      </div>
-
       <AppTable<IOrgWithStats>
         items={orgs}
         isLoading={isLoading}
