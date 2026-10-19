@@ -1,3 +1,5 @@
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
+import { PageScope } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
@@ -143,6 +145,38 @@ describe('useActivities', () => {
       created: 1,
       updated: 1,
     });
+  });
+
+  it('reads the organization list once when the super-admin flag hydrates', async () => {
+    const findOrganizationActivities = vi.fn().mockResolvedValue(activities);
+    mockGetOrganizationsService.mockResolvedValue({
+      findOrganizationActivities,
+    });
+    const accessState = vi.mocked(useAccessState);
+    accessState.mockReturnValue({ isSuperAdmin: false } as ReturnType<
+      typeof useAccessState
+    >);
+
+    const { result, rerender } = renderHook(
+      () => useActivities({ scope: PageScope.ORGANIZATION }),
+      { wrapper: createQueryWrapper() },
+    );
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    accessState.mockReturnValue({ isSuperAdmin: true } as ReturnType<
+      typeof useAccessState
+    >);
+    rerender();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(findOrganizationActivities).toHaveBeenCalledTimes(1);
+    accessState.mockReturnValue({ isSuperAdmin: false } as ReturnType<
+      typeof useAccessState
+    >);
   });
 
   it('updates filter state', async () => {

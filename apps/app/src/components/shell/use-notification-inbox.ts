@@ -2,6 +2,7 @@ import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {
   useInfiniteQuery,
@@ -35,9 +36,11 @@ export function useNotificationInbox(open: boolean) {
   useEffect(() => {
     if (!enabled) return;
     const refresh = () => {
-      void client.invalidateQueries({
-        queryKey: [NOTIFICATION_INBOX_QUERY_KEY, userId, organizationId],
-      });
+      void client.invalidateQueries(
+        { queryKey: [NOTIFICATION_INBOX_QUERY_KEY, userId, organizationId] },
+        // A request already in flight is current: never cancel and re-send it.
+        { cancelRefetch: false },
+      );
     };
     const reconcileVisible = () => {
       if (document.visibilityState !== 'hidden') refresh();
@@ -57,13 +60,11 @@ export function useNotificationInbox(open: boolean) {
       connectionState === 'connected'
         ? undefined
         : setInterval(reconcileVisible, NOTIFICATION_INBOX_RECONCILE_MS);
-    window.addEventListener('focus', reconcileVisible);
-    document.addEventListener('visibilitychange', reconcileVisible);
+    const disposeForeground = onForeground(refresh);
     return () => {
       dispose?.();
       if (interval) clearInterval(interval);
-      window.removeEventListener('focus', reconcileVisible);
-      document.removeEventListener('visibilitychange', reconcileVisible);
+      disposeForeground();
     };
   }, [
     client,
@@ -79,7 +80,9 @@ export function useNotificationInbox(open: boolean) {
     enabled,
     queryFn: async ({ signal }) =>
       (await getService()).notificationInboxCount(organizationId, signal),
-    staleTime: 0,
+    // Socket events, focus and the menu opening all invalidate or refetch it,
+    // so a remount of the topbar must not fetch a count that is seconds old.
+    staleTime: 30_000,
   });
   const refreshCount = count.refetch;
   useEffect(() => {

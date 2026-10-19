@@ -1,6 +1,7 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
+import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
 
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
@@ -83,13 +84,13 @@ export default function DeploymentVersionWatcher() {
       });
     }
 
-    const handleForeground = () => {
+    const intervalId = window.setInterval(() => {
       void checkForUpdate();
-    };
-
-    const intervalId = window.setInterval(handleForeground, POLL_INTERVAL_MS);
-    window.addEventListener('focus', handleForeground);
-    document.addEventListener('visibilitychange', handleForeground);
+    }, POLL_INTERVAL_MS);
+    // One check per tab return: focus and visibilitychange fire together.
+    const disposeForeground = onForeground(() => {
+      void checkForUpdate();
+    });
 
     // Check once shortly after mount instead of waiting a full interval.
     void checkForUpdate();
@@ -98,8 +99,7 @@ export default function DeploymentVersionWatcher() {
       isActive = false;
       controller.abort();
       window.clearInterval(intervalId);
-      window.removeEventListener('focus', handleForeground);
-      document.removeEventListener('visibilitychange', handleForeground);
+      disposeForeground();
     };
   }, []);
 

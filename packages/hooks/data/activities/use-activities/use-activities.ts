@@ -19,6 +19,51 @@ import { useCallback, useMemo, useState } from 'react';
 
 const EMPTY_ACTIVITIES: IActivity[] = [];
 
+type ActivitiesTarget =
+  | { kind: 'organization'; id: string }
+  | { kind: 'brand'; id: string }
+  | { kind: 'all' }
+  | { kind: 'none' };
+
+/**
+ * Which list a caller reads. The query key carries this, not the raw scope
+ * inputs: the super-admin flag and brand id hydrate after first render, and
+ * keying on them re-reads the same list under a new key (a duplicate request)
+ * whenever they settle without changing what is read.
+ */
+function resolveActivitiesTarget({
+  brandId,
+  isSuperAdmin,
+  organizationId,
+  scope,
+}: {
+  brandId: string | undefined;
+  isSuperAdmin: boolean;
+  organizationId: string | undefined;
+  scope: NonNullable<ActivitiesOptions['scope']>;
+}): ActivitiesTarget {
+  if (isSuperAdmin) {
+    if (scope === PageScope.ORGANIZATION && organizationId) {
+      return { id: organizationId, kind: 'organization' };
+    }
+    if (scope === PageScope.BRAND && brandId) {
+      return { id: brandId, kind: 'brand' };
+    }
+    return { kind: 'all' };
+  }
+
+  if (scope === PageScope.BRAND && brandId) {
+    return { id: brandId, kind: 'brand' };
+  }
+  if (organizationId) {
+    return { id: organizationId, kind: 'organization' };
+  }
+  if (brandId) {
+    return { id: brandId, kind: 'brand' };
+  }
+  return { kind: 'none' };
+}
+
 function activityFilterFields(activity: IActivity): (string | undefined)[] {
   return [activity.key];
 }
@@ -33,7 +78,7 @@ export function useActivities({
   limit = 20,
 }: ActivitiesOptions = {}): ActivitiesReturn {
   const { isLoaded: isAuthLoaded, isSignedIn, userId } = useAuthIdentity();
-  const { isSuperAdmin } = useAccessState();
+  const { isLoading: isAccessStateLoading, isSuperAdmin } = useAccessState();
   const { brandId, organizationId } = useCollectionScope();
   const playwrightAuth = getPlaywrightAuthState();
   const isAuthReady = isAuthLoaded || playwrightAuth?.isLoaded === true;
@@ -54,11 +99,19 @@ export function useActivities({
     ActivitiesService.getInstance(token),
   );
 
-  // Platform-admin lists ignore brand/org scope — omit those ids from the key
-  // so brand-context hydration does not thrash the query while ids settle.
-  const scopeBrandId = scope === PageScope.SUPERADMIN ? null : brandId || null;
-  const scopeOrganizationId =
-    scope === PageScope.SUPERADMIN ? null : organizationId || null;
+  const target = resolveActivitiesTarget({
+    brandId,
+    isSuperAdmin,
+    organizationId,
+    scope,
+  });
+  const targetId = 'id' in target ? target.id : null;
+  // Organization-scoped keys carry the organization id so socket refreshes can
+  // find them; a brand switch does not change which organization list is read.
+  const keyOrganizationId =
+    target.kind === 'all' || target.kind === 'none'
+      ? null
+      : organizationId || null;
 
   const {
     data: activitiesData,
@@ -73,13 +126,9 @@ export function useActivities({
       userId ?? null,
       activeOnly,
       sort,
-      autoLoad,
-      isAuthReady,
-      hasAuthenticatedSession,
-      isSuperAdmin,
-      scope,
-      scopeOrganizationId,
-      scopeBrandId,
+      target.kind,
+      targetId,
+      keyOrganizationId,
       page,
       limit,
     ],
@@ -88,7 +137,6 @@ export function useActivities({
         return EMPTY_ACTIVITIES;
       }
 
-      let data: IActivity[] = [];
       const paginationParams = {
         limit,
         page,
@@ -96,42 +144,33 @@ export function useActivities({
         ...(sort ? { sort } : {}),
       };
 
-      if (isSuperAdmin && scope === PageScope.ORGANIZATION && organizationId) {
-        const service = await getOrganizationsService();
-        data = await service.findOrganizationActivities(
-          organizationId,
-          paginationParams,
-        );
-      } else if (isSuperAdmin && scope === PageScope.BRAND && brandId) {
-        const service = await getBrandsService();
-        data = await service.findBrandActivities(brandId, paginationParams);
-      } else if (isSuperAdmin && scope === PageScope.SUPERADMIN) {
-        const service = await getActivitiesService();
-        data = await service.findAll(paginationParams);
-      } else if (!isSuperAdmin) {
-        if (scope === PageScope.BRAND && brandId) {
-          const service = await getBrandsService();
-          data = await service.findBrandActivities(brandId, paginationParams);
-        } else if (organizationId) {
+      switch (target.kind) {
+        case 'organization': {
           const service = await getOrganizationsService();
-          data = await service.findOrganizationActivities(
-            organizationId,
+          return service.findOrganizationActivities(
+            target.id,
             paginationParams,
           );
-        } else {
-          if (brandId) {
-            const service = await getBrandsService();
-            data = await service.findBrandActivities(brandId, paginationParams);
-          }
         }
-      } else {
-        const service = await getActivitiesService();
-        data = await service.findAll(paginationParams);
+        case 'brand': {
+          const service = await getBrandsService();
+          return service.findBrandActivities(target.id, paginationParams);
+        }
+        case 'all': {
+          const service = await getActivitiesService();
+          return service.findAll(paginationParams);
+        }
+        case 'none':
+          return EMPTY_ACTIVITIES;
       }
-
-      return data;
     },
-    enabled: autoLoad && isAuthReady && hasAuthenticatedSession,
+    enabled:
+      autoLoad &&
+      isAuthReady &&
+      hasAuthenticatedSession &&
+      // The platform-wide list is only readable once the super-admin flag is
+      // known; until then the target would be the organization list.
+      !(scope === PageScope.SUPERADMIN && isAccessStateLoading),
     // Avoid refetch storms when shell brand context remounts this page.
     staleTime: 30_000,
   });
