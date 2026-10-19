@@ -33,12 +33,13 @@ describe('PerformanceSummaryService', () => {
   const analyticsFindMany = vi.fn();
   const analyticsAggregate = vi.fn();
   const postFindMany = vi.fn();
+  const postCount = vi.fn();
   const sourcePostFindMany = vi.fn();
   const queryRaw = vi.fn();
 
   const prisma = {
     $queryRaw: queryRaw,
-    post: { findMany: postFindMany },
+    post: { count: postCount, findMany: postFindMany },
     postAnalytics: {
       aggregate: analyticsAggregate,
       findMany: analyticsFindMany,
@@ -53,6 +54,7 @@ describe('PerformanceSummaryService', () => {
     service = new PerformanceSummaryService(prisma);
     analyticsFindMany.mockResolvedValue([]);
     postFindMany.mockResolvedValue([]);
+    postCount.mockResolvedValue(0);
     sourcePostFindMany.mockResolvedValue([]);
     queryRaw.mockResolvedValue([]);
     analyticsAggregate.mockResolvedValue({ _sum: {} });
@@ -876,6 +878,7 @@ describe('PerformanceSummaryService', () => {
     it('folds imported posts into the weekly dataset, platform averages and trend', async () => {
       analyticsFindMany.mockResolvedValue([makeAnalytics()]);
       postFindMany.mockResolvedValue([makePost()]);
+      postCount.mockResolvedValue(1);
       queryRaw
         .mockResolvedValueOnce([
           { avg_engagement_rate: 4, platform: 'instagram', total_posts: 3 },
@@ -924,6 +927,22 @@ describe('PerformanceSummaryService', () => {
         previousEngagement: 100 + 50,
       });
       expect(summary.topHooks).toContain('Imported hook line');
+    });
+
+    it('counts posts published in the window even before analytics exist', async () => {
+      postCount.mockResolvedValue(4);
+
+      const summary = await service.getWeeklySummary('org-1', 'brand-1');
+
+      expect(summary.dataset.genfeedPosts).toBe(4);
+      const where = postCount.mock.calls[0]?.[0]?.where;
+      expect(where).toMatchObject({
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+      expect(where.OR[0].publishedAt.gte).toBeInstanceOf(Date);
+      expect(where.OR[1].postAnalytics.some.organizationId).toBe('org-1');
     });
 
     it('describes the dataset in the generated performance context', async () => {

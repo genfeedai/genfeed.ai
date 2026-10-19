@@ -28,6 +28,15 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('@contexts/analytics/analytics-context', () => ({
+  useAnalyticsContext: () => ({
+    dateRange: {
+      endDate: new Date('2026-10-18T00:00:00.000Z'),
+      startDate: new Date('2026-10-12T00:00:00.000Z'),
+    },
+  }),
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     brandSlug: 'brand',
@@ -119,15 +128,23 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     requestState.summary = buildSummary();
     render(<AnalyticsOverviewPerformanceDataset />);
 
-    expect(
-      await screen.findByText(
-        'Based on 5 posts in the last 7 days · 3 imported from your connected accounts',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('5 posts · 3 imported')).toBeInTheDocument();
     expect(screen.getByText('Low confidence')).toBeInTheDocument();
   });
 
-  it('shows the cold-start hint and settings link for low confidence', async () => {
+  it('requests the summary for the selected analytics date range', async () => {
+    requestState.summary = buildSummary();
+    render(<AnalyticsOverviewPerformanceDataset />);
+
+    await screen.findByText('Low confidence');
+    expect(mocks.getWeeklySummary).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      endDate: '2026-10-18',
+      startDate: '2026-10-12',
+    });
+  });
+
+  it('shows the connect-accounts link for low confidence', async () => {
     requestState.summary = buildSummary({
       dataset: {
         confidence: 'none',
@@ -147,7 +164,7 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     );
   });
 
-  it('does not show the cold-start hint for high confidence', async () => {
+  it('does not show the connect-accounts link for high confidence', async () => {
     requestState.summary = buildSummary({
       dataset: {
         confidence: 'high',

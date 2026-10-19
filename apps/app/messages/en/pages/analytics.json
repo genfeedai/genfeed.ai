@@ -188,7 +188,6 @@
     "views": "Views"
   },
   "performanceDataset": {
-    "coldStartHint": "Planning uses a cold-start brief — competitor ads, creative patterns, and followed creators — until more history exists.",
     "coldStartHintLink": "Connect more accounts",
     "confidence": {
       "high": "High confidence",
@@ -197,7 +196,7 @@
       "none": "No confidence"
     },
     "importedBadge": "Imported",
-    "summaryLine": "Based on {total} posts in the last 7 days · {imported} imported from your connected accounts",
+    "summaryLine": "{total, plural, one {# post} other {# posts}} · {imported} imported",
     "title": "Performance dataset"
   },
   "trends": {

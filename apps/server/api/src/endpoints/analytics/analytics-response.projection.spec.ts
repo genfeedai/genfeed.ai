@@ -250,4 +250,54 @@ describe('AnalyticsResponseProjection', () => {
       [CredentialPlatform.YOUTUBE],
     ]);
   });
+  describe('buildTopContent media', () => {
+    const baseRow = {
+      brand_name: 'Acme',
+      date: new Date('2025-01-01T00:00:00.000Z'),
+      id: 'row-1',
+      platform: 'YOUTUBE',
+      post_id: 'post-1',
+      total_comments: 1,
+      total_engagement: 2,
+      total_likes: 1,
+      total_saves: 0,
+      total_shares: 0,
+      total_views: 10,
+    };
+    const endpoint = 'https://cdn.test/ingredients';
+
+    it('plays a video post from its ingredient and previews its thumbnail', () => {
+      const [item] = projection.buildTopContent(
+        [{ ...baseRow, ingredient_category: 'VIDEO', ingredient_id: 'vid-1' }],
+        endpoint,
+      );
+
+      expect(item).toMatchObject({
+        ingredientUrl: `${endpoint}/videos/vid-1`,
+        isVideo: true,
+        thumbnailUrl: `${endpoint}/thumbnails/vid-1`,
+      });
+    });
+
+    it('uses an image ingredient as its own preview', () => {
+      const [item] = projection.buildTopContent(
+        [{ ...baseRow, ingredient_category: 'IMAGE', ingredient_id: 'img-1' }],
+        endpoint,
+      );
+
+      expect(item).toMatchObject({
+        ingredientUrl: `${endpoint}/images/img-1`,
+        isVideo: false,
+        thumbnailUrl: `${endpoint}/images/img-1`,
+      });
+    });
+
+    it('carries no media for a post without an ingredient', () => {
+      const [item] = projection.buildTopContent([baseRow], endpoint);
+
+      expect(item).toMatchObject({ isVideo: false });
+      expect(item?.ingredientUrl).toBeUndefined();
+      expect(item?.thumbnailUrl).toBeUndefined();
+    });
+  });
 });

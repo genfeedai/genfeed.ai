@@ -376,7 +376,10 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       source,
     );
 
-    return analyticsResponseProjection.buildTopContent(results);
+    return analyticsResponseProjection.buildTopContent(
+      results,
+      this.baseConfigService?.ingredientsEndpoint,
+    );
   }
 
   private async fetchTopContent(
@@ -412,10 +415,15 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         p.description AS description,
         p.visibility AS visibility,
         b.label AS brand_name,
-        NULL AS brand_logo
+        NULL AS brand_logo,
+        i.id AS ingredient_id,
+        i.category::text AS ingredient_category
       FROM "post_analytics" pa
       ${postJoin}
       ${brandJoin}
+      LEFT JOIN "ingredients" i ON i.id = p."entityIngredientId"
+        AND i."organizationId" = pa."organizationId"
+        AND i."isDeleted" = false
       WHERE pa."isDeleted" = false
         AND pa."date" >= ${startDate}
         AND pa."date" <= ${endDate}
