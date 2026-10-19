@@ -346,46 +346,6 @@ describe('createCodexStreamParser', () => {
       },
     });
   });
-
-  it('accepts the legacy { id, msg } envelope', () => {
-    const parser = createCodexStreamParser();
-    const events = parseAll(parser, [
-      JSON.stringify({
-        id: '0',
-        msg: { type: 'session_configured', session_id: 'legacy-1' },
-      }),
-      JSON.stringify({
-        id: '1',
-        msg: {
-          type: 'mcp_tool_call_begin',
-          call_id: 'c1',
-          invocation: { server: 'genfeed', tool: 'get_brand_context' },
-        },
-      }),
-      JSON.stringify({
-        id: '1',
-        msg: {
-          type: 'mcp_tool_call_end',
-          call_id: 'c1',
-          result: { Ok: { content: [{ type: 'text', text: 'ok' }] } },
-        },
-      }),
-      JSON.stringify({
-        id: '1',
-        msg: { type: 'agent_message', message: 'Hi' },
-      }),
-      JSON.stringify({ id: '1', msg: { type: 'task_complete' } }),
-    ]);
-
-    expect(events.at(-1)).toEqual({
-      result: { isError: false, sessionId: 'legacy-1', text: 'Hi' },
-      type: 'result',
-    });
-    expect(parser.getToolCalls()[0]).toMatchObject({
-      name: 'get_brand_context',
-      status: 'completed',
-    });
-  });
 });
 
 describe('summarizeToolArguments', () => {

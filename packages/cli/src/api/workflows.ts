@@ -1,11 +1,6 @@
 import type { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { get, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
 export interface WorkflowNode {
   id: string;
@@ -70,16 +65,16 @@ export async function listWorkflows(
   }
   const path = `/workflows?${query.toString()}`;
   const response = signal
-    ? await get<JsonApiCollectionResponse>(path, { signal })
-    : await get<JsonApiCollectionResponse>(path);
+    ? await get<JsonApiDocument>(path, { signal })
+    : await get<JsonApiDocument>(path);
   return flattenCollection<Workflow>(response);
 }
 
 export async function getWorkflow(id: string, signal?: AbortSignal): Promise<Workflow> {
   const path = `/workflows/${id}`;
   const response = signal
-    ? await get<JsonApiSingleResponse>(path, { signal })
-    : await get<JsonApiSingleResponse>(path);
+    ? await get<JsonApiDocument>(path, { signal })
+    : await get<JsonApiDocument>(path);
   return flattenSingle<Workflow>(response);
 }
 
@@ -88,8 +83,8 @@ export async function createWorkflowExecution(
   signal?: AbortSignal
 ): Promise<WorkflowExecution> {
   const response = signal
-    ? await post<JsonApiSingleResponse>('/workflow-executions', input, { signal })
-    : await post<JsonApiSingleResponse>('/workflow-executions', input);
+    ? await post<JsonApiDocument>('/workflow-executions', input, { signal })
+    : await post<JsonApiDocument>('/workflow-executions', input);
   return flattenSingle<WorkflowExecution>(response);
 }
 
@@ -103,11 +98,11 @@ export async function listWorkflowExecutions(
   if (options.workflowId) {
     query.set('workflowId', options.workflowId);
   }
-  const response = await get<JsonApiCollectionResponse>(`/workflow-executions?${query.toString()}`);
+  const response = await get<JsonApiDocument>(`/workflow-executions?${query.toString()}`);
   return flattenCollection<WorkflowExecution>(response);
 }
 
 export async function getWorkflowExecution(id: string): Promise<WorkflowExecution> {
-  const response = await get<JsonApiSingleResponse>(`/workflow-executions/${id}`);
+  const response = await get<JsonApiDocument>(`/workflow-executions/${id}`);
   return flattenSingle<WorkflowExecution>(response);
 }

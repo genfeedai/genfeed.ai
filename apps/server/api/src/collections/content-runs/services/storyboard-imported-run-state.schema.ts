@@ -170,9 +170,7 @@ export function storyboardPublicConfig(config: StoryboardStoredRunConfig) {
     }),
   });
 }
-export function parseStoryboardLegacyConfig(
-  value: unknown,
-): StoryboardLegacyConfig {
+function parseStoryboardLegacyConfig(value: unknown): StoryboardLegacyConfig {
   const parsed = storyboardLegacyConfigSchema.parse(value);
   const raw = structuredClone(value) as StoryboardLegacyConfig;
   return {

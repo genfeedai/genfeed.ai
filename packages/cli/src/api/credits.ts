@@ -1,10 +1,5 @@
 import { get, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
 export interface CreditUsage {
   currentBalance?: number;
@@ -40,12 +35,12 @@ export interface CreditTransaction {
 }
 
 export async function getCreditUsage(): Promise<CreditUsage> {
-  const response = await get<JsonApiSingleResponse>('/credits/usage');
+  const response = await get<JsonApiDocument>('/credits/usage');
   return flattenSingle<CreditUsage>(response);
 }
 
 export async function getLastPurchaseBaseline(): Promise<LastPurchaseBaseline> {
-  const response = await get<JsonApiSingleResponse>('/credits/last-purchase-baseline');
+  const response = await get<JsonApiDocument>('/credits/last-purchase-baseline');
   return flattenSingle<LastPurchaseBaseline>(response);
 }
 
@@ -55,8 +50,8 @@ export async function createCreditsCheckout(
 ): Promise<CreditsCheckout> {
   const body = { credits };
   const response = signal
-    ? await post<JsonApiSingleResponse>('/services/stripe/credits/checkout', body, { signal })
-    : await post<JsonApiSingleResponse>('/services/stripe/credits/checkout', body);
+    ? await post<JsonApiDocument>('/services/stripe/credits/checkout', body, { signal })
+    : await post<JsonApiDocument>('/services/stripe/credits/checkout', body);
   return flattenSingle<CreditsCheckout>(response);
 }
 
@@ -65,8 +60,6 @@ export async function listCreditTransactions(limit = 50): Promise<CreditTransact
   const boundedLimit = Number.isFinite(normalizedLimit)
     ? Math.min(Math.max(normalizedLimit, 1), 200)
     : 50;
-  const response = await get<JsonApiCollectionResponse>(
-    `/credits/transactions?limit=${boundedLimit}`
-  );
+  const response = await get<JsonApiDocument>(`/credits/transactions?limit=${boundedLimit}`);
   return flattenCollection<CreditTransaction>(response);
 }
