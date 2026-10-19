@@ -75,6 +75,10 @@ function PromptBarProviderContent({
   const refreshCallbacksRef = useRef<(() => void)[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
+  // The catalogs are large and only a few screens read them, so nothing is
+  // fetched until a consumer mounts and calls `requestLoad`.
+  const [hasDemand, setHasDemand] = useState(false);
+  const requestLoad = useCallback(() => setHasDemand(true), []);
   const isLoadingRef = useRef(false);
   const fetchIdRef = useRef(0);
 
@@ -225,7 +229,7 @@ function PromptBarProviderContent({
     orgSettings,
   ]);
   useEffect(() => {
-    if (!isAuthLoaded || !enabled) {
+    if (!isAuthLoaded || !enabled || !hasDemand) {
       return;
     }
 
@@ -251,6 +255,7 @@ function PromptBarProviderContent({
     isAuthLoaded,
     isSignedIn,
     enabled,
+    hasDemand,
     userId,
     orgId,
     organizationId,
@@ -314,17 +319,33 @@ function PromptBarProviderContent({
     organizationId,
   ]);
 
-  const value: PromptBarContextValue = {
-    error: hasActiveSession ? error : null,
-    fontFamilies: hasActiveSession ? fontFamilies : [],
-    isLoading: exposedIsLoading,
-    models,
-    onRefresh,
-    presets: hasActiveSession ? presets : [],
-    refetch,
-    tags: hasActiveSession ? tags : [],
-    trainings: hasActiveSession ? trainings : [],
-  };
+  const value = useMemo<PromptBarContextValue>(
+    () => ({
+      error: hasActiveSession ? error : null,
+      fontFamilies: hasActiveSession ? fontFamilies : [],
+      isLoading: exposedIsLoading,
+      models,
+      onRefresh,
+      presets: hasActiveSession ? presets : [],
+      refetch,
+      requestLoad,
+      tags: hasActiveSession ? tags : [],
+      trainings: hasActiveSession ? trainings : [],
+    }),
+    [
+      error,
+      exposedIsLoading,
+      fontFamilies,
+      hasActiveSession,
+      models,
+      onRefresh,
+      presets,
+      refetch,
+      requestLoad,
+      tags,
+      trainings,
+    ],
+  );
 
   return (
     <PromptBarContext.Provider value={value}>

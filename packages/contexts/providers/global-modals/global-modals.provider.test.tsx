@@ -20,8 +20,10 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+const navigation = vi.hoisted(() => ({ pathname: '/workspace' }));
+
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/workspace',
+  usePathname: () => navigation.pathname,
   useParams: () => ({ brandSlug: undefined, orgSlug: undefined }),
   useRouter: () => ({
     push: vi.fn(),
@@ -182,5 +184,27 @@ describe('GlobalModalsProvider', () => {
 
     expect(document.body.style.pointerEvents).toBe('');
     expect(document.body.style.overflow).toBe('');
+  });
+});
+
+describe('GlobalModalsProvider consumers', () => {
+  it('does not re-render modal hook consumers when the route changes', () => {
+    let renders = 0;
+    function Consumer() {
+      useConfirmModal();
+      renders += 1;
+      return null;
+    }
+    const children = <Consumer />;
+    navigation.pathname = '/workspace';
+    const { rerender } = render(
+      <GlobalModalsProvider>{children}</GlobalModalsProvider>,
+    );
+    const initialRenders = renders;
+
+    navigation.pathname = '/library';
+    rerender(<GlobalModalsProvider>{children}</GlobalModalsProvider>);
+
+    expect(renders).toBe(initialRenders);
   });
 });

@@ -75,8 +75,10 @@ describe('PromptBarProvider', () => {
       { findAllPages: vi.fn().mockResolvedValue([]) },
     ];
 
+    // The provider requests its five services on every render, in a fixed order.
+    let serviceCall = 0;
     useAuthedServiceMock.mockImplementation(() => {
-      const nextService = services.shift();
+      const nextService = services[serviceCall++ % services.length];
       return vi.fn().mockResolvedValue(nextService);
     });
   });
@@ -109,5 +111,32 @@ describe('PromptBarProvider', () => {
     // 5 services registered (fonts, presets, models, trainings, tags)
     // May be called more than 5 times due to React strict mode double-rendering
     expect(useAuthedServiceMock.mock.calls.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('does not fetch the catalogs until a consumer mounts', async () => {
+    const getService = vi
+      .fn()
+      .mockResolvedValue({ findAllPages: vi.fn().mockResolvedValue([]) });
+    useAuthedServiceMock.mockImplementation(() => getService);
+
+    const { rerender } = render(
+      <PromptBarProvider>
+        <span>idle</span>
+      </PromptBarProvider>,
+    );
+    await Promise.resolve();
+    expect(getService).not.toHaveBeenCalled();
+
+    function Consumer() {
+      usePromptBarContext();
+      return null;
+    }
+    rerender(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
+
+    await waitFor(() => expect(getService).toHaveBeenCalled());
   });
 });

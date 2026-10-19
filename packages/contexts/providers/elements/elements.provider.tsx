@@ -22,6 +22,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -67,6 +68,10 @@ function ElementsProviderContent({
     ElementsService.findAllElements(token),
   );
 
+  // Nine catalogs load in one call and only a few screens read them, so
+  // nothing is fetched until a consumer mounts and calls `requestLoad`.
+  const [hasDemand, setHasDemand] = useState(false);
+  const requestLoad = useCallback(() => setHasDemand(true), []);
   const refreshCallbacksRef = useRef<Array<() => Promise<void> | void>>([]);
   const isLoadingRef = useRef(false);
   const lastSessionRef = useRef<{
@@ -135,7 +140,7 @@ function ElementsProviderContent({
   /* eslint-enable react-doctor/no-adjust-state-on-prop-change */
 
   useEffect(() => {
-    if (!isAuthLoaded || !enabled) {
+    if (!isAuthLoaded || !enabled || !hasDemand) {
       return;
     }
 
@@ -160,6 +165,7 @@ function ElementsProviderContent({
     isAuthLoaded,
     isSignedIn,
     enabled,
+    hasDemand,
     userId,
     orgId,
     sessionId,
@@ -201,27 +207,53 @@ function ElementsProviderContent({
     };
   }, []);
 
-  const value: ElementsContextValue = {
-    blacklists: hasActiveSession ? blacklists : [],
-    cameraMovements: hasActiveSession ? cameraMovements : [],
-    cameras: hasActiveSession ? cameras : [],
-    error: hasActiveSession ? error : null,
-    filters,
-    isLoading: exposedIsLoading,
-    isRefreshing,
-    lenses: hasActiveSession ? lenses : [],
-    lightings: hasActiveSession ? lightings : [],
-    moods: hasActiveSession ? moods : [],
-    onRefresh,
-    query,
-    refetch,
-    scenes: hasActiveSession ? scenes : [],
-    setFilters,
-    setIsRefreshing,
-    setQuery,
-    sounds: hasActiveSession ? sounds : [],
-    styles: hasActiveSession ? styles : [],
-  };
+  const value = useMemo<ElementsContextValue>(
+    () => ({
+      blacklists: hasActiveSession ? blacklists : [],
+      cameraMovements: hasActiveSession ? cameraMovements : [],
+      cameras: hasActiveSession ? cameras : [],
+      error: hasActiveSession ? error : null,
+      filters,
+      isLoading: exposedIsLoading,
+      isRefreshing,
+      lenses: hasActiveSession ? lenses : [],
+      lightings: hasActiveSession ? lightings : [],
+      moods: hasActiveSession ? moods : [],
+      onRefresh,
+      query,
+      refetch,
+      requestLoad,
+      scenes: hasActiveSession ? scenes : [],
+      setFilters,
+      setIsRefreshing,
+      setQuery,
+      sounds: hasActiveSession ? sounds : [],
+      styles: hasActiveSession ? styles : [],
+    }),
+    [
+      blacklists,
+      cameraMovements,
+      cameras,
+      error,
+      exposedIsLoading,
+      filters,
+      hasActiveSession,
+      isRefreshing,
+      lenses,
+      lightings,
+      moods,
+      onRefresh,
+      query,
+      refetch,
+      requestLoad,
+      scenes,
+      setFilters,
+      setIsRefreshing,
+      setQuery,
+      sounds,
+      styles,
+    ],
+  );
 
   return (
     <ElementsContext.Provider value={value}>

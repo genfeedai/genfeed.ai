@@ -13,7 +13,7 @@ import {
   useRouteModalGlobalSideEffectCleanup,
 } from '@ui/utils/modal-global-side-effects';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { type ReactNode, use, useCallback, useEffect } from 'react';
+import { type ReactNode, use, useCallback, useEffect, useMemo } from 'react';
 import GlobalModalsRenderer from './GlobalModalsRenderer';
 import { GlobalModalsContext } from './global-modals.context';
 import { useGlobalModalsState } from './useGlobalModalsState';
@@ -266,31 +266,60 @@ export function GlobalModalsProvider({
     return scheduleModalGlobalSideEffectCleanup();
   }, [state.hasOpenGlobalModal]);
 
-  const contextValue: GlobalModalsContextValue = {
-    closeBrandCreateModal: state.closeBrandCreateModal,
-    closeConfirm: state.closeConfirm,
-    closeExport: state.closeExport,
-    closeGallery: state.closeGallery,
-    closeGenerateIllustration: state.closeGenerateIllustration,
-    closeMetadataModal: state.closeMetadataModal,
-    closePostRemixModal: state.closePostRemixModal,
-    closePostRepurposeModal: state.closePostRepurposeModal,
-    closePromptModal: state.closePromptModal,
-    closeUpload: state.closeUpload,
-    handlePostClose: state.handlePostClose,
-    openBrandCreateModal: state.openBrandCreateModal,
-    openConfirm: state.openConfirm,
-    openExport: state.openExport,
-    openGallery: state.openGallery,
-    openGenerateIllustration: state.openGenerateIllustration,
-    openMetadataModal: state.openMetadataModal,
-    openPostBatchModal: state.openPostBatchModal,
-    openPostRemixModal: state.openPostRemixModal,
-    openPostRepurposeModal: state.openPostRepurposeModal,
-    openPromptModal: state.openPromptModal,
-    openUpload: state.openUpload,
-    publishIngredient: state.publishIngredient,
-  };
+  // Consumers (every row or card that opens a modal) re-render on a new value,
+  // and this provider re-renders on every route and search-param change.
+  const contextValue = useMemo<GlobalModalsContextValue>(
+    () => ({
+      closeBrandCreateModal: state.closeBrandCreateModal,
+      closeConfirm: state.closeConfirm,
+      closeExport: state.closeExport,
+      closeGallery: state.closeGallery,
+      closeGenerateIllustration: state.closeGenerateIllustration,
+      closeMetadataModal: state.closeMetadataModal,
+      closePostRemixModal: state.closePostRemixModal,
+      closePostRepurposeModal: state.closePostRepurposeModal,
+      closePromptModal: state.closePromptModal,
+      closeUpload: state.closeUpload,
+      handlePostClose: state.handlePostClose,
+      openBrandCreateModal: state.openBrandCreateModal,
+      openConfirm: state.openConfirm,
+      openExport: state.openExport,
+      openGallery: state.openGallery,
+      openGenerateIllustration: state.openGenerateIllustration,
+      openMetadataModal: state.openMetadataModal,
+      openPostBatchModal: state.openPostBatchModal,
+      openPostRemixModal: state.openPostRemixModal,
+      openPostRepurposeModal: state.openPostRepurposeModal,
+      openPromptModal: state.openPromptModal,
+      openUpload: state.openUpload,
+      publishIngredient: state.publishIngredient,
+    }),
+    [
+      state.closeBrandCreateModal,
+      state.closeConfirm,
+      state.closeExport,
+      state.closeGallery,
+      state.closeGenerateIllustration,
+      state.closeMetadataModal,
+      state.closePostRemixModal,
+      state.closePostRepurposeModal,
+      state.closePromptModal,
+      state.closeUpload,
+      state.handlePostClose,
+      state.openBrandCreateModal,
+      state.openConfirm,
+      state.openExport,
+      state.openGallery,
+      state.openGenerateIllustration,
+      state.openMetadataModal,
+      state.openPostBatchModal,
+      state.openPostRemixModal,
+      state.openPostRepurposeModal,
+      state.openPromptModal,
+      state.openUpload,
+      state.publishIngredient,
+    ],
+  );
 
   return (
     <GlobalModalsContext.Provider value={contextValue}>

@@ -7,7 +7,7 @@ import type {
   ITag,
   ITraining,
 } from '@genfeedai/contracts/interfaces';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 
 export interface PromptBarContextValue {
   models: IModel[];
@@ -19,6 +19,8 @@ export interface PromptBarContextValue {
   error: Error | null;
   refetch: () => Promise<void>;
   onRefresh?: (callback: () => void) => void;
+  /** Starts the catalog fetch; the provider stays idle until a consumer asks. */
+  requestLoad?: () => void;
 }
 
 export const PromptBarContext = createContext<
@@ -32,5 +34,9 @@ export function usePromptBarContext(): PromptBarContextValue {
       'usePromptBarContext must be used within a PromptBarProvider',
     );
   }
+  const { requestLoad } = context;
+  useEffect(() => {
+    requestLoad?.();
+  }, [requestLoad]);
   return context;
 }

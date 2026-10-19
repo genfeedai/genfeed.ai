@@ -15,7 +15,7 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 
 export interface ElementsContextValue {
   moods: IElementMood[];
@@ -37,6 +37,8 @@ export interface ElementsContextValue {
   setIsRefreshing: (isRefreshing: boolean) => void;
   refetch: () => Promise<void>;
   onRefresh?: (callback: () => Promise<void> | void) => void;
+  /** Starts the catalog fetch; the provider stays idle until a consumer asks. */
+  requestLoad?: () => void;
 }
 
 export const ElementsContext = createContext<ElementsContextValue | undefined>(
@@ -50,5 +52,9 @@ export function useElementsContext(): ElementsContextValue {
       'useElementsContext must be used within an ElementsProvider',
     );
   }
+  const { requestLoad } = context;
+  useEffect(() => {
+    requestLoad?.();
+  }, [requestLoad]);
   return context;
 }

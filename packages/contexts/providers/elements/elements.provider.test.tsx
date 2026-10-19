@@ -130,4 +130,29 @@ describe('ElementsProvider', () => {
       expect(screen.getByTestId('mood-count')).toHaveTextContent('1');
     });
   });
+
+  it('does not fetch the catalogs until a consumer mounts', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({});
+    useAuthedServiceMock.mockImplementation(() => fetchSpy);
+
+    const { rerender } = render(
+      <ElementsProvider enabled>
+        <span>idle</span>
+      </ElementsProvider>,
+    );
+    await Promise.resolve();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    function Consumer() {
+      useElementsContext();
+      return null;
+    }
+    rerender(
+      <ElementsProvider enabled>
+        <Consumer />
+      </ElementsProvider>,
+    );
+
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+  });
 });
