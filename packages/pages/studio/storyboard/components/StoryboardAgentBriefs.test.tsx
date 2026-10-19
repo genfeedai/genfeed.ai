@@ -2,9 +2,13 @@ import StoryboardAgentBriefs from '@pages/studio/storyboard/components/Storyboar
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  propose: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const propose = vi.fn();
+  return {
+    getService: vi.fn(async () => ({ propose })),
+    propose,
+  };
+});
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -12,7 +16,7 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ propose: mocks.propose }),
+  useAuthedService: () => mocks.getService,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -52,7 +56,9 @@ describe('StoryboardAgentBriefs', () => {
     expect(card).toHaveTextContent('2 shots · 12s');
     fireEvent.click(card);
 
+    expect(mocks.propose).toHaveBeenCalledTimes(1);
     expect(mocks.propose).toHaveBeenCalledWith('brand-a', 'storyboard', {
+      count: 3,
       signal: expect.any(AbortSignal),
     });
     expect(onSelect).toHaveBeenCalledWith(PROPOSAL);

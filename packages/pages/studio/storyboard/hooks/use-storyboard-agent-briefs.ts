@@ -19,6 +19,8 @@ interface AgentBriefsRecord {
 }
 
 const EMPTY_PROPOSALS: readonly StudioStoryboardProposal[] = [];
+/** The create page shows three briefs; the endpoint may return up to six. */
+const STORYBOARD_BRIEF_COUNT = 3;
 
 /**
  * Agent-written storyboard briefs with shot plans for the brand (#7341).
@@ -39,6 +41,7 @@ export function useStoryboardAgentBriefs(
       try {
         const service = await getService();
         const result = await service.propose(brandId, 'storyboard', {
+          count: STORYBOARD_BRIEF_COUNT,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -47,7 +50,7 @@ export function useStoryboardAgentBriefs(
           isBrandApproved: result.isBrandApproved,
           proposals:
             result.surface === 'storyboard'
-              ? result.proposals
+              ? result.proposals.slice(0, STORYBOARD_BRIEF_COUNT)
               : EMPTY_PROPOSALS,
         });
       } catch (error: unknown) {
