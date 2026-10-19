@@ -111,9 +111,9 @@ export default function OutreachCampaignsTable({
         key: 'targets',
         render: (campaign: OutreachCampaign) => (
           <div className="flex flex-col text-sm">
-            <span>{campaign.totalTargets.toLocaleString()} total</span>
+            <span>{campaign.totalTargets.toLocaleString('en-US')} total</span>
             <span className="text-xs text-foreground/60">
-              {campaign.totalSuccessful.toLocaleString()} replied
+              {campaign.totalSuccessful.toLocaleString('en-US')} replied
             </span>
           </div>
         ),
@@ -236,22 +236,22 @@ export default function OutreachCampaignsTable({
           {
             id: 'targets',
             label: translate('summary.targets'),
-            value: campaign.totalTargets.toLocaleString(),
+            value: campaign.totalTargets.toLocaleString('en-US'),
           },
           {
             id: 'replied',
             label: translate('summary.replied'),
-            value: campaign.totalSuccessful.toLocaleString(),
+            value: campaign.totalSuccessful.toLocaleString('en-US'),
           },
           {
             id: 'failed',
             label: translate('summary.failed'),
-            value: campaign.totalFailed.toLocaleString(),
+            value: campaign.totalFailed.toLocaleString('en-US'),
           },
           {
             id: 'skipped',
             label: translate('summary.skipped'),
-            value: campaign.totalSkipped.toLocaleString(),
+            value: campaign.totalSkipped.toLocaleString('en-US'),
           },
           {
             id: 'rateLimits',

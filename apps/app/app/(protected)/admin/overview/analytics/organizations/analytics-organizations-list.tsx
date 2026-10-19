@@ -155,7 +155,9 @@ export default function AnalyticsOrganizationsList({
         header: 'Posts',
         key: 'totalPosts',
         render: (org) => (
-          <span className="font-mono">{org.totalPosts.toLocaleString()}</span>
+          <span className="font-mono">
+            {org.totalPosts.toLocaleString('en-US')}
+          </span>
         ),
       },
       {
@@ -164,7 +166,7 @@ export default function AnalyticsOrganizationsList({
         key: 'totalEngagement',
         render: (org) => (
           <span className="font-mono">
-            {org.totalEngagement.toLocaleString()}
+            {org.totalEngagement.toLocaleString('en-US')}
           </span>
         ),
       },
@@ -173,7 +175,9 @@ export default function AnalyticsOrganizationsList({
         header: 'Views',
         key: 'totalViews',
         render: (org) => (
-          <span className="font-mono">{org.totalViews.toLocaleString()}</span>
+          <span className="font-mono">
+            {org.totalViews.toLocaleString('en-US')}
+          </span>
         ),
       },
       {
@@ -241,17 +245,17 @@ export default function AnalyticsOrganizationsList({
                 {
                   id: 'posts',
                   label: fieldsT('posts'),
-                  value: org.totalPosts.toLocaleString(),
+                  value: org.totalPosts.toLocaleString('en-US'),
                 },
                 {
                   id: 'views',
                   label: fieldsT('views'),
-                  value: org.totalViews.toLocaleString(),
+                  value: org.totalViews.toLocaleString('en-US'),
                 },
                 {
                   id: 'engagement',
                   label: fieldsT('engagement'),
-                  value: org.totalEngagement.toLocaleString(),
+                  value: org.totalEngagement.toLocaleString('en-US'),
                 },
                 {
                   id: 'engagementRate',

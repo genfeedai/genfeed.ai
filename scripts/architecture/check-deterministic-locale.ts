@@ -141,16 +141,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx',
-    'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'apps/app/app/(protected)/admin/overview/analytics/organizations/analytics-organizations-list.tsx',
-    'to-locale-string',
-    3,
-  ),
-  legacyUiAllowance(
     'apps/app/app/(protected)/admin/overview/dashboard/overview-page.tsx',
     'to-locale-string',
     2,
@@ -221,16 +211,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'packages/pages/agents/campaigns/OutreachCampaignsKPI.tsx',
     'to-locale-string',
     1,
-  ),
-  legacyUiAllowance(
-    'packages/pages/agents/campaigns/OutreachCampaignsTable.tsx',
-    'to-locale-string',
-    2,
-  ),
-  legacyUiAllowance(
-    'packages/pages/analytics/overview/analytics-overview-leaderboards.tsx',
-    'to-locale-string',
-    4,
   ),
   legacyUiAllowance(
     'packages/pages/posts/detail/components/PostDetailCardBody.tsx',
