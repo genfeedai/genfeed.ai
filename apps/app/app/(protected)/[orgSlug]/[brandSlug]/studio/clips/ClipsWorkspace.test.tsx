@@ -5,8 +5,17 @@ import '@testing-library/jest-dom/vitest';
 import ClipsWorkspace from './ClipsWorkspace';
 
 const mocks = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
   useStudioClipProjects: vi.fn(),
   useStudioClipsPage: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => mocks.searchParams,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('./useStudioClipProjects', () => ({
@@ -51,7 +60,12 @@ vi.mock('./components/ClipsInputForm', () => ({
 }));
 
 vi.mock('./components/ClipsProjectList', () => ({
-  default: () => <div data-testid="clips-project-list" />,
+  default: ({ isRecentVisible }: { isRecentVisible?: boolean }) => (
+    <div
+      data-recent-visible={String(isRecentVisible)}
+      data-testid="clips-project-list"
+    />
+  ),
 }));
 
 function baseClipsPageState(overrides: Record<string, unknown> = {}) {
@@ -81,6 +95,7 @@ function baseClipsPageState(overrides: Record<string, unknown> = {}) {
 describe('ClipsWorkspace chrome stability', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.searchParams = new URLSearchParams();
     mocks.useStudioClipsPage.mockReturnValue(baseClipsPageState());
   });
 
@@ -252,6 +267,36 @@ describe('ClipsWorkspace chrome stability', () => {
     expect(screen.getByRole('link', { name: 'All projects' })).toHaveAttribute(
       'href',
       '/acme/demo/studio/clips',
+    );
+  });
+
+  it('pages the project list and drops "Recent" after the first page', () => {
+    mocks.searchParams = new URLSearchParams('page=2');
+    mocks.useStudioClipProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [
+        {
+          failedClipCount: 0,
+          id: 'clip-9',
+          isDraft: false,
+          name: 'Older clip',
+          pendingClipCount: 0,
+          progress: 100,
+          readyClipCount: 1,
+          status: 'completed',
+        },
+      ],
+    });
+
+    render(<ClipsWorkspace />);
+
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+    expect(screen.getByTestId('clips-project-list')).toHaveAttribute(
+      'data-recent-visible',
+      'false',
     );
   });
 });

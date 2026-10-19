@@ -142,11 +142,14 @@ export class MembersController {
     const invitations = await this.invitationService.listInvitations(
       orgId,
       query.status,
+      { limit: query.limit, page: query.page },
     );
 
-    return serializeCollection(request, MemberInvitationSerializer, {
-      docs: invitations,
-    });
+    return serializeCollection(
+      request,
+      MemberInvitationSerializer,
+      invitations,
+    );
   }
 
   /**

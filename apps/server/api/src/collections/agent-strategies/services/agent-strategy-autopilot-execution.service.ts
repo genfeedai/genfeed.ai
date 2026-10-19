@@ -16,6 +16,7 @@ import {
   strategyOrganizationId as getStrategyOrganizationId,
   isOverLengthRevision,
   normalizeOpportunitySourceType,
+  resolveOpportunityFormat,
   resolveOpportunityPlatform,
   resolveReviewTurboRunItemFormat,
   scoreImagePublishGate,
@@ -38,6 +39,10 @@ import {
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { recordPublishingInboxActivity } from '@api/collections/agent-strategies/services/agent-strategy-publishing-inbox-activity.util';
+import {
+  publishAutopilotThread,
+  readAutopilotThreadSegments,
+} from '@api/collections/agent-strategies/services/agent-strategy-thread-publish.util';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -130,14 +135,19 @@ export class AgentStrategyAutopilotExecutionService {
     draftGenerator?: CadenceDraftGenerator,
     creditBudget = 0,
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
-    const strategyOrganizationId = getStrategyOrganizationId(strategy);
+    const organizationId = getStrategyOrganizationId(strategy);
     const targetPlatform = resolveOpportunityPlatform(strategy, opportunity);
-    const format = opportunity.formatCandidates[0] ?? 'text';
+    const format = resolveOpportunityFormat(
+      strategy,
+      opportunity,
+      targetPlatform,
+      Boolean(draftGenerator),
+    );
 
     // Only the cadence generator prices and dispatches video; the legacy
     // gateway path has no video quote.
     if (format === 'video' && !draftGenerator) {
-      return this.handleVideoHold(opportunity, strategyOrganizationId);
+      return this.handleVideoHold(opportunity, organizationId);
     }
 
     const generated = draftGenerator
@@ -156,23 +166,13 @@ export class AgentStrategyAutopilotExecutionService {
           defaultModel,
           format,
           opportunity,
-          organizationId: strategyOrganizationId,
+          organizationId,
           platform: targetPlatform,
           strategy,
           userId,
         });
-    if (!draft) {
-      await this.opportunitiesService.updateStatus(
-        getOpportunityId(opportunity),
-        strategyOrganizationId,
-        'held',
-        {
-          decisionReason:
-            generated?.heldReason ?? 'No content draft was produced.',
-        },
-      );
-      return { contentGenerated: 0, creditsUsed: generated?.creditsUsed ?? 0 };
-    }
+    if (!draft)
+      return this.holdWithoutDraft(opportunity, organizationId, generated);
     if (generated)
       opportunity = {
         ...opportunity,
@@ -181,7 +181,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     await this.opportunitiesService.updateStatus(
       getOpportunityId(opportunity),
-      strategyOrganizationId,
+      organizationId,
       'generating',
       { metadata: { ...opportunity.metadata, draftId: getDraftId(draft) } },
     );
@@ -195,28 +195,35 @@ export class AgentStrategyAutopilotExecutionService {
       return this.handoffVideoForReview({
         draft,
         opportunity,
-        organizationId: strategyOrganizationId,
+        organizationId,
         platform: targetPlatform,
         strategy,
         userId,
       });
     let draftContent = getDraftContent(draft);
+    const threadSegments = await readAutopilotThreadSegments(
+      this.postsService,
+      format,
+      draft,
+      organizationId,
+    );
 
     const evaluateQuality = bindCadenceQualityEvaluator(
       this.opportunitiesService,
       opportunity,
-      strategyOrganizationId,
+      organizationId,
       generated?.evaluateQuality,
     );
     const evaluation = await evaluateQuality?.();
     let gate = await this.evaluateDraft(
       strategy,
-      strategyOrganizationId,
+      organizationId,
       format,
       draftContent,
       getDraftMediaUrls(draft)[0],
       targetPlatform,
       evaluation?.analysis,
+      threadSegments,
     );
 
     if (gate.decision === 'revise' && format === 'text' && !draftGenerator) {
@@ -227,7 +234,7 @@ export class AgentStrategyAutopilotExecutionService {
         format,
         gate,
         opportunity,
-        organizationId: strategyOrganizationId,
+        organizationId,
         platform: targetPlatform,
         strategy,
         userId,
@@ -243,7 +250,7 @@ export class AgentStrategyAutopilotExecutionService {
         draft,
         gate,
         opportunity,
-        organizationId: strategyOrganizationId,
+        organizationId,
       });
     }
 
@@ -261,11 +268,29 @@ export class AgentStrategyAutopilotExecutionService {
       format,
       gate,
       opportunity,
-      organizationId: strategyOrganizationId,
+      organizationId,
       platform: targetPlatform,
       strategy,
+      threadSegments,
       userId,
     });
+  }
+
+  private async holdWithoutDraft(
+    opportunity: AgentStrategyOpportunityDocument,
+    organizationId: string,
+    generated: Awaited<ReturnType<CadenceDraftGenerator>> | null,
+  ): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    await this.opportunitiesService.updateStatus(
+      getOpportunityId(opportunity),
+      organizationId,
+      'held',
+      {
+        decisionReason:
+          generated?.heldReason ?? 'No content draft was produced.',
+      },
+    );
+    return { contentGenerated: 0, creditsUsed: generated?.creditsUsed ?? 0 };
   }
 
   private async generateAutopilotDraft(input: {
@@ -512,7 +537,7 @@ export class AgentStrategyAutopilotExecutionService {
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
     await recordReadyDraftReceipt(this.postsService, input);
     if (
-      input.format === 'text' &&
+      (input.format === 'text' || input.format === 'thread') &&
       input.opportunity.metadata?.cadencePurpose !== 'reserve' &&
       shouldAutoPublish(input.strategy) &&
       !input.gate.isOverPlatformLimit // fan-out would refuse it
@@ -626,7 +651,7 @@ export class AgentStrategyAutopilotExecutionService {
             strategy,
             userId,
           })
-        : format === 'text'
+        : format === 'text' || format === 'thread'
           ? await this.createPublishingInboxHandoff({
               draftContent,
               draftId,
@@ -671,6 +696,7 @@ export class AgentStrategyAutopilotExecutionService {
     mediaUrl: string | undefined,
     platform: string,
     measuredAnalysis?: OptimizerAnalysisResult,
+    threadSegments?: readonly string[],
   ): Promise<PublishGateResult> {
     if (format === 'image') {
       if (!mediaUrl) {
@@ -707,7 +733,13 @@ export class AgentStrategyAutopilotExecutionService {
         organizationId,
       )) as OptimizerAnalysisResult);
 
-    return scoreTextPublishGate(strategy, content, analysis, platform);
+    return scoreTextPublishGate(
+      strategy,
+      content,
+      analysis,
+      platform,
+      threadSegments,
+    );
   }
 
   private async createPublishingInboxHandoff(input: {
@@ -811,7 +843,7 @@ export class AgentStrategyAutopilotExecutionService {
     userId: string,
     qualityContext?: Pick<
       FinalizeOpportunityInput,
-      'evaluateQuality' | 'gate' | 'platform'
+      'evaluateQuality' | 'gate' | 'platform' | 'threadSegments'
     >,
   ): Promise<{ policyReason?: string; postIds: string[]; scheduled: boolean }> {
     const createdPostIds: string[] = [];
@@ -819,6 +851,23 @@ export class AgentStrategyAutopilotExecutionService {
     const brandId = getStrategyBrandId(strategy) ?? '';
     const organizationId = getStrategyOrganizationId(strategy);
     let reusedDraft = false;
+    const threadSegments = qualityContext?.threadSegments;
+    if (threadSegments && qualityContext?.platform)
+      return publishAutopilotThread(
+        {
+          autonomousPublishPolicy: this.autonomousPublishPolicy,
+          postAccountFanoutService: this.postAccountFanoutService,
+          postsService: this.postsService,
+        },
+        {
+          draftId,
+          platform: qualityContext.platform,
+          qualityScore: qualityContext.gate.overallScore,
+          segments: threadSegments,
+          strategy,
+          userId,
+        },
+      );
 
     // A brand may hold several accounts on one platform, so auto-publish
     // addresses every connected account rather than whichever row a
@@ -930,16 +979,6 @@ export class AgentStrategyAutopilotExecutionService {
       reusedDraft = true;
     }
 
-    if (createdPostIds.length > 0) {
-      return {
-        postIds: createdPostIds,
-        scheduled: true,
-      };
-    }
-
-    return {
-      postIds: [],
-      scheduled: false,
-    };
+    return { postIds: createdPostIds, scheduled: createdPostIds.length > 0 };
   }
 }

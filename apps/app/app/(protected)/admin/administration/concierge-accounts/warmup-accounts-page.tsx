@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IWarmupAccount,
   IWarmupAccountStatus,
@@ -23,6 +24,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -36,6 +38,7 @@ import {
   RotateCw,
   Search,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import WarmupPreparationPanel from './warmup-preparation-panel';
@@ -255,6 +258,7 @@ export default function WarmupAccountsPage({
     loadTrigger,
   } = state;
   const notificationsService = NotificationsService.getInstance();
+  const currentPage = Number(useSearchParams().get('page')) || 1;
 
   const getWarmupAccountsService = useAuthedService((token: string) =>
     AdminWarmupAccountsService.getInstance(token),
@@ -271,7 +275,10 @@ export default function WarmupAccountsPage({
     async (signal: AbortSignal) => {
       try {
         const service = await getWarmupAccountsService();
-        const data = await service.getWarmupAccounts();
+        const data = await service.getWarmupAccounts(
+          { limit: ITEMS_PER_PAGE, page: currentPage },
+          signal,
+        );
 
         if (!signal.aborted) {
           dispatch({ type: 'SET_ACCOUNTS', accounts: data });
@@ -292,7 +299,7 @@ export default function WarmupAccountsPage({
         }
       }
     },
-    [getWarmupAccountsService, translate],
+    [currentPage, getWarmupAccountsService, translate],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadTrigger is an intentional re-fire signal incremented on every accounts-tab selection, including re-selections of the already-active tab
@@ -637,17 +644,20 @@ export default function WarmupAccountsPage({
       )}
       {activeTab === 'accounts' && !state.loadError && (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.75fr)]">
-          <WarmupAccountList
-            accounts={accounts}
-            isLoading={isLoading}
-            selectedAccountId={selectedAccount?.id}
-            onSelectAccount={(accountId) => {
-              if (accountId !== state.selectedAccountId) {
-                activeInvitationRequestRef.current?.controller.abort();
-              }
-              dispatch({ type: 'SET_SELECTED', accountId });
-            }}
-          />
+          <div className="space-y-4">
+            <WarmupAccountList
+              accounts={accounts}
+              isLoading={isLoading}
+              selectedAccountId={selectedAccount?.id}
+              onSelectAccount={(accountId) => {
+                if (accountId !== state.selectedAccountId) {
+                  activeInvitationRequestRef.current?.controller.abort();
+                }
+                dispatch({ type: 'SET_SELECTED', accountId });
+              }}
+            />
+            <AutoPagination showTotal totalLabel="accounts" />
+          </div>
           <div className="space-y-5">
             {selectedAccount && (
               <WarmupPreparationPanel

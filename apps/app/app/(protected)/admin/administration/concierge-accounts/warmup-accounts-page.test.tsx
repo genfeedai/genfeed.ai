@@ -35,6 +35,14 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getAuthedService,
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams('page=2'),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../tests/next-intl.stub'
@@ -194,6 +202,20 @@ async function findEnabledButton(name: RegExp | string): Promise<HTMLElement> {
 }
 
 describe('WarmupAccountsPage', () => {
+  it('requests the page in the URL and shows the pager', async () => {
+    mocks.getWarmupAccounts.mockResolvedValue([]);
+    render(<WarmupAccountsPage defaultTab="accounts" />);
+    await waitFor(() =>
+      expect(mocks.getWarmupAccounts).toHaveBeenCalledWith(
+        { limit: 15, page: 2 },
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(
+      await screen.findByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
   it('shows a persistent load failure rather than an empty account list and allows retry', async () => {
     mocks.getWarmupAccounts.mockRejectedValueOnce(new Error('forbidden'));
     render(<WarmupAccountsPage defaultTab="accounts" />);

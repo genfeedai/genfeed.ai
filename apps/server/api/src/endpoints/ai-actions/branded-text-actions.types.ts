@@ -123,7 +123,8 @@ export type BrandedPostsOutcomeV1 =
 export interface BrandedTextRunSpecV1 {
   actor: BrandAccessActor;
   brandId: string;
-  contentType: 'post' | 'reply';
+  /** `thread` saves each gate-normalized segment as its own linked post. */
+  contentType: 'post' | 'reply' | 'thread';
   /** The gate on the provider answer; its result is what the artifact saves. */
   gate: TextActionGate;
   generation: { maxTokens: number; temperature: number };

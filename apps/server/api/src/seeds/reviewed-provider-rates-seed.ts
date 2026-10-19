@@ -25,6 +25,15 @@ export interface RateSeedLogger {
 /** Marks a contract the sheet wrote, as opposed to one an operator approved. */
 export const RATE_SHEET_REVIEWER = 'rate-sheet';
 
+export interface RateSeedOptions {
+  /**
+   * An operator re-applies the sheet on purpose ("Fix pricing"): the sheet
+   * replaces whatever is reviewed now, including an operator's earlier
+   * approval, and the contract records that operator as its reviewer.
+   */
+  reviewedBy?: string;
+}
+
 /** Input schemas the pre-sheet seeds shipped, for rows that have none yet. */
 const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   'black-forest-labs/flux-3-image': {
@@ -79,6 +88,7 @@ async function seedEntry(
   prisma: PrismaService,
   entry: ReviewedRateSheetEntry,
   logger?: RateSeedLogger,
+  options: RateSeedOptions = {},
 ): Promise<boolean> {
   // tenant-scope-ignore: the rate sheet seeds the platform-wide registry (organizationId null) rows only
   const model = await prisma.model.findFirst({
@@ -104,9 +114,11 @@ async function seedEntry(
 
   const endpoint = model.endpoint || entry.endpoint;
   const version = hashReviewedRateSheetEntry(entry);
-  if (model.reviewedProviderContractVersion === version) return false;
+  const isForced = options.reviewedBy !== undefined;
+  if (model.reviewedProviderContractVersion === version && !isForced)
+    return false;
 
-  if (model.reviewedProviderContractVersion) {
+  if (model.reviewedProviderContractVersion && !isForced) {
     const reviewed = await prisma.modelProviderContract.findUnique({
       where: {
         provider_endpoint_version: {
@@ -194,6 +206,16 @@ async function seedEntry(
     );
   const single = entry.rates.length === 1 ? entry.rates[0] : undefined;
   const verifiedAt = new Date(entry.verifiedAt);
+  const reviewedAt = isForced ? new Date() : verifiedAt;
+  const pricing = {
+    currency: 'USD',
+    rates: entry.rates,
+    ...(entry.variantRules ? { variantRules: entry.variantRules } : {}),
+    source: 'provider-model-page',
+    sourceUrl: entry.sourceUrl,
+    verifiedAt: entry.verifiedAt,
+    ...(invariantSelectors.length ? { invariantSelectors } : {}),
+  } as unknown as Prisma.InputJsonValue;
 
   await prisma.modelProviderContract.upsert({
     create: {
@@ -214,23 +236,15 @@ async function seedEntry(
       openapiVersion:
         fixture?.openapi.openapi ?? usableObserved?.openapiVersion ?? null,
       outputSchema,
-      pricing: {
-        currency: 'USD',
-        rates: entry.rates,
-        ...(entry.variantRules ? { variantRules: entry.variantRules } : {}),
-        source: 'provider-model-page',
-        sourceUrl: entry.sourceUrl,
-        verifiedAt: entry.verifiedAt,
-        ...(invariantSelectors.length ? { invariantSelectors } : {}),
-      } as unknown as Prisma.InputJsonValue,
+      pricing,
       pricingType:
         single && Object.keys(single.when).length === 0
           ? 'flat'
           : 'conditional',
       provider: entry.provider,
       reviewStatus: 'approved',
-      reviewedAt: verifiedAt,
-      reviewedBy: RATE_SHEET_REVIEWER,
+      reviewedAt,
+      reviewedBy: options.reviewedBy ?? RATE_SHEET_REVIEWER,
       schemaFamily:
         fixture?.schemaFamily ?? usableObserved?.schemaFamily ?? 'rate-sheet',
       unitPrice: single ? String(single.unitPriceUsd) : null,
@@ -239,7 +253,16 @@ async function seedEntry(
         : null,
       version,
     },
-    update: {},
+    // Re-applying the sheet also repairs a contract whose stored invariants
+    // went stale because the provider schema gained a toggle after seeding.
+    update: isForced
+      ? {
+          pricing,
+          reviewStatus: 'approved',
+          reviewedAt,
+          reviewedBy: options.reviewedBy,
+        }
+      : {},
     where: {
       provider_endpoint_version: {
         endpoint,
@@ -262,6 +285,14 @@ async function seedEntry(
       providerSyncStatus: 'fresh',
       reviewedProviderContractVersion: version,
       reviewStatus: 'approved',
+      ...(isForced
+        ? {
+            providerSyncFailedAt: null,
+            providerSyncFailureCode: null,
+            reviewedAt,
+            reviewedBy: options.reviewedBy,
+          }
+        : {}),
     },
     where: {
       id: model.id,
@@ -288,6 +319,7 @@ export async function seedReviewedProviderRates(
   prisma: PrismaService,
   entries: readonly ReviewedRateSheetEntry[] = REVIEWED_RATE_SHEET_ENTRIES,
   logger?: RateSeedLogger,
+  options: RateSeedOptions = {},
 ): Promise<number> {
   let written = 0;
   for (const entry of entries)
@@ -297,6 +329,6 @@ export async function seedReviewedProviderRates(
       entry.provider === ModelProvider.HEYGEN ||
       entry.provider === ModelProvider.ELEVENLABS
     )
-      if (await seedEntry(prisma, entry, logger)) written += 1;
+      if (await seedEntry(prisma, entry, logger, options)) written += 1;
   return written;
 }

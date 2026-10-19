@@ -5,7 +5,7 @@ layer runs off the publish path. The publish path only reads the persisted
 results, through `MediaAssessmentService`.
 
 Every setting below is an operator control in **Admin → Platform settings**
-(`/admin/administration/platform-settings`), not an environment variable
+(`/admin/settings`), not an environment variable
 (#5407). A change applies to every API and workers process within 15 seconds,
 with no restart or deploy.
 

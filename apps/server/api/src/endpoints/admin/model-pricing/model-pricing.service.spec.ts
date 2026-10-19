@@ -7,6 +7,7 @@ import {
   AdminModelPricingService,
   projectAdminModelPricing,
 } from '@api/endpoints/admin/model-pricing/model-pricing.service';
+import { seedReviewedProviderRates } from '@api/seeds/reviewed-provider-rates-seed';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import {
   type Model,
@@ -14,8 +15,12 @@ import {
   Prisma,
 } from '@genfeedai/prisma';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@api/seeds/reviewed-provider-rates-seed', () => ({
+  seedReviewedProviderRates: vi.fn(),
+}));
 
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
@@ -619,6 +624,28 @@ describe('operator model pricing projection', () => {
       expect(modelUpdate).not.toHaveBeenCalled();
     });
 
+    it('refuses rates that would leave the model unpriceable, such as one base price for a resolution-priced model', async () => {
+      const flat = {
+        ...contractOf('rates-v2', 0.25, 'pending'),
+        pricing: {
+          currency: 'USD',
+          rates: [{ ...rate(0.25), when: {} }],
+          source: 'replicate-billing-config',
+          sourceUrl: 'https://replicate.com/provider/model',
+          verifiedAt: '2026-10-01T00:00:00.000Z',
+        },
+      } as unknown as ModelProviderContract;
+      const { modelUpdate, service } = transactionFor(
+        pendingModel('rates-v2'),
+        [contractOf('rates-v1', 0.19, 'approved'), flat],
+      );
+
+      await expect(
+        service.approveRates('model', 'user-1', 'rates-v2'),
+      ).rejects.toThrow('would leave the model unpriceable');
+      expect(modelUpdate).not.toHaveBeenCalled();
+    });
+
     it('refuses a stale request for rates the operator did not review', async () => {
       const { contractUpdate, modelUpdate, service } = transactionFor(
         pendingModel('rates-v3'),
@@ -766,6 +793,67 @@ describe('derived reviewed variant report samples', () => {
   });
 });
 
+describe('inactive models in the pricing report', () => {
+  const sheetContract = {
+    ...contract,
+    endpoint: 'provider/model',
+    provider: 'replicate',
+    version: 'sheet-v1',
+    pricing: {
+      currency: 'USD',
+      rates: [
+        {
+          component: 'output',
+          isPerOutput: true,
+          unit: 'second',
+          unitPriceUsd: 0.06,
+          when: {},
+        },
+      ],
+      source: 'provider-model-page',
+      sourceUrl: 'https://replicate.com/provider/model',
+      verifiedAt: retrievedAt,
+    },
+  } as unknown as ModelProviderContract;
+  const inactive = {
+    ...model,
+    endpoint: 'provider/model',
+    isActive: false,
+    pricingType: 'flat',
+    providerCostUsd: null,
+  } as unknown as Model;
+
+  it('quotes a seeded row from its reviewed rates although it is switched off', () => {
+    const row = projectAdminModelPricing(
+      { ...inactive, reviewedProviderContractVersion: 'sheet-v1' } as Model,
+      [sheetContract],
+      3.33,
+      retrievedAt,
+    );
+
+    expect(row.isActive).toBe(false);
+    expect(row.effectiveUnitCredits).toBeGreaterThan(0);
+    expect(row.attentionLevel).toBeNull();
+  });
+
+  it('flags a switched-off row with no price, so the alert and Fix all cover it', () => {
+    const row = projectAdminModelPricing(inactive, [], 3.33, retrievedAt);
+
+    expect(row.attentionLevel).toBe('red');
+  });
+
+  it('never flags a retired row, which dispatch replaces with its successor', () => {
+    const row = projectAdminModelPricing(
+      { ...inactive, lifecycle: 'RETIRED' } as unknown as Model,
+      [],
+      3.33,
+      retrievedAt,
+    );
+
+    expect(row.attentionLevel).toBeNull();
+  });
+});
+
 describe('fixing model pricing', () => {
   function pricingRow(overrides: Record<string, unknown>) {
     return {
@@ -781,11 +869,19 @@ describe('fixing model pricing', () => {
     };
   }
 
-  function buildService(rows: ReturnType<typeof pricingRow>[]) {
-    const service = new AdminModelPricingService({} as never);
+  function buildService(
+    rows: ReturnType<typeof pricingRow>[],
+    models: Array<Record<string, string>> = [],
+  ) {
+    const findMany = vi.fn().mockResolvedValue(models);
+    const service = new AdminModelPricingService({
+      model: { findMany },
+    } as never);
     vi.spyOn(service, 'getReport').mockResolvedValue({ rows } as never);
     const approveRates = vi.spyOn(service, 'approveRates');
-    return { approveRates, service };
+    vi.mocked(seedReviewedProviderRates).mockReset();
+    vi.mocked(seedReviewedProviderRates).mockResolvedValue(0);
+    return { approveRates, findMany, service };
   }
 
   it('approves pending rates, queues a sync for models without rates and reports the rest', async () => {
@@ -825,6 +921,7 @@ describe('fixing model pricing', () => {
     expect(result).toEqual({
       approved: [{ id: 'approvable', key: 'fal/approvable' }],
       changed: [],
+      repaired: [],
       syncQueued: [
         { id: 'no-rates', key: 'replicate/no-rates', provider: 'replicate' },
       ],
@@ -857,6 +954,32 @@ describe('fixing model pricing', () => {
     expect(result.approved.map((entry) => entry.id)).toEqual(['two']);
   });
 
+  it('reports rates that would un-price a model instead of approving them or failing the run', async () => {
+    const { service, approveRates } = buildService([
+      pricingRow({
+        attentionLevel: 'orange',
+        id: 'flat',
+        isRateApprovalAvailable: true,
+        key: 'fal/flat',
+        pending: { version: 'v2' },
+      }),
+    ]);
+    approveRates.mockRejectedValue(
+      new BadRequestException('Approving these rates would leave it unpriced'),
+    );
+
+    const result = await service.fixPricing('operator-1');
+
+    expect(result.approved).toEqual([]);
+    expect(result.unresolved).toEqual([
+      {
+        id: 'flat',
+        key: 'fal/flat',
+        reason: 'Approving these rates would leave it unpriced',
+      },
+    ]);
+  });
+
   it('reports a model whose rates changed mid-run instead of failing the run', async () => {
     const { service, approveRates } = buildService([
       pricingRow({
@@ -880,5 +1003,105 @@ describe('fixing model pricing', () => {
 
     expect(result.changed.map((entry) => entry.id)).toEqual(['raced']);
     expect(result.approved.map((entry) => entry.id)).toEqual(['fine']);
+  });
+
+  describe('re-applying the reviewed rate sheet', () => {
+    const h3Max = {
+      endpoint: 'minimax/h3-max/text-to-video',
+      id: 'h3-max',
+      key: 'fal/minimax/h3-max/text-to-video',
+      provider: 'fal',
+    };
+    const h3MaxRow = pricingRow({
+      attention: [
+        {
+          level: 'red',
+          reason:
+            'Provider pricing dimension requires an explicit selected value',
+        },
+      ],
+      attentionLevel: 'red',
+      id: 'h3-max',
+      key: 'fal/minimax/h3-max/text-to-video',
+      provider: 'fal',
+    });
+
+    it('prices a model the sync cannot, by re-applying its sheet as the operator', async () => {
+      const { approveRates, service } = buildService([h3MaxRow], [h3Max]);
+      vi.mocked(seedReviewedProviderRates).mockResolvedValue(1);
+      vi.spyOn(service, 'getReport')
+        .mockResolvedValueOnce({ rows: [h3MaxRow] } as never)
+        .mockResolvedValueOnce({
+          rows: [pricingRow({ id: 'h3-max' })],
+        } as never);
+
+      const result = await service.fixPricing('operator-1');
+
+      expect(result.repaired).toEqual([
+        { id: 'h3-max', key: 'fal/minimax/h3-max/text-to-video' },
+      ]);
+      expect(result.syncQueued).toEqual([]);
+      expect(approveRates).not.toHaveBeenCalled();
+      const [, entries, , options] =
+        vi.mocked(seedReviewedProviderRates).mock.calls[0] ?? [];
+      expect(entries?.map((entry) => entry.endpoint)).toEqual([
+        'minimax/h3-max/text-to-video',
+      ]);
+      expect(options).toEqual({ reviewedBy: 'operator-1' });
+    });
+
+    it('falls back to the provider sync when the sheet cannot be applied', async () => {
+      const { service } = buildService([h3MaxRow], [h3Max]);
+
+      const result = await service.fixPricing('operator-1');
+
+      expect(result.repaired).toEqual([]);
+      expect(result.syncQueued).toEqual([
+        {
+          id: 'h3-max',
+          key: 'fal/minimax/h3-max/text-to-video',
+          provider: 'fal',
+        },
+      ]);
+    });
+
+    it('reports a re-applied sheet that still cannot price instead of claiming a repair', async () => {
+      const { service } = buildService([h3MaxRow], [h3Max]);
+      vi.mocked(seedReviewedProviderRates).mockResolvedValue(1);
+      vi.spyOn(service, 'getReport').mockResolvedValue({
+        rows: [h3MaxRow],
+      } as never);
+
+      const result = await service.fixPricing('operator-1');
+
+      expect(result.repaired).toEqual([]);
+      expect(result.unresolved).toEqual([
+        {
+          id: 'h3-max',
+          key: 'fal/minimax/h3-max/text-to-video',
+          reason:
+            'Provider pricing dimension requires an explicit selected value',
+        },
+      ]);
+    });
+
+    it('leaves a model without a sheet entry to the approval path', async () => {
+      const { findMany, service } = buildService(
+        [pricingRow({ attentionLevel: 'red', id: 'plain', provider: 'fal' })],
+        [
+          {
+            endpoint: 'no/sheet',
+            id: 'plain',
+            key: 'fal/no/sheet',
+            provider: 'fal',
+          },
+        ],
+      );
+
+      await service.fixPricing('operator-1');
+
+      expect(findMany).toHaveBeenCalledTimes(1);
+      expect(seedReviewedProviderRates).not.toHaveBeenCalled();
+    });
   });
 });

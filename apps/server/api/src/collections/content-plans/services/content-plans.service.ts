@@ -11,10 +11,13 @@ import {
   serializeDate,
 } from '@api/collections/content-plans/utils/content-plan-data.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ContentPlanStatus } from '@genfeedai/contracts';
 import type { IContentPlanProvenance } from '@genfeedai/contracts/interfaces';
 import {
@@ -101,13 +104,26 @@ export class ContentPlansService extends BaseService<
   async listByBrand(
     organizationId: string,
     brandId: string,
-  ): Promise<ContentPlanDocument[]> {
-    const docs = (await this.delegate.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId, { brandId }),
-    })) as PrismaContentPlan[];
+    window: PageWindow,
+  ): Promise<AggregatePaginateResult<ContentPlanDocument>> {
+    const where = scopedWhere(organizationId, { brandId });
+    const [docs, totalDocs] = await Promise.all([
+      this.delegate.findMany({
+        // `id` breaks createdAt ties so rows never repeat across pages.
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: window.skip,
+        take: window.limit,
+        where,
+      }) as Promise<PrismaContentPlan[]>,
+      this.delegate.count({ where }),
+    ]);
 
-    return docs.map((doc) => this.toDocument(doc));
+    return buildPaginatedResult(
+      docs.map((doc) => this.toDocument(doc)),
+      totalDocs,
+      window.page,
+      window.limit,
+    );
   }
 
   async getByIdOrFail(

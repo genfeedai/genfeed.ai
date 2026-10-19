@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 import { IngredientStatus } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCharactersPage } from './use-characters-page';
+
+const navigation = vi.hoisted(() => ({ searchParams: new URLSearchParams() }));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => navigation.searchParams,
+}));
 
 const mocks = vi.hoisted(() => {
   const composeSheetPrompt = vi.fn();
@@ -103,6 +110,7 @@ vi.mock('@services/ingredients/images.service', () => ({
 describe('useCharactersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigation.searchParams = new URLSearchParams();
     mocks.listCharacters.mockResolvedValue([]);
     mocks.composeSheetPrompt.mockResolvedValue({
       prompt: 'CHARACTER REFERENCE SHEET PRESET v1.0.0',
@@ -128,6 +136,18 @@ describe('useCharactersPage', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.characters).toHaveLength(1);
+  });
+
+  it('requests the server page named in the URL', async () => {
+    navigation.searchParams = new URLSearchParams('page=2');
+
+    const { result } = renderHook(() => useCharactersPage());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mocks.listCharacters).toHaveBeenCalledWith(
+      { limit: ITEMS_PER_PAGE, page: 2 },
+      expect.any(AbortSignal),
+    );
   });
 
   it('generates a sheet and moves to the candidate step', async () => {

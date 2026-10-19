@@ -47,6 +47,7 @@ export default function ModelPricingAttentionPanel() {
 
   const fixAllButton = (
     <Button
+      className="shrink-0"
       icon={<Wrench aria-hidden="true" className="size-3.5" />}
       isDisabled={isFixing}
       onClick={() =>
@@ -73,12 +74,18 @@ export default function ModelPricingAttentionPanel() {
       {red.length > 0 ? (
         <Alert variant="destructive" data-testid="model-pricing-attention-red">
           <CircleAlert aria-hidden="true" />
-          <AlertTitle>
-            {t('attentionRedTitle', { count: red.length })}
-          </AlertTitle>
+          <div className="col-start-2 flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <AlertTitle>
+                {t('attentionRedTitle', { count: red.length })}
+              </AlertTitle>
+              <AlertDescription>
+                <p>{t('attentionRedHint')}</p>
+              </AlertDescription>
+            </div>
+            {fixAllButton}
+          </div>
           <AlertDescription>
-            <p>{t('attentionRedHint')}</p>
-            <div className="mt-2">{fixAllButton}</div>
             <ul className="mt-2 list-disc space-y-1 pl-4">
               {(isRedExpanded ? red : red.slice(0, 5)).map((row) => (
                 <li key={row.id}>
@@ -106,14 +113,18 @@ export default function ModelPricingAttentionPanel() {
       {orange.length > 0 ? (
         <Alert variant="warning" data-testid="model-pricing-attention-orange">
           <TriangleAlert aria-hidden="true" />
-          <AlertTitle>
-            {t('attentionOrangeTitle', { count: orange.length })}
-          </AlertTitle>
+          <div className="col-start-2 flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <AlertTitle>
+                {t('attentionOrangeTitle', { count: orange.length })}
+              </AlertTitle>
+              <AlertDescription>
+                <p>{t('attentionOrangeHint')}</p>
+              </AlertDescription>
+            </div>
+            {red.length === 0 ? fixAllButton : null}
+          </div>
           <AlertDescription>
-            <p>{t('attentionOrangeHint')}</p>
-            {red.length === 0 ? (
-              <div className="mt-2">{fixAllButton}</div>
-            ) : null}
             <ul className="mt-2 list-disc space-y-1 pl-4">
               {(isOrangeExpanded ? orange : orange.slice(0, 5)).map((row) => (
                 <li key={row.id}>

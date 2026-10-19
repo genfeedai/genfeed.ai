@@ -99,6 +99,16 @@ export class ContentMixConfigDto {
   @IsOptional()
   @ApiProperty({ description: 'Story percentage', required: false })
   storyPercent?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  @ApiProperty({
+    description: 'Share of X text posts written as threads (default 25)',
+    required: false,
+  })
+  threadPercent?: number;
 }
 
 export class OpportunitySourcesDto {

@@ -20,12 +20,16 @@ export interface PostDetailNeedsYouProps {
   post: IPost;
   isPublished: boolean;
   onPublishNow?: () => void;
+  /** Re-arms a failed post; a failed post cannot be published again as new. */
+  onRetryPublish?: () => void;
   onReviewHref: string;
   className?: string;
 }
 
 interface NeedsYouItem {
   id: string;
+  /** Why it needs the viewer, when the post recorded a reason. */
+  detail?: string;
   /** The specific condition, e.g. "This post failed to publish." */
   message: string;
   action: {
@@ -44,6 +48,7 @@ export default function PostDetailNeedsYou({
   post,
   isPublished,
   onPublishNow,
+  onRetryPublish,
   onReviewHref,
   className,
 }: PostDetailNeedsYouProps) {
@@ -79,9 +84,10 @@ export default function PostDetailNeedsYou({
   const items = useMemo<NeedsYouItem[]>(() => {
     const results: NeedsYouItem[] = [];
 
-    if (post.status === PostStatus.FAILED && onPublishNow) {
+    if (post.status === PostStatus.FAILED && onRetryPublish) {
       results.push({
-        action: { label: translate('failedAction'), onClick: onPublishNow },
+        action: { label: translate('failedAction'), onClick: onRetryPublish },
+        detail: post.targetError?.message?.trim() || undefined,
         id: 'failed',
         message: translate('failedDescription'),
       });
@@ -113,6 +119,7 @@ export default function PostDetailNeedsYou({
     isPublished,
     now,
     onPublishNow,
+    onRetryPublish,
     onReviewHref,
     post,
     scheduledAt,
@@ -129,6 +136,7 @@ export default function PostDetailNeedsYou({
         {items.map((item) => (
           <ListRow
             data-testid={`post-needs-you-row-${item.id}`}
+            description={item.detail}
             key={item.id}
             title={item.message}
             trailing={

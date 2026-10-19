@@ -145,11 +145,8 @@ export default function AutomationOverviewPage() {
             title="Recent activity"
           >
             <RunHistoryList
-              currentPage={1}
-              executions={recentExecutions}
+              executions={recentExecutions.slice(0, RECENT_RUN_PAGE_SIZE)}
               isLoading={isLoading}
-              onPageChange={() => undefined}
-              pageSize={RECENT_RUN_PAGE_SIZE}
             />
           </WorkspaceSurface>
 

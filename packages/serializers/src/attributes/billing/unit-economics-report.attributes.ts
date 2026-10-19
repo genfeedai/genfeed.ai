@@ -5,6 +5,7 @@ export const unitEconomicsReportAttributes = createEntityAttributes([
   'to',
   'organizationId',
   'organizationLabel',
+  'pagination',
   'rows',
   'totals',
 ]);

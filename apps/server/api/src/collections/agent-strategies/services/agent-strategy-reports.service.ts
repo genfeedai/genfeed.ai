@@ -3,6 +3,10 @@ import type {
   AgentStrategyReport,
   AgentStrategyReportDocument,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-report.schema';
+import {
+  buildPaginatedResult,
+  type PaginatedResult,
+} from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -80,42 +84,42 @@ export class AgentStrategyReportsService {
     };
   }
 
-  private getPeriodEndTimestamp(report: AgentStrategyReportDocument): number {
-    const periodEnd =
-      report.periodEnd instanceof Date
-        ? report.periodEnd
-        : typeof report.periodEnd === 'string'
-          ? new Date(report.periodEnd)
-          : undefined;
-
-    return periodEnd && !Number.isNaN(periodEnd.getTime())
-      ? periodEnd.getTime()
-      : 0;
-  }
-
+  /**
+   * One page of a strategy's reports, newest first. Reports are written as
+   * each period closes, so creation order is period order; `periodEnd` lives
+   * in the `data` JSON column, which the database cannot order by.
+   */
   async listByStrategy(
     strategyId: string,
     organizationId: string,
+    paging: { limit: number; page: number },
     reportType?: AgentStrategyReportType,
-  ): Promise<AgentStrategyReportDocument[]> {
-    const records = await this.prisma.agentStrategyReport.findMany({
-      where: scopedWhere(organizationId, {
-        ...(reportType
-          ? { data: { equals: reportType, path: ['reportType'] } }
-          : {}),
-        strategyId,
-      }),
-      orderBy: { createdAt: 'desc' },
+  ): Promise<PaginatedResult<AgentStrategyReportDocument>> {
+    const { limit, page } = paging;
+    const where = scopedWhere(organizationId, {
+      ...(reportType
+        ? { data: { equals: reportType, path: ['reportType'] } }
+        : {}),
+      strategyId,
     });
+    const [records, totalDocs] = await Promise.all([
+      this.prisma.agentStrategyReport.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.agentStrategyReport.count({ where }),
+    ]);
 
-    return records
-      .map((record) =>
+    return buildPaginatedResult(
+      records.map((record) =>
         this.normalizeReport(record as unknown as Record<string, unknown>),
-      )
-      .sort(
-        (left, right) =>
-          this.getPeriodEndTimestamp(right) - this.getPeriodEndTimestamp(left),
-      );
+      ),
+      totalDocs,
+      page,
+      limit,
+    );
   }
 
   async getLatest(
@@ -123,13 +127,14 @@ export class AgentStrategyReportsService {
     organizationId: string,
     reportType?: AgentStrategyReportType,
   ): Promise<AgentStrategyReportDocument | null> {
-    const reports = await this.listByStrategy(
+    const { docs } = await this.listByStrategy(
       strategyId,
       organizationId,
+      { limit: 1, page: 1 },
       reportType,
     );
 
-    return reports[0] ?? null;
+    return docs[0] ?? null;
   }
 
   async createReport(

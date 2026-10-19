@@ -249,7 +249,7 @@ export interface IngredientDetailVideoProps {
   credentials?: ICredential[];
   videoRef?: RefObject<HTMLVideoElement | null>;
 
-  onReload?: (skipNotification?: boolean) => Promise<void>;
+  onReload?: () => Promise<void>;
   onVoteIngredient?: (video: IVideo) => void;
   onEditVideo?: (video: IVideo) => void;
   onUpscaleVideo?: (video: IVideo) => void;

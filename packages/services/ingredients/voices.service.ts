@@ -1,8 +1,12 @@
 import type { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
-import type { ElevenLabsAccountVoicePage } from '@genfeedai/contracts/interfaces';
+import type {
+  ElevenLabsAccountVoicePage,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import type { ExternalVoice } from '@genfeedai/models/elements/external-voice.model';
 import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
+import { PagesService } from '@services/content/pages.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
@@ -17,6 +21,8 @@ export interface CatalogSyncResult {
 export interface CatalogFindParams {
   provider?: VoiceProvider;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface AccountVoicesFindParams {
@@ -56,7 +62,14 @@ export class VoicesService extends IngredientsService<Voice> {
     return instance;
   }
 
-  async findCatalog(params: CatalogFindParams = {}): Promise<ExternalVoice[]> {
+  /**
+   * One page of the provider catalog, cut by the server. Also publishes the
+   * page counts to `PagesService`, which `AutoPagination` reads.
+   */
+  async findCatalog(
+    params: CatalogFindParams = {},
+    signal?: AbortSignal,
+  ): Promise<IPaginatedResponse<ExternalVoice>> {
     const query: Record<string, unknown> = {};
     if (params.provider) {
       query['provider'] = params.provider;
@@ -64,12 +77,37 @@ export class VoicesService extends IngredientsService<Voice> {
     if (params.search) {
       query['search'] = params.search;
     }
+    if (params.page) {
+      query['page'] = params.page;
+    }
+    if (params.limit) {
+      query['limit'] = params.limit;
+    }
 
     return this.executeWithErrorHandling(
       'GET /voices/catalog',
       this.instance
-        .get<JsonApiResponseDocument>('/catalog', { params: query })
-        .then((res) => this.extractCollection<ExternalVoice>(res.data)),
+        .get<JsonApiResponseDocument>('/catalog', { params: query, signal })
+        .then((res) => {
+          const items = this.extractCollection<ExternalVoice>(res.data);
+          const pagination = res.data.links?.pagination;
+          const page = pagination?.page ?? 1;
+          const total = pagination?.total ?? items.length;
+          const totalPages = Math.max(1, pagination?.pages ?? 1);
+          PagesService.setCurrentPage(page);
+          PagesService.setTotalPages(totalPages);
+          PagesService.setTotalDocs(total);
+
+          return {
+            hasNext: page < totalPages,
+            hasPrevious: page > 1,
+            items,
+            page,
+            pageSize: pagination?.limit ?? items.length,
+            total,
+            totalPages,
+          };
+        }),
     );
   }
 

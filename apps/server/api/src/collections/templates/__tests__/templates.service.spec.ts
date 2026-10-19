@@ -39,6 +39,7 @@ describe('TemplatesService persistence', () => {
       update: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
     },
   };
   const metadata = { create: vi.fn(), update: vi.fn() };
@@ -59,6 +60,7 @@ describe('TemplatesService persistence', () => {
     });
     prisma.template.findFirst.mockResolvedValue(row());
     prisma.template.findMany.mockResolvedValue([row()]);
+    prisma.template.count.mockResolvedValue(1);
     prisma.template.update.mockImplementation(async ({ data }) => ({
       ...row(),
       ...data,
@@ -199,7 +201,7 @@ describe('TemplatesService persistence', () => {
     expect(await service.findOne('template-1', 'org-1')).toMatchObject({
       content: dto.content,
     });
-    expect(await service.findAll('org-1')).toEqual([
+    expect((await service.findAll('org-1')).docs).toEqual([
       expect.objectContaining({ content: dto.content }),
     ]);
   });
@@ -232,6 +234,36 @@ describe('TemplatesService persistence', () => {
           organizationId: 'org-1',
           isDeleted: false,
         }),
+      }),
+    );
+  });
+
+  it('pages in the database and reports totals', async () => {
+    prisma.template.count.mockResolvedValue(45);
+
+    const result = await service.findAll('org-1', { limit: 20, page: 3 });
+
+    expect(prisma.template.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 40, take: 20 }),
+    );
+    expect(result).toMatchObject({
+      hasNextPage: false,
+      hasPrevPage: true,
+      page: 3,
+      totalDocs: 45,
+      totalPages: 3,
+    });
+  });
+
+  it('ranks popular templates by usage in the database', async () => {
+    await service.findAll('org-1', { sort: 'popular' });
+
+    expect(prisma.template.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [
+          { usageCount: { nulls: 'last', sort: 'desc' } },
+          { createdAt: 'desc' },
+        ],
       }),
     );
   });

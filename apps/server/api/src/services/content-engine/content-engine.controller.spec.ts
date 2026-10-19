@@ -96,9 +96,10 @@ describe('ContentEngineController', () => {
             getByIdOrFail: vi
               .fn()
               .mockResolvedValue({ id: 'plan-1', status: 'draft' }),
-            listByBrand: vi
-              .fn()
-              .mockResolvedValue([{ id: 'plan-1' }, { id: 'plan-2' }]),
+            listByBrand: vi.fn().mockResolvedValue({
+              docs: [{ id: 'plan-1' }, { id: 'plan-2' }],
+              totalDocs: 2,
+            }),
             patch: vi
               .fn()
               .mockResolvedValue({ id: 'plan-1', status: 'updated' }),
@@ -408,11 +409,15 @@ describe('ContentEngineController', () => {
 
   describe('listPlans', () => {
     it('should list plans by brand with organization scope', async () => {
-      const result = await controller.listPlans(mockReq, mockUser, 'brand-1');
+      const result = await controller.listPlans(mockReq, mockUser, 'brand-1', {
+        limit: 15,
+        page: 2,
+      });
 
       expect(contentPlansService.listByBrand).toHaveBeenCalledWith(
         orgId,
         'brand-1',
+        { limit: 15, page: 2, skip: 15 },
       );
       expect(result).toEqual({
         data: [{ id: 'plan-1' }, { id: 'plan-2' }],

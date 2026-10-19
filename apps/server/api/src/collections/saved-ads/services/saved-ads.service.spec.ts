@@ -14,6 +14,7 @@ describe('SavedAdsService', () => {
     brand: { findFirst: vi.fn(), findMany: vi.fn() },
     credential: { findFirst: vi.fn(), findMany: vi.fn() },
     savedAd: {
+      count: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -183,23 +184,38 @@ describe('SavedAdsService', () => {
     expect(saved.videoUrls).toHaveLength(4);
   });
 
-  it('lists only active snapshots in the requested tenant and brand', async () => {
+  it('pages only active snapshots in the requested tenant and brand', async () => {
     const rows = [{ id: 'saved-2' }, { id: 'saved-1' }];
     (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
       rows,
     );
+    (prisma.savedAd.count as ReturnType<typeof vi.fn>).mockResolvedValue(42);
+    const where = {
+      brandId: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    };
 
-    const result = await service.list('org-1', 'brand-1');
+    const result = await service.list('org-1', 'brand-1', {
+      limit: 20,
+      page: 2,
+    });
 
-    expect(result).toEqual(rows);
+    expect(result.docs).toEqual(rows);
+    expect(result).toMatchObject({
+      hasNextPage: true,
+      limit: 20,
+      page: 2,
+      totalDocs: 42,
+      totalPages: 3,
+    });
     expect(prisma.savedAd.findMany).toHaveBeenCalledWith({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      where: {
-        brandId: 'brand-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
+      skip: 20,
+      take: 20,
+      where,
     });
+    expect(prisma.savedAd.count).toHaveBeenCalledWith({ where });
   });
 
   it('rejects a connected credential outside the requested brand before provider reads', async () => {

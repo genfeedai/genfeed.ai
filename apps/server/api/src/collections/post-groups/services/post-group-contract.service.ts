@@ -1,4 +1,7 @@
 import type {
+  ReleaseListGroupFacts,
+  ReleaseListProjection,
+  ReleaseListTargetFacts,
   SchedulerPostAnalytics,
   SchedulerPostGroup,
   SchedulerPostTarget,
@@ -298,6 +301,38 @@ export class PostGroupContractService {
       targetSummary: this.summarizeTargets(targets),
       targets: releaseTargets,
       timezone: group.timezone,
+      title: group.title,
+      updatedAt: group.updatedAt.toISOString(),
+    };
+  }
+
+  /**
+   * The slim, filter-and-sort-only view of a release: the same status, source
+   * and schedule values `toReleaseGroup` derives, from just the columns they
+   * read, so the list can rank every release without hydrating any of them.
+   */
+  toListProjection(
+    group: ReleaseListGroupFacts,
+    targets: readonly ReleaseListTargetFacts[],
+  ): ReleaseListProjection {
+    return {
+      baseContent: group.baseContent,
+      campaignId: group.campaignId,
+      createdAt: group.createdAt.toISOString(),
+      id: group.id,
+      scheduledAt: this.toIso(group.scheduledAt),
+      status: this.deriveReleaseStatus(
+        group.id,
+        targets.map((target) => target.targetExecutionState),
+      ),
+      targets: targets.map((target) => ({
+        category: target.category ?? PostCategory.TEXT,
+        credentialId: target.credentialId,
+        executionState: target.targetExecutionState as TargetExecutionState,
+        platform: target.platform as CredentialPlatform,
+        scheduledAt: this.toIso(target.scheduledDate),
+        source: this.toTargetSource(target),
+      })),
       title: group.title,
       updatedAt: group.updatedAt.toISOString(),
     };
@@ -699,7 +734,15 @@ export class PostGroupContractService {
    * placed by an agent and then executed by a workflow is, operationally, a
    * workflow-scheduled item — that is the run an operator would go look at.
    */
-  private toTargetSource(target: SchedulerPostTarget): ReleaseTargetSource {
+  private toTargetSource(
+    target: Pick<
+      SchedulerPostTarget,
+      | 'agentContextSource'
+      | 'agentStrategyId'
+      | 'agentThreadId'
+      | 'workflowExecutionId'
+    >,
+  ): ReleaseTargetSource {
     if (target.workflowExecutionId) {
       return ReleaseTargetSource.WORKFLOW;
     }

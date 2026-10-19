@@ -88,4 +88,15 @@ describe('ExternalVoiceCatalogService.syncFromProviders', () => {
     expect(prisma.externalVoice.count).toHaveBeenCalledWith({ where });
     expect(range).toEqual({ docs: [{ id: 'v1' }], totalDocs: 250 });
   });
+
+  it('lists deactivated entries when the admin view asks for them', async () => {
+    await service.findRange({ includeInactive: true, skip: 0, take: 15 });
+
+    expect(prisma.externalVoice.findMany).toHaveBeenCalledWith({
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      skip: 0,
+      take: 15,
+      where: {},
+    });
+  });
 });

@@ -6,7 +6,7 @@ import {
   ComponentSize,
   ViewType,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
@@ -22,15 +22,17 @@ import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { FileText } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { matchesTemplateSearch, toTemplateView } from './template-view';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { toTemplateView } from './template-view';
 
-export default function TemplatesPage() {
+function TemplatesPageContent() {
   const t = useTranslations('pages.adminTemplates');
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -43,33 +45,73 @@ export default function TemplatesPage() {
   const getTemplatesService = useAuthedService((token: string) =>
     TemplateService.getInstance(token),
   );
+  const { replace } = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('q') ?? '';
   const [templates, setTemplates] = useState<IContentTemplate[] | null>(null);
   const [hasError, setHasError] = useState(false);
-  const [search, setSearch] = useState('');
-  const loadTemplates = useCallback(async () => {
+  const [reloadVersion, setReloadVersion] = useState(0);
+
+  const setSearch = useCallback(
+    (value: string) => {
+      const next = new URLSearchParams(searchParamsString);
+      if (value) next.set('q', value);
+      else next.delete('q');
+      next.delete('page');
+      const query = next.toString();
+      replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, replace, searchParamsString],
+  );
+
+  const reload = useCallback(
+    () => setReloadVersion((version) => version + 1),
+    [],
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadVersion is the explicit refresh and retry trigger
+  useEffect(() => {
+    const controller = new AbortController();
     setTemplates(null);
     setHasError(false);
-    try {
-      const service = await getTemplatesService();
-      const data = (await service.getTemplates({ includeSystem: true })) ?? [];
-      setTemplates(data);
-    } catch (error) {
-      logger.error('Failed to load templates', error);
-      notificationsService.error(t('loadError'));
-      setHasError(true);
-      setTemplates([]);
-    }
-  }, [getTemplatesService, notificationsService, t]);
-  useEffect(() => {
-    void loadTemplates();
-  }, [loadTemplates]);
+    void (async () => {
+      try {
+        const service = await getTemplatesService();
+        const data = await service.getTemplates(
+          {
+            includeSystem: true,
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+            ...(search ? { search } : {}),
+          },
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        setTemplates(data ?? []);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        logger.error('Failed to load templates', error);
+        notificationsService.error(t('loadError'));
+        setHasError(true);
+        setTemplates([]);
+      }
+    })();
+    return () => controller.abort();
+  }, [
+    currentPage,
+    getTemplatesService,
+    notificationsService,
+    reloadVersion,
+    search,
+    t,
+  ]);
 
   const items = useMemo(
-    () =>
-      (templates ?? [])
-        .map(toTemplateView)
-        .filter((item) => matchesTemplateSearch(item, search)),
-    [templates, search],
+    () => (templates ?? []).map(toTemplateView),
+    [templates],
   );
 
   const facts = (template: TemplateView) => (
@@ -102,7 +144,7 @@ export default function TemplatesPage() {
         <div className="w-48 sm:w-64">
           <FormSearchbar
             ariaLabel={t('search')}
-            onChange={(event) => setSearch(event.target.value)}
+            onSearch={(value) => setSearch(value.trim())}
             placeholder={t('search')}
             size={ComponentSize.SM}
             value={search}
@@ -110,7 +152,7 @@ export default function TemplatesPage() {
         </div>
       }
       filters={<CollectionToolbar view={view} onViewChange={setView} />}
-      onRefresh={loadTemplates}
+      onRefresh={reload}
       isRefreshing={templates === null}
     >
       {hasError ? (
@@ -119,7 +161,7 @@ export default function TemplatesPage() {
             <span>{t('loadError')}</span>
             <Button
               label={t('retry')}
-              onClick={loadTemplates}
+              onClick={reload}
               variant={ButtonVariant.SECONDARY}
             />
           </div>
@@ -176,6 +218,17 @@ export default function TemplatesPage() {
           )}
         />
       )}
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel={t('totalLabel')} />
+      </div>
     </AdminPageShell>
+  );
+}
+
+export default function TemplatesPage() {
+  return (
+    <Suspense fallback={null}>
+      <TemplatesPageContent />
+    </Suspense>
   );
 }

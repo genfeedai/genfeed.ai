@@ -154,19 +154,53 @@ describe('WarmupAccountsController', () => {
     ).rejects.toThrow('Local user id is required');
   });
 
-  it('serializes list responses with pagination metadata', async () => {
+  it('serializes the paged list result so pagination links carry the totals', async () => {
     const account = makeWarmupAccount();
-    warmupAccountsService.list.mockResolvedValue([account]);
+    const page = {
+      docs: [account],
+      hasNextPage: true,
+      hasPrevPage: true,
+      limit: 5,
+      nextPage: 3,
+      page: 2,
+      pagingCounter: 6,
+      prevPage: 1,
+      totalDocs: 14,
+      totalPages: 3,
+    };
+    warmupAccountsService.list.mockResolvedValue(page);
 
-    const result = await controller.list(makeRequest() as never);
+    const result = await controller.list(
+      { limit: 5, page: 2 },
+      makeRequest() as never,
+    );
 
-    expect(warmupAccountsService.list).toHaveBeenCalledTimes(1);
+    expect(warmupAccountsService.list).toHaveBeenCalledWith({
+      limit: 5,
+      page: 2,
+      skip: 5,
+    });
     expect(result).toMatchObject({
-      data: expect.objectContaining({
-        docs: [account],
-        totalDocs: 1,
-      }),
+      data: expect.objectContaining({ docs: [account], totalDocs: 14 }),
       serialized: true,
+    });
+  });
+
+  it('defaults to the first page of 20 and caps the limit at 100', async () => {
+    warmupAccountsService.list.mockResolvedValue({ docs: [] });
+
+    await controller.list({}, makeRequest() as never);
+    await controller.list({ limit: 1000 }, makeRequest() as never);
+
+    expect(warmupAccountsService.list).toHaveBeenNthCalledWith(1, {
+      limit: 20,
+      page: 1,
+      skip: 0,
+    });
+    expect(warmupAccountsService.list).toHaveBeenNthCalledWith(2, {
+      limit: 100,
+      page: 1,
+      skip: 0,
     });
   });
 
@@ -315,7 +349,7 @@ describe('WarmupAccountsController', () => {
     warmupAccountsService.sendInvitation = record('send');
     warmupAccountsService.list = vi.fn(async () => {
       seen.list = isCrossOrgUnsafe();
-      return [];
+      return { docs: [] };
     });
     preparationService.prepare = record('prepare');
 
@@ -325,7 +359,7 @@ describe('WarmupAccountsController', () => {
         makeUser() as never,
         makeRequest() as never,
       );
-      await controller.list(makeRequest() as never);
+      await controller.list({}, makeRequest() as never);
       await controller.get('warmup_1', makeRequest() as never);
       await controller.sendInvitation(
         'warmup_1',

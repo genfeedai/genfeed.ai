@@ -4,7 +4,8 @@ import { CreateElementBlacklistDto } from '@api/collections/elements/blacklists/
 import { UpdateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/update-blacklist.dto';
 import type { ElementBlacklistDocument } from '@api/collections/elements/blacklists/schemas/blacklist.schema';
 import { ElementsBlacklistsService } from '@api/collections/elements/blacklists/services/blacklists.service';
-import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
+import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -13,11 +14,9 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { MemberRole } from '@genfeedai/contracts';
-import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { BlacklistSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -36,16 +35,12 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-type MatchConditions = Record<string, unknown>;
-
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-
 @AutoSwagger()
 @Controller('elements/blacklists')
 @ApiTags('blacklists')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
-export class ElementsBlacklistsController extends BaseCRUDController<
+export class ElementsBlacklistsController extends ElementsCRUDController<
   ElementBlacklistDocument,
   CreateElementBlacklistDto,
   UpdateElementBlacklistDto,
@@ -64,92 +59,39 @@ export class ElementsBlacklistsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllQuery to implement blacklist-specific filtering
-   * - Blacklists don't have a user field, they have addedBy and organization
-   * - Filter by organization for non-superadmins
-   * - Show all for superadmins
+   * Platform defaults plus the caller organization's own blacklists. A
+   * superadmin naming an organization sees that organization's rows instead.
    */
   public buildFindAllQuery(user: User, query: BlacklistsQueryDto) {
     const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
-
-    // Build OR conditions for ownership: global items OR user's org items OR user's items
-    const orConditions: MatchConditions[] = [];
-
-    if (user.organizationId) {
-      orConditions.push({
+    const findAllQuery = buildElementFindAllQuery({
+      adminFilter,
+      filters: query.category ? { category: query.category } : undefined,
+      metadata: {
+        isSuperAdmin: getIsSuperAdmin(user),
         organizationId: user.organizationId,
-      });
+      },
+      query,
+    });
+
+    if (!query.value) {
+      return findAllQuery;
     }
-
-    // Build conditions array for AND
-    const conditions: MatchConditions[] = [];
-
-    // Filter by value if provided (search functionality)
-    if (query.value) {
-      conditions.push({
-        OR: [
-          { label: { mode: 'insensitive', contains: query.value } },
-          { description: { mode: 'insensitive', contains: query.value } },
-        ],
-      });
-    }
-
-    // Add ownership condition to AND array (skip when admin filter is active)
-    if (!adminFilter && orConditions.length > 0) {
-      conditions.push({ OR: orConditions });
-    }
-
-    const match: MatchConditions = {
-      isDeleted: query.isDeleted ?? false,
-      ...(query.category && { category: query.category }),
-      ...((adminFilter as MatchConditions | undefined) ?? {}),
-      ...(conditions.length > 0 && { AND: conditions }),
-    };
 
     return {
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : ({ label: 1 } as SortObject),
-      where: match,
+      ...findAllQuery,
+      where: {
+        ...(findAllQuery.where as Record<string, unknown>),
+        AND: [
+          {
+            OR: [
+              { label: { contains: query.value, mode: 'insensitive' } },
+              { description: { contains: query.value, mode: 'insensitive' } },
+            ],
+          },
+        ],
+      },
     };
-  }
-
-  /**
-   * Override enrichCreateDto
-   */
-  public enrichCreateDto(
-    createDto: CreateElementBlacklistDto,
-    user: User,
-  ): CreateElementBlacklistDto {
-    const enriched: CreateElementBlacklistDto & { organizationId?: string } = {
-      ...createDto,
-    };
-
-    // Add organization if not super admin
-    if (!getIsSuperAdmin(user) && user.organizationId) {
-      enriched.organizationId = user.organizationId;
-    }
-
-    // Do NOT add user field - Blacklist schema doesn't have it
-    return enriched as CreateElementBlacklistDto;
-  }
-
-  /**
-   * Override enrichUpdateDto to not add user field
-   */
-  public enrichUpdateDto(
-    updateDto: UpdateElementBlacklistDto,
-    _user?: User,
-  ): Promise<UpdateElementBlacklistDto> {
-    return Promise.resolve({ ...updateDto });
-  }
-
-  /** Authorize writes against canonical organization ownership. */
-  public override canUserModifyEntity(
-    user: User,
-    entity: ElementBlacklistDocument,
-  ): boolean {
-    return canModifyOrganizationElement(user, entity);
   }
 
   @Get(':id')
@@ -212,7 +154,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    const enrichedDto = await this.enrichUpdateDto(updateDto);
+    const enrichedDto = await this.enrichUpdateDto(updateDto, user);
 
     // `BaseService.patch` writes by id alone, which the tenant guard rejects;
     // write through the tenant-scoped predicate instead.
@@ -236,7 +178,11 @@ export class ElementsBlacklistsController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    return serializeSingle(request, this.serializer, data);
+    return serializeSingle(
+      request,
+      this.serializer,
+      this.decorateForResponse(data, user),
+    );
   }
 
   @Delete(':id')

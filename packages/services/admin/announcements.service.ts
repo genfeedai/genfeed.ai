@@ -9,6 +9,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { recordPageTotals } from '@services/core/page-totals';
 
 export class AdminAnnouncementsService extends HTTPBaseService {
   constructor(token: string) {
@@ -30,8 +31,15 @@ export class AdminAnnouncementsService extends HTTPBaseService {
     return deserializeResource<IAnnouncement>(response.data);
   }
 
-  async getAnnouncements(): Promise<IAnnouncement[]> {
-    const response = await this.instance.get<JsonApiResponseDocument>('');
+  async getAnnouncements(
+    query?: { limit?: number; page?: number },
+    signal?: AbortSignal,
+  ): Promise<IAnnouncement[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>('', {
+      params: query,
+      signal,
+    });
+    recordPageTotals(response.data, query);
     return deserializeCollection<IAnnouncement>(response.data);
   }
 }

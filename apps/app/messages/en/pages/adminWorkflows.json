@@ -9,7 +9,26 @@
     "unpin": "Unpin",
     "unpinNamed": "Unpin {label} from Featured"
   },
-  "created": "Created:",
+  "catalog": {
+    "description": "Code-owned recipes every organization can install. Installing one copies it into that organization as an editable workflow; nothing is created automatically.",
+    "empty": "No system workflows in the catalog",
+    "loadError": "The system workflow catalog could not be loaded.",
+    "status": {
+      "available": "Not installed",
+      "installed": "Installed",
+      "systemAction": "System action"
+    },
+    "title": "System workflow catalog"
+  },
+  "columns": {
+    "created": "Created",
+    "family": "Family",
+    "schedule": "Schedule",
+    "status": "Status",
+    "trigger": "Trigger",
+    "version": "Version",
+    "workflow": "Workflow"
+  },
   "deleted": "Workflow deleted",
   "description": "Create multi-step automation pipelines for content generation and publishing",
   "empty": "No workflows found",
@@ -28,7 +47,9 @@
     "title": "Featured",
     "unpinned": "Removed from Featured"
   },
-  "listTitle": "Automation Workflows",
+  "listDescription": "Workflows saved in the active organization, including installed copies of the catalog recipes.",
+  "listTitle": "Workflows in this organization",
   "title": "Workflows",
+  "totalLabel": "workflows",
   "untitled": "Untitled workflow"
 }

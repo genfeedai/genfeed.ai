@@ -103,6 +103,32 @@ export class PostAccountFanoutService {
     return targets;
   }
 
+  /**
+   * The brand's default account on one platform (the oldest connected one),
+   * for content that is not fanned out, such as a thread: its replies belong
+   * to one account, and a variation of the root alone would break the chain.
+   */
+  async resolveDefaultTarget(
+    input: Omit<ResolvePostAccountTargetsInput, 'platforms'> & {
+      platform: string;
+    },
+  ): Promise<PostAccountTarget | null> {
+    const platform = parsePlatform(input.platform);
+    if (!platform) return null;
+    const [account] = await this.credentialsService.findConnectedAccounts(
+      input.organizationId,
+      input.brandId,
+      platform,
+    );
+    return account
+      ? {
+          caption: input.caption,
+          credentialId: account.id.toString(),
+          platform,
+        }
+      : null;
+  }
+
   private async resolveCaptions(
     input: ResolvePostAccountTargetsInput,
     platform: Platform,

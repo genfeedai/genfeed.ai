@@ -75,27 +75,51 @@ vi.mock('next-intl', async () => {
     useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };
 });
+const navigation = vi.hoisted(() => ({ search: '' }));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(navigation.search),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: ({ totalLabel }: { totalLabel: string }) => (
+    <nav aria-label="pagination" data-total-label={totalLabel} />
+  ),
+}));
+
 vi.mock('@services/billing/subscriptions.service', () => ({
   SubscriptionsService: {
     getInstance: vi.fn(),
   },
 }));
 
+const queryState = vi.hoisted(() => ({
+  lastOptions: undefined as
+    | undefined
+    | {
+        queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
+        queryKey: unknown[];
+      },
+}));
+
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(() => ({
-    data: {
-      data: [maxedOutRow, underUsingRow, normalRow],
-      limit: 20,
-      page: 1,
-      success: true,
-      totalDocs: 3,
-      totalPages: 1,
-    },
-    error: null,
-    isFetching: false,
-    isLoading: false,
-    refetch: vi.fn(),
-  })),
+  useQuery: vi.fn((options: typeof queryState.lastOptions) => {
+    queryState.lastOptions = options;
+    return {
+      data: {
+        data: [maxedOutRow, underUsingRow, normalRow],
+        limit: 20,
+        page: 1,
+        success: true,
+        totalDocs: 3,
+        totalPages: 1,
+      },
+      error: null,
+      isFetching: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    };
+  }),
 }));
 
 describe('CreditUsageList', () => {
@@ -132,5 +156,25 @@ describe('CreditUsageList', () => {
 
     expect(maxedOutBadges).toHaveLength(1);
     expect(underUsingBadges).toHaveLength(1);
+  });
+
+  it('requests the page from the URL and renders pagination', async () => {
+    navigation.search = 'page=2';
+    render(<CreditUsageList />);
+
+    await queryState.lastOptions?.queryFn({
+      signal: new AbortController().signal,
+    });
+
+    expect(mockGetCreditUsage).toHaveBeenCalledWith(
+      { limit: 15, page: 2 },
+      expect.any(AbortSignal),
+    );
+    expect(queryState.lastOptions?.queryKey).toEqual(['admin-credit-usage', 2]);
+    expect(screen.getByLabelText('pagination')).toHaveAttribute(
+      'data-total-label',
+      'organizations',
+    );
+    navigation.search = '';
   });
 });

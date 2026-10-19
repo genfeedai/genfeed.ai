@@ -117,6 +117,7 @@ export class AgentCadenceExecutionService {
                 topic: input.opportunity.topic,
                 platform: input.platform,
                 variationsCount: 1,
+                ...(input.format === 'thread' ? { type: 'thread' } : {}),
               },
               {
                 organizationId: state.organizationId,
@@ -331,7 +332,7 @@ export class AgentCadenceExecutionService {
     };
   }
 
-  /** Null for text; otherwise the authoritative quote media dispatch will be held to. */
+  /** Null for text and threads; otherwise the authoritative quote media dispatch will be held to. */
   private async quoteMedia(
     state: PreparedAgentTurnState,
     strategy: { brandId?: string | null },
@@ -339,6 +340,7 @@ export class AgentCadenceExecutionService {
   ): Promise<CadenceMediaQuote | null> {
     if (
       input.format !== 'text' &&
+      input.format !== 'thread' &&
       input.format !== 'image' &&
       input.format !== 'video'
     )
@@ -353,7 +355,7 @@ export class AgentCadenceExecutionService {
       throw new CadenceGenerationUnavailableError(
         'Cadence generation is unavailable for this platform; no provider was called.',
       );
-    if (input.format === 'text') return null;
+    if (input.format === 'text' || input.format === 'thread') return null;
     if (!strategy.brandId)
       return {
         isAvailable: false,

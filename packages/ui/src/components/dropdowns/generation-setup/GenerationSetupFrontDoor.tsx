@@ -1,13 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { summarizeGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.summary';
-import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
 import {
@@ -18,27 +15,17 @@ import {
 import {
   Bookmark,
   ChevronRight,
-  Copy,
-  Cpu,
   type LucideIcon,
   Megaphone,
-  Palette,
-  RotateCcw,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useEffect, useRef } from 'react';
 
-const SECTION_ICONS: Record<
-  Exclude<GenerationSetupCustomizeSectionId, 'type'>,
-  LucideIcon
+const SECTION_ICONS: Partial<
+  Record<GenerationSetupCustomizeSectionId, LucideIcon>
 > = {
-  model: Cpu,
-  output: Copy,
-  look: Palette,
   brand: Megaphone,
   presets: Bookmark,
-  enhancement: SlidersHorizontal,
 };
 
 export default function GenerationSetupFrontDoor({
@@ -48,15 +35,11 @@ export default function GenerationSetupFrontDoor({
   showPresets = true,
   showEnhancementSettings = false,
   capabilities,
-  inputControls,
   isDisabled = false,
-  lookOptions,
-  models,
   onCustomize,
-  onResetAll,
   presets,
+  systemPresets = [],
   setup,
-  typeOptions,
 }: GenerationSetupFrontDoorProps) {
   const translate = useTranslations('agent.generationSetup');
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,80 +62,40 @@ export default function GenerationSetupFrontDoor({
         )
         ?.focus();
   }
-  const {
-    hasLookFields,
-    hasOutputFields,
-    modelLabel,
-    outputLabel,
-    selectedModel,
-  } = summarizeGenerationSetup({
-    autoLabel: translate('auto'),
-    capabilities,
-    formatDuration: (seconds) => translate('durationSeconds', { seconds }),
-    inputControls,
-    lookOptions,
-    models,
-    setup,
-  });
-  const TypeIcon = getModelCategoryIcon(setup.values.type, selectedModel);
   const sections: {
     id: GenerationSetupCustomizeSectionId;
     label: string;
     value?: string;
-    isDisabled?: boolean;
-  }[] = [
-    {
-      id: 'type',
-      label: translate('type'),
-      value:
-        typeOptions.find((option) => option.value === setup.values.type)
-          ?.label ?? setup.values.type,
-      isDisabled: typeOptions.length < 2,
-    },
-  ];
-  if (capabilities.hasModelSelection)
-    sections.push({
-      id: 'model',
-      label: translate('model'),
-      value: modelLabel,
-    });
-  if (hasOutputFields)
-    sections.push({
-      id: 'output',
-      label: translate('output'),
-      value: outputLabel,
-    });
-  if (hasLookFields) sections.push({ id: 'look', label: translate('look') });
-  if (capabilities.hasBrandEnrichment)
+  }[] = [];
+  if (capabilities.hasBrandEnrichment || showEnhancementSettings)
     sections.push({
       id: 'brand',
       label: translate('brand'),
-      value:
-        setup.values.brandingMode === 'brand'
+      value: capabilities.hasBrandEnrichment
+        ? setup.values.brandingMode === 'brand'
           ? translate('on')
-          : translate('off'),
+          : translate('off')
+        : undefined,
     });
   if (showPresets)
     sections.push({
       id: 'presets',
       label: translate('presets'),
-      value: presets.length ? String(presets.length) : undefined,
+      value:
+        presets.length + systemPresets.length
+          ? String(presets.length + systemPresets.length)
+          : undefined,
     });
-  if (showEnhancementSettings)
-    sections.push({ id: 'enhancement', label: translate('enhancement') });
+  if (sections.length === 0) return null;
+
   return (
     <div className="flex min-h-0 flex-col">
-      <div className="min-h-0 overflow-y-auto p-1.5">
+      <div className="min-h-0 overflow-y-auto border-t border-border p-1.5">
         {sections.map((section) => {
-          let sectionIcon: ReactNode;
-          if (section.id === 'model' && selectedModel) {
-            sectionIcon = <ModelAvatar model={selectedModel} />;
-          } else if (section.id === 'type') {
-            sectionIcon = <TypeIcon className="size-3.5" />;
-          } else {
-            const Icon = SECTION_ICONS[section.id];
-            sectionIcon = <Icon className="size-3.5" />;
-          }
+          const Icon = SECTION_ICONS[section.id];
+          const sectionIcon: ReactNode = Icon ? (
+            <Icon className="size-3.5" />
+          ) : null;
           const button = (
             <Button
               key={section.id}
@@ -160,7 +103,7 @@ export default function GenerationSetupFrontDoor({
                 section: section.label,
               })}
               className="h-9 w-full justify-between gap-3 rounded-md px-2 text-xs"
-              isDisabled={isDisabled || section.isDisabled}
+              isDisabled={isDisabled}
               onClick={(event) => {
                 if (renderSection) event.preventDefault();
                 activate(section.id);
@@ -176,7 +119,6 @@ export default function GenerationSetupFrontDoor({
                 if (
                   !renderSection ||
                   isDisabled ||
-                  section.isDisabled ||
                   event.pointerType === 'touch'
                 )
                   return;
@@ -244,19 +186,6 @@ export default function GenerationSetupFrontDoor({
             </Popover>
           );
         })}
-      </div>
-      <div className="shrink-0 border-t border-border p-1.5">
-        <Button
-          ariaLabel={translate('resetAllAria')}
-          className="text-muted-foreground"
-          icon={<RotateCcw className="size-3.5" />}
-          isDisabled={isDisabled}
-          label={translate('resetAll')}
-          onClick={onResetAll}
-          size={ButtonSize.XS}
-          textTransform="none"
-          variant={ButtonVariant.GHOST}
-        />
       </div>
     </div>
   );

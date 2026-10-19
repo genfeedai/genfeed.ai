@@ -2,7 +2,7 @@
 
 import { authClient } from '@genfeedai/auth-client';
 import { PlatformRole } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -13,7 +13,9 @@ import { UsersService } from '@services/organization/users.service';
 import { useQuery } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Users, VenetianMask } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
@@ -55,6 +57,7 @@ function formatUserDate(
 export default function UsersList() {
   const translate = useTranslations('pages.adminUsers');
   const notificationsService = NotificationsService.getInstance();
+  const currentPage = Number(useSearchParams().get('page')) || 1;
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
@@ -66,10 +69,10 @@ export default function UsersList() {
     error: usersError,
     refetch,
   } = useQuery<IUser[]>({
-    queryKey: ['admin-users'],
+    queryKey: ['admin-users', currentPage],
     queryFn: async () => {
       const service = await getUsersService();
-      return service.findAll();
+      return service.findAll({ limit: ITEMS_PER_PAGE, page: currentPage });
     },
   });
 
@@ -164,6 +167,9 @@ export default function UsersList() {
         getRowKey={(u) => u.id}
         emptyLabel={translate('empty')}
       />
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
+      </div>
     </AdminPageShell>
   );
 }

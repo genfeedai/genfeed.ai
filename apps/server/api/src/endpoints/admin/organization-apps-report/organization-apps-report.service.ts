@@ -1,4 +1,8 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import {
+  type PageWindow,
+  toPaginationParams,
+} from '@api/helpers/dto/pagination-query.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
@@ -21,12 +25,21 @@ export class OrganizationAppsReportService {
     private readonly platformSettings: PlatformSettingsService,
   ) {}
 
-  /** Which apps each organization sees, from the same rules the app shell uses. */
-  async getReport(): Promise<IOrganizationAppsReport> {
+  /**
+   * Which apps each organization sees, from the same rules the app shell uses.
+   * One page of organizations; `pagination` carries the platform-wide total.
+   */
+  async getReport({
+    limit,
+    page,
+    skip,
+  }: PageWindow): Promise<IOrganizationAppsReport> {
     const isBilling = hasOrganizationBilling();
-    const [organizations, { flags }] = await Promise.all([
+    const where = { isDeleted: false };
+    const [organizations, totalOrganizations, { flags }] = await Promise.all([
       this.prisma.organization.findMany({
-        orderBy: { label: 'asc' },
+        // `id` keeps equal labels from repeating across pages.
+        orderBy: [{ label: 'asc' }, { id: 'asc' }],
         select: {
           id: true,
           label: true,
@@ -40,8 +53,11 @@ export class OrganizationAppsReportService {
           },
           slug: true,
         },
-        where: { isDeleted: false },
+        skip,
+        take: limit,
+        where,
       }),
+      this.prisma.organization.count({ where }),
       this.platformSettings.getFeatureSettings(),
     ]);
 
@@ -79,6 +95,7 @@ export class OrganizationAppsReportService {
           subscriptionTier: settings?.subscriptionTier ?? null,
         };
       }),
+      pagination: toPaginationParams(totalOrganizations, page, limit),
       releaseFlags: Object.fromEntries(
         PLATFORM_RELEASE_FLAG_KEYS.map((key) => [key, flags[key] === true]),
       ),

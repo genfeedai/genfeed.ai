@@ -22,9 +22,13 @@ export class TrainingsService extends BaseService<Training> {
   async getTrainingImages(
     trainingId: string,
     query?: { page?: number; [key: string]: unknown },
+    signal?: AbortSignal,
   ): Promise<Image[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${trainingId}/images`, { params: query })
+      .get<JsonApiResponseDocument>(`/${trainingId}/images`, {
+        params: query,
+        signal,
+      })
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -32,6 +36,7 @@ export class TrainingsService extends BaseService<Training> {
         if (query?.page && pagination) {
           PagesService.setCurrentPage(pagination.page);
           PagesService.setTotalPages(pagination.pages);
+          PagesService.setTotalDocs(pagination.total ?? 0);
         }
 
         return this.extractCollection<Partial<Image>>(document).map(
@@ -46,9 +51,13 @@ export class TrainingsService extends BaseService<Training> {
   async getTrainingSources(
     trainingId: string,
     query?: { page?: number; [key: string]: unknown },
+    signal?: AbortSignal,
   ): Promise<Image[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${trainingId}/sources`)
+      .get<JsonApiResponseDocument>(`/${trainingId}/sources`, {
+        params: query,
+        signal,
+      })
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -56,6 +65,7 @@ export class TrainingsService extends BaseService<Training> {
         if (query?.page && pagination) {
           PagesService.setCurrentPage(pagination.page);
           PagesService.setTotalPages(pagination.pages);
+          PagesService.setTotalDocs(pagination.total ?? 0);
         }
 
         return this.extractCollection<Partial<Image>>(document).map(

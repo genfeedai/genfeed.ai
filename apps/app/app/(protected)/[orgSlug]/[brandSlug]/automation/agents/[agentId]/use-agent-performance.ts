@@ -35,7 +35,8 @@ export function useAgentPerformance(
   const reports = useQuery({
     queryKey: ['agent-reports', scope.organizationId, scope.brandId, agentId],
     enabled,
-    queryFn: async () => (await getService()).listReports(agentId),
+    queryFn: async () =>
+      (await getService()).listReports(agentId, { limit: 20 }),
   });
 
   useVisiblePolling(

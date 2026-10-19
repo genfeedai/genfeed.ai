@@ -113,5 +113,7 @@ export interface FinalizeOpportunityInput {
   organizationId: string;
   platform: string;
   strategy: AgentStrategyDocument;
+  /** A thread's posts in order, root first; absent for a single post. */
+  threadSegments?: readonly string[];
   userId: string;
 }

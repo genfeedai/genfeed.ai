@@ -308,3 +308,52 @@ export function mapTwitterApiError(error: unknown): string {
 
   return message;
 }
+
+function readProviderDetail(error: unknown): string | undefined {
+  if (!isObjectLike(error)) {
+    return undefined;
+  }
+  const data = isObjectLike(error.data) ? error.data : undefined;
+  if (!data) {
+    return undefined;
+  }
+  const detail =
+    typeof data.detail === 'string' ? data.detail.trim() : undefined;
+  const title = typeof data.title === 'string' ? data.title.trim() : undefined;
+  return detail || title || undefined;
+}
+
+export const X_CREDITS_DEPLETED_CODE = 'x_credits_depleted';
+export const X_CREDITS_DEPLETED_ERROR =
+  'X API credits depleted. Add credits to the X developer account, then retry.';
+
+/** X answers 402 (title CreditsDepleted) when the API account is out of credits. */
+export function isTwitterCreditsDepletedError(error: unknown): boolean {
+  if (!isObjectLike(error)) {
+    return false;
+  }
+  const data = isObjectLike(error.data) ? error.data : undefined;
+  const title = typeof data?.title === 'string' ? data.title : '';
+  const type = typeof data?.type === 'string' ? data.type : '';
+  return (
+    readStatus(error) === 402 || /credits?-?depleted/i.test(`${title} ${type}`)
+  );
+}
+
+/**
+ * The reason X gave for rejecting a publish. twitter-api-v2 only appends X's
+ * explanation to the error message when the body has an `errors` array, so a
+ * duplicate-content 403, a 402 CreditsDepleted or an expired-token 401 reaches
+ * the post as a bare "Request failed with code 403". The text X sent in
+ * `data.detail` / `data.title` is added back so the owner can act on it, and
+ * an out-of-credits account is named as such.
+ */
+export function describeTwitterPublishError(error: unknown): string {
+  const message = readMessage(error);
+  const detail = readProviderDetail(error);
+  const described =
+    !detail || message.includes(detail) ? message : `${message} - ${detail}`;
+  return isTwitterCreditsDepletedError(error)
+    ? `${X_CREDITS_DEPLETED_ERROR} (${described})`
+    : described;
+}

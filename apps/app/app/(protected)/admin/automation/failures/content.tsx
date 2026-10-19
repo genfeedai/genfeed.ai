@@ -1,11 +1,18 @@
 'use client';
 
-import { AgentFailureReason, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AgentFailureReason,
+  type AgentFailureResolution,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import Badge from '@ui/display/badge/Badge';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
@@ -27,7 +34,14 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  buildFailureClipboardText,
+  buildFailureIssueUrl,
+  summarizeFailureError,
+} from './failure-presentation';
+
+const RESOLUTIONS: AgentFailureResolution[] = ['open', 'resolved', 'all'];
 
 export default function AgentFailuresPage() {
   const translate = useTranslations('pages.agentFailures');
@@ -36,6 +50,12 @@ export default function AgentFailuresPage() {
   );
   const [failures, setFailures] = useState<IWorkflowExecution[]>([]);
   const [reason, setReason] = useState<AgentFailureReason>();
+  const [resolution, setResolution] = useState<AgentFailureResolution>('open');
+  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  const [pendingId, setPendingId] = useState<string>();
+  const [copiedId, setCopiedId] = useState<string>();
   const [offset, setOffset] = useState(0);
   const requestController = useRef<AbortController | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -53,6 +73,7 @@ export default function AgentFailuresPage() {
           reason,
           offset,
           controller.signal,
+          resolution,
         );
         if (!controller.signal.aborted) {
           setFailures(result);
@@ -65,7 +86,7 @@ export default function AgentFailuresPage() {
       }
     }
     void loadFailures();
-  }, [getService, reason, offset]);
+  }, [getService, reason, resolution, offset]);
 
   useEffect(() => {
     refreshFailures();
@@ -77,25 +98,92 @@ export default function AgentFailuresPage() {
     setOffset(0);
   }
 
+  function changeResolution(value: string) {
+    setResolution(RESOLUTIONS.find((item) => item === value) ?? 'open');
+    setOffset(0);
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
+
+  async function setResolved(run: IWorkflowExecution, isResolved: boolean) {
+    setPendingId(run.id);
+    try {
+      const service = await getService();
+      const updated = await service.setAdminFailureResolved(run.id, isResolved);
+      setFailures((current) =>
+        resolution === 'all'
+          ? current.map((item) =>
+              item.id === run.id
+                ? { ...item, failureResolvedAt: updated.failureResolvedAt }
+                : item,
+            )
+          : current.filter((item) => item.id !== run.id),
+      );
+    } catch (error) {
+      logger.error('Failed to update agent failure', error);
+      NotificationsService.getInstance().error(translate('actionError'));
+    } finally {
+      setPendingId(undefined);
+    }
+  }
+
+  async function copyDetails(run: IWorkflowExecution) {
+    try {
+      await navigator.clipboard.writeText(buildFailureClipboardText(run));
+      setCopiedId(run.id);
+    } catch (error) {
+      logger.error('Failed to copy agent failure', error);
+    }
+  }
+
+  function createIssue(run: IWorkflowExecution) {
+    const summary = summarizeFailureError(run.error);
+    window.open(
+      buildFailureIssueUrl(run, summary),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
+
   return (
     <AdminPageShell
       title={translate('title')}
       onRefresh={refreshFailures}
       isRefreshing={state === 'loading'}
       filters={
-        <Select value={reason ?? 'all'} onValueChange={changeReason}>
-          <SelectTrigger aria-label={translate('reasonFilter')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{translate('allReasons')}</SelectItem>
-            {Object.values(AgentFailureReason).map((value) => (
-              <SelectItem key={value} value={value}>
-                {translate(`reasons.${value}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <>
+          <Select value={resolution} onValueChange={changeResolution}>
+            <SelectTrigger aria-label={translate('resolutionFilter')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RESOLUTIONS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {translate(`resolutions.${value}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={reason ?? 'all'} onValueChange={changeReason}>
+            <SelectTrigger aria-label={translate('reasonFilter')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{translate('allReasons')}</SelectItem>
+              {Object.values(AgentFailureReason).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {translate(`reasons.${value}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
       }
     >
       <WorkspaceSurface
@@ -119,48 +207,119 @@ export default function AgentFailuresPage() {
                 <TableHead>{translate('columns.organization')}</TableHead>
                 <TableHead>{translate('columns.workflow')}</TableHead>
                 <TableHead>{translate('columns.failedAt')}</TableHead>
+                <TableHead>{translate('columns.status')}</TableHead>
                 <TableHead>{translate('columns.reason')}</TableHead>
                 <TableHead>{translate('columns.error')}</TableHead>
-                <TableHead>{translate('columns.recovery')}</TableHead>
+                <TableHead>{translate('columns.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {failures.map((run) => (
-                <TableRow key={run.id}>
-                  <TableCell className="font-mono text-xs">{run.id}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {run.organizationId}
-                  </TableCell>
-                  <TableCell>{run.workflow?.label ?? run.workflowId}</TableCell>
-                  <TableCell>
-                    {new Date(run.completedAt ?? run.createdAt).toLocaleString(
-                      'en-US',
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {translate(
-                      `reasons.${run.failureReason ?? AgentFailureReason.UNKNOWN}`,
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <p>
-                      {run.failure?.summary ??
-                        run.error ??
-                        translate('noError')}
-                    </p>
-                    {run.error &&
-                    run.failure?.summary &&
-                    run.error !== run.failure.summary ? (
-                      <p className="mt-1 whitespace-pre-wrap font-mono text-xs">
-                        {run.error}
-                      </p>
+              {failures.map((run) => {
+                const isResolved = Boolean(run.failureResolvedAt);
+                const isExpanded = expandedIds.has(run.id);
+                const summary =
+                  summarizeFailureError(run.error) ||
+                  run.failure?.summary ||
+                  translate('noError');
+                return (
+                  <Fragment key={run.id}>
+                    <TableRow>
+                      <TableCell className="font-mono text-xs" title={run.id}>
+                        {run.id}
+                      </TableCell>
+                      <TableCell title={run.organizationId}>
+                        {run.organization?.label ?? run.organizationId}
+                      </TableCell>
+                      <TableCell>
+                        {run.workflow?.label ?? run.workflowId}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(
+                          run.completedAt ?? run.createdAt,
+                        ).toLocaleString('en-US')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={isResolved ? 'success' : 'warning'}>
+                          {translate(
+                            `statuses.${isResolved ? 'resolved' : 'open'}`,
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {translate(
+                            `reasons.${run.failureReason ?? AgentFailureReason.UNKNOWN}`,
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-md">
+                        <p>{summary}</p>
+                        <Button
+                          label={translate(
+                            isExpanded
+                              ? 'actions.hideDetails'
+                              : 'actions.showDetails',
+                          )}
+                          variant={ButtonVariant.LINK}
+                          size={ButtonSize.XS}
+                          onClick={() => toggleExpanded(run.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            label={translate(
+                              isResolved
+                                ? 'actions.reopen'
+                                : 'actions.markResolved',
+                            )}
+                            variant={ButtonVariant.SECONDARY}
+                            size={ButtonSize.SM}
+                            isLoading={pendingId === run.id}
+                            onClick={() => void setResolved(run, !isResolved)}
+                          />
+                          <Button
+                            label={translate('actions.createIssue')}
+                            variant={ButtonVariant.SECONDARY}
+                            size={ButtonSize.SM}
+                            onClick={() => createIssue(run)}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded ? (
+                      <TableRow>
+                        <TableCell colSpan={8}>
+                          <p className="text-xs font-medium">
+                            {translate('fullError')}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap break-words font-mono text-xs">
+                            {run.error ?? translate('noError')}
+                          </p>
+                          <p className="mt-3 text-xs font-medium">
+                            {translate('recovery')}
+                          </p>
+                          <p className="mt-1 text-xs">
+                            {run.failure?.recovery ??
+                              translate('recoveryFallback')}
+                          </p>
+                          <Button
+                            className="mt-3"
+                            label={translate(
+                              copiedId === run.id
+                                ? 'actions.copied'
+                                : 'actions.copy',
+                            )}
+                            variant={ButtonVariant.SECONDARY}
+                            size={ButtonSize.SM}
+                            onClick={() => void copyDetails(run)}
+                          />
+                        </TableCell>
+                      </TableRow>
                     ) : null}
-                  </TableCell>
-                  <TableCell>
-                    {run.failure?.recovery ?? translate('recoveryFallback')}
-                  </TableCell>
-                </TableRow>
-              ))}
+                  </Fragment>
+                );
+              })}
             </TableBody>
           </Table>
         )}

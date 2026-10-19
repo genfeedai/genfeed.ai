@@ -77,16 +77,18 @@ describe('OutreachCampaignTargetsController', () => {
     );
   });
 
-  it('delegates target reads with the authenticated scope', async () => {
-    const targets = [{ id: 'target_1' }];
+  it('delegates target reads with the page query and the authenticated scope', async () => {
+    const targets = { data: [{ id: 'target_1' }], meta: { statusCounts: {} } };
+    const query = { limit: 20, page: 2 };
     targetOperationsService.getTargets.mockResolvedValue(targets);
 
-    await expect(controller.getTargets('campaign_1', user)).resolves.toBe(
-      targets,
-    );
+    await expect(
+      controller.getTargets('campaign_1', user, query),
+    ).resolves.toBe(targets);
     expect(targetOperationsService.getTargets).toHaveBeenCalledWith(
       'campaign_1',
       user,
+      query,
       {
         organizationId: user.organizationId,
         brandId: user.brandId,

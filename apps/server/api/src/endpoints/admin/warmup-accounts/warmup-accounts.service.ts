@@ -9,8 +9,11 @@ import {
   lockWarmup,
   reconcileWarmupWorkspace,
   warmupReadiness,
+  warmupReadinessBatch,
 } from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -18,6 +21,7 @@ import {
   replaceCharacterRuns,
   trimCharacter,
 } from '@api/shared/utils/string/linear-string.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   IWarmupAccount,
   IWarmupAccountAuditEvent,
@@ -295,17 +299,37 @@ export class AdminWarmupAccountsService {
     return this.toView(updated, invitation);
   }
 
-  async list(): Promise<WarmupAccountView[]> {
-    const accounts = await this.prisma.warmupAccount.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: { isDeleted: false },
-    });
+  async list({
+    limit,
+    page,
+    skip,
+  }: PageWindow): Promise<AggregatePaginateResult<WarmupAccountView>> {
+    const where: Prisma.WarmupAccountWhereInput = { isDeleted: false };
+    const [accounts, totalDocs] = await Promise.all([
+      // tenant-scope-ignore: superadmin inventory is platform-wide; the controller runs this as platform admin
+      this.prisma.warmupAccount.findMany({
+        // `id` breaks createdAt ties so rows never repeat across pages.
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take: limit,
+        where,
+      }),
+      // tenant-scope-ignore: same platform-wide superadmin inventory as the page query
+      this.prisma.warmupAccount.count({ where }),
+    ]);
 
-    return Promise.all(
-      accounts.map(async (account) => ({
+    // Readiness is computed for this page's accounts only, in a fixed number
+    // of batched queries rather than one query fan-out per account.
+    const readiness = await warmupReadinessBatch(this.prisma, accounts);
+
+    return buildPaginatedResult(
+      accounts.map((account, index) => ({
         ...this.toView(account),
-        readiness: await warmupReadiness(this.prisma, account),
+        readiness: readiness[index],
       })),
+      totalDocs,
+      page,
+      limit,
     );
   }
 

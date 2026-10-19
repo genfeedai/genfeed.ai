@@ -4,13 +4,17 @@ import type {
   BotActivityDocument,
 } from '@api/collections/bot-activities/schemas/bot-activity.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { BotActivityStatus } from '@genfeedai/contracts';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+const DEFAULT_BOT_ACTIVITIES_PAGE_SIZE = 20;
 
 export interface BotActivityStats {
   total: number;
@@ -173,13 +177,15 @@ export class BotActivitiesService extends BaseService<
   }
 
   /**
-   * Find activities with filters and pagination
+   * Find activities with filters, paginated in SQL. `status` and `botType`
+   * live in the `data` JSON column, so they are JSON-path filters in the
+   * `where` rather than an in-memory pass over every row.
    */
   async findWithFilters(
     organizationId: string,
     brandId: string | undefined,
     query: BotActivitiesQueryDto,
-  ): Promise<{ activities: BotActivityDocument[]; total: number }> {
+  ): Promise<AggregatePaginateResult<BotActivityDocument>> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       ...(brandId ? { brandId } : {}),
     });
@@ -192,44 +198,63 @@ export class BotActivitiesService extends BaseService<
       where.monitoredAccountId = query.monitoredAccountId;
     }
 
-    if (query.fromDate || query.toDate) {
-      where.createdAt = {};
-      if (query.fromDate) {
-        (where.createdAt as Record<string, unknown>).gte = new Date(
-          query.fromDate,
-        );
-      }
-      if (query.toDate) {
-        (where.createdAt as Record<string, unknown>).lte = new Date(
-          query.toDate,
-        );
-      }
+    const createdAt = this.buildCreatedAtRange(
+      query.fromDate ? new Date(query.fromDate) : undefined,
+      query.toDate ? new Date(query.toDate) : undefined,
+    );
+    if (createdAt) {
+      where.createdAt = createdAt;
     }
 
-    const limit = query.limit || 20;
-    const offset = query.offset || 0;
+    const jsonFilters: Prisma.BotActivityWhereInput[] = [];
+    if (query.botType) {
+      jsonFilters.push({ data: { equals: query.botType, path: ['botType'] } });
+    }
+    if (query.status) {
+      jsonFilters.push({ data: { equals: query.status, path: ['status'] } });
+    }
+    if (jsonFilters.length > 0) {
+      where.AND = jsonFilters;
+    }
 
-    const activities = (
-      (await this.delegate.findMany({
-        where,
+    const page = query.page ?? 1;
+    const limit = query.limit ?? DEFAULT_BOT_ACTIVITIES_PAGE_SIZE;
+
+    const [rows, totalDocs] = await Promise.all([
+      this.delegate.findMany({
         orderBy: { createdAt: 'desc' },
-      })) as BotActivityDocument[]
-    )
-      .map((activity) => this.normalizeActivity(activity))
-      .filter(
-        (activity) =>
-          (!query.botType || activity.botType === query.botType) &&
-          (!query.status || activity.status === query.status),
-      );
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }) as Promise<BotActivityDocument[]>,
+      this.delegate.count({ where }),
+    ]);
+
+    return buildPaginatedResult(
+      rows.map((activity) => this.normalizeActivity(activity)),
+      totalDocs,
+      page,
+      limit,
+    );
+  }
+
+  private buildCreatedAtRange(
+    fromDate?: Date,
+    toDate?: Date,
+  ): Prisma.DateTimeFilter | undefined {
+    if (!fromDate && !toDate) {
+      return undefined;
+    }
 
     return {
-      activities: activities.slice(offset, offset + limit),
-      total: activities.length,
+      ...(fromDate ? { gte: fromDate } : {}),
+      ...(toDate ? { lte: toDate } : {}),
     };
   }
 
   /**
-   * Get aggregated statistics for an organization
+   * Get aggregated statistics for an organization. Every figure is a
+   * database `count` over the same scoped window, so no row is loaded.
    */
   async getStats(
     organizationId: string,
@@ -246,42 +271,26 @@ export class BotActivitiesService extends BaseService<
       where.replyBotConfigId = replyBotConfigId;
     }
 
-    if (fromDate || toDate) {
-      where.createdAt = {};
-      if (fromDate) {
-        (where.createdAt as Record<string, unknown>).gte = fromDate;
-      }
-      if (toDate) {
-        (where.createdAt as Record<string, unknown>).lte = toDate;
-      }
+    const createdAt = this.buildCreatedAtRange(fromDate, toDate);
+    if (createdAt) {
+      where.createdAt = createdAt;
     }
 
-    const activities = (
-      (await this.delegate.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-      })) as BotActivityDocument[]
-    ).map((activity) => this.normalizeActivity(activity));
+    const countWhere = (extra: Prisma.BotActivityWhereInput): Promise<number> =>
+      this.delegate.count({ where: { ...where, ...extra } });
+    const countStatus = (status: BotActivityStatus): Promise<number> =>
+      countWhere({ data: { equals: status, path: ['status'] } });
 
-    const total = activities.length;
-    const completed = activities.filter(
-      (activity) => activity.status === BotActivityStatus.COMPLETED,
-    ).length;
-    const failed = activities.filter(
-      (activity) => activity.status === BotActivityStatus.FAILED,
-    ).length;
-    const pending = activities.filter(
-      (activity) => activity.status === BotActivityStatus.PENDING,
-    ).length;
-    const skipped = activities.filter(
-      (activity) => activity.status === BotActivityStatus.SKIPPED,
-    ).length;
-    const totalReplies = activities.filter(
-      (activity) => typeof activity.replyTweetId === 'string',
-    ).length;
-    const totalDms = activities.filter(
-      (activity) => activity.dmSent === true,
-    ).length;
+    const [total, completed, failed, pending, skipped, totalReplies, totalDms] =
+      await Promise.all([
+        this.delegate.count({ where }),
+        countStatus(BotActivityStatus.COMPLETED),
+        countStatus(BotActivityStatus.FAILED),
+        countStatus(BotActivityStatus.PENDING),
+        countStatus(BotActivityStatus.SKIPPED),
+        countWhere({ data: { not: Prisma.AnyNull, path: ['replyTweetId'] } }),
+        countWhere({ data: { equals: true, path: ['dmSent'] } }),
+      ]);
 
     return {
       completed,

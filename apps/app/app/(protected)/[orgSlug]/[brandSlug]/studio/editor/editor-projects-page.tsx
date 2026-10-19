@@ -7,12 +7,13 @@ import {
   formatEnumLabel,
   ViewType,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
@@ -26,6 +27,7 @@ import CollectionView from '@ui/collection/CollectionView';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -41,6 +43,7 @@ import { Input } from '@ui/primitives/input';
 import { Film, Pencil, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   type FormEvent,
@@ -92,7 +95,10 @@ export default function EditorProjectsPage() {
   const translate = useTranslations('pages.studioEditor');
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
+  const [totalProjects, setTotalProjects] = useState(0);
   const [hasError, setHasError] = useState(false);
   const [renameTarget, setRenameTarget] = useState<IEditorProject | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -105,36 +111,63 @@ export default function EditorProjectsPage() {
   const isLoading = projects === null && !hasError;
   const hasProjects = projects !== null && projects.length > 0;
 
+  // Projects are served newest-updated first, so "Recent" is only meaningful
+  // on the first server page.
   const recentProjects = useMemo(
     () =>
-      [...(projects ?? [])]
-        .sort((a, b) => getUpdatedTime(b) - getUpdatedTime(a))
-        .slice(0, RECENT_PROJECT_LIMIT),
-    [projects],
+      currentPage === 1
+        ? [...(projects ?? [])]
+            .sort((a, b) => getUpdatedTime(b) - getUpdatedTime(a))
+            .slice(0, RECENT_PROJECT_LIMIT)
+        : [],
+    [currentPage, projects],
   );
 
   const getEditorService = useAuthedService((token: string) =>
     EditorProjectsService.getInstance(token),
   );
 
-  const loadProjects = useCallback(async () => {
-    try {
-      setProjects(null);
-      setHasError(false);
-      const service = await getEditorService();
-      const allProjects = await service.findAll();
-      setProjects(allProjects);
-    } catch (error) {
-      logger.error('Failed to load editor projects', error);
-      setHasError(true);
-    }
-  }, [getEditorService]);
+  const loadProjects = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        setProjects(null);
+        setHasError(false);
+        const service = await getEditorService();
+        const pageProjects = await service.findAll(
+          { limit: ITEMS_PER_PAGE, page: currentPage },
+          signal,
+        );
+        if (signal?.aborted) {
+          return;
+        }
+        setProjects(pageProjects);
+        setTotalProjects(
+          Math.max(PagesService.getTotalDocs(), pageProjects.length),
+        );
+      } catch (error) {
+        if (
+          signal?.aborted ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
+          return;
+        }
+        logger.error('Failed to load editor projects', error);
+        setHasError(true);
+      }
+    },
+    [currentPage, getEditorService],
+  );
 
   useEffect(() => {
     captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
       surface: 'index',
     });
-    loadProjects();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadProjects(controller.signal);
+    return () => controller.abort();
   }, [loadProjects]);
 
   const handleDelete = useCallback(
@@ -143,6 +176,7 @@ export default function EditorProjectsPage() {
         const service = await getEditorService();
         await service.delete(projectId);
         setProjects((prev) => (prev ?? []).filter((p) => p.id !== projectId));
+        setTotalProjects((prev) => Math.max(0, prev - 1));
       } catch (error) {
         logger.error('Failed to delete editor project', {
           error,
@@ -335,7 +369,7 @@ export default function EditorProjectsPage() {
     <Container
       label={
         hasProjects
-          ? translate('yourProjectsCount', { count: projects.length })
+          ? translate('yourProjectsCount', { count: totalProjects })
           : isLoading
             ? translate('yourProjects')
             : translate('editor')
@@ -369,30 +403,32 @@ export default function EditorProjectsPage() {
         <ErrorFallback
           title={translate('loadFailedTitle')}
           description={translate('loadFailed')}
-          resetErrorBoundary={loadProjects}
+          resetErrorBoundary={() => void loadProjects()}
         />
       ) : hasProjects ? (
         <div className="flex flex-col gap-8">
-          <CollectionCarouselSection
-            data-testid="editor-projects-recent"
-            itemCount={recentProjects.length}
-            title={translate('recent')}
-          >
-            {recentProjects.map((project) => (
-              <div
-                key={project.id}
-                className="min-w-64 shrink-0 basis-[calc((100%_-_2rem)/3)]"
-              >
-                {renderProjectCard(project)}
-              </div>
-            ))}
-          </CollectionCarouselSection>
+          {recentProjects.length > 0 ? (
+            <CollectionCarouselSection
+              data-testid="editor-projects-recent"
+              itemCount={recentProjects.length}
+              title={translate('recent')}
+            >
+              {recentProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="min-w-64 shrink-0 basis-[calc((100%_-_2rem)/3)]"
+                >
+                  {renderProjectCard(project)}
+                </div>
+              ))}
+            </CollectionCarouselSection>
+          ) : null}
 
           <CollectionSection
             actions={viewToolbar}
             data-testid="editor-projects-all"
             isCountVisible
-            itemCount={projects.length}
+            itemCount={totalProjects}
             title={translate('allProjects')}
           >
             <CollectionView
@@ -404,6 +440,7 @@ export default function EditorProjectsPage() {
               view={view}
             />
           </CollectionSection>
+          <AutoPagination showTotal totalLabel="projects" />
         </div>
       ) : (
         <CardEmpty

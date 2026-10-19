@@ -34,11 +34,13 @@ import {
 } from '@api/collections/contexts/utils/knowledge-source.util';
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ModelCategory,
   PostVisibility,
@@ -204,39 +206,57 @@ export class ContextsService {
 
   async findAll(
     organizationId: string,
-    filters?: {
+    filters: {
       category?: string;
       isActive?: boolean;
       search?: string;
+      sourceBrandId?: string;
     },
-  ): Promise<ContextBase[]> {
-    const rows = await this.prisma.contextBase.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId, {}),
-    });
-
-    let results = rows;
-
-    if (
-      filters?.category ||
-      filters?.isActive !== undefined ||
-      filters?.search
-    ) {
-      results = rows.filter((row) => {
-        const d = (row.data as Record<string, unknown>) ?? {};
-        if (filters?.category && d.category !== filters.category) return false;
-        if (filters?.isActive !== undefined && d.isActive !== filters.isActive)
-          return false;
-        if (filters?.search) {
-          const label = (d.label as string) ?? '';
-          if (!label.toLowerCase().includes(filters.search.toLowerCase()))
-            return false;
-        }
-        return true;
+    { limit, page }: { limit: number; page: number },
+  ): Promise<AggregatePaginateResult<ContextBase>> {
+    const jsonFilters: Prisma.ContextBaseWhereInput[] = [];
+    if (filters.category) {
+      jsonFilters.push({
+        data: { equals: filters.category, path: ['category'] },
+      });
+    }
+    if (filters.isActive !== undefined) {
+      jsonFilters.push({
+        data: { equals: filters.isActive, path: ['isActive'] },
+      });
+    }
+    if (filters.search) {
+      jsonFilters.push({
+        data: {
+          mode: 'insensitive',
+          path: ['label'],
+          string_contains: filters.search,
+        },
       });
     }
 
-    return this.normalizeContextBases(results);
+    const where = scopedWhere(organizationId, {
+      ...(filters.sourceBrandId
+        ? { sourceBrandId: filters.sourceBrandId }
+        : {}),
+      ...(jsonFilters.length > 0 ? { AND: jsonFilters } : {}),
+    });
+    const [rows, totalDocs] = await Promise.all([
+      this.prisma.contextBase.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.contextBase.count({ where }),
+    ]);
+
+    return buildPaginatedResult(
+      this.normalizeContextBases(rows),
+      totalDocs,
+      page,
+      limit,
+    );
   }
 
   async findOne(id: string, organizationId: string): Promise<ContextBase> {

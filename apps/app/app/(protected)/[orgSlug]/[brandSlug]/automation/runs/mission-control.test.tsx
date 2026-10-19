@@ -1,9 +1,15 @@
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MissionControl from './mission-control';
 
-const state = vi.hoisted(() => ({ isError: false, refresh: vi.fn() }));
+const state = vi.hoisted(() => ({
+  isError: false,
+  params: [] as unknown[],
+  refresh: vi.fn(),
+  searchParams: new URLSearchParams(),
+}));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../../tests/next-intl.stub'
@@ -14,7 +20,7 @@ vi.mock('next-intl', async () => {
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/brand/automation/runs',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => state.searchParams,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -33,14 +39,17 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
-  useWorkflowExecutions: () => ({
-    cancelExecution: vi.fn(),
-    executions: [],
-    isLoading: false,
-    isError: state.isError,
-    refresh: state.refresh,
-    stats: { total: 0 },
-  }),
+  useWorkflowExecutions: (params: unknown) => {
+    state.params.push(params);
+    return {
+      cancelExecution: vi.fn(),
+      executions: [],
+      isLoading: false,
+      isError: state.isError,
+      refresh: state.refresh,
+      stats: { total: 0 },
+    };
+  },
 }));
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
@@ -72,7 +81,19 @@ vi.mock('./ActiveRunsPanel', () => ({ default: () => null }));
 describe('MissionControl', () => {
   beforeEach(() => {
     state.isError = false;
+    state.params = [];
+    state.searchParams = new URLSearchParams();
     state.refresh.mockReset();
+  });
+  it('requests the server page named in the URL instead of a fixed cap', () => {
+    state.searchParams = new URLSearchParams('page=4');
+    render(<MissionControl />);
+    expect(state.params[0]).toMatchObject({
+      brandId: 'brand-1',
+      limit: ITEMS_PER_PAGE,
+      page: 4,
+      sort: '-createdAt',
+    });
   });
   it('keeps header tools available and offers retry without an empty-list message on failure', () => {
     state.isError = true;

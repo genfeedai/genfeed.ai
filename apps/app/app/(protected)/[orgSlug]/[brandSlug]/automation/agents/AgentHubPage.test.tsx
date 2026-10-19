@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { AgentType } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   fireEvent,
   render,
@@ -28,15 +29,28 @@ const mocks = vi.hoisted(() => ({
   strategies: [] as unknown[],
   success: vi.fn(),
   isLoading: false,
+  hookOptions: [] as Array<{ limit?: number; page?: number }>,
+  page: null as string | null,
+  pagedStrategies: null as unknown[] | null,
 }));
 
 vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
-  useAgentStrategies: () => ({
-    error: mocks.loadError,
-    isLoading: mocks.isLoading,
-    refresh: mocks.refresh,
-    strategies: mocks.strategies,
-  }),
+  useAgentStrategies: (options: { page?: number }) => {
+    mocks.hookOptions.push(options);
+    return {
+      error: mocks.loadError,
+      isLoading: mocks.isLoading,
+      refresh: mocks.refresh,
+      // The paged "all agents" query can differ from the full set.
+      strategies: options.page
+        ? (mocks.pagedStrategies ?? mocks.strategies)
+        : mocks.strategies,
+    };
+  },
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -91,7 +105,9 @@ vi.mock('next/link', () => ({
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
   usePathname: () => '/org-one/brand-one/automation/agents',
-  useSearchParams: () => ({ get: () => mocks.addIntent }),
+  useSearchParams: () => ({
+    get: (key: string) => (key === 'page' ? mocks.page : mocks.addIntent),
+  }),
   useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
 }));
 
@@ -242,6 +258,9 @@ describe('AgentHubPage', () => {
     mocks.isLoading = false;
     mocks.loadError = null;
     mocks.strategies = [];
+    mocks.pagedStrategies = null;
+    mocks.page = null;
+    mocks.hookOptions = [];
     mocks.getService.mockResolvedValue({
       getWorkflowBinding: mocks.getWorkflowBinding,
       runNow: mocks.runNow,
@@ -358,7 +377,8 @@ describe('AgentHubPage', () => {
     expect(screen.queryByText('No agents yet')).not.toBeInTheDocument();
 
     fireEvent.click(within(all).getByRole('button', { name: 'Retry' }));
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    // Retry refetches both the paged list and the full set behind the sections.
+    expect(mocks.refresh).toHaveBeenCalledTimes(2);
   });
 
   it('orders sections Needs you, Your agents, All and fills each from intent', () => {
@@ -384,6 +404,30 @@ describe('AgentHubPage', () => {
     expect(
       within(getSection('all')).getAllByTestId(/^agent-row-all-/),
     ).toHaveLength(4);
+  });
+
+  it('server-pages the All list while the attention sections see every agent', () => {
+    mocks.page = '2';
+    mocks.strategies = [HEALTHY_AGENT, PAUSED_AGENT, FAILING_AGENT, IDLE_AGENT];
+    mocks.pagedStrategies = [IDLE_AGENT];
+
+    render(<AgentHubPage />);
+
+    expect(mocks.hookOptions).toContainEqual(
+      expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 2 }),
+    );
+    expect(mocks.hookOptions).toContainEqual(
+      expect.not.objectContaining({ page: expect.anything() }),
+    );
+    expect(
+      within(getSection('all')).getAllByTestId(/^agent-row-all-/),
+    ).toHaveLength(1);
+    expect(
+      within(getSection('needs-you')).getAllByTestId(/^agent-row-needsYou-/),
+    ).toHaveLength(2);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
   });
 
   it('hides Needs you and Your agents when nothing belongs in them', () => {

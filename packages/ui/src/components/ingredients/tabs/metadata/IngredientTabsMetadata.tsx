@@ -195,7 +195,6 @@ export default function IngredientTabsMetadata({
     try {
       const service = await getIngredientsService();
       await service.refreshMetadata(ingredient.id);
-      notificationsService.success('Metadata refreshed successfully');
 
       if (onRefresh) {
         await onRefresh();

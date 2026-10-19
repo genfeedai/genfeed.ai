@@ -2,6 +2,7 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TargetExecutionState } from '@genfeedai/contracts';
+import { Prisma } from '@genfeedai/prisma';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -55,10 +56,36 @@ export class PostRetryService {
         ? post.scheduledDate
         : now;
 
-    return this.postsService.patch(postId, {
+    const retried = await this.postsService.patch(postId, {
       retryCount: 0,
       scheduledDate,
       targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+    await this.rearmChildrenFailedWithParent(postId, organizationId);
+    return retried;
+  }
+
+  /**
+   * A parent that fails also fails its thread children (`parent_failed`), and
+   * only SCHEDULED children are delivered after the parent publishes. Retrying
+   * the parent alone left the reply FAILED, so the thread posted without it.
+   * Children that failed on their own keep their own error.
+   */
+  private async rearmChildrenFailedWithParent(
+    parentId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.postsService.prisma.post.updateMany({
+      data: {
+        targetError: Prisma.JsonNull,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      },
+      where: scopedWhere(organizationId, {
+        isDeleted: false,
+        parentId,
+        targetError: { equals: 'parent_failed', path: ['code'] },
+        targetExecutionState: TargetExecutionState.FAILED,
+      }),
     });
   }
 }

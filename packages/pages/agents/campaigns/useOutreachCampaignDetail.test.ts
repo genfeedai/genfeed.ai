@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useOutreachCampaignDetail } from './useOutreachCampaignDetail';
 
 const mocks = vi.hoisted(() => ({
@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   push: vi.fn(),
+  searchParams: new URLSearchParams() as URLSearchParams,
   start: vi.fn(),
 }));
 
@@ -57,6 +58,7 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'campaign-1' }),
   useRouter: () => ({ push: mocks.push }),
+  useSearchParams: () => mocks.searchParams,
 }));
 
 vi.mock('next-intl', async () => {
@@ -76,7 +78,14 @@ describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => 
       platform: 'twitter',
       status: 'draft',
     });
-    mocks.getTargets.mockResolvedValue([]);
+    mocks.getTargets.mockResolvedValue({
+      page: 1,
+      pageSize: 15,
+      statusCounts: {},
+      targets: [],
+      total: 0,
+      totalPages: 1,
+    });
   });
 
   it('guards against a duplicate paid start from two rapid calls', async () => {
@@ -149,5 +158,60 @@ describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => 
     }
 
     await waitFor(() => expect(result.current.isStartingCampaign).toBe(false));
+  });
+});
+
+describe('useOutreachCampaignDetail — paginated targets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.searchParams = new URLSearchParams('page=3');
+    mocks.findOne.mockResolvedValue({
+      campaignType: 'manual',
+      id: 'campaign-1',
+      label: 'Sequence',
+      platform: 'twitter',
+      status: 'draft',
+    });
+    mocks.getTargets.mockResolvedValue({
+      page: 3,
+      pageSize: 15,
+      statusCounts: { FAILED: 2, PENDING: 30, REPLIED: 8 },
+      targets: [{ id: 'target-31' }],
+      total: 40,
+      totalPages: 3,
+    });
+  });
+
+  afterEach(() => {
+    mocks.searchParams = new URLSearchParams();
+  });
+
+  it('requests only the page in the URL', async () => {
+    const { result } = renderHook(() => useOutreachCampaignDetail());
+
+    await waitFor(() => expect(result.current.campaign).not.toBeNull());
+
+    expect(mocks.getTargets).toHaveBeenCalledWith('campaign-1', {
+      limit: 15,
+      page: 3,
+    });
+    expect(result.current.targets).toEqual([{ id: 'target-31' }]);
+  });
+
+  it('derives the KPIs from the campaign-wide counts, not the loaded page', async () => {
+    const { result } = renderHook(() => useOutreachCampaignDetail());
+
+    await waitFor(() => expect(result.current.campaign).not.toBeNull());
+
+    expect(result.current.targetStats).toEqual({
+      failed: 2,
+      pending: 30,
+      processing: 0,
+      replied: 8,
+      scheduled: 0,
+      sent: 0,
+      skipped: 0,
+      total: 40,
+    });
   });
 });

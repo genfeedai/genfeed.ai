@@ -27,6 +27,8 @@ import type { ClipProjectSummary, ClipResult } from '@props/studio/clips.props';
 import type { ClipsApiClient } from '@props/studio/clips-api.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import type { JsonApiResponseDocument } from '@services/core/json-api';
+import { recordPageTotals } from '@services/core/page-totals';
 
 import { mapClipProjectSummary } from '../utils/map-clip-project-summary';
 
@@ -300,11 +302,25 @@ export class ClipsApiService implements ClipsApiClient {
     });
   }
 
-  async listProjects(signal?: AbortSignal): Promise<ClipProjectSummary[]> {
+  /**
+   * One server page of clip projects, newest first. A `brandId` also returns
+   * the org-wide projects that have no brand. Passing `page` publishes the
+   * totals for `<AutoPagination />`.
+   */
+  async listProjects(
+    query: { brandId?: string; limit?: number; page?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<ClipProjectSummary[]> {
+    const params = new URLSearchParams({ sort: '-createdAt' });
+    if (query.brandId) params.set('brandId', query.brandId);
+    if (query.limit) params.set('limit', String(query.limit));
+    if (query.page) params.set('page', String(query.page));
+
     const data = await this.fetchJson<unknown>(
-      `${this.apiEndpoint}/clip-projects?sort=-createdAt`,
+      `${this.apiEndpoint}/clip-projects?${params.toString()}`,
       { signal },
     );
+    recordPageTotals(data as JsonApiResponseDocument, query);
 
     return this.extractCollection<ClipResultRawItem>(data).map((item) =>
       mapClipProjectSummary({

@@ -145,22 +145,16 @@ export const MODEL_SELECTOR_TITLE =
 export const MODEL_SELECTOR_DESCRIPTION =
   'Find AI models for images, video, writing, voice, and music. Compare catalog matches instantly by format, cost, speed, or quality. Free, no signup.';
 
+/**
+ * FAQ and breadcrumbs only. A WebApplication node without a real
+ * aggregateRating or review is ineligible for a rich result, and those
+ * values are not invented.
+ */
 export function modelSelectorJsonLd() {
   const url = `https://genfeed.ai${MODEL_SELECTOR_PATH}`;
   return {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'WebApplication',
-        '@id': `${url}#tool`,
-        applicationCategory: 'UtilitiesApplication',
-        description: MODEL_SELECTOR_DESCRIPTION,
-        isAccessibleForFree: true,
-        name: MODEL_SELECTOR_TITLE,
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-        operatingSystem: 'Any',
-        url,
-      },
       {
         '@type': 'FAQPage',
         '@id': `${url}#faq`,

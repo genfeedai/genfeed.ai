@@ -19,4 +19,10 @@ describe('organization memory settings content', () => {
     expect(source).toContain("useTranslations('common.settings.memory')");
     expect(source).toContain('hasOrganizationBillingHint');
   });
+
+  it('reads one server page from the URL and renders pagination', () => {
+    expect(source).toContain("Number(searchParams.get('page')) || 1");
+    expect(source).toContain('limit: ITEMS_PER_PAGE, page: currentPage');
+    expect(source).toContain('<AutoPagination');
+  });
 });

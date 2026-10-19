@@ -2,9 +2,11 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { claimWarmupWorkspace } from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -247,14 +249,29 @@ export class InvitationService {
 
   async listInvitations(
     organizationId: string,
-    status?: InvitationStatus,
-  ): Promise<InvitationView[]> {
-    const invitations = await this.prisma.invitation.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId, { ...this.buildStatusWhere(status) }),
+    status: InvitationStatus | undefined,
+    paging: { limit: number; page: number },
+  ): Promise<AggregatePaginateResult<InvitationView>> {
+    const { limit, page } = paging;
+    const where = scopedWhere(organizationId, {
+      ...this.buildStatusWhere(status),
     });
+    const [invitations, totalDocs] = await Promise.all([
+      this.prisma.invitation.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.invitation.count({ where }),
+    ]);
 
-    return invitations.map(toInvitationView);
+    return buildPaginatedResult(
+      invitations.map(toInvitationView),
+      totalDocs,
+      page,
+      limit,
+    );
   }
 
   private buildStatusWhere(

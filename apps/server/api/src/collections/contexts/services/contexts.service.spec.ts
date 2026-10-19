@@ -263,3 +263,86 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
     expect(contextEntry.update).not.toHaveBeenCalled();
   });
 });
+
+describe('ContextsService.findAll pagination', () => {
+  function buildService() {
+    const contextBase = {
+      count: vi.fn().mockResolvedValue(45),
+      findMany: vi.fn().mockResolvedValue([
+        { data: { label: 'B' }, id: 'ctx-2', isDeleted: false },
+        { data: { label: 'A' }, id: 'ctx-1', isDeleted: false },
+      ]),
+    };
+    const service = new ContextsService(
+      { contextBase } as unknown as PrismaService,
+      {
+        debug: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as LoggerService,
+      {} as unknown as OpenRouterService,
+      {} as unknown as RouterService,
+    );
+    return { contextBase, service };
+  }
+
+  it('pages with skip/take and counts the same where clause', async () => {
+    const { contextBase, service } = buildService();
+
+    const result = await service.findAll('org-1', {}, { limit: 20, page: 3 });
+
+    const where = { isDeleted: false, organizationId: 'org-1' };
+    expect(contextBase.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 40,
+      take: 20,
+      where,
+    });
+    expect(contextBase.count).toHaveBeenCalledWith({ where });
+    expect(result).toMatchObject({
+      hasNextPage: false,
+      limit: 20,
+      page: 3,
+      totalDocs: 45,
+      totalPages: 3,
+    });
+    expect(result.docs).toHaveLength(2);
+  });
+
+  it('pushes category, active, search and brand filters into the query', async () => {
+    const { contextBase, service } = buildService();
+
+    await service.findAll(
+      'org-1',
+      {
+        category: 'content_library',
+        isActive: true,
+        search: 'voice',
+        sourceBrandId: 'brand-1',
+      },
+      { limit: 10, page: 1 },
+    );
+
+    const where = {
+      AND: [
+        { data: { equals: 'content_library', path: ['category'] } },
+        { data: { equals: true, path: ['isActive'] } },
+        {
+          data: {
+            mode: 'insensitive',
+            path: ['label'],
+            string_contains: 'voice',
+          },
+        },
+      ],
+      isDeleted: false,
+      organizationId: 'org-1',
+      sourceBrandId: 'brand-1',
+    };
+    expect(contextBase.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, take: 10, where }),
+    );
+    expect(contextBase.count).toHaveBeenCalledWith({ where });
+  });
+});

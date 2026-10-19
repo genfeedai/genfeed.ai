@@ -2584,6 +2584,10 @@
     "adminAdministration": {
       "label": "Administration",
       "description": "Organizations, users, billing and flags."
+    },
+    "adminSettings": {
+      "label": "Settings",
+      "description": "Platform billing, AI, agent, media and provider settings."
     }
   },
   "windowChrome": {
