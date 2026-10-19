@@ -115,6 +115,7 @@ function buildHookData(overrides: Record<string, unknown> = {}) {
     handleQuickAction: vi.fn(),
     handleScheduleSave: vi.fn(),
     handlePublishNow: vi.fn(),
+    handleRetryPublish: vi.fn(),
     handlePublishViaTikTokApp: vi.fn(),
     handleSelectMedia: vi.fn(),
     handleToggleFirstComment: vi.fn(),
@@ -250,20 +251,78 @@ describe('PostDetail', () => {
     );
   });
 
-  it('drops the page container in the overlay presentation', () => {
-    const { container } = render(
-      <PostDetail
-        postId="post-1"
-        scope={PageScope.PUBLISHING}
-        presentation="overlay"
-      />,
+  it('renders only the compact detail in the sidebar presentation', () => {
+    mockUsePostDetail.mockReturnValue(
+      buildHookData({ post: buildPost({ status: PostStatus.FAILED }) }),
     );
 
-    expect(container.querySelector('.container')).toBeNull();
-    expect(screen.getByTestId('post-header')).toHaveAttribute(
-      'data-heading-level',
-      '2',
+    render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <PostDetail
+          postId="post-1"
+          scope={PageScope.PUBLISHING}
+          presentation="sidebar"
+        />
+        <SidebarProbe />
+      </ContextSidebarProvider>,
     );
+
+    const inspector = screen.getByTestId('inspector-outlet');
+    expect(within(inspector).getByTestId('post-sidebar')).toBeInTheDocument();
+    expect(
+      within(inspector).getByText('This post failed to publish.'),
+    ).toBeInTheDocument();
+    expect(
+      within(inspector).getByRole('link', { name: 'Open editor' }),
+    ).toHaveAttribute('href', '/publishing/posts/post-1');
+    expect(screen.queryByTestId('post-header')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('post-content')).not.toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('post-1');
+  });
+
+  it('reports the sidebar close to the page', async () => {
+    const onClose = vi.fn();
+
+    render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <PostDetail
+          onClose={onClose}
+          postId="post-1"
+          scope={PageScope.PUBLISHING}
+          presentation="sidebar"
+        />
+        <SidebarProbe />
+      </ContextSidebarProvider>,
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Close inspector' }),
+    );
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('shows the not-found message in the sidebar presentation', () => {
+    mockUsePostDetail.mockReturnValue(buildHookData({ post: null }));
+
+    render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <PostDetail
+          postId="post-1"
+          scope={PageScope.PUBLISHING}
+          presentation="sidebar"
+        />
+      </ContextSidebarProvider>,
+    );
+
+    expect(
+      within(screen.getByTestId('inspector-outlet')).getByText(
+        'Post not found',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('hands the sidebar to the host when a context renderer is provided', () => {
@@ -411,7 +470,7 @@ describe('PostDetail standalone composer', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows a published preview beside the content without enabling edits', () => {
+  it('shows a published post as its live thread in the content, not the sidebar, without enabling edits', () => {
     const hookData = buildHookData({
       isPublished: true,
       post: buildPost({
@@ -423,10 +482,17 @@ describe('PostDetail standalone composer', () => {
     mockUsePostDetail.mockReturnValue(hookData);
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
-    expect(screen.getByTestId('post-content')).toBeVisible();
     expect(
-      within(screen.getByTestId('post-sidebar')).getByTestId('target-preview'),
+      within(screen.getByTestId('post-detail-published')).getByTestId(
+        'target-preview',
+      ),
     ).toBeVisible();
+    expect(screen.queryByTestId('post-content')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('post-sidebar')).queryByTestId(
+        'target-preview',
+      ),
+    ).not.toBeInTheDocument();
     expect(hookData.setViewMode).not.toHaveBeenCalled();
     expect(hookData.handleContentSave).not.toHaveBeenCalled();
     expect(hookData.performAutoSaveForPost).not.toHaveBeenCalled();

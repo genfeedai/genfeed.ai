@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   SaveAdDto,
+  SavedAdsQueryDto,
   UnsaveSavedAdDto,
   UpdateSavedAdNoteDto,
 } from '@api/collections/saved-ads/dto/saved-ad.dto';
@@ -49,19 +50,16 @@ export class SavedAdsController {
   async list(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query('brandId') requestedBrandId?: string,
+    @Query() query: SavedAdsQueryDto,
   ) {
     const readScope = resolveTenantReadScope(user);
-    const brandId = this.resolveBrand(
-      user,
-      requestedBrandId,
-      resolveTenantReadScope(user),
-    );
-    const docs = await this.savedAdsService.list(
+    const brandId = this.resolveBrand(user, query.brandId, readScope);
+    const result = await this.savedAdsService.list(
       readScope.organizationId,
       brandId,
+      { limit: query.limit, page: query.page },
     );
-    return serializeCollection(request, SavedAdSerializer, { docs });
+    return serializeCollection(request, SavedAdSerializer, result);
   }
 
   @Post()

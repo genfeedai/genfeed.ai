@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import {
   axiosResponse,
   collectionDocument,
@@ -27,7 +28,7 @@ describe('AgentStrategiesService', () => {
     expect(AgentStrategiesService.getInstance('tok')).toBe(first);
   });
 
-  it('list delegates to findAll with filters', async () => {
+  it('list without a page walks every server page with the filters', async () => {
     http.get.mockResolvedValue(
       axiosResponse(collectionDocument([{ id: strategyId, label: 'S' }])),
     );
@@ -35,7 +36,31 @@ describe('AgentStrategiesService', () => {
     const result = await service.list({ agentType: 'growth', isActive: true });
 
     expect(http.get).toHaveBeenCalledWith('', {
-      params: { agentType: 'growth', isActive: true },
+      params: {
+        agentType: 'growth',
+        isActive: true,
+        limit: MAX_PAGE_SIZE,
+        page: 1,
+      },
+      signal: undefined,
+    });
+    expect(result[0]).toBeInstanceOf(AgentStrategy);
+  });
+
+  it('list with a page requests just that server page', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(collectionDocument([{ id: strategyId, label: 'S' }])),
+    );
+
+    const result = await service.list({
+      agentType: 'growth',
+      limit: 15,
+      page: 2,
+    });
+
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenCalledWith('', {
+      params: { agentType: 'growth', limit: 15, page: 2 },
       signal: undefined,
     });
     expect(result[0]).toBeInstanceOf(AgentStrategy);
@@ -149,13 +174,15 @@ describe('AgentStrategiesService', () => {
     expect(result).toEqual(opportunities);
   });
 
-  it('listReports GETs the raw reports payload', async () => {
+  it('listReports GETs one page of the report history', async () => {
     const reports = [{ id: 'report_1', reportType: 'daily' }];
-    http.get.mockResolvedValue(axiosResponse(reports));
+    http.get.mockResolvedValue(axiosResponse({ data: reports }));
 
-    const result = await service.listReports(strategyId);
+    const result = await service.listReports(strategyId, { limit: 20 });
 
-    expect(http.get).toHaveBeenCalledWith(`/${strategyId}/reports`);
+    expect(http.get).toHaveBeenCalledWith(`/${strategyId}/reports`, {
+      params: { limit: 20 },
+    });
     expect(result).toEqual(reports);
   });
 

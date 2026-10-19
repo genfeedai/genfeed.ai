@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import AnalyticsBrandsList from '@pages/analytics/brands-list/analytics-brands-list';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -10,6 +11,9 @@ const setFilterMock = vi.fn();
 const setToolbarNodeMock = vi.fn();
 const triggerRefreshMock = vi.fn();
 const getBrandsWithStatsMock = vi.fn();
+const replaceMock = vi.fn();
+
+let searchParamsString = 'range=30d';
 
 let contextFilters: { query?: string; sort?: string } = {};
 
@@ -41,8 +45,12 @@ vi.mock('next/image', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
-  useRouter: () => ({ push: pushMock }),
-  useSearchParams: () => new URLSearchParams('range=30d'),
+  useRouter: () => ({ push: pushMock, replace: replaceMock }),
+  useSearchParams: () => new URLSearchParams(searchParamsString),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
 }));
 
 // `dateRange` is a dependency of the fetch effect, so a fresh object per render
@@ -81,8 +89,10 @@ describe('AnalyticsBrandsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     contextFilters = {};
+    searchParamsString = 'range=30d';
     getBrandsWithStatsMock.mockResolvedValue({
       data: [brandFixture, otherBrandFixture],
+      pagination: { limit: 15, page: 1, total: 2, totalPages: 1 },
     });
   });
 
@@ -109,15 +119,52 @@ describe('AnalyticsBrandsList', () => {
     });
   });
 
-  it('filters the rendered brands by the context search term', async () => {
-    contextFilters = { query: 'zen' };
+  it('pages server-side from the URL and sends the search to the API', async () => {
+    contextFilters = { query: 'zen', sort: 'views' };
+    searchParamsString = 'range=30d&page=2';
+    getBrandsWithStatsMock.mockResolvedValue({
+      data: [otherBrandFixture],
+      pagination: { limit: 15, page: 2, total: 16, totalPages: 2 },
+    });
 
     render(<AnalyticsBrandsList />);
 
     await waitFor(() => {
       expect(screen.getByText('Zenith')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Acme')).not.toBeInTheDocument();
+    expect(getBrandsWithStatsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        limit: ITEMS_PER_PAGE,
+        page: 2,
+        search: 'zen',
+        sort: 'views',
+      }),
+      expect.any(AbortSignal),
+    );
+    expect(screen.getByText('16 brands found')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+    // The detail link drops the list page.
+    expect(
+      screen.getByRole('link', { name: 'Open Zenith analytics' }),
+    ).toHaveAttribute('href', '/analytics/brands/brand-2?range=30d');
+  });
+
+  it('starts over at page 1 when the URL page is past the last page', async () => {
+    searchParamsString = 'range=30d&page=4';
+    getBrandsWithStatsMock.mockResolvedValue({
+      data: [],
+      pagination: { limit: 15, page: 4, total: 3, totalPages: 1 },
+    });
+
+    render(<AnalyticsBrandsList />);
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith('/?range=30d', {
+        scroll: false,
+      });
+    });
   });
 
   it('pushes the search term into the analytics filters', async () => {

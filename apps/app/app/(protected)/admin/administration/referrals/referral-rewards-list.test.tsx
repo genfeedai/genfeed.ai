@@ -16,6 +16,14 @@ const { getAdminRewardsMock, identityState } = vi.hoisted(() => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams('page=2'),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
     ({
@@ -104,7 +112,13 @@ describe('ReferralRewardsList', () => {
     expect(screen.queryByText('No referral rewards found')).toBeNull();
     expect(
       queryClient.getQueryCache().find({
-        queryKey: ['admin-referral-rewards', 'admin_1', 'session_1', 'org_1'],
+        queryKey: [
+          'admin-referral-rewards',
+          'admin_1',
+          'session_1',
+          'org_1',
+          2,
+        ],
       }),
     ).toBeDefined();
 
@@ -114,5 +128,24 @@ describe('ReferralRewardsList', () => {
       expect(getAdminRewardsMock).toHaveBeenCalledTimes(2);
       expect(screen.getByText('No referral rewards found')).toBeVisible();
     });
+  });
+
+  it('requests the page from the URL and shows the pager', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReferralRewardsList />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() =>
+      expect(getAdminRewardsMock).toHaveBeenCalledWith({ limit: 15, page: 2 }),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
   });
 });

@@ -10,6 +10,7 @@ import {
   OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
+import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('OutreachCampaignsService', () => {
@@ -48,6 +49,35 @@ describe('OutreachCampaignsService', () => {
       },
       signal: undefined,
     });
+    expect(result[0]).toBeInstanceOf(OutreachCampaign);
+  });
+
+  it('findPageByOrganization requests one server page and records the totals', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(
+        collectionDocument([{ id: campaignId, label: 'Camp' }], {
+          pagination: { limit: 15, page: 2, pages: 3, total: 40 },
+        }),
+      ),
+    );
+
+    const result = await service.findPageByOrganization('org_1', {
+      brandId: 'brand_1',
+      limit: 15,
+      page: 2,
+    });
+
+    expect(http.get).toHaveBeenCalledWith('', {
+      params: {
+        brandId: 'brand_1',
+        limit: 15,
+        organizationId: 'org_1',
+        page: 2,
+      },
+      signal: undefined,
+    });
+    expect(PagesService.getTotalPages()).toBe(3);
+    expect(PagesService.getTotalDocs()).toBe(40);
     expect(result[0]).toBeInstanceOf(OutreachCampaign);
   });
 
@@ -152,14 +182,35 @@ describe('OutreachCampaignsService', () => {
     expect(result).toEqual(analytics);
   });
 
-  it('getTargets GETs the campaign targets', async () => {
+  it('getTargets GETs one page of campaign targets and publishes the totals', async () => {
     const targets = [{ id: 'target_1' }];
-    http.get.mockResolvedValue(axiosResponse(targets));
+    http.get.mockResolvedValue(
+      axiosResponse({
+        data: targets,
+        links: { pagination: { limit: 15, page: 2, pages: 4, total: 52 } },
+        meta: { statusCounts: { PENDING: 40, SENT: 12 } },
+      }),
+    );
 
-    const result = await service.getTargets(campaignId);
+    const result = await service.getTargets(campaignId, {
+      limit: 15,
+      page: 2,
+    });
 
-    expect(http.get).toHaveBeenCalledWith(`/${campaignId}/targets`);
-    expect(result).toEqual(targets);
+    expect(http.get).toHaveBeenCalledWith(`/${campaignId}/targets`, {
+      params: { limit: 15, page: 2 },
+      signal: undefined,
+    });
+    expect(result).toEqual({
+      page: 2,
+      pageSize: 15,
+      statusCounts: { PENDING: 40, SENT: 12 },
+      targets,
+      total: 52,
+      totalPages: 4,
+    });
+    expect(PagesService.getTotalPages()).toBe(4);
+    expect(PagesService.getTotalDocs()).toBe(52);
   });
 
   it('discoverTargets POSTs discovery options', async () => {

@@ -1,3 +1,4 @@
+import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
@@ -18,6 +19,7 @@ import { Module } from '@nestjs/common';
     VideoGenerationModule,
   ],
   imports: [
+    AgentThreadsModule,
     ConfigModule,
     LoggerModule,
     LlmDispatcherModule,

@@ -690,6 +690,37 @@ describe('admin cost breakdown', () => {
     expect(screen.queryByText('Unresolved')).not.toBeInTheDocument();
   });
 
+  it('prices a seeded row from its reviewed rates although its stored pricing type is not conditional', () => {
+    renderColumn(
+      'Cost',
+      buildModel({
+        cost: 0,
+        hasReviewedPricing: true,
+        isFree: false,
+        pricingType: 'flat',
+      }),
+      true,
+    );
+
+    focusCost('Variable');
+    expect(screen.queryByText('Unresolved')).not.toBeInTheDocument();
+  });
+
+  it('keeps the stored credit price of a flat row that also has reviewed rates', () => {
+    renderColumn(
+      'Cost',
+      buildModel({
+        cost: 14,
+        hasReviewedPricing: true,
+        isFree: false,
+        pricingType: 'flat',
+      }),
+      true,
+    );
+
+    expect(screen.getByText('14')).toBeInTheDocument();
+  });
+
   it('shows provider base, uplift margin, and customer total for a flat price', () => {
     renderColumn(
       'Cost',

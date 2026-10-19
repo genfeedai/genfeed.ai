@@ -1,14 +1,20 @@
 import type { VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
-import type { CollectionViewType } from '@props/ui/collection/collection.props';
+import type { TableErrorState } from '@props/ui/display/table.props';
 
-export interface VoiceCatalogCardProps {
-  isList?: boolean;
+export type VoiceCatalogToggleField =
+  | 'isActive'
+  | 'isDefaultSelectable'
+  | 'isFeatured';
+
+export interface VoicesCatalogTableProps {
+  error?: TableErrorState;
+  isLoading: boolean;
   togglingKey: string | null;
-  voice: ExternalVoice;
+  voices: ExternalVoice[];
   onToggle: (
     voice: ExternalVoice,
-    field: 'isActive' | 'isDefaultSelectable' | 'isFeatured',
+    field: VoiceCatalogToggleField,
     value: boolean,
   ) => void;
 }
@@ -25,9 +31,7 @@ export interface VoicesCatalogSearchProps {
 
 export interface VoicesCatalogFiltersProps {
   providerFilter: ProviderFilter;
-  view: CollectionViewType;
   onProviderFilterChange: (value: ProviderFilter) => void;
-  onViewChange: (view: CollectionViewType) => void;
 }
 
 export interface VoicesSyncControlsProps {
@@ -41,8 +45,6 @@ export interface VoicesLibraryState {
   isLoading: boolean;
   isSyncingAll: boolean;
   syncingProvider: VoiceProvider | null;
-  search: string;
-  providerFilter: ProviderFilter;
   togglingKey: string | null;
 }
 
@@ -54,6 +56,4 @@ export type VoicesLibraryAction =
   | { type: 'SYNC_END' }
   | { type: 'TOGGLE_START'; key: string }
   | { type: 'TOGGLE_SUCCESS'; voice: ExternalVoice }
-  | { type: 'TOGGLE_END' }
-  | { type: 'SET_SEARCH'; search: string }
-  | { type: 'SET_PROVIDER_FILTER'; providerFilter: ProviderFilter };
+  | { type: 'TOGGLE_END' };

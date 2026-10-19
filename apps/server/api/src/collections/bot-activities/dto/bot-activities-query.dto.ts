@@ -77,13 +77,13 @@ export class BotActivitiesQueryDto {
   limit?: number;
 
   @IsNumber()
-  @Min(0)
+  @Min(1)
   @IsOptional()
   @ApiProperty({
-    default: 0,
-    description: 'Number of results to skip',
-    minimum: 0,
+    default: 1,
+    description: 'Page number',
+    minimum: 1,
     required: false,
   })
-  offset?: number;
+  page?: number;
 }

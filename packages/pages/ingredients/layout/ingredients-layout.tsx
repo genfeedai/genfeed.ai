@@ -32,6 +32,7 @@ export default function IngredientsLayout({
   hideTypeTabs,
 }: IngredientsLayoutProps) {
   const translateUpload = useTranslations('pages.library.browser.toolbar');
+  const translateTabs = useTranslations('pages.library.browser.assetTypeTabs');
   const search = useSearchParams()?.toString() ?? '';
   const typeHref = (type: string) =>
     createFilterHref(
@@ -77,6 +78,7 @@ export default function IngredientsLayout({
     <IngredientsHeaderProvider value={headerContextValue}>
       <IngredientsProvider value={contextValue}>
         <Container
+          isTopbarPinned
           label={currentIngredient.label}
           description={description}
           icon={Image}
@@ -96,25 +98,29 @@ export default function IngredientsLayout({
                     ].find(
                       (value) =>
                         value === new URLSearchParams(search).get('assetType'),
-                    ) ?? 'videos',
+                    ) ?? 'ingredients',
                   ),
                   fullWidth: false,
                   tabs: [
                     {
+                      href: typeHref('ingredients'),
+                      label: translateTabs('all'),
+                    },
+                    {
                       href: typeHref('videos'),
-                      label: 'Videos',
+                      label: translateTabs('videos'),
                     },
                     {
                       href: typeHref('images'),
-                      label: 'Images',
+                      label: translateTabs('images'),
                     },
                     {
                       href: typeHref('gifs'),
-                      label: 'GIFs',
+                      label: translateTabs('gifs'),
                     },
                     {
                       href: typeHref('musics'),
-                      label: 'Music',
+                      label: translateTabs('music'),
                     },
                   ],
                 },

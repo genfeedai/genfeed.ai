@@ -50,11 +50,36 @@ describe('operations/admin', () => {
   });
 
   it('reads the organization apps report through the admin session', async () => {
-    const data = { generatedAt: '2026-10-17T00:00:00.000Z', organizations: [], releaseFlags: {} };
+    const data = {
+      generatedAt: '2026-10-17T00:00:00.000Z',
+      organizations: [],
+      pagination: { limit: 100, page: 1, pages: 1, total: 0 },
+      releaseFlags: {},
+    };
     mockAdminGet.mockResolvedValue({ data });
 
     await expect(readOrganizationAppsReport()).resolves.toEqual(data);
-    expect(mockAdminGet).toHaveBeenCalledWith('/admin/organization-apps');
+    expect(mockAdminGet).toHaveBeenCalledWith('/admin/organization-apps?page=1&limit=100');
+  });
+
+  it('walks every page of the organization apps report', async () => {
+    const pageOf = (page: number, id: string) => ({
+      data: {
+        generatedAt: '2026-10-17T00:00:00.000Z',
+        organizations: [{ id }],
+        pagination: { limit: 100, page, pages: 2, total: 101 },
+        releaseFlags: { release_clips: true },
+      },
+    });
+    mockAdminGet
+      .mockResolvedValueOnce(pageOf(1, 'org_1'))
+      .mockResolvedValueOnce(pageOf(2, 'org_2'));
+
+    const result = await readOrganizationAppsReport();
+
+    expect(result.organizations).toEqual([{ id: 'org_1' }, { id: 'org_2' }]);
+    expect(result.releaseFlags).toEqual({ release_clips: true });
+    expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/admin/organization-apps?page=2&limit=100');
   });
 
   const rows = [

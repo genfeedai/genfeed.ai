@@ -1,4 +1,5 @@
 import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
+import { FontFamilySeedService } from '@api/seeds/font-family-seed.service';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import { ReferenceDataSyncService } from '@api/seeds/reference-data-sync.service';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     SkillsCoreModule,
   ],
   providers: [
+    FontFamilySeedService,
     ModelCatalogSeedService,
     PlatformTemplateSeedService,
     ReferenceDataSyncService,

@@ -5,6 +5,7 @@ import type {
   IReferralProgram,
 } from '@genfeedai/contracts/interfaces';
 import { ReferralProgram } from '@genfeedai/models/billing/referral-program.model';
+import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
@@ -36,10 +37,19 @@ export class ReferralsService extends BaseService<ReferralProgram> {
     return response.data;
   }
 
-  public async getAdminRewards(): Promise<IReferralAdminReward[]> {
+  public async getAdminRewards(
+    query: { limit: number; page: number } = { limit: 15, page: 1 },
+  ): Promise<IReferralAdminReward[]> {
     const response = await this.instance.get<JsonApiResponseDocument>(
-      'admin/rewards?limit=100',
+      'admin/rewards',
+      { params: query },
     );
+    const pagination = response.data.links?.pagination;
+    if (pagination) {
+      PagesService.setCurrentPage(pagination.page ?? 1);
+      PagesService.setTotalPages(pagination.pages ?? 1);
+      PagesService.setTotalDocs(pagination.total ?? 0);
+    }
     return deserializeCollection<IReferralAdminReward>(response.data);
   }
 }

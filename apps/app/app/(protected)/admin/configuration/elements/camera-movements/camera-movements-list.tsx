@@ -174,10 +174,6 @@ function CameraMovementsListContent({
         const data = await service.findAll(query);
         dispatch({ type: 'FETCH_DONE', payload: data });
 
-        if (isRefresh) {
-          notificationsService.success('Camera movements refreshed');
-        }
-
         logger.info('GET /camera-movements success', data);
       } catch (error) {
         logger.error('GET /camera-movements failed', error);
@@ -193,7 +189,6 @@ function CameraMovementsListContent({
       filters?.search,
       getCameraMovementsService,
       notificationsService.error,
-      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,

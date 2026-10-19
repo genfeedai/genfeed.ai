@@ -176,6 +176,25 @@ describe('Analytics split-controller HTTP contract', () => {
     },
   );
 
+  it('keys brand analytics cache entries by the name search', () => {
+    const handler = Reflect.get(
+      AnalyticsAdminController.prototype,
+      'getBrandsWithStats',
+    ) as object;
+    const cache = Reflect.getMetadata('cache', handler) as {
+      keyGenerator: (request: {
+        query: Record<string, string>;
+        user: { id: string; organizationId: string };
+      }) => string;
+    };
+    const user = { id: 'user-1', organizationId: 'org-1' };
+
+    const searched = cache.keyGenerator({ query: { search: 'acme' }, user });
+    const unsearched = cache.keyGenerator({ query: {}, user });
+
+    expect(searched).toBe(`${unsearched}:acme`);
+  });
+
   it('isolates superadmin brand cache entries from customer keys', () => {
     const handler = Reflect.get(
       AnalyticsAdminController.prototype,

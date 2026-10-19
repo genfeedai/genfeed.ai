@@ -32,7 +32,10 @@ export class TemplateService extends BaseService<IContentTemplate> {
    * Get all templates with optional filters
    * Replaces getTemplates() to follow standard BaseService.findAll() pattern
    */
-  async getTemplates(filter?: ITemplateFilter): Promise<IContentTemplate[]> {
+  async getTemplates(
+    filter?: ITemplateFilter,
+    signal?: AbortSignal,
+  ): Promise<IContentTemplate[]> {
     try {
       const params: Record<string, unknown> = {};
 
@@ -68,9 +71,17 @@ export class TemplateService extends BaseService<IContentTemplate> {
         if (filter.sortBy) {
           params.sortBy = filter.sortBy;
         }
+
+        if (filter.limit !== undefined) {
+          params.limit = filter.limit;
+        }
+
+        if (filter.page !== undefined) {
+          params.page = filter.page;
+        }
       }
 
-      return await this.findAll(params);
+      return await this.findAll(params, signal);
     } catch (error) {
       return this.handleOperationError('getTemplates', error);
     }

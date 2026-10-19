@@ -1,3 +1,7 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import type { TableProps } from '@genfeedai/props/ui/display/table.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -666,6 +670,93 @@ describe('Table', () => {
       pointer(viewport, 'pointercancel', 180, 'touch');
       expect(viewport.scrollLeft).toBe(0);
       expect(viewport.setPointerCapture).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('row sidebar', () => {
+    const rows = [
+      { id: 'a', name: 'First item' },
+      { id: 'b', name: 'Second item' },
+    ];
+
+    function rowOf(name: string): HTMLElement {
+      const row = screen.getByText(name).closest('tr');
+      if (!row) throw new Error(`No row for ${name}`);
+      return row;
+    }
+
+    function renderSidebarTable({
+      withLink = true,
+    }: {
+      withLink?: boolean;
+    } = {}) {
+      return render(
+        <ContextSidebarProvider>
+          <ContextSidebarOutlet testId="rail" />
+          <Table
+            columns={[{ header: 'Name', key: 'name' }]}
+            getRowKey={(item) => item.id}
+            getRowLink={
+              withLink
+                ? (item) => ({
+                    href: `/items/${item.id}`,
+                    label: `Open ${item.name}`,
+                  })
+                : undefined
+            }
+            items={rows}
+            rowSidebar={{
+              getId: (item) => item.id,
+              getTitle: (item) => item.name,
+              kind: 'asset',
+              render: (item) => <p>{`Detail of ${item.name}`}</p>,
+            }}
+          />
+        </ContextSidebarProvider>,
+      );
+    }
+
+    it('opens the right sidebar when a row is clicked', () => {
+      renderSidebarTable({ withLink: false });
+      expect(screen.queryByText('Detail of First item')).toBeNull();
+
+      fireEvent.click(screen.getByText('First item'));
+
+      expect(screen.getByTestId('rail')).toHaveTextContent(
+        'Detail of First item',
+      );
+    });
+
+    it('opens the sidebar from the keyboard', () => {
+      renderSidebarTable({ withLink: false });
+
+      fireEvent.keyDown(rowOf('Second item'), {
+        key: 'Enter',
+      });
+
+      expect(screen.getByTestId('rail')).toHaveTextContent(
+        'Detail of Second item',
+      );
+    });
+
+    it('links the name to the detail page without opening the sidebar', () => {
+      renderSidebarTable();
+
+      const link = screen.getByRole('link', { name: 'Open First item' });
+      expect(link).toHaveAttribute('href', '/items/a');
+      fireEvent.click(link);
+
+      expect(screen.queryByText('Detail of First item')).toBeNull();
+    });
+
+    it('keeps the name a link while the rest of the row opens the sidebar', () => {
+      renderSidebarTable();
+
+      fireEvent.click(rowOf('First item'));
+
+      expect(screen.getByTestId('rail')).toHaveTextContent(
+        'Detail of First item',
+      );
     });
   });
 });

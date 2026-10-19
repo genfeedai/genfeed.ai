@@ -67,7 +67,7 @@ describe('BotActivitiesService', () => {
       { id: 'activity-1', status: 'completed' },
       { id: 'activity-2', status: 'pending' },
     ],
-    meta: { total: 50 },
+    links: { pagination: { limit: 20, page: 1, pages: 3, total: 50 } },
   };
 
   beforeEach(() => {
@@ -138,7 +138,7 @@ describe('BotActivitiesService', () => {
       expect(mockInstance.get).toHaveBeenCalledWith('', { params: query });
     });
 
-    it('should use data length as total when meta.total is missing', async () => {
+    it('should use data length as total when pagination links are missing', async () => {
       mockInstance.get.mockResolvedValue({ data: { data: [{ id: '1' }] } });
 
       const result = await service.findWithFilters({});

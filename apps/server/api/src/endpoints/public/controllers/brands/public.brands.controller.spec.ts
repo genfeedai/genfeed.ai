@@ -42,6 +42,7 @@ describe('PublicBrandsController', () => {
     isDeleted: false,
     logo: brandId,
     name: 'Test Brand',
+    organizationId: 'org_profile',
     scope: PRISMA_SCOPE_PUBLIC,
   };
 
@@ -77,6 +78,9 @@ describe('PublicBrandsController', () => {
         {
           provide: BrandsService,
           useValue: {
+            attachBrandKitAssetRelations: vi.fn(
+              async (brands: unknown[]) => brands,
+            ),
             findAll: vi.fn(),
             findOne: vi.fn(),
             findOneBySlug: vi.fn(),
@@ -159,6 +163,31 @@ describe('PublicBrandsController', () => {
     });
   });
 
+  describe('findPublicBrands assets', () => {
+    it('attaches assets once per organization', async () => {
+      brandsService.findAll.mockResolvedValue({
+        docs: [
+          { ...mockBrand, id: 'b1' },
+          { ...mockBrand, id: 'b2' },
+          { ...mockBrand, id: 'b3', organizationId: 'org_other' },
+        ],
+      } as never);
+
+      await controller.findPublicBrands(mockReq);
+
+      expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledTimes(
+        2,
+      );
+      expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({ id: 'b1' }),
+          expect.objectContaining({ id: 'b2' }),
+        ],
+        'org_profile',
+      );
+    });
+  });
+
   describe('findBySlug', () => {
     it('queries an exact case-insensitive slug and excludes deleted brands', async () => {
       brandsService.findOneBySlug.mockResolvedValue(
@@ -173,6 +202,29 @@ describe('PublicBrandsController', () => {
         isDeleted: false,
         scope: AssetScope.PUBLIC,
       });
+    });
+
+    it('resolves the brand logo and banner assets before serializing', async () => {
+      const logo = { cdnUrl: 'https://cdn.genfeed.ai/logos/asset_1', id: 'a1' };
+      brandsService.findOneBySlug.mockResolvedValue({
+        ...mockBrand,
+      } as unknown as BrandEntity);
+      brandsService.attachBrandKitAssetRelations.mockImplementation(
+        async (brands) => {
+          for (const brand of brands) {
+            brand.logo = logo as never;
+          }
+          return brands;
+        },
+      );
+
+      const result = await controller.findOneBySlug(mockReq, 'test-brand');
+
+      expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: brandId })],
+        'org_profile',
+      );
+      expect(result).toMatchObject({ logo });
     });
 
     it('returns a brand stored with the PUBLIC scope value', async () => {
@@ -205,6 +257,19 @@ describe('PublicBrandsController', () => {
   });
 
   describe('findOne', () => {
+    it('resolves the brand assets for a public brand lookup by id', async () => {
+      brandsService.findOne.mockResolvedValue({
+        ...mockBrand,
+      } as unknown as BrandEntity);
+
+      await controller.findOne(mockReq, brandId);
+
+      expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: brandId })],
+        'org_profile',
+      );
+    });
+
     it('constrains scope in the query and serializes a PUBLIC brand row', async () => {
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,

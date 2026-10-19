@@ -72,4 +72,17 @@ describe('ClipProjectsController tenant reads (#6176)', () => {
       true,
     );
   });
+
+  it('scopes a brand list to that brand plus brandless projects, inside the organization', async () => {
+    const { controller, mock } = setup();
+    const user = memberUser;
+    const query = tenantReadQuery(BaseQueryDto, { brandId: 'brand-9' });
+    const request = tenantReadRequest(user);
+    await controller.findAll(request, user, query);
+    expect(mock.mock.calls[0]?.[0].where).toMatchObject({
+      OR: [{ brandId: null }, { brandId: 'brand-9' }],
+      isDeleted: false,
+      organizationId: sessionOrganizationId,
+    });
+  });
 });

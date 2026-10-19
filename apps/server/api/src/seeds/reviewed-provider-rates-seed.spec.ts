@@ -179,6 +179,75 @@ describe('reviewed provider rates seed', () => {
     expect(await seedReviewedProviderRates(prisma as never, [hailuo])).toBe(1);
   });
 
+  describe('re-applied by an operator ("Fix pricing")', () => {
+    it('replaces a contract an operator approved and records who re-applied it', async () => {
+      const prisma = harness(
+        modelRow({ reviewedProviderContractVersion: 'operator-approved' }),
+        {
+          pricing: {},
+          reviewedAt: new Date('2026-12-01T00:00:00Z'),
+          reviewedBy: 'user-1',
+        },
+      );
+
+      const written = await seedReviewedProviderRates(
+        prisma as never,
+        [hailuo],
+        undefined,
+        { reviewedBy: 'operator-2' },
+      );
+
+      expect(written).toBe(1);
+      const upsert = prisma.modelProviderContract.upsert.mock.calls[0]?.[0];
+      expect(upsert.create).toMatchObject({
+        reviewStatus: 'approved',
+        reviewedBy: 'operator-2',
+      });
+      expect(prisma.model.updateMany.mock.calls[0]?.[0].data).toMatchObject({
+        providerSyncFailureCode: null,
+        reviewedBy: 'operator-2',
+        reviewedProviderContractVersion: hailuoVersion,
+      });
+    });
+
+    it('repairs a contract whose dimensions went stale after the provider schema gained a toggle', async () => {
+      const prisma = harness(
+        modelRow({
+          providerInputSchema: {
+            properties: {
+              duration: { enum: [6, 10] },
+              generate_audio: { type: 'boolean' },
+              resolution: { enum: ['768p', '1080p'] },
+            },
+          },
+          reviewedProviderContractVersion: hailuoVersion,
+        }),
+      );
+
+      expect(
+        await seedReviewedProviderRates(prisma as never, [hailuo], undefined, {
+          reviewedBy: 'operator-2',
+        }),
+      ).toBe(1);
+
+      const { update } =
+        prisma.modelProviderContract.upsert.mock.calls[0]?.[0] ?? {};
+      expect(update.pricing.invariantSelectors).toEqual(['generate_audio']);
+      expect(update.reviewedBy).toBe('operator-2');
+    });
+
+    it('still never promotes without an output schema', async () => {
+      const prisma = harness(modelRow(), undefined, []);
+
+      expect(
+        await seedReviewedProviderRates(prisma as never, [hailuo], undefined, {
+          reviewedBy: 'operator-2',
+        }),
+      ).toBe(0);
+      expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
+    });
+  });
+
   it('gives FLUX.3 and Ideogram editing the input schema the old seeds shipped', async () => {
     const flux = REVIEWED_RATE_SHEET_ENTRIES.find(
       (entry) => entry.endpoint === 'black-forest-labs/flux-3-image',

@@ -9,7 +9,7 @@ import type { RunHistoryListProps } from '@props/automation/run-history-list.pro
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import Pagination from '@ui/navigation/pagination/Pagination';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import {
@@ -19,15 +19,11 @@ import {
   getExecutionStatusLabel,
 } from './workflow-execution.helpers';
 
-const DEFAULT_PAGE_SIZE = 20;
-
 export default function RunHistoryList({
-  currentPage,
   executions,
   isLoading,
+  isPaginated = false,
   onClearFilter,
-  onPageChange,
-  pageSize = DEFAULT_PAGE_SIZE,
 }: RunHistoryListProps) {
   const translate = useTranslations('common.automation.workflowExecutions');
   const translateExecutions = useTranslations(
@@ -110,13 +106,6 @@ export default function RunHistoryList({
     [translate],
   );
 
-  const totalPages = Math.max(1, Math.ceil(executions.length / pageSize));
-  const safePage = Math.min(Math.max(currentPage, 1), totalPages);
-  const pageItems = useMemo(
-    () => executions.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [executions, pageSize, safePage],
-  );
-
   return (
     <div className="flex flex-col gap-4">
       <AppTable<IWorkflowExecution>
@@ -132,17 +121,11 @@ export default function RunHistoryList({
           label: translateExecutions('viewDetails'),
         })}
         isLoading={isLoading && executions.length === 0}
-        items={pageItems}
+        items={executions}
         label={translate('recentRuns')}
       />
-      {executions.length > pageSize ? (
-        <Pagination
-          currentPage={safePage}
-          onPageChange={onPageChange}
-          totalItems={executions.length}
-          totalLabel={translate('paginationLabel')}
-          totalPages={totalPages}
-        />
+      {isPaginated && !isLoading && executions.length > 0 ? (
+        <AutoPagination showTotal totalLabel={translate('paginationLabel')} />
       ) : null}
     </div>
   );

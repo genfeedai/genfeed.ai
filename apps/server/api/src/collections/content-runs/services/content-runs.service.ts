@@ -6,8 +6,11 @@ import {
   toContentRunJsonValue,
 } from '@api/collections/content-runs/utils/content-run-data.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/contracts';
 import type {
   ContentRunBrief,
@@ -292,24 +295,37 @@ export class ContentRunsService {
   async listByBrand(
     organizationId: string,
     brandId: string,
-    skillSlug?: string,
-    status?: ContentRunStatus,
-  ): Promise<Record<string, unknown>[]> {
-    const runs = await this.prisma.contentRun.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId, {
-        brandId,
-        ...(status ? { status } : {}),
-      }),
+    skillSlug: string | undefined,
+    status: ContentRunStatus | undefined,
+    window: PageWindow,
+  ): Promise<AggregatePaginateResult<Record<string, unknown>>> {
+    const where = scopedWhere(organizationId, {
+      brandId,
+      ...(status ? { status } : {}),
+      // `skillSlug` lives in the run's stored config, so it is filtered in the
+      // database (not after hydration) to keep skip/take and the count honest.
+      ...(skillSlug
+        ? { config: { equals: skillSlug, path: ['skillSlug'] } }
+        : {}),
     });
 
-    const hydratedRuns = hydrateContentRuns(runs);
+    const [runs, totalDocs] = await Promise.all([
+      this.prisma.contentRun.findMany({
+        // `id` breaks createdAt ties so rows never repeat across pages.
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: window.skip,
+        take: window.limit,
+        where,
+      }),
+      this.prisma.contentRun.count({ where }),
+    ]);
 
-    if (!skillSlug) {
-      return hydratedRuns;
-    }
-
-    return hydratedRuns.filter((run) => run.skillSlug === skillSlug);
+    return buildPaginatedResult(
+      hydrateContentRuns(runs),
+      totalDocs,
+      window.page,
+      window.limit,
+    );
   }
 
   async getRunById(

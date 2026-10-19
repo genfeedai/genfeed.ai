@@ -123,6 +123,9 @@ export interface ITemplateFilter {
   search?: string;
   minRating?: number;
   sortBy?: TemplateSortBy;
+  /** 1-based page; the API pages every list. */
+  page?: number;
+  limit?: number;
 }
 
 export interface ITemplateUsage {

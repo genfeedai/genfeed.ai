@@ -24,6 +24,10 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -157,17 +161,19 @@ export class ContentRunsController {
     @CurrentUser() user: User,
     @Query('skillSlug') skillSlug?: string,
     @Query('status') status?: ContentRunStatus,
+    @Query() pagination?: PaginationQueryDto,
   ) {
     const organization = resolveTenantReadScope(user).organizationId;
 
-    const docs = await this.contentRunsService.listByBrand(
+    const result = await this.contentRunsService.listByBrand(
       organization,
       brandId,
       skillSlug,
       status,
+      resolvePageWindow(pagination),
     );
 
-    return serializeCollection(req, ContentRunSerializer, { docs });
+    return serializeCollection(req, ContentRunSerializer, result);
   }
 
   @Get('brands/:brandId/content-runs/remixes')

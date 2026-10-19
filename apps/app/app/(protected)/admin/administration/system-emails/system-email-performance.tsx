@@ -29,10 +29,37 @@ const TEMPLATE_NAMES = new Map(
   LIFECYCLE_SYSTEM_EMAILS.map((email) => [email.id as string, email.name]),
 );
 
-function rate(numerator: number, denominator: number): string {
-  return denominator > 0
-    ? `${((numerator / denominator) * 100).toFixed(1)}%`
-    : '—';
+const NUMERIC_CELL = 'text-right tabular-nums';
+
+function formatCount(value: number): string {
+  return value.toLocaleString('en-US');
+}
+
+function RateCaption({ label }: { label: string }) {
+  return (
+    <span className="block text-xs font-normal normal-case text-muted-foreground">
+      {label}
+    </span>
+  );
+}
+
+/** Share of provider-accepted messages; blank when nothing was accepted. */
+function Rate({
+  numerator,
+  denominator,
+}: {
+  numerator: number;
+  denominator: number;
+}) {
+  if (denominator <= 0) {
+    return null;
+  }
+
+  return (
+    <span className="block text-xs text-muted-foreground">
+      {`${((numerator / denominator) * 100).toFixed(1)}%`}
+    </span>
+  );
 }
 
 export default function SystemEmailPerformance({
@@ -103,19 +130,38 @@ export default function SystemEmailPerformance({
                   .slice(0, 10),
               })}
             </p>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>{translate('columnTemplate')}</TableHead>
-                    <TableHead>{translate('columnQueued')}</TableHead>
-                    <TableHead>{translate('columnAccepted')}</TableHead>
-                    <TableHead>{translate('columnDelivered')}</TableHead>
-                    <TableHead>{translate('columnBounced')}</TableHead>
-                    <TableHead>{translate('columnComplaints')}</TableHead>
-                    <TableHead>{translate('columnOpens')}</TableHead>
-                    <TableHead>{translate('columnClicked')}</TableHead>
-                    <TableHead>{translate('columnConverted')}</TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnQueued')}
+                    </TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnAccepted')}
+                    </TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnDelivered')}
+                      <RateCaption label={translate('rateCaption')} />
+                    </TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnBounced')}
+                    </TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnComplaints')}
+                    </TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnOpens')}
+                    </TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnClicked')}
+                      <RateCaption label={translate('rateCaption')} />
+                    </TableHead>
+                    <TableHead className={NUMERIC_CELL}>
+                      {translate('columnConverted')}
+                      <RateCaption label={translate('rateCaption')} />
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -132,44 +178,41 @@ export default function SystemEmailPerformance({
                           </p>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {row.queued.toLocaleString('en-US')}
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.queued)}
                       </TableCell>
-                      <TableCell>
-                        {row.accepted.toLocaleString('en-US')}
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.accepted)}
                       </TableCell>
-                      <TableCell>
-                        {row.delivered.toLocaleString('en-US')}
-                        <p className="text-xs text-muted-foreground">
-                          {translate('ofAccepted', {
-                            rate: rate(row.delivered, row.accepted),
-                          })}
-                        </p>
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.delivered)}
+                        <Rate
+                          numerator={row.delivered}
+                          denominator={row.accepted}
+                        />
                       </TableCell>
-                      <TableCell>
-                        {row.bounced.toLocaleString('en-US')}
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.bounced)}
                       </TableCell>
-                      <TableCell>
-                        {row.complained.toLocaleString('en-US')}
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.complained)}
                       </TableCell>
-                      <TableCell>
-                        {row.opened.toLocaleString('en-US')}
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.opened)}
                       </TableCell>
-                      <TableCell>
-                        {row.clicked.toLocaleString('en-US')}
-                        <p className="text-xs text-muted-foreground">
-                          {translate('ofAccepted', {
-                            rate: rate(row.clicked, row.accepted),
-                          })}
-                        </p>
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.clicked)}
+                        <Rate
+                          numerator={row.clicked}
+                          denominator={row.accepted}
+                        />
                       </TableCell>
-                      <TableCell>
-                        {row.converted.toLocaleString('en-US')}
-                        <p className="text-xs text-muted-foreground">
-                          {translate('ofAccepted', {
-                            rate: rate(row.converted, row.accepted),
-                          })}
-                        </p>
+                      <TableCell className={NUMERIC_CELL}>
+                        {formatCount(row.converted)}
+                        <Rate
+                          numerator={row.converted}
+                          denominator={row.accepted}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -178,7 +221,7 @@ export default function SystemEmailPerformance({
             </div>
           </div>
         )}
-        <div className="space-y-2 border-t border-border pt-4 text-sm text-muted-foreground">
+        <div className="space-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
           <p>{translate('noteCounting')}</p>
           <p>{translate('noteApproximation')}</p>
           <p>{translate('noteAttribution')}</p>

@@ -166,6 +166,10 @@ export default function IngredientsList({
     fontFamilies,
     blacklists,
   } = useIngredientsList({ folderNavigation, scope, type });
+  // The folders column only exists for brand/org scopes; the admin scope
+  // renders no sidebar, so reserving its column squeezes the list into 14rem.
+  const hasFoldersSidebar =
+    folderNavigation === 'content' && scope !== PageScope.SUPERADMIN;
   const isRecoveryView =
     query?.shelf === LibraryShelf.FAILED && scope === PageScope.BRAND;
   const { openPostBatchModal } = usePostModal({
@@ -355,12 +359,12 @@ export default function IngredientsList({
       {!loadError || isUsingCache ? (
         <div
           className={
-            folderNavigation === 'content'
+            hasFoldersSidebar
               ? 'grid gap-6 xl:grid-cols-[minmax(13rem,14rem)_minmax(0,1fr)]'
               : 'min-w-0'
           }
         >
-          {folderNavigation === 'content' ? (
+          {hasFoldersSidebar ? (
             <IngredientsListSidebar
               scope={scope}
               folders={folders}

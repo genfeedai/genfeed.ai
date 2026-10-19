@@ -7,6 +7,7 @@ import type {
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
@@ -37,6 +38,8 @@ export default function IngredientsLayoutToolbar({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        {/* Subbar order: dropdowns with the organization first, then filters. */}
+        {scope === PageScope.SUPERADMIN ? <AdminOrgBrandUrlFilter /> : null}
         <FiltersButton
           filters={filters}
           visibleFilters={config.visibleFilters}

@@ -58,6 +58,40 @@ const INFERENCE = {
   ],
 } as const;
 
+/**
+ * What `AgentOrchestratorService` stamps on every queued thread request next to
+ * the caller's own fields; the handlers read both back before executing.
+ */
+const THREAD_REQUEST_ORIGIN_PROPERTIES = {
+  generationEntry: JSON_DOCUMENT_SCHEMA,
+  initiatingPrincipal: JSON_DOCUMENT_SCHEMA,
+} as const;
+
+/** The `AgentChatResult` the UI-action handler returns as-is. */
+const UI_ACTION_RESULT = closedObjectSchema(
+  {
+    brandId: nullableSchema(STRING_SCHEMA),
+    contextVersion: INTEGER_SCHEMA,
+    creditsRemaining: NUMBER_SCHEMA,
+    creditsUsed: NUMBER_SCHEMA,
+    message: closedObjectSchema(
+      {
+        content: STRING_SCHEMA,
+        metadata: JSON_DOCUMENT_SCHEMA,
+        role: STRING_SCHEMA,
+      },
+      ['content', 'metadata', 'role'],
+    ),
+    runOutcome: closedObjectSchema(
+      { error: STRING_SCHEMA, status: enumSchema(['failed'] as const) },
+      ['error', 'status'],
+    ),
+    threadId: STRING_SCHEMA,
+    toolCalls: arraySchema(JSON_DOCUMENT_SCHEMA),
+  },
+  ['creditsRemaining', 'creditsUsed', 'message', 'threadId', 'toolCalls'],
+);
+
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'agent.thread.input-response.execute': {
     inputSchema: closedObjectSchema(
@@ -66,6 +100,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
           {
             answer: STRING_SCHEMA,
             fieldId: STRING_SCHEMA,
+            ...THREAD_REQUEST_ORIGIN_PROPERTIES,
             scope: JSON_DOCUMENT_SCHEMA,
             threadId: STRING_SCHEMA,
           },
@@ -92,6 +127,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
             action: STRING_SCHEMA,
             brandId: nullableSchema(STRING_SCHEMA),
             expectedContextVersion: INTEGER_SCHEMA,
+            ...THREAD_REQUEST_ORIGIN_PROPERTIES,
             payload: JSON_DOCUMENT_SCHEMA,
             threadId: STRING_SCHEMA,
           },
@@ -100,16 +136,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
       },
       ['request'],
     ),
-    outputSchema: closedObjectSchema(
-      {
-        artifactReferences: arraySchema(JSON_DOCUMENT_SCHEMA),
-        artifactVersionPinIds: arraySchema(STRING_SCHEMA),
-        creditsUsed: NUMBER_SCHEMA,
-        result: JSON_DOCUMENT_SCHEMA,
-        threadId: STRING_SCHEMA,
-      },
-      ['creditsUsed', 'result', 'threadId'],
-    ),
+    outputSchema: UI_ACTION_RESULT,
   },
   'agent.turn.fail': {
     inputSchema: closedObjectSchema(

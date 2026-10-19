@@ -59,6 +59,21 @@ const mockLoggerService = {
   warn: vi.fn(),
 } as unknown as LoggerService;
 
+function pageOf<T>(docs: T[]) {
+  return {
+    docs,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 20,
+    nextPage: null,
+    page: 1,
+    pagingCounter: 1,
+    prevPage: null,
+    totalDocs: docs.length,
+    totalPages: 1,
+  };
+}
+
 function buildController() {
   return new MembersController(
     mockMembersService,
@@ -89,7 +104,7 @@ describe('MembersController — invitation endpoints', () => {
       await expect(
         controller.listInvitations(
           {} as never,
-          {},
+          { limit: 20, page: 1 },
           makeUser({ organizationId: undefined }),
         ),
       ).rejects.toThrow(HttpException);
@@ -97,19 +112,20 @@ describe('MembersController — invitation endpoints', () => {
 
     it('returns invitations for current org filtered by status', async () => {
       const controller = buildController();
-      vi.mocked(mockInvitationService.listInvitations).mockResolvedValue([
-        invitation,
-      ]);
+      vi.mocked(mockInvitationService.listInvitations).mockResolvedValue(
+        pageOf([invitation]),
+      );
 
       const result = await controller.listInvitations(
         {} as never,
-        { status: 'pending' },
+        { limit: 20, page: 1, status: 'pending' },
         makeUser(),
       );
 
       expect(mockInvitationService.listInvitations).toHaveBeenCalledWith(
         orgId,
         'pending',
+        { limit: 20, page: 1 },
       );
       expect(result).toMatchObject({
         data: [
@@ -126,15 +142,20 @@ describe('MembersController — invitation endpoints', () => {
 
     it('returns all invitations when no status filter is provided', async () => {
       const controller = buildController();
-      vi.mocked(mockInvitationService.listInvitations).mockResolvedValue([
-        invitation,
-      ]);
+      vi.mocked(mockInvitationService.listInvitations).mockResolvedValue(
+        pageOf([invitation]),
+      );
 
-      await controller.listInvitations({} as never, {}, makeUser());
+      await controller.listInvitations(
+        {} as never,
+        { limit: 20, page: 3 },
+        makeUser(),
+      );
 
       expect(mockInvitationService.listInvitations).toHaveBeenCalledWith(
         orgId,
         undefined,
+        { limit: 20, page: 3 },
       );
     });
   });

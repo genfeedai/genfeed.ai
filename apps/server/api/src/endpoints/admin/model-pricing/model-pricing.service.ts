@@ -4,7 +4,9 @@ import {
 } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { classifyModelRowPricingAttention } from '@api/collections/models/utils/model-pricing-attention.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { seedReviewedProviderRates } from '@api/seeds/reviewed-provider-rates-seed';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
@@ -17,7 +19,10 @@ import {
   enumerateReviewedVariantSelectors,
   hashReviewedProviderRates,
   hasPendingProviderRateDrift,
+  needsModelPricingFix,
   quoteModelBillablePricing,
+  REVIEWED_RATE_SHEET_ENTRIES,
+  type ReviewedRateSheetEntry,
   selectorNumber,
 } from '@genfeedai/pricing';
 import {
@@ -134,6 +139,8 @@ type PricingContract = Pick<
 
 const RATES_CHANGED =
   'Provider rates changed since they were loaded; reload and review again';
+const UNPRICEABLE_AFTER_APPROVAL =
+  'Approving these rates would leave the model unpriceable';
 const NO_PROVIDER_RATE_ACTION =
   'No pending provider rates differ from the approved ones';
 
@@ -190,7 +197,14 @@ export function projectAdminModelPricing(
   const pending = evidence(
     contracts.find((c) => c.version === model.pendingProviderContractVersion),
   );
-  const profile = projectModelBillablePricingProfile(model, contracts);
+  // An inactive model still needs a price before an operator can switch it
+  // on, so it is quoted and classified like an active one. Only a retired row
+  // never bills (dispatch resolves its successor).
+  const pricingModel = {
+    ...model,
+    isActive: String(model.lifecycle) !== ModelLifecycle.RETIRED,
+  };
+  const profile = projectModelBillablePricingProfile(pricingModel, contracts);
   if (reviewed && profile.reviewedPricing) {
     if (model.provider === 'fal') reviewed.source = 'fal-pricing-api';
     reviewed.rates = profile.reviewedPricing.rates;
@@ -332,7 +346,7 @@ export function projectAdminModelPricing(
   if (unitQuote.status === 'unresolved' && !hasReviewedRates)
     reasons.push(unitQuote.reason);
   const attention = classifyModelRowPricingAttention(
-    model,
+    pricingModel,
     contracts,
     margin,
     new Date(retrievedAt),
@@ -435,15 +449,6 @@ export function projectAdminModelPricing(
     providerPricingSyncedAt:
       model.providerPricingSyncedAt?.toISOString() ?? null,
   };
-}
-
-/** A row an operator can act on: missing or changed provider pricing. */
-function needsPricingFix(row: AdminModelPricingRow): boolean {
-  return (
-    row.isRateApprovalAvailable ||
-    row.attentionLevel === 'red' ||
-    row.attentionLevel === 'orange'
-  );
 }
 
 function isSyncProvider(provider: string): boolean {
@@ -549,6 +554,26 @@ export class AdminModelPricingService {
         !model.pendingProviderContractVersion
       )
         throw new BadRequestException(NO_PROVIDER_RATE_ACTION);
+      // Approving must never un-price a model: fal states one base price, so a
+      // pending snapshot of it cannot price the dimensions a reviewed rate
+      // sheet covers.
+      const approved = projectAdminModelPricing(
+        {
+          ...model,
+          reviewedProviderContractVersion: pendingContract.version,
+        },
+        model.providerContracts.map((contract) =>
+          contract.version === pendingContract.version
+            ? { ...contract, reviewStatus: 'approved' }
+            : contract,
+        ),
+        margin,
+        retrievedAt.toISOString(),
+      );
+      if (approved.attentionLevel === 'red')
+        throw new BadRequestException(
+          `${UNPRICEABLE_AFTER_APPROVAL}: ${approved.attention[0]?.reason ?? 'unpriceable'}`,
+        );
       // Compare-and-set: promote only while the pending contract is still the
       // one the operator approved, so a refresh landing in between cannot be
       // approved unseen.
@@ -604,10 +629,13 @@ export class AdminModelPricingService {
   /**
    * Reprice models whose provider pricing is missing or changed. Pending
    * provider rates are approved now, which is the operator's explicit approval
-   * (the caller is a superadmin pressing "Fix pricing"). Models with no rates
-   * loaded yet are reported so the controller can queue the provider price
-   * import; the rest need a hand-set price. Pass `modelIds` to fix specific
-   * rows, omit it to fix every row that needs it.
+   * (the caller is a superadmin pressing "Fix pricing"). A model that cannot
+   * be priced and has a reviewed rate sheet entry gets that sheet re-applied
+   * against its current provider schema, which also repairs a sheet whose
+   * dimensions went stale. Models with no rates loaded yet are reported so the
+   * controller can queue the provider price import; the rest need a hand-set
+   * price. Pass `modelIds` to fix specific rows, omit it to fix every row that
+   * needs it.
    */
   async fixPricing(
     approvedBy: string,
@@ -616,24 +644,44 @@ export class AdminModelPricingService {
     const report = await this.getReport('model-pricing-fix');
     const wanted = modelIds?.length ? new Set(modelIds) : null;
     const rows = report.rows.filter(
-      (row) => (wanted === null || wanted.has(row.id)) && needsPricingFix(row),
+      (row) =>
+        (wanted === null || wanted.has(row.id)) && needsModelPricingFix(row),
     );
     const result: ModelPricingFixResult = {
       approved: [],
       changed: [],
+      repaired: [],
       syncQueued: [],
       unresolved: [],
     };
+    const sheetEntries = await this.findRateSheetEntries(
+      rows.filter((row) => row.attentionLevel === 'red'),
+    );
     for (const row of rows) {
       const entry = { id: row.id, key: row.key };
+      const entries = sheetEntries.get(row.id);
+      if (
+        entries?.length &&
+        (await seedReviewedProviderRates(this.prisma, entries, undefined, {
+          reviewedBy: approvedBy,
+        })) > 0
+      ) {
+        result.repaired.push(entry);
+        continue;
+      }
       const pendingVersion = row.pending?.version;
       if (row.isRateApprovalAvailable && pendingVersion) {
         try {
           await this.approveRates(row.id, approvedBy, pendingVersion);
           result.approved.push(entry);
         } catch (error) {
-          if (!(error instanceof ConflictException)) throw error;
-          result.changed.push(entry);
+          if (error instanceof BadRequestException) {
+            result.unresolved.push({ ...entry, reason: error.message });
+          } else if (error instanceof ConflictException) {
+            result.changed.push(entry);
+          } else {
+            throw error;
+          }
         }
       } else if (isSyncProvider(row.provider)) {
         result.syncQueued.push({ ...entry, provider: row.provider });
@@ -647,6 +695,54 @@ export class AdminModelPricingService {
         });
       }
     }
+    await this.demoteStillUnpriced(result);
     return result;
+  }
+
+  /** The reviewed rate sheet entries that price each of the given models. */
+  private async findRateSheetEntries(
+    rows: readonly AdminModelPricingRow[],
+  ): Promise<Map<string, ReviewedRateSheetEntry[]>> {
+    const entries = new Map<string, ReviewedRateSheetEntry[]>();
+    if (rows.length === 0) return entries;
+    // tenant-scope-ignore: superadmin pricing repair over the platform-global model registry; the where spreads platformOrTenantScope() (organizationId null or the caller's own) with isDeleted:false and exact ids
+    const models = await this.prisma.model.findMany({
+      select: { endpoint: true, id: true, key: true, provider: true },
+      where: {
+        id: { in: rows.map((row) => row.id) },
+        isDeleted: false,
+        ...platformOrTenantScope(),
+      },
+    });
+    for (const model of models) {
+      const matching = REVIEWED_RATE_SHEET_ENTRIES.filter(
+        (entry) =>
+          entry.provider === model.provider &&
+          (entry.endpoint === model.endpoint || entry.endpoint === model.key),
+      );
+      if (matching.length) entries.set(model.id, matching);
+    }
+    return entries;
+  }
+
+  /**
+   * A re-applied sheet that still leaves a model unpriced did not fix it, so
+   * say so instead of reporting a repair.
+   */
+  private async demoteStillUnpriced(
+    result: ModelPricingFixResult,
+  ): Promise<void> {
+    if (result.repaired.length === 0) return;
+    const after = await this.getReport('model-pricing-fix');
+    const rowById = new Map(after.rows.map((row) => [row.id, row]));
+    result.repaired = result.repaired.filter((entry) => {
+      const row = rowById.get(entry.id);
+      if (row?.attentionLevel !== 'red') return true;
+      result.unresolved.push({
+        ...entry,
+        reason: row.attention[0]?.reason ?? 'Still cannot be priced',
+      });
+      return false;
+    });
   }
 }

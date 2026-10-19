@@ -34,6 +34,7 @@ function createPrismaStub() {
       createMany: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      groupBy: vi.fn(),
       updateMany: vi.fn(),
     },
     outreachCampaign: {
@@ -184,13 +185,81 @@ describe('CampaignTargetsService tenant persistence', () => {
     expect(prisma.campaignTarget.createMany).not.toHaveBeenCalled();
   });
 
-  it('scopes history reads to matching organization and live parent without requiring ACTIVE', async () => {
+  it('pages history reads in SQL under the organization and live parent without requiring ACTIVE', async () => {
     const { prisma, service } = makeService();
     prisma.campaignTarget.findMany.mockResolvedValue([makeRow()]);
+    prisma.campaignTarget.count.mockResolvedValue(41);
+    const where = {
+      campaign: anyParent,
+      campaignId,
+      isDeleted: false,
+      organizationId,
+    };
 
-    await service.findByCampaign(campaignId, organizationId);
+    const page = await service.findPageByCampaign(campaignId, organizationId, {
+      limit: 20,
+      page: 3,
+    });
 
     expect(prisma.campaignTarget.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      skip: 40,
+      take: 20,
+      where,
+    });
+    expect(prisma.campaignTarget.count).toHaveBeenCalledWith({ where });
+    expect(page).toMatchObject({
+      hasNextPage: false,
+      hasPrevPage: true,
+      limit: 20,
+      page: 3,
+      totalDocs: 41,
+      totalPages: 3,
+    });
+    expect(page.docs).toHaveLength(1);
+  });
+
+  it('narrows a target page and its total by status', async () => {
+    const { prisma, service } = makeService();
+    prisma.campaignTarget.findMany.mockResolvedValue([]);
+    prisma.campaignTarget.count.mockResolvedValue(0);
+
+    await service.findPageByCampaign(campaignId, organizationId, {
+      limit: 10,
+      page: 1,
+      status: CampaignTargetStatus.FAILED,
+    });
+
+    const expectedWhere = expect.objectContaining({
+      campaignId,
+      isDeleted: false,
+      organizationId,
+      status: CampaignTargetStatus.FAILED,
+    });
+    expect(prisma.campaignTarget.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expectedWhere }),
+    );
+    expect(prisma.campaignTarget.count).toHaveBeenCalledWith({
+      where: expectedWhere,
+    });
+  });
+
+  it('counts targets per status in the database for the whole campaign', async () => {
+    const { prisma, service } = makeService();
+    prisma.campaignTarget.groupBy.mockResolvedValue([
+      { _count: { _all: 7 }, status: CampaignTargetStatus.PENDING },
+      { _count: { _all: 2 }, status: CampaignTargetStatus.FAILED },
+    ]);
+
+    await expect(
+      service.countByCampaignStatus(campaignId, organizationId),
+    ).resolves.toEqual({
+      [CampaignTargetStatus.FAILED]: 2,
+      [CampaignTargetStatus.PENDING]: 7,
+    });
+    expect(prisma.campaignTarget.groupBy).toHaveBeenCalledWith({
+      _count: { _all: true },
+      by: ['status'],
       where: {
         campaign: anyParent,
         campaignId,
@@ -198,6 +267,7 @@ describe('CampaignTargetsService tenant persistence', () => {
         organizationId,
       },
     });
+    expect(prisma.campaignTarget.findMany).not.toHaveBeenCalled();
   });
 
   it('requires an ACTIVE parent for pending batch selection', async () => {

@@ -155,17 +155,33 @@ describe('McpApprovalsController', () => {
   });
 
   describe('GET /', () => {
-    it('passes status filter when provided', async () => {
-      mockServiceMethods.findByOrganization.mockResolvedValue([fakeApproval]);
+    const page = (docs: unknown[], totalDocs = docs.length) => ({
+      docs,
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: 20,
+      nextPage: null,
+      page: 1,
+      pagingCounter: 1,
+      prevPage: null,
+      totalDocs,
+      totalPages: Math.max(1, Math.ceil(totalDocs / 20)),
+    });
+
+    it('passes the page query and status filter to the service', async () => {
+      mockServiceMethods.findByOrganization.mockResolvedValue(
+        page([fakeApproval]),
+      );
+      const query = { limit: 20, page: 1, status: 'PENDING' };
 
       const result = await controller.findAll(
         mockUser as never,
-        'PENDING' as never,
+        query as never,
       );
 
       expect(mockServiceMethods.findByOrganization).toHaveBeenCalledWith(
         'org-abc',
-        'PENDING',
+        query,
       );
       expect(result.data).toHaveLength(1);
       expect(result.data[0]).toMatchObject({
@@ -174,15 +190,29 @@ describe('McpApprovalsController', () => {
       });
     });
 
-    it('omits status filter when not provided', async () => {
-      mockServiceMethods.findByOrganization.mockResolvedValue([]);
+    it('returns pagination links for the page', async () => {
+      mockServiceMethods.findByOrganization.mockResolvedValue({
+        ...page([], 45),
+        hasNextPage: true,
+        nextPage: 2,
+        totalPages: 3,
+      });
 
-      await controller.findAll(mockUser as never, undefined);
-
-      expect(mockServiceMethods.findByOrganization).toHaveBeenCalledWith(
-        'org-abc',
-        undefined,
+      const result = await controller.findAll(
+        mockUser as never,
+        {
+          limit: 20,
+          page: 1,
+        } as never,
       );
+
+      expect(result.links.pagination).toMatchObject({
+        hasNext: true,
+        limit: 20,
+        page: 1,
+        pages: 3,
+        total: 45,
+      });
     });
 
     it('maps multiple approvals to response shape', async () => {
@@ -191,12 +221,17 @@ describe('McpApprovalsController', () => {
         id: 'approval-2',
         toolName: 'write_file',
       };
-      mockServiceMethods.findByOrganization.mockResolvedValue([
-        fakeApproval,
-        second,
-      ]);
+      mockServiceMethods.findByOrganization.mockResolvedValue(
+        page([fakeApproval, second]),
+      );
 
-      const result = await controller.findAll(mockUser as never, undefined);
+      const result = await controller.findAll(
+        mockUser as never,
+        {
+          limit: 20,
+          page: 1,
+        } as never,
+      );
 
       expect(result.data).toHaveLength(2);
       expect(result.data[1]).toMatchObject({

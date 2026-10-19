@@ -1,6 +1,7 @@
 'use client';
 
 import { ComponentSize, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
@@ -12,35 +13,19 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import ActiveRunsPanel from './ActiveRunsPanel';
 import RunHistoryList from './RunHistoryList';
 import RunStatsStrip from './RunStatsStrip';
-
-const RUNS_PAGE_LIMIT = 50;
 
 export default function MissionControl() {
   const collectionScope = useCollectionScope();
   const isReady = isCollectionFetchReady(collectionScope);
   const brandParams = toBrandListParams(collectionScope);
   const [searchQuery, setSearchQuery] = useState('');
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
-  const handlePageChange = useCallback(
-    (page: number) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (page <= 1) params.delete('page');
-      else params.set('page', String(page));
-      const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParams],
-  );
   const {
     cancelExecution,
     executions,
@@ -51,7 +36,12 @@ export default function MissionControl() {
     refresh,
     stats,
   } = useWorkflowExecutions(
-    { ...brandParams, limit: RUNS_PAGE_LIMIT, sort: '-createdAt' },
+    {
+      ...brandParams,
+      limit: ITEMS_PER_PAGE,
+      page: currentPage,
+      sort: '-createdAt',
+    },
     { enabled: isReady },
   );
 
@@ -121,11 +111,10 @@ export default function MissionControl() {
             />
 
             <RunHistoryList
-              currentPage={currentPage}
-              onClearFilter={searchQuery ? () => setSearchQuery('') : undefined}
               executions={historyExecutions}
               isLoading={isLoading}
-              onPageChange={handlePageChange}
+              isPaginated
+              onClearFilter={searchQuery ? () => setSearchQuery('') : undefined}
             />
           </>
         )}

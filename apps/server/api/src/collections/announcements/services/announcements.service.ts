@@ -1,6 +1,7 @@
 import type { AnnouncementDocument } from '@api/collections/announcements/schemas/announcement.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { type Announcement } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -28,10 +29,16 @@ export class AnnouncementsService extends BaseService<
   }
 
   /**
-   * Get all announcements ordered by newest first (no org filter — global/admin data)
+   * One page of announcements, newest first (no org filter — global/admin
+   * data). Paged in the database with the total count.
    */
-  async getAll(): Promise<AnnouncementDocument[]> {
-    const result = await this.findAll({ where: {} }, { limit: 200, page: 1 });
-    return result.docs;
+  getAll(
+    page: number,
+    limit: number,
+  ): Promise<AggregatePaginateResult<AnnouncementDocument>> {
+    return this.findAll(
+      { where: {} },
+      { limit, page, sort: { createdAt: -1 } },
+    );
   }
 }

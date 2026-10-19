@@ -1,6 +1,7 @@
 import {
   FleetReviewStatus,
   IngredientCategory,
+  PageScope,
   TagBulkAction,
 } from '@genfeedai/contracts';
 import { LIBRARY_ASSET_TAGS_EVENT } from '@genfeedai/contracts/constants';
@@ -232,6 +233,18 @@ describe('IngredientsList', () => {
     render(<IngredientsList type="images" />);
     expect(capturedConversionModal?.imageToVideoCrunBinding).toBe(binding);
     expect(capturedConversionModal?.image?.id).toBe('source-owned');
+  });
+
+  it('keeps the list full width in the admin scope, which has no folders column', () => {
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
+
+    render(<IngredientsList type="ingredients" scope={PageScope.SUPERADMIN} />);
+
+    expect(screen.queryByTestId('ingredients-sidebar')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('ingredients-content').parentElement?.parentElement,
+    ).not.toHaveClass('grid');
   });
 
   it('renders the canonical empty content state', () => {

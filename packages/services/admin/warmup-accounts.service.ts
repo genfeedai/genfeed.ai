@@ -10,6 +10,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { recordPageTotals } from '@services/core/page-totals';
 
 export class AdminWarmupAccountsService extends HTTPBaseService {
   constructor(token: string) {
@@ -49,8 +50,15 @@ export class AdminWarmupAccountsService extends HTTPBaseService {
     return deserializeResource<IWarmupAccount>(response.data);
   }
 
-  async getWarmupAccounts(): Promise<IWarmupAccount[]> {
-    const response = await this.instance.get<JsonApiResponseDocument>('');
+  async getWarmupAccounts(
+    query?: { limit?: number; page?: number },
+    signal?: AbortSignal,
+  ): Promise<IWarmupAccount[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>('', {
+      params: query,
+      signal,
+    });
+    recordPageTotals(response.data, query);
     return deserializeCollection<IWarmupAccount>(response.data);
   }
 

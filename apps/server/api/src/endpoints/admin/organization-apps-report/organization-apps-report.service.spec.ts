@@ -12,17 +12,24 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 
 describe('OrganizationAppsReportService', () => {
   const findMany = vi.fn();
+  const count = vi.fn();
+  const firstPage = { limit: 20, page: 1, skip: 0 };
   const getFeatureSettings = vi.fn();
   let service: OrganizationAppsReportService;
 
   beforeEach(async () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(true);
     findMany.mockReset();
+    count.mockReset();
+    count.mockResolvedValue(0);
     getFeatureSettings.mockReset();
     const module = await Test.createTestingModule({
       providers: [
         OrganizationAppsReportService,
-        { provide: PrismaService, useValue: { organization: { findMany } } },
+        {
+          provide: PrismaService,
+          useValue: { organization: { count, findMany } },
+        },
         {
           provide: PlatformSettingsService,
           useValue: { getFeatureSettings },
@@ -32,18 +39,28 @@ describe('OrganizationAppsReportService', () => {
     service = module.get(OrganizationAppsReportService);
   });
 
-  it('reports only non-deleted organizations, ordered by label', async () => {
+  it('pages non-deleted organizations in the database, ordered by label', async () => {
     findMany.mockResolvedValue([]);
+    count.mockResolvedValue(45);
     getFeatureSettings.mockResolvedValue({ flags: {} });
 
-    await service.getReport();
+    const report = await service.getReport({ limit: 20, page: 2, skip: 20 });
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: { label: 'asc' },
+        orderBy: [{ label: 'asc' }, { id: 'asc' }],
+        skip: 20,
+        take: 20,
         where: { isDeleted: false },
       }),
     );
+    expect(count).toHaveBeenCalledWith({ where: { isDeleted: false } });
+    expect(report.pagination).toEqual({
+      limit: 20,
+      page: 2,
+      pages: 3,
+      total: 45,
+    });
   });
 
   it('applies the organization switch and the release rules per app', async () => {
@@ -75,7 +92,7 @@ describe('OrganizationAppsReportService', () => {
       flags: { release_publishing: true },
     });
 
-    const report = await service.getReport();
+    const report = await service.getReport(firstPage);
     const [newOrg, previewOrg] = report.organizations;
 
     expect(newOrg?.apps.playground).toEqual({
@@ -107,7 +124,7 @@ describe('OrganizationAppsReportService', () => {
     ]);
     getFeatureSettings.mockResolvedValue({ flags: {} });
 
-    const [bare] = (await service.getReport()).organizations;
+    const [bare] = (await service.getReport(firstPage)).organizations;
 
     expect(bare?.subscriptionTier).toBeNull();
     expect(bare?.apps.playground.isVisible).toBe(true);

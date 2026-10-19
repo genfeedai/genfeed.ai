@@ -1,6 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CampaignTargetDocument } from '@api/collections/campaign-targets/schemas/campaign-target.schema';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import type { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
+import type { CampaignTargetsQueryDto } from '@api/collections/outreach-campaigns/dto/campaign-targets-query.dto';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/services/campaign-target-url.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
@@ -13,6 +15,10 @@ import {
   requireMatchingOutreachTargetPlatform,
 } from '@api/services/campaign/outreach-capability.util';
 import {
+  type FrontendPagination,
+  transformPaginationFormat,
+} from '@api/shared/utils/pagination-transform/pagination-transform.util';
+import {
   CampaignDiscoverySource,
   type CampaignPlatform,
   CampaignTargetStatus,
@@ -20,6 +26,10 @@ import {
   CampaignType,
 } from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+export type CampaignTargetsPage = FrontendPagination<CampaignTargetDocument> & {
+  meta: { statusCounts: Partial<Record<CampaignTargetStatus, number>> };
+};
 
 interface DiscoverTargetsOptions {
   addToCampaign?: boolean;
@@ -76,17 +86,32 @@ export class OutreachCampaignTargetOperationsService {
     };
   }
 
+  /**
+   * One page of the campaign's targets plus the campaign-wide status
+   * breakdown, so the detail page can show its KPIs without loading every
+   * target.
+   */
   async getTargets(
     id: string,
     user: User,
+    query: CampaignTargetsQueryDto,
     readScope?: ITenantReadScope,
-  ): Promise<unknown[]> {
+  ): Promise<CampaignTargetsPage> {
     const campaign = await this.findCampaign(id, user, readScope);
 
-    return this.campaignTargetsService.findByCampaign(
-      id,
-      campaign.organizationId,
-    );
+    const [targets, statusCounts] = await Promise.all([
+      this.campaignTargetsService.findPageByCampaign(
+        id,
+        campaign.organizationId,
+        query,
+      ),
+      this.campaignTargetsService.countByCampaignStatus(
+        id,
+        campaign.organizationId,
+      ),
+    ]);
+
+    return { ...transformPaginationFormat(targets), meta: { statusCounts } };
   }
 
   async discoverTargets(

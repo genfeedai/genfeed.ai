@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import * as authUtil from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionTier } from '@genfeedai/contracts';
+import { hasApiAccess } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type ExecutionContext,
@@ -16,6 +17,11 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: vi.fn(),
   getSubscriptionTier: vi.fn(),
 }));
+
+vi.mock('@genfeedai/pricing', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/pricing')>();
+  return { ...actual, hasApiAccess: vi.fn(actual.hasApiAccess) };
+});
 
 function buildContext(user?: User | null): ExecutionContext {
   const request = { user };
@@ -63,6 +69,11 @@ describe('ApiAccessGuard', () => {
 
     guard = module.get(ApiAccessGuard);
 
+    const { hasApiAccess: actualHasApiAccess } =
+      await vi.importActual<typeof import('@genfeedai/pricing')>(
+        '@genfeedai/pricing',
+      );
+    vi.mocked(hasApiAccess).mockImplementation(actualHasApiAccess);
     vi.mocked(authUtil.getIsSuperAdmin).mockReturnValue(false);
     vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('');
   });
@@ -87,7 +98,8 @@ describe('ApiAccessGuard', () => {
       );
     });
 
-    it('blocks PAYG/free tier with a ForbiddenException upgrade message', () => {
+    it('blocks a tier without API access with a ForbiddenException upgrade message', () => {
+      vi.mocked(hasApiAccess).mockReturnValue(false);
       vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
         SubscriptionTier.FREE,
       );
@@ -108,17 +120,14 @@ describe('ApiAccessGuard', () => {
       }
     });
 
-    it('blocks the retired byok tier', () => {
-      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('byok');
-      const ctx = buildContext(buildUser());
-      expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
-    });
-
-    it('blocks an unknown/empty tier (default-deny)', () => {
-      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('');
-      const ctx = buildContext(buildUser());
-      expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
-    });
+    it.each([SubscriptionTier.FREE, 'byok', ''])(
+      'allows the free entitlement for tier "%s"',
+      (tier) => {
+        vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
+        const ctx = buildContext(buildUser());
+        expect(guard.canActivate(ctx)).toBe(true);
+      },
+    );
 
     it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
       'allows paid tier %s',
@@ -144,6 +153,7 @@ describe('ApiAccessGuard', () => {
     });
 
     it('logs a warning before throwing 403', () => {
+      vi.mocked(hasApiAccess).mockReturnValue(false);
       vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
         SubscriptionTier.FREE,
       );

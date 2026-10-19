@@ -84,21 +84,6 @@ export interface ResolvedBrandDisplay {
   organizationName?: string;
 }
 
-/** Stats for leaderboard sorting */
-export interface LeaderboardStats {
-  id: string;
-  name: string;
-  logo?: string;
-  avgEngagementRate: number;
-  growth: number;
-  totalEngagement: number;
-  totalPosts: number;
-  totalViews: number;
-  activePlatforms?: string[];
-  organizationId?: string;
-  organizationName?: string;
-}
-
 /** Raw row from $queryRaw analytics aggregation */
 export interface AnalyticsAggRow {
   entity_id: string;
@@ -116,6 +101,11 @@ export interface AnalyticsAggRow {
 export interface EngagementAggRow {
   entity_id: string;
   total_engagement: bigint;
+}
+
+/** One ranked entity id from the database-side leaderboard ranking query */
+export interface EntityRankRow {
+  entity_id: string;
 }
 
 /** One entity paired with its current + previous period stats */

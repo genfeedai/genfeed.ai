@@ -3,10 +3,12 @@ import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watch
 import type { WatchlistDocument } from '@api/collections/watchlists/schemas/watchlist.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { WatchlistPlatform } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
@@ -209,25 +211,38 @@ export class WatchlistsService extends BaseService<
   }
 
   /**
-   * Find all watchlist items for a brand
+   * Find one page of a brand's watchlist items, newest first.
    */
   @HandleErrors('find all by brand', 'watchlists')
   async findAllByAccount(
     brandId: string,
     organizationId: string,
-  ): Promise<WatchlistDocument[]> {
-    this.logOperation('findAllByAccount', 'started', { brandId });
+    { limit, page }: { limit: number; page: number },
+  ): Promise<AggregatePaginateResult<WatchlistDocument>> {
+    this.logOperation('findAllByAccount', 'started', { brandId, limit, page });
 
-    const result = await this.prisma.watchlist.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId, { brandId: String(brandId) }),
-    });
+    const where = scopedWhere(organizationId, { brandId: String(brandId) });
+    const [rows, totalDocs] = await Promise.all([
+      this.prisma.watchlist.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.watchlist.count({ where }),
+    ]);
 
     this.logOperation('findAllByAccount', 'completed', {
       brandId,
-      count: result.length,
+      count: rows.length,
+      totalDocs,
     });
 
-    return this.normalizeDocuments(result);
+    return buildPaginatedResult(
+      this.normalizeDocuments(rows),
+      totalDocs,
+      page,
+      limit,
+    );
   }
 }

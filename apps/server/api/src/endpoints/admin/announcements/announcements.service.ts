@@ -11,6 +11,8 @@ import {
   type AnnouncementChannel,
   BroadcastAnnouncementDto,
 } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
+import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   CredentialPlatform,
   WorkflowExecutionTrigger,
@@ -142,16 +144,21 @@ export class AdminAnnouncementsService implements OnModuleInit {
   }
 
   /**
-   * Get all announcements ordered by newest first.
+   * One page of announcements ordered by newest first, with the total.
    */
-  getHistory(): Promise<AnnouncementDocument[]> {
+  getHistory({
+    limit,
+    page,
+  }: Pick<PageWindow, 'limit' | 'page'>): Promise<
+    AggregatePaginateResult<AnnouncementDocument>
+  > {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller);
 
     // Superadmin broadcast history spans every organization by design
     // (SuperAdminGuard on the controller).
     return crossOrgUnsafe(
-      async () => await this.announcementsCollectionService.getAll(),
+      async () => await this.announcementsCollectionService.getAll(page, limit),
     );
   }
 

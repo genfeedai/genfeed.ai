@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
+import { WatchlistsQueryDto } from '@api/collections/watchlists/dto/watchlists-query.dto';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -48,7 +49,7 @@ export class WatchlistsController {
   async findAll(
     @Req() req: Request,
     @CurrentUser() user: User,
-    @Query() query: BrandScopeQueryDto = {},
+    @Query() query: WatchlistsQueryDto = new WatchlistsQueryDto(),
   ) {
     const tenant = CollectionFilterUtil.resolveListOrganizationId(
       query,
@@ -76,11 +77,12 @@ export class WatchlistsController {
       throw new NotFoundException({ message: 'Account ID is required' });
     }
 
-    const items = await this.service.findAllByAccount(
+    const result = await this.service.findAllByAccount(
       brandId,
       tenant.organizationId,
+      { limit: query.limit, page: query.page },
     );
-    return serializeCollection(req, WatchlistSerializer, { docs: items });
+    return serializeCollection(req, WatchlistSerializer, result);
   }
 
   /**

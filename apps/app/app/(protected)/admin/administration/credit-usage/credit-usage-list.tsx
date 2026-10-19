@@ -1,6 +1,9 @@
 'use client';
 
-import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
+import {
+  formatCreditBalanceExact,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IOrganizationCreditUsage } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
@@ -10,8 +13,10 @@ import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Progress } from '@ui/primitives/progress';
 import { ChartColumn, ShieldAlert } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import CreditHoldsPanel from './credit-holds-panel';
@@ -20,6 +25,7 @@ export default function CreditUsageList() {
   const t = useTranslations('pages.adminCreditHolds');
   const [selectedOrganization, setSelectedOrganization] =
     useState<IOrganizationCreditUsage>();
+  const currentPage = Number(useSearchParams().get('page')) || 1;
   const getSubscriptionsService = useAuthedService((token: string) =>
     SubscriptionsService.getInstance(token),
   );
@@ -31,10 +37,13 @@ export default function CreditUsageList() {
     error: creditUsageError,
     refetch,
   } = useQuery({
-    queryKey: ['admin-credit-usage'],
-    queryFn: async () => {
+    queryKey: ['admin-credit-usage', currentPage],
+    queryFn: async ({ signal }) => {
       const service = await getSubscriptionsService();
-      return service.getCreditUsage();
+      return service.getCreditUsage(
+        { limit: ITEMS_PER_PAGE, page: currentPage },
+        signal,
+      );
     },
   });
 
@@ -142,6 +151,9 @@ export default function CreditUsageList() {
         getRowKey={(row) => row.organizationId}
         emptyLabel="No organization credit usage found"
       />
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="organizations" />
+      </div>
       {selectedOrganization && (
         <CreditHoldsPanel
           key={selectedOrganization.organizationId}

@@ -1,4 +1,5 @@
 import { ModalEnum, PageScope, TrainingStatus } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ITraining } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -14,6 +15,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import { getErrorMessage } from '@utils/error/error-handler.util';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type TrainingStatusUpdate = {
@@ -49,14 +51,25 @@ export function useTrainingsList({
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+
   // Track if component is mounted to avoid calling callbacks during initial render
   const isMountedRef = useRef(false);
 
   const queryClient = useQueryClient();
 
   const trainingsQueryKey = useMemo(
-    () => ['trainings-list', scope, brandId, adminOrg, adminBrand] as const,
-    [adminBrand, adminOrg, brandId, scope],
+    () =>
+      [
+        'trainings-list',
+        scope,
+        brandId,
+        adminOrg,
+        adminBrand,
+        currentPage,
+      ] as const,
+    [adminBrand, adminOrg, brandId, currentPage, scope],
   );
 
   const {
@@ -67,10 +80,13 @@ export function useTrainingsList({
     error: fetchError,
   } = useQuery<Training[]>({
     enabled: !!isSignedIn,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const service = await getTrainingsService();
 
-      const query: Record<string, unknown> = {};
+      const query: Record<string, unknown> = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+      };
 
       if (scope === PageScope.BRAND && brandId) {
         query.brand = brandId;
@@ -85,7 +101,7 @@ export function useTrainingsList({
         }
       }
 
-      const data = await service.findAllPages(query);
+      const data = await service.findAll(query, signal);
       logger.info('GET /trainings success', data);
       return data;
     },

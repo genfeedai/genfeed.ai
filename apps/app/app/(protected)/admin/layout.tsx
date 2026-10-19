@@ -2,7 +2,7 @@ import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
 import messages from '@app-i18n/page-scopes/admin';
 import {
   isProtectedBootstrapBypassed,
-  loadProtectedBootstrap,
+  loadServerSuperAdmin,
 } from '@app-server/protected-bootstrap.server';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { notFound } from 'next/navigation';
@@ -13,6 +13,10 @@ import { notFound } from 'next/navigation';
  * A previous deployment-mode gate hid every admin page behind a 404 on
  * self-host / local Portless while the app switcher still offered Admin for
  * superadmins — shell chrome without content.
+ *
+ * The gate reads the JWT's `isSuperAdmin` claim (`loadServerSuperAdmin`), not
+ * the full bootstrap: it runs on every navigation into `/admin`, and the shell
+ * above this layout already loads the bootstrap client-side.
  *
  * Isolated Playwright builds (`PLAYWRIGHT_TEST` /
  * `NEXT_PUBLIC_PLAYWRIGHT_TEST` plus the `__playwright_test` cookie) skip
@@ -26,9 +30,7 @@ export default async function AdminLayout({ children }: LayoutProps) {
     );
   }
 
-  const bootstrap = await loadProtectedBootstrap();
-
-  if (!bootstrap?.accessState?.isSuperAdmin) {
+  if (!(await loadServerSuperAdmin())) {
     notFound();
   }
 

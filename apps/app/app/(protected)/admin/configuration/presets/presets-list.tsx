@@ -28,6 +28,7 @@ import { Suspense, useEffect, useState } from 'react';
 import {
   PresetCategoryCell,
   PresetDefaultsCell,
+  PresetKeyCell,
   PresetLabelCell,
   PresetOrganizationCell,
 } from './presets-list-columns';
@@ -156,7 +157,11 @@ function PresetsListContent({
       render: (preset: Preset) => <PresetLabelCell preset={preset} />,
       subtext: (preset: Preset) => preset.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: 'Key',
+      key: 'key',
+      render: (preset: Preset) => <PresetKeyCell preset={preset} />,
+    },
     {
       header: 'Organization',
       key: 'organization',

@@ -3,10 +3,9 @@ import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 export interface RunHistoryListProps {
   executions: IWorkflowExecution[];
   isLoading: boolean;
+  /** Render URL-driven server pagination under the table. */
+  isPaginated?: boolean;
   onClearFilter?: () => void;
-  currentPage: number;
-  onPageChange: (page: number) => void;
-  pageSize?: number;
 }
 
 export interface ExecutionCreditsSummary {

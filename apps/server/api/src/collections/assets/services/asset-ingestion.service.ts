@@ -145,8 +145,6 @@ export class AssetIngestionService {
           },
           { isDeleted: true },
         );
-
-        await this.invalidateBrandAssets(entityData.parentId);
       }
 
       // One logo per organization: the new upload replaces the previous one.
@@ -185,18 +183,25 @@ export class AssetIngestionService {
         },
       );
 
+      const brandParentId =
+        uploadDto.parentType === AssetParent.BRAND &&
+        [AssetCategory.LOGO, AssetCategory.BANNER].includes(uploadDto.category)
+          ? entityData.parentId
+          : undefined;
+
+      // Only now does the new asset exist and resolve. Busting before the
+      // create left a window where a public profile read re-cached the brand
+      // with no logo for the full TTL.
+      if (brandParentId) {
+        await this.invalidateBrandAssets(brandParentId);
+      }
+
       if (userId) {
         await this.publishAssetCompleted(assetData, userId);
 
-        if (
-          uploadDto.parentId &&
-          uploadDto.parentType === AssetParent.BRAND &&
-          [AssetCategory.LOGO, AssetCategory.BANNER].includes(
-            uploadDto.category,
-          )
-        ) {
+        if (brandParentId) {
           await this.websocketService.publishBrandRefresh(
-            uploadDto.parentId,
+            brandParentId,
             userId,
             {
               assetId: assetData.id.toString(),

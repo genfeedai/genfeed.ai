@@ -23,6 +23,7 @@ type ContentRunRecord = {
 };
 
 type ContentRunDelegate = {
+  count: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
@@ -92,6 +93,7 @@ describe('ContentRunsService', () => {
     vi.clearAllMocks();
 
     contentRun = {
+      count: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -406,37 +408,68 @@ describe('ContentRunsService', () => {
     });
   });
 
-  it('lists runs by brand without querying a non-existent skillSlug column', async () => {
-    contentRun.findMany.mockResolvedValue([
-      makeRun(),
-      makeRun({
-        config: { ...baseConfig, skillSlug: 'image-generation' },
-        id: 'run-2',
-      }),
-    ]);
+  it('lists one tenant-scoped page of runs and filters skillSlug in the database', async () => {
+    contentRun.findMany.mockResolvedValue([makeRun()]);
+    contentRun.count.mockResolvedValue(31);
 
     const result = await service.listByBrand(
       'org-1',
       'brand-1',
       'content-writing',
       ContentRunStatus.PENDING,
+      { limit: 15, page: 2, skip: 15 },
     );
 
+    const where = {
+      brandId: 'brand-1',
+      config: { equals: 'content-writing', path: ['skillSlug'] },
+      isDeleted: false,
+      organizationId: 'org-1',
+      status: ContentRunStatus.PENDING,
+    };
     expect(contentRun.findMany).toHaveBeenCalledWith({
-      orderBy: { createdAt: 'desc' },
-      where: {
-        brandId: 'brand-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-        status: ContentRunStatus.PENDING,
-      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 15,
+      take: 15,
+      where,
     });
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({
+    expect(contentRun.count).toHaveBeenCalledWith({ where });
+    expect(result).toMatchObject({
+      hasNextPage: true,
+      hasPrevPage: true,
+      limit: 15,
+      page: 2,
+      totalDocs: 31,
+      totalPages: 3,
+    });
+    expect(result.docs).toHaveLength(1);
+    expect(result.docs[0]).toMatchObject({
       id: 'run-1',
       organizationId: 'org-1',
       skillSlug: 'content-writing',
     });
+  });
+
+  it('omits the optional filters from the page query when none are given', async () => {
+    contentRun.findMany.mockResolvedValue([]);
+    contentRun.count.mockResolvedValue(0);
+
+    const result = await service.listByBrand(
+      'org-1',
+      'brand-1',
+      undefined,
+      undefined,
+      { limit: 20, page: 1, skip: 0 },
+    );
+
+    expect(contentRun.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 0,
+      take: 20,
+      where: { brandId: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(result.docs).toEqual([]);
+    expect(result.totalDocs).toBe(0);
   });
 
   it('hydrates a scoped run by id from its stored config', async () => {

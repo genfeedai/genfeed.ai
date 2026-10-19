@@ -3,6 +3,7 @@ import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import type { TagsListProps } from '@props/tags/tags-list.props';
 import AppTable from '@ui/display/table/Table';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Switch } from '@ui/primitives/switch';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Suspense, useEffect, useMemo } from 'react';
@@ -125,6 +126,10 @@ function TagsListContent(props: TagsListProps) {
         getRowKey={(t) => t.id}
         emptyLabel={EMPTY_STATES.TAGS_YET}
       />
+
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="tags" />
+      </div>
 
       <TagsListModals
         scope={scope}

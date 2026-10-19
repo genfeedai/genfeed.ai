@@ -1,5 +1,11 @@
 import type { NodeOptions } from '@sentry/nestjs';
 
+/**
+ * Share of production requests traced. Enough for per-route p50/p95 on the API
+ * without paying span overhead or Sentry quota on every request.
+ */
+export const PRODUCTION_TRACES_SAMPLE_RATE = 0.05;
+
 interface SentryConfigOptions {
   serviceName: string;
 }
@@ -36,7 +42,9 @@ export function getSentryConfig(
     // Never attach request bodies or IP/user defaults — prompt text must not
     // ride Sentry events in any environment, including staging and local opt-in.
     sendDefaultPii: false,
-    // Sentry is used for error reporting only; performance spans are disabled.
-    tracesSampleRate: 0,
+    // Production samples request traces for route latency; every other
+    // environment stays at zero so dev and CI never emit spans.
+    tracesSampleRate:
+      process.env.NODE_ENV === 'production' ? PRODUCTION_TRACES_SAMPLE_RATE : 0,
   };
 }

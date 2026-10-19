@@ -305,6 +305,6 @@ describe('MoodsList', () => {
     await act(async () => {
       await registerRefresh.mock.calls[0][0]();
     });
-    expect(mocks.notificationsSuccess).toHaveBeenCalledWith('Moods refreshed');
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
   });
 });

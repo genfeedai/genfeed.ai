@@ -10,7 +10,6 @@ import type {
   VoicesCatalogSearchProps,
   VoicesSyncControlsProps,
 } from '@props/admin/voices.props';
-import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -37,7 +36,8 @@ export function VoicesCatalogSearch({
 
   return (
     <FormSearchbar
-      onChange={(event) => onSearchChange(event.target.value)}
+      ariaLabel={translate('searchPlaceholder')}
+      onSearch={onSearchChange}
       placeholder={translate('searchPlaceholder')}
       size={ComponentSize.MD}
       value={search}
@@ -47,9 +47,7 @@ export function VoicesCatalogSearch({
 
 export function VoicesCatalogFilters({
   providerFilter,
-  view,
   onProviderFilterChange,
-  onViewChange,
 }: VoicesCatalogFiltersProps) {
   const translate = useTranslations('pages.adminVoices');
   const providerFilters: Array<{ label: string; value: ProviderFilter }> = [
@@ -59,29 +57,24 @@ export function VoicesCatalogFilters({
   ];
 
   return (
-    <>
-      <Select
-        onValueChange={(value) =>
-          onProviderFilterChange(value as ProviderFilter)
-        }
-        value={providerFilter}
+    <Select
+      onValueChange={(value) => onProviderFilterChange(value as ProviderFilter)}
+      value={providerFilter}
+    >
+      <SelectTrigger
+        aria-label={translate('providerLabel')}
+        className="w-auto min-w-40"
       >
-        <SelectTrigger
-          aria-label={translate('providerLabel')}
-          className="w-auto min-w-40"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {providerFilters.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <CollectionToolbar view={view} onViewChange={onViewChange} />
-    </>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {providerFilters.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
