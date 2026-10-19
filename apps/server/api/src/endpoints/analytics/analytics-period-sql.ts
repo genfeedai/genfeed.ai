@@ -6,19 +6,47 @@ function gainExpression(column: string, previous: string): Prisma.Sql {
   );
 }
 
+const SNAPSHOT_COLUMNS = Prisma.raw(
+  '"postId", "platform", "date", "totalViews", "totalLikes", "totalComments", "totalShares", "totalSaves"',
+);
+
 /**
- * Period totals from window-boundary snapshots. History is loaded through
- * `endDate` so LAG can see the pre-window snapshot; only in-window rows emit
- * gains. Counter decreases do not inflate the sum.
+ * `history` CTE shared by the period queries: each post and platform's
+ * in-window snapshots plus the latest snapshot before the window, with the
+ * previous counters attached by LAG. Only that one pre-window row can be the
+ * LAG predecessor of an in-window row, so older history is never read; the
+ * cost follows the window and the number of posts, not the account's age.
+ * Gains are emitted for in-window rows only, counter decreases count as 0.
  */
-export function analyticsPeriodTotalsSql(options: {
+function periodHistoryCte(options: {
   brandFilter: Prisma.Sql;
   endDate: Date;
   orgFilter: Prisma.Sql;
   startDate: Date;
 }): Prisma.Sql {
   return Prisma.sql`
-    WITH history AS (
+    WITH in_window AS (
+      SELECT ${SNAPSHOT_COLUMNS}
+      FROM "post_analytics"
+      WHERE "isDeleted" = false AND "date" >= ${options.startDate}
+        AND "date" <= ${options.endDate}
+        ${options.brandFilter}
+        ${options.orgFilter}
+    ), baseline AS (
+      SELECT b."postId", b."platform", b."date", b."totalViews", b."totalLikes",
+        b."totalComments", b."totalShares", b."totalSaves"
+      FROM (SELECT DISTINCT "postId", "platform" FROM in_window) k
+      CROSS JOIN LATERAL (
+        SELECT ${SNAPSHOT_COLUMNS}
+        FROM "post_analytics"
+        WHERE "isDeleted" = false AND "postId" = k."postId"
+          AND "platform" = k."platform" AND "date" < ${options.startDate}
+          ${options.brandFilter}
+          ${options.orgFilter}
+        ORDER BY "date" DESC
+        LIMIT 1
+      ) b
+    ), history AS (
       SELECT
         "postId",
         "platform",
@@ -33,12 +61,26 @@ export function analyticsPeriodTotalsSql(options: {
         LAG("totalComments") OVER w AS prev_comments,
         LAG("totalShares") OVER w AS prev_shares,
         LAG("totalSaves") OVER w AS prev_saves
-      FROM "post_analytics"
-      WHERE "isDeleted" = false AND "date" <= ${options.endDate}
-        ${options.brandFilter}
-        ${options.orgFilter}
+      FROM (
+        SELECT ${SNAPSHOT_COLUMNS} FROM baseline
+        UNION ALL
+        SELECT ${SNAPSHOT_COLUMNS} FROM in_window
+      ) snapshots
       WINDOW w AS (PARTITION BY "postId", "platform" ORDER BY "date")
-    )
+    )`;
+}
+
+/**
+ * Period totals from window-boundary snapshots (see {@link periodHistoryCte}).
+ */
+export function analyticsPeriodTotalsSql(options: {
+  brandFilter: Prisma.Sql;
+  endDate: Date;
+  orgFilter: Prisma.Sql;
+  startDate: Date;
+}): Prisma.Sql {
+  return Prisma.sql`
+    ${periodHistoryCte(options)}
     SELECT
       COALESCE(SUM(${gainExpression('totalComments', 'prev_comments')}), 0) AS total_comments,
       COALESCE(SUM(${gainExpression('totalLikes', 'prev_likes')}), 0) AS total_likes,
@@ -60,27 +102,7 @@ export function analyticsPeriodSeriesSql(options: {
   startDate: Date;
 }): Prisma.Sql {
   return Prisma.sql`
-    WITH history AS (
-      SELECT
-        "postId",
-        "platform",
-        "date",
-        "totalViews",
-        "totalLikes",
-        "totalComments",
-        "totalShares",
-        "totalSaves",
-        LAG("totalViews") OVER w AS prev_views,
-        LAG("totalLikes") OVER w AS prev_likes,
-        LAG("totalComments") OVER w AS prev_comments,
-        LAG("totalShares") OVER w AS prev_shares,
-        LAG("totalSaves") OVER w AS prev_saves
-      FROM "post_analytics"
-      WHERE "isDeleted" = false AND "date" <= ${options.endDate}
-        ${options.brandFilter}
-        ${options.orgFilter}
-      WINDOW w AS (PARTITION BY "postId", "platform" ORDER BY "date")
-    )
+    ${periodHistoryCte(options)}
     SELECT
       TO_CHAR("date", 'YYYY-MM-DD') AS day,
       "platform"::text AS platform,

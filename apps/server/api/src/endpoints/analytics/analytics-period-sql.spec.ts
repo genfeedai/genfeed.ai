@@ -23,6 +23,26 @@ describe('active daily analytics SQL', () => {
       expect(query.values).toContain('org');
     },
   );
+  it.each([analyticsPeriodTotalsSql, analyticsPeriodSeriesSql])(
+    'reads the window plus one pre-window baseline row, not the whole history',
+    (builder) => {
+      const query = builder({
+        ...dates,
+        brandFilter: Prisma.sql``,
+        orgFilter: Prisma.sql`AND "organizationId" = ${'org'}`,
+      });
+      expect(query.sql).toContain('WITH in_window AS');
+      expect(query.sql).toContain('CROSS JOIN LATERAL');
+      expect(query.sql).toContain('ORDER BY "date" DESC');
+      expect(query.sql).toContain('LIMIT 1');
+      // Window start bounds the in-window arm and the baseline arm.
+      expect(
+        query.values.filter((value) => value === dates.startDate),
+      ).toHaveLength(3);
+      // Tenant filter applies to both arms.
+      expect(query.values.filter((value) => value === 'org')).toHaveLength(2);
+    },
+  );
   it('excludes deleted observations from credential history', () => {
     const query = analyticsAccountPeriodSeriesSql({
       ...dates,
