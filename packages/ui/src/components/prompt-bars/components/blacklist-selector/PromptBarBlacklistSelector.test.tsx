@@ -6,6 +6,11 @@ import PromptBarBlacklistSelector from '@ui/prompt-bars/components/blacklist-sel
 import { useForm } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 function buildBlacklist(key: string, label: string): IElementBlacklist {
   return {
     createdAt: '2024-01-01',

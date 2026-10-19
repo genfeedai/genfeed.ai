@@ -1993,14 +1993,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 7,
-      "file": "apps/server/api/src/collections/trainings/controllers/operations/trainings-operations.controller.spec.ts",
-      "fingerprint": "319102cbbc801ee5e5b9",
-      "message": "Argument of type 'Request' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type 'Request' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 99 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 2,
       "file": "apps/server/api/src/collections/trainings/controllers/trainings.controller.spec.ts",
@@ -6686,14 +6678,6 @@
       "file": "packages/pages/brands/components/brand-kit/BrandOsSettingsCard.test.tsx",
       "fingerprint": "3ac95e65c8e0deaa7882",
       "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2741,
-      "count": 8,
-      "file": "packages/pages/brands/components/integrations/AccountsTable.test.tsx",
-      "fingerprint": "174809e07da2db9eb1f7",
-      "message": "Property 'reconnectingCredentialId' is missing in type '{ accountHealth: never[]; connections: BrandDetailSocialConnection[]; onConnectAccount: () => void; onDisconnect: () => void; onOpenSettings: () => void; onReconnect: () => void; unavailablePlatforms: Set<...>; }' but required in type 'AccountsTableProps'.",
       "workspace": "pages"
     },
     {

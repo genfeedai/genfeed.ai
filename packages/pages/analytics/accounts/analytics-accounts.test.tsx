@@ -1,6 +1,5 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
-  act,
   fireEvent,
   render,
   screen,
@@ -64,6 +63,7 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     refreshTrigger: 0,
     triggerRefresh: vi.fn(),
   }),
+  useAnalyticsToolbar: (node: unknown) => mocks.setToolbarNode(node),
 }));
 
 const getService = async () => ({
@@ -111,6 +111,34 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/moonrise/analytics/accounts',
   useRouter: () => router,
   useSearchParams: () => new URLSearchParams('page=1'),
+}));
+
+vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+  default: ({
+    facets,
+  }: {
+    facets: Array<{
+      label: string;
+      onChange: (value: string) => void;
+      options: Array<{ label: string; value: string }>;
+    }>;
+  }) => (
+    <div data-testid="filter-menu">
+      {facets.map((facet) => (
+        <div key={facet.label} role="group" aria-label={facet.label}>
+          {facet.options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => facet.onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
@@ -276,7 +304,9 @@ describe('AnalyticsAccounts', () => {
       .find((node) => node !== null);
     render(toolbar);
     expect(screen.getByLabelText('Search accounts')).toBeInTheDocument();
-    expect(screen.getByLabelText('Rank by metric')).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'Rank by metric' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Evaluation weeks')).toBeInTheDocument();
   });
 
@@ -348,10 +378,12 @@ describe('AnalyticsAccounts', () => {
         .filter(([node]) => node !== null)
         .at(-1)?.[0] as ReactNode;
     const toolbar = render(latestToolbar());
-    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
-    await user.keyboard('{ArrowDown}');
-    await screen.findByRole('option', { name: 'Posts' });
-    await user.keyboard('{End}{Enter}');
+    await user.click(
+      within(screen.getByRole('group', { name: 'Rank by metric' })).getByRole(
+        'button',
+        { name: 'Posts' },
+      ),
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),
@@ -359,10 +391,12 @@ describe('AnalyticsAccounts', () => {
     );
     expect(screen.queryByRole('button', { name: 'About Views' })).toBeNull();
     toolbar.rerender(latestToolbar());
-    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
-    await user.keyboard('{ArrowDown}');
-    await screen.findByRole('option', { name: 'Followers' });
-    await user.keyboard('{Home}{ArrowDown}{Enter}');
+    await user.click(
+      within(screen.getByRole('group', { name: 'Rank by metric' })).getByRole(
+        'button',
+        { name: 'Followers' },
+      ),
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),

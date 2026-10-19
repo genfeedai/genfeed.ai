@@ -633,6 +633,7 @@ describe('EntityLeaderboardService', () => {
 
     it('should include active member counts per org', async () => {
       const orgId = 'org-cuid-2';
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows(orgId));
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [{ id: orgId, label: 'Test Org' }],
       });
@@ -645,7 +646,11 @@ describe('EntityLeaderboardService', () => {
       expect(result.data[0].totalMembers).toBe(3);
       expect(mockPrismaService.member.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { isActive: true, isDeleted: false },
+          where: {
+            isActive: true,
+            isDeleted: false,
+            organizationId: { in: [orgId] },
+          },
         }),
       );
     });
