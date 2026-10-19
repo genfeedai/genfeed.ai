@@ -4,7 +4,17 @@ import { UnsettleableReservationException } from '@api/exceptions/business-logic
 import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { DRAFT_GENERATION_CONFIG } from '@genfeedai/contracts/constants';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
+import * as Sentry from '@sentry/nestjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  captureException: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.mocked(Sentry.captureException).mockClear();
+});
 
 const KLEIN = DRAFT_GENERATION_CONFIG.draftModelKey;
 
@@ -172,7 +182,7 @@ function setup(initial: StoryboardNativeRunConfig = draftConfig()) {
     releaseReservation: vi.fn(async () => ({})),
   };
   const source = { validatePlanAssets: vi.fn(async () => undefined) };
-  const logger = { warn: vi.fn() };
+  const logger = { warn: vi.fn(), error: vi.fn() };
   const service = new StoryboardStillsService(
     prisma as never,
     store as never,
@@ -395,6 +405,68 @@ describe('StoryboardStillsService generate', () => {
       errorCode: 'STORYBOARD_STILL_DISPATCH_FAILED',
     });
     expect(context.credits.settleReservation).not.toHaveBeenCalled();
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Provider down' }),
+      expect.objectContaining({
+        tags: expect.objectContaining({
+          errorCode: 'STORYBOARD_STILL_DISPATCH_FAILED',
+        }),
+      }),
+    );
+  });
+
+  it('refunds at once and fails the placeholder when dispatch throws after creating it', async () => {
+    const context = setup();
+    context.images.generateImage.mockImplementationOnce(
+      async (_user, _dto, request, onPlaceholderCreated, _scope, onCredits) => {
+        context.ingredients.set('asset-9', { status: 'PROCESSING' });
+        await onPlaceholderCreated('asset-9');
+        request.creditsConfig = {
+          deferred: true,
+          amount: 4,
+          reservationId: 'res-9',
+        };
+        await onCredits();
+        throw new Error('Generation quote hold has ended');
+      },
+    );
+    await quoteAndGenerate(context, ['shot-1']);
+    expect(context.ingredients.get('asset-9')?.status).toBe('FAILED');
+    expect(context.credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'res-9',
+    });
+    expect(context.current().plan?.shots[0].stillFreshness).toBe('failed');
+    expect(context.current().stillOperations?.[0]).toMatchObject({
+      state: 'failed',
+      billing: 'released',
+      errorCode: 'STORYBOARD_STILL_DISPATCH_FAILED',
+    });
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a dispatch that threw after the provider accepted it to reconciliation', async () => {
+    const context = setup();
+    context.images.generateImage.mockImplementationOnce(
+      async (_user, _dto, request, onPlaceholderCreated, _scope, onCredits) => {
+        context.ingredients.set('asset-9', {
+          status: 'PROCESSING',
+          metadata: { externalProvider: 'replicate', externalId: 'pred-9' },
+        });
+        await onPlaceholderCreated('asset-9');
+        request.creditsConfig = {
+          deferred: true,
+          amount: 4,
+          reservationId: 'res-9',
+        };
+        await onCredits();
+        throw new Error('Serialization failed');
+      },
+    );
+    await quoteAndGenerate(context, ['shot-1']);
+    expect(context.ingredients.get('asset-9')?.status).toBe('PROCESSING');
+    expect(context.credits.releaseReservation).not.toHaveBeenCalled();
+    expect(context.current().plan?.shots[0].stillFreshness).toBe('generating');
   });
 });
 
@@ -455,6 +527,12 @@ describe('StoryboardStillsService reconcile', () => {
       stillAssetId: 'old-still',
       stillFreshness: 'failed',
     });
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Storyboard still failed: STORYBOARD_STILL_GENERATION_FAILED',
+      }),
+      expect.anything(),
+    );
   });
 
   it('leaves processing stills alone and records an expired hold as released', async () => {

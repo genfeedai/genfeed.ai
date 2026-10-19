@@ -50,6 +50,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { ZodType } from 'zod';
 
 const MUTATION_ATTEMPTS = 5;
@@ -382,26 +383,41 @@ export class StoryboardStillsService {
       if (!response.data?.id)
         throw new ConflictException('The image provider returned no asset.');
     } catch (error: unknown) {
-      this.logger.warn('Storyboard still dispatch failed', {
+      this.logger.error('Storyboard still dispatch failed', error, {
         organizationId,
         brandId,
         runId,
         operationId: operation.operationId,
         hasPlaceholder: Boolean(placeholderId),
-        error: error instanceof Error ? error.message : String(error),
       });
-      // With a placeholder, the pipeline may have failed it (reconciliation
-      // then refunds it) or died before the provider call (reconciliation
-      // fails and refunds it once abandoned); without one no provider was
-      // called.
-      if (!placeholderId) {
+      this.report(error, 'STORYBOARD_STILL_DISPATCH_FAILED', {
+        organizationId,
+        brandId,
+        runId,
+        operationId: operation.operationId,
+        assetId: placeholderId,
+      });
+      // A throw out of the image pipeline means no provider call was made, so
+      // refund now rather than waiting for the abandoned-still sweep. A
+      // placeholder the provider already accepted is left to reconciliation.
+      const isUnsubmitted = placeholderId
+        ? await this.failUnsubmittedPlaceholder(
+            organizationId,
+            brandId,
+            placeholderId,
+          )
+        : true;
+      if (isUnsubmitted) {
         const journaled = await this.findOperation(
           organizationId,
           brandId,
           runId,
           operation.operationId,
         );
-        if (journaled) await this.releaseHeld(organizationId, journaled);
+        // The request's own hold covers a journal write that never landed.
+        const reservationId =
+          journaled?.reservationId ?? request.creditsConfig?.reservationId;
+        if (reservationId) await this.release(organizationId, reservationId);
         await this.mutate(organizationId, brandId, runId, (current) =>
           this.applyOutcomes(
             current,
@@ -410,7 +426,7 @@ export class StoryboardStillsService {
                 operation.operationId,
                 {
                   state: 'failed',
-                  billing: journaled?.reservationId ? 'released' : 'none',
+                  billing: reservationId ? 'released' : 'none',
                   errorCode: 'STORYBOARD_STILL_DISPATCH_FAILED',
                 },
               ],
@@ -419,6 +435,72 @@ export class StoryboardStillsService {
         );
       }
     }
+  }
+
+  /**
+   * Fails a placeholder the provider never accepted so the Library stops
+   * showing it as generating. Returns false when it may still be running.
+   */
+  private async failUnsubmittedPlaceholder(
+    organizationId: string,
+    brandId: string,
+    assetId: string,
+  ): Promise<boolean> {
+    const asset = await this.prisma.ingredient.findFirst({
+      where: scopedWhere(organizationId, {
+        brandId,
+        id: assetId,
+        category: 'IMAGE' as const,
+      }),
+      include: { metadata: true },
+    });
+    if (!asset || asset.status === 'FAILED') return true;
+    if (asset.status !== 'PROCESSING' || asset.metadata?.externalId)
+      return false;
+    await this.failPlaceholder(organizationId, brandId, assetId);
+    return true;
+  }
+
+  private async failPlaceholder(
+    organizationId: string,
+    brandId: string,
+    assetId: string,
+  ) {
+    await this.prisma.ingredient.updateMany({
+      where: scopedWhere(organizationId, {
+        brandId,
+        id: assetId,
+        status: 'PROCESSING' as const,
+      }),
+      data: {
+        generationError: 'Still was never submitted to the image provider',
+        status: 'FAILED' as const,
+      },
+    });
+  }
+
+  private reportFailedStill(
+    operation: StillOperation,
+    errorCode: string,
+    reason?: string,
+  ) {
+    this.report(new Error(`Storyboard still failed: ${errorCode}`), errorCode, {
+      operationId: operation.operationId,
+      assetId: operation.assetId,
+      reservationId: operation.reservationId,
+      reason,
+    });
+  }
+
+  private report(
+    error: unknown,
+    errorCode: string,
+    extra: Record<string, unknown>,
+  ) {
+    Sentry.captureException(error, {
+      extra,
+      tags: { operation: 'storyboard-still', errorCode },
+    });
   }
 
   private async observe(
@@ -431,6 +513,7 @@ export class StoryboardStillsService {
     if (!operation.assetId) {
       if (!isAbandoned) return undefined;
       await this.releaseHeld(organizationId, operation);
+      this.reportFailedStill(operation, 'STORYBOARD_STILL_NOT_DISPATCHED');
       return {
         state: 'failed',
         billing: operation.reservationId ? 'released' : 'none',
@@ -458,18 +541,13 @@ export class StoryboardStillsService {
       status === 'PROCESSING' && isAbandoned && !asset?.metadata?.externalId;
     if (status !== 'FAILED' && !isUndispatched) return undefined;
     if (isUndispatched)
-      await this.prisma.ingredient.updateMany({
-        where: scopedWhere(organizationId, {
-          brandId,
-          id: operation.assetId,
-          status: 'PROCESSING' as const,
-        }),
-        data: {
-          generationError: 'Still was never submitted to the image provider',
-          status: 'FAILED' as const,
-        },
-      });
+      await this.failPlaceholder(organizationId, brandId, operation.assetId);
     await this.releaseHeld(organizationId, operation);
+    this.reportFailedStill(
+      operation,
+      'STORYBOARD_STILL_GENERATION_FAILED',
+      asset?.generationError ?? undefined,
+    );
     return {
       state: 'failed',
       billing: operation.reservationId ? 'released' : 'none',
