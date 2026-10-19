@@ -205,7 +205,7 @@ function getStatusConfig(status: string): BadgeStatusConfig {
     // Subscription lifecycle states that have no canonical tone of their own
     case 'trialing':
       return {
-        label: 'Trialing',
+        label: getCanonicalStatusLabel(normalizedStatus),
         variant: 'info',
       };
 

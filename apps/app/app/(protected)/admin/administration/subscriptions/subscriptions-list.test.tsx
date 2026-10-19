@@ -179,7 +179,7 @@ describe('SubscriptionsList', () => {
     expect(screen.getByTestId('status-org-2')).toHaveTextContent('Trialing');
     expect(screen.getByTestId('usedPercent-org-2')).toHaveTextContent('95%');
     expect(screen.getByTestId('isMaxedOut-org-2')).toHaveTextContent(
-      'Maxed out',
+      'flagMaxedOut',
     );
     expect(screen.getByTestId('stripeCustomerId-org-2')).toHaveTextContent(
       'cus_123',

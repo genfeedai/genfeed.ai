@@ -75,17 +75,17 @@ export default function SubscriptionsList() {
 
   const columns: TableColumn<IOrganizationBilling>[] = [
     {
-      header: 'Organization',
+      header: t('columnOrganization'),
       key: 'organizationName',
       render: (row: IOrganizationBilling) => row.organizationName,
     },
     {
-      header: 'Owner',
+      header: t('columnOwner'),
       key: 'ownerEmail',
       render: (row: IOrganizationBilling) => row.ownerEmail ?? EMPTY_CELL,
     },
     {
-      header: 'Plan',
+      header: t('columnPlan'),
       key: 'tier',
       render: (row: IOrganizationBilling) =>
         row.tier ? (
@@ -97,19 +97,19 @@ export default function SubscriptionsList() {
         ),
     },
     {
-      header: 'Status',
+      header: t('columnStatus'),
       key: 'status',
       render: (row: IOrganizationBilling) =>
         row.status ? <Badge status={row.status} /> : EMPTY_CELL,
     },
     {
-      header: 'Balance',
+      header: t('columnBalance'),
       key: 'balance',
       render: (row: IOrganizationBilling) =>
         formatCreditBalanceExact(row.balance),
     },
     {
-      header: 'Used',
+      header: t('columnUsed'),
       key: 'usedPercent',
       render: (row: IOrganizationBilling) =>
         row.planLimit > 0 ? (
@@ -124,22 +124,22 @@ export default function SubscriptionsList() {
         ),
     },
     {
-      header: 'Flag',
+      header: t('columnFlag'),
       key: 'isMaxedOut',
       render: (row: IOrganizationBilling) => {
         if (row.isMaxedOut) {
-          return <Badge variant="destructive">Maxed out</Badge>;
+          return <Badge variant="destructive">{t('flagMaxedOut')}</Badge>;
         }
 
         if (row.isUnderUsing) {
-          return <Badge variant="outline">Under-using</Badge>;
+          return <Badge variant="outline">{t('flagUnderUsing')}</Badge>;
         }
 
         return EMPTY_CELL;
       },
     },
     {
-      header: 'Customer ID',
+      header: t('columnCustomerId'),
       key: 'stripeCustomerId',
       render: (row: IOrganizationBilling) => {
         const customerId = row.stripeCustomerId;
@@ -150,7 +150,7 @@ export default function SubscriptionsList() {
         return (
           <Button
             variant={ButtonVariant.SECONDARY}
-            tooltip="Copy Customer ID"
+            tooltip={t('copyCustomerId')}
             tooltipPosition="right"
             onClick={() => handleCopy(customerId)}
             label={
@@ -164,7 +164,7 @@ export default function SubscriptionsList() {
       },
     },
     {
-      header: 'Period End',
+      header: t('columnPeriodEnd'),
       key: 'currentPeriodEnd',
       render: (row: IOrganizationBilling) =>
         row.currentPeriodEnd
@@ -182,7 +182,7 @@ export default function SubscriptionsList() {
       icon: <CreditCard />,
       isExternal: true,
       size: ButtonSize.SM,
-      tooltip: 'Stripe',
+      tooltip: t('openStripe'),
       variant: ButtonVariant.SECONDARY,
     },
     {
@@ -199,7 +199,7 @@ export default function SubscriptionsList() {
         openModal(ModalEnum.SUBSCRIPTION);
       },
       size: ButtonSize.SM,
-      tooltip: 'Edit',
+      tooltip: t('editSubscription'),
       tooltipPosition: 'left',
       variant: ButtonVariant.DEFAULT,
     },
@@ -207,7 +207,7 @@ export default function SubscriptionsList() {
 
   return (
     <AdminPageShell
-      title="Subscriptions"
+      title={t('subscriptionsTitle')}
       icon={CreditCard}
       onRefresh={() => refresh()}
       isRefreshing={isRefreshing}
@@ -218,11 +218,11 @@ export default function SubscriptionsList() {
         columns={columns}
         actions={actions}
         getRowKey={(row) => row.organizationId}
-        emptyLabel="No organizations found"
+        emptyLabel={t('subscriptionsEmpty')}
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="organizations" />
+        <AutoPagination showTotal totalLabel={t('subscriptionsTotalLabel')} />
       </div>
 
       {holdsOrganization && (

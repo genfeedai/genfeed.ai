@@ -20,5 +20,22 @@
   "refresh": "Refresh holds",
   "next": "Next holds",
   "first": "First holds",
-  "reviewHolds": "Review holds"
+  "reviewHolds": "Review holds",
+  "subscriptionsTitle": "Subscriptions",
+  "subscriptionsEmpty": "No organizations found",
+  "subscriptionsTotalLabel": "organizations",
+  "columnOrganization": "Organization",
+  "columnOwner": "Owner",
+  "columnPlan": "Plan",
+  "columnStatus": "Status",
+  "columnBalance": "Balance",
+  "columnUsed": "Used",
+  "columnFlag": "Flag",
+  "columnCustomerId": "Customer ID",
+  "columnPeriodEnd": "Period End",
+  "flagMaxedOut": "Maxed out",
+  "flagUnderUsing": "Under-using",
+  "copyCustomerId": "Copy Customer ID",
+  "openStripe": "Stripe",
+  "editSubscription": "Edit"
 }

@@ -211,30 +211,8 @@ export class SubscriptionsService
     ]);
 
     const organizationIds = organizations.map(({ id }) => id);
-    const [subscriptions, settings, links] = organizationIds.length
-      ? await Promise.all([
-          this.prisma.subscription.findMany({
-            include: { customer: { select: { stripeCustomerId: true } } },
-            orderBy: { createdAt: 'desc' },
-            where: {
-              isDeleted: false,
-              organizationId: { in: organizationIds },
-            },
-          }),
-          this.prisma.organizationSetting.findMany({
-            select: { organizationId: true, subscriptionTier: true },
-            where: { organizationId: { in: organizationIds } },
-          }),
-          this.prisma.billingAccountOrganization.findMany({
-            select: { billingAccountId: true, organizationId: true },
-            where: {
-              isDeleted: false,
-              organizationId: { in: organizationIds },
-              status: BillingAccountOrganizationStatus.LINKED,
-            },
-          }),
-        ])
-      : [[], [], []];
+    const { links, settings, subscriptions } =
+      await this.loadAdminBillingRelations(organizationIds);
 
     const billingAccountIdByOrganization = new Map<string, string>();
     for (const link of links) {
@@ -255,25 +233,10 @@ export class SubscriptionsService
     const billingAccountIds = [
       ...new Set(billingAccountIdByOrganization.values()),
     ];
-    const wallets = organizationIds.length
-      ? await this.prisma.creditBalance.findMany({
-          select: {
-            balance: true,
-            billingAccountId: true,
-            heldAmount: true,
-            organizationId: true,
-          },
-          where: {
-            isDeleted: false,
-            OR: [
-              { organizationId: { in: organizationIds } },
-              ...(billingAccountIds.length
-                ? [{ billingAccountId: { in: billingAccountIds } }]
-                : []),
-            ],
-          },
-        })
-      : [];
+    const wallets = await this.loadAdminBillingWallets(
+      organizationIds,
+      billingAccountIds,
+    );
 
     // Newest first, so the first row per organization is its current one.
     const subscriptionByOrganization = new Map<
@@ -352,6 +315,65 @@ export class SubscriptionsService
       totalDocs,
       totalPages: Math.max(1, Math.ceil(totalDocs / options.limit)),
     };
+  }
+
+  private async loadAdminBillingRelations(organizationIds: string[]) {
+    if (organizationIds.length === 0) {
+      return { links: [], settings: [], subscriptions: [] };
+    }
+
+    const [subscriptions, settings, links] = await Promise.all([
+      this.prisma.subscription.findMany({
+        include: { customer: { select: { stripeCustomerId: true } } },
+        orderBy: { createdAt: 'desc' },
+        where: {
+          isDeleted: false,
+          organizationId: { in: organizationIds },
+        },
+      }),
+      this.prisma.organizationSetting.findMany({
+        select: { organizationId: true, subscriptionTier: true },
+        where: { organizationId: { in: organizationIds } },
+      }),
+      this.prisma.billingAccountOrganization.findMany({
+        select: { billingAccountId: true, organizationId: true },
+        where: {
+          isDeleted: false,
+          organizationId: { in: organizationIds },
+          status: BillingAccountOrganizationStatus.LINKED,
+        },
+      }),
+    ]);
+
+    return { links, settings, subscriptions };
+  }
+
+  private async loadAdminBillingWallets(
+    organizationIds: string[],
+    billingAccountIds: string[],
+  ) {
+    if (organizationIds.length === 0) {
+      return [];
+    }
+
+    // tenant-scope-ignore: superadmin list; the OR is bounded to the page's organization ids and their linked billing accounts, and tombstoned rows are excluded.
+    return await this.prisma.creditBalance.findMany({
+      select: {
+        balance: true,
+        billingAccountId: true,
+        heldAmount: true,
+        organizationId: true,
+      },
+      where: {
+        isDeleted: false,
+        OR: [
+          { organizationId: { in: organizationIds } },
+          ...(billingAccountIds.length
+            ? [{ billingAccountId: { in: billingAccountIds } }]
+            : []),
+        ],
+      },
+    });
   }
 
   /**
