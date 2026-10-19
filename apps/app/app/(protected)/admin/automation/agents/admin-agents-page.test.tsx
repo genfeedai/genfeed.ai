@@ -64,6 +64,24 @@ vi.mock('@ui/display/table/Table', () => ({
   ),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+
+  const translations = new Map<
+    string,
+    ReturnType<typeof translateFromCatalog>
+  >();
+  return {
+    useTranslations: (namespace: string) => {
+      if (!translations.has(namespace))
+        translations.set(namespace, translateFromCatalog(namespace));
+      return translations.get(namespace);
+    },
+  };
+});
+
 describe('AdminAgentsPage', () => {
   it("lists the selected organization's agents with their publishing mode", async () => {
     mocks.findAllPages.mockResolvedValue([
