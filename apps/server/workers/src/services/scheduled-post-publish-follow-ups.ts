@@ -293,7 +293,7 @@ export class ScheduledPostPublishFollowUps {
     result: PublishResult,
     platform: CredentialPlatform | string,
   ): void {
-    void this.publishEventWebhookService.emitLegacyPostPublished({
+    void this.publishEventWebhookService.emitPostPublished({
       externalProviderId: result.externalId ?? null,
       externalShortcode: result.externalShortcode ?? null,
       platform,
@@ -307,7 +307,7 @@ export class ScheduledPostPublishFollowUps {
     errorMessage: string,
     platform?: CredentialPlatform | string,
   ): void {
-    void this.publishEventWebhookService.emitLegacyPostFailed({
+    void this.publishEventWebhookService.emitPostFailed({
       errorMessage,
       platform,
       post,

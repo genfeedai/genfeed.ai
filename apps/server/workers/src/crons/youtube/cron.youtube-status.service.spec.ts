@@ -64,7 +64,7 @@ function youtubeHarness() {
   };
   const queue = { queueSystemWorkflow: vi.fn().mockResolvedValue(undefined) };
   const webhook = {
-    emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
+    emitPostPublished: vi.fn().mockResolvedValue(undefined),
   };
   const scheduler = { transitionPost: vi.fn().mockResolvedValue(true) };
   const workflow = {
@@ -184,7 +184,7 @@ describe('YouTube publication confirmation', () => {
     h.scheduler.transitionPost.mockResolvedValue(false);
     await h.reconcile();
     expect(h.queue.queueSystemWorkflow).not.toHaveBeenCalled();
-    expect(h.webhook.emitLegacyPostPublished).not.toHaveBeenCalled();
+    expect(h.webhook.emitPostPublished).not.toHaveBeenCalled();
     expect(
       h.workflow.processPendingPublishedFinalization,
     ).toHaveBeenCalledOnce();
@@ -197,7 +197,7 @@ describe('YouTube publication confirmation', () => {
       new Error('Redis unavailable'),
     );
     await h.reconcile();
-    expect(h.webhook.emitLegacyPostPublished).toHaveBeenCalledOnce();
+    expect(h.webhook.emitPostPublished).toHaveBeenCalledOnce();
     expect(
       h.workflow.processPendingPublishedFinalization,
     ).toHaveBeenCalledOnce();
@@ -296,7 +296,7 @@ describe('YouTube publication confirmation', () => {
     await h.reconcile();
     await h.reconcile();
     expect(h.scheduler.transitionPost).not.toHaveBeenCalled();
-    expect(h.webhook.emitLegacyPostPublished).not.toHaveBeenCalled();
+    expect(h.webhook.emitPostPublished).not.toHaveBeenCalled();
     expect(h.queue.queueSystemWorkflow).not.toHaveBeenCalled();
     expect(
       h.workflow.processPendingPublishedFinalization,
@@ -315,7 +315,7 @@ describe('YouTube publication confirmation', () => {
     const originalOutcome = h.scheduler.transitionPost.mock.calls[0]?.[4];
     h.youtube.getVideoStatus.mockClear();
     h.scheduler.transitionPost.mockClear();
-    h.webhook.emitLegacyPostPublished.mockClear();
+    h.webhook.emitPostPublished.mockClear();
     h.queue.queueSystemWorkflow.mockClear();
     h.workflow.processPendingPublishedFinalization
       .mockRejectedValueOnce(new Error('recurrence failed'))
@@ -346,7 +346,7 @@ describe('YouTube publication confirmation', () => {
     ).toHaveBeenLastCalledWith(h.post);
     expect(h.youtube.getVideoStatus).not.toHaveBeenCalled();
     expect(h.scheduler.transitionPost).not.toHaveBeenCalled();
-    expect(h.webhook.emitLegacyPostPublished).not.toHaveBeenCalled();
+    expect(h.webhook.emitPostPublished).not.toHaveBeenCalled();
     expect(h.queue.queueSystemWorkflow).not.toHaveBeenCalled();
     expect(h.post.publicationDate).toBe(originalTime);
     expect(originalOutcome).toEqual(

@@ -386,7 +386,7 @@ export class CronTiktokStatusService implements OnModuleInit {
       provenance,
     );
     if (transitioned) {
-      void this.publishEventWebhookService.emitLegacyPostPublished({
+      void this.publishEventWebhookService.emitPostPublished({
         externalProviderId: postId,
         occurredAt: now,
         platform: CredentialPlatform.TIKTOK,
@@ -479,7 +479,7 @@ export class CronTiktokStatusService implements OnModuleInit {
       provenance,
     );
     if (transitioned) {
-      void this.publishEventWebhookService.emitLegacyPostFailed({
+      void this.publishEventWebhookService.emitPostFailed({
         errorMessage: reason,
         platform: CredentialPlatform.TIKTOK,
         post,

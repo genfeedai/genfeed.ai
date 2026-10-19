@@ -139,8 +139,8 @@ function createDeliveryMocks() {
     },
     publisherFactory: { getPublisher: vi.fn() },
     publishEventWebhookService: {
-      emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
-      emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
+      emitPostFailed: vi.fn().mockResolvedValue(undefined),
+      emitPostPublished: vi.fn().mockResolvedValue(undefined),
     },
     publishingReadinessService: {
       resolveForCredentials: vi.fn(
@@ -463,7 +463,7 @@ describe('ScheduledPostDeliveryService', () => {
       }),
     );
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostPublished,
+      mocks.publishEventWebhookService.emitPostPublished,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         externalProviderId: 'beehiiv-post-1',
@@ -1179,7 +1179,7 @@ describe('ScheduledPostDeliveryService', () => {
     // Dated ahead so discovery waits the verification backoff, not 60s.
     expect(deferred.lastAttemptAt.getTime()).toBeGreaterThan(Date.now());
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
   });
 
@@ -1621,7 +1621,7 @@ describe('ScheduledPostDeliveryService', () => {
 
     expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
   });
 
@@ -1701,7 +1701,7 @@ describe('ScheduledPostDeliveryService', () => {
       mocks.schedulerPublishStateService.transitionPost,
     ).not.toHaveBeenCalled();
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
   });
 
@@ -1714,7 +1714,7 @@ describe('ScheduledPostDeliveryService', () => {
     await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostPublished,
+      mocks.publishEventWebhookService.emitPostPublished,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         externalProviderId: 'tweet-1',
@@ -1780,7 +1780,7 @@ describe('ScheduledPostDeliveryService', () => {
     expect(draftUpdate).not.toHaveProperty('publishedAt');
     expect(draftUpdate).not.toHaveProperty('publicationDate');
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostPublished,
+      mocks.publishEventWebhookService.emitPostPublished,
     ).not.toHaveBeenCalled();
   });
 
@@ -1887,7 +1887,7 @@ describe('ScheduledPostDeliveryService', () => {
       },
     );
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
   });
 
@@ -1996,7 +1996,7 @@ describe('ScheduledPostDeliveryService', () => {
     await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'Provider validation failed',
@@ -2041,7 +2041,7 @@ describe('ScheduledPostDeliveryService', () => {
       undefined,
     );
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'The provider account has no usable access credential.',
@@ -2121,7 +2121,7 @@ describe('ScheduledPostDeliveryService', () => {
       }),
     );
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'YouTube requires at least 1 media item(s).',
@@ -2173,7 +2173,7 @@ describe('ScheduledPostDeliveryService', () => {
     );
     expect(mocks.activitiesService.record).not.toHaveBeenCalled();
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
   });
 
@@ -2272,7 +2272,7 @@ describe('ScheduledPostDeliveryService', () => {
       organizationId: 'org-scalar-1',
     });
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
     expect(result).toEqual(
       expect.objectContaining({
@@ -2296,7 +2296,7 @@ describe('ScheduledPostDeliveryService', () => {
     );
     expect(mocks.publisherFactory.getPublisher).not.toHaveBeenCalled();
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'Credential not found',
@@ -2330,7 +2330,7 @@ describe('ScheduledPostDeliveryService', () => {
       }),
     );
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'Quota exceeded',
@@ -2509,7 +2509,7 @@ describe('ScheduledPostDeliveryService', () => {
       expect.any(Object),
     );
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostPublished,
+      mocks.publishEventWebhookService.emitPostPublished,
     ).not.toHaveBeenCalled();
     expect(result).toEqual(
       expect.objectContaining({
@@ -2560,7 +2560,7 @@ describe('ScheduledPostDeliveryService', () => {
       },
     );
     expect(
-      mocks.publishEventWebhookService.emitLegacyPostFailed,
+      mocks.publishEventWebhookService.emitPostFailed,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'Canonical Post digest no longer matches pin.',
