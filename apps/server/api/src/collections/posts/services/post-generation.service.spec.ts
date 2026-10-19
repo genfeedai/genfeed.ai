@@ -353,6 +353,22 @@ Tweet 3: Tech innovation is changing the world.`,
       );
     });
 
+    it('turns reasoning off so a short rewrite is not cut off mid-sentence', async () => {
+      await service.enhanceDescription(
+        mockPost,
+        { prompt: 'Improve' },
+        identity,
+      );
+
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.objectContaining({ reasoning: { enabled: false } }),
+        undefined,
+      );
+    });
+
     it('dispatches with no key override when the guard did not bypass', async () => {
       await service.enhanceDescription(
         mockPost,
