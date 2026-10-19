@@ -45,3 +45,11 @@ Before closing #4895, record nonproduction CDN checks for unsigned-original deni
 A failed worker records `FAILED` with no variant key and retries with the queue's bounded backoff. Retry explicit preparation after correcting the cause; no request returns the original to disguise a missing preview. Changing source key/version/completion identity makes the old derivative ineligible.
 
 Stop preparation independently with its flag when delivery is disabled. During an active rollout, pause workers or roll back application code only with the private CDN policy retained. Do not remove original protection or enable unsigned fallback as a recovery step. Disabling delivery returns the application to legacy URL behavior; under an enforced private CDN those unsigned legacy URLs can be unavailable. Prefer restoring the last working signing/issuer configuration. Previously issued CDN URLs expire at the configured TTL (default 900 seconds); internal S3 execution grants expire after 300 seconds, except editor-render grants renewed at each execution attempt, which expire after 900 seconds. Key revocation/invalidation is a separate infrastructure operation that requires approval.
+
+## Guard against new ID-derived URLs
+
+`bun run check:id-derived-media-urls` (part of `check:architecture`) counts
+`${ingredientsEndpoint}/…` constructions in server code per file. Every
+remaining one is listed with its reason (flag-off branch, stable hashed input
+that is authorized at the provider call, or response-only), and a count that
+grows or shrinks fails, so new media reads must issue a grant instead.
