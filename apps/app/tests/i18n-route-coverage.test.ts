@@ -651,6 +651,25 @@ class NamespaceCoverage {
       if (
         ts.isJsxElement(node) &&
         ts.isIdentifier(node.openingElement.tagName) &&
+        info.imports.get(node.openingElement.tagName.text)?.file ===
+          MODAL_HOST &&
+        info.imports.get(node.openingElement.tagName.text)?.name ===
+          'AppAssetCatalogBoundary'
+      ) {
+        // A host-owned panel (ingredient or brand sidebar) lazily gets the
+        // same bounded asset catalog the modals do.
+        const previousPages = localPages;
+        const previousScope = localScope;
+        localPages = merge(localPages ?? {}, this.modalCatalog('gallery', ''));
+        localScope = `${localScope}/${file}:${node.pos}`;
+        for (const child of node.children) visit(file, child, client);
+        localPages = previousPages;
+        localScope = previousScope;
+        return;
+      }
+      if (
+        ts.isJsxElement(node) &&
+        ts.isIdentifier(node.openingElement.tagName) &&
         info.imports.get(node.openingElement.tagName.text)?.file === PROVIDER
       ) {
         const attribute = node.openingElement.attributes.properties.find(
@@ -1089,23 +1108,29 @@ describe('namespace coverage negative controls', () => {
     );
   });
 
-  it('detects removal of the actual host-owned brand catalog', () => {
+  it('detects removal of the host-owned asset catalog around the brand sidebar', () => {
     const guard = new NamespaceCoverage();
-    const entry = guard.modalEntries().find((item) => item.kind === 'brand');
-    if (!entry) throw new Error('Missing brand modal boundary');
-    const uses = [...guard.consume([entry.reference]).uses.values()];
-    const library = uses.find((use) =>
+    const reference: Reference = {
+      client: true,
+      file: path.join(
+        APP,
+        'app/(protected)/[orgSlug]/~/settings/brands/brands-list.tsx',
+      ),
+      name: 'default',
+    };
+    const uses = [...guard.consume([reference]).uses.values()];
+    const overview = uses.find((use) =>
       use.key.startsWith('pages.brandDetailOverview'),
     );
-    if (!library)
+    if (!overview)
       throw new Error(
-        'Brand coverage did not reach its detail translation consumer',
+        'Brand list coverage did not reach the brand overview translation consumer',
       );
-    expect(delivered({ pages: {} }, library.key)).toBe(false);
-    const catalog = {
-      pages: guard.modalCatalog('brand', '/acme/brand/publishing/posts'),
-    };
-    expect(delivered(catalog, library.key)).toBe(true);
+    // The brands settings route does not inherit the asset catalog: only the
+    // boundary around the sidebar panel delivers it.
+    expect(delivered({ pages: {} }, overview.key)).toBe(false);
+    expect(deliveredTo({ pages: {} }, overview)).toBe(true);
+    expect(overview.pages).toHaveProperty('brandDetailOverview');
   });
 });
 
@@ -1125,7 +1150,7 @@ describe('all current route namespace delivery', () => {
     const checkedModals = new Set<string>();
     const routeCatalogs = new Map<string, Catalog>();
     const modalEntries = coverage.modalEntries();
-    expect(new Set(modalEntries.map((entry) => entry.kind)).size).toBe(14);
+    expect(new Set(modalEntries.map((entry) => entry.kind)).size).toBe(11);
     let routes = 0;
     for (const page of routePages(path.join(APP, 'app'))) {
       const layouts = ancestors(page);

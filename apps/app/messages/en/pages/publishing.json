@@ -157,6 +157,8 @@
   },
   "calendar": {
     "bookedHole": "Booked calendar hole",
+    "briefOverride": "Brief override",
+    "optionalPrompt": "Optional prompt",
     "bulkGenerate": "Generate missing ({count})",
     "bulkGenerateConfirm": "Generate {count}",
     "bulkGenerateConfirmMessage": "This will generate {count} missing slots. Credits are charged per slot. If credits run out, remaining slots stay missing.",

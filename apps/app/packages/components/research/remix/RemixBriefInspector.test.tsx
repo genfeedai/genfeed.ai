@@ -1,7 +1,7 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { PropsWithChildren, ReactNode } from 'react';
+import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -10,7 +10,10 @@ const mocks = vi.hoisted(() => ({
   close: vi.fn(),
   confirm: vi.fn(),
   generate: vi.fn(),
+  isOpen: { value: true },
+  onClose: { value: null as null | (() => void) },
   run: { value: null as unknown },
+  selection: { value: null as unknown },
   voiceHook: vi.fn(),
 }));
 
@@ -76,7 +79,7 @@ vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
     confirm: mocks.confirm,
     generate: mocks.generate,
     error: null,
-    isOpen: true,
+    isOpen: mocks.isOpen.value,
     openRemix: vi.fn(),
     retry: vi.fn(),
     run: mocks.run.value,
@@ -105,24 +108,31 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/overlays/context-inspector/ContextInspector', () => ({
-  default: ({
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
     children,
-    footer,
-    isOpen,
-    title,
+    onClose,
+    selection,
   }: PropsWithChildren<{
-    footer?: ReactNode;
-    isOpen: boolean;
-    title: ReactNode;
-  }>) =>
-    isOpen ? (
-      <div>
-        <h2>{title}</h2>
+    onClose?: () => void;
+    selection: {
+      id: string;
+      kind: string;
+      origin: string;
+      subtitle?: string;
+      title: string;
+    } | null;
+  }>) => {
+    mocks.selection.value = selection;
+    mocks.onClose.value = onClose ?? null;
+    return selection ? (
+      <div data-testid="sidebar-panel">
+        <h2>{selection.title}</h2>
+        {selection.subtitle ? <p>{selection.subtitle}</p> : null}
         {children}
-        {footer}
       </div>
-    ) : null,
+    ) : null;
+  },
 }));
 
 vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
@@ -162,6 +172,9 @@ describe('RemixBriefInspector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.run.value = run;
+    mocks.isOpen.value = true;
+    mocks.selection.value = null;
+    mocks.onClose.value = null;
     mocks.accountsHook.mockReturnValue({
       accounts: [
         {
@@ -250,8 +263,9 @@ describe('RemixBriefInspector', () => {
     render(<RemixBriefInspector />);
 
     expect(
-      screen.getByRole('heading', { name: 'Remix for Northstar' }),
+      screen.getByRole('heading', { name: 'Proof-led TikTok hook' }),
     ).toBeVisible();
+    expect(screen.getByText('Remix for Northstar')).toBeVisible();
     expect(screen.getByText('Proof before promise')).toBeVisible();
     expect(
       screen.getByText('Three fast proof beats, then product reveal'),
@@ -264,6 +278,28 @@ describe('RemixBriefInspector', () => {
     ).toBeVisible();
     expect(mocks.avatarHook).not.toHaveBeenCalled();
     expect(mocks.voiceHook).not.toHaveBeenCalled();
+  });
+
+  it('registers the remixed item as a user selection in the context sidebar', () => {
+    render(<RemixBriefInspector />);
+
+    expect(mocks.selection.value).toEqual({
+      id: 'run-1',
+      kind: 'run',
+      origin: 'user',
+      subtitle: 'Remix for Northstar',
+      title: 'Proof-led TikTok hook',
+    });
+    mocks.onClose.value?.();
+    expect(mocks.close).toHaveBeenCalled();
+  });
+
+  it('clears the selection when the remix is closed', () => {
+    mocks.isOpen.value = false;
+    render(<RemixBriefInspector />);
+
+    expect(mocks.selection.value).toBeNull();
+    expect(screen.queryByTestId('sidebar-panel')).not.toBeInTheDocument();
   });
 
   it('persists the edited brief and semantic Library reference on confirmation', async () => {

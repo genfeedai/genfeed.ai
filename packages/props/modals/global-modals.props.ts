@@ -5,13 +5,10 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   IAsset,
-  IBrand,
-  ICredential,
   IIngredient,
   IPost,
 } from '@genfeedai/contracts/interfaces';
 import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
-import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   ModalConfirmProps,
   ModalExportProps,
@@ -68,8 +65,6 @@ export interface GlobalModalsContextValue {
   publishIngredient: IIngredient | null;
   openPostBatchModal: (ingredient: IIngredient | IIngredient[]) => void;
   handlePostClose: () => void;
-  openPostMetadataOverlay: (post: IPost, onConfirm?: () => void) => void;
-  closePostMetadataOverlay: () => void;
   openConfirm: (
     config: Omit<ModalConfirmProps, 'onConfirm'> & {
       onConfirm: () => void | Promise<void>;
@@ -80,18 +75,8 @@ export interface GlobalModalsContextValue {
   closeUpload: () => void;
   openGallery: (config: GlobalModalGalleryConfig) => void;
   closeGallery: () => void;
-  openIngredientOverlay: (
-    ingredient: IIngredient | null,
-    onConfirm?: () => void,
-  ) => void;
-  closeIngredientOverlay: () => void;
   openExport: (config: ModalExportProps) => void;
   closeExport: () => void;
-  openCredentialModal: (
-    credential: ICredential | null,
-    onConfirm: () => void,
-  ) => void;
-  closeCredentialModal: () => void;
   openPromptModal: (
     config: Omit<ModalPromptProps, 'onConfirm'> & {
       onConfirm: (prompt: string) => void;
@@ -100,12 +85,8 @@ export interface GlobalModalsContextValue {
   closePromptModal: () => void;
   openMetadataModal: (config: ModalMetadataProps) => void;
   closeMetadataModal: () => void;
-  openBrandOverlay: (
-    brand: IBrand | Brand | null,
-    onConfirm?: () => void,
-    initialView?: 'edit' | 'overview',
-  ) => void;
-  closeBrandOverlay: () => void;
+  openBrandCreateModal: (onConfirm?: () => void) => void;
+  closeBrandCreateModal: () => void;
   openGenerateIllustration: (config: GlobalModalIllustrationConfig) => void;
   closeGenerateIllustration: () => void;
   openPostRemixModal: (
@@ -125,13 +106,10 @@ export type GlobalModalKind =
   | 'confirm'
   | 'upload'
   | 'gallery'
-  | 'ingredient'
   | 'export'
-  | 'credential'
   | 'prompt'
   | 'metadata'
   | 'brand'
-  | 'postMetadata'
   | 'illustration'
   | 'postRemix'
   | 'postRepurpose';

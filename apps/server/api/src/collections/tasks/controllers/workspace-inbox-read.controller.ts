@@ -5,7 +5,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WorkspaceInboxReadSerializer } from '@genfeedai/serializers';
-import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @Controller('tasks/inbox')
@@ -14,11 +14,17 @@ export class WorkspaceInboxReadController {
 
   @TenantReadPolicy('owner')
   @Get('read-state')
-  async list(@Req() request: Request, @CurrentUser() user: AuthenticatedUser) {
+  async list(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('countOnly') countOnly?: string,
+  ) {
     return serializeSingle(
       request,
       WorkspaceInboxReadSerializer,
-      await this.inbox.list(user.organizationId, user.userId ?? user.id),
+      await this.inbox.list(user.organizationId, user.userId ?? user.id, {
+        countOnly: countOnly === 'true',
+      }),
     );
   }
 

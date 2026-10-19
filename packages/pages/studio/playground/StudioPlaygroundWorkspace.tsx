@@ -64,6 +64,7 @@ import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-prefer
 import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@pages/library/knowledge/components/KnowledgeReferenceSection';
+import StudioPlaygroundAgentProposals from '@pages/studio/playground/components/StudioPlaygroundAgentProposals';
 import StudioPlaygroundComposer from '@pages/studio/playground/components/StudioPlaygroundComposer';
 import StudioPlaygroundFocusedPreview from '@pages/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@pages/studio/playground/components/StudioPlaygroundInspector';
@@ -2675,14 +2676,21 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                     </p>
                   ) : null}
                   {showEmptyStarterIdeas ? (
-                    <StudioPlaygroundStarterIdeas
-                      character={pickStarterCharacter(characterMentions)}
-                      offeringKind={starterOffering}
-                      onSelect={handleStarterIdea}
-                      productReference={pickStarterProductReference(
-                        selectedBrand?.references,
-                      )}
-                    />
+                    <>
+                      <StudioPlaygroundAgentProposals
+                        brandId={brandId || undefined}
+                        onSelect={handleStarterIdea}
+                        type={type}
+                      />
+                      <StudioPlaygroundStarterIdeas
+                        character={pickStarterCharacter(characterMentions)}
+                        offeringKind={starterOffering}
+                        onSelect={handleStarterIdea}
+                        productReference={pickStarterProductReference(
+                          selectedBrand?.references,
+                        )}
+                      />
+                    </>
                   ) : !galleryError || visibleJobs.length > 0 ? (
                     <StudioPlaygroundResults
                       assetActions={{

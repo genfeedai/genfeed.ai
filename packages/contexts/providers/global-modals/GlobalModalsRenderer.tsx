@@ -6,10 +6,8 @@ import type {
   GlobalModalsProviderProps,
 } from '@genfeedai/props/modals/global-modals.props';
 import {
-  LazyBrandOverlay,
-  LazyIngredientOverlay,
+  LazyModalBrandCreate,
   LazyModalConfirm,
-  LazyModalCredential,
   LazyModalExport,
   LazyModalGallery,
   LazyModalGenerateIllustration,
@@ -19,7 +17,6 @@ import {
   LazyModalPostRepurpose,
   LazyModalPrompt,
   LazyModalUpload,
-  LazyPostMetadataOverlay,
 } from '@ui/lazy/modal/LazyModal';
 import { ModalUpgradePrompt } from '@ui/modals';
 import type { useGlobalModalsState } from './useGlobalModalsState';
@@ -31,35 +28,27 @@ const renderUnwrappedModal: GlobalModalRenderer = (_kind, children) => children;
 
 export default function GlobalModalsRenderer({
   renderModal = renderUnwrappedModal,
-  brandOverlayData,
-  brandOverlayTrigger,
-  closeBrandOverlay,
+  brandCreateData,
+  brandCreateTrigger,
+  closeBrandCreateModal,
   closePublishModal,
   closeConfirm,
-  closeCredentialModal,
   closeExport,
   closeGallery,
   closeGenerateIllustration,
-  closeIngredientOverlay,
-  closePostMetadataOverlay,
   closePostRemixModal,
   closePostRepurposeModal,
   closePromptModal,
   closeUpload,
   credentials,
-  credentialData,
-  credentialTrigger,
   currentConfirm,
   exportConfig,
   galleryConfig,
   generateIllustrationConfig,
   generateIllustrationTrigger,
-  handleBrandOverlayConfirm,
-  ingredientOverlayData,
-  ingredientOverlayTrigger,
+  handleBrandCreateConfirm,
   metadataConfig,
   openTrigger,
-  postMetadataOverlayData,
   postRemixData,
   postRemixTrigger,
   postRepurposeData,
@@ -160,21 +149,6 @@ export default function GlobalModalsRenderer({
           />,
         )}
 
-      {ingredientOverlayData?.ingredient &&
-        renderModal(
-          'ingredient',
-          <LazyIngredientOverlay
-            key={ingredientOverlayTrigger}
-            isOpen={Boolean(ingredientOverlayData.ingredient)}
-            openKey={ingredientOverlayTrigger}
-            ingredient={ingredientOverlayData.ingredient}
-            onConfirm={() => {
-              ingredientOverlayData.onConfirm?.();
-            }}
-            onClose={closeIngredientOverlay}
-          />,
-        )}
-
       {exportConfig &&
         renderModal(
           'export',
@@ -183,21 +157,6 @@ export default function GlobalModalsRenderer({
             onExport={(format, fields) => {
               exportConfig.onExport(format, fields);
               closeExport();
-            }}
-          />,
-        )}
-
-      {credentialData &&
-        renderModal(
-          'credential',
-          <LazyModalCredential
-            key={credentialTrigger}
-            isOpen={Boolean(credentialData)}
-            openKey={credentialTrigger}
-            credential={credentialData.credential}
-            onConfirm={() => {
-              credentialData.onConfirm();
-              closeCredentialModal();
             }}
           />,
         )}
@@ -233,30 +192,15 @@ export default function GlobalModalsRenderer({
           />,
         )}
 
-      {brandOverlayData &&
+      {brandCreateData &&
         renderModal(
           'brand',
-          <LazyBrandOverlay
-            key={brandOverlayTrigger}
-            isOpen={Boolean(brandOverlayData)}
-            openKey={brandOverlayTrigger}
-            brand={brandOverlayData.brand}
-            initialView={brandOverlayData.initialView}
-            onConfirm={handleBrandOverlayConfirm}
-            onClose={closeBrandOverlay}
-          />,
-        )}
-
-      {postMetadataOverlayData?.post &&
-        renderModal(
-          'postMetadata',
-          <LazyPostMetadataOverlay
-            post={postMetadataOverlayData.post}
-            onConfirm={() => {
-              postMetadataOverlayData.onConfirm?.();
-              closePostMetadataOverlay();
-            }}
-            onClose={closePostMetadataOverlay}
+          <LazyModalBrandCreate
+            key={brandCreateTrigger}
+            isOpen={Boolean(brandCreateData)}
+            openKey={brandCreateTrigger}
+            onConfirm={handleBrandCreateConfirm}
+            onClose={closeBrandCreateModal}
           />,
         )}
 

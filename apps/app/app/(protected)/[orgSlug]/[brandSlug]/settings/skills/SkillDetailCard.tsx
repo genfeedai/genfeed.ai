@@ -43,7 +43,7 @@ export default function SkillDetailCard({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3">
         <InsetSurface>
           <p className="gen-label mb-2 text-muted-foreground">
             {translate('detail.coverage')}

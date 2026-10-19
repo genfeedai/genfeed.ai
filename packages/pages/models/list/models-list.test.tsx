@@ -1,3 +1,7 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import { PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import ModelsList from '@pages/models/list/models-list';
@@ -143,6 +147,35 @@ describe('ModelsList', () => {
     await waitFor(() => {
       expect(screen.getByText('Flux Dev')).toBeInTheDocument();
     });
+  });
+
+  it('opens a model in the right sidebar from a row click outside the admin', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    mockFindAll.mockResolvedValue([
+      buildModel({ description: 'Fast photoreal images' }),
+    ]);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ContextSidebarProvider>
+          <ModelsList scope={PageScope.ORGANIZATION} />
+          <ContextSidebarOutlet testId="rail" />
+        </ContextSidebarProvider>
+      </QueryClientProvider>,
+    );
+
+    const label = await screen.findByText('Flux Dev');
+    const row = label.closest('tr');
+    if (!row) throw new Error('Missing model row');
+    fireEvent.click(row);
+
+    const panel = await within(screen.getByTestId('rail')).findByTestId(
+      'model-detail-panel',
+    );
+    expect(panel).toHaveTextContent('flux-dev');
+    expect(mockOpenModal).not.toHaveBeenCalled();
   });
 
   it('requests only active models outside the admin scope', async () => {

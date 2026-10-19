@@ -1,10 +1,8 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  OutlierPerformanceResponse,
-  OutlierSnapshotResponse,
-} from '@genfeedai/contracts/interfaces';
+import type { OutlierPerformanceResponse } from '@genfeedai/contracts/interfaces';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -15,7 +13,11 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { AnalyticsOutliersProps } from '@props/analytics/analytics-outliers.props';
-import type { TableAction, TableColumn } from '@props/ui/display/table.props';
+import type {
+  TableAction,
+  TableColumn,
+  TableRowSidebar,
+} from '@props/ui/display/table.props';
 import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
@@ -33,7 +35,7 @@ import { Text } from '@ui/typography/text';
 import { ScanSearch, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import OutlierBaselineDrawer from './outlier-baseline-drawer';
+import OutlierBaselinePanel from './outlier-baseline-panel';
 
 const PLATFORM_VALUES = [
   'all',
@@ -65,16 +67,6 @@ export default function AnalyticsOutliers({
   const [platform, setPlatform] = useState('all');
   const [tier, setTier] = useState('all');
   const [posts, setPosts] = useState<OutlierPerformanceResponse[] | null>(null);
-  const [selected, setSelected] = useState<OutlierPerformanceResponse | null>(
-    null,
-  );
-  const [snapshot, setSnapshot] = useState<OutlierSnapshotResponse | null>(
-    null,
-  );
-  const [drawerPosts, setDrawerPosts] = useState<OutlierPerformanceResponse[]>(
-    [],
-  );
-  const [isDrawerLoading, setIsDrawerLoading] = useState(false);
 
   const fetchPosts = useCallback(
     async (signal: AbortSignal) => {
@@ -111,48 +103,26 @@ export default function AnalyticsOutliers({
     return () => controller.abort();
   }, [fetchPosts]);
 
-  useEffect(() => {
-    if (!selected) {
-      setSnapshot(null);
-      setDrawerPosts([]);
-      return;
-    }
-    const controller = new AbortController();
-    setIsDrawerLoading(true);
-    void (async () => {
-      try {
-        const service = await getService();
-        const [nextSnapshot, nextPosts] = await Promise.all([
-          service.getSnapshot(selected.baselineSnapshotId, controller.signal),
-          service.listSnapshotPosts(
-            selected.baselineSnapshotId,
-            { limit: 100 },
-            controller.signal,
-          ),
-        ]);
-        if (!controller.signal.aborted) {
-          setSnapshot(nextSnapshot);
-          setDrawerPosts(nextPosts);
-        }
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error('GET /outlier-baselines/:id failed', error);
-        setSnapshot(null);
-        setDrawerPosts([]);
-      } finally {
-        if (!controller.signal.aborted) setIsDrawerLoading(false);
-      }
-    })();
-    return () => controller.abort();
-  }, [getService, selected]);
+  const emptyLabel = translate('empty');
 
-  const isInsufficient =
-    posts !== null &&
-    posts.length === 0 &&
-    (snapshot?.status === 'insufficient_data' || false);
-  const emptyLabel = isInsufficient
-    ? translate('insufficient')
-    : translate('empty');
+  const getPostHref = useCallback(
+    (post: OutlierPerformanceResponse): string | undefined =>
+      post.postId ? href(getPublishingPostHref(post.postId)) : undefined,
+    [href],
+  );
+
+  const rowSidebar = useMemo<TableRowSidebar<OutlierPerformanceResponse>>(
+    () => ({
+      getId: (post) => post.id,
+      getSubtitle: (post) => post.platform,
+      getTitle: (post) => post.logicalPostId,
+      kind: 'outlier',
+      render: (post) => (
+        <OutlierBaselinePanel openHref={getPostHref(post)} post={post} />
+      ),
+    }),
+    [getPostHref],
+  );
 
   const columns = useMemo<TableColumn<OutlierPerformanceResponse>[]>(
     () => [
@@ -292,14 +262,13 @@ export default function AnalyticsOutliers({
         columns={columns}
         emptyLabel={emptyLabel}
         getRowKey={(post) => post.id}
-        onRowClick={setSelected}
-      />
-      <OutlierBaselineDrawer
-        isOpen={selected !== null}
-        isLoading={isDrawerLoading}
-        posts={drawerPosts}
-        snapshot={snapshot}
-        onClose={() => setSelected(null)}
+        getRowLink={(post) => {
+          const postHref = getPostHref(post);
+          return postHref
+            ? { href: postHref, label: post.logicalPostId }
+            : undefined;
+        }}
+        rowSidebar={rowSidebar}
       />
     </div>
   );

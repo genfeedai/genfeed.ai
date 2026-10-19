@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { IngredientCategory } from '..';
 
 import {
+  createAdminIngredientRoute,
   createLibraryAssetRoute,
   LIBRARY_ASSET_QUERY_KEY,
   LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY,
@@ -125,6 +126,27 @@ describe('library-asset-routes.constant', () => {
         const [path] = createLibraryAssetRoute(category, 'ing_1').split('?');
         expect(path).toBe(path?.toLowerCase());
       }
+    });
+  });
+
+  describe('createAdminIngredientRoute', () => {
+    it('points images and videos at their admin page', () => {
+      expect(
+        createAdminIngredientRoute(IngredientCategory.IMAGE, 'ing_1'),
+      ).toBe(`${APP_ROUTES.ADMIN.IMAGES}/ing_1`);
+      expect(
+        createAdminIngredientRoute(IngredientCategory.VIDEO_EDIT, 'ing_2'),
+      ).toBe(`${APP_ROUTES.ADMIN.VIDEOS}/ing_2`);
+    });
+
+    it('has no page for other categories or a missing id', () => {
+      expect(
+        createAdminIngredientRoute(IngredientCategory.MUSIC, 'ing_1'),
+      ).toBeUndefined();
+      expect(
+        createAdminIngredientRoute(IngredientCategory.IMAGE, ''),
+      ).toBeUndefined();
+      expect(createAdminIngredientRoute(undefined, 'ing_1')).toBeUndefined();
     });
   });
 });

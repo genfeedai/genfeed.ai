@@ -2,7 +2,6 @@
 
 import {
   useConfirmModal,
-  useIngredientOverlay,
   usePostModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
@@ -94,8 +93,6 @@ export function useIngredientsActions({
   const { isReady: isSocketReady, subscribe } = useSocketManager();
 
   const { openConfirm } = useConfirmModal();
-  const { openIngredientOverlay: openGlobalIngredientOverlay } =
-    useIngredientOverlay();
   const { openUpload } = useUploadModal();
   const getCharacterReferenceWarning = useCharacterReferenceDeleteWarning();
 
@@ -123,10 +120,6 @@ export function useIngredientsActions({
     undefined,
   );
   const pendingDeleteIdsRef = useRef(new Set<string>());
-
-  const handleClose = useCallback(() => {
-    findAllIngredientsByCategory(true);
-  }, [findAllIngredientsByCategory]);
 
   const confirmDeleteIngredient = useCallback(
     async (ingredient: IIngredient) => {
@@ -261,9 +254,6 @@ export function useIngredientsActions({
       openIngredientModal(ModalEnum.POST_BATCH, ingredient),
     onRefresh: () => findAllIngredientsByCategory(true),
     onReprompt: handleRepromptIngredient,
-    onSeeDetails: (ingredient: IIngredient) => {
-      openGlobalIngredientOverlay(ingredient, handleClose);
-    },
     onUpdateParent: async (
       ingredient: IIngredient,
       parentId: string | null,
@@ -413,13 +403,6 @@ export function useIngredientsActions({
     [handlers],
   );
 
-  const handleSeeDetails = useCallback(
-    (ingredient: IIngredient) => {
-      handlers.handleSeeDetails(ingredient);
-    },
-    [handlers],
-  );
-
   const handleUpdateParent = useCallback(
     async (ingredient: IIngredient, parentId: string | null) => {
       await handlers.handleUpdateParent(ingredient, parentId);
@@ -529,10 +512,6 @@ export function useIngredientsActions({
 
   const openIngredientModal = useCallback(
     (modalId: ModalEnum, ingredient?: IIngredient) => {
-      if (modalId === ModalEnum.INGREDIENT && ingredient) {
-        return openGlobalIngredientOverlay(ingredient, handleClose);
-      }
-
       if (modalId === ModalEnum.POST_BATCH && ingredient) {
         return openPostBatchModal(ingredient);
       }
@@ -557,9 +536,7 @@ export function useIngredientsActions({
     [
       brandId,
       findAllIngredientsByCategory,
-      handleClose,
       handleDeleteIngredient,
-      openGlobalIngredientOverlay,
       openPostBatchModal,
       openUpload,
       scope,
@@ -743,7 +720,6 @@ export function useIngredientsActions({
     handleReprompt: handlers.handleReprompt,
     handleReverse: handlers.handleReverse,
     handleScopeChange,
-    handleSeeDetails,
     handleSelectFolder,
     handleUpdateParent,
     isGeneratingCaptions: loadingStates.isGeneratingCaptions,

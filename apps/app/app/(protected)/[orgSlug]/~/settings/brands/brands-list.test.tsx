@@ -1,5 +1,10 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import { MemberRole } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandsList from './brands-list';
 import '@testing-library/jest-dom/vitest';
@@ -91,10 +96,20 @@ vi.mock('@tanstack/react-query', () => ({
   })),
 }));
 
-const brandOverlay = vi.hoisted(() => ({ openBrandOverlay: vi.fn() }));
+const brandCreate = vi.hoisted(() => ({ openBrandCreateModal: vi.fn() }));
+
+vi.mock('@app-i18n/AppGlobalModalIntlBoundary', () => ({
+  AppAssetCatalogBoundary: ({ children }: { children: ReactNode }) => children,
+}));
+
+vi.mock('@ui/brands/sidebar/BrandSidebarPanel', () => ({
+  default: ({ brand }: { brand: { label: string } }) => (
+    <div data-testid="brand-sidebar-panel">{brand.label}</div>
+  ),
+}));
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useBrandOverlay: vi.fn(() => brandOverlay),
+  useBrandCreateModal: vi.fn(() => brandCreate),
   useConfirmModal: vi.fn(() => ({
     openConfirm: vi.fn(),
   })),
@@ -219,9 +234,24 @@ describe('BrandsList', () => {
     expect(link).toHaveTextContent('Test Brand');
   });
 
-  it('opens the brand overview overlay when the rest of the row is clicked', () => {
-    brandOverlay.openBrandOverlay.mockClear();
+  it('opens the add brand dialog from the header button', () => {
+    brandCreate.openBrandCreateModal.mockClear();
     render(<BrandsList />);
+
+    fireEvent.click(screen.getByText('Add Brand'));
+
+    expect(brandCreate.openBrandCreateModal).toHaveBeenCalledWith(
+      expect.any(Function),
+    );
+  });
+
+  it('opens the brand overview in the context sidebar when the rest of the row is clicked', () => {
+    render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet />
+        <BrandsList />
+      </ContextSidebarProvider>,
+    );
 
     const row = screen
       .getByRole('link', { name: 'Open Test Brand settings' })
@@ -229,10 +259,8 @@ describe('BrandsList', () => {
     expect(row).not.toBeNull();
     fireEvent.click(row as HTMLTableRowElement);
 
-    expect(brandOverlay.openBrandOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({ label: 'Test Brand' }),
-      expect.any(Function),
-      'overview',
+    expect(screen.getByTestId('brand-sidebar-panel')).toHaveTextContent(
+      'Test Brand',
     );
   });
 
