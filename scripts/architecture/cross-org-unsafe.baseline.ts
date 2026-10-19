@@ -80,7 +80,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 217,
+      line: 294,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which
@@ -423,7 +423,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only when grantedAvatarOwners.has(id).
     {
       file: 'apps/server/api/src/collections/images/services/image-generation-admission.service.ts',
-      line: 102,
+      line: 132,
     },
     // #6120: superadmin-only routes read every organization's subscriptions
     // and wallets.
@@ -435,7 +435,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // when grantedOwners.has(id).
     {
       file: 'apps/server/api/src/helpers/utils/reference/reference.util.ts',
-      line: 99,
+      line: 138,
     },
     // #6120: platform maintenance sweep that expires stale recommendations
     // across every organization; each write is scoped to the row's own

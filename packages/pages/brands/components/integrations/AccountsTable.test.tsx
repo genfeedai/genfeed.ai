@@ -1,3 +1,7 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
@@ -311,5 +315,32 @@ describe('AccountsTable', () => {
     expect(
       within(otherRow).getByRole('button', { name: 'Reconnect' }),
     ).toBeEnabled();
+  });
+
+  it('opens an account summary with the row actions in the sidebar', () => {
+    const onReconnect = vi.fn();
+    const connection = buildConnection({ handle: '@genfeed', name: 'Genfeed' });
+
+    render(
+      <ContextSidebarProvider>
+        <AccountsTable
+          accountHealth={[]}
+          connections={[connection]}
+          onConnectAccount={noop}
+          onDisconnect={noop}
+          onOpenSettings={noop}
+          onReconnect={onReconnect}
+          unavailablePlatforms={new Set()}
+        />
+        <ContextSidebarOutlet testId="rail" />
+      </ContextSidebarProvider>,
+    );
+
+    fireEvent.click(screen.getByText('@genfeed'));
+
+    const rail = within(screen.getByTestId('rail'));
+    expect(rail.getByText('Platform')).toBeInTheDocument();
+    fireEvent.click(rail.getByRole('button', { name: 'Reconnect' }));
+    expect(onReconnect).toHaveBeenCalledWith(connection);
   });
 });

@@ -2,7 +2,10 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { IContentPlan } from '@genfeedai/contracts/interfaces';
+import { formatDate } from '@helpers/formatting/date/date.helper';
 import Card from '@ui/card/Card';
+import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
@@ -24,6 +27,24 @@ export default function ContentPlansSection() {
     setIsDialogOpen,
   } = useContentPlansSection();
   const { columns } = useContentPlansColumns();
+  const rowSidebar = createSummaryRowSidebar<IContentPlan>({
+    getBadges: (plan) => <Badge status={plan.status} />,
+    getFacts: (plan) => [
+      {
+        id: 'period',
+        label: translate('columnPeriod'),
+        value: `${formatDate(plan.periodStart)} – ${formatDate(plan.periodEnd)}`,
+      },
+      {
+        id: 'items',
+        label: translate('columnItems'),
+        value: `${plan.executedCount} / ${plan.itemCount}`,
+      },
+    ],
+    getId: (plan) => plan.id,
+    getTitle: (plan) => plan.name,
+    kind: 'record',
+  });
 
   return (
     <>
@@ -45,6 +66,7 @@ export default function ContentPlansSection() {
           columns={columns}
           isLoading={isLoading}
           getRowKey={(plan) => plan.id}
+          rowSidebar={rowSidebar}
           framed={false}
           emptyLabel={translate('emptyTitle')}
           emptyDescription={translate('emptyDescription')}

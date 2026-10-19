@@ -611,3 +611,99 @@ describe('granted character references (#6037)', () => {
     expect(crossOrgById.get('own-image')).toBe(false);
   });
 });
+
+describe('authorized media delivery references (#4895)', () => {
+  const referenceId = testId('reference', 30);
+
+  function authorizedMocks() {
+    const mocks = createMocks();
+    (
+      mocks.configService as unknown as {
+        isAuthorizedMediaDeliveryEnabled: boolean;
+      }
+    ).isAuthorizedMediaDeliveryEnabled = true;
+    const authorizedMediaUrls = {
+      issueServerAssetUrls: vi.fn(
+        async (_organizationId: string, ids: readonly string[]) =>
+          new Map(ids.map((id) => [id, `https://signed.test/asset/${id}`])),
+      ),
+      issueServerPublish: vi.fn(
+        async (_organizationId: string, ids: readonly string[]) =>
+          new Map(ids.map((id) => [id, `https://signed.test/image/${id}`])),
+      ),
+    };
+    return { ...mocks, authorizedMediaUrls };
+  }
+
+  it('resolves an image reference through the issuer in the owning organization', async () => {
+    const mocks = authorizedMocks();
+    (mocks.ingredientsService.findOne as vi.Mock).mockResolvedValue({
+      id: referenceId,
+    });
+
+    const url = await buildReferenceImageUrl({
+      ...mocks,
+      grantedOwners: new Map([[referenceId, FOREIGN_ORGANIZATION_ID]]),
+      organizationId: ORGANIZATION_ID,
+      referenceId,
+    });
+
+    expect(url).toBe(`https://signed.test/image/${referenceId}`);
+    expect(mocks.authorizedMediaUrls.issueServerPublish).toHaveBeenCalledWith(
+      FOREIGN_ORGANIZATION_ID,
+      [referenceId],
+    );
+  });
+
+  it('refuses a video reference instead of building an unsigned thumbnail path', async () => {
+    const mocks = authorizedMocks();
+    (mocks.ingredientsService.findOne as vi.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: referenceId });
+
+    await expect(
+      buildReferenceImageUrl({
+        ...mocks,
+        organizationId: ORGANIZATION_ID,
+        referenceId,
+      }),
+    ).resolves.toBeNull();
+    expect(mocks.authorizedMediaUrls.issueServerPublish).not.toHaveBeenCalled();
+  });
+
+  it('resolves a brand asset through its stored key, not its id-derived path', async () => {
+    const mocks = authorizedMocks();
+    (mocks.ingredientsService.findOne as vi.Mock).mockResolvedValue(null);
+    (mocks.assetsService.findOne as vi.Mock).mockResolvedValueOnce({
+      id: referenceId,
+    });
+
+    const url = await buildReferenceImageUrl({
+      ...mocks,
+      organizationId: ORGANIZATION_ID,
+      referenceId,
+    });
+
+    expect(url).toBe(`https://signed.test/asset/${referenceId}`);
+    expect(mocks.authorizedMediaUrls.issueServerAssetUrls).toHaveBeenCalledWith(
+      ORGANIZATION_ID,
+      [referenceId],
+    );
+  });
+
+  it('fails closed when the issuer is missing', async () => {
+    const { authorizedMediaUrls: _issuer, ...mocks } = authorizedMocks();
+    (mocks.ingredientsService.findOne as vi.Mock).mockResolvedValue({
+      id: referenceId,
+    });
+
+    await expect(
+      buildReferenceImageUrl({
+        ...mocks,
+        organizationId: ORGANIZATION_ID,
+        referenceId,
+      }),
+    ).resolves.toBeNull();
+    expect(mocks.loggerService.warn).toHaveBeenCalled();
+  });
+});

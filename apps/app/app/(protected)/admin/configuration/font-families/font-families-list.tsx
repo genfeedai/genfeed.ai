@@ -22,6 +22,7 @@ import { FontFamiliesService } from '@services/elements/font-families.service';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { LazyModalFontFamily } from '@ui/lazy/modal/LazyModal';
@@ -29,6 +30,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 
 function reducer(state: State, action: Action): State {
@@ -56,6 +58,7 @@ function FontFamiliesListContent({
   onRefresh,
 }: IElementContentProps) {
   const notificationsService = NotificationsService.getInstance();
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { openConfirm } = useConfirmModal();
 
   const searchParams = useSearchParams();
@@ -210,6 +213,25 @@ function FontFamiliesListContent({
     }
   };
 
+  const rowSidebar = createSummaryRowSidebar<FontFamily>({
+    getFacts: (fontFamily) => [
+      { id: 'key', label: fieldsT('key'), value: fontFamily.key },
+      {
+        id: 'description',
+        label: fieldsT('description'),
+        value: fontFamily.description,
+      },
+    ],
+    getId: (fontFamily) => fontFamily.id,
+    getSubtitle: (fontFamily) => fontFamily.key,
+    getTitle: (fontFamily) => fontFamily.label,
+    kind: 'record',
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (fontFamily) => openFontFamilyModal(ModalEnum.FONT_FAMILY, fontFamily)
+        : undefined,
+  });
+
   return (
     <AdminPageShell
       title="Font Families"
@@ -235,6 +257,7 @@ function FontFamiliesListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No font families found"
       />
 

@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -93,7 +94,11 @@ vi.mock('@ui/display/table/Table', () => ({
     getRowKey,
     isLoading,
     items,
+    rowSidebar,
   }: {
+    rowSidebar?: {
+      render: (item: Record<string, unknown>) => ReactNode;
+    };
     actions: Array<{
       onClick: (item: Record<string, unknown>) => void;
       tooltip: string;
@@ -116,32 +121,37 @@ vi.mock('@ui/display/table/Table', () => ({
     }
 
     return (
-      <table>
-        <tbody>
-          {items.map((item) => (
-            <tr key={getRowKey(item)}>
-              {columns.map((column) => (
-                <td key={column.key}>
-                  {column.render
-                    ? column.render(item)
-                    : String(item[column.key])}
-                </td>
-              ))}
-              <td>
-                {actions.map((action) => (
-                  <button
-                    key={`${getRowKey(item)}-${action.tooltip}`}
-                    type="button"
-                    onClick={() => action.onClick(item)}
-                  >
-                    {action.tooltip} {String(item.label)}
-                  </button>
+      <>
+        {rowSidebar ? (
+          <aside data-testid="row-sidebar">{rowSidebar.render(items[0])}</aside>
+        ) : null}
+        <table>
+          <tbody>
+            {items.map((item) => (
+              <tr key={getRowKey(item)}>
+                {columns.map((column) => (
+                  <td key={column.key}>
+                    {column.render
+                      ? column.render(item)
+                      : String(item[column.key])}
+                  </td>
                 ))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <td>
+                  {actions.map((action) => (
+                    <button
+                      key={`${getRowKey(item)}-${action.tooltip}`}
+                      type="button"
+                      onClick={() => action.onClick(item)}
+                    >
+                      {action.tooltip} {String(item.label)}
+                    </button>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
     );
   },
 }));
@@ -241,6 +251,28 @@ describe('CamerasList', () => {
         }),
       );
     });
+  });
+
+  it('opens the camera summary in the sidebar with Edit for superadmins', () => {
+    render(<CamerasList scope={PageScope.SUPERADMIN} />);
+
+    const sidebar = within(screen.getByTestId('row-sidebar'));
+    expect(sidebar.getByText('wide_camera')).toBeInTheDocument();
+    expect(sidebar.getByText('Camera description')).toBeInTheDocument();
+
+    fireEvent.click(sidebar.getByRole('button', { name: 'Edit' }));
+    expect(mocks.openModal).toHaveBeenCalled();
+    expect(screen.getByTestId('camera-modal')).toHaveTextContent('Wide Camera');
+  });
+
+  it('shows a read-only camera summary outside superadmin scope', () => {
+    render(<CamerasList scope={PageScope.BRAND} />);
+
+    expect(
+      within(screen.getByTestId('row-sidebar')).queryByRole('button', {
+        name: 'Edit',
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it('registers external refresh and opens edit/delete flows with the selected camera', async () => {

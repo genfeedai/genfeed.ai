@@ -24,6 +24,7 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
+import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -133,7 +134,6 @@ export default function IngredientsList({
     handleGenerateCaptions,
     handleReverse,
     handleMirror,
-    handleSeeDetails,
     handleUpdateParent,
     handleCopyPrompt,
     handleReprompt,
@@ -172,6 +172,7 @@ export default function IngredientsList({
     folderNavigation === 'content' && scope !== PageScope.SUPERADMIN;
   const isRecoveryView =
     query?.shelf === LibraryShelf.FAILED && scope === PageScope.BRAND;
+  const { openIngredientSidebar } = useIngredientSidebar();
   const { openPostBatchModal } = usePostModal({
     onRefresh: () => {
       void handleRefresh(true);
@@ -274,17 +275,10 @@ export default function IngredientsList({
     };
   }, [setIngredients]);
 
-  const handleOpenDeepLinkedIngredient = useCallback(
-    (ingredient: IIngredient) => {
-      openIngredientModal(ModalEnum.INGREDIENT, ingredient);
-    },
-    [openIngredientModal],
-  );
-
   useIngredientDeepLink({
     ingredients: filteredIngredients,
     isLoading,
-    onOpen: handleOpenDeepLinkedIngredient,
+    onOpen: openIngredientSidebar,
   });
 
   useEffect(() => {
@@ -413,7 +407,6 @@ export default function IngredientsList({
               onGenerateCaptions={handleGenerateCaptions}
               onReverse={handleReverse}
               onMirror={handleMirror}
-              onSeeDetails={handleSeeDetails}
               onUpdateParent={handleUpdateParent}
               onRefresh={() => {
                 handleRefresh(true);
@@ -421,7 +414,6 @@ export default function IngredientsList({
               onPublishIngredient={(ingredient: IIngredient) =>
                 openIngredientModal(ModalEnum.POST_BATCH, ingredient)
               }
-              onOpenIngredientModal={openIngredientModal}
               onOpenLightbox={openLightboxForIngredient}
               onClearFilters={clearFilters}
               onSetIngredients={setIngredients}

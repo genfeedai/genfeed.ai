@@ -37,6 +37,7 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import Badge from '@ui/display/badge/Badge';
 import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
+import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -91,8 +92,19 @@ function metricLabel(
   return formatCompactNumberIntl(value.change);
 }
 
+function getAccountName(account: IAccountAnalytics): string {
+  return (
+    account.identity.label ||
+    account.identity.externalHandle ||
+    account.identity.externalName ||
+    account.identity.credentialId
+  );
+}
+
 export default function AnalyticsAccounts() {
   const translate = useTranslations('pages.analytics.accounts');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const summaryT = useTranslations('ui.rowSidebar.analytics');
   const scope = useCollectionScope();
   const { brandId, organizationId } = scope;
   const isFetchReady = isCollectionFetchReady(scope);
@@ -384,6 +396,50 @@ export default function AnalyticsAccounts() {
         })}
         isLoading={isLoading}
         items={list?.accounts ?? []}
+        rowSidebar={{
+          getId: (row) => row.identity.credentialId,
+          getSubtitle: (row) => row.identity.platform,
+          getTitle: getAccountName,
+          kind: 'account',
+          render: (row) => (
+            <TableRowSummary
+              facts={[
+                {
+                  id: 'handle',
+                  label: fieldsT('handle'),
+                  value: row.identity.externalHandle,
+                },
+                {
+                  id: 'brand',
+                  label: fieldsT('brand'),
+                  value: row.identity.brandLabel,
+                },
+                {
+                  id: 'platform',
+                  label: fieldsT('platform'),
+                  value: row.identity.platform,
+                },
+                {
+                  id: 'posts',
+                  label: translate('posts'),
+                  value: String(row.publishedPosts),
+                },
+                {
+                  id: 'metric',
+                  label: translate(metric),
+                  value: metricLabel(row, metric),
+                },
+                {
+                  id: 'health',
+                  label: fieldsT('health'),
+                  value: row.evaluation?.state ?? summaryT('manual'),
+                },
+              ]}
+              openHref={`${APP_ROUTES.ANALYTICS.ACCOUNTS}/${row.identity.credentialId}`}
+              openLabel={summaryT('openAccount')}
+            />
+          ),
+        }}
       />
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="accounts" />

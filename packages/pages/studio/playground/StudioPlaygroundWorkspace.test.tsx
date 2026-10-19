@@ -86,6 +86,7 @@ function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
 }
 
 const mocks = vi.hoisted(() => ({
+  agentProposals: vi.fn(),
   advancedMode: {
     value: { isAdvancedMode: true, isLoaded: true, setAdvancedMode: vi.fn() },
   },
@@ -278,6 +279,41 @@ vi.mock('next-intl', () => ({
         ? 'One prompt bar for every asset type, enriched with your brand.'
         : key,
 }));
+
+vi.mock(
+  '@pages/studio/playground/components/StudioPlaygroundAgentProposals',
+  () => ({
+    default: (props: {
+      brandId?: string;
+      onSelect: (selection: {
+        agentPrompt: string;
+        aspectRatio: string;
+        content: { content: unknown[]; type: string };
+        seedId: string;
+        type: string;
+      }) => void;
+      type: string;
+    }) => {
+      mocks.agentProposals(props);
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            props.onSelect({
+              agentPrompt: 'Serum on wet stone.',
+              aspectRatio: '9:16',
+              content: { content: [], type: 'doc' },
+              seedId: 'proposal:0:1',
+              type: props.type,
+            })
+          }
+        >
+          Agent draft
+        </button>
+      );
+    },
+  }),
+);
 
 vi.mock('@pages/studio/playground/components/StudioPlaygroundComposer', () => ({
   default: (props: {
@@ -880,6 +916,36 @@ describe('StudioPlaygroundWorkspace', () => {
     });
   });
 
+  it('opens an empty Playground on the agent drafts for the brand', () => {
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(mocks.agentProposals).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        brandId: mocks.brandId.value || undefined,
+        type: 'image',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Agent draft' }));
+
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      documentSeed?: { id: string } | null;
+    };
+    expect(composerProps.documentSeed?.id).toBe('proposal:0:1');
+    const setup = getGenerationSetup(
+      'studio:image',
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(setup.values.aspectRatio).toBe('9:16');
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+  });
+
   it('attaches the brand product still and opens the library when the kit has none', () => {
     mocks.selectedBrand.value = {
       references: [
@@ -1122,6 +1188,19 @@ describe('StudioPlaygroundWorkspace', () => {
       });
     },
   );
+  it.each([
+    ['Serum on wet stone.', 'agent'],
+    ['Serum on wet stone at dusk.', 'agent_edited'],
+  ])('records a prompt from an agent draft (%s) as %s', (submitted, author) => {
+    render(<StudioPlaygroundWorkspace />);
+    fireEvent.click(screen.getByRole('button', { name: 'Agent draft' }));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange(submitted));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledWith(submitted, expect.anything(), {
+      originalText: submitted,
+      promptAuthor: author,
+    });
+  });
   it.each(['music', 'avatar', 'voice'])(
     'visibly blocks skill selections for %s',
     (type) => {

@@ -5,6 +5,10 @@ import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { RouterPriority } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  GENERATION_PROMPT_AUTHORS,
+  type GenerationPromptAuthor,
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -61,6 +65,16 @@ export class CreateImageDto extends CreateIngredientDto {
     required: false,
   })
   readonly brandMode?: 'raw';
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsIn(GENERATION_PROMPT_AUTHORS)
+  @ApiProperty({
+    description:
+      'Set when the prompt came from an agent proposal: `agent` unchanged, `agent_edited` changed by the member. Recorded in the generation receipt; omit for a prompt the member wrote.',
+    enum: GENERATION_PROMPT_AUTHORS,
+    required: false,
+  })
+  readonly promptAuthor?: GenerationPromptAuthor;
 
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @ValidateNested()

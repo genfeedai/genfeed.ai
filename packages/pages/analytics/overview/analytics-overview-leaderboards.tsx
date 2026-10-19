@@ -13,6 +13,7 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import AnalyticsBrandSummary from '@pages/analytics/brands-list/analytics-brand-summary';
 import type { TableColumn } from '@props/ui/display/table.props';
 import type {
   IBrandWithStats,
@@ -22,12 +23,13 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import TopPostsSection from '@ui/analytics/top-posts/TopPostsSection';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
+import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { Newspaper, Sparkles, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-
 import OverviewPlaceholderCard from './analytics-overview-placeholder-card';
 
 type AnalyticsOverviewLeaderboardsProps = {
@@ -56,6 +58,9 @@ export default function AnalyticsOverviewLeaderboards({
   topPosts,
 }: AnalyticsOverviewLeaderboardsProps) {
   const { href } = useOrgUrl();
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const summaryT = useTranslations('ui.rowSidebar.analytics');
   const scopedBasePath =
     scope === PageScope.SUPERADMIN ? basePath : href(basePath);
   const publishingHref = (path: string) =>
@@ -262,6 +267,37 @@ export default function AnalyticsOverviewLeaderboards({
                 columns={orgsColumns}
                 getRowKey={(item, index) => `${item.organization.id}-${index}`}
                 emptyLabel="No organizations found"
+                rowSidebar={{
+                  getId: (item) => item.organization.id,
+                  getSubtitle: (item) =>
+                    summaryT('rankLabel', { rank: item.rank }),
+                  getTitle: (item) =>
+                    item.organization.name || rowSidebarT('unknown'),
+                  kind: 'organization',
+                  render: (item) => (
+                    <TableRowSummary
+                      facts={[
+                        {
+                          id: 'rank',
+                          label: fieldsT('rank'),
+                          value: item.rank,
+                        },
+                        {
+                          id: 'posts',
+                          label: fieldsT('posts'),
+                          value: item.totalPosts.toLocaleString(),
+                        },
+                        {
+                          id: 'engagement',
+                          label: fieldsT('engagement'),
+                          value: item.totalEngagement.toLocaleString(),
+                        },
+                      ]}
+                      openHref={`${scopedBasePath}/organizations/${item.organization.id}`}
+                      openLabel={summaryT('openOrganization')}
+                    />
+                  ),
+                }}
               />
             </Card>
           ) : (
@@ -308,6 +344,18 @@ export default function AnalyticsOverviewLeaderboards({
               columns={brandsColumns}
               getRowKey={(item, index) => `${item.id}-${index}`}
               emptyLabel="No brands found"
+              rowSidebar={{
+                getId: (item) => item.id,
+                getSubtitle: (item) => item.organizationName,
+                getTitle: (item) => item.name || rowSidebarT('unknown'),
+                kind: 'brand',
+                render: (item) => (
+                  <AnalyticsBrandSummary
+                    brand={item}
+                    openHref={`${scopedBasePath}/brands/${item.id}`}
+                  />
+                ),
+              }}
             />
           </Card>
         ) : (

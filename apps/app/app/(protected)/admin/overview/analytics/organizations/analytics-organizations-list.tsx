@@ -7,6 +7,7 @@ import {
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AnalyticsOrganizationsListProps } from '@props/admin/analytics.props';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -17,6 +18,7 @@ import {
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import AppTable from '@ui/display/table/Table';
+import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -29,11 +31,15 @@ import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function AnalyticsOrganizationsList({
   basePath = APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS,
 }: AnalyticsOrganizationsListProps) {
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const analyticsT = useTranslations('ui.rowSidebar.analytics');
   const { dateRange, refreshTrigger, setToolbarNode } = useAnalyticsContext();
 
   const getAnalyticsService = useAuthedService((token: string) =>
@@ -213,6 +219,56 @@ export default function AnalyticsOrganizationsList({
         columns={columns}
         getRowKey={(org) => org.id}
         emptyLabel="No organizations found"
+        rowSidebar={{
+          getId: (org) => org.id,
+          getSubtitle: (org) =>
+            analyticsT('brandCount', { count: org.totalBrands }),
+          getTitle: (org) => org.name || rowSidebarT('unknown'),
+          kind: 'organization',
+          render: (org) => (
+            <TableRowSummary
+              facts={[
+                {
+                  id: 'brands',
+                  label: fieldsT('brands'),
+                  value: org.totalBrands,
+                },
+                {
+                  id: 'members',
+                  label: fieldsT('members'),
+                  value: org.totalMembers,
+                },
+                {
+                  id: 'posts',
+                  label: fieldsT('posts'),
+                  value: org.totalPosts.toLocaleString(),
+                },
+                {
+                  id: 'views',
+                  label: fieldsT('views'),
+                  value: org.totalViews.toLocaleString(),
+                },
+                {
+                  id: 'engagement',
+                  label: fieldsT('engagement'),
+                  value: org.totalEngagement.toLocaleString(),
+                },
+                {
+                  id: 'engagementRate',
+                  label: fieldsT('engagementRate'),
+                  value: formatPercentageSimple(org.avgEngagementRate, 2),
+                },
+                {
+                  id: 'growth',
+                  label: fieldsT('growth'),
+                  value: `${org.growth > 0 ? '+' : ''}${org.growth.toFixed(1)}%`,
+                },
+              ]}
+              openHref={`${basePath}/organizations/${org.id}`}
+              openLabel={analyticsT('openOrganization')}
+            />
+          ),
+        }}
       />
 
       {pagination && pagination.totalPages > 1 && (

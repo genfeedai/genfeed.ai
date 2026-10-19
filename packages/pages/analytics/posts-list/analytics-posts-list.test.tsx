@@ -71,6 +71,12 @@ vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
   ),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/moonrise${path}`,
+  }),
+}));
+
 vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (
@@ -266,12 +272,13 @@ describe('AnalyticsPostsList', () => {
 
     renderPostsList();
 
-    fireEvent.click(screen.getByText('Untitled Post'));
+    fireEvent.click(screen.getByText('Acme · twitter'));
 
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
       'post-3',
     );
   });
+
   it('keeps the subbar to one compact row without the Open In Agent filler', () => {
     renderPostsList();
 
@@ -280,6 +287,36 @@ describe('AnalyticsPostsList', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search posts...')).toHaveClass('h-8');
     expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
+  });
+
+  it('links the post name to its detail page without opening the sidebar', () => {
+    useTopPostsMock.mockReturnValue({
+      isLoading: false,
+      topPosts: [
+        {
+          brandName: 'Acme',
+          engagementRate: 4.2,
+          platform: 'twitter',
+          postId: 'post-3',
+          totalEngagement: 250,
+          totalViews: 1200,
+        },
+      ],
+    });
+
+    renderPostsList();
+
+    const link = screen.getByRole('link', { name: 'Untitled Post' });
+    expect(link).toHaveAttribute(
+      'href',
+      '/acme/moonrise/publishing/posts/post-3',
+    );
+
+    fireEvent.click(link);
+
+    expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
+      'closed',
+    );
   });
 
   it('does not add a filler sentence when a post is focused from the loop', () => {
@@ -298,7 +335,7 @@ describe('AnalyticsPostsList', () => {
     });
     renderPostsList();
 
-    fireEvent.click(screen.getByText('Untitled Post'));
+    fireEvent.click(screen.getByText('Acme · twitter'));
 
     expect(
       screen.queryByText(/Focused on a single post/),

@@ -56,6 +56,7 @@ function fixture() {
         ? value.match(/\/(?:videos|images)\/([^/?#]+)/i)?.[1]
         : undefined,
     buildMediaIngredientUrl: (id: string) => `https://api.test/images/${id}`,
+    buildVideoIngredientUrl: (id: string) => `https://api.test/videos/${id}`,
   } as unknown as WorkflowEngineExecutorHelperService;
   const buildPrompt = vi.fn().mockResolvedValue({
     input: { prompt: 'legacy-built', width: 512, height: 512 },
@@ -63,8 +64,14 @@ function fixture() {
   const getPresignedDownloadUrl = vi
     .fn()
     .mockResolvedValue('https://storage.test/source.mp4?signed=1');
-  const config = { isAuthorizedMediaDeliveryEnabled: false };
-  const mediaIssuer = { issueServerPublish: vi.fn() };
+  const config = {
+    apiUrl: 'https://api.test',
+    isAuthorizedMediaDeliveryEnabled: false,
+  };
+  const mediaIssuer = {
+    issueExecutionUrls: vi.fn(),
+    issueServerPublish: vi.fn(),
+  };
   const personas = personasServiceStub();
   const service = new WorkflowMediaProviderPlanService(
     helper,
@@ -430,10 +437,63 @@ describe('WorkflowMediaProviderPlanService', () => {
     expect(f.mediaIssuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
       'source-video-1',
     ]);
+    // The prepared input is hashed between quote and dispatch, so it keeps the
+    // stable canonical URL; the grant is minted right before the provider call.
     expect(prepared.input).toMatchObject({
-      reference_videos: ['https://storage.test/opaque-video?Signature=fresh'],
+      reference_videos: ['https://api.test/videos/source-video-1'],
     });
+    expect(JSON.stringify(prepared.input)).not.toContain('Signature');
     expect(f.getPresignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  describe('authorizeProviderInput', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'u-1',
+    };
+
+    it('returns the input untouched while authorized delivery is off', async () => {
+      const f = fixture();
+      const input = { image: 'https://api.test/images/image-1' };
+      await expect(
+        f.service.authorizeProviderInput(input, scope),
+      ).resolves.toBe(input);
+      expect(f.mediaIssuer.issueExecutionUrls).not.toHaveBeenCalled();
+    });
+
+    it('mints fresh grants for the run scope right before the call', async () => {
+      const f = fixture();
+      f.config.isAuthorizedMediaDeliveryEnabled = true;
+      f.mediaIssuer.issueExecutionUrls.mockResolvedValue(
+        new Map([['image-1', 'https://storage.test/image-1?Signature=fresh']]),
+      );
+      const result = await f.service.authorizeProviderInput(
+        { image: 'https://api.test/images/image-1', prompt: 'a sea' },
+        scope,
+      );
+      expect(f.mediaIssuer.issueExecutionUrls).toHaveBeenCalledWith(scope, [
+        'image-1',
+      ]);
+      expect(result).toEqual({
+        image: 'https://storage.test/image-1?Signature=fresh',
+        prompt: 'a sea',
+      });
+    });
+
+    it('fails closed when the issuer refuses the media', async () => {
+      const f = fixture();
+      f.config.isAuthorizedMediaDeliveryEnabled = true;
+      f.mediaIssuer.issueExecutionUrls.mockRejectedValue(
+        new NotFoundException('Media is unavailable'),
+      );
+      await expect(
+        f.service.authorizeProviderInput(
+          { image: 'https://api.test/images/foreign-1' },
+          scope,
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   it('preserves the requested native extension duration and resolves references before returning the exact provider input', async () => {

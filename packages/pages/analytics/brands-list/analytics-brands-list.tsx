@@ -19,6 +19,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
+import AnalyticsBrandSummary from '@pages/analytics/brands-list/analytics-brand-summary';
 import {
   AnalyticsService,
   type IBrandWithStats,
@@ -328,6 +329,18 @@ export default function AnalyticsBrandsList({
           },
         ]}
         actions={[]}
+        rowSidebar={{
+          getId: (brand) => brand.id,
+          getSubtitle: (brand) => brand.organizationName,
+          getTitle: (brand) => brand.name,
+          kind: 'brand',
+          render: (brand) => (
+            <AnalyticsBrandSummary
+              brand={brand}
+              openHref={buildDetailHref(brand.id)}
+            />
+          ),
+        }}
       />
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="brands" />

@@ -19,7 +19,6 @@ const mocks = vi.hoisted(() => ({
   handleRequestDeleteReference: vi.fn(),
   handleUpdateAccount: vi.fn(),
   loggerError: vi.fn(),
-  openBrandOverlay: vi.fn(),
   selectLink: vi.fn(),
   setGenerateModalType: vi.fn(),
 }));
@@ -89,12 +88,6 @@ vi.mock('next/navigation', () => ({
 vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
   useElements: () => ({
     imageModels: [{ cost: 9, key: 'imagen-fast' }],
-  }),
-}));
-
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useBrandOverlay: () => ({
-    openBrandOverlay: mocks.openBrandOverlay,
   }),
 }));
 

@@ -78,6 +78,14 @@ const checks = [
     name: 'Canonical JSON helpers',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-id-derived-media-urls.ts',
+    ],
+    name: 'ID-derived media URLs (#4895)',
+  },
+  {
     command: ['bun', 'run', 'scripts/architecture/check-local-type-guards.ts'],
     name: 'Local type-guard helpers',
   },

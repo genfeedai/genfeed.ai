@@ -17,6 +17,7 @@ import { LightingsService } from '@services/elements/lightings.service';
 import { useQuery } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLighting } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -211,6 +212,13 @@ function LightingsListContent({
         ]
       : [];
 
+  const rowSidebar = useElementRowSidebar<ElementLighting>({
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) => openLightingModal(ModalEnum.LIGHTING, element)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementLighting>
@@ -219,6 +227,7 @@ function LightingsListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No lightings found"
       />
 

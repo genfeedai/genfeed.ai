@@ -1,6 +1,7 @@
 'use client';
 
 import { ComponentSize, PostStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import {
@@ -14,6 +15,7 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { ExternalLink, FileText } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -69,8 +71,8 @@ function getPostOwner(post: IPost): string {
 
 /**
  * The admin posts list: one row per post, media first, with the platform,
- * a status badge and the date. A row opens the post in the detail overlay
- * rather than in the owner's account.
+ * a status badge and the date. A row opens the post in the right sidebar; the
+ * title opens its admin detail page.
  */
 export default function AdminPostsTable({
   posts,
@@ -111,9 +113,12 @@ export default function AdminPostsTable({
         header: translate('columnPost'),
         key: 'label',
         render: (post: IPost) => (
-          <span className="line-clamp-1 font-medium text-foreground">
+          <Link
+            className="line-clamp-1 font-medium text-foreground hover:underline"
+            href={`${APP_ROUTES.ADMIN.CONTENT.POSTS}/${post.id}`}
+          >
             {getPostTitle(post, translate('untitled'))}
-          </span>
+          </Link>
         ),
         subtext: (post: IPost) => (
           <span className="line-clamp-1 font-mono text-xs">

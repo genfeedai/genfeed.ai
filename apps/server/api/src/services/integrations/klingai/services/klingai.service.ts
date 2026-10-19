@@ -23,7 +23,6 @@ export class KlingAIService {
 
   private readonly endpoint: string = 'https://api.klingai.com/v1';
   private readonly webhookEndpoint: string;
-  private readonly ingredientsEndpoint: string;
 
   private readonly apiKey: string;
   private readonly apiSecret: string;
@@ -40,7 +39,6 @@ export class KlingAIService {
   ) {
     this.webhookEndpoint =
       this.configService.get('GENFEEDAI_WEBHOOKS_URL') ?? '';
-    this.ingredientsEndpoint = this.configService.ingredientsEndpoint;
     this.apiKey = this.configService.get('KLINGAI_KEY') ?? '';
     this.apiSecret = this.configService.get('KLINGAI_SECRET') ?? '';
     this.callbackUrl = appendWebhookToken(
@@ -78,21 +76,6 @@ export class KlingAIService {
   ) {
     return this.enqueue(() =>
       this.generateImage(prompt, options, credentialsOverride),
-    );
-  }
-
-  public queueGenerateImageToVideo(
-    prompt: string,
-    parentId?: string,
-    credentialsOverride?: { apiKey: string; apiSecret: string },
-  ) {
-    return this.enqueue(() =>
-      this.generateImageToVideo(
-        prompt,
-        parentId,
-        undefined,
-        credentialsOverride,
-      ),
     );
   }
 
@@ -140,68 +123,6 @@ export class KlingAIService {
               (await this.platformSettingsService.getFeatureSettings())
                 .klingModel,
             n: 1,
-            prompt,
-          },
-          { headers: this.getHeadersWithOverride(credentialsOverride) },
-        ),
-      );
-
-      if (res.status !== 200) {
-        throw new Error('KlingAI API returned non-200 status');
-      }
-
-      return res.data.request_id;
-    } catch (error: unknown) {
-      const axiosError = error as {
-        response?: { status?: number; data?: unknown; statusText?: string };
-      };
-      if (
-        axiosError?.response?.status === 401 ||
-        axiosError?.response?.status === 403
-      ) {
-        this.loggerService.error(`${url} unauthorized`, {
-          data: axiosError?.response?.data,
-          status: axiosError?.response?.status,
-        });
-        throw new Error('KlingAI authorization failed');
-      }
-
-      this.loggerService.error(`${url} failed`, {
-        data: axiosError?.response?.data,
-        status: axiosError?.response?.status,
-        statusText: axiosError?.response?.statusText,
-      });
-
-      // Rethrow so a non-200 response or transport error surfaces to the
-      // caller instead of resolving `undefined` — otherwise a hard provider
-      // failure looks like a silently missing request_id on the revenue path.
-      // Mirrors the other provider services (e.g. HeyGen).
-      throw error;
-    }
-  }
-
-  public async generateImageToVideo(
-    prompt: string,
-    parentId?: string,
-    options?: { model: string },
-    credentialsOverride?: { apiKey: string; apiSecret: string },
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      this.loggerService.log(`${url} started for ${parentId}`);
-
-      const res = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/videos/image2video`,
-          {
-            callback_url: this.callbackUrl,
-            duration: 5,
-            image: `${this.ingredientsEndpoint}/images/${parentId}`,
-            model:
-              options?.model ||
-              (await this.platformSettingsService.getFeatureSettings())
-                .klingModel,
             prompt,
           },
           { headers: this.getHeadersWithOverride(credentialsOverride) },

@@ -7,6 +7,7 @@ import {
   SocialSourcePlatform,
   SourcePostActionType,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ISourcePost } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -59,6 +60,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -430,32 +432,43 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
   );
 }
 
-/** Title cell: the whole label toggles the row's detail panel. */
+/**
+ * Page of a Desk finding, when it has one. Only trend findings are records
+ * with their own detail page; source posts and viral videos open in the
+ * sidebar (or inline) only.
+ */
+function getFindingDetailPath(item: DiscoveryDeskItem): string | null {
+  return item.raw.kind === 'trend'
+    ? `${APP_ROUTES.DISCOVERY.TRENDS}/detail/${item.raw.item.trendId}`
+    : null;
+}
+
+/**
+ * Title cell. The label links to the finding's page when it has one; the rest
+ * of the row opens the finding's detail, so the cell holds no toggle of its own
+ * (a link may not nest in a button).
+ */
 function DeskContentCell({
+  detailHref,
   isExpanded,
   isPreviewActive,
   item,
-  onToggle,
   onPreview,
 }: {
+  detailHref: string | null;
   isExpanded: boolean;
   isPreviewActive: boolean;
   item: DiscoveryDeskItem;
-  onToggle: (key: string) => void;
   onPreview: (key: string | null) => void;
 }) {
+  const title = item.title || item.text || item.trendTopic || 'Untitled';
   return (
     <HoverCard open={isPreviewActive && !isExpanded}>
       <HoverCardTrigger asChild>
-        <Button
-          aria-expanded={isExpanded}
+        <div
           className="relative flex items-start gap-2 text-left"
-          onClick={() => onToggle(item.key)}
           onPointerEnter={() => onPreview(item.key)}
           onPointerLeave={() => onPreview(null)}
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
         >
           {item.thumbnailUrl ? (
             <span className="relative block size-10 shrink-0 overflow-hidden rounded-md bg-secondary">
@@ -470,16 +483,25 @@ function DeskContentCell({
             </span>
           ) : null}
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-foreground">
-              {item.title || item.text || item.trendTopic || 'Untitled'}
-            </span>
+            {detailHref ? (
+              <Link
+                className="block truncate text-sm font-medium text-foreground hover:underline"
+                href={detailHref}
+              >
+                {title}
+              </Link>
+            ) : (
+              <span className="block truncate text-sm font-medium text-foreground">
+                {title}
+              </span>
+            )}
             {item.text && item.title ? (
               <span className="block truncate text-xs text-foreground/55">
                 {item.text}
               </span>
             ) : null}
           </span>
-        </Button>
+        </div>
       </HoverCardTrigger>
       {isPreviewActive && !isExpanded ? (
         <HoverCardContent
@@ -569,6 +591,28 @@ export default function DeskTableView({
     [onToggleSelect, selection],
   );
 
+  const getDetailHref = useCallback(
+    (item: DiscoveryDeskItem): string | null => {
+      const path = getFindingDetailPath(item);
+      return path ? href(path) : null;
+    },
+    [href],
+  );
+
+  // A row opens the finding: in the research sidebar when the Desk is embedded
+  // in the workspace, inline beneath the row everywhere else.
+  const handleRowClick = useCallback(
+    (item: DiscoveryDeskItem) => {
+      onCursor(item.key);
+      if (onSelectFinding) {
+        onSelectFinding(item);
+        return;
+      }
+      handleToggleExpanded(item.key);
+    },
+    [handleToggleExpanded, onCursor, onSelectFinding],
+  );
+
   const columns = useMemo<TableColumn<DiscoveryDeskItem>[]>(
     () => [
       {
@@ -589,10 +633,10 @@ export default function DeskTableView({
         key: 'content',
         render: (item) => (
           <DeskContentCell
+            detailHref={getDetailHref(item)}
             isExpanded={expandedKey === item.key}
             isPreviewActive={previewKey === item.key}
             item={item}
-            onToggle={handleToggleExpanded}
             onPreview={handlePreview}
           />
         ),
@@ -658,9 +702,9 @@ export default function DeskTableView({
     ],
     [
       expandedKey,
+      getDetailHref,
       previewKey,
       handlePreview,
-      handleToggleExpanded,
       href,
       onSelectFinding,
       translateCard,
@@ -679,7 +723,7 @@ export default function DeskTableView({
       }
       getRowKey={(item) => item.key}
       items={items}
-      onRowClick={(item) => onCursor(item.key)}
+      onRowClick={handleRowClick}
       onSelectionChange={handleSelectionChange}
       renderExpandedRow={(item) =>
         expandedKey === item.key ? (

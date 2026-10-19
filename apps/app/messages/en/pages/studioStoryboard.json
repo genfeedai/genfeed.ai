@@ -1,4 +1,14 @@
 {
+  "agentBriefs": {
+    "apply": "Use brief: {title}",
+    "description": "Written by your agent from the brand kit and what has performed. Picking one fills the brief and its shot plan.",
+    "loading": "Your agent is drafting storyboards for this brand.",
+    "needsBrandApproval": "Approve the brand kit so your agent can draft storyboards for this brand.",
+    "runtime": "{shots} shots · {seconds}s",
+    "shotLine": "{index}. ({seconds}s) {description}",
+    "shotsHeading": "Shots:",
+    "title": "Agent briefs"
+  },
   "animatic": {
     "ariaLabel": "Storyboard animatic",
     "loadingStill": "Loading still preview",

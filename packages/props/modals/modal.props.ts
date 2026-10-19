@@ -17,7 +17,6 @@ import type {
 import type {
   IAsset,
   IBot,
-  IBrand,
   ICaption,
   ICredential,
   IElementBlacklist,
@@ -45,7 +44,6 @@ import type {
 import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { Training } from '@genfeedai/models/ai/training.model';
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
-import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import type { ContentProps } from '@props/layout/content.props';
 import type { GallerySelectItem } from '@props/modals/modal-gallery.props';
@@ -61,9 +59,7 @@ export interface ModalBaseProps<T = unknown> {
   onClose?: () => void;
 }
 
-export interface ModalModelProps extends ModalBaseProps<IModel> {
-  mode?: 'edit' | 'view';
-}
+export type ModalModelProps = ModalBaseProps<IModel>;
 
 /**
  * Base props for CRUD modal components with standardized naming
@@ -106,15 +102,8 @@ type ModalVisibilityProps = {
   openKey?: number | string;
 };
 
-export type BrandModalEntity = IBrand | Brand;
-
 export interface ModalBotProps {
   bot?: IBot | null;
-  onConfirm: () => void;
-}
-
-export interface ModalCredentialProps extends ModalVisibilityProps {
-  credential: ICredential | null;
   onConfirm: () => void;
 }
 
@@ -162,21 +151,6 @@ export interface ModalMemberProps {
 export interface ModalActionsProps {
   children: ReactNode;
   className?: string;
-}
-
-/**
- * Generic modal props for ingredient-related actions
- */
-export interface IngredientOverlayProps extends ModalVisibilityProps {
-  ingredient: IIngredient | null;
-  onConfirm?: () => void;
-  onClose?: () => void;
-}
-
-export interface IngredientOverlayViewProps
-  extends ModalSelectProps<IIngredient> {
-  ingredient: IIngredient | null;
-  onUpdate?: (ingredient: IIngredient) => void;
 }
 
 export interface ModalProps {
@@ -257,12 +231,6 @@ export interface ModalPostProps extends ModalVisibilityProps {
 
 /** The batch publish modal always renders as `ModalEnum.POST_BATCH`. */
 export type ModalPostBatchProps = Omit<ModalPostProps, 'modalId'>;
-
-export interface PostMetadataOverlayProps {
-  post: IPost | null;
-  onConfirm?: () => void;
-  onClose?: () => void;
-}
 
 export interface ModalPostHeaderProps {
   activeTab: 'setup' | 'platforms';
@@ -477,16 +445,12 @@ export interface ModalGenerateIllustrationProps extends ModalVisibilityProps {
 }
 
 /**
- * Generic modal props for brand-related actions
+ * The create-brand dialog. Viewing and editing an existing brand happen in the
+ * context sidebar and on the brand settings page, not in a dialog.
  */
-export interface BrandOverlayProps extends ModalVisibilityProps {
-  brand: BrandModalEntity | null;
-  onConfirm: (
-    isRefreshing?: boolean,
-    createdBrandId?: string,
-  ) => void | Promise<void>;
+export interface ModalBrandCreateProps extends ModalVisibilityProps {
+  onConfirm: (createdBrandId?: string) => void | Promise<void>;
   onClose?: () => void;
-  initialView?: 'edit' | 'overview';
 }
 
 export interface ModalBrandLinkProps {

@@ -25,6 +25,7 @@ import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import type { Campaign } from '@services/content/campaigns.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import TableRowSummary from '@ui/display/table/TableRowSummary';
 import Container from '@ui/layout/container/Container';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
@@ -116,6 +117,45 @@ export default function CampaignsListPage({
       href: href(createPublishingCampaignRoute(campaign.id)),
       label: translate('openCampaign', { name: campaign.name }),
     };
+  }
+
+  function renderCampaignSummary(campaign: Campaign) {
+    return (
+      <TableRowSummary
+        badges={
+          <Badge status={campaign.status}>
+            {CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status}
+          </Badge>
+        }
+        facts={[
+          {
+            id: 'brand',
+            label: translate('columns.brand'),
+            value: brandLabels.get(campaign.brandId),
+          },
+          {
+            id: 'objective',
+            label: translate('columns.objective'),
+            value: campaign.objective,
+          },
+          {
+            id: 'dates',
+            label: translate('columns.dates'),
+            value:
+              campaign.startDate || campaign.endDate
+                ? `${formatCampaignDate(campaign.startDate)} – ${formatCampaignDate(campaign.endDate)}`
+                : undefined,
+          },
+          {
+            id: 'brief',
+            label: translate('brief'),
+            value: campaign.brief,
+          },
+        ]}
+        openHref={href(createPublishingCampaignRoute(campaign.id))}
+        openLabel={translate('openCampaign', { name: campaign.name })}
+      />
+    );
   }
 
   function replaceStatus(nextStatus: string): void {
@@ -211,6 +251,14 @@ export default function CampaignsListPage({
         getRowLink={getRowLink}
         isLoading={isLoading}
         items={campaigns}
+        rowSidebar={{
+          getId: (campaign) => campaign.id,
+          getSubtitle: (campaign) =>
+            CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status,
+          getTitle: (campaign) => campaign.name,
+          kind: 'campaign',
+          render: renderCampaignSummary,
+        }}
       />
       <div className="mt-4">
         <Pagination

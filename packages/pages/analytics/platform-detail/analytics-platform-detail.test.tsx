@@ -49,6 +49,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => resolveBrandsService,
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/moonrise${path}`,
+  }),
+}));
+
 vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (
@@ -59,9 +65,11 @@ vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
 vi.mock('@ui/display/table/Table', () => ({
   __esModule: true,
   default: ({
+    columns,
     items,
     onRowClick,
   }: {
+    columns: Array<{ render?: (post: Post) => React.ReactNode }>;
     items: Post[];
     onRowClick?: (post: Post) => void;
   }) =>
@@ -69,9 +77,12 @@ vi.mock('@ui/display/table/Table', () => ({
     // suite blocks on the fetch instead of on a button that exists from the
     // first paint with an empty `items`.
     items.length > 0 ? (
-      <button type="button" onClick={() => onRowClick?.(items[0])}>
-        Open analytics platform row
-      </button>
+      <div>
+        <button type="button" onClick={() => onRowClick?.(items[0])}>
+          Open analytics platform row
+        </button>
+        {columns[0]?.render?.(items[0])}
+      </div>
     ) : null,
 }));
 
@@ -98,6 +109,14 @@ describe('AnalyticsPlatformDetail', () => {
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
       'post-1',
     );
+  });
+
+  it('links the post caption to the post page', async () => {
+    render(<AnalyticsPlatformDetail brandId="brand-1" platform="twitter" />);
+
+    expect(
+      await screen.findByRole('link', { name: 'Platform detail post' }),
+    ).toHaveAttribute('href', '/acme/moonrise/publishing/posts/post-1');
   });
 });
 

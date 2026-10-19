@@ -1,3 +1,4 @@
+import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image } from '@genfeedai/models/ingredients/image.model';
@@ -50,6 +51,33 @@ vi.mock('@pages/studio/storyboard/hooks/use-create-storyboard', () => ({
     isCurrentResult: () => true,
   }),
 }));
+vi.mock('@pages/studio/storyboard/components/StoryboardAgentBriefs', () => ({
+  default: ({
+    brandId,
+    onSelect,
+  }: {
+    brandId?: string;
+    onSelect: (proposal: StudioStoryboardProposal) => void;
+  }) => (
+    <button
+      type="button"
+      data-brand-id={brandId}
+      onClick={() =>
+        onSelect({
+          brief: 'A founder shows the serum going from lab to shelf.',
+          shots: [
+            { description: 'Lab bench close-up', durationSeconds: 5 },
+            { description: 'Bottle on the shelf', durationSeconds: 7 },
+          ],
+          title: 'Lab to shelf',
+          why: 'Origin stories held viewers longest.',
+        })
+      }
+    >
+      Agent brief
+    </button>
+  ),
+}));
 vi.mock('@genfeedai/agent/components/AgentMediaArtifactPreview', () => ({
   AgentMediaArtifactPreview: () => null,
 }));
@@ -101,6 +129,19 @@ describe('Storyboard shared composer', () => {
     ).toContain('how-to tutorial');
     expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
       '40s',
+    );
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('fills the brief, shot plan and runtime from an agent brief without submitting', () => {
+    render(<StoryboardCreate />);
+    const agentBrief = screen.getByRole('button', { name: 'Agent brief' });
+    expect(agentBrief).toHaveAttribute('data-brand-id', 'brand-a');
+    fireEvent.click(agentBrief);
+    expect((screen.getByLabelText('Brief') as HTMLTextAreaElement).value).toBe(
+      'A founder shows the serum going from lab to shelf.\n\nShots:\n1. (5s) Lab bench close-up\n2. (7s) Bottle on the shelf',
+    );
+    expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
+      '12s',
     );
     expect(mocks.create).not.toHaveBeenCalled();
   });

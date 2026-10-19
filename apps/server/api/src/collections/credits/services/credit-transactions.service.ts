@@ -5,8 +5,8 @@ import {
 } from '@api/collections/credits/services/credit-activity.util';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import {
-  creditUsageWhere,
-  signedCreditUsage,
+  CREDIT_USAGE_AMOUNT_SQL,
+  CREDIT_USAGE_FILTER_SQL,
 } from '@api/collections/credits/services/credit-usage.util';
 import { paidCreditGrantWhere } from '@api/collections/credits/services/free-trial-state.util';
 import { strategyBudgetMetadata } from '@api/collections/credits/services/strategy-budget-attribution.context';
@@ -27,7 +27,7 @@ import {
   scopedWhere,
 } from '@api/tenancy/scoped-where';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -436,46 +436,58 @@ export class CreditTransactionsService extends BaseService<
       // Look back a year so monthly/weekly charts have enough buckets.
       const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
-      const deductions = this.normalizeDocuments(
-        (await this.delegate.findMany({
-          where: {
-            ...creditUsageWhere(),
-            createdAt: { gte: yearAgo },
-            isDeleted: false,
-            organizationId,
-          },
-        })) as unknown[],
-      );
+      // Aggregate in the database: a busy organization has tens of thousands of
+      // usage rows a year, and only per-day and per-source sums are returned.
+      const [dayRows, sourceRows] = await Promise.all([
+        this.prisma.$queryRaw<{ amount: number | null; day: string }[]>(
+          Prisma.sql`
+            SELECT to_char("createdAt", 'YYYY-MM-DD') AS "day",
+              SUM(${CREDIT_USAGE_AMOUNT_SQL})::float8 AS "amount"
+            FROM "credit_transactions"
+            WHERE "organizationId" = ${organizationId} AND "isDeleted" = false
+              AND ${CREDIT_USAGE_FILTER_SQL}
+              AND "createdAt" >= ${yearAgo}::timestamp
+            GROUP BY 1
+          `,
+        ),
+        this.prisma.$queryRaw<
+          {
+            amount: number | null;
+            amount7Days: number | null;
+            count: number;
+            source: string | null;
+          }[]
+        >(Prisma.sql`
+          SELECT NULLIF("source", '') AS "source",
+            SUM(${CREDIT_USAGE_AMOUNT_SQL})::float8 AS "amount",
+            COALESCE(SUM(${CREDIT_USAGE_AMOUNT_SQL})
+              FILTER (WHERE "createdAt" >= ${sevenDaysAgo}::timestamp), 0)::float8 AS "amount7Days",
+            COUNT(*)::int AS "count"
+          FROM "credit_transactions"
+          WHERE "organizationId" = ${organizationId} AND "isDeleted" = false
+            AND ${CREDIT_USAGE_FILTER_SQL}
+            AND "createdAt" >= ${thirtyDaysAgo}::timestamp
+          GROUP BY 1
+        `),
+      ]);
 
       let usage7Days = 0;
       let usage30Days = 0;
       const sourceMap = new Map<string, { amount: number; count: number }>();
-      const byDay = new Map<string, number>();
-
-      for (const d of deductions) {
-        const absAmount = signedCreditUsage(d);
-        const createdAt =
-          d.createdAt instanceof Date ? d.createdAt : new Date(d.createdAt);
-
-        if (createdAt >= thirtyDaysAgo) {
-          usage30Days += absAmount;
-        }
-        if (createdAt >= sevenDaysAgo) {
-          usage7Days += absAmount;
-        }
-
-        // Source breakdown is still a 30-day window for the cards.
-        if (createdAt >= thirtyDaysAgo) {
-          const src = d.source || 'Unknown';
-          const existing = sourceMap.get(src) || { amount: 0, count: 0 };
-          existing.amount += absAmount;
-          existing.count += 1;
-          sourceMap.set(src, existing);
-        }
-
-        const dayKey = this.toUtcDayKey(createdAt);
-        byDay.set(dayKey, (byDay.get(dayKey) ?? 0) + absAmount);
+      for (const row of sourceRows) {
+        const amount = Number(row.amount) || 0;
+        usage30Days += amount;
+        usage7Days += Number(row.amount7Days) || 0;
+        const source = row.source ?? 'Unknown';
+        const existing = sourceMap.get(source) ?? { amount: 0, count: 0 };
+        sourceMap.set(source, {
+          amount: existing.amount + amount,
+          count: existing.count + (Number(row.count) || 0),
+        });
       }
+      const byDay = new Map<string, number>(
+        dayRows.map((row) => [row.day, Number(row.amount) || 0]),
+      );
 
       const breakdown = Array.from(sourceMap.entries())
         .map(([source, data]) => ({

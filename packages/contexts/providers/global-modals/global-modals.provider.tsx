@@ -103,22 +103,6 @@ export function useGalleryModal(): Pick<
   };
 }
 
-export function useIngredientOverlay(): Pick<
-  GlobalModalsContextValue,
-  'closeIngredientOverlay' | 'openIngredientOverlay'
-> {
-  const context = use(GlobalModalsContext);
-  if (!context) {
-    throw new Error(
-      'useIngredientOverlay must be used within GlobalModalsProvider',
-    );
-  }
-  return {
-    closeIngredientOverlay: context.closeIngredientOverlay,
-    openIngredientOverlay: context.openIngredientOverlay,
-  };
-}
-
 export function useExportModal(): Pick<
   GlobalModalsContextValue,
   'closeExport' | 'openExport'
@@ -130,22 +114,6 @@ export function useExportModal(): Pick<
   return {
     closeExport: context.closeExport,
     openExport: context.openExport,
-  };
-}
-
-export function useCredentialModal(): Pick<
-  GlobalModalsContextValue,
-  'closeCredentialModal' | 'openCredentialModal'
-> {
-  const context = use(GlobalModalsContext);
-  if (!context) {
-    throw new Error(
-      'useCredentialModal must be used within GlobalModalsProvider',
-    );
-  }
-  return {
-    closeCredentialModal: context.closeCredentialModal,
-    openCredentialModal: context.openCredentialModal,
   };
 }
 
@@ -215,33 +183,19 @@ export function useMetadataModal(): Pick<
   };
 }
 
-export function useBrandOverlay(): Pick<
+export function useBrandCreateModal(): Pick<
   GlobalModalsContextValue,
-  'closeBrandOverlay' | 'openBrandOverlay'
-> {
-  const context = use(GlobalModalsContext);
-  if (!context) {
-    throw new Error('useBrandOverlay must be used within GlobalModalsProvider');
-  }
-  return {
-    closeBrandOverlay: context.closeBrandOverlay,
-    openBrandOverlay: context.openBrandOverlay,
-  };
-}
-
-export function usePostMetadataOverlay(): Pick<
-  GlobalModalsContextValue,
-  'closePostMetadataOverlay' | 'openPostMetadataOverlay'
+  'closeBrandCreateModal' | 'openBrandCreateModal'
 > {
   const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
-      'usePostMetadataOverlay must be used within GlobalModalsProvider',
+      'useBrandCreateModal must be used within GlobalModalsProvider',
     );
   }
   return {
-    closePostMetadataOverlay: context.closePostMetadataOverlay,
-    openPostMetadataOverlay: context.openPostMetadataOverlay,
+    closeBrandCreateModal: context.closeBrandCreateModal,
+    openBrandCreateModal: context.openBrandCreateModal,
   };
 }
 
@@ -313,30 +267,24 @@ export function GlobalModalsProvider({
   }, [state.hasOpenGlobalModal]);
 
   const contextValue: GlobalModalsContextValue = {
-    closeBrandOverlay: state.closeBrandOverlay,
+    closeBrandCreateModal: state.closeBrandCreateModal,
     closeConfirm: state.closeConfirm,
-    closeCredentialModal: state.closeCredentialModal,
     closeExport: state.closeExport,
     closeGallery: state.closeGallery,
     closeGenerateIllustration: state.closeGenerateIllustration,
-    closeIngredientOverlay: state.closeIngredientOverlay,
     closeMetadataModal: state.closeMetadataModal,
-    closePostMetadataOverlay: state.closePostMetadataOverlay,
     closePostRemixModal: state.closePostRemixModal,
     closePostRepurposeModal: state.closePostRepurposeModal,
     closePromptModal: state.closePromptModal,
     closeUpload: state.closeUpload,
     handlePostClose: state.handlePostClose,
-    openBrandOverlay: state.openBrandOverlay,
+    openBrandCreateModal: state.openBrandCreateModal,
     openConfirm: state.openConfirm,
-    openCredentialModal: state.openCredentialModal,
     openExport: state.openExport,
     openGallery: state.openGallery,
     openGenerateIllustration: state.openGenerateIllustration,
-    openIngredientOverlay: state.openIngredientOverlay,
     openMetadataModal: state.openMetadataModal,
     openPostBatchModal: state.openPostBatchModal,
-    openPostMetadataOverlay: state.openPostMetadataOverlay,
     openPostRemixModal: state.openPostRemixModal,
     openPostRepurposeModal: state.openPostRepurposeModal,
     openPromptModal: state.openPromptModal,

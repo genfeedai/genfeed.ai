@@ -7,13 +7,17 @@ import {
   CampaignStatus,
   CampaignType,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   InstagramIcon,
   RedditIcon,
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { OutreachCampaign } from '@services/automation/outreach-campaigns.service';
 import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Check, Pause, Play, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -62,6 +66,8 @@ export default function OutreachCampaignsTable({
   onDelete,
 }: Props) {
   const translate = useTranslations('pages.outreachCampaign');
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const { href } = useOrgUrl();
   const columns = useMemo(
     () => [
       {
@@ -208,6 +214,77 @@ export default function OutreachCampaignsTable({
     [onStart, onPause, onComplete, onConfigure, onDelete],
   );
 
+  const rowSidebar = useMemo(
+    () =>
+      createSummaryRowSidebar<OutreachCampaign>({
+        getBadges: (campaign) => (
+          <Badge variant={statusVariants[campaign.status]}>
+            {campaign.status}
+          </Badge>
+        ),
+        getFacts: (campaign) => [
+          {
+            id: 'platform',
+            label: translate('summary.platform'),
+            value: campaign.platform,
+          },
+          {
+            id: 'type',
+            label: translate('summary.type'),
+            value: typeLabels[campaign.campaignType],
+          },
+          {
+            id: 'targets',
+            label: translate('summary.targets'),
+            value: campaign.totalTargets.toLocaleString(),
+          },
+          {
+            id: 'replied',
+            label: translate('summary.replied'),
+            value: campaign.totalSuccessful.toLocaleString(),
+          },
+          {
+            id: 'failed',
+            label: translate('summary.failed'),
+            value: campaign.totalFailed.toLocaleString(),
+          },
+          {
+            id: 'skipped',
+            label: translate('summary.skipped'),
+            value: campaign.totalSkipped.toLocaleString(),
+          },
+          {
+            id: 'rateLimits',
+            label: translate('summary.rateLimits'),
+            value: translate('summary.rateLimitsValue', {
+              perDay: campaign.rateLimits?.maxPerDay || 50,
+              perHour: campaign.rateLimits?.maxPerHour || 10,
+            }),
+          },
+          {
+            id: 'startedAt',
+            label: translate('summary.started'),
+            value: formatDate(campaign.startedAt, DATE_FORMATS.DISPLAY_DATE),
+          },
+          {
+            id: 'lastActivityAt',
+            label: translate('summary.lastActivity'),
+            value: formatDate(
+              campaign.lastActivityAt,
+              DATE_FORMATS.DISPLAY_DATE,
+            ),
+          },
+        ],
+        getId: (campaign) => campaign.id,
+        getOpenHref: (campaign) =>
+          href(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`),
+        getSubtitle: (campaign) => campaign.description,
+        getTitle: (campaign) => campaign.label,
+        kind: 'campaign',
+      }),
+    [href, translate],
+  );
+
   return (
     <div className="overflow-x-auto">
       <AppTable<OutreachCampaign>
@@ -216,6 +293,11 @@ export default function OutreachCampaignsTable({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(campaign) => campaign.id}
+        getRowLink={(campaign) => ({
+          href: href(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`),
+          label: rowSidebarT('openNamed', { name: campaign.label }),
+        })}
+        rowSidebar={rowSidebar}
         emptyLabel={translate('empty')}
       />
     </div>

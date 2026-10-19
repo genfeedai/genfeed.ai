@@ -3,6 +3,7 @@
 import { LazyModalSubscription } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   formatCreditBalanceExact,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
@@ -15,6 +16,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -28,8 +30,15 @@ import CreditHoldsPanel from './credit-holds-panel';
 
 const EMPTY_CELL = '-';
 
+function getOrganizationHref(row: IOrganizationBilling): string {
+  return `${APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS}/${row.organizationId}`;
+}
+
 export default function SubscriptionsList() {
   const t = useTranslations('pages.adminCreditHolds');
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const subscriptionT = useTranslations('ui.rowSidebar.subscription');
   const getSubscriptionsService = useAuthedService((token: string) =>
     SubscriptionsService.getInstance(token),
   );
@@ -68,6 +77,11 @@ export default function SubscriptionsList() {
 
   const refresh = () => {
     refetch();
+  };
+
+  const openSubscriptionModal = (organizationId: string) => {
+    setSelectedOrgId(organizationId);
+    openModal(ModalEnum.SUBSCRIPTION);
   };
 
   const handleCopy = async (customerId: string) =>
@@ -194,16 +208,60 @@ export default function SubscriptionsList() {
     },
     {
       icon: <Pencil />,
-      onClick: (row: IOrganizationBilling) => {
-        setSelectedOrgId(row.organizationId);
-        openModal(ModalEnum.SUBSCRIPTION);
-      },
+      onClick: (row: IOrganizationBilling) =>
+        openSubscriptionModal(row.organizationId),
       size: ButtonSize.SM,
       tooltip: t('editSubscription'),
       tooltipPosition: 'left',
       variant: ButtonVariant.DEFAULT,
     },
   ];
+
+  const rowSidebar = createSummaryRowSidebar<IOrganizationBilling>({
+    getBadges: (row) => (
+      <>
+        {row.tier ? (
+          <Badge variant="outline" className="uppercase">
+            {row.tier}
+          </Badge>
+        ) : null}
+        {row.status ? <Badge status={row.status} /> : null}
+      </>
+    ),
+    getFacts: (row) => [
+      { id: 'owner', label: subscriptionT('owner'), value: row.ownerEmail },
+      {
+        id: 'customer',
+        label: subscriptionT('customerId'),
+        value: row.stripeCustomerId,
+      },
+      {
+        id: 'balance',
+        label: fieldsT('balance'),
+        value: formatCreditBalanceExact(row.balance),
+      },
+      {
+        id: 'usage',
+        label: subscriptionT('usage'),
+        value:
+          row.planLimit > 0 ? `${Math.round(row.usedPercent)}%` : undefined,
+      },
+      {
+        id: 'periodEnd',
+        label: subscriptionT('periodEnd'),
+        value: row.currentPeriodEnd
+          ? new Date(row.currentPeriodEnd).toLocaleDateString()
+          : undefined,
+      },
+    ],
+    getId: (row) => row.organizationId,
+    getOpenHref: getOrganizationHref,
+    getSubtitle: (row) => row.ownerEmail ?? undefined,
+    getTitle: (row) => row.organizationName || rowSidebarT('notAvailable'),
+    kind: 'record',
+    onEdit: (row) => openSubscriptionModal(row.organizationId),
+    openLabel: subscriptionT('openOrganization'),
+  });
 
   return (
     <AdminPageShell
@@ -218,6 +276,11 @@ export default function SubscriptionsList() {
         columns={columns}
         actions={actions}
         getRowKey={(row) => row.organizationId}
+        getRowLink={(row) => ({
+          href: getOrganizationHref(row),
+          label: rowSidebarT('openNamed', { name: row.organizationName }),
+        })}
+        rowSidebar={rowSidebar}
         emptyLabel={t('subscriptionsEmpty')}
       />
 

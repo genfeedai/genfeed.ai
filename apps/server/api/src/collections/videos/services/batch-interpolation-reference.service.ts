@@ -2,9 +2,10 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { InterpolationPairDto } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class BatchInterpolationReferenceService {
@@ -13,6 +14,8 @@ export class BatchInterpolationReferenceService {
     private readonly configService: ConfigService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
 
   async resolvePair(
@@ -26,6 +29,7 @@ export class BatchInterpolationReferenceService {
     const [startFrameUrls, endFrameUrls] = await Promise.all([
       buildReferenceImageUrls({
         assetsService: this.assetsService,
+        authorizedMediaUrls: this.authorizedMediaUrls,
         configService: this.configService,
         ingredientsService: this.ingredientsService,
         loggerService: this.loggerService,
@@ -34,6 +38,7 @@ export class BatchInterpolationReferenceService {
       }),
       buildReferenceImageUrls({
         assetsService: this.assetsService,
+        authorizedMediaUrls: this.authorizedMediaUrls,
         configService: this.configService,
         ingredientsService: this.ingredientsService,
         loggerService: this.loggerService,

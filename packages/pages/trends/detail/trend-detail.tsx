@@ -1,8 +1,10 @@
 'use client';
 
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   TrendDetailData,
   TrendDetailProps,
@@ -72,6 +74,7 @@ export default function TrendDetail({
   trendId,
 }: TrendDetailProps) {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const translate = useTranslations('pages.analytics.trends.detail');
   const metricCopy = (key: (typeof TREND_KPI_METRICS)[number]['key']) => ({
     description: translate(`metrics.${key}.description`),
@@ -287,7 +290,7 @@ export default function TrendDetail({
           <TrendDetailRelatedTable
             relatedTrends={relatedTrends}
             getRowLink={(item) => ({
-              href: `/discovery/trends/detail/${item.id}`,
+              href: href(`${APP_ROUTES.DISCOVERY.TRENDS}/detail/${item.id}`),
               label: `Open ${item.topic}`,
             })}
           />

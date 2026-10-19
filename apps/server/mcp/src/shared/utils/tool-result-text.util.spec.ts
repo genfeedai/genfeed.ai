@@ -2,6 +2,7 @@ import {
   accountToolText,
   dataToolResult,
   formatToolData,
+  harnessReceiptText,
 } from '@mcp/shared/utils/tool-result-text.util';
 
 describe('MCP readable tool results', () => {
@@ -149,5 +150,82 @@ describe('MCP readable tool results', () => {
       'private',
     );
     expect(result.structuredContent.data).toBe(data);
+  });
+
+  describe('generation harness receipt', () => {
+    const applied = {
+      appliedPacks: [{ id: 'brand-voice', version: '1.2.0' }],
+      brandId: 'brand-private',
+      enhancedPrompt: 'A calm studio portrait, soft light',
+      originalPrompt: 'portrait',
+      source: 'brand',
+      status: 'applied',
+    };
+
+    it('announces the submitted prompt, source and packs without identifiers', () => {
+      const text = harnessReceiptText({
+        generationHarness: {
+          ...applied,
+          brandedGenerationReceiptId: 'receipt-private',
+          knowledgeReceipts: [{ sourceId: 'source-private' }],
+        },
+      });
+
+      expect(text).toBe(
+        [
+          'Prompt enhancement: applied (brand setting)',
+          'Prompt sent to the model:',
+          'A calm studio portrait, soft light',
+          'Your original prompt:',
+          'portrait',
+          'Applied packs: brand-voice 1.2.0',
+        ].join('\n'),
+      );
+      expect(text).not.toMatch(/private/);
+    });
+
+    it('says the prompt went unchanged when enhancement was skipped', () => {
+      expect(
+        harnessReceiptText({
+          generationHarness: {
+            appliedPacks: [],
+            enhancedPrompt: 'portrait',
+            originalPrompt: 'portrait',
+            source: 'request',
+            status: 'skipped',
+          },
+        }),
+      ).toBe(
+        [
+          'Prompt enhancement: skipped (this call)',
+          'Prompt sent unchanged:',
+          'portrait',
+        ].join('\n'),
+      );
+    });
+
+    it('stays silent when there is no usable receipt', () => {
+      expect(harnessReceiptText({ id: 'x' })).toBeUndefined();
+      expect(harnessReceiptText({ generationHarness: null })).toBeUndefined();
+      expect(
+        harnessReceiptText({ generationHarness: { status: 'applied' } }),
+      ).toBeUndefined();
+    });
+
+    it('appends the receipt to a data result next to the summary', () => {
+      const result = dataToolResult(
+        { generationHarness: applied, status: 'PROCESSING' },
+        'Generate',
+      );
+
+      expect(result.content[0].text).toContain('Status: Processing');
+      expect(result.content[0].text).toContain(
+        'Prompt sent to the model:\nA calm studio portrait, soft light',
+      );
+      expect(result.content[0].text).not.toMatch(/private/);
+      expect(result.structuredContent.data).toMatchObject({
+        generationHarness: { enhancedPrompt: applied.enhancedPrompt },
+      });
+    });
   });
 });

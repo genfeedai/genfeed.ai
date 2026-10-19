@@ -16,6 +16,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { MoodsService } from '@services/elements/moods.service';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalMood } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -205,6 +206,13 @@ function MoodsListContent({
         ]
       : [];
 
+  const rowSidebar = useElementRowSidebar<ElementMood>({
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) => openMoodModal(ModalEnum.MOOD, element)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementMood>
@@ -213,6 +221,7 @@ function MoodsListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No moods found"
       />
 

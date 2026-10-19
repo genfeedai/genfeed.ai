@@ -10,15 +10,18 @@ import type { TableAction } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { RolesService } from '@services/organization/roles.service';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 export default function RolesList() {
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { openConfirm } = useConfirmModal();
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const getRolesService = useAuthedService((token: string) =>
@@ -76,6 +79,18 @@ export default function RolesList() {
       variant: ButtonVariant.DESTRUCTIVE,
     },
   ];
+
+  const rowSidebar = createSummaryRowSidebar<IRole>({
+    getFacts: (role) => [
+      { id: 'key', label: fieldsT('key'), value: role.key },
+      { id: 'color', label: fieldsT('color'), value: role.primaryColor },
+    ],
+    getId: (role) => role.id,
+    getSubtitle: (role) => role.key,
+    getTitle: (role) => role.label,
+    kind: 'record',
+    onEdit: (role) => openRoleModal(ModalEnum.ROLE, role),
+  });
 
   const loadRoles = useCallback(
     async (refresh = false) => {
@@ -145,6 +160,7 @@ export default function RolesList() {
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item: IRole) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No roles found"
       />
       <div className="mt-4">

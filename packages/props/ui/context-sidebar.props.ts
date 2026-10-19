@@ -2,15 +2,19 @@ import type { ReactNode } from 'react';
 
 /** What a page can put in the shell's context sidebar. */
 export type ContextSidebarSelectionKind =
+  | 'account'
   | 'activity'
   | 'asset'
   | 'brand'
+  | 'campaign'
   | 'finding'
   | 'generation'
   | 'ingredient'
   | 'model'
+  | 'organization'
   | 'outlier'
   | 'post'
+  | 'record'
   | 'run'
   | 'skill'
   | 'slot'
@@ -18,6 +22,7 @@ export type ContextSidebarSelectionKind =
   | 'task'
   | 'template'
   | 'thread'
+  | 'trend'
   | 'user';
 
 /**

@@ -1,20 +1,25 @@
 'use client';
 
+import { PageScope } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import { getPublishingPostHref } from '@genfeedai/helpers/content/posts.helper';
 import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { IngredientTabsPostsProps } from '@genfeedai/props/content/ingredient.props';
 import type { TableAction } from '@genfeedai/props/ui/display/table.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
 import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function IngredientTabsPosts({
@@ -24,10 +29,12 @@ export default function IngredientTabsPosts({
     IngredientsService.getInstance(token),
   );
 
+  const { href } = useOrgUrl();
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
   const [posts, setPosts] = useState<IPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   const findAllIngredientsPosts = useCallback(
     async (signal: AbortSignal) => {
@@ -81,7 +88,14 @@ export default function IngredientTabsPosts({
     {
       header: 'Title',
       key: 'label',
-      render: (p: IPost) => p.label || '-',
+      render: (p: IPost) => (
+        <Link
+          className="hover:underline"
+          href={href(getPublishingPostHref(p.id))}
+        >
+          {p.label || 'Untitled post'}
+        </Link>
+      ),
     },
     {
       className: 'text-xs',
@@ -119,13 +133,21 @@ export default function IngredientTabsPosts({
   ];
 
   return (
-    <AppTable<IPost>
-      items={posts}
-      actions={actions}
-      columns={columns}
-      getRowKey={(p) => p.id}
-      isLoading={isLoading}
-      emptyLabel={EMPTY_STATES.POSTS_YET}
-    />
+    <>
+      <AppTable<IPost>
+        items={posts}
+        actions={actions}
+        columns={columns}
+        getRowKey={(p) => p.id}
+        isLoading={isLoading}
+        emptyLabel={EMPTY_STATES.POSTS_YET}
+        onRowClick={(p) => setSelectedPostId(p.id)}
+      />
+      <PostDetailPanel
+        postId={selectedPostId}
+        scope={PageScope.PUBLISHING}
+        onClose={() => setSelectedPostId(null)}
+      />
+    </>
   );
 }

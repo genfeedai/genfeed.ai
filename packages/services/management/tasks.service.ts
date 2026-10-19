@@ -268,10 +268,14 @@ export class TasksService extends BaseService<
 
   async findInboxReadState(
     signal?: AbortSignal,
+    options: { countOnly?: boolean } = {},
   ): Promise<IWorkspaceInboxReadState> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       '/inbox/read-state',
-      { signal },
+      {
+        params: options.countOnly ? { countOnly: 'true' } : undefined,
+        signal,
+      },
     );
     return this.extractResource<IWorkspaceInboxReadState>(response.data);
   }

@@ -53,6 +53,30 @@ describe('native MCP image delivery', () => {
       /video-private|org-private|trace-private/,
     );
   });
+  it('announces the submitted prompt in text while keeping the full receipt structured', async () => {
+    const data = {
+      id: 'img-private',
+      category: 'IMAGE',
+      status: 'PROCESSING',
+      generationHarness: {
+        appliedPacks: [{ id: 'brand-voice', version: '1.0.0' }],
+        brandId: 'brand-private',
+        enhancedPrompt: 'Studio portrait, soft light',
+        originalPrompt: 'portrait',
+        source: 'organization',
+        status: 'applied',
+      },
+    };
+    const result = await toNativeMcpMediaResult(data, []);
+    const text = JSON.stringify(result.content);
+    expect(text).toContain(
+      'Prompt enhancement: applied (organization setting)',
+    );
+    expect(text).toContain('Studio portrait, soft light');
+    expect(text).toContain('brand-voice 1.0.0');
+    expect(text).not.toMatch(/img-private|brand-private/);
+    expect(result.structuredContent.data).toBe(data);
+  });
   it('returns extensionless JPEG bytes with correct MIME through get_job_status and card wrapping', async () => {
     const fetcher = mockFetch(
       new Response(jpeg, {

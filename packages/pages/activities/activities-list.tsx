@@ -13,9 +13,9 @@ import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import type { ActivitiesListProps } from '@props/content/activities.props';
-import type { TableAction, TableRowLink } from '@props/ui/display/table.props';
-import { useIngredientOverlay } from '@providers/global-modals/global-modals.provider';
+import type { TableAction } from '@props/ui/display/table.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -30,6 +30,7 @@ import {
   MailOpen,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -48,7 +49,7 @@ import {
   parseActivityValue,
   parsePostActivityValue,
 } from './activities-list.utils';
-import ActivityDetailSheet from './components/ActivityDetailSheet';
+import ActivityDetailPanel from './components/ActivityDetailPanel';
 import ActivityStatusCell from './components/ActivityStatusCell';
 import ActivityThumbnailCell from './components/ActivityThumbnailCell';
 
@@ -82,20 +83,13 @@ export default function ActivitiesList({
   } = useActivities({ limit: 20, page, scope });
 
   const { href } = useOrgUrl();
-  const { openIngredientOverlay } = useIngredientOverlay();
+  const { openIngredientSidebar } = useIngredientSidebar();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
-  const [detailActivityId, setDetailActivityId] = useState<string | null>(null);
 
   // An operator cannot open another account's pages, so in the admin an
-  // activity opens its own detail view instead of linking into the account.
+  // activity never links into the account: the sidebar is its only detail.
   const isAdminScope = scope === PageScope.SUPERADMIN;
-  const detailActivity = useMemo(
-    () =>
-      filteredActivities.find((activity) => activity.id === detailActivityId) ??
-      null,
-    [detailActivityId, filteredActivities],
-  );
 
   // Helper to get preview URL from populated ingredient
   const getPreviewUrl = getActivityIngredientPreviewUrl;
@@ -103,10 +97,21 @@ export default function ActivitiesList({
   const handleViewIngredient = useCallback(
     (ingredient: unknown) => {
       if (ingredient) {
-        openIngredientOverlay(ingredient as IIngredient);
+        openIngredientSidebar(ingredient as IIngredient);
       }
     },
-    [openIngredientOverlay],
+    [openIngredientSidebar],
+  );
+
+  const getActivityHref = useCallback(
+    (activity: IActivity): string | undefined => {
+      if (isAdminScope) {
+        return undefined;
+      }
+      const path = getActivityDestinationPath(activity);
+      return path ? href(path) : undefined;
+    },
+    [href, isAdminScope],
   );
 
   const columns = useMemo(
@@ -143,8 +148,26 @@ export default function ActivitiesList({
       {
         header: 'Description',
         key: 'label',
-        render: (a: IActivity) =>
-          getActivityDescription(a, activityMessageFormatter),
+        render: (a: IActivity) => {
+          const description = getActivityDescription(
+            a,
+            activityMessageFormatter,
+          );
+          const destination = getActivityHref(a);
+          // The name opens the destination; a click anywhere else on the row
+          // opens the sidebar.
+          return destination ? (
+            <Link
+              aria-label={description}
+              className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              href={destination}
+            >
+              {description}
+            </Link>
+          ) : (
+            description
+          );
+        },
         subtext: (a: IActivity) =>
           [getActivityLifecycleText(a), getActivityDetailText(a)]
             .filter(Boolean)
@@ -172,7 +195,7 @@ export default function ActivitiesList({
         },
       },
     ],
-    [activityMessageFormatter, handleViewIngredient],
+    [activityMessageFormatter, getActivityHref, handleViewIngredient],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
@@ -253,25 +276,24 @@ export default function ActivitiesList({
     ? `Mark ${selectedActivityIds.length} as Read`
     : 'Mark All Read';
 
-  const getRowLink = useCallback(
-    (activity: IActivity): TableRowLink | undefined => {
-      if (isAdminScope) {
-        return undefined;
-      }
-      const path = getActivityDestinationPath(activity);
-      if (!path) {
-        return undefined;
-      }
-      return {
-        href: href(path),
-        label: getActivityDescription(activity, activityMessageFormatter),
-      };
-    },
-    [activityMessageFormatter, href, isAdminScope],
-  );
-  const handleRowClick = useCallback(
-    (activity: IActivity) => setDetailActivityId(activity.id),
-    [],
+  const rowSidebar = useMemo(
+    () => ({
+      getId: (activity: IActivity) => activity.id,
+      getSubtitle: (activity: IActivity) =>
+        getActivityLifecycleText(activity) ?? activity.key,
+      getTitle: (activity: IActivity) =>
+        getActivityDescription(activity, activityMessageFormatter),
+      kind: 'activity' as const,
+      render: (activity: IActivity) => (
+        <ActivityDetailPanel
+          activity={activity}
+          activityMessageFormatter={activityMessageFormatter}
+          onToggleRead={toggleActivityRead}
+          openHref={getActivityHref(activity)}
+        />
+      ),
+    }),
+    [activityMessageFormatter, getActivityHref, toggleActivityRead],
   );
 
   const getRowKey = useCallback((a: IActivity) => a.id, []);
@@ -352,8 +374,7 @@ export default function ActivitiesList({
         selectedIds={selectedActivityIds}
         onSelectionChange={setSelectedActivityIds}
         getItemId={getItemId}
-        getRowLink={getRowLink}
-        onRowClick={isAdminScope ? handleRowClick : undefined}
+        rowSidebar={rowSidebar}
       />
 
       <div className="mt-4">
@@ -372,12 +393,6 @@ export default function ActivitiesList({
         primaryAction={headerActions}
       >
         {content}
-        <ActivityDetailSheet
-          activity={detailActivity}
-          activityMessageFormatter={activityMessageFormatter}
-          onClose={() => setDetailActivityId(null)}
-          onToggleRead={toggleActivityRead}
-        />
       </AdminPageShell>
     );
   }

@@ -42,6 +42,12 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: null }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/moonrise${path}`,
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
@@ -159,9 +165,10 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   ]);
   mocks.getService.mockResolvedValue({ list: mocks.list });
   render(<IssuesList />);
-  const title = await screen.findByRole('button', {
+  const title = await screen.findByRole('link', {
     name: 'Recover the failed publish',
   });
+  expect(title).toHaveAttribute('href', '/acme/moonrise/workspace/tasks/QA-9');
   expect(screen.queryByText('QA-9')).not.toBeInTheDocument();
   expect(screen.getByRole('table', { name: 'Tasks' })).toBeVisible();
   expect(screen.getByRole('columnheader', { name: 'Task' })).toBeVisible();
@@ -180,6 +187,12 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   ).toBeVisible();
   expect(screen.getAllByText('Failed')).toHaveLength(1);
   fireEvent.click(title);
+  expect(mocks.replace).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen
+      .getByRole('table', { name: 'Tasks' })
+      .querySelector('tbody tr') as HTMLElement,
+  );
   expect(mocks.replace).toHaveBeenCalledWith('/?taskId=failed-task', {
     scroll: false,
   });

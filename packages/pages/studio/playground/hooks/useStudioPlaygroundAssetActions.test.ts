@@ -16,7 +16,6 @@ const mocks = vi.hoisted(() => ({
   notificationsSuccess: vi.fn(),
   getCharacterReferenceWarning: vi.fn(),
   openConfirm: vi.fn(),
-  openIngredientOverlay: vi.fn(),
   openPostBatchModal: vi.fn(),
   patch: vi.fn(),
   postResize: vi.fn(),
@@ -45,9 +44,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
   useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
-  useIngredientOverlay: () => ({
-    openIngredientOverlay: mocks.openIngredientOverlay,
-  }),
   usePostModal: () => ({ openPostBatchModal: mocks.openPostBatchModal }),
 }));
 
@@ -158,7 +154,6 @@ describe('useStudioPlaygroundAssetActions', () => {
     act(() => result.current.onSeeDetails(ingredient));
     expect(onInspectIngredient).toHaveBeenCalledTimes(2);
     expect(onInspectIngredient).toHaveBeenCalledWith(ingredient);
-    expect(mocks.openIngredientOverlay).not.toHaveBeenCalled();
     expect(mocks.openPostBatchModal).toHaveBeenCalledWith(ingredient);
     expect(onAttachReference).toHaveBeenNthCalledWith(1, ingredient, 'image');
     expect(onAttachReference).toHaveBeenNthCalledWith(2, ingredient, 'video');

@@ -569,17 +569,6 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock('@services/core/agent-overlay-coordination.service', async () => {
-  const actual = await vi.importActual<
-    typeof import('@services/core/agent-overlay-coordination.service')
-  >('@services/core/agent-overlay-coordination.service');
-
-  return {
-    ...actual,
-    isDesktopAgentViewport: vi.fn(() => true),
-  };
-});
-
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockFeatureFlags.isEnabled = true;

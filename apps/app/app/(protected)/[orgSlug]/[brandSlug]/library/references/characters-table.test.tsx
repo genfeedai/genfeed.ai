@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 'use client';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CharactersTable from './characters-table';
 
@@ -146,5 +150,41 @@ describe('CharactersTable', () => {
       screen.getByRole('button', { name: 'Manage references for Anna' }),
     );
     expect(onManageReferences).toHaveBeenCalledWith(anna);
+  });
+
+  it('opens a character summary in the sidebar on row click', () => {
+    const onManageReferences = vi.fn();
+    const anna = {
+      handle: 'anna',
+      id: 'p1',
+      label: 'Anna',
+      referenceIngredientIds: ['img-1'],
+    };
+    render(
+      <ContextSidebarProvider>
+        <CharactersTable
+          canManageSharing={false}
+          characters={[anna]}
+          isLoading={false}
+          onCreate={vi.fn()}
+          onManageAvailability={vi.fn()}
+          onManageReferences={onManageReferences}
+        />
+        <ContextSidebarOutlet testId="rail" />
+      </ContextSidebarProvider>,
+    );
+
+    fireEvent.click(screen.getByText('@anna'));
+
+    const rail = within(screen.getByTestId('rail'));
+    fireEvent.click(
+      rail.getByRole('button', { name: 'Manage references for Anna' }),
+    );
+    expect(onManageReferences).toHaveBeenCalledWith(anna);
+    expect(
+      rail.getByRole('link', {
+        name: 'View assets made with Anna in Library',
+      }),
+    ).toHaveAttribute('href', '/acme/main/library/assets?characters=p1');
   });
 });

@@ -3,13 +3,17 @@
 import { ButtonVariant, ComponentSize, PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { ModelsListProps } from '@props/admin/models.props';
-import type { TableAction } from '@props/ui/display/table.props';
+import type {
+  TableAction,
+  TableRowSidebar,
+} from '@props/ui/display/table.props';
 import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
+import ModelDetailPanel from '@ui/models/ModelDetailPanel';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { CircleCheck, CircleX, Cpu, Info, Pencil, Trash2 } from 'lucide-react';
+import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import AdminModelsToolbar from './components/AdminModelsToolbar';
@@ -75,28 +79,33 @@ export default function ModelsList({
     }
   }
 
-  // One way to see a model's details: on the admin pricing page a row click
-  // expands its pricing inline and the pencil opens the editor; elsewhere a
-  // row click (or the info action) opens the read-only details.
+  // One way to see a model's details: outside the admin a row click opens
+  // them in the right sidebar. In the admin a row click expands pricing inline
+  // when the page supplies it (the pencil opens the editor), else it opens the
+  // editor directly.
   const isPricingInline = isAdminScope && Boolean(onPricingDetails);
   const handleRowClick =
     isPricingInline && onPricingDetails ? onPricingDetails : handleViewDetails;
+  const rowSidebar = useMemo<TableRowSidebar<IModel>>(
+    () => ({
+      getId: (model) => model.id,
+      getSubtitle: (model) => model.key,
+      getTitle: (model) => model.label,
+      kind: 'model',
+      render: (model) => <ModelDetailPanel model={model} />,
+    }),
+    [],
+  );
   const actions: TableAction<IModel>[] = useMemo(
     () => [
-      isPricingInline
-        ? {
-            icon: <Pencil />,
-            onClick: handleViewDetails,
-            tooltip: translate('editModel'),
-          }
-        : {
-            icon: <Info />,
-            onClick: handleViewDetails,
-            tooltip: translate('viewDetails'),
-          },
       ...(isAdminScope
         ? [
             ...(rowActions ?? []),
+            {
+              icon: <Pencil />,
+              onClick: handleViewDetails,
+              tooltip: translate('editModel'),
+            },
             {
               icon: <CircleCheck />,
               isVisible: (model: IModel) =>
@@ -155,7 +164,6 @@ export default function ModelsList({
     ],
     [
       isAdminScope,
-      isPricingInline,
       rowActions,
       translate,
       handleViewDetails,
@@ -218,7 +226,8 @@ export default function ModelsList({
         columns={columns}
         actions={actions}
         renderExpandedRow={renderExpandedRow}
-        onRowClick={handleRowClick}
+        onRowClick={isAdminScope ? handleRowClick : undefined}
+        rowSidebar={isAdminScope ? undefined : rowSidebar}
         getRowKey={(model: IModel) => model.id}
         emptyLabel={translate('noModelsFound')}
         emptyState={
@@ -248,20 +257,21 @@ export default function ModelsList({
         onSortChange={handleSortChange}
       />
 
-      {/* Model details modal - view mode for non-admin, edit mode for admin */}
-      <LazyModalModel
-        entity={selectedModel}
-        mode={isAdminScope ? 'edit' : 'view'}
-        onConfirm={() => {
-          // Delay clearing to allow modal close animation to complete
-          setTimeout(() => setSelectedModel(undefined), 150);
-          refresh();
-        }}
-        onClose={() => {
-          // Delay clearing to allow modal close animation to complete
-          setTimeout(() => setSelectedModel(undefined), 150);
-        }}
-      />
+      {/* Model editor: admin only. Everyone else reads a model in the sidebar. */}
+      {isAdminScope ? (
+        <LazyModalModel
+          entity={selectedModel}
+          onConfirm={() => {
+            // Delay clearing to allow modal close animation to complete
+            setTimeout(() => setSelectedModel(undefined), 150);
+            refresh();
+          }}
+          onClose={() => {
+            // Delay clearing to allow modal close animation to complete
+            setTimeout(() => setSelectedModel(undefined), 150);
+          }}
+        />
+      ) : null}
 
       {!isLoading && (
         <div className="mt-4">

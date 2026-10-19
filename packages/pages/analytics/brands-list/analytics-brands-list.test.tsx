@@ -9,6 +9,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
@@ -59,6 +60,22 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   useCollectionScope: () => collectionScope,
 }));
 
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { kind: string; title: string } | null;
+  }) =>
+    selection ? (
+      <aside data-kind={selection.kind} data-testid="context-sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({ push: pushMock, replace: replaceMock }),
@@ -76,55 +93,15 @@ const stableDateRange = {
   startDate: new Date('2026-03-01T00:00:00.000Z'),
 };
 
-vi.mock('@contexts/analytics/analytics-context', async () => {
-  const { useEffect } = await import('react');
-  return {
-    useAnalyticsContext: () => ({
-      dateRange: stableDateRange,
-      filters: contextFilters,
-      refreshTrigger: 0,
-      setFilter: setFilterMock,
-      triggerRefresh: triggerRefreshMock,
-    }),
-    useAnalyticsToolbar: (node: unknown) => {
-      useEffect(() => {
-        setToolbarNodeMock(node);
-      }, [node]);
-    },
-  };
-});
-
-vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
-  default: ({
-    facets,
-    onClear,
-  }: {
-    facets: Array<{
-      label: string;
-      onChange: (value: string) => void;
-      options: Array<{ label: string; value: string }>;
-    }>;
-    onClear: () => void;
-  }) => (
-    <div>
-      {facets.map((facet) => (
-        <div key={facet.label} role="group" aria-label={facet.label}>
-          {facet.options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => facet.onChange(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      ))}
-      <button type="button" onClick={onClear}>
-        Clear
-      </button>
-    </div>
-  ),
+vi.mock('@contexts/analytics/analytics-context', () => ({
+  useAnalyticsContext: () => ({
+    dateRange: stableDateRange,
+    filters: contextFilters,
+    refreshTrigger: 0,
+    setFilter: setFilterMock,
+    setToolbarNode: setToolbarNodeMock,
+    triggerRefresh: triggerRefreshMock,
+  }),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -213,6 +190,29 @@ describe('AnalyticsBrandsList', () => {
         expect.any(AbortSignal),
       );
     });
+  });
+
+  it('opens the brand summary in the sidebar from the row and keeps the name a link', async () => {
+    render(<AnalyticsBrandsList />);
+
+    const link = await screen.findByRole('link', {
+      name: 'Open Acme analytics',
+    });
+    expect(link).toHaveAttribute('href', '/analytics/brands/brand-1?range=30d');
+
+    fireEvent.click(link);
+    expect(screen.queryByTestId('context-sidebar')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(link.closest('tr') as HTMLElement).getByText('4.2K'),
+    );
+
+    const sidebar = await screen.findByTestId('context-sidebar');
+    expect(sidebar).toHaveAttribute('data-kind', 'brand');
+    expect(within(sidebar).getByText('Acme Inc')).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('link', { name: 'Open analytics' }),
+    ).toHaveAttribute('href', '/analytics/brands/brand-1?range=30d');
   });
 
   it('waits for the brand scope before fetching', async () => {
@@ -305,19 +305,6 @@ describe('AnalyticsBrandsList', () => {
     });
 
     expect(setFilterMock).toHaveBeenCalledWith('query', 'acme');
-  });
-
-  it('sorts through the shared filter menu in the subbar', async () => {
-    contextFilters = { sort: 'views' };
-    render(<AnalyticsBrandsList />);
-
-    render(setToolbarNodeMock.mock.calls.at(-1)?.[0]);
-    const sortGroup = screen.getByRole('group', { name: 'Sort by' });
-    fireEvent.click(within(sortGroup).getByText('Posts'));
-    expect(setFilterMock).toHaveBeenCalledWith('sort', 'posts');
-
-    fireEvent.click(screen.getByText('Clear'));
-    expect(setFilterMock).toHaveBeenCalledWith('sort', undefined);
   });
 
   it('navigates to the brand detail preserving the current query string', async () => {

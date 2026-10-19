@@ -230,6 +230,43 @@ automatically when it runs the agent on your own Claude Code or Codex CLI; see t
 The same snapshot is shown in **Brand settings → Agent context**
 ([Brands](/guides/brands#what-the-agent-knows)).
 
+## Prompt enhancement
+
+Generation through MCP uses the same prompt enhancement as Studio and the
+in-app agent. It is **on by default** for image and video, and it applies the
+brand's guidelines plus any hosted harness packs.
+
+**It is never silent.** Every `generate` result says what was sent to the model:
+
+- the result text shows `Prompt enhancement: applied` or `skipped`, the setting
+  it followed (`default`, `organization setting`, `brand setting` or `this call`),
+  the exact prompt sent, your original prompt, and the applied pack IDs and
+  versions;
+- `structuredContent.data.generationHarness` carries the full receipt:
+  `originalPrompt`, `enhancedPrompt`, `status`, `source`, `brandId` and
+  `appliedPacks`. Read it when your client shows only structured data.
+
+If enhancement is on and fails, the call stops before any provider is billed.
+It does not fall back to your raw prompt.
+
+**Turn it off for one call** with `harness: false` on `generate`. The provider
+then receives your prompt unchanged and the result reports `skipped`.
+`harness: true` forces it on for that call.
+
+**Change the default** with `set_generation_settings`: `scope` is
+`organization` or `brand` (a brand also needs `brandId`), and `isEnabled` is
+`true`, `false`, or `null` to reset to inherit. A call overrides the brand,
+a brand overrides the organization, and the organization overrides the default
+(on). `get_generation_options` with a `brandId` shows the effective setting and
+where it came from. Changes show up in the app's **Prompt enhancement settings**.
+
+**Preview before you spend.** `enhance_prompt` returns the enhanced prompt
+without creating media. Pass that text to `generate` with `harness: false` to
+submit exactly what you reviewed.
+
+Client skills such as `image-prompt-engineer` stay optional. If one already
+rewrote your prompt, send `harness: false` so it is not enhanced twice.
+
 ## Publishing readiness
 
 Before scheduling, call `get_scheduler_capabilities` and

@@ -5,6 +5,7 @@ import type {
 } from '../billing/crun-generation-quote.interface';
 import type { IIngredient } from '../index';
 import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
+import type { GenerationPromptAuthor } from './generation-harness.interface';
 
 export interface BaseGenerationPayload {
   requestedSkillSlugs?: string[];
@@ -20,6 +21,8 @@ export interface BaseGenerationPayload {
   brandMode?: 'raw';
   /** Explicit Knowledge pick; omit to let the brand's Knowledge apply automatically. */
   knowledge?: KnowledgeSelection;
+  /** Set only when the prompt came from an agent proposal. */
+  promptAuthor?: GenerationPromptAuthor;
   prioritize?: RouterPriority;
   brand?: string;
   references: string[];

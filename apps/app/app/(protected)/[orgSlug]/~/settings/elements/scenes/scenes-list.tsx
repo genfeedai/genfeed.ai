@@ -8,6 +8,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ScenesService } from '@services/elements/scenes.service';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -35,6 +36,8 @@ function ScenesListContent() {
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
+
+  const rowSidebar = useElementRowSidebar<ElementScene>();
 
   const findAllScenes = useCallback(async () => {
     setScenes(null);
@@ -71,6 +74,7 @@ function ScenesListContent() {
         actions={[]}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No scenes found"
       />
 

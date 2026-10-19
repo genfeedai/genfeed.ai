@@ -460,7 +460,9 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByRole('button', { name: /refresh/i })).toBeVisible();
     expect(mocks.subscribe).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText('Campaign image'));
+    fireEvent.click(
+      screen.getByText('Campaign image').closest('tr') as HTMLElement,
+    );
 
     expect(mocks.replace).toHaveBeenCalledWith(
       '/workspace/inbox/unread?taskId=task-1',

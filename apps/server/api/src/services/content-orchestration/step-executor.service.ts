@@ -16,6 +16,8 @@ import { FalService } from '@api/services/integrations/fal/services/fal.service'
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { authorizeProviderMediaInput } from '@api/services/media-urls/provider-media-input.util';
 import {
   ByokProvider,
   ImageTaskModel,
@@ -25,12 +27,15 @@ import {
 } from '@genfeedai/contracts';
 import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 
 export interface StepExecutionContext {
   organizationId: string;
+  /** Caller the step runs for; scopes the late media authorization. */
+  userId?: string;
   /** Brand whose saved defaults apply to steps without an explicit model. */
   brandId?: string;
   previousResult?: StepResult;
@@ -65,7 +70,38 @@ export class StepExecutorService {
     private readonly musicGenerationService: MusicGenerationService,
     private readonly musicProviderRegistry: MusicGenerationProviderRegistryService,
     private readonly replicateService: ReplicateService,
+    private readonly configService: ConfigService,
+    @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
   ) {}
+
+  /**
+   * A source image naming internal media gets a fresh grant right before the
+   * provider fetches it; external URLs pass through. With authorized delivery
+   * on, a missing issuer or caller fails the step rather than sending an
+   * unsigned ID-derived URL.
+   */
+  private async authorizeSourceImage(
+    imageUrl: string,
+    context: StepExecutionContext,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) return imageUrl;
+    const issuer = this.mediaIssuer;
+    if (!issuer || !context.userId)
+      throw new Error('Authorized media delivery is unavailable');
+    const scope = {
+      brandId: context.brandId,
+      organizationId: context.organizationId,
+      userId: context.userId,
+    };
+    return authorizeProviderMediaInput(imageUrl, {
+      issue: (ids) => issuer.issueExecutionUrls(scope, ids),
+      origins: [
+        this.configService.cdnUrl,
+        this.configService.ingredientsEndpoint,
+        this.configService.apiUrl,
+      ],
+    });
+  }
 
   @SentryTraced()
   async execute(
@@ -118,14 +154,15 @@ export class StepExecutorService {
     step: ImageToVideoStep,
     context: StepExecutionContext,
   ): Promise<StepResult> {
-    const imageUrl = step.imageUrl ?? context.previousResult?.url;
+    const sourceUrl = step.imageUrl ?? context.previousResult?.url;
     const prompt = step.prompt ?? context.globalPrompt ?? '';
 
-    if (!imageUrl) {
+    if (!sourceUrl) {
       throw new Error(
         'Image-to-video step requires an imageUrl or a preceding step that produces an image',
       );
     }
+    const imageUrl = await this.authorizeSourceImage(sourceUrl, context);
 
     switch (step.model) {
       case VideoTaskModel.HIGGSFIELD: {

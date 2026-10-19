@@ -2,12 +2,14 @@ import { ModalEnum } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import type { TagsListProps } from '@props/tags/tags-list.props';
+import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Switch } from '@ui/primitives/switch';
 import { Pencil, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo } from 'react';
-
 import {
   TagAccountCell,
   TagCategoryCell,
@@ -19,6 +21,8 @@ import TagsListModals from './tags-list-modals';
 import { useTagsList } from './use-tags-list';
 
 function TagsListContent(props: TagsListProps) {
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const {
     canEditTag,
     filteredAndSortedTags,
@@ -116,6 +120,42 @@ function TagsListContent(props: TagsListProps) {
     [scope, canEditTag, openTagModal, openDeleteConfirm],
   );
 
+  const rowSidebar = useMemo(
+    () =>
+      createSummaryRowSidebar<ITag>({
+        canEdit: (tag) => scope === 'superadmin' || canEditTag(tag),
+        getBadges: (tag) => (
+          <>
+            <TagLabelCell tag={tag} />
+            <TagCategoryCell tag={tag} />
+            {tag.isActive === false ? (
+              <Badge variant="warning">{rowSidebarT('inactive')}</Badge>
+            ) : null}
+          </>
+        ),
+        getFacts: (tag) => [
+          { id: 'key', label: fieldsT('key'), value: tag.key },
+          {
+            id: 'description',
+            label: fieldsT('description'),
+            value: tag.description,
+          },
+          {
+            id: 'organization',
+            label: fieldsT('organization'),
+            value: tag.organization?.label,
+          },
+          { id: 'account', label: fieldsT('account'), value: tag.user?.email },
+        ],
+        getId: (tag) => tag.id,
+        getSubtitle: (tag) => tag.key,
+        getTitle: (tag) => tag.label,
+        kind: 'record',
+        onEdit: (tag) => openTagModal(ModalEnum.TAG, tag),
+      }),
+    [scope, canEditTag, openTagModal, rowSidebarT, fieldsT],
+  );
+
   return (
     <>
       <AppTable<ITag>
@@ -124,6 +164,7 @@ function TagsListContent(props: TagsListProps) {
         columns={columns}
         isLoading={isLoading}
         getRowKey={(t) => t.id}
+        rowSidebar={rowSidebar}
         emptyLabel={EMPTY_STATES.TAGS_YET}
       />
 

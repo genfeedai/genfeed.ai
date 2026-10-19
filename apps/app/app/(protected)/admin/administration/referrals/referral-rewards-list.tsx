@@ -10,6 +10,7 @@ import { ReferralsService } from '@services/billing/referrals.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -38,6 +39,7 @@ function compactId(value: string | null): string {
 
 export default function ReferralRewardsList() {
   const translate = useTranslations('common.referrals');
+  const referralT = useTranslations('ui.rowSidebar.referral');
   const { orgId, sessionId, userId } = useAuthIdentity();
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const getReferralsService = useAuthedService((token: string) =>
@@ -107,6 +109,67 @@ export default function ReferralRewardsList() {
     },
   ];
 
+  const getRewardCredits = (reward: IReferralAdminReward): string =>
+    referralT('credits', {
+      count: (reward.rewardCredits - reward.reversedCredits).toLocaleString(
+        'en-US',
+      ),
+    });
+
+  const rowSidebar = createSummaryRowSidebar<IReferralAdminReward>({
+    getBadges: (reward) => (
+      <Badge status={reward.status.toLowerCase()}>
+        {REFERRAL_REWARD_STATUS_LABELS[reward.status]}
+      </Badge>
+    ),
+    getFacts: (reward) => [
+      {
+        id: 'reward',
+        label: referralT('reward'),
+        value: getRewardCredits(reward),
+      },
+      {
+        id: 'purchase',
+        label: referralT('purchase'),
+        value: `$${(reward.netAmountCents / 100).toFixed(2)}`,
+      },
+      {
+        id: 'referrer',
+        label: referralT('referrerAccount'),
+        value: reward.referrerBillingAccountId,
+      },
+      {
+        id: 'referred',
+        label: referralT('referredAccount'),
+        value: reward.referredBillingAccountId,
+      },
+      {
+        id: 'checkout',
+        label: referralT('checkout'),
+        value: reward.stripeCheckoutSessionId,
+      },
+      {
+        id: 'eligible',
+        label: referralT('eligible'),
+        value: new Date(reward.eligibleAt).toLocaleString('en-US'),
+      },
+      {
+        id: 'attempts',
+        label: referralT('attempts'),
+        value: reward.attemptCount.toLocaleString('en-US'),
+      },
+      {
+        id: 'failure',
+        label: referralT('failureReason'),
+        value: reward.failureReason,
+      },
+    ],
+    getId: (reward) => reward.id,
+    getSubtitle: getRewardCredits,
+    getTitle: (reward) => referralT('title', { id: compactId(reward.id) }),
+    kind: 'record',
+  });
+
   return (
     <AdminPageShell
       title="Referral Rewards"
@@ -137,6 +200,7 @@ export default function ReferralRewardsList() {
           isLoading={isLoading}
           columns={columns}
           getRowKey={(reward) => reward.id}
+          rowSidebar={rowSidebar}
           emptyLabel="No referral rewards found"
         />
       )}
