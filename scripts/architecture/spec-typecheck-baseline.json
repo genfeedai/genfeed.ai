@@ -58,7 +58,7 @@
     },
     {
       "code": 2741,
-      "count": 8,
+      "count": 7,
       "file": "packages/agent/src/components/AgentChatMessageCards.spec.tsx",
       "fingerprint": "827e8cb506d7b2409f79",
       "message": "Property 'title' is missing in type '{ id: string; type: \"content_preview_card\"; tweets: string[]; images: string[]; ctas: { label: string; action: string; payload: { prompt: string; }; }[]; }' but required in type 'AgentUiAction'.",

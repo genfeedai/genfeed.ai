@@ -6,8 +6,10 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { IngredientCategory } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
+  createLibraryAssetRoute,
   createPublishingApprovalsRoute,
 } from '@genfeedai/contracts/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
@@ -398,6 +400,9 @@ export function useClipWorkflowRunCard({
     workflowExecutionId,
     generatedVideoIds,
     finalVideoId,
+    finalVideoUrl: finalVideoId
+      ? hrefFn(createLibraryAssetRoute(IngredientCategory.VIDEO, finalVideoId))
+      : undefined,
     identity,
     canMerge,
     draftReviewUrl,

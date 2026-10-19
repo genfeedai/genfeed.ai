@@ -167,7 +167,10 @@ describe('DesktopSyncService', () => {
 
     const result = await service.pullThreads(
       makeUser(),
-      '2026-05-01T09:00:00.000Z',
+      encodeThreadCursor({
+        id: 'thread-before',
+        updatedAt: '2026-05-01T09:00:00.000Z',
+      }),
       { limit: 999, messageLimit: 999 },
     );
 
@@ -183,8 +186,14 @@ describe('DesktopSyncService', () => {
       },
       take: 101,
       where: {
+        OR: [
+          { updatedAt: { gt: new Date('2026-05-01T09:00:00.000Z') } },
+          {
+            id: { gt: 'thread-before' },
+            updatedAt: new Date('2026-05-01T09:00:00.000Z'),
+          },
+        ],
         organizationId,
-        updatedAt: { gt: new Date('2026-05-01T09:00:00.000Z') },
         userId,
       },
     });
@@ -708,32 +717,6 @@ describe('DesktopSyncService', () => {
           },
         }),
       );
-    });
-
-    it('accepts a legacy plain-ISO cursor and includes tombstones on incremental pulls', async () => {
-      const { prisma, service } = buildService();
-      prisma.asset.findMany.mockResolvedValue([]);
-      const legacy = '2026-05-01T09:00:00.000Z';
-
-      const result = await service.getBrandManifest(makeUser(), {
-        cursor: legacy,
-      });
-
-      expect(prisma.asset.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            parentBrandId: brandId,
-            parentOrgId: organizationId,
-            updatedAt: { gt: new Date(legacy) },
-          },
-        }),
-      );
-      // An empty page keeps the position instead of advancing to now.
-      expect(decodeManifestCursor(result.data.updatedCursor)).toEqual({
-        assets: { updatedAt: legacy },
-        brands: { updatedAt: legacy },
-        ingredients: { updatedAt: legacy },
-      });
     });
 
     it('drains 1000 changed rows losslessly across pages, re-delivering rows updated or deleted mid-drain', async () => {

@@ -80,12 +80,12 @@ export class AgentStrategyWorkflowRunService {
     return {
       inputs: filled.previews,
       missingRequiredKeys: filled.missingRequiredKeys,
-      preferredWorkflowId: this.readConfigString(
+      preferredWorkflowId: this.readColumnString(
         strategy,
         'preferredWorkflowId',
       ),
       preferredWorkflowTemplateId:
-        this.readConfigString(strategy, 'preferredWorkflowTemplateId') ??
+        this.readColumnString(strategy, 'preferredWorkflowTemplateId') ??
         getAgentTypeWorkflowDefault(strategy.agentType)?.templateId ??
         null,
       templateDescription:
@@ -186,7 +186,7 @@ export class AgentStrategyWorkflowRunService {
       return this.loadWorkflowById(options.workflowIdOverride, organizationId);
     }
 
-    const preferredWorkflowId = this.readConfigString(
+    const preferredWorkflowId = this.readColumnString(
       strategy,
       'preferredWorkflowId',
     );
@@ -201,7 +201,7 @@ export class AgentStrategyWorkflowRunService {
     }
 
     const templateId =
-      this.readConfigString(strategy, 'preferredWorkflowTemplateId') ??
+      this.readColumnString(strategy, 'preferredWorkflowTemplateId') ??
       getAgentTypeWorkflowDefault(strategy.agentType)?.templateId ??
       null;
 
@@ -521,32 +521,19 @@ export class AgentStrategyWorkflowRunService {
     return parts.join(' ');
   }
 
-  private readConfigString(
+  private readColumnString(
     strategy: AgentStrategyDocument,
     key: string,
   ): string | null {
-    // Prefer first-class columns (preferredWorkflowId / TemplateId).
     const direct = (strategy as Record<string, unknown>)[key];
     if (typeof direct === 'string' && direct.trim()) {
       return direct.trim();
     }
 
-    // Legacy config bag only — migration strips these after backfill.
-    const config = strategy.config;
-    if (config && typeof config === 'object' && !Array.isArray(config)) {
-      const value = (config as Record<string, unknown>)[key];
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim();
-      }
-    }
-
     return null;
   }
 
-  /**
-   * Typed column `workflowInputOverrides: [{key,value}]` only.
-   * Legacy free-object `workflowInputDefaults` is still read until migration.
-   */
+  /** Typed column `workflowInputOverrides: [{key,value}]`. */
   private readWorkflowInputDefaults(
     strategy: AgentStrategyDocument,
   ): Record<string, unknown> {
@@ -555,21 +542,6 @@ export class AgentStrategyWorkflowRunService {
       return overridesArrayToRecord(
         overrides as Array<{ key: string; value: string | number | boolean }>,
       );
-    }
-
-    const direct = (strategy as Record<string, unknown>).workflowInputOverrides;
-    if (Array.isArray(direct)) {
-      return overridesArrayToRecord(
-        direct as Array<{ key: string; value: string | number | boolean }>,
-      );
-    }
-
-    const config = strategy.config;
-    if (config && typeof config === 'object' && !Array.isArray(config)) {
-      const nested = (config as Record<string, unknown>).workflowInputDefaults;
-      if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
-        return nested as Record<string, unknown>;
-      }
     }
 
     return {};
@@ -583,11 +555,11 @@ export class AgentStrategyWorkflowRunService {
       return;
     }
 
-    const currentPreferred = this.readConfigString(
+    const currentPreferred = this.readColumnString(
       strategy,
       'preferredWorkflowId',
     );
-    const currentTemplate = this.readConfigString(
+    const currentTemplate = this.readColumnString(
       strategy,
       'preferredWorkflowTemplateId',
     );

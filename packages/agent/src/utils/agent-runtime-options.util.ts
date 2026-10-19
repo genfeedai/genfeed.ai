@@ -34,8 +34,7 @@ const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
   {
     // Same model as the Genfeed runtime on purpose — these two options differ
     // by provider, not by model, and `openrouter/auto` is retired. `key` is the
-    // discriminator; `requestedModel` is only a fallback for legacy threads
-    // stored before runtimeKey existed, which belong on the platform default.
+    // discriminator.
     category: 'hosted',
     description: 'OpenRouter-routed inference',
     key: 'hosted/openrouter',
@@ -244,7 +243,7 @@ export function resolveDesktopCliRuntimeBlocker(
 
 export function resolveThreadRuntimeOption(params: {
   catalog: AgentRuntimeCatalog;
-  thread?: Pick<AgentThread, 'requestedModel' | 'runtimeKey'> | null;
+  thread?: Pick<AgentThread, 'runtimeKey'> | null;
 }): AgentRuntimeOption {
   const runtimeKey = params.thread?.runtimeKey?.trim();
   if (runtimeKey) {
@@ -259,17 +258,6 @@ export function resolveThreadRuntimeOption(params: {
     // A thread bound to a CLI that is not usable here still shows that CLI.
     if (isDesktopCliRuntimeKey(runtimeKey)) {
       return getDesktopCliRuntimeOption(runtimeKey);
-    }
-  }
-
-  const requestedModel = params.thread?.requestedModel?.trim();
-  if (requestedModel) {
-    const byRequestedModel = params.catalog.options.find(
-      (option) => option.requestedModel === requestedModel,
-    );
-
-    if (byRequestedModel) {
-      return byRequestedModel;
     }
   }
 

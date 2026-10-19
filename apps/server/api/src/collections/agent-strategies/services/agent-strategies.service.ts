@@ -630,9 +630,6 @@ export class AgentStrategiesService extends BaseService<
       }
       data[key] =
         typeof value === 'string' && value.trim() ? value.trim() : null;
-      // Keep config clean if a legacy write still carries these keys.
-      delete config[key];
-      delete config.workflowInputDefaults;
     }
 
     for (const key of CONFIG_BACKED_KEYS) {

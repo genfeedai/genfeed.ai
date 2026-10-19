@@ -11,8 +11,7 @@ describe('API key scope presets', () => {
     expect(CONNECT_GENFEED_VERIFICATION_METADATA_KEY).toBe('connectGenfeed');
   });
 
-  it('keeps content creation draft-only with the legacy alias', () => {
-    expect(API_KEY_SCOPE_PRESETS.content).toContain('posts:create');
+  it('keeps content creation draft-only', () => {
     expect(API_KEY_SCOPE_PRESETS.content).toContain('posts:draft');
     expect(API_KEY_SCOPE_PRESETS.content).not.toContain('posts:schedule');
     expect(API_KEY_SCOPE_PRESETS.content).not.toContain('posts:approve');
@@ -29,7 +28,6 @@ describe('API key scope presets', () => {
   it('reserves direct publishing for an explicitly full key', () => {
     expect(API_KEY_SCOPE_PRESETS.full).toEqual(
       expect.arrayContaining([
-        'posts:create',
         'posts:draft',
         'posts:schedule',
         'posts:approve',
@@ -40,7 +38,6 @@ describe('API key scope presets', () => {
 
   it('exposes every tier as a self-service contract exactly once', () => {
     for (const scope of [
-      'posts:create',
       'posts:draft',
       'posts:schedule',
       'posts:approve',
@@ -57,7 +54,7 @@ describe('API key scope presets', () => {
       expect.arrayContaining([
         {
           label: 'Post drafts',
-          scopes: ['posts:create', 'posts:draft'],
+          scopes: ['posts:draft'],
         },
         { label: 'Post scheduling', scopes: ['posts:schedule'] },
         { label: 'Publish approvals', scopes: ['posts:approve'] },

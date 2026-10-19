@@ -191,7 +191,7 @@ guard. They are hints for client permission UX, not an authorization check.
 Presets are defined in `packages/contracts/src/constants/api-key-presets.constant.ts`:
 `read`, `content`, `mcp`, and `full`.
 
-The **`mcp` preset is approval-first**: it carries `posts:create`, `posts:draft`,
+The **`mcp` preset is approval-first**: it carries `posts:draft`,
 `posts:schedule`, and `posts:approve`, but **not** `posts:publish`. An MCP client
 can compose and schedule; `posts:approve` covers approval-scoped REST actions
 below, not the `resolve_approval` MCP tool. Direct publish requires a
