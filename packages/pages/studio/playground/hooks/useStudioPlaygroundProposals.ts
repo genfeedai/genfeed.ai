@@ -2,6 +2,7 @@
 
 import type { StudioMediaProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { StudioPlaygroundType } from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { StudioProposalsService } from '@services/content/studio-proposals.service';
 import { logger } from '@services/core/logger.service';
@@ -20,6 +21,15 @@ interface ProposalsRecord {
 }
 
 const EMPTY_PROPOSALS: readonly StudioMediaProposal[] = [];
+/** The Playground shows three drafts; the endpoint may return up to six. */
+const PLAYGROUND_PROPOSAL_COUNT = 3;
+/**
+ * Proposals are an LLM call. Successful results are kept for the page's life
+ * per identity, brand and surface, so clearing the prompt or switching type
+ * back does not draft again. Failed and aborted calls, and an unapproved
+ * brand (approving it should show drafts), are never kept.
+ */
+const proposalsCache = new Map<string, ProposalsRecord>();
 
 function proposalSurface(type: StudioPlaygroundType): 'image' | 'video' | null {
   return type === 'image' || type === 'video' ? type : null;
@@ -38,28 +48,36 @@ export function useStudioPlaygroundProposals(
   const getService = useAuthedService((token: string) =>
     StudioProposalsService.getInstance(token),
   );
+  const { orgId, sessionId, userId } = useAuthIdentity();
   const surface = proposalSurface(type);
-  const key = brandId && surface ? `${brandId}:${surface}` : null;
+  const key =
+    brandId && surface
+      ? JSON.stringify([sessionId, userId, orgId, brandId, surface])
+      : null;
   const [record, setRecord] = useState<ProposalsRecord | null>(null);
+  const cached = key ? proposalsCache.get(key) : undefined;
 
   useEffect(() => {
-    if (!brandId || !surface || !key) return;
+    if (!brandId || !surface || !key || proposalsCache.has(key)) return;
     const controller = new AbortController();
     void (async () => {
       try {
         const service = await getService();
         const result = await service.propose(brandId, surface, {
+          count: PLAYGROUND_PROPOSAL_COUNT,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
-        setRecord({
+        const next = {
           isBrandApproved: result.isBrandApproved,
           key,
           proposals:
             result.surface === 'storyboard'
               ? EMPTY_PROPOSALS
-              : result.proposals,
-        });
+              : result.proposals.slice(0, PLAYGROUND_PROPOSAL_COUNT),
+        };
+        if (next.isBrandApproved) proposalsCache.set(key, next);
+        setRecord(next);
       } catch (error: unknown) {
         if (controller.signal.aborted) return;
         logger.error('Studio agent proposals failed', error);
@@ -75,15 +93,16 @@ export function useStudioPlaygroundProposals(
       isLoading: false,
       proposals: EMPTY_PROPOSALS,
     };
-  if (record?.key !== key)
+  const current = cached ?? (record?.key === key ? record : null);
+  if (!current)
     return {
       isBrandApproved: true,
       isLoading: true,
       proposals: EMPTY_PROPOSALS,
     };
   return {
-    isBrandApproved: record.isBrandApproved,
+    isBrandApproved: current.isBrandApproved,
     isLoading: false,
-    proposals: record.proposals,
+    proposals: current.proposals,
   };
 }

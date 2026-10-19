@@ -2,9 +2,13 @@ import StudioPlaygroundAgentProposals from '@pages/studio/playground/components/
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  propose: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const propose = vi.fn();
+  return {
+    getService: vi.fn(async () => ({ propose })),
+    propose,
+  };
+});
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -15,7 +19,15 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ propose: mocks.propose }),
+  useAuthedService: () => mocks.getService,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    orgId: 'org-1',
+    sessionId: 'session-1',
+    userId: 'user-1',
+  }),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -58,7 +70,9 @@ describe('StudioPlaygroundAgentProposals', () => {
       }),
     );
 
+    expect(mocks.propose).toHaveBeenCalledTimes(1);
     expect(mocks.propose).toHaveBeenCalledWith('brand-1', 'image', {
+      count: 3,
       signal: expect.any(AbortSignal),
     });
     expect(onSelect).toHaveBeenCalledWith(
@@ -87,7 +101,7 @@ describe('StudioPlaygroundAgentProposals', () => {
     });
     render(
       <StudioPlaygroundAgentProposals
-        brandId="brand-1"
+        brandId="brand-2"
         onSelect={vi.fn()}
         type="video"
       />,
@@ -104,13 +118,45 @@ describe('StudioPlaygroundAgentProposals', () => {
     mocks.propose.mockRejectedValue(new Error('boom'));
     const { container } = render(
       <StudioPlaygroundAgentProposals
-        brandId="brand-1"
+        brandId="brand-3"
         onSelect={vi.fn()}
         type="image"
       />,
     );
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
+  });
+
+  it('shows at most three drafts and reuses them after a remount', async () => {
+    mocks.propose.mockResolvedValue({
+      isBrandApproved: true,
+      proposals: [1, 2, 3, 4].map((index) => ({
+        ...PROPOSAL,
+        title: `Draft ${index}`,
+      })),
+      surface: 'image',
+    });
+    const view = render(
+      <StudioPlaygroundAgentProposals
+        brandId="brand-4"
+        onSelect={vi.fn()}
+        type="image"
+      />,
+    );
+    await screen.findByRole('button', { name: 'Use draft: Draft 1' });
+    expect(screen.getAllByRole('button')).toHaveLength(3);
+    view.unmount();
+
+    render(
+      <StudioPlaygroundAgentProposals
+        brandId="brand-4"
+        onSelect={vi.fn()}
+        type="image"
+      />,
+    );
+
+    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(mocks.propose).toHaveBeenCalledTimes(1);
   });
 
   it('asks for nothing on types without proposals or without a brand', () => {
