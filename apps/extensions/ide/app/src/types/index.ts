@@ -16,23 +16,6 @@ export enum IngredientStatus {
   FAILED = 'failed',
 }
 
-export interface ImagePreset {
-  id: string;
-  name: string;
-  description: string;
-  prompt: string;
-  style?: string;
-  mood?: string;
-  lighting?: string;
-  camera?: string;
-  scene?: string;
-  format: IngredientFormat;
-  model?: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ImageGenerationPayload {
   text: string;
   model?: string;
@@ -80,12 +63,6 @@ export interface GeneratedVideo {
   status: IngredientStatus;
   createdAt: string;
 }
-
-export type MediaItem = (GeneratedImage | GeneratedVideo) & {
-  mediaType: 'image' | 'video';
-};
-
-export type GalleryTab = 'all' | 'images' | 'videos';
 
 export interface AuthState {
   isAuthenticated: boolean;

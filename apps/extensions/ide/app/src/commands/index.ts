@@ -5,8 +5,6 @@ import { AuthService } from '@services/auth.service';
 import { captureExtensionError } from '@services/error-tracking.service';
 import { WorkspaceService } from '@services/workspace.service';
 import type { AnalyticsViewProvider } from '@views/analytics-view.provider';
-import type { GalleryViewProvider } from '@views/gallery-view.provider';
-import type { PresetsViewProvider } from '@views/presets-view.provider';
 import type { TemplatesViewProvider } from '@views/templates-view.provider';
 import * as vscode from 'vscode';
 import type { GenFeedStatusBar } from '@/statusBar';
@@ -21,8 +19,6 @@ import { explainAndPost } from './explain-and-post';
 interface CommandProviders {
   analyticsProvider: AnalyticsViewProvider;
   templatesProvider: TemplatesViewProvider;
-  presetsProvider?: PresetsViewProvider;
-  galleryProvider?: GalleryViewProvider;
   statusBar?: GenFeedStatusBar;
 }
 
@@ -122,8 +118,6 @@ export function registerCommands(
     await Promise.all([
       providers.templatesProvider.refreshTemplates(),
       providers.analyticsProvider.refreshAnalytics(),
-      providers.presetsProvider?.refreshPresets() ?? Promise.resolve(),
-      providers.galleryProvider?.refreshMedia() ?? Promise.resolve(),
     ]);
   };
 
@@ -396,26 +390,4 @@ export function registerCommands(
       },
     ),
   );
-
-  if (providers.presetsProvider) {
-    context.subscriptions.push(
-      vscode.commands.registerCommand('genfeed.openPresets', () =>
-        vscode.commands.executeCommand('genfeed.presetsView.focus'),
-      ),
-      vscode.commands.registerCommand('genfeed.refreshPresets', async () => {
-        await providers.presetsProvider?.refreshPresets();
-      }),
-    );
-  }
-
-  if (providers.galleryProvider) {
-    context.subscriptions.push(
-      vscode.commands.registerCommand('genfeed.openGallery', () =>
-        vscode.commands.executeCommand('genfeed.galleryView.focus'),
-      ),
-      vscode.commands.registerCommand('genfeed.refreshGallery', async () => {
-        await providers.galleryProvider?.refreshMedia();
-      }),
-    );
-  }
 }

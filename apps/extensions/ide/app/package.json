@@ -82,25 +82,6 @@
       {
         "command": "genfeed.setApiKey",
         "title": "Genfeed: Set API Key"
-      },
-      {
-        "command": "genfeed.openPresets",
-        "title": "Genfeed: Open Presets Panel (Legacy)"
-      },
-      {
-        "command": "genfeed.refreshPresets",
-        "icon": "$(refresh)",
-        "title": "Genfeed: Refresh Presets (Legacy)"
-      },
-      {
-        "command": "genfeed.openGallery",
-        "icon": "$(files)",
-        "title": "Genfeed: Open Gallery (Legacy)"
-      },
-      {
-        "command": "genfeed.refreshGallery",
-        "icon": "$(refresh)",
-        "title": "Genfeed: Refresh Gallery (Legacy)"
       }
     ],
     "configuration": {
@@ -178,16 +159,6 @@
           "command": "genfeed.refreshAnalyticsView",
           "group": "navigation",
           "when": "view == genfeed.analyticsView"
-        },
-        {
-          "command": "genfeed.refreshPresets",
-          "group": "navigation",
-          "when": "view == genfeed.presetsView"
-        },
-        {
-          "command": "genfeed.refreshGallery",
-          "group": "navigation",
-          "when": "view == genfeed.galleryView"
         }
       ]
     },
@@ -201,16 +172,6 @@
         {
           "id": "genfeed.analyticsView",
           "name": "Analytics",
-          "type": "webview"
-        },
-        {
-          "id": "genfeed.presetsView",
-          "name": "Image Presets",
-          "type": "webview"
-        },
-        {
-          "id": "genfeed.galleryView",
-          "name": "Image Gallery",
           "type": "webview"
         }
       ]

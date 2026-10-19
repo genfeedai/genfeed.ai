@@ -4,8 +4,6 @@ import {
   initializeErrorTracking,
 } from '@services/error-tracking.service';
 import { AnalyticsViewProvider } from '@views/analytics-view.provider';
-import { GalleryViewProvider } from '@views/gallery-view.provider';
-import { PresetsViewProvider } from '@views/presets-view.provider';
 import { TemplatesViewProvider } from '@views/templates-view.provider';
 import * as vscode from 'vscode';
 import { registerCommands } from '@/commands';
@@ -19,22 +17,6 @@ export async function activate(
 
   const authService = AuthService.initialize(context);
   await authService.loadStoredAuth();
-
-  const presetsProvider = new PresetsViewProvider(context.extensionUri);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      PresetsViewProvider.viewType,
-      presetsProvider,
-    ),
-  );
-
-  const galleryProvider = new GalleryViewProvider(context.extensionUri);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      GalleryViewProvider.viewType,
-      galleryProvider,
-    ),
-  );
 
   const templatesProvider = new TemplatesViewProvider();
   context.subscriptions.push(
@@ -58,8 +40,6 @@ export async function activate(
 
   registerCommands(context, {
     analyticsProvider,
-    galleryProvider,
-    presetsProvider,
     statusBar,
     templatesProvider,
   });
