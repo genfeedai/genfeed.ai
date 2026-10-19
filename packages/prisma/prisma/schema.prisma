@@ -5351,6 +5351,7 @@ model WorkflowExecution {
   @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
+  @@index([organizationId, status, isDeleted, createdAt], map: "workflow_executions_org_status_deleted_created_idx")
   @@index([workflowId, organizationId], map: "workflow_executions_workflow_org_idx")
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
