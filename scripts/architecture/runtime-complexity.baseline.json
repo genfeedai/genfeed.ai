@@ -78,12 +78,6 @@
     "symbol": "apps/server/api/src/collections/models/services/models.service.ts"
   },
   {
-    "actual": 1112,
-    "file": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts"
-  },
-  {
     "actual": 1010,
     "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
     "metric": "file-lines",
