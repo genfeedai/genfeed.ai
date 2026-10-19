@@ -587,10 +587,7 @@ test('blocks irreversible promotion until normal or recovered SaaS evidence is e
 test('notifies release watch when production deploy succeeds, before npm and publication', () => {
   const notify = jobBlock('notify-release');
   assert.match(notify, /name: Notify production deploy/);
-  assert.match(
-    notify,
-    /uses: \.\/\.github\/workflows\/notify-release\.yml/,
-  );
+  assert.match(notify, /uses: \.\/\.github\/workflows\/notify-release\.yml/);
   assert.match(notify, /needs:[\s\S]*- validate-release[\s\S]*- deploy-saas/);
   assert.match(notify, /needs\.deploy-saas\.result == 'success'/);
   assert.match(
