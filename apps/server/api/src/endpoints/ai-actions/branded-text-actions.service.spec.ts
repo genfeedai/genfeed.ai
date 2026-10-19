@@ -50,6 +50,7 @@ function createService() {
   const modeResolver = {
     resolve: vi.fn().mockResolvedValue({ mode: 'approved_brand' }),
   };
+  const material = { describePostArtifact: vi.fn() };
   const service = new BrandedTextActionsService(
     new BrandedTextRunnerService(
       branded as never,
@@ -59,6 +60,7 @@ function createService() {
       {
         resolveModelKey: vi.fn().mockResolvedValue('openai/mini-text'),
       } as never,
+      material as never,
     ),
   );
   return { branded, modeResolver, posts, service };

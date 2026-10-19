@@ -117,6 +117,13 @@ describe('AgentStrategyAutopilotService', () => {
     // Auto-publish addresses accounts, not platforms: the fan-out service is
     // the only thing that knows how many accounts a brand holds on a platform.
     const postAccountFanoutService = {
+      resolveDefaultTarget: vi.fn().mockImplementation(
+        async (input: { caption: string }): Promise<PostAccountTarget> => ({
+          caption: input.caption,
+          credentialId,
+          platform: Platform.TWITTER,
+        }),
+      ),
       resolveTargets: vi.fn().mockImplementation(
         async (input: { caption: string }): Promise<PostAccountTarget[]> => [
           {
@@ -137,6 +144,7 @@ describe('AgentStrategyAutopilotService', () => {
         id: draftId,
         targetSettings: { generation: { metadata: {} } },
       }),
+      getChildren: vi.fn().mockResolvedValue([]),
       patch: vi.fn().mockResolvedValue({ id: draftId }),
     };
     const turboRunService = {
@@ -1857,6 +1865,124 @@ describe('AgentStrategyAutopilotService', () => {
       Platform.TWITTER,
     );
     expect(deps.optimizersService.analyzeContent).not.toHaveBeenCalled();
+  });
+
+  function queueCadenceThread(
+    deps: ReturnType<typeof createService>,
+    replies: string[],
+  ) {
+    deps.agentStrategiesService.findOneById.mockResolvedValue({
+      ...baseStrategy,
+      contentMix: { threadPercent: 100 },
+      publishingCeilingPerWeek: 7,
+      readyDraftReserve: 0,
+    });
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'AI hooks',
+      },
+    ]);
+    deps.postsService.getChildren.mockResolvedValue(
+      replies.map((description, index) => ({
+        description,
+        id: `reply-${index + 1}`,
+        order: index + 1,
+      })),
+    );
+    const evaluateQuality = vi.fn().mockResolvedValue({
+      analysis: { overallScore: 90, metadata: { hasCallToAction: true } },
+      creditsUsed: 1,
+    });
+    const draftGenerator = vi.fn().mockResolvedValue({
+      draft: {
+        id: draftId,
+        description: 'Hook post: reply if this helps',
+        targetSettings: { generation: { metadata: {} } },
+      },
+      creditsUsed: 2,
+      evaluateQuality,
+    });
+    return { draftGenerator, evaluateQuality };
+  }
+
+  it('writes an X thread and auto-publishes it from one account as one post', async () => {
+    const deps = createService();
+    const { draftGenerator } = queueCadenceThread(deps, [
+      'Second point',
+      'Third point',
+    ]);
+
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+      creditBudget: 10,
+      draftGenerator,
+    });
+
+    expect(result).toMatchObject({ contentGenerated: 1 });
+    expect(draftGenerator).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'thread', platform: 'twitter' }),
+    );
+    expect(deps.postsService.getChildren).toHaveBeenCalledWith(
+      draftId,
+      organizationId,
+    );
+    expect(deps.postAccountFanoutService.resolveTargets).not.toHaveBeenCalled();
+    expect(
+      deps.postAccountFanoutService.resolveDefaultTarget,
+    ).toHaveBeenCalledWith({
+      brandId,
+      caption: 'Hook post: reply if this helps\n\nSecond point\n\nThird point',
+      organizationId,
+      platform: 'twitter',
+    });
+    expect(deps.postsService.create).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({
+        credentialId,
+        platform: Platform.TWITTER,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    );
+    expect(deps.postsService.patch).not.toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({ description: expect.anything() }),
+    );
+    expect(
+      deps.turboRunService.createManualReviewTurboRun,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('sends an X thread with an over-length reply to review instead of publishing it', async () => {
+    const deps = createService();
+    const { draftGenerator } = queueCadenceThread(deps, ['a'.repeat(300)]);
+
+    await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+      creditBudget: 10,
+      draftGenerator,
+    });
+
+    expectReviewHandoffWithoutScheduling(
+      deps,
+      'Thread post 2 is 300 characters',
+    );
+    expect(
+      deps.postAccountFanoutService.resolveDefaultTarget,
+    ).not.toHaveBeenCalled();
   });
 
   it('uses the requested reporting period and deduplicates cumulative post snapshots', async () => {

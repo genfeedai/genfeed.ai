@@ -386,7 +386,6 @@
     "packages/pages/ingredients/detail/ingredient-detail-not-found.tsx": 3,
     "packages/pages/ingredients/detail/ingredient-detail.tsx": 1,
     "packages/pages/ingredients/layout/ingredients-layout-toolbar.tsx": 1,
-    "packages/pages/ingredients/layout/ingredients-layout.tsx": 4,
     "packages/pages/ingredients/layout/library-asset-type-filter.tsx": 8,
     "packages/pages/ingredients/list/ingredients-list.tsx": 4,
     "packages/pages/members/invite/EditMemberForm.tsx": 5,

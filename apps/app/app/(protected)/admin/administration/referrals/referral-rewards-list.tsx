@@ -1,6 +1,7 @@
 'use client';
 
 import { ReferralRewardStatus } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IReferralAdminReward } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -11,9 +12,11 @@ import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Gift, TriangleAlert } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
@@ -36,13 +39,18 @@ function compactId(value: string | null): string {
 export default function ReferralRewardsList() {
   const translate = useTranslations('common.referrals');
   const { orgId, sessionId, userId } = useAuthIdentity();
+  const currentPage = Number(useSearchParams().get('page')) || 1;
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
   );
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     enabled: Boolean(userId),
-    queryKey: ['admin-referral-rewards', userId, sessionId, orgId],
-    queryFn: async () => (await getReferralsService()).getAdminRewards(),
+    queryKey: ['admin-referral-rewards', userId, sessionId, orgId, currentPage],
+    queryFn: async () =>
+      (await getReferralsService()).getAdminRewards({
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+      }),
   });
 
   useEffect(() => {
@@ -131,6 +139,11 @@ export default function ReferralRewardsList() {
           getRowKey={(reward) => reward.id}
           emptyLabel="No referral rewards found"
         />
+      )}
+      {error ? null : (
+        <div className="mt-4">
+          <AutoPagination showTotal totalLabel="rewards" />
+        </div>
       )}
     </AdminPageShell>
   );
