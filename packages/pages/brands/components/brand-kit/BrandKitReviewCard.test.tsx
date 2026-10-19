@@ -753,6 +753,43 @@ describe('BrandKitReviewCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('selects a proposed image in place and imports it from the field', async () => {
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+
+    await screen.findByRole('button', { name: 'Import Selected Assets' });
+    expandReviewSection('Logo');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select logo' }));
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Import Selected Assets' })[0],
+    );
+
+    await waitFor(() => {
+      expect(mocks.importBrandKitAssets).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          assets: [
+            expect.objectContaining({
+              candidateId: 'candidate-logo',
+              role: 'logo',
+            }),
+          ],
+        }),
+      );
+    });
+  });
+
   it('keeps authenticated evidence review compact and explicit', async () => {
     const { container } = render(
       <BrandKitReviewCard

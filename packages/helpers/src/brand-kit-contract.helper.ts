@@ -637,7 +637,7 @@ function createWebsiteAssetCandidates(
     const role: BrandKitAssetRole =
       url === scraped.logoUrl
         ? 'logo'
-        : url === (scraped.bannerUrl ?? scraped.ogImage)
+        : url === scraped.bannerUrl
           ? 'banner'
           : 'reference';
 
@@ -940,7 +940,7 @@ export function buildBrandKitDraftFromWebsiteScrape(
 
   const bannerValue = createWebsiteAssetValue(
     'banner',
-    scraped.bannerUrl ?? scraped.ogImage,
+    scraped.bannerUrl,
     'Website banner',
   );
 

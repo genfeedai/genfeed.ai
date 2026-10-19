@@ -85,6 +85,30 @@ describe('BrandWebsiteParserService', () => {
     });
   });
 
+  it('treats the og:image of a social profile as the logo, never the banner', () => {
+    const parsed = service.parseHtml(
+      `<html><head>
+        <meta property="og:image" content="https://pbs.twimg.com/profile_images/1/me_400x400.jpg">
+      </head><body><h1>Vincent</h1></body></html>`,
+      'https://x.com/VincentShipsIt',
+    );
+
+    expect(parsed.bannerUrl).toBeUndefined();
+    expect(parsed.logoUrl).toBe(
+      'https://pbs.twimg.com/profile_images/1/me_400x400.jpg',
+    );
+    expect(parsed.isLogoFromIcon).toBe(false);
+  });
+
+  it('still falls back to og:image as the banner on a brand site', () => {
+    const parsed = service.parseHtml(
+      `<html><head><meta property="og:image" content="/social-card.png"></head><body></body></html>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.bannerUrl).toBe('https://acme.example/social-card.png');
+  });
+
   it('matches social links by hostname and ignores redirects or non-web links', () => {
     const parsed = service.parseHtml(
       `<body>

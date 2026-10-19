@@ -115,6 +115,31 @@ export class BrandScraperHttp {
   }
 
   /**
+   * Read where a short link points without fetching the destination. Only the
+   * first hop is read, and `safeFetch` still validates the short link's host.
+   */
+  async resolveRedirectTarget(
+    url: string,
+    budget: WebsiteFetchBudget,
+  ): Promise<string | undefined> {
+    const response = await this.fetchOnce(
+      url,
+      { headers: { 'User-Agent': 'Genfeed-BrandScraper/1.0' }, method: 'HEAD' },
+      budget,
+    );
+
+    try {
+      const location = response.headers.get('location');
+
+      return REDIRECT_STATUS_CODES.has(response.status) && location
+        ? new URL(location, url).href
+        : undefined;
+    } finally {
+      await this.releaseWebsiteResponse(response);
+    }
+  }
+
+  /**
    * Fetch a URL with retry logic for rate-limited (429) responses.
    * Uses exponential backoff: delay * 2^attempt
    */
