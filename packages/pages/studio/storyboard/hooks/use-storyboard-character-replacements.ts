@@ -10,10 +10,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const empty: StoryboardCharacterReplacements = {
-  operations: [],
-  legacyReplacements: [],
-};
+const empty: StoryboardCharacterReplacements = { operations: [] };
 
 type CharacterContext = Pick<
   StoryboardCharacterReplaceProps,
@@ -215,12 +212,7 @@ function characterFallback(
   const accepted = new Set(
     collection.operations.flatMap((item) => item.acceptedRequestIds),
   );
-  return !accepted.has(fallback.requestId) &&
-    !collection.legacyReplacements.some(
-      (item) => item.requestId === fallback.requestId,
-    )
-    ? fallback
-    : undefined;
+  return accepted.has(fallback.requestId) ? undefined : fallback;
 }
 
 function characterVisibility(

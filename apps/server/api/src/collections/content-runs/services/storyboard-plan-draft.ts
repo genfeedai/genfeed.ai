@@ -4,7 +4,7 @@ import {
   type StoryboardCastMember,
   type StoryboardPlan,
   type StoryboardShot,
-  storyboardImportedPlanSchema,
+  storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { ConflictException } from '@nestjs/common';
 import { z } from 'zod';
@@ -285,7 +285,7 @@ export function assembleStoryboardDraft(
       else if (old.transition === 'stitch') shot.transition = 'stitch';
     });
 
-  const parsed = storyboardImportedPlanSchema.safeParse({
+  const parsed = storyboardPlanSchema.safeParse({
     ...current,
     title: output.title,
     logline: output.logline,

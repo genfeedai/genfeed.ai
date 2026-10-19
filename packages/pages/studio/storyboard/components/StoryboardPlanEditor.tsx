@@ -13,7 +13,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   type StoryboardShot,
-  storyboardImportedPlanSchema,
+  storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type {
   StoryboardEditablePlan,
@@ -215,7 +215,7 @@ export default function StoryboardPlanEditor({
 
   function edit(next: unknown) {
     if (isDisabled) return;
-    const parsed = storyboardImportedPlanSchema.safeParse(next);
+    const parsed = storyboardPlanSchema.safeParse(next);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message);
       return;

@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { storyboardImportedReferenceIdSchema } from '../../src/api-types/contracts/storyboard-migration.contract';
 import {
-  storyboardImportedPlanSchema,
   storyboardPlanSchema,
   updateStoryboardPlanSchema,
 } from '../../src/api-types/contracts/storyboard-plan.contract';
@@ -222,11 +220,7 @@ describe('Canonical storyboard contract', () => {
     };
     expect(storyboardRunConfigSchema.safeParse(config).success).toBe(false);
   });
-  it('preserves imported 4:5 while keeping new native intent formats unchanged', () => {
-    expect(
-      storyboardImportedPlanSchema.safeParse({ ...plan, format: '4:5' })
-        .success,
-    ).toBe(true);
+  it('keeps 4:5 out of native plan and creation formats', () => {
     expect(
       storyboardPlanSchema.safeParse({ ...plan, format: '4:5' }).success,
     ).toBe(false);
@@ -352,21 +346,5 @@ describe('Canonical storyboard contract', () => {
     expect(storyboardIdSchema.safeParse('operation/old key').success).toBe(
       false,
     );
-  });
-  it('preserves legacy reference bytes only in the read-only imported branch', () => {
-    for (const id of [
-      'asset/old key',
-      ' asset/old key ',
-      'scene:Mixed_ID',
-      's'.repeat(255),
-    ])
-      expect(storyboardImportedReferenceIdSchema.parse(id)).toBe(id);
-    expect(storyboardIdSchema.safeParse('asset/old key').success).toBe(false);
-    expect(storyboardImportedReferenceIdSchema.safeParse(' ').success).toBe(
-      false,
-    );
-    expect(
-      storyboardImportedReferenceIdSchema.safeParse('s'.repeat(256)).success,
-    ).toBe(false);
   });
 });

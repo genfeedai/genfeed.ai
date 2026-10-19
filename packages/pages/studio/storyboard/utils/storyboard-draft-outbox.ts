@@ -1,4 +1,4 @@
-import { storyboardImportedPlanDraftSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { storyboardPlanDraftSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import {
   storyboardIdSchema,
@@ -34,7 +34,7 @@ const scopeSchema = z
   .strict();
 const draftValidationSchema = z
   .object({
-    plan: storyboardImportedPlanDraftSchema,
+    plan: storyboardPlanDraftSchema,
     source: storyboardSourceSelectorSchema.or(
       z
         .object({

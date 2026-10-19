@@ -21,10 +21,7 @@ const {
 beforeEach(() => {
   vi.resetAllMocks();
   useService.mockReturnValue(getService);
-  listStoryboardCharacterReplacements.mockResolvedValue({
-    operations: [],
-    legacyReplacements: [],
-  });
+  listStoryboardCharacterReplacements.mockResolvedValue({ operations: [] });
   getService.mockResolvedValue({
     replaceStoryboardCharacter,
     listStoryboardCharacterReplacements,
@@ -125,7 +122,6 @@ describe('saved receipt inspection', () => {
     const { requestId: _id, ...unknown } = operation;
     listStoryboardCharacterReplacements.mockResolvedValue({
       operations: [{ ...unknown, acceptedRequestIds: [] }],
-      legacyReplacements: [],
     });
     getStoryboardCharacterReplacementStatus.mockResolvedValue({
       ...unknown,
@@ -167,7 +163,6 @@ describe('saved receipt inspection', () => {
           errorCode: 'private https://provider.invalid/secret',
         },
       ],
-      legacyReplacements: [],
     });
     render(
       <StoryboardCharacterReplace
@@ -191,32 +186,6 @@ describe('saved receipt inspection', () => {
       expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
     } else expect(link).toBeNull();
     expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
-  });
-  it('historical cache rows retain safe output without offering operation refresh', async () => {
-    listStoryboardCharacterReplacements.mockResolvedValue({
-      operations: [],
-      legacyReplacements: [
-        {
-          ...saved,
-          operationId: operation.operationId,
-          output: {
-            kind: 'provider_url',
-            url: 'https://fixture.invalid/result',
-            retained: false,
-          },
-        },
-      ],
-    });
-    render(
-      <StoryboardCharacterReplace
-        brandId="brand-1"
-        runId="run-1"
-        shotId="shot-1"
-      />,
-    );
-    expect(await screen.findByText('Historical request')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Refresh status' })).toBeNull();
-    expect(screen.queryByText(/Operation /)).toBeNull();
   });
   it('resets form on scope change and preserves user edits on same-scope saved updates', async () => {
     const { rerender } = render(

@@ -53,13 +53,9 @@ export const storyboardPlanDraftSchema = storyboardPlanSettingsSchema
     shots: z.array(storyboardShotSchema).max(12),
   })
   .strict();
-export const storyboardImportedPlanDraftSchema =
-  storyboardPlanDraftSchema.extend({
-    format: z.enum(['9:16', '16:9', '1:1', '4:5']),
-  });
 
 function validateStoryboardPlan(
-  plan: z.infer<typeof storyboardImportedPlanDraftSchema>,
+  plan: z.infer<typeof storyboardPlanDraftSchema>,
   ctx: z.RefinementCtx,
 ) {
   if (
@@ -124,12 +120,10 @@ function validateStoryboardPlan(
 export const storyboardPlanSchema = storyboardPlanDraftSchema.superRefine(
   validateStoryboardPlan,
 );
-export const storyboardImportedPlanSchema =
-  storyboardImportedPlanDraftSchema.superRefine(validateStoryboardPlan);
 export const updateStoryboardPlanSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
-    plan: storyboardImportedPlanSchema,
+    plan: storyboardPlanSchema,
     capabilityVersion: z
       .string()
       .regex(/^[a-f0-9]{64}$/)
@@ -139,7 +133,7 @@ export const updateStoryboardPlanSchema = z
 export type StoryboardPlanSettings = z.infer<
   typeof storyboardPlanSettingsSchema
 >;
-export type StoryboardPlan = z.infer<typeof storyboardImportedPlanSchema>;
+export type StoryboardPlan = z.infer<typeof storyboardPlanSchema>;
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
 export type StoryboardCastMember = z.infer<typeof storyboardCastMemberSchema>;
 export type UpdateStoryboardPlan = z.infer<typeof updateStoryboardPlanSchema>;

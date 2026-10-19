@@ -20,10 +20,7 @@ describe('character replacement controller', () => {
   it('uses authenticated organization for scoped read and never invokes submission', async () => {
     const getStatus = vi.fn(async () => ({ operationId: 'receipt' }));
     const replace = vi.fn();
-    const list = vi.fn(async () => ({
-      operations: [],
-      legacyReplacements: [],
-    }));
+    const list = vi.fn(async () => ({ operations: [] }));
     const controller = new StoryboardRunsController(
       {} as never,
       {} as never,
@@ -50,7 +47,7 @@ describe('character replacement controller', () => {
       await controller.characterReplacements('brand', 'run', 'shot', {
         organizationId: 'authenticated-org',
       } as never),
-    ).toEqual({ operations: [], legacyReplacements: [] });
+    ).toEqual({ operations: [] });
     expect(list).toHaveBeenCalledWith(
       'authenticated-org',
       'brand',

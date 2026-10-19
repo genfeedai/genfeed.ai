@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { storyboardMigrationReviewSchema } from './storyboard-migration.contract';
 import { storyboardRunStateSchema } from './storyboard-run.contract';
 import { storyboardIdSchema } from './storyboard-source.contract';
 
@@ -20,7 +19,6 @@ export const storyboardRunSummarySchema = z
     runtimeBudgetSeconds: z.number().positive().max(60).nullable(),
     approvalState: z.enum(['draft', 'approved']),
     state: storyboardRunStateSchema,
-    migrationReview: storyboardMigrationReviewSchema.nullable().optional(),
     updatedAt: z.string().datetime(),
   })
   .strict();

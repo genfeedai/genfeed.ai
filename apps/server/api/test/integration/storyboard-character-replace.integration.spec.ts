@@ -2,12 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { characterObservation } from '@api/collections/content-runs/services/storyboard-character-replace-state';
-import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
-import {
-  storyboardLegacyConfigSchema,
-  storyboardPublicConfig,
-  storyboardStoredRunConfigSchema,
-} from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import { storyboardPublicConfig } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
 import {
   StoryboardRunStoreService,
   storyboardJson,
@@ -672,45 +667,6 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
       ).requestId,
     ).toBe(result.requestId);
   });
-  it('legacy binding remains blocked after source changes without provider access', async () => {
-    const run = await fixture(),
-      a = client(prisma);
-    const { config } = await a.store.read(organizationId, brandId, run);
-    await a.store.save(organizationId, brandId, run, config, {
-      ...config,
-      characterReplacements: [
-        {
-          shotId: 'shot',
-          requestId: 'historical',
-          modelKey: 'higgsfield/genjutsu/motion-transfer/v1.0',
-          imageAssetIds: [imageId],
-          videoAssetId: videoId,
-          status: 'ready',
-          chargedCredits: 0,
-          limitations: ['No retention'],
-        },
-      ],
-    });
-    const before = posts,
-      startGets = gets;
-    const receipt = await replace(a, run);
-    expect(receipt.requestId).toBe('historical');
-    expect(receipt.status).toBe('blocked');
-    expect(receipt).not.toHaveProperty('output');
-    expect(
-      (
-        await a.service.getStatus(
-          organizationId,
-          brandId,
-          run,
-          'shot',
-          receipt.operationId ?? 'missing',
-        )
-      ).errorCode,
-    ).toBe('CHARACTER_REPLACEMENT_LEGACY_BINDING_UNKNOWN');
-    expect(posts).toBe(before);
-    expect(gets).toBe(startGets);
-  });
   it.each([
     ['failed', 'failed'],
     ['nsfw', 'failed'],
@@ -759,75 +715,6 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
     expect(op?.errorCode).toBe(
       'CHARACTER_REPLACEMENT_PROVIDER_IDEMPOTENCY_VIOLATION',
     );
-  });
-  it('migrated archive roundtrip keeps the complete internal journal and hides private evidence', async () => {
-    const run = await fixture(),
-      a = client(prisma);
-    await replace(a, run);
-    const { config } = await a.store.read(organizationId, brandId, run);
-    const original = storyboardLegacyConfigSchema.parse({
-      contract: 'brand-remix-run',
-      version: 1,
-      recipeVersion: 1,
-      revision: 1,
-      phase: 'prefilled',
-      readiness: { state: 'ready', issues: [] },
-      draft: {
-        fidelityMode: 'guided',
-        identity: {},
-        intent: { objective: 'Fixture' },
-        output: {
-          kind: 'video',
-          count: 1,
-          aspectRatio: '9:16',
-          durationSeconds: 8,
-        },
-        references: [],
-        reviewRequired: true,
-        target: { kind: 'organic', platform: 'tiktok' },
-      },
-      sourceSnapshot: {
-        capturedAt: '2026-10-01T00:00:00.000Z',
-        selector: { kind: 'source_post', sourcePostId: 'fixture-source' },
-        sourceId: 'fixture-source',
-        title: 'Fixture',
-        platform: 'tiktok',
-        metrics: {},
-        pattern: {},
-        evidence: [],
-      },
-    });
-    const migrated = storyboardStoredRunConfigSchema.parse({
-      ...config,
-      origin: 'migrated',
-      migration: {
-        version: 1,
-        sourceContract: 'brand-remix-run',
-        sourceVersion: 1,
-        sourceConfigHash: storyboardConfigHash(original),
-        migratedAt: new Date().toISOString(),
-        converterVersion: 1,
-      },
-      migrationReview: { status: 'clear', issues: [] },
-      importedPresentation: null,
-      importedState: { version: 1, originalConfig: original },
-    });
-    await a.store.save(organizationId, brandId, run, config, migrated);
-    const restored = (
-      await client(second).store.read(organizationId, brandId, run)
-    ).config;
-    expect(restored.importedState?.originalConfig).toEqual(original);
-    expect(restored.characterReplacementOperations).toEqual(
-      config.characterReplacementOperations,
-    );
-    const publicConfig = storyboardPublicConfig(restored);
-    expect(publicConfig).not.toHaveProperty('characterReplacementOperations');
-    expect(publicConfig).not.toHaveProperty('importedState');
-    await replace(client(second), run);
-    expect(
-      (await a.store.read(organizationId, brandId, run)).config.importedState
-        ?.originalConfig,
-    ).toEqual(original);
   });
   it('BullMQ redelivery after process reconstruction uses the durable original key', async () => {
     const run = await fixture(),
@@ -966,7 +853,6 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
         'sourceFingerprint',
         'intentHash',
         'signature=',
-        'importedState',
       ])
         expect(JSON.stringify(result)).not.toContain(privateKey);
     } finally {
@@ -1164,48 +1050,6 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
         },
       });
     }
-  });
-  it('discovery preserves detached legacy output and real operation IDs without adoption or status dispatch', async () => {
-    const run = await fixture(),
-      a = client(prisma);
-    const durable = await replace(a, run);
-    const { config } = await a.store.read(organizationId, brandId, run);
-    const historical = {
-      ...durable,
-      requestId: 'historical-only',
-      operationId: randomUUID(),
-      status: 'ready' as const,
-      output: {
-        kind: 'provider_url' as const,
-        url: 'https://fixture.invalid/historical',
-        retained: false as const,
-      },
-    };
-    await a.store.save(organizationId, brandId, run, config, {
-      ...config,
-      characterReplacements: [durable, historical],
-    });
-    const before = await second.contentRun.findUniqueOrThrow({
-      where: { id: run },
-    });
-    const startPosts = posts,
-      startGets = gets;
-    const result = await client(second).service.list(
-      organizationId,
-      brandId,
-      run,
-      'shot',
-    );
-    expect(result.legacyReplacements).toEqual([
-      { ...historical, association: 'detached' },
-    ]);
-    expect(result.operations).toHaveLength(1);
-    expect(
-      (await second.contentRun.findUniqueOrThrow({ where: { id: run } }))
-        .config,
-    ).toEqual(before.config);
-    expect(posts).toBe(startPosts);
-    expect(gets).toBe(startGets);
   });
   it('discovery propagates database failure without fabricating empty history or current association', async () => {
     const run = await fixture(),

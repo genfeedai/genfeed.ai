@@ -8,5 +8,4 @@ export const storyboardRunSummaryAttributes = [
   'approvalState',
   'state',
   'updatedAt',
-  'migrationReview',
 ];

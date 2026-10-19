@@ -1,9 +1,6 @@
 import { createHash } from 'node:crypto';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
-import {
-  type StoryboardStoredRunConfig,
-  storyboardLegacyState,
-} from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import { type StoryboardStoredRunConfig } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -37,8 +34,10 @@ import { Injectable } from '@nestjs/common';
 
 type StoryboardCapabilityConfig = Pick<
   StoryboardStoredRunConfig,
-  'revision' | 'origin' | 'importedState'
-> & { plan: Pick<StoryboardPlan, 'videoModelKey' | 'format'> | null };
+  'revision'
+> & {
+  plan: Pick<StoryboardPlan, 'videoModelKey' | 'format'>;
+};
 
 function canonical(value: unknown): string {
   if (value === null || typeof value !== 'object')
@@ -196,18 +195,8 @@ export class StoryboardRunCapabilitiesService {
       }),
     ]);
     const enabled = settings?.enabledModelIds ?? [];
-    const legacy = storyboardLegacyState(config);
-    const legacyOutput = legacy?.draft.output;
-    const format =
-      config.plan?.format ??
-      (legacyOutput && 'aspectRatio' in legacyOutput
-        ? legacyOutput.aspectRatio
-        : null);
-    const requestedModelKey =
-      config.plan?.videoModelKey ??
-      legacy?.scenePipeline?.quote?.items.find((line) => line.stage === 'video')
-        ?.model ??
-      null;
+    const { format } = config.plan;
+    const requestedModelKey = config.plan.videoModelKey;
     const visible = catalog.filter(
       (model) =>
         !model.organizationId || model.organizationId === organizationId,

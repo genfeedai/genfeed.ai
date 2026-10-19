@@ -16,9 +16,7 @@ import { STORYBOARD_DEFAULT_RUNTIME_BUDGET_SECONDS } from '@api/collections/cont
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import {
   approveStoryboardPlan,
-  assertStoryboardComplete,
   assertStoryboardEditable,
-  assertStoryboardPlan,
   editStoryboardPlan,
 } from '@api/collections/content-runs/services/storyboard-plan-state';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
@@ -51,7 +49,6 @@ import {
   type StoryboardRunSummary,
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
-import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -127,12 +124,6 @@ export class StoryboardRunsService {
                     },
                   },
                   { config: { path: ['createdByUserId'], equals: userId } },
-                  {
-                    OR: [
-                      { config: { path: ['origin'], equals: 'native' } },
-                      { config: { path: ['origin'], equals: Prisma.AnyNull } },
-                    ],
-                  },
                 ],
               }),
             });
@@ -277,27 +268,22 @@ export class StoryboardRunsService {
         storyboardRunSummarySchema.parse({
           id: record.id,
           brandId: record.brandId,
-          title: config.plan?.title ?? config.importedPresentation?.title ?? '',
+          title: config.plan.title,
           sourceLabel:
             kind === 'brief'
               ? 'brief'
               : kind === 'uploaded_video'
                 ? 'remix_upload'
                 : 'remix_discovery',
-          shotCount:
-            config.plan?.shots.length ??
-            config.importedPresentation?.shots.length ??
+          shotCount: config.plan.shots.length,
+          runtimeSeconds: config.plan.shots.reduce(
+            (sum, shot) => sum + (shot.durationSeconds ?? 0),
             0,
-          runtimeSeconds: (
-            config.plan?.shots ??
-            config.importedPresentation?.shots ??
-            []
-          ).reduce((sum, shot) => sum + (shot.durationSeconds ?? 0), 0),
-          runtimeBudgetSeconds: config.plan?.runtimeBudgetSeconds ?? null,
+          ),
+          runtimeBudgetSeconds: config.plan.runtimeBudgetSeconds,
           approvalState:
             config.approvedRevision === config.revision ? 'approved' : 'draft',
           state: config.state,
-          migrationReview: config.migrationReview ?? null,
           updatedAt: record.updatedAt.toISOString(),
         }),
       ];
@@ -318,28 +304,22 @@ export class StoryboardRunsService {
       input.expectedRevision,
     );
     assertStoryboardEditable(config);
-    const adoption =
-      config.origin === 'migrated' &&
-      (config.plan === null || config.migrationReview.status === 'required');
-    const previousPlan = config.plan ?? {
-      ...input.plan,
-      shots: [],
-      videoModelKey: null,
-    };
-    if (adoption) assertStoryboardComplete(input.plan);
+    const previousPlan = config.plan;
     const previousCapabilities = await this.capabilities.resolve(
       organizationId,
       brandId,
       runId,
       config,
     );
-    const nextCapabilities =
-      requiresStoryboardCapabilities(previousPlan, input.plan) || adoption
-        ? await this.capabilities.resolve(organizationId, brandId, runId, {
-            ...config,
-            plan: input.plan,
-          })
-        : previousCapabilities;
+    const nextCapabilities = requiresStoryboardCapabilities(
+      previousPlan,
+      input.plan,
+    )
+      ? await this.capabilities.resolve(organizationId, brandId, runId, {
+          ...config,
+          plan: input.plan,
+        })
+      : previousCapabilities;
     // The UI acknowledges the saved plan's capability snapshot before requesting a new model/format.
     if (
       input.capabilityVersion &&
@@ -354,18 +334,8 @@ export class StoryboardRunsService {
       input.plan,
       nextCapabilities,
       input.capabilityVersion ? nextCapabilities.capabilityVersion : undefined,
-      adoption,
     );
     const next = editStoryboardPlan(config, normalized);
-    if (adoption && next.origin === 'migrated') {
-      const issues = next.migrationReview.issues.filter(
-        (issue) => issue.code === 'LEGACY_STAGE_IDENTITY_MISSING',
-      );
-      next.migrationReview = {
-        status: issues.length ? 'required' : 'clear',
-        issues,
-      };
-    }
     await this.source.validatePlanAssets(organizationId, brandId, next.plan);
     return this.store.save(organizationId, brandId, runId, config, next);
   }
@@ -383,7 +353,6 @@ export class StoryboardRunsService {
       runId,
       input.expectedRevision,
     );
-    assertStoryboardPlan(config);
     if (!config.generatedPlan)
       throw new ConflictException(
         'This storyboard has no generated plan to restore.',
@@ -424,12 +393,6 @@ export class StoryboardRunsService {
       input.expectedRevision,
     );
     assertStoryboardEditable(config);
-    assertStoryboardPlan(config);
-    if (
-      config.origin === 'migrated' &&
-      config.migrationReview.status === 'required'
-    )
-      throw new ConflictException('STORYBOARD_MIGRATION_REVIEW_REQUIRED');
     const selector = config.sourceSnapshot.selector;
     // Uploaded and remix sources carry no written brief; analysis builds their plan.
     if (selector.kind !== 'brief')
@@ -501,7 +464,6 @@ export class StoryboardRunsService {
       runId,
       input.expectedRevision,
     );
-    assertStoryboardPlan(config);
     await this.source.revalidate(
       organizationId,
       brandId,
@@ -553,7 +515,6 @@ export class StoryboardRunsService {
       runId,
       input.expectedRevision,
     );
-    assertStoryboardPlan(config);
     if (config.scenePipeline)
       throw new ConflictException(
         'Source changes require reconciliation of the existing pipeline before replacement.',

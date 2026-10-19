@@ -80,7 +80,6 @@ const getCharacterService = vi.hoisted(() => {
     replaceStoryboardCharacter: vi.fn(),
     listStoryboardCharacterReplacements: vi.fn(async () => ({
       operations: [],
-      legacyReplacements: [],
     })),
     getStoryboardCharacterReplacementStatus: vi.fn(),
   };

@@ -82,7 +82,6 @@ export type StoryboardCharacterOperationReceipt = z.infer<
 export const storyboardCharacterReplacementsSchema = z
   .object({
     operations: z.array(storyboardCharacterOperationReceiptSchema).max(128),
-    legacyReplacements: z.array(storyboardCharacterReplacementSchema).max(12),
   })
   .strict();
 export type StoryboardCharacterReplacements = z.infer<

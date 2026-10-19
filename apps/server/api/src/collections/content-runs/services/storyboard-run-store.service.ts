@@ -36,8 +36,6 @@ export function projectStoryboardRun(
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     config,
-    migrationReview: config.migrationReview ?? null,
-    importedPresentation: config.importedPresentation ?? null,
   });
 }
 

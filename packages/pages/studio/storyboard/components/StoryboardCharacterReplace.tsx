@@ -128,25 +128,13 @@ export default function StoryboardCharacterReplace({
             {translate('replaceCharacterReadFailed')}
           </p>
         ) : null}
-        {!isReading &&
-        !collection.operations.length &&
-        !collection.legacyReplacements.length &&
-        !fallback ? (
+        {!isReading && !collection.operations.length && !fallback ? (
           <p>{translate('replaceCharacterEmptyHistory')}</p>
         ) : null}
         {collection.operations.map((receipt) =>
           renderReceipt(
             receipt,
             false,
-            translate,
-            isReading,
-            lifecycle.refreshStatus,
-          ),
-        )}
-        {collection.legacyReplacements.map((receipt) =>
-          renderReceipt(
-            receipt,
-            true,
             translate,
             isReading,
             lifecycle.refreshStatus,

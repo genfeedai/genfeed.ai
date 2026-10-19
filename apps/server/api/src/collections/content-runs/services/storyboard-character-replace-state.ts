@@ -29,8 +29,8 @@ export const characterOperationSchema = z
     imageAssetIds: z.array(z.string()).max(8),
     prompt: z.string(),
     modelKey: z.literal(STORYBOARD_CHARACTER_REPLACE_MODEL_KEY),
-    sourceVersion: version.optional(),
-    referenceVersions: z.array(version).optional(),
+    sourceVersion: version,
+    referenceVersions: z.array(version),
     shotFingerprint: z.string(),
     sourceFingerprint: z.string(),
     body: z
@@ -40,10 +40,8 @@ export const characterOperationSchema = z
         prompt: z.string(),
         resolution: z.string(),
       })
-      .strict()
-      .optional(),
-    credentialFingerprint: z.string().optional(),
-    legacy: z.literal(true).optional(),
+      .strict(),
+    credentialFingerprint: z.string(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
     leaseToken: z.string().optional(),
@@ -77,20 +75,7 @@ export const characterOperationSchema = z
         .strict(),
     ),
   })
-  .strict()
-  .superRefine((op, ctx) => {
-    if (
-      !op.legacy &&
-      (!op.body ||
-        !op.credentialFingerprint ||
-        !op.sourceVersion ||
-        !op.referenceVersions)
-    )
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Submission identity is required',
-      });
-  });
+  .strict();
 export const characterJournalSchema = z
   .array(characterOperationSchema)
   .max(CHARACTER_JOURNAL_CAPACITY);

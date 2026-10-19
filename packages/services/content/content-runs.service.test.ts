@@ -658,7 +658,7 @@ describe('character receipt read adapters', () => {
   it('encodes collection paths, forwards cancellation and never POSTs', async () => {
     const service = new ContentRunsService('token');
     const signal = new AbortController().signal;
-    const data = { operations: [receipt], legacyReplacements: [] };
+    const data = { operations: [receipt] };
     mockGet.mockResolvedValueOnce({ data });
     expect(
       await service.listStoryboardCharacterReplacements(
@@ -709,7 +709,6 @@ describe('character receipt read adapters', () => {
     mockGet.mockResolvedValueOnce({
       data: {
         operations: [{ ...receipt, credentialFingerprint: 'private' }],
-        legacyReplacements: [],
       },
     });
     await expect(

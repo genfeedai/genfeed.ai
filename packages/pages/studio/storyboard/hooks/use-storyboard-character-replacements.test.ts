@@ -27,7 +27,7 @@ const receipt = {
   limitations: ['No audio'],
 };
 const saved = { ...receipt, requestId: 'saved', prompt: 'Walk' };
-const empty = { operations: [], legacyReplacements: [] };
+const empty = { operations: [] };
 function deferred<T>() {
   let resolve: (value: T) => void = () => undefined;
   let reject: (error: Error) => void = () => undefined;
@@ -312,10 +312,7 @@ describe('same-scope authenticated service transitions', () => {
   it.each(['resolve', 'reject'] as const)(
     'ignores old authenticated GET %s, including finally, while the new actor reads',
     async (outcome) => {
-      const old = deferred<{
-        operations: (typeof receipt)[];
-        legacyReplacements: never[];
-      }>();
+      const old = deferred<{ operations: (typeof receipt)[] }>();
       const fresh = deferred<typeof empty>();
       mocks.list
         .mockReturnValueOnce(old.promise)

@@ -3,10 +3,7 @@ import type { CharacterOperation } from '@api/collections/content-runs/services/
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
-import {
-  STORYBOARD_CHARACTER_REPLACE_LIMITATIONS,
-  STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
-} from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
+import { STORYBOARD_CHARACTER_REPLACE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -204,29 +201,6 @@ describe('durable character replacement', () => {
       }),
     });
   });
-  it('imports legacy without polling or resubmitting after a source edit', async () => {
-    const h = harness();
-    h.set({
-      ...config(),
-      characterReplacements: [
-        {
-          shotId: 'shot-1',
-          imageAssetIds: ['img-a'],
-          videoAssetId: 'historical-video',
-          requestId: 'historical',
-          status: 'ready',
-        },
-      ],
-    });
-    const result = await replace(h);
-    expect(result).toMatchObject({
-      requestId: 'historical',
-      videoAssetId: 'historical-video',
-      status: 'blocked',
-    });
-    expect(h.generate).not.toHaveBeenCalled();
-    expect(h.status).not.toHaveBeenCalled();
-  });
   it('scopes status and never submits through GET', async () => {
     const h = harness();
     const result = await replace(h);
@@ -407,7 +381,7 @@ describe('database-only character discovery', () => {
       expect(JSON.stringify(result)).not.toContain(secret);
     noDiscoverySideEffects(h);
   });
-  it('filters every identity, orders durable history and preserves detached legacy evidence', async () => {
+  it('filters every identity and orders durable history', async () => {
     const h = harness();
     const old = discoveryOperation({
       receipts: [{ requestId: 'accepted', status: 'queued' }],
@@ -415,7 +389,6 @@ describe('database-only character discovery', () => {
     const recent = discoveryOperation({
       operationId: 'f22c0c2f-59fa-41d8-b393-a808f65e0b53',
       createdAt: '2026-10-02T00:00:00.000Z',
-      legacy: true,
     });
     const foreign = ['organizationId', 'brandId', 'runId', 'shotId'].map(
       (key) =>
@@ -430,41 +403,16 @@ describe('database-only character discovery', () => {
           ],
         }),
     );
-    const legacy = {
-      shotId: 'shot-1',
-      requestId: 'historical',
-      modelKey: STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
-      imageAssetIds: ['img-a'],
-      videoAssetId: 'video-1',
-      prompt: 'Old',
-      status: 'ready',
-      operationId: 'f22c0c2f-59fa-41d8-b393-a808f65e0b54',
-      output: {
-        kind: 'provider_url',
-        url: 'https://fixture.invalid/temporary',
-        retained: false,
-      },
-      chargedCredits: 0,
-      limitations: [...STORYBOARD_CHARACTER_REPLACE_LIMITATIONS],
-    };
     h.set({
       ...config(),
       characterReplacementOperations: [old, ...foreign, recent],
-      characterReplacements: [
-        { ...legacy, requestId: 'accepted' },
-        legacy,
-        { ...legacy, shotId: 'foreign' },
-      ],
     });
     const result = await h.service.list('org', 'brand', 'run', 'shot-1');
     expect(result.operations.map((op) => op.operationId)).toEqual([
       recent.operationId,
       old.operationId,
     ]);
-    expect(result.operations[0].association).toBe('detached');
-    expect(result.legacyReplacements).toEqual([
-      { ...legacy, association: 'detached' },
-    ]);
+    expect(result.operations[0].association).toBe('current');
     expect(JSON.stringify(result)).not.toContain('foreign');
     noDiscoverySideEffects(h);
   });
@@ -472,7 +420,6 @@ describe('database-only character discovery', () => {
     const h = harness();
     expect(await h.service.list('org', 'brand', 'run', 'missing')).toEqual({
       operations: [],
-      legacyReplacements: [],
     });
     h.set({
       ...config(),

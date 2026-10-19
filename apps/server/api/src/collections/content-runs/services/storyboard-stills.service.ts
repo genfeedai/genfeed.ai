@@ -5,11 +5,7 @@ import {
   type StoryboardStoredRunConfig,
   storyboardStoredRunConfigSchema,
 } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
-import {
-  assertStoryboardEditable,
-  assertStoryboardPlan,
-  type StoryboardEditableConfig,
-} from '@api/collections/content-runs/services/storyboard-plan-state';
+import { assertStoryboardEditable } from '@api/collections/content-runs/services/storyboard-plan-state';
 import {
   projectStoryboardRun,
   StoryboardRunStoreService,
@@ -124,7 +120,6 @@ export class StoryboardStillsService {
       throw new ConflictException(
         'The storyboard or the still price changed. Review the new quote.',
       );
-    assertStoryboardPlan(config);
     await this.source.validatePlanAssets(organizationId, brandId, config.plan);
     const now = new Date().toISOString();
     const operations: StillOperation[] = quote.items.map((item) => {
@@ -153,7 +148,7 @@ export class StoryboardStillsService {
         throw new ConflictException(
           'The storyboard changed. Review the new quote.',
         );
-      const plan = this.draftPlan(current).plan;
+      const { plan } = current;
       const ids = new Set(quote.items.map((item) => item.shotId));
       if (
         plan.shots.some(
@@ -214,19 +209,12 @@ export class StoryboardStillsService {
     return next;
   }
 
-  private draftPlan(
-    config: StoryboardStoredRunConfig,
-  ): StoryboardEditableConfig {
-    assertStoryboardPlan(config);
-    return config;
-  }
-
   private async buildQuote(
     organizationId: string,
     config: StoryboardStoredRunConfig,
     shotIds?: readonly string[],
   ): Promise<StoryboardStillQuote> {
-    const { plan } = this.draftPlan(config);
+    const { plan } = config;
     if (config.state !== 'storyboard')
       throw new ConflictException(
         'Stills can be generated only while the storyboard is a draft. Edit the plan first.',

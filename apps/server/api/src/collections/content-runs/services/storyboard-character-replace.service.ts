@@ -131,7 +131,6 @@ export class StoryboardCharacterReplaceService {
     op: CharacterOperation,
   ): Promise<boolean> {
     if (!characterStructuralAssociation(config, op)) return false;
-    if (op.legacy) return false;
     try {
       const source = await this.versions(
         org,
@@ -200,19 +199,7 @@ export class StoryboardCharacterReplaceService {
     const operations = journal.map((op) =>
       characterReceipt(op, current.has(op.operationId)),
     );
-    const accepted = new Set(operations.flatMap((op) => op.acceptedRequestIds));
-    const legacyReplacements = (config.characterReplacements ?? [])
-      .filter((item) => item.shotId === shot && !accepted.has(item.requestId))
-      .map((item) =>
-        storyboardCharacterReplacementSchema.parse({
-          ...item,
-          association: 'detached',
-        }),
-      );
-    return storyboardCharacterReplacementsSchema.parse({
-      operations,
-      legacyReplacements,
-    });
+    return storyboardCharacterReplacementsSchema.parse({ operations });
   }
   private async discoveryAssociations(
     org: string,
@@ -220,8 +207,8 @@ export class StoryboardCharacterReplaceService {
     config: StoryboardStoredRunConfig,
     journal: CharacterOperation[],
   ): Promise<Set<string>> {
-    const candidates = journal.filter(
-      (op) => !op.legacy && characterStructuralAssociation(config, op),
+    const candidates = journal.filter((op) =>
+      characterStructuralAssociation(config, op),
     );
     const ids = [
       ...new Set(
@@ -287,7 +274,7 @@ export class StoryboardCharacterReplaceService {
         op.organizationId === org,
     );
     if (!op) throw new NotFoundException('Character replacement', opId);
-    if (op.receipts[0] && op.credentialFingerprint && !op.legacy) {
+    if (op.receipts[0] && op.credentialFingerprint) {
       try {
         const observation = await this.higgsField.getBoundRequestStatus(
           op.receipts[0].requestId,
@@ -354,19 +341,6 @@ export class StoryboardCharacterReplaceService {
       (op.prompt ?? '') === input.prompt &&
       storyboardConfigHash([...new Set(op.imageAssetIds)]) ===
         storyboardConfigHash(input.imageAssetIds);
-    config = await this.adoptLegacyOperation(
-      org,
-      brand,
-      run,
-      shotId,
-      config,
-      input,
-      semantic,
-    );
-    const historical = config.characterReplacementOperations?.find(
-      (op) => semantic(op) && op.legacy,
-    );
-    if (historical) return this.success(historical, config, false);
     const ambiguous = config.characterReplacementOperations?.find(
       (op) =>
         op.shotId === shotId &&
@@ -449,72 +423,7 @@ export class StoryboardCharacterReplaceService {
         'CHARACTER_REPLACEMENT_INPUT_CHANGED',
       );
     }
-    return this.submitClaimedReplacement(org, brand, run, shotId, config, op);
-  }
-  private async adoptLegacyOperation(
-    org: string,
-    brand: string,
-    run: string,
-    shotId: string,
-    config: StoryboardStoredRunConfig,
-    input: Required<ReplaceStoryboardCharacter>,
-    semantic: (
-      op: Pick<
-        StoryboardCharacterReplacement,
-        'shotId' | 'imageAssetIds' | 'prompt'
-      >,
-    ) => boolean,
-  ): Promise<StoryboardStoredRunConfig> {
-    const legacy = config.characterReplacements?.find(
-      (item) =>
-        semantic(item) &&
-        !(config.characterReplacementOperations ?? []).some((op) =>
-          op.receipts.some((r) => r.requestId === item.requestId),
-        ),
-    );
-    if (legacy) {
-      const now = new Date().toISOString();
-      const legacyOp: CharacterOperation = {
-        version: 1,
-        operationId: randomUUID(),
-        intentHash: storyboardConfigHash({ legacy: legacy.requestId }),
-        organizationId: org,
-        brandId: brand,
-        runId: run,
-        shotId,
-        videoAssetId: legacy.videoAssetId,
-        imageAssetIds: input.imageAssetIds,
-        prompt: input.prompt,
-        modelKey: STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
-        legacy: true,
-        shotFingerprint: storyboardConfigHash(
-          config.plan?.shots.find((s) => s.id === shotId),
-        ),
-        sourceFingerprint: storyboardConfigHash(config.sourceSnapshot),
-        createdAt: now,
-        updatedAt: now,
-        state: 'blocked',
-        errorCode: 'CHARACTER_REPLACEMENT_LEGACY_BINDING_UNKNOWN',
-        receipts: [{ requestId: legacy.requestId, status: 'queued' }],
-      };
-      config = await this.mutate(org, brand, run, (current) => {
-        if ((current.characterReplacementOperations ?? []).some(semantic))
-          return current;
-        if (
-          (current.characterReplacementOperations?.length ?? 0) >=
-          CHARACTER_JOURNAL_CAPACITY
-        )
-          throw new ConflictException('CHARACTER_REPLACEMENT_JOURNAL_FULL');
-        return {
-          ...current,
-          characterReplacementOperations: [
-            ...(current.characterReplacementOperations ?? []),
-            legacyOp,
-          ],
-        };
-      });
-    }
-    return config;
+    return this.submitClaimedReplacement(org, brand, run, shotId, op);
   }
   private async prepareReplacementIdentity(
     org: string,
@@ -682,15 +591,8 @@ export class StoryboardCharacterReplaceService {
     brand: string,
     run: string,
     shotId: string,
-    config: StoryboardStoredRunConfig,
     op: CharacterOperation,
   ): Promise<StoryboardCharacterReplacement> {
-    if (!op.body || !op.credentialFingerprint)
-      return this.conflict(
-        op,
-        config,
-        'CHARACTER_REPLACEMENT_LEGACY_BINDING_UNKNOWN',
-      );
     let started = false;
     let submitted: Awaited<
       ReturnType<HiggsFieldService['generateMotionTransfer']>

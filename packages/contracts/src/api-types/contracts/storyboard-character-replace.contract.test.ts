@@ -18,30 +18,8 @@ const receipt = {
   limitations: ['No audio'],
 };
 describe('character discovery contract', () => {
-  it('roundtrips unknown-ID and optional historical evidence', () => {
-    const input = {
-      operations: [receipt],
-      legacyReplacements: [
-        {
-          ...receipt,
-          acceptedRequestIds: undefined,
-          runId: undefined,
-          requestId: 'historical',
-          prompt: 'Walk',
-          output: {
-            kind: 'provider_url',
-            url: 'https://fixture.invalid/result',
-            retained: false,
-          },
-        },
-      ],
-    };
-    const {
-      acceptedRequestIds: _ids,
-      runId: _run,
-      ...legacy
-    } = input.legacyReplacements[0];
-    const value = { ...input, legacyReplacements: [legacy] };
+  it('roundtrips a receipt without a request ID', () => {
+    const value = { operations: [receipt] };
     expect(storyboardCharacterReplacementsSchema.parse(value)).toEqual(value);
     expect(
       storyboardCharacterReplacementsSchema.parse(value).operations[0]
@@ -58,7 +36,6 @@ describe('character discovery contract', () => {
     expect(
       storyboardCharacterReplacementsSchema.safeParse({
         operations: [{ ...receipt, [key]: 'private' }],
-        legacyReplacements: [],
       }).success,
     ).toBe(false);
   });
@@ -66,26 +43,22 @@ describe('character discovery contract', () => {
     expect(
       storyboardCharacterReplacementsSchema.safeParse({
         operations: Array(128).fill(receipt),
-        legacyReplacements: [],
       }).success,
     ).toBe(true);
     expect(
       storyboardCharacterReplacementsSchema.safeParse({
         operations: Array(129).fill(receipt),
-        legacyReplacements: [],
       }).success,
     ).toBe(false);
     expect(
       storyboardCharacterReplacementsSchema.safeParse({
         operations: [],
-        legacyReplacements: [],
         journal: [],
       }).success,
     ).toBe(false);
     expect(
       storyboardCharacterReplacementsSchema.safeParse({
         operations: [{ ...receipt, status: 'invented' }],
-        legacyReplacements: [],
       }).success,
     ).toBe(false);
   });
