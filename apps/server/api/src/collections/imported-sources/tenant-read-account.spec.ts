@@ -24,6 +24,7 @@ import type { ProfilesService } from '@api/collections/profiles/services/profile
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
@@ -362,9 +363,10 @@ describe('account selected data and original authorization', () => {
       { id: testId('invitation'), organizationId: originalOrg },
       { id: testId('invitation', 2), organizationId: selectedOrg },
     ];
-    const listInvitations = vi.fn(async (org: string) =>
-      invitations.filter((r) => r.organizationId === org),
-    );
+    const listInvitations = vi.fn(async (org: string) => {
+      const docs = invitations.filter((r) => r.organizationId === org);
+      return buildPaginatedResult(docs, docs.length, 1, 20);
+    });
     const controller = instance(MembersController.prototype, {
       invitationService: { listInvitations },
     });
