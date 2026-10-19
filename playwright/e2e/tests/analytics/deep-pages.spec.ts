@@ -247,12 +247,17 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.gotoSection('insights');
 
       await expect(authenticatedPage).toHaveURL(/insights/);
-      // The page title lives in the Analytics sub-topbar (outside `main`), so
-      // the only "AI Insights" heading in `main` is the insights feed card.
-      await expect(analyticsPage.sectionHeading('AI Insights')).toHaveCount(1);
+      // The shell breadcrumb is the only page title: the feed card and the
+      // inbox carry no heading of their own, and an empty inbox renders
+      // nothing so the page's empty state speaks once.
+      await expect(analyticsPage.breadcrumbLeaf('Insights')).toBeVisible();
+      await expect(analyticsPage.insightsListCard).toBeVisible();
       await expect(
-        analyticsPage.sectionHeading('Social intelligence inbox'),
-      ).toBeVisible();
+        authenticatedPage.getByRole('region', {
+          name: 'Social intelligence inbox',
+        }),
+      ).toHaveCount(1);
+      await expect(analyticsPage.sectionHeading('AI Insights')).toHaveCount(0);
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -341,9 +346,9 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.gotoSection('hooks');
 
       await expect(authenticatedPage).toHaveURL(/hooks/);
-      await expect(analyticsPage.sectionHeading('Viral Hooks')).toBeVisible();
+      await expect(analyticsPage.breadcrumbLeaf('Hooks')).toBeVisible();
       await expect(
-        analyticsPage.sectionHeading('Post Hook Breakdown'),
+        analyticsPage.sectionHeading('Post hook breakdown'),
       ).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
@@ -371,8 +376,9 @@ test.describe('Analytics Deep Pages', () => {
       await expect(rows).toHaveCount(1);
       await expect(rows).toContainText('Launch day recap');
       await expect(rows).toContainText(LAUNCH_HOOK);
-      await expect(rows.getByRole('img', { name: 'TikTok' })).toBeVisible();
-      await expect(rows.getByRole('img', { name: 'Instagram' })).toBeVisible();
+      // The platform badges are icon-only with a screen-reader label.
+      await expect(rows.getByText('TikTok', { exact: true })).toHaveCount(1);
+      await expect(rows.getByText('Instagram', { exact: true })).toHaveCount(1);
       await expect(rows).toContainText('12.0k');
       await expect(rows).toContainText('887');
 
@@ -448,9 +454,12 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/performance-lab/);
+      // The breadcrumb is the page title; the page publishes its filters into
+      // the subbar, so an empty shell still fails.
       await expect(
-        analyticsPage.sectionHeading('Performance Lab'),
+        analyticsPage.breadcrumbLeaf('Performance Lab'),
       ).toBeVisible();
+      await expect(analyticsPage.filtersButton).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -476,11 +485,10 @@ test.describe('Analytics Deep Pages', () => {
       await expect(
         analyticsPage.sectionHeading('No patterns found'),
       ).toBeVisible();
+      // An empty collection is the empty state, not the load-error alert.
       await expect(
-        authenticatedPage.getByText(
-          'No creative patterns available yet. Patterns are extracted from your performance data.',
-        ),
-      ).toBeVisible();
+        authenticatedPage.getByText('Failed to load patterns'),
+      ).toHaveCount(0);
       expect(seen.length).toBeGreaterThan(0);
     });
   });
@@ -577,7 +585,8 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/analytics\/posts/);
-      await expect(analyticsPage.sectionHeading('Top Posts')).toBeVisible();
+      await expect(analyticsPage.breadcrumbLeaf('Posts')).toBeVisible();
+      await expect(analyticsPage.postCards).toHaveCount(2);
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -594,10 +603,11 @@ test.describe('Analytics Deep Pages', () => {
       await expect(
         authenticatedPage.getByPlaceholder('Search posts...'),
       ).toBeVisible();
+      // Platform lives in the shared Filters menu in the subbar; with no
+      // filter applied its summary reads "All".
+      await analyticsPage.filtersButton.click();
       await expect(
-        authenticatedPage.getByRole('combobox', {
-          name: 'Filter post analytics by platform',
-        }),
+        authenticatedPage.getByRole('menuitem', { name: /^Platform/ }),
       ).toContainText('All');
     });
 
@@ -613,22 +623,21 @@ test.describe('Analytics Deep Pages', () => {
 
       // `mockAnalyticsData` seeds two posts via `/analytics/top` (see
       // genfeedai/genfeed.ai#5404 for why the mock's field names matter).
-      const rows = authenticatedPage.locator('main table tbody tr');
-      await expect(rows).toHaveCount(2);
+      // Posts render as a paginated card grid with compact counts.
+      const cards = analyticsPage.postCards;
+      await expect(cards).toHaveCount(2);
 
-      const firstRow = rows.filter({ hasText: 'Launch day recap' });
-      await expect(firstRow).toContainText('Brand 1');
-      await expect(firstRow).toContainText('tiktok');
-      await expect(firstRow).toContainText('12,000');
-      await expect(firstRow).toContainText('887');
-      await expect(firstRow).toContainText('7.40%');
+      const firstCard = cards.filter({ hasText: 'Launch day recap' });
+      await expect(firstCard).toContainText('Brand 1');
+      await expect(firstCard).toContainText('tiktok');
+      await expect(firstCard).toContainText('12.0k');
+      await expect(firstCard).toContainText('887');
+      await expect(firstCard).toContainText('7.40%');
 
-      const secondRow = rows.filter({ hasText: 'Behind the scenes' });
-      await expect(secondRow).toContainText('8,000');
+      const secondCard = cards.filter({ hasText: 'Behind the scenes' });
+      await expect(secondCard).toContainText('8.0k');
 
-      await expect(
-        authenticatedPage.locator('main [data-testid="table-empty"]'),
-      ).toHaveCount(0);
+      await expect(authenticatedPage.getByTestId('card-empty')).toHaveCount(0);
     });
 
     test('should filter posts by platform', async ({ authenticatedPage }) => {
@@ -647,15 +656,10 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      const rows = authenticatedPage.locator('main table tbody tr');
-      await expect(rows).toHaveCount(2);
+      const cards = analyticsPage.postCards;
+      await expect(cards).toHaveCount(2);
 
-      await authenticatedPage
-        .getByRole('combobox', { name: 'Filter post analytics by platform' })
-        .click();
-      await authenticatedPage
-        .getByRole('option', { exact: true, name: 'Instagram' })
-        .click();
+      await analyticsPage.selectFilter('Platform', 'Instagram');
 
       await expect
         .poll(() =>
@@ -664,13 +668,17 @@ test.describe('Analytics Deep Pages', () => {
           ),
         )
         .toBe(true);
-      await expect(rows).toHaveCount(1);
-      await expect(rows).toContainText('Behind the scenes');
-      await expect(rows).toContainText('instagram');
+      await expect(cards).toHaveCount(1);
+      await expect(cards).toContainText('Behind the scenes');
+      await expect(cards).toContainText('instagram');
+      // The menu reports the applied filter: a count badge on the trigger and
+      // the chosen option in the facet's summary.
+      await expect(analyticsPage.filtersButton).toContainText(
+        '1 active filter',
+      );
+      await analyticsPage.filtersButton.click();
       await expect(
-        authenticatedPage.getByRole('combobox', {
-          name: 'Filter post analytics by platform',
-        }),
+        authenticatedPage.getByRole('menuitem', { name: /^Platform/ }),
       ).toContainText('Instagram');
     });
 
@@ -694,12 +702,11 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
+      await expect(authenticatedPage.getByTestId('card-empty')).toBeVisible();
       await expect(
-        authenticatedPage.locator('main [data-testid="table-empty"]'),
+        authenticatedPage.getByText('No posts found for this period'),
       ).toBeVisible();
-      await expect(
-        authenticatedPage.locator('main table tbody tr'),
-      ).toHaveCount(0);
+      await expect(analyticsPage.postCards).toHaveCount(0);
       expect(seen.length).toBeGreaterThan(0);
     });
   });
