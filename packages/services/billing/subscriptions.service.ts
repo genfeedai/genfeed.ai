@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { Subscription } from '@genfeedai/models/billing/subscription.model';
+import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import type { AxiosRequestConfig } from 'axios';
 
@@ -61,8 +62,20 @@ export class SubscriptionsService extends BaseService<Subscription> {
     return res.data.data;
   }
 
-  public async getCreditUsage(): Promise<OrganizationCreditUsageResponse> {
-    const res = await this.instance.get('admin/credit-usage');
+  public async getCreditUsage(
+    query?: { limit?: number; page?: number },
+    signal?: AbortSignal,
+  ): Promise<OrganizationCreditUsageResponse> {
+    const res = await this.instance.get<OrganizationCreditUsageResponse>(
+      'admin/credit-usage',
+      { params: query, signal },
+    );
+    // Feeds AutoPagination, which reads the totals from PagesService.
+    if (query?.page) {
+      PagesService.setCurrentPage(res.data.page);
+      PagesService.setTotalPages(res.data.totalPages);
+      PagesService.setTotalDocs(res.data.totalDocs);
+    }
     return res.data;
   }
 }

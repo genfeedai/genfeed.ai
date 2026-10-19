@@ -27,6 +27,13 @@ const DEFAULT_LIBRARY_ASSET_STATUSES = [
   IngredientStatus.VALIDATED,
 ] as const;
 
+const ALL_ASSETS_TYPE = 'ingredients';
+
+/** The admin library opens on every asset type; brand scopes keep Videos. */
+function getFallbackType(scope: PageScope): string {
+  return scope === PageScope.SUPERADMIN ? ALL_ASSETS_TYPE : 'videos';
+}
+
 function getIngredientTypeFromPathname(pathname: string | null): string | null {
   if (!pathname) {
     return null;
@@ -95,14 +102,14 @@ export function useIngredientsLayout({
         'voices',
         'ingredients',
       ].find((value) => value === searchParams?.get('assetType')) ??
-      (searchParams?.has('assetType') ? 'videos' : null) ??
+      (searchParams?.has('assetType') ? getFallbackType(scope) : null) ??
       getIngredientTypeFromPathname(pathname);
 
     // Default format to "all" (empty string) - don't force format filter
     const defaultFormat = formatParam || '';
 
     const initialIngredientType =
-      defaultType ?? routeIngredientType ?? 'videos';
+      defaultType ?? routeIngredientType ?? getFallbackType(scope);
 
     // Default statuses live in state only (not URL) so clean library links
     // stay clean. Voices load without implicit status narrowing.
@@ -147,7 +154,7 @@ export function useIngredientsLayout({
     setQuery(next.query);
   }, [getInitialState]);
   const [selectedIngredientType, setIngredientType] = useState(
-    defaultType ?? 'videos',
+    defaultType ?? getFallbackType(scope),
   );
   const routeIngredientType = useMemo(
     () =>
@@ -160,9 +167,9 @@ export function useIngredientsLayout({
         'voices',
         'ingredients',
       ].find((value) => value === searchParams?.get('assetType')) ??
-      (searchParams?.has('assetType') ? 'videos' : null) ??
+      (searchParams?.has('assetType') ? getFallbackType(scope) : null) ??
       getIngredientTypeFromPathname(pathname),
-    [pathname, searchParams],
+    [pathname, scope, searchParams],
   );
   const ingredientType =
     defaultType ?? routeIngredientType ?? selectedIngredientType;

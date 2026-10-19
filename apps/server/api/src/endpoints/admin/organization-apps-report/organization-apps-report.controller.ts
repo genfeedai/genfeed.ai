@@ -1,10 +1,14 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { OrganizationAppsReportService } from '@api/endpoints/admin/organization-apps-report/organization-apps-report.service';
+import {
+  PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { OrganizationAppsReportSerializer } from '@genfeedai/serializers';
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -20,8 +24,8 @@ export class OrganizationAppsReportController {
     summary:
       'Read-only report of the apps each organization sees, with release flags and per-organization switches',
   })
-  async getReport(@Req() request: Request) {
-    const report = await this.reportService.getReport();
+  async getReport(@Req() request: Request, @Query() query: PaginationQueryDto) {
+    const report = await this.reportService.getReport(resolvePageWindow(query));
     return serializeSingle(request, OrganizationAppsReportSerializer, report);
   }
 }

@@ -19,6 +19,7 @@ import type { ModalBlacklistProps } from '@genfeedai/props/modals/modal.props';
 import { BlacklistsService } from '@genfeedai/services/elements/blacklists.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
+import ElementPlatformFields from '@ui/modals/elements/shared/ElementPlatformFields';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -46,6 +47,7 @@ export default function ModalBlacklist({
       isDefault: false,
       key: '',
       label: '',
+      sortOrder: 0,
     },
     entity: item || null,
     modalId: ModalEnum.BLACKLIST,
@@ -171,6 +173,18 @@ export default function ModalBlacklist({
             bar
           </p>
         </div>
+
+        <ElementPlatformFields
+          isActive={form.watch('isActive') ?? true}
+          isDisabled={isSubmitting}
+          onIsActiveChange={(isActive) =>
+            form.setValue('isActive', isActive, { shouldValidate: true })
+          }
+          onSortOrderChange={(sortOrder) =>
+            form.setValue('sortOrder', sortOrder, { shouldValidate: true })
+          }
+          sortOrder={form.watch('sortOrder') ?? 0}
+        />
 
         <ModalActions>
           <Button

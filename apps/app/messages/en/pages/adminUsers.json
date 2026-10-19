@@ -8,6 +8,7 @@
   },
   "description": "Manage user accounts, roles, and permissions across the platform",
   "empty": "No users found",
+  "totalLabel": "users",
   "impersonate": "Impersonate",
   "impersonateFailed": "Failed to impersonate user",
   "never": "Never",

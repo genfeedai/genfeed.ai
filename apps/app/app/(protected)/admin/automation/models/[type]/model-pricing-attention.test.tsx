@@ -5,11 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { ModelsListProps } from '@props/admin/models.props';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import FixPricingButton from './fix-pricing-button';
+import AdminModelsPageContent from './admin-models-page-content';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
 import ModelPricingDetails from './model-pricing-details';
 
+const listProps = vi.hoisted(() => ({
+  current: undefined as ModelsListProps | undefined,
+}));
 const fixture = vi.hoisted(() => ({
   approveRates: vi.fn(),
   fixPricing: vi.fn(),
@@ -39,6 +43,12 @@ vi.mock('@services/core/notifications.service', () => ({
       error: fixture.notifyError,
       success: fixture.notifySuccess,
     }),
+  },
+}));
+vi.mock('@pages/models/list/models-list', () => ({
+  default: (props: ModelsListProps) => {
+    listProps.current = props;
+    return null;
   },
 }));
 vi.mock('@services/admin/model-pricing.service', () => ({
@@ -161,6 +171,7 @@ beforeEach(() => {
   fixture.fixPricing.mockResolvedValue({
     approved: [],
     changed: [],
+    repaired: [],
     syncQueued: [],
     unresolved: [],
   });
@@ -253,6 +264,7 @@ describe('fix all pricing', () => {
     fixture.fixPricing.mockResolvedValue({
       approved: [{ id: 'orange', key: 'minimax/hailuo-2.3-fast' }],
       changed: [],
+      repaired: [],
       syncQueued: [],
       unresolved: [],
     });
@@ -280,6 +292,7 @@ describe('fix all pricing', () => {
     fixture.fixPricing.mockResolvedValue({
       approved: [],
       changed: [],
+      repaired: [],
       syncQueued: [],
       unresolved: [{ id: 'red', key: 'genfeed-ai/z-image-turbo', reason: 'x' }],
     });
@@ -299,36 +312,63 @@ describe('fix all pricing', () => {
 });
 
 describe('fix pricing on a model row', () => {
-  function showButton(modelId: string) {
+  function showPage() {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     render(
       <QueryClientProvider client={client}>
-        <FixPricingButton model={{ id: modelId, label: 'Model' } as IModel} />
+        <AdminModelsPageContent type="all" />
       </QueryClientProvider>,
     );
   }
+  const model = (id: string) => ({ id, label: 'Model' }) as IModel;
 
-  it('fixes just that model', async () => {
-    showButton('red');
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Fix pricing: Model' }),
+  it('adds a fix action to the row actions that fixes just that model', async () => {
+    showPage();
+    await waitFor(() =>
+      expect(listProps.current?.isModelPinned?.(model('red'))).toBe(true),
     );
+
+    const [action] = listProps.current?.rowActions ?? [];
+    expect(action?.isVisible?.(model('red'))).toBe(true);
+    expect(action?.tooltip).toBeInstanceOf(Function);
+    expect(
+      typeof action?.tooltip === 'function' && action.tooltip(model('red')),
+    ).toBe('Fix pricing: Model');
+    action?.onClick?.(model('red'));
 
     await waitFor(() =>
       expect(fixture.fixPricing).toHaveBeenCalledWith(['red']),
     );
   });
 
-  it('is absent for a model whose pricing is fine', async () => {
-    showButton('clean');
-
+  it('is absent and not pinned for a model whose pricing is fine', async () => {
+    showPage();
     await waitFor(() => expect(fixture.getReport).toHaveBeenCalled());
-    expect(
-      screen.queryByRole('button', { name: /Fix pricing/ }),
-    ).not.toBeInTheDocument();
+
+    const [action] = listProps.current?.rowActions ?? [];
+    expect(action?.isVisible?.(model('clean'))).toBe(false);
+    expect(listProps.current?.isModelPinned?.(model('clean'))).toBe(false);
+  });
+
+  it('pins a model that only has a stale refresh to review', async () => {
+    fixture.getReport.mockResolvedValue(
+      report([
+        row({
+          attention: [
+            { code: 'refresh_stale', level: 'orange', reason: 'stale' },
+          ],
+          attentionLevel: 'orange',
+          id: 'stale',
+        }),
+      ]),
+    );
+    showPage();
+
+    await waitFor(() =>
+      expect(listProps.current?.isModelPinned?.(model('stale'))).toBe(true),
+    );
   });
 });
 

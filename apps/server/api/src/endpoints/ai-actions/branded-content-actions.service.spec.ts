@@ -5,7 +5,7 @@ import type {
 } from '@api/endpoints/ai-actions/branded-text-actions.types';
 import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import { PostFormat, TargetExecutionState } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,11 +26,19 @@ function receipt(overrides: Record<string, unknown> = {}) {
 }
 
 function createService() {
-  const branded = { generate: vi.fn() };
+  const branded = { generate: vi.fn(), generateThread: vi.fn() };
   const modeResolver = {
     resolve: vi.fn().mockResolvedValue({ mode: 'approved_brand' }),
   };
-  const posts = { create: vi.fn().mockResolvedValue({ id: 'post-1' }) };
+  const posts = {
+    create: vi.fn().mockImplementation(async (input: { order?: number }) => ({
+      id: `post-${(input.order ?? 0) + 1}`,
+    })),
+    findOne: vi.fn(),
+    getChildren: vi.fn(),
+    remove: vi.fn().mockResolvedValue(null),
+  };
+  const material = { describePostArtifact: vi.fn() };
   const service = new BrandedContentActionsService(
     new BrandedTextRunnerService(
       branded as never,
@@ -40,15 +48,17 @@ function createService() {
       {
         resolveModelKey: vi.fn().mockResolvedValue('openai/mini-text'),
       } as never,
+      material as never,
     ),
   );
-  return { branded, modeResolver, posts, service };
+  return { branded, material, modeResolver, posts, service };
 }
 
 function seamOf(
   branded: ReturnType<typeof createService>['branded'],
 ): BrandedTextGenerationRequestV1 {
-  return branded.generate.mock.calls[0][0] as BrandedTextGenerationRequestV1;
+  return (branded.generate.mock.calls[0] ??
+    branded.generateThread.mock.calls[0])[0] as BrandedTextGenerationRequestV1;
 }
 
 describe('BrandedContentActionsService', () => {
@@ -59,13 +69,15 @@ describe('BrandedContentActionsService', () => {
   });
 
   function completed(text: string | null, state = 'ready') {
-    ctx.branded.generate.mockResolvedValue({
+    const outcome = {
       hasNewDispatch: true,
       kind: 'completed',
       postId: 'post-1',
       receipt: receipt({ state }),
       text,
-    });
+    };
+    ctx.branded.generate.mockResolvedValue(outcome);
+    ctx.branded.generateThread.mockResolvedValue(outcome);
   }
 
   describe('generateSocial', () => {
@@ -153,9 +165,98 @@ describe('BrandedContentActionsService', () => {
           posts: ['Hook', 'Point one', 'Point two'],
         },
       });
+      expect(ctx.branded.generate).not.toHaveBeenCalled();
+      expect(seamOf(ctx.branded).input).toMatchObject({
+        contentType: 'thread',
+        format: 'thread',
+      });
       expect(seamOf(ctx.branded).input.originalPrompt).toContain(
         'thread of three to seven posts',
       );
+    });
+
+    it('saves a thread as a root post with its ordered replies', async () => {
+      completed('x');
+      await ctx.service.generateSocial({
+        ...social,
+        isThread: true,
+        platform: 'twitter',
+      });
+
+      expect(
+        await seamOf(ctx.branded).persistText('Hook\n---\nOne\n---\nTwo'),
+      ).toEqual({ postId: 'post-1' });
+      expect(ctx.posts.create.mock.calls.map(([input]) => input)).toEqual([
+        expect.objectContaining({
+          description: 'Hook',
+          format: PostFormat.THREAD,
+          label: 'Agent thread',
+          order: 0,
+          sourceActionId: requestKey,
+        }),
+        expect.objectContaining({
+          description: 'One',
+          format: PostFormat.THREAD,
+          order: 1,
+          parentId: 'post-1',
+          sourceActionId: `${requestKey}:post:1`,
+        }),
+        expect.objectContaining({
+          description: 'Two',
+          order: 2,
+          parentId: 'post-1',
+        }),
+      ]);
+      expect(ctx.posts.create.mock.calls[0][0]).not.toHaveProperty('parentId');
+    });
+
+    it('discards a partly written thread before reporting the failure', async () => {
+      completed('x');
+      await ctx.service.generateSocial({
+        ...social,
+        isThread: true,
+        platform: 'twitter',
+      });
+      ctx.posts.create
+        .mockResolvedValueOnce({ id: 'root-1' })
+        .mockRejectedValueOnce(new Error('write failed'));
+
+      await expect(
+        seamOf(ctx.branded).persistText('Hook\n---\nOne'),
+      ).rejects.toThrow('write failed');
+      expect(ctx.posts.remove).toHaveBeenCalledExactlyOnceWith('root-1');
+    });
+
+    it('replays a thread only while its saved material matches the receipt', async () => {
+      ctx.branded.generateThread.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'completed',
+        postId: 'post-1',
+        receipt: receipt({ artifact: { version: 'v-1' } }),
+        text: null,
+      });
+      ctx.material.describePostArtifact.mockResolvedValue({
+        artifact: { version: 'v-1' },
+      });
+      ctx.posts.findOne.mockResolvedValue({ description: 'Hook' });
+      ctx.posts.getChildren.mockResolvedValue([
+        { description: 'One' },
+        { description: 'Two' },
+      ]);
+      const thread = { ...social, isThread: true, platform: 'twitter' };
+
+      expect(await ctx.service.generateSocial(thread)).toMatchObject({
+        kind: 'completed',
+        result: { posts: ['Hook', 'One', 'Two'] },
+      });
+
+      ctx.material.describePostArtifact.mockResolvedValue({
+        artifact: { version: 'v-2' },
+      });
+      expect(await ctx.service.generateSocial(thread)).toMatchObject({
+        kind: 'failed',
+        reasonCode: 'receipt_artifact_not_found',
+      });
     });
 
     it('saves the normalized posts as the receipt artifact and accepts what survives the gate', async () => {

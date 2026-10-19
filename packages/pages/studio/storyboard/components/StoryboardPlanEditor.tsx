@@ -438,6 +438,8 @@ export default function StoryboardPlanEditor({
       <Container
         label={title}
         moduleChrome
+        className="flex flex-1 flex-col"
+        bodyClassName="flex flex-1 flex-col"
         leading={
           <StoryboardRuntimeRail
             budgetSeconds={plan.runtimeBudgetSeconds}

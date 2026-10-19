@@ -6,7 +6,7 @@ import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
-import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { logger } from '@services/core/logger.service';
@@ -251,7 +251,7 @@ export default function AnalyticsBrandOverview({
         />
       </div>
 
-      <PostDetailOverlay
+      <PostDetailPanel
         postId={selectedPostId}
         scope={PageScope.ANALYTICS}
         onClose={() => setSelectedPostId(null)}

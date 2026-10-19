@@ -19,6 +19,12 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@ui/primitives/accordion';
 import { Mail } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -101,7 +107,7 @@ export default function SystemEmailsPage() {
       icon={Mail}
       onRefresh={handleRefresh}
       isRefreshing={isRefreshing}
-      filters={<SystemEmailRangeFilter range={range} />}
+      dropdowns={<SystemEmailRangeFilter range={range} />}
     >
       <SystemEmailPerformance query={range.query} />
       {isLoading ? (
@@ -117,124 +123,132 @@ export default function SystemEmailsPage() {
           tone="muted"
           data-testid="system-emails-surface"
         >
-          <div className="grid gap-4">
-            {emails.length === 0 ? (
-              <CardEmptyContent label="No system emails registered" />
-            ) : (
-              emails.map((email) => (
-                <Card key={email.id}>
-                  <article className="space-y-5 p-6">
-                    <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-base font-semibold text-foreground">
+          {emails.length === 0 ? (
+            <CardEmptyContent label="No system emails registered" />
+          ) : (
+            <Card>
+              <Accordion type="multiple" className="px-6">
+                {emails.map((email) => (
+                  <AccordionItem
+                    key={email.id}
+                    value={email.id}
+                    className="last:border-b-0"
+                  >
+                    <AccordionTrigger className="gap-4 text-left hover:no-underline">
+                      <span className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">
                             {email.name}
-                          </h3>
-                          <Badge variant="info">System</Badge>
+                          </span>
                           <Badge variant="outline">{email.sequence}</Badge>
-                        </div>
-                        <p className="text-sm text-foreground/70">
-                          {email.systemWorkflowId}
-                        </p>
-                      </div>
-                      <Badge variant="ghost">{email.visibility}</Badge>
-                    </header>
-
-                    <dl className="grid gap-4 md:grid-cols-3">
-                      <div>
-                        <dt className="text-xs font-medium uppercase text-foreground/50">
-                          Trigger
-                        </dt>
-                        <dd className="mt-1 text-sm text-foreground">
-                          {email.trigger}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-medium uppercase text-foreground/50">
-                          Schedule
-                        </dt>
-                        <dd className="mt-1 text-sm text-foreground">
+                          <Badge variant="ghost">{email.visibility}</Badge>
+                        </span>
+                        <span className="text-xs font-normal text-foreground/60">
                           {email.schedule}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-medium uppercase text-foreground/50">
-                          Audience
-                        </dt>
-                        <dd className="mt-1 text-sm text-foreground">
-                          {email.audience}
-                        </dd>
-                      </div>
-                    </dl>
+                        </span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-5">
+                      <p className="text-xs text-foreground/50">
+                        {email.systemWorkflowId}
+                      </p>
 
-                    <section className="border-t border-border pt-4">
-                      <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
-                        <span className="text-xs font-medium uppercase text-foreground/50">
-                          Subject
-                        </span>
-                        <p className="text-sm font-medium text-foreground">
-                          {email.subject}
-                        </p>
-                        <span className="text-xs font-medium uppercase text-foreground/50">
-                          Preheader
-                        </span>
-                        <p className="text-sm text-foreground/75">
-                          {email.preheader}
-                        </p>
-                        <span className="text-xs font-medium uppercase text-foreground/50">
-                          Title
-                        </span>
-                        <p className="text-sm text-foreground/75">
-                          {email.title}
-                        </p>
-                        <span className="text-xs font-medium uppercase text-foreground/50">
-                          CTA
-                        </span>
-                        <p className="text-sm text-foreground/75">
-                          {resolvePreviewAction(email)}
-                        </p>
-                      </div>
-                    </section>
+                      <dl className="grid gap-4 md:grid-cols-3">
+                        <div>
+                          <dt className="text-xs font-medium uppercase text-foreground/50">
+                            Trigger
+                          </dt>
+                          <dd className="mt-1 text-sm text-foreground">
+                            {email.trigger}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-medium uppercase text-foreground/50">
+                            Schedule
+                          </dt>
+                          <dd className="mt-1 text-sm text-foreground">
+                            {email.schedule}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-medium uppercase text-foreground/50">
+                            Audience
+                          </dt>
+                          <dd className="mt-1 text-sm text-foreground">
+                            {email.audience}
+                          </dd>
+                        </div>
+                      </dl>
 
-                    <section className="space-y-2">
-                      <h4 className="text-sm font-semibold text-foreground">
-                        Body copy
-                      </h4>
-                      <div className="space-y-2">
-                        {renderLifecycleSystemEmailParagraphs(
-                          email,
-                          'Hi {first name}',
-                        ).map((paragraph) => (
-                          <p
-                            key={paragraph}
-                            className="border-l border-border pl-3 text-sm text-foreground/80"
-                          >
-                            {paragraph}
+                      <section className="border-t border-border pt-4">
+                        <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
+                          <span className="text-xs font-medium uppercase text-foreground/50">
+                            Subject
+                          </span>
+                          <p className="text-sm font-medium text-foreground">
+                            {email.subject}
                           </p>
-                        ))}
-                      </div>
-                    </section>
+                          <span className="text-xs font-medium uppercase text-foreground/50">
+                            Preheader
+                          </span>
+                          <p className="text-sm text-foreground/75">
+                            {email.preheader}
+                          </p>
+                          <span className="text-xs font-medium uppercase text-foreground/50">
+                            Title
+                          </span>
+                          <p className="text-sm text-foreground/75">
+                            {email.title}
+                          </p>
+                          <span className="text-xs font-medium uppercase text-foreground/50">
+                            CTA
+                          </span>
+                          <p className="text-sm text-foreground/75">
+                            {resolvePreviewAction(email)}
+                          </p>
+                        </div>
+                      </section>
 
-                    <section className="space-y-2">
-                      <h4 className="text-sm font-semibold text-foreground">
-                        Skip rules
-                      </h4>
-                      <ul className="grid gap-2 md:grid-cols-2">
-                        {email.skipRules.map((rule) => (
-                          <li
-                            key={rule}
-                            className="border-l border-border pl-3 text-sm text-foreground/70"
-                          >
-                            {rule}
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  </article>
-                </Card>
-              ))
-            )}
-          </div>
+                      <section className="space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Body copy
+                        </h4>
+                        <div className="space-y-2">
+                          {renderLifecycleSystemEmailParagraphs(
+                            email,
+                            'Hi {first name}',
+                          ).map((paragraph) => (
+                            <p
+                              key={paragraph}
+                              className="border-l border-border pl-3 text-sm text-foreground/80"
+                            >
+                              {paragraph}
+                            </p>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Skip rules
+                        </h4>
+                        <ul className="grid gap-2 md:grid-cols-2">
+                          {email.skipRules.map((rule) => (
+                            <li
+                              key={rule}
+                              className="border-l border-border pl-3 text-sm text-foreground/70"
+                            >
+                              {rule}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </Card>
+          )}
         </WorkspaceSurface>
       )}
     </AdminPageShell>

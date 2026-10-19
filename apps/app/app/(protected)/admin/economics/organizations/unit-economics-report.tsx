@@ -1,12 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { formatCreditCost } from '@genfeedai/contracts/constants';
+import {
+  formatCreditCost,
+  ITEMS_PER_PAGE,
+  UNIT_ECONOMICS_SORT_KEYS,
+  type UnitEconomicsSortKey,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   UnitEconomicsDrillDown,
-  UnitEconomicsSortKey,
   UnitEconomicsTableRow,
 } from '@props/admin/unit-economics.props';
 import type {
@@ -18,6 +22,7 @@ import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -27,8 +32,9 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { ArrowLeft, Scale } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   buildEconomicsRange,
   DEFAULT_ECONOMICS_PERIOD_DAYS,
@@ -44,17 +50,7 @@ function formatCredits(credits: number): string {
 }
 
 function isUnitEconomicsSortKey(key: string): key is UnitEconomicsSortKey {
-  return [
-    'agentChatCredits',
-    'agentTurns',
-    'generationCredits',
-    'grossMarginPercent',
-    'grossMarginUsd',
-    'label',
-    'llmProviderCostUsd',
-    'mediaProviderCostUsd',
-    'revenueUsd',
-  ].includes(key);
+  return (UNIT_ECONOMICS_SORT_KEYS as readonly string[]).includes(key);
 }
 
 export default function UnitEconomicsReport() {
@@ -67,6 +63,23 @@ export default function UnitEconomicsReport() {
     useState<UnitEconomicsSortKey>('llmProviderCostUsd');
   const [sortDirection, setSortDirection] =
     useState<TableSortDirection>('desc');
+
+  const { replace } = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
+
+  // Changing what the report is sorted or filtered by starts over at page 1.
+  const resetPage = useCallback(() => {
+    const next = new URLSearchParams(searchParamsString);
+    if (!next.has('page')) {
+      return;
+    }
+    next.delete('page');
+    const query = next.toString();
+    replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, replace, searchParamsString]);
 
   const getUnitEconomicsService = useAuthedService((token: string) =>
     AdminUnitEconomicsService.getInstance(token),
@@ -88,6 +101,10 @@ export default function UnitEconomicsReport() {
       return service.getReport(
         {
           from: range.from,
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          sortDirection,
+          sortKey,
           to: range.to,
           ...(drillDown ? { organizationId: drillDown.id } : {}),
         },
@@ -99,6 +116,9 @@ export default function UnitEconomicsReport() {
       range.from,
       range.to,
       drillDown?.id ?? 'organizations',
+      currentPage,
+      sortKey,
+      sortDirection,
     ],
   });
 
@@ -110,9 +130,8 @@ export default function UnitEconomicsReport() {
 
   const totalLabel = translate('total');
   const rows = useMemo(
-    () =>
-      buildUnitEconomicsTableRows(report, sortKey, sortDirection, totalLabel),
-    [report, sortDirection, sortKey, totalLabel],
+    () => buildUnitEconomicsTableRows(report, totalLabel),
+    [report, totalLabel],
   );
 
   const numberCell = (value: string, row: UnitEconomicsTableRow) => (
@@ -219,6 +238,17 @@ export default function UnitEconomicsReport() {
     }
     setSortKey(key);
     setSortDirection(direction);
+    resetPage();
+  };
+
+  const handlePeriodChange = (days: string) => {
+    setPeriodDays(days);
+    resetPage();
+  };
+
+  const handleDrillDown = (next: UnitEconomicsDrillDown | null) => {
+    setDrillDown(next);
+    resetPage();
   };
 
   return (
@@ -232,7 +262,7 @@ export default function UnitEconomicsReport() {
       onRefresh={() => refetch()}
       isRefreshing={isFetching && !isLoading}
       dropdowns={
-        <Select value={periodDays} onValueChange={setPeriodDays}>
+        <Select value={periodDays} onValueChange={handlePeriodChange}>
           <SelectTrigger className="w-40" aria-label={translate('periodLabel')}>
             <SelectValue />
           </SelectTrigger>
@@ -250,7 +280,7 @@ export default function UnitEconomicsReport() {
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            onClick={() => setDrillDown(null)}
+            onClick={() => handleDrillDown(null)}
           >
             <ArrowLeft className="size-4" />
             {translate('allOrganizations')}
@@ -282,7 +312,7 @@ export default function UnitEconomicsReport() {
             ? undefined
             : (row) => {
                 if (!row.isTotal && row.id) {
-                  setDrillDown({ id: row.id, label: row.label });
+                  handleDrillDown({ id: row.id, label: row.label });
                 }
               }
         }
@@ -290,6 +320,14 @@ export default function UnitEconomicsReport() {
         sortDirection={sortDirection}
         onSortChange={handleSortChange}
       />
+      <div className="mt-4">
+        <AutoPagination
+          showTotal
+          totalLabel={
+            drillDown ? translate('totalLabelUsers') : translate('totalLabel')
+          }
+        />
+      </div>
     </AdminPageShell>
   );
 }

@@ -532,6 +532,14 @@ export interface PromptBarFolderSelectorProps {
   triggerDisplay?: 'default' | 'icon-only';
 }
 
+export interface PromptBarBlacklistSelectorProps {
+  blacklists: IElementBlacklist[];
+  form: UseFormReturn<PromptTextareaSchema>;
+  controlClass: string;
+  isDisabled: boolean;
+  onChange?: () => void;
+}
+
 export interface PromptBarVariationPresetsProps {
   shouldRender: boolean;
   form: UseFormReturn<PromptTextareaSchema>;

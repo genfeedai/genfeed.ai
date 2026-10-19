@@ -5,7 +5,7 @@
  * A switch in env can only change with a deploy by someone holding the deploy
  * pipeline. Operator decisions about product behaviour — enabling a feature,
  * a rollout mode, a confidence threshold — belong on the platform-settings
- * singleton (`/admin/administration/platform-settings`), cached with
+ * singleton (`/admin/settings`), cached with
  * invalidation on write.
  *
  * This check fails when an env schema declares a key shaped like a product

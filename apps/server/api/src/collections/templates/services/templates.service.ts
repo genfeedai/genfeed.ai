@@ -15,6 +15,7 @@ import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   TEMPLATE_RANKING_SCHEMA_NAME,
   templateRankingSchema,
@@ -34,6 +35,9 @@ import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
 
 type Template = TemplateDocument;
+
+const DEFAULT_TEMPLATES_PAGE_SIZE = 20;
+const SUGGESTION_CANDIDATE_LIMIT = 50;
 
 /**
  * The template placeholder grammar: `{{variable_name}}`.
@@ -200,8 +204,9 @@ export class TemplatesService {
       search?: string;
       sort?: 'popular';
       limit?: number;
+      page?: number;
     },
-  ): Promise<Template[]> {
+  ): Promise<AggregatePaginateResult<Template>> {
     const where: Prisma.TemplateWhereInput = {};
 
     if (filters?.purpose) where.purpose = filters.purpose;
@@ -236,28 +241,52 @@ export class TemplatesService {
       else where.OR = searchMatch;
     }
 
+    const page = filters?.page ?? 1;
+    const limit = filters?.limit ?? DEFAULT_TEMPLATES_PAGE_SIZE;
+    const isPopular = filters?.sort === 'popular';
+    const listWhere: Prisma.TemplateWhereInput = {
+      ...where,
+      ...(isSystemIncluded
+        ? platformOrTenantScope(organization)
+        : this.organizationScope(organization)),
+      isDeleted: false,
+    };
+
     // tenant-scope-ignore: organizationScope names the organization or the platform null with tenant proof; isDeleted is false
-    const results = await this.prisma.template.findMany({
+    const resultsPromise = this.prisma.template.findMany({
       include: { metadata: true },
-      orderBy: { createdAt: 'desc' },
-      take:
-        filters?.sort === 'popular' ? (filters.limit ?? 10) : filters?.limit,
-      where: {
-        ...where,
-        ...(isSystemIncluded
-          ? platformOrTenantScope(organization)
-          : this.organizationScope(organization)),
-        isDeleted: false,
-      },
+      // Popularity is `usageCount` (`rating` is not a stored column), so the
+      // ranking is a database order, stable across pages.
+      orderBy: isPopular
+        ? [
+            { usageCount: { nulls: 'last', sort: 'desc' } },
+            { createdAt: 'desc' },
+          ]
+        : { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      where: listWhere,
     });
+    // tenant-scope-ignore: same scoped where as the page query above
+    const totalPromise = this.prisma.template.count({ where: listWhere });
+    const [results, totalDocs] = await Promise.all([
+      resultsPromise,
+      totalPromise,
+    ]);
 
-    const templates = results.map(toTemplateDocument);
-
-    if (filters?.sort === 'popular') {
-      return this.sortByPopularityScore(templates);
-    }
-
-    return templates;
+    const totalPages = Math.ceil(totalDocs / limit);
+    return {
+      docs: results.map(toTemplateDocument),
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      limit,
+      nextPage: page < totalPages ? page + 1 : null,
+      page,
+      pagingCounter: (page - 1) * limit + 1,
+      prevPage: page > 1 ? page - 1 : null,
+      totalDocs,
+      totalPages,
+    };
   }
 
   /**
@@ -272,19 +301,6 @@ export class TemplatesService {
     return withPlatformTenantArm({
       organizationId: organization ?? null,
     }) as { AND?: PlatformTenantScopeArm[]; organizationId: string | null };
-  }
-
-  /**
-   * Private: Sort templates by popularity score (rating + usage weighted)
-   * Shared ranking used by findAll({ sort: 'popular' })
-   */
-  private sortByPopularityScore(templates: Template[]): Template[] {
-    return [...templates].sort((left, right) => {
-      const leftScore = (left.rating ?? 0) * 0.3 + (left.usageCount ?? 0) * 0.7;
-      const rightScore =
-        (right.rating ?? 0) * 0.3 + (right.usageCount ?? 0) * 0.7;
-      return rightScore - leftScore;
-    });
   }
 
   /**
@@ -482,10 +498,11 @@ export class TemplatesService {
         organization,
       });
 
-      // Get all templates matching basic criteria
-      const templates = await this.findAll(organization, {
+      // Candidate window for the AI ranking: the newest matches, not the whole table.
+      const { docs: templates } = await this.findAll(organization, {
         category: dto.category,
         industries: dto.industry ? [dto.industry] : undefined,
+        limit: SUGGESTION_CANDIDATE_LIMIT,
         platforms: dto.platform ? [dto.platform] : undefined,
       });
 

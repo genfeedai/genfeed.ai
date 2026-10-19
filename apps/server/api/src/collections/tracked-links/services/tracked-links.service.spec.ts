@@ -30,6 +30,7 @@ describe('TrackedLinksService', () => {
         findFirst: vi.fn(),
       },
       trackedLink: {
+        count: vi.fn(),
         create: vi.fn(),
         findFirst: vi.fn(),
         findMany: vi.fn(),
@@ -451,5 +452,75 @@ describe('TrackedLinksService', () => {
     );
 
     fetchSpy.mockRestore();
+  });
+
+  describe('link listings', () => {
+    it('pages the organization links in SQL with filters, a stable order and a count', async () => {
+      const { prisma, service } = makeService();
+      prisma.trackedLink.findMany.mockResolvedValue([{ id: 'link-3' }]);
+      prisma.trackedLink.count.mockResolvedValue(41);
+      const where = {
+        campaignName: 'summer',
+        isDeleted: false,
+        organizationId: 'org-1',
+        platform: 'twitter',
+      };
+
+      const result = await service.listOrganizationLinks(
+        'org-1',
+        { campaignName: 'summer', platform: 'twitter' },
+        { limit: 20, page: 3 },
+      );
+
+      expect(prisma.trackedLink.findMany).toHaveBeenCalledWith({
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: 40,
+        take: 20,
+        where,
+      });
+      expect(prisma.trackedLink.count).toHaveBeenCalledWith({ where });
+      expect(result).toMatchObject({
+        hasNextPage: false,
+        hasPrevPage: true,
+        limit: 20,
+        page: 3,
+        totalDocs: 41,
+        totalPages: 3,
+      });
+    });
+
+    it('pages the links of one content item under the organization', async () => {
+      const { prisma, service } = makeService();
+      prisma.trackedLink.findMany.mockResolvedValue([]);
+      prisma.trackedLink.count.mockResolvedValue(0);
+
+      await service.listContentLinks('content-1', 'org-1', {
+        limit: 10,
+        page: 2,
+      });
+
+      expect(prisma.trackedLink.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+          where: {
+            contentId: 'content-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+          },
+        }),
+      );
+    });
+
+    it('caps the links the CTA stats rollup reads', async () => {
+      const { prisma, service } = makeService();
+      prisma.trackedLink.findMany.mockResolvedValue([]);
+
+      await service.getContentLinks('content-1', 'org-1');
+
+      expect(prisma.trackedLink.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 500 }),
+      );
+    });
   });
 });

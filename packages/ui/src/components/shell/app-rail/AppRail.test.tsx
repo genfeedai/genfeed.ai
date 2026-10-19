@@ -367,6 +367,7 @@ describe('AppRail', () => {
       'admin-automation',
       'admin-configuration',
       'admin-administration',
+      'admin-settings',
     ]) {
       expect(screen.getByTestId(`app-rail-item-${id}`)).toBeInTheDocument();
     }

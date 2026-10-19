@@ -1,5 +1,6 @@
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
 import { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
+import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -23,7 +24,16 @@ describe('WorkflowExecutionsController tenant reads (#6176)', () => {
     const module = await Test.createTestingModule({
       controllers: [WorkflowExecutionsController],
       providers: [
-        { provide: WorkflowExecutionsService, useValue: { findAll: mock } },
+        {
+          provide: WorkflowExecutionsService,
+          useValue: {
+            buildCustomerListWhere: async (
+              organizationId: string,
+              query: WorkflowExecutionQueryDto,
+            ) => buildCustomerExecutionWhere(organizationId, query),
+            findAll: mock,
+          },
+        },
         { provide: WorkflowExecutionAuthorizationService, useValue: {} },
       ],
     })

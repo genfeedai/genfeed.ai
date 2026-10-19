@@ -4,10 +4,18 @@ import type {
   IWarmupReadiness,
 } from '@genfeedai/contracts/interfaces';
 import {
+  type Article,
+  type Asset,
+  type BillingAccount,
+  type BillingAccountMember,
+  type BillingAccountOrganization,
   type Brand,
   type CreditBalance,
+  type CreditTransaction,
   type Organization,
+  type OrganizationSetting,
   Prisma,
+  type Setting,
   toPrismaJson,
   type WarmupAccount,
 } from '@genfeedai/prisma';
@@ -242,19 +250,97 @@ export async function creditWarmupWallet(
   return transaction;
 }
 
+interface WarmupReadinessFacts {
+  article: Article | null;
+  asset: Asset | null;
+  balance: CreditBalance | null;
+  billing: BillingAccount | null;
+  brand: Brand | null;
+  grantEntry: CreditTransaction | null;
+  link: BillingAccountOrganization | null;
+  organization: Organization | null;
+  owner: BillingAccountMember | null;
+  settings: OrganizationSetting | null;
+  userSettings: Setting | null;
+}
+
+const NOT_READY_WITHOUT_WORKSPACE: IWarmupReadiness = {
+  availableCredits: 0,
+  blockers: ['Repair workspace resources'],
+  ready: false,
+};
+
+function hasWorkspaceScope(account: WarmupAccount): account is WarmupAccount & {
+  brandId: string;
+  customerUserId: string;
+  organizationId: string;
+} {
+  return Boolean(
+    account.organizationId && account.brandId && account.customerUserId,
+  );
+}
+
+/** Pure blocker computation over already-loaded rows (no database access). */
+function evaluateWarmupReadiness(
+  account: WarmupAccount,
+  facts: WarmupReadinessFacts,
+): IWarmupReadiness {
+  const blockers: string[] = [];
+  const preparation = warmupDiagnostics(account).preparation;
+  const {
+    article,
+    asset,
+    balance,
+    billing,
+    brand,
+    grantEntry,
+    link,
+    organization,
+    owner,
+    settings,
+    userSettings,
+  } = facts;
+  if (!organization || !brand || !settings || !userSettings)
+    blockers.push('Repair workspace and user settings');
+  if (
+    !organization?.billingAccountId ||
+    balance?.billingAccountId !== organization.billingAccountId
+  )
+    blockers.push('Repair dedicated billing and wallet');
+  if (organization?.billingAccountId && (!billing || !owner || !link))
+    blockers.push('Repair billing ownership and organization link');
+  const grant = preparation?.grant;
+  const availableCredits = (balance?.balance ?? 0) - (balance?.heldAmount ?? 0);
+  if (!grant) blockers.push('Configure the promotional handoff grant');
+  else if (!grantEntry)
+    blockers.push('Repair the promotional grant ledger entry');
+  if (grant && availableCredits < grant.amount)
+    blockers.push('Reconcile preparation costs to restore handoff credits');
+  if ((balance?.heldAmount ?? 0) > 0)
+    blockers.push('Wait for outstanding generation reservations');
+  if (!preparation?.contextReviewedAt)
+    blockers.push('Review and apply brand context');
+  if (!asset) blockers.push('Prepare one completed private starter asset');
+  if (!article) blockers.push('Prepare one private LinkedIn article draft');
+  if (preparation?.generation && preparation.generation.status !== 'completed')
+    blockers.push('Complete or repair starter generation');
+  if (account.status === 'ARCHIVED') blockers.push('Account is archived');
+  return {
+    ready: blockers.length === 0,
+    blockers,
+    availableCredits,
+    workspacePath:
+      organization && brand ? `/${organization.slug}/${brand.slug}` : undefined,
+  };
+}
+
 export async function warmupReadiness(
   tx: Prisma.TransactionClient,
   account: WarmupAccount,
 ): Promise<IWarmupReadiness> {
-  const blockers: string[] = [];
+  if (!hasWorkspaceScope(account)) return NOT_READY_WITHOUT_WORKSPACE;
   const { organizationId, brandId, customerUserId } = account;
   const preparation = warmupDiagnostics(account).preparation;
-  if (!organizationId || !brandId || !customerUserId)
-    return {
-      ready: false,
-      blockers: ['Repair workspace resources'],
-      availableCredits: 0,
-    };
   const [organization, brand, settings, userSettings, balance, asset, article] =
     await Promise.all([
       tx.organization.findFirst({
@@ -301,16 +387,12 @@ export async function warmupReadiness(
           })
         : null,
     ]);
-  if (!organization || !brand || !settings || !userSettings)
-    blockers.push('Repair workspace and user settings');
-  if (
-    !organization?.billingAccountId ||
-    balance?.billingAccountId !== organization.billingAccountId
-  )
-    blockers.push('Repair dedicated billing and wallet');
+  let billing: BillingAccount | null = null;
+  let owner: BillingAccountMember | null = null;
+  let link: BillingAccountOrganization | null = null;
   if (organization?.billingAccountId) {
     const billingAccountId = organization.billingAccountId;
-    const [billing, owner, link] = await Promise.all([
+    [billing, owner, link] = await Promise.all([
       tx.billingAccount.findFirst({
         where: { id: billingAccountId, isDeleted: false },
       }),
@@ -331,43 +413,260 @@ export async function warmupReadiness(
         },
       }),
     ]);
-    if (!billing || !owner || !link)
-      blockers.push('Repair billing ownership and organization link');
   }
   const grant = preparation?.grant;
-  const availableCredits = (balance?.balance ?? 0) - (balance?.heldAmount ?? 0);
-  if (!grant) blockers.push('Configure the promotional handoff grant');
-  else {
-    const entry = await tx.creditTransaction.findFirst({
-      where: {
-        id: grant.transactionId,
-        organizationId,
-        billingAccountId: organization?.billingAccountId,
-        isDeleted: false,
-        idempotencyKey: `warmup:${account.id}:grant`,
-        amount: grant.amount,
-      },
-    });
-    if (!entry) blockers.push('Repair the promotional grant ledger entry');
+  const grantEntry = grant
+    ? await tx.creditTransaction.findFirst({
+        where: {
+          id: grant.transactionId,
+          organizationId,
+          billingAccountId: organization?.billingAccountId,
+          isDeleted: false,
+          idempotencyKey: `warmup:${account.id}:grant`,
+          amount: grant.amount,
+        },
+      })
+    : null;
+  return evaluateWarmupReadiness(account, {
+    article,
+    asset,
+    balance,
+    billing,
+    brand,
+    grantEntry,
+    link,
+    organization,
+    owner,
+    settings,
+    userSettings,
+  });
+}
+
+function firstBy<T>(rows: T[], key: (row: T) => string): Map<string, T> {
+  const byKey = new Map<string, T>();
+  for (const row of rows) {
+    const rowKey = key(row);
+    if (!byKey.has(rowKey)) byKey.set(rowKey, row);
   }
-  if (grant && availableCredits < grant.amount)
-    blockers.push('Reconcile preparation costs to restore handoff credits');
-  if ((balance?.heldAmount ?? 0) > 0)
-    blockers.push('Wait for outstanding generation reservations');
-  if (!preparation?.contextReviewedAt)
-    blockers.push('Review and apply brand context');
-  if (!asset) blockers.push('Prepare one completed private starter asset');
-  if (!article) blockers.push('Prepare one private LinkedIn article draft');
-  if (preparation?.generation && preparation.generation.status !== 'completed')
-    blockers.push('Complete or repair starter generation');
-  if (account.status === 'ARCHIVED') blockers.push('Account is archived');
-  return {
-    ready: blockers.length === 0,
-    blockers,
-    availableCredits,
-    workspacePath:
-      organization && brand ? `/${organization.slug}/${brand.slug}` : undefined,
-  };
+  return byKey;
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => !!value))];
+}
+
+/**
+ * Readiness for a page of accounts in a fixed number of queries.
+ *
+ * Every lookup `warmupReadiness` makes per account becomes one `findMany ...
+ * in [...]` over the page's accounts, then each account is matched back to
+ * its own rows with the same tenant/ownership predicates, so the verdict is
+ * identical to calling `warmupReadiness` one account at a time.
+ */
+export async function warmupReadinessBatch(
+  tx: Prisma.TransactionClient,
+  accounts: WarmupAccount[],
+): Promise<IWarmupReadiness[]> {
+  const scoped = accounts.filter(hasWorkspaceScope);
+  if (scoped.length === 0)
+    return accounts.map(() => NOT_READY_WITHOUT_WORKSPACE);
+
+  const organizationIds = uniqueStrings(scoped.map((a) => a.organizationId));
+  const brandIds = uniqueStrings(scoped.map((a) => a.brandId));
+  const customerIds = uniqueStrings(scoped.map((a) => a.customerUserId));
+  const operatorIds = uniqueStrings(scoped.map((a) => a.operatorUserId));
+  const preparations = scoped.map((a) => warmupDiagnostics(a).preparation);
+  const assetIds = uniqueStrings(preparations.map((p) => p?.assetId));
+  const articleIds = uniqueStrings(preparations.map((p) => p?.articleId));
+  const grantIds = uniqueStrings(
+    preparations.map((p) => p?.grant?.transactionId),
+  );
+
+  const [
+    organizations,
+    brands,
+    orgSettings,
+    userSettings,
+    balances,
+    assets,
+    articles,
+  ] = await Promise.all([
+    tx.organization.findMany({
+      where: { id: { in: organizationIds }, isDeleted: false },
+    }),
+    tx.brand.findMany({
+      where: {
+        id: { in: brandIds },
+        organizationId: { in: organizationIds },
+        isDeleted: false,
+      },
+    }),
+    tx.organizationSetting.findMany({
+      where: { organizationId: { in: organizationIds }, isDeleted: false },
+    }),
+    tx.setting.findMany({
+      where: { userId: { in: customerIds }, isDeleted: false },
+    }),
+    tx.creditBalance.findMany({
+      where: { organizationId: { in: organizationIds }, isDeleted: false },
+    }),
+    assetIds.length
+      ? tx.asset.findMany({
+          where: {
+            id: { in: assetIds },
+            parentOrgId: { in: organizationIds },
+            parentBrandId: { in: brandIds },
+            parentType: 'BRAND',
+            isDeleted: false,
+            userId: { in: operatorIds },
+            cloudObjectKey: { not: null },
+          },
+        })
+      : [],
+    articleIds.length
+      ? tx.article.findMany({
+          where: {
+            id: { in: articleIds },
+            organizationId: { in: organizationIds },
+            brandId: { in: brandIds },
+            isDeleted: false,
+            status: 'DRAFT',
+            userId: { in: operatorIds },
+            scope: 'ORGANIZATION',
+            category: 'linkedin-article',
+            publishedAt: null,
+          },
+        })
+      : [],
+  ]);
+
+  const organizationById = firstBy(organizations, (row) => row.id);
+  const billingAccountIds = uniqueStrings(
+    organizations.map((row) => row.billingAccountId),
+  );
+  const [billings, owners, links, grantEntries] = await Promise.all([
+    billingAccountIds.length
+      ? tx.billingAccount.findMany({
+          where: { id: { in: billingAccountIds }, isDeleted: false },
+        })
+      : [],
+    billingAccountIds.length
+      ? tx.billingAccountMember.findMany({
+          where: {
+            billingAccountId: { in: billingAccountIds },
+            userId: { in: customerIds },
+            role: 'OWNER',
+            isDeleted: false,
+          },
+        })
+      : [],
+    billingAccountIds.length
+      ? tx.billingAccountOrganization.findMany({
+          where: {
+            billingAccountId: { in: billingAccountIds },
+            organizationId: { in: organizationIds },
+            status: 'LINKED',
+            isDeleted: false,
+          },
+        })
+      : [],
+    grantIds.length
+      ? tx.creditTransaction.findMany({
+          where: {
+            id: { in: grantIds },
+            organizationId: { in: organizationIds },
+            isDeleted: false,
+          },
+        })
+      : [],
+  ]);
+
+  const brandById = firstBy(brands, (row) => row.id);
+  const settingsByOrg = firstBy(orgSettings, (row) => row.organizationId);
+  const userSettingsByUser = firstBy(userSettings, (row) => row.userId);
+  const balanceByOrg = firstBy(balances, (row) => row.organizationId);
+  const assetById = firstBy(assets, (row) => row.id);
+  const articleById = firstBy(articles, (row) => row.id);
+  const billingById = firstBy(billings, (row) => row.id);
+  const ownerByBillingUser = firstBy(
+    owners,
+    (row) => `${row.billingAccountId}:${row.userId}`,
+  );
+  const linkByBillingOrg = firstBy(
+    links,
+    (row) => `${row.billingAccountId}:${row.organizationId}`,
+  );
+  const grantEntryById = firstBy(grantEntries, (row) => row.id);
+
+  return accounts.map((account) => {
+    if (!hasWorkspaceScope(account)) return NOT_READY_WITHOUT_WORKSPACE;
+    const { organizationId, brandId, customerUserId } = account;
+    const preparation = warmupDiagnostics(account).preparation;
+    const organization = organizationById.get(organizationId) ?? null;
+    const billingAccountId = organization?.billingAccountId;
+
+    const brandRow = brandById.get(brandId);
+    const brand = brandRow?.organizationId === organizationId ? brandRow : null;
+
+    const assetRow = preparation?.assetId
+      ? assetById.get(preparation.assetId)
+      : undefined;
+    const asset =
+      assetRow &&
+      assetRow.parentOrgId === organizationId &&
+      assetRow.parentBrandId === brandId &&
+      assetRow.userId === account.operatorUserId
+        ? assetRow
+        : null;
+
+    const articleRow = preparation?.articleId
+      ? articleById.get(preparation.articleId)
+      : undefined;
+    const article =
+      articleRow &&
+      articleRow.organizationId === organizationId &&
+      articleRow.brandId === brandId &&
+      articleRow.userId === account.operatorUserId
+        ? articleRow
+        : null;
+
+    const grant = preparation?.grant;
+    const grantRow = grant
+      ? grantEntryById.get(grant.transactionId)
+      : undefined;
+    const grantEntry =
+      grant &&
+      grantRow &&
+      grantRow.organizationId === organizationId &&
+      (organization === null ||
+        grantRow.billingAccountId === billingAccountId) &&
+      grantRow.idempotencyKey === `warmup:${account.id}:grant` &&
+      grantRow.amount === grant.amount
+        ? grantRow
+        : null;
+
+    return evaluateWarmupReadiness(account, {
+      article,
+      asset,
+      balance: balanceByOrg.get(organizationId) ?? null,
+      billing: billingAccountId
+        ? (billingById.get(billingAccountId) ?? null)
+        : null,
+      brand,
+      grantEntry,
+      link: billingAccountId
+        ? (linkByBillingOrg.get(`${billingAccountId}:${organizationId}`) ??
+          null)
+        : null,
+      organization,
+      owner: billingAccountId
+        ? (ownerByBillingUser.get(`${billingAccountId}:${customerUserId}`) ??
+          null)
+        : null,
+      settings: settingsByOrg.get(organizationId) ?? null,
+      userSettings: userSettingsByUser.get(customerUserId) ?? null,
+    });
+  });
 }
 
 export async function claimWarmupWorkspace(

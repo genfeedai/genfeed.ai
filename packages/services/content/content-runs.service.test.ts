@@ -4,6 +4,7 @@ import type {
   BrandRemixSourceSelector,
 } from '@genfeedai/contracts/api-types/contracts';
 import { ContentRunsService } from '@services/content/content-runs.service';
+import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -124,6 +125,7 @@ describe('ContentRunsService', () => {
 
     expect(mockGet).toHaveBeenCalledWith('/brands/brand-1/content-runs', {
       params: {},
+      signal: undefined,
     });
     expect(result).toEqual([]);
   });
@@ -152,10 +154,37 @@ describe('ContentRunsService', () => {
 
     expect(mockGet).toHaveBeenCalledWith('/brands/brand-1/content-runs', {
       params: { skillSlug: 'trend-remix', status: 'completed' },
+      signal: undefined,
     });
     expect(result).toEqual([
       { _id: 'run-1', skillSlug: 'trend-remix', status: 'completed' },
     ]);
+  });
+
+  it('requests a server page and records the pagination totals', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: [],
+        links: { pagination: { limit: 15, page: 2, pages: 4, total: 52 } },
+      },
+    });
+    mockDeserializeCollection.mockReturnValue([]);
+    const controller = new AbortController();
+
+    const service = new ContentRunsService('token');
+    await service.list(
+      'brand-1',
+      { limit: 15, page: 2, status: ContentRunStatus.FAILED },
+      controller.signal,
+    );
+
+    expect(mockGet).toHaveBeenCalledWith('/brands/brand-1/content-runs', {
+      params: { limit: 15, page: 2, status: 'failed' },
+      signal: controller.signal,
+    });
+    expect(PagesService.getCurrentPage()).toBe(2);
+    expect(PagesService.getTotalPages()).toBe(4);
+    expect(PagesService.getTotalDocs()).toBe(52);
   });
 
   it('fetches a single content run by id', async () => {

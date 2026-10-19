@@ -257,12 +257,20 @@ export class AgentStrategiesService extends BaseService<
     return BaseService.getDataServiceInstance(AgentStrategiesService, token);
   }
 
+  /**
+   * With `page`, returns that single server page (and records the totals for
+   * `<AutoPagination />`). Without it, returns every strategy across all pages
+   * so pickers and dashboards never silently stop at the API default of 10.
+   */
   async list(params?: {
     agentType?: string;
     brandId?: string;
     isActive?: boolean;
+    limit?: number;
+    page?: number;
   }): Promise<AgentStrategy[]> {
-    return this.findAll(params as Record<string, unknown>);
+    const query = (params ?? {}) as Record<string, unknown>;
+    return params?.page ? this.findAll(query) : this.findAllPages(query);
   }
 
   async getById(id: string): Promise<AgentStrategy> {
@@ -323,11 +331,16 @@ export class AgentStrategiesService extends BaseService<
     return response.data;
   }
 
-  async listReports(id: string): Promise<AgentStrategyReport[]> {
-    const response = await this.instance.get<AgentStrategyReport[]>(
+  /** The newest page of the strategy's report history (20 by default). */
+  async listReports(
+    id: string,
+    query: { limit?: number; page?: number } = {},
+  ): Promise<AgentStrategyReport[]> {
+    const response = await this.instance.get<{ data: AgentStrategyReport[] }>(
       `/${id}/reports`,
+      { params: query },
     );
-    return response.data;
+    return response.data.data;
   }
 
   async getPerformanceSnapshot(

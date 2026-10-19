@@ -25,6 +25,13 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: mocks.openModal,
 }));
@@ -261,9 +268,7 @@ describe('BlacklistsList', () => {
       await onRefresh.mock.calls[0][0]();
     });
 
-    expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-      'Blacklists refreshed',
-    );
+    expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'isDefault-blacklist-1 unchecked' }),

@@ -2,7 +2,7 @@
 
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
@@ -14,10 +14,12 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Archive, Lock, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -25,6 +27,8 @@ export default function SettingsOrganizationMemoryPage() {
   const translate = useTranslations('common.settings.memory');
   const notificationsService = NotificationsService.getInstance();
   const userRole = useUserRole();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const { orgHref } = useOrgUrl();
   const isBillingEnabled = hasOrganizationBillingHint();
   const canGovern =
@@ -74,7 +78,10 @@ export default function SettingsOrganizationMemoryPage() {
         if (signal?.aborted) {
           return;
         }
-        const data = await service.listOrganization();
+        const data = await service.listOrganization(
+          { limit: ITEMS_PER_PAGE, page: currentPage },
+          signal,
+        );
         if (signal?.aborted) {
           return;
         }
@@ -89,7 +96,13 @@ export default function SettingsOrganizationMemoryPage() {
         setEntries([]);
       }
     },
-    [getMemoriesService, isBillingEnabled, notificationsService, translate],
+    [
+      currentPage,
+      getMemoriesService,
+      isBillingEnabled,
+      notificationsService,
+      translate,
+    ],
   );
 
   useEffect(() => {
@@ -226,6 +239,9 @@ export default function SettingsOrganizationMemoryPage() {
         items={entries ?? []}
         label={translate('table')}
       />
+      {entries && entries.length > 0 ? (
+        <AutoPagination showTotal totalLabel="memories" />
+      ) : null}
     </div>
   );
 }

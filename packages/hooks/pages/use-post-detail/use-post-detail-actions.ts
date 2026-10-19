@@ -49,6 +49,7 @@ export interface UsePostDetailActionsReturn {
   handleContentSave: () => Promise<void>;
   handleScheduleSave: () => Promise<void>;
   handlePublishNow: () => Promise<void>;
+  handleRetryPublish: () => Promise<void>;
   handlePublishViaTikTokApp: () => Promise<void>;
   handleDeletePost: () => void;
   handleQuickAction: (
@@ -240,6 +241,34 @@ export function usePostDetailActions({
     setIsSavingSchedule,
   ]);
 
+  // A failed target can't be re-scheduled through the release (409 "cannot be
+  // scheduled from failed"); the retry endpoint re-arms it, and its failed
+  // thread replies, instead.
+  const handleRetryPublish = useCallback(async () => {
+    if (!post) {
+      return;
+    }
+
+    setIsSavingSchedule(true);
+    try {
+      const service = await getPostsService();
+      await service.retry(requirePostId(post));
+      await fetchPost(true);
+      notificationsService.success('Retrying publish');
+    } catch (err) {
+      logger.error('Failed to retry publish', err);
+      notificationsService.error('Failed to retry publish');
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  }, [
+    fetchPost,
+    getPostsService,
+    notificationsService,
+    post,
+    setIsSavingSchedule,
+  ]);
+
   const handlePublishViaTikTokApp = useCallback(async () => {
     if (!post) {
       return;
@@ -401,6 +430,7 @@ export function usePostDetailActions({
     handleDeletePost,
     handlePerTweetEnhance,
     handlePublishNow,
+    handleRetryPublish,
     handlePublishViaTikTokApp,
     handleQuickAction,
     handleScheduleSave,

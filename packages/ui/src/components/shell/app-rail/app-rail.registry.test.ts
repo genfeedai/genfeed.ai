@@ -205,6 +205,9 @@ describe('app rail registry', () => {
         '/admin/overview/analytics/organizations',
       ),
     ).toBe('admin-administration');
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/settings/ai')).toBe(
+      'admin-settings',
+    );
   });
 
   describe('getRailAppRoute', () => {

@@ -1,6 +1,7 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
@@ -160,21 +161,65 @@ describe('AnnouncementsController', () => {
   });
 
   describe('getHistory()', () => {
-    it('should return serialized announcement collection', async () => {
-      const announcements = [makeAnnouncement(), makeAnnouncement()];
-      mockAdminAnnouncementsService.getHistory.mockResolvedValue(announcements);
-
-      const result = await controller.getHistory(makeRequest() as never);
-
-      expect(result).toBeDefined();
+    const page = (docs: unknown[], totalDocs = docs.length) => ({
+      docs,
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: 20,
+      nextPage: null,
+      page: 1,
+      pagingCounter: 1,
+      prevPage: null,
+      totalDocs,
+      totalPages: 1,
     });
 
-    it('should call getHistory service method', async () => {
-      mockAdminAnnouncementsService.getHistory.mockResolvedValue([]);
+    it('serializes the paged result so pagination links carry the totals', async () => {
+      const result = page([makeAnnouncement(), makeAnnouncement()], 42);
+      mockAdminAnnouncementsService.getHistory.mockResolvedValue(result);
 
-      await controller.getHistory(makeRequest() as never);
+      const response = await controller.getHistory(
+        { limit: 2, page: 3 },
+        makeRequest() as never,
+      );
 
-      expect(mockAdminAnnouncementsService.getHistory).toHaveBeenCalledTimes(1);
+      expect(serializeCollection).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        result,
+      );
+      expect(response).toBeDefined();
+    });
+
+    it('forwards the requested page window to the service', async () => {
+      mockAdminAnnouncementsService.getHistory.mockResolvedValue(page([]));
+
+      await controller.getHistory(
+        { limit: 5, page: 4 },
+        makeRequest() as never,
+      );
+
+      expect(mockAdminAnnouncementsService.getHistory).toHaveBeenCalledWith({
+        limit: 5,
+        page: 4,
+        skip: 15,
+      });
+    });
+
+    it('defaults to the first page of 20 and caps the limit at 100', async () => {
+      mockAdminAnnouncementsService.getHistory.mockResolvedValue(page([]));
+
+      await controller.getHistory({}, makeRequest() as never);
+      await controller.getHistory({ limit: 500 }, makeRequest() as never);
+
+      expect(mockAdminAnnouncementsService.getHistory).toHaveBeenNthCalledWith(
+        1,
+        { limit: 20, page: 1, skip: 0 },
+      );
+      expect(mockAdminAnnouncementsService.getHistory).toHaveBeenNthCalledWith(
+        2,
+        { limit: 100, page: 1, skip: 0 },
+      );
     });
 
     it('should handle service errors gracefully', async () => {
@@ -184,7 +229,7 @@ describe('AnnouncementsController', () => {
 
       // ErrorResponse.handle throws HttpException for non-HttpException errors
       await expect(
-        controller.getHistory(makeRequest() as never),
+        controller.getHistory({}, makeRequest() as never),
       ).rejects.toThrow();
     });
 

@@ -100,7 +100,7 @@ const getPostsServiceMock = vi.fn(async () => ({
   repurpose: repurposeMock,
 }));
 const getReleaseGroupsServiceMock = vi.fn(async () => ({
-  findAll: findReleasesMock,
+  findAllPages: findReleasesMock,
   moveCalendarPlacement: moveCalendarPlacementMock,
   republishAt: republishAtMock,
   update: updateReleaseMock,

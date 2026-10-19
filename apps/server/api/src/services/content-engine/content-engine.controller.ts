@@ -6,6 +6,10 @@ import { ContentPlansService } from '@api/collections/content-plans/services/con
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
@@ -27,6 +31,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -96,13 +101,15 @@ export class ContentEngineController {
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
+    @Query() query?: PaginationQueryDto,
   ) {
     const organization = resolveTenantReadScope(user).organizationId;
-    const docs = await this.contentPlansService.listByBrand(
+    const result = await this.contentPlansService.listByBrand(
       organization,
       brandId,
+      resolvePageWindow(query),
     );
-    return serializeCollection(req, ContentPlanSerializer, { docs });
+    return serializeCollection(req, ContentPlanSerializer, result);
   }
 
   @TenantReadPolicy('selected')

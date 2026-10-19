@@ -65,6 +65,46 @@ describe('AgentStrategiesController', () => {
     expect(query.where?.isActive).toBe(true);
   });
 
+  it('pages the report history and emits pagination links', async () => {
+    const listByStrategy = vi.fn().mockResolvedValue({
+      docs: [{ id: 'report-21' }],
+      hasNextPage: false,
+      hasPrevPage: true,
+      limit: 20,
+      nextPage: null,
+      page: 2,
+      pagingCounter: 21,
+      prevPage: 1,
+      totalDocs: 21,
+      totalPages: 2,
+    });
+    const controller = new AgentStrategiesController(
+      {} as never,
+      {} as never,
+      { listByStrategy } as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await controller.listReports(
+      'strategy-1',
+      { organizationId: 'org-1' } as AuthenticatedUser,
+      { limit: 20, page: 2 },
+    );
+
+    expect(listByStrategy).toHaveBeenCalledWith('strategy-1', 'org-1', {
+      limit: 20,
+      page: 2,
+    });
+    expect(result.data).toEqual([{ id: 'report-21' }]);
+    expect(result.links.pagination).toMatchObject({
+      limit: 20,
+      page: 2,
+      pages: 2,
+      total: 21,
+    });
+  });
+
   it('fails closed when the authenticated organization is missing', () => {
     const controller = new AgentStrategiesController(
       {} as never,
@@ -83,6 +123,56 @@ describe('AgentStrategiesController', () => {
         sort: 'createdAt: -1',
       }),
     ).toThrow('Organization not found');
+  });
+
+  it('lets a superadmin list another organization for the admin Agents page', () => {
+    const controller = new AgentStrategiesController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const query = controller.buildFindAllQuery(
+      { isSuperAdmin: true, organizationId: 'org-1' } as AuthenticatedUser,
+      {
+        brandId: 'brand-2',
+        isDeleted: false,
+        limit: 10,
+        organizationId: 'org-2',
+        page: 1,
+        sort: 'createdAt: -1',
+      },
+    );
+
+    expect(query.where).toMatchObject({
+      brandId: 'brand-2',
+      organizationId: 'org-2',
+    });
+  });
+
+  it('refuses a member naming another organization', () => {
+    const controller = new AgentStrategiesController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    expect(() =>
+      controller.buildFindAllQuery(
+        { organizationId: 'org-1' } as AuthenticatedUser,
+        {
+          isDeleted: false,
+          limit: 10,
+          organizationId: 'org-2',
+          page: 1,
+          sort: 'createdAt: -1',
+        },
+      ),
+    ).toThrow();
   });
 });
 

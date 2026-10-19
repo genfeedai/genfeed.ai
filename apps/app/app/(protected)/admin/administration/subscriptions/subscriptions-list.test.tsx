@@ -15,6 +15,14 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     factory('token-1'),
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams('page=2'),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
+
 vi.mock('@services/billing/subscriptions.service', () => ({
   SubscriptionsService: {
     getInstance: () => ({
@@ -109,6 +117,19 @@ describe('SubscriptionsList', () => {
       isLoading: false,
       refetch: vi.fn(),
     }));
+  });
+
+  it('asks the API for the page in the URL and shows the pager', async () => {
+    mocks.findAll.mockResolvedValue([makeSubscription()]);
+    render(<SubscriptionsList />);
+
+    const options = mocks.useQuery.mock.calls[0]?.[0];
+    expect(options.queryKey).toEqual(['admin-subscriptions', 2]);
+    await options.queryFn();
+    expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 2 });
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
   });
 
   it('renders organization balance when the nested org is missing', () => {

@@ -8,6 +8,15 @@ import type { PatternType } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
+/**
+ * `avgPerformanceScore` and `validUntil` live in the `data` JSON column, which
+ * Prisma cannot order or range-filter on, so ranking happens over a bounded
+ * window of the organization's freshest patterns rather than every row.
+ */
+const PATTERN_CANDIDATE_LIMIT = 500;
+const DEFAULT_PATTERN_LIST_LIMIT = 100;
+const DEFAULT_TOP_PATTERN_LIMIT = 10;
+
 @Injectable()
 export class CreativePatternsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -141,7 +150,7 @@ export class CreativePatternsService {
     brandId: string,
     options?: { limit?: number; patternTypes?: PatternType[] },
   ): Promise<CreativePatternDocument[]> {
-    const limit = options?.limit ?? 10;
+    const limit = options?.limit ?? DEFAULT_TOP_PATTERN_LIMIT;
     const now = new Date();
     const dataFilters: Prisma.CreativePatternWhereInput[] = [
       {
@@ -159,6 +168,8 @@ export class CreativePatternsService {
       });
     }
     const patterns = await this.prisma.creativePattern.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: PATTERN_CANDIDATE_LIMIT,
       where: scopedWhere(orgId, {
         AND: dataFilters,
         OR: [{ brandId }, { brandId: null }],
@@ -213,6 +224,8 @@ export class CreativePatternsService {
       });
     }
     const patterns = await this.prisma.creativePattern.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: PATTERN_CANDIDATE_LIMIT,
       where: scopedWhere(filters.organizationId, {
         ...(dataFilters.length > 0 ? { AND: dataFilters } : {}),
         ...(filters.brandId ? { brandId: filters.brandId } : {}),
@@ -235,10 +248,14 @@ export class CreativePatternsService {
         return bScore - aScore;
       });
 
-    if (filters.top) {
-      return filtered.slice(0, filters.limit ?? 10);
-    }
-
-    return filtered;
+    return filtered.slice(
+      0,
+      filters.top
+        ? (filters.limit ?? DEFAULT_TOP_PATTERN_LIMIT)
+        : Math.min(
+            filters.limit ?? DEFAULT_PATTERN_LIST_LIMIT,
+            DEFAULT_PATTERN_LIST_LIMIT,
+          ),
+    );
   }
 }

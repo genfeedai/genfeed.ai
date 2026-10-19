@@ -516,9 +516,9 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'tweetUrl',
   ],
   'blacklist:ElementBlacklist': [
-    'isActive',
-    'isDefault',
     'isFavorite',
+    // Computed: whether the row has no organization (a platform default).
+    'isPlatformDefault',
     'organization',
   ],
   'camera-movement:ElementCameraMovement': [

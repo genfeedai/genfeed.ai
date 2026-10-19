@@ -276,9 +276,9 @@ export class TrainingsOperationsController {
         },
       );
 
-      return serializeCollection(request, IngredientSerializer, {
-        docs: sourceResult.docs || [],
-      });
+      // Pass the whole paginated result so the JSON:API pagination links
+      // (page, pages, total) reach the client.
+      return serializeCollection(request, IngredientSerializer, sourceResult);
     } catch (error: unknown) {
       throw new HttpException(
         {

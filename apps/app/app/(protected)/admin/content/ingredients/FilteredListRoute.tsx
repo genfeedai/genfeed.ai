@@ -10,6 +10,7 @@ export default function FilteredListRoute() {
   const valueValues = searchParams.getAll('assetType');
   const value = valueValues.length > 1 ? valueValues : valueValues[0];
   const selected =
+    value === 'videos' ||
     value === 'images' ||
     value === 'gifs' ||
     value === 'musics' ||
@@ -17,6 +18,6 @@ export default function FilteredListRoute() {
     value === 'voices' ||
     value === 'ingredients'
       ? value
-      : 'videos';
+      : 'ingredients';
   return <IngredientsList type={selected} scope={PageScope.SUPERADMIN} />;
 }

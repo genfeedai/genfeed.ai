@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { IContentPlan } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -48,6 +49,9 @@ export default function ContentPlansSection() {
           emptyLabel={translate('emptyTitle')}
           emptyDescription={translate('emptyDescription')}
         />
+        {!isLoading && plans.length > 0 ? (
+          <AutoPagination showTotal totalLabel="plans" />
+        ) : null}
       </Card>
 
       <GeneratePlanDialog

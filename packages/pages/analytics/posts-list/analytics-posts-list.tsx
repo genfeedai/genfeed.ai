@@ -11,7 +11,7 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useWinnerPosts } from '@hooks/data/analytics/use-winner-posts/use-winner-posts';
 import AnalyticsWinnersTable from '@pages/analytics/posts-list/analytics-winners-table';
-import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import { resolveCapturedAudience } from '@pages/posts/list/captured-post.helpers';
 import {
   POSTS_SOURCE_EXTENSION,
@@ -453,7 +453,7 @@ export default function AnalyticsPostsList() {
         />
       )}
 
-      <PostDetailOverlay
+      <PostDetailPanel
         postId={focusedPostId || null}
         scope={PageScope.ANALYTICS}
         onClose={() => setFocusedPost()}

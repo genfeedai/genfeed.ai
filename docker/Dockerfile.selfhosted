@@ -281,6 +281,8 @@ COPY --from=production-deps --chown=appuser /app/packages/ packages/
 COPY --from=builder --chown=appuser /app/apps/server/dist/ apps/server/dist/
 COPY --from=builder --chown=appuser /app/apps/server/files/src/remotion/ apps/server/files/src/remotion/
 COPY --from=builder --chown=appuser /app/apps/server/files/remotion-bundle/ apps/server/files/remotion-bundle/
+# Static TTFs the files service burns into clips (drawtext fontfile=).
+COPY --from=builder --chown=appuser /app/apps/server/files/public/assets/fonts/ apps/server/files/public/assets/fonts/
 
 # Copy built Next.js app
 COPY --from=builder --chown=appuser /app/apps/app/.next/ apps/app/.next/

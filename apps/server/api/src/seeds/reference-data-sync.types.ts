@@ -1,4 +1,5 @@
 export type ReferenceDataDomainName =
+  | 'font-families'
   | 'models'
   | 'platform-templates'
   | 'rates'

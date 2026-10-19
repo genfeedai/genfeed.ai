@@ -142,6 +142,7 @@ describe('AnalyticsAdminController', () => {
       20,
       'engagement',
       'org-2',
+      undefined,
     );
   });
 
@@ -183,6 +184,7 @@ describe('AnalyticsAdminController', () => {
       15,
       'engagement',
       'org-2',
+      undefined,
     );
     expect(serializeSingle).toHaveBeenCalledWith(
       request,

@@ -1,15 +1,23 @@
 'use client';
 
+import { Timeframe } from '@genfeedai/contracts';
 import type { IEmailPerformanceQuery } from '@genfeedai/contracts/interfaces';
+import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
+import { differenceInCalendarDays, format, subDays } from 'date-fns';
 import { useState } from 'react';
 
 const DAY_MS = 86_400_000;
+const MAX_RANGE_DAYS = 90;
+const DEFAULT_RANGE_DAYS = 30;
+
+/** Matches the shared DateRangePicker's default preset: 30 days ending yesterday. */
+export const SYSTEM_EMAIL_DEFAULT_PRESET = Timeframe.D30;
 
 function dateInputValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return format(date, 'yyyy-MM-dd');
 }
 
-/** Inclusive UTC calendar days: `to` is the start of the day after `through`. */
+/** Inclusive calendar days: `to` is the start of the day after `through`. */
 function buildRangeQuery(
   from: string,
   through: string,
@@ -23,32 +31,33 @@ function buildRangeQuery(
 }
 
 export function useSystemEmailRange() {
-  const [from, setFrom] = useState(() =>
-    dateInputValue(new Date(Date.now() - 29 * DAY_MS)),
-  );
-  const [through, setThrough] = useState(() => dateInputValue(new Date()));
-  const [query, setQuery] = useState(() => buildRangeQuery(from, through));
+  const [isValidRange, setIsValidRange] = useState(true);
+  const [query, setQuery] = useState(() => {
+    const yesterday = subDays(new Date(), 1);
 
-  const duration =
-    new Date(through).getTime() - new Date(from).getTime() + DAY_MS;
-  const isValidRange =
-    Number.isFinite(duration) && duration > 0 && duration <= 90 * DAY_MS;
+    return buildRangeQuery(
+      dateInputValue(subDays(yesterday, DEFAULT_RANGE_DAYS - 1)),
+      dateInputValue(yesterday),
+    );
+  });
 
-  function applyRange() {
-    if (!isValidRange) return;
-    setQuery(buildRangeQuery(from, through));
+  function setRange({ startDate, endDate }: DateRange) {
+    if (!startDate || !endDate) {
+      return;
+    }
+
+    const days = differenceInCalendarDays(endDate, startDate) + 1;
+    const isValid = days >= 1 && days <= MAX_RANGE_DAYS;
+    setIsValidRange(isValid);
+
+    if (isValid) {
+      setQuery(
+        buildRangeQuery(dateInputValue(startDate), dateInputValue(endDate)),
+      );
+    }
   }
 
-  return {
-    applyRange,
-    from,
-    isValidRange,
-    query,
-    setFrom,
-    setThrough,
-    through,
-  };
+  return { isValidRange, query, setRange };
 }
 
 export type SystemEmailRange = ReturnType<typeof useSystemEmailRange>;
-export { DAY_MS, dateInputValue };

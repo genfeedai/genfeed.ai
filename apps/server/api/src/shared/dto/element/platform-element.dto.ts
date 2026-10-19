@@ -4,8 +4,8 @@ import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
 
 /**
  * Create payload for element types that can be platform defaults (no
- * organization): style, mood, scene, camera, lens, lighting, camera movement
- * and sound. Blacklists stay organization-only and extend `ElementDto`.
+ * organization): style, mood, scene, camera, lens, lighting, camera movement,
+ * sound and blacklist.
  */
 export class PlatformElementDto extends ElementDto {
   @ApiProperty({

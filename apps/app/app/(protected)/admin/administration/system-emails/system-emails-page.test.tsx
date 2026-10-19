@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SystemEmailsPage from './system-emails-page';
@@ -135,7 +136,14 @@ describe('SystemEmailsPage', () => {
       );
     });
 
-    expect(screen.getByText('Welcome day 0')).toBeInTheDocument();
+    const trigger = await screen.findByRole('button', {
+      name: /Welcome day 0/,
+    });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('User signs up')).not.toBeInTheDocument();
+
+    await userEvent.click(trigger);
+
     expect(screen.getByText('User signs up')).toBeInTheDocument();
     expect(screen.getByText('Welcome to Genfeed.ai')).toBeInTheDocument();
     expect(

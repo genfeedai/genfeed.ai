@@ -1,5 +1,6 @@
 import { EditorProjectStatus, IngredientFormat } from '@genfeedai/contracts';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditorProjectsService } from './editor-projects.service';
 
@@ -187,7 +188,28 @@ describe('EditorProjectsService', () => {
 
     expect(mockInstance.get).toHaveBeenCalledWith('', {
       params: { sort: '-updatedAt' },
+      signal: undefined,
     });
+  });
+
+  it('findAll requests a server page and records the pagination totals', async () => {
+    mockInstance.get.mockResolvedValue({
+      data: {
+        data: [],
+        links: { pagination: { limit: 15, page: 2, pages: 3, total: 40 } },
+      },
+    });
+    const controller = new AbortController();
+
+    await service.findAll({ limit: 15, page: 2 }, controller.signal);
+
+    expect(mockInstance.get).toHaveBeenCalledWith('', {
+      params: { limit: 15, page: 2, sort: '-updatedAt' },
+      signal: controller.signal,
+    });
+    expect(PagesService.getCurrentPage()).toBe(2);
+    expect(PagesService.getTotalPages()).toBe(3);
+    expect(PagesService.getTotalDocs()).toBe(40);
   });
 
   it('update PATCHes the project', async () => {

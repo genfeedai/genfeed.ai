@@ -1,6 +1,6 @@
 import { UnitEconomicsService } from '@api/endpoints/admin/unit-economics/unit-economics.service';
 import {
-  buildUnitEconomicsRows,
+  buildUnitEconomicsRow,
   EMPTY_UNIT_ECONOMICS_AGGREGATE,
   toUnitEconomicsMetrics,
 } from '@api/endpoints/admin/unit-economics/unit-economics-report.util';
@@ -46,31 +46,32 @@ describe('unit economics margin math', () => {
   });
 
   it('totals re-derive the margin from summed money, not averaged percentages', () => {
-    const { rows, totals } = buildUnitEconomicsRows([
-      {
-        aggregate: {
-          ...EMPTY_UNIT_ECONOMICS_AGGREGATE,
-          llmProviderCostMicros: 1_000_000,
-          revenueMinor: 100,
-        },
-        id: 'small',
+    const small = {
+      ...EMPTY_UNIT_ECONOMICS_AGGREGATE,
+      llmProviderCostMicros: 1_000_000,
+      revenueMinor: 100,
+    };
+    const large = {
+      ...EMPTY_UNIT_ECONOMICS_AGGREGATE,
+      llmProviderCostMicros: 10_000_000,
+      revenueMinor: 100_000,
+    };
+
+    const totals = toUnitEconomicsMetrics({
+      ...EMPTY_UNIT_ECONOMICS_AGGREGATE,
+      llmProviderCostMicros:
+        small.llmProviderCostMicros + large.llmProviderCostMicros,
+      revenueMinor: small.revenueMinor + large.revenueMinor,
+    });
+
+    expect(
+      buildUnitEconomicsRow({
+        aggregate: small,
+        id: 's',
         label: 'Small',
         topModels: [],
-      },
-      {
-        aggregate: {
-          ...EMPTY_UNIT_ECONOMICS_AGGREGATE,
-          llmProviderCostMicros: 10_000_000,
-          revenueMinor: 100_000,
-        },
-        id: 'large',
-        label: 'Large',
-        topModels: [],
-      },
-    ]);
-
-    expect(rows.map((row) => row.id)).toEqual(['large', 'small']);
-    expect(rows[1]?.grossMarginPercent).toBe(0);
+      }).grossMarginPercent,
+    ).toBe(0);
     expect(totals.revenueUsd).toBe(1_001);
     expect(totals.grossMarginUsd).toBe(990);
     expect(totals.grossMarginPercent).toBe(98.9);
@@ -81,45 +82,37 @@ describe('UnitEconomicsService', () => {
   const FROM = '2026-09-01';
   const TO = '2026-09-30';
 
-  function createService(
-    rows: {
-      credit?: unknown[];
-      llm?: unknown[];
-      media?: unknown[];
-      revenue?: unknown[];
-      top?: unknown[];
-    } = {},
-  ) {
+  interface FakeRows {
+    page?: unknown[];
+    summary?: Record<string, unknown>;
+    top?: unknown[];
+  }
+
+  function createService(rows: FakeRows = {}) {
     const queries: Prisma.Sql[] = [];
     const prisma = {
       $queryRaw: vi.fn(async (query: Prisma.Sql) => {
         queries.push(query);
         const sql = query.sql;
         if (sql.includes('"modelCosts"')) return rows.top ?? [];
-        if (sql.includes('billing_revenue_events')) return rows.revenue ?? [];
-        if (sql.includes('credit_transactions')) return rows.credit ?? [];
-        if (sql.includes('media_vendor_costs')) return rows.media ?? [];
-        if (sql.includes('llm_vendor_costs')) return rows.llm ?? [];
+        if (sql.includes('"labelled"')) return rows.page ?? [];
+        if (sql.includes('"totalRows"')) {
+          return [
+            rows.summary ?? {
+              agentChatCredits: 0,
+              agentTurns: 0,
+              generationCredits: 0,
+              llmProviderCostMicros: 0,
+              mediaProviderCostMicros: 0,
+              revenueMinor: 0,
+              totalRows: BigInt(0),
+            },
+          ];
+        }
         return [];
       }),
       organization: {
         findFirst: vi.fn().mockResolvedValue({ label: 'Acme' }),
-        findMany: vi.fn().mockResolvedValue([
-          { id: 'org-1', label: 'Acme' },
-          { id: 'org-2', label: 'Globex' },
-        ]),
-      },
-      user: {
-        findMany: vi.fn().mockResolvedValue([
-          {
-            email: 'ada@example.com',
-            firstName: 'Ada',
-            handle: 'ada',
-            id: 'user-1',
-            lastName: 'Lovelace',
-            name: null,
-          },
-        ]),
       },
     };
     const service = new UnitEconomicsService(
@@ -128,12 +121,20 @@ describe('UnitEconomicsService', () => {
     return { prisma, queries, service };
   }
 
+  const pageQuery = (queries: Prisma.Sql[]) =>
+    queries.find((query) => query.sql.includes('"labelled"'));
+  const normalized = (query: Prisma.Sql | undefined) =>
+    query?.sql.replace(/\s+/g, ' ') ?? '';
+
   it('bounds every platform-wide query by the period and soft delete', async () => {
-    const { queries, service } = createService();
+    const { queries, service } = createService({
+      page: [{ key: 'org-1', label: 'Acme' }],
+    });
 
     await service.getReport({ from: FROM, to: TO });
 
-    expect(queries).toHaveLength(5);
+    // page, summary, top models
+    expect(queries).toHaveLength(3);
     for (const query of queries) {
       expect(query.sql).toContain('"isDeleted" = false');
       expect(query.values).toEqual(
@@ -146,13 +147,142 @@ describe('UnitEconomicsService', () => {
     }
   });
 
-  it('pins a drill-down to one organization and groups by the acting user', async () => {
-    const { prisma, queries, service } = createService({
-      llm: [
+  it('cuts the page in the database and totals every organization', async () => {
+    const { queries, service } = createService({
+      page: [
         {
+          agentChatCredits: 0,
+          agentTurns: 1,
+          generationCredits: 0,
+          key: 'org-2',
+          label: 'Globex',
+          llmProviderCostMicros: 10_000,
+          mediaProviderCostMicros: 0,
+          revenueMinor: 0,
+        },
+      ],
+      summary: {
+        agentChatCredits: 0,
+        agentTurns: 13,
+        generationCredits: 0,
+        llmProviderCostMicros: 2_010_000,
+        mediaProviderCostMicros: 3_000_000,
+        revenueMinor: 2_900,
+        totalRows: BigInt(41),
+      },
+    });
+
+    const report = await service.getReport({
+      from: FROM,
+      limit: 20,
+      page: 3,
+      to: TO,
+    });
+
+    const page = pageQuery(queries);
+    expect(normalized(page)).toContain('LIMIT ? OFFSET ?');
+    expect(page?.values.slice(-2)).toEqual([20, 40]);
+    expect(report.pagination).toEqual({
+      limit: 20,
+      page: 3,
+      pages: 3,
+      total: 41,
+    });
+    expect(report.rows.map((row) => row.id)).toEqual(['org-2']);
+    // Report-wide totals, not just the rows on this page.
+    expect(report.totals).toEqual(
+      expect.objectContaining({
+        agentTurns: 13,
+        grossMarginUsd: 23.99,
+        llmProviderCostUsd: 2.01,
+        mediaProviderCostUsd: 3,
+        revenueUsd: 29,
+      }),
+    );
+    const summary = queries.find((query) => query.sql.includes('"totalRows"'));
+    expect(summary?.sql).not.toContain('LIMIT');
+  });
+
+  it('only looks up top models for the keys on the page', async () => {
+    const { queries, service } = createService({
+      page: [
+        { key: 'org-1', label: 'Acme' },
+        { key: 'org-2', label: 'Globex' },
+      ],
+      top: [
+        {
+          costMicros: BigInt(1_500_000),
+          key: 'org-1',
+          model: 'anthropic/claude-sonnet-5',
+        },
+      ],
+    });
+
+    const report = await service.getReport({ from: FROM, to: TO });
+
+    const top = queries.find((query) => query.sql.includes('"modelCosts"'));
+    expect(top?.values).toEqual(expect.arrayContaining(['org-1', 'org-2']));
+    expect(report.rows[0]?.topModels).toEqual([
+      { model: 'anthropic/claude-sonnet-5', providerCostUsd: 1.5 },
+    ]);
+    expect(report.rows[1]?.topModels).toEqual([]);
+  });
+
+  it('skips the top-model query for an empty page', async () => {
+    const { queries, service } = createService();
+
+    const report = await service.getReport({ from: FROM, page: 9, to: TO });
+
+    expect(queries.some((query) => query.sql.includes('"modelCosts"'))).toBe(
+      false,
+    );
+    expect(report.rows).toEqual([]);
+    expect(report.pagination.total).toBe(0);
+  });
+
+  it('orders by the requested column in the database', async () => {
+    const { queries, service } = createService();
+
+    await service.getReport({
+      from: FROM,
+      sortDirection: 'asc',
+      sortKey: 'grossMarginPercent',
+      to: TO,
+    });
+    await service.getReport({
+      from: FROM,
+      sortDirection: 'desc',
+      sortKey: 'revenueUsd',
+      to: TO,
+    });
+    await service.getReport({ from: FROM, to: TO });
+
+    const [byMargin, byRevenue, byDefault] = queries
+      .filter((query) => query.sql.includes('"labelled"'))
+      .map((query) => normalized(query));
+    expect(byMargin).toContain(
+      'ORDER BY "grossMarginPercent" ASC NULLS FIRST, LOWER("label") ASC, "key" ASC',
+    );
+    expect(byRevenue).toContain(
+      'ORDER BY "revenueMinor" DESC NULLS LAST, LOWER("label") ASC, "key" ASC',
+    );
+    expect(byDefault).toContain(
+      'ORDER BY ("llmProviderCostMicros" + "mediaProviderCostMicros") DESC, "revenueMinor" DESC',
+    );
+  });
+
+  it('pins a drill-down to one organization and groups by the acting user', async () => {
+    const { queries, service } = createService({
+      page: [
+        {
+          agentChatCredits: 0,
           agentTurns: BigInt(3),
+          generationCredits: 0,
           key: 'user-1',
+          label: 'ada@example.com',
           llmProviderCostMicros: BigInt(500_000),
+          mediaProviderCostMicros: 0,
+          revenueMinor: 0,
         },
       ],
     });
@@ -166,11 +296,10 @@ describe('UnitEconomicsService', () => {
     for (const query of queries) {
       expect(query.values).toContain('org-1');
     }
-    expect(queries.map((query) => query.sql).join('\n')).toContain(
-      '"actorUserId"',
-    );
-    expect(prisma.user.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: { in: ['user-1'] } } }),
+    const text = queries.map((query) => query.sql).join('\n');
+    expect(text).toContain('"actorUserId"');
+    expect(normalized(pageQuery(queries))).toContain(
+      'LEFT JOIN "users" u ON u."id" = c."key"',
     );
     expect(report.organizationLabel).toBe('Acme');
     expect(report.rows).toEqual([
@@ -183,15 +312,23 @@ describe('UnitEconomicsService', () => {
     ]);
   });
 
+  it('labels organizations from the organizations table in the page query', async () => {
+    const { queries, service } = createService();
+
+    await service.getReport({ from: FROM, to: TO });
+
+    expect(normalized(pageQuery(queries))).toContain(
+      'LEFT JOIN "organizations" o ON o."id" = c."key"',
+    );
+  });
+
   it('counts credit usage net of refunds and without referral reward reversals', async () => {
     const { queries, service } = createService();
 
     await service.getReport({ from: FROM, to: TO });
 
-    const creditSql = queries.find((query) =>
-      query.sql.includes('credit_transactions'),
-    );
-    const text = creditSql?.sql.replace(/\s+/g, ' ');
+    const creditSql = pageQuery(queries);
+    const text = normalized(creditSql);
     expect(text).toContain(
       `CASE WHEN "category" = ? THEN -ABS("amount") ELSE ABS("amount") END`,
     );
@@ -203,6 +340,7 @@ describe('UnitEconomicsService', () => {
         CreditTransactionCategory.DEDUCT,
         CreditTransactionCategory.REFUND,
         REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE,
+        ActivitySource.AGENT_CHAT,
       ]),
     );
   });
@@ -216,44 +354,34 @@ describe('UnitEconomicsService', () => {
     ).rejects.toThrow('not found');
   });
 
-  it('merges revenue, credits by category, provider cost, and top models per organization', async () => {
-    const { queries, service } = createService({
-      credit: [
+  it('derives margins and credits from the merged ledger columns', async () => {
+    const { service } = createService({
+      page: [
         {
           agentChatCredits: 42.123456,
+          agentTurns: BigInt(12),
           generationCredits: 1_200,
           key: 'org-1',
-        },
-      ],
-      llm: [
-        {
-          agentTurns: BigInt(12),
-          key: 'org-1',
+          label: 'Acme',
           llmProviderCostMicros: BigInt(2_000_000),
+          mediaProviderCostMicros: '3000000',
+          revenueMinor: BigInt(2_900),
         },
         {
+          agentChatCredits: 0,
           agentTurns: BigInt(1),
+          generationCredits: 0,
           key: 'org-2',
+          label: 'Globex',
           llmProviderCostMicros: BigInt(10_000),
-        },
-      ],
-      media: [{ key: 'org-1', mediaProviderCostMicros: '3000000' }],
-      revenue: [{ key: 'org-1', revenueMinor: BigInt(2_900) }],
-      top: [
-        {
-          costMicros: BigInt(1_500_000),
-          key: 'org-1',
-          model: 'anthropic/claude-sonnet-5',
+          mediaProviderCostMicros: 0,
+          revenueMinor: 0,
         },
       ],
     });
 
     const report = await service.getReport({ from: FROM, to: TO });
 
-    const creditSql = queries.find((query) =>
-      query.sql.includes('credit_transactions'),
-    );
-    expect(creditSql?.values).toContain(ActivitySource.AGENT_CHAT);
     expect(report.rows[0]).toEqual(
       expect.objectContaining({
         agentChatCredits: 42.123456,
@@ -265,9 +393,6 @@ describe('UnitEconomicsService', () => {
         llmProviderCostUsd: 2,
         mediaProviderCostUsd: 3,
         revenueUsd: 29,
-        topModels: [
-          { model: 'anthropic/claude-sonnet-5', providerCostUsd: 1.5 },
-        ],
       }),
     );
     expect(report.rows[1]).toEqual(
@@ -276,13 +401,6 @@ describe('UnitEconomicsService', () => {
         grossMarginUsd: -0.01,
         id: 'org-2',
         label: 'Globex',
-      }),
-    );
-    expect(report.totals).toEqual(
-      expect.objectContaining({
-        agentTurns: 13,
-        grossMarginUsd: 23.99,
-        revenueUsd: 29,
       }),
     );
   });

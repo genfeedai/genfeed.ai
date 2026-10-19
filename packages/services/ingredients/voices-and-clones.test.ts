@@ -36,8 +36,9 @@ describe('VoicesService', () => {
 
       expect(http.get).toHaveBeenCalledWith('/catalog', {
         params: { search: 'ava' },
+        signal: undefined,
       });
-      expect(result).toEqual([{ id: 'voice_1', name: 'Ava' }]);
+      expect(result.items).toEqual([{ id: 'voice_1', name: 'Ava' }]);
     });
 
     it('defaults to no filters', async () => {
@@ -45,7 +46,34 @@ describe('VoicesService', () => {
 
       await service.findCatalog();
 
-      expect(http.get).toHaveBeenCalledWith('/catalog', { params: {} });
+      expect(http.get).toHaveBeenCalledWith('/catalog', {
+        params: {},
+        signal: undefined,
+      });
+    });
+
+    it('requests a page and reports the server paging', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(
+          collectionDocument([{ id: 'voice_1', name: 'Ava' }], {
+            pagination: { limit: 15, page: 2, pages: 4, total: 52 },
+          }),
+        ),
+      );
+
+      const result = await service.findCatalog({ limit: 15, page: 2 });
+
+      expect(http.get).toHaveBeenCalledWith('/catalog', {
+        params: { limit: 15, page: 2 },
+        signal: undefined,
+      });
+      expect(result).toMatchObject({
+        hasNext: true,
+        hasPrevious: true,
+        page: 2,
+        total: 52,
+        totalPages: 4,
+      });
     });
   });
 

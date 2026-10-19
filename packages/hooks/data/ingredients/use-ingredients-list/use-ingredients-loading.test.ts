@@ -181,6 +181,49 @@ describe('useIngredientsLoading', () => {
     expect(firstCallParams.lightweight).toBe(true);
   });
 
+  it('lists every organization for the admin scope and turns the type into a category filter', async () => {
+    renderHook(() =>
+      useIngredientsLoading({ ...baseProps, scope: PageScope.SUPERADMIN }),
+    );
+
+    await waitFor(() => {
+      expect(ingredientsFindAllMock).toHaveBeenCalled();
+    });
+
+    const params = ingredientsFindAllMock.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(params.allOrganizations).toBe(true);
+    expect(params.organizationId).toBeUndefined();
+    expect(params.categories).toEqual([IngredientCategory.VIDEO]);
+  });
+
+  it('narrows the admin list to the organization and brand picked in the subbar', async () => {
+    renderHook(() =>
+      useIngredientsLoading({
+        ...baseProps,
+        parsedSearchParams: new URLSearchParams('organization=org-9&brand=b-9'),
+        scope: PageScope.SUPERADMIN,
+        singularType: 'ingredient',
+        type: 'ingredients',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(ingredientsFindAllMock).toHaveBeenCalled();
+    });
+
+    const params = ingredientsFindAllMock.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(params.organizationId).toBe('org-9');
+    expect(params.brandId).toBe('b-9');
+    expect(params.allOrganizations).toBeUndefined();
+    expect(params.categories).toBeUndefined();
+  });
+
   it('loads every filtered Failed shelf page while preserving its brand and search', async () => {
     const findAllPages = vi
       .fn()

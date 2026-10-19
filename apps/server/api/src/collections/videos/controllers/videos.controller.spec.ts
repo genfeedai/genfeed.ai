@@ -645,8 +645,8 @@ describe('VideosController', () => {
         { limit: number; pagination: boolean },
       ];
 
-      // pagination disabled, ordered newest-first
-      expect(options).toMatchObject({ pagination: false });
+      // database-paginated page 1 (the cap is honoured), ordered newest-first
+      expect(options).toMatchObject({ limit: 10, page: 1, pagination: true });
       expect(aggregate.orderBy).toEqual({ createdAt: -1 });
 
       // Single user-scoped branch, training excluded, with no organization

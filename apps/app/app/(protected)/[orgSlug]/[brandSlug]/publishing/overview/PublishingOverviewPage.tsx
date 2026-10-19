@@ -138,7 +138,7 @@ export default function PublishingOverviewPage() {
     ],
     queryFn: async ({ signal }) => {
       const service = await getReleaseGroupsService();
-      return service.findAll(
+      return service.findAllPages(
         {
           ...toBrandListParams({ brandId }),
           endDate: new Date(now.getTime() + QUEUE_WINDOW_MS).toISOString(),
@@ -156,7 +156,7 @@ export default function PublishingOverviewPage() {
     queryKey: ['publish-overview-failed', organizationId, brandId],
     queryFn: async ({ signal }) => {
       const service = await getReleaseGroupsService();
-      return service.findAll(
+      return service.findAllPages(
         {
           ...toBrandListParams({ brandId }),
           executionState: [TargetExecutionState.FAILED],

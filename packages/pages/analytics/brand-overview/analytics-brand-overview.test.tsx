@@ -80,7 +80,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   return { useAuthedService: () => resolveService };
 });
 
-vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
+vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (
     <div data-testid="post-detail-overlay">{postId ?? 'closed'}</div>

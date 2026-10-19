@@ -1,6 +1,7 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { SubscriptionTier } from '@genfeedai/contracts';
+import { FREE_API_RATE_LIMIT } from '@genfeedai/pricing';
 import { vi } from 'vitest';
 
 // Togglable deployment mode drives both the per-tier (cloud) and per-key
@@ -98,7 +99,7 @@ describe('ApiKeysService per-tier rate limiting', () => {
       });
     });
 
-    it('cloud: free tier resolves to 0 (no access)', async () => {
+    it('cloud: free tier resolves to its rate-limited API ceiling', async () => {
       const service = createHarness();
       service.__findUnique.mockResolvedValue({
         subscriptionTier: SubscriptionTier.FREE,
@@ -106,7 +107,7 @@ describe('ApiKeysService per-tier rate limiting', () => {
 
       await expect(
         service.resolveEffectiveRateLimit(buildApiKey()),
-      ).resolves.toBe(0);
+      ).resolves.toBe(FREE_API_RATE_LIMIT);
     });
 
     it('cloud: enterprise resolves to null (uncapped)', async () => {
@@ -120,13 +121,13 @@ describe('ApiKeysService per-tier rate limiting', () => {
       ).resolves.toBeNull();
     });
 
-    it('cloud: missing org setting default-denies (0)', async () => {
+    it('cloud: missing org setting falls back to the free ceiling', async () => {
       const service = createHarness();
       service.__findUnique.mockResolvedValue(null);
 
       await expect(
         service.resolveEffectiveRateLimit(buildApiKey()),
-      ).resolves.toBe(0);
+      ).resolves.toBe(FREE_API_RATE_LIMIT);
     });
 
     it('non-cloud: honors the per-key limit and never reads the tier', async () => {
@@ -150,18 +151,6 @@ describe('ApiKeysService per-tier rate limiting', () => {
   });
 
   describe('checkRateLimit', () => {
-    it('denies free tier without touching Redis', async () => {
-      const service = createHarness();
-      service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.FREE,
-      });
-
-      await expect(
-        service.checkRateLimit(buildApiKey()),
-      ).resolves.toMatchObject({ allowed: false, limit: 0 });
-      expect(service.__getPublisher).not.toHaveBeenCalled();
-    });
-
     it('allows enterprise (uncapped) without touching Redis', async () => {
       const service = createHarness();
       service.__findUnique.mockResolvedValue({

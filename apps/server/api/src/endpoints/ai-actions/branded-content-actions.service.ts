@@ -65,6 +65,7 @@ export class BrandedContentActionsService {
         usesWeightedCharacters:
           capability.platform === CredentialPlatform.TWITTER,
       }),
+      isThread: request.isThread,
       label: request.isThread ? 'Agent thread' : 'Agent post',
       maxCharacters,
       maxTokens: outputTokens(maxCharacters * maxPosts),
@@ -121,6 +122,7 @@ export class BrandedContentActionsService {
   private async run(input: {
     brandId: string;
     gate: TextActionGate;
+    isThread?: boolean;
     label: string;
     maxCharacters: number;
     maxTokens: number;
@@ -135,7 +137,7 @@ export class BrandedContentActionsService {
       ...input.spec,
       actor: input.request.actor,
       brandId: input.brandId,
-      contentType: 'post',
+      contentType: input.isThread ? 'thread' : 'post',
       gate: input.gate,
       generation: {
         maxTokens: input.maxTokens,

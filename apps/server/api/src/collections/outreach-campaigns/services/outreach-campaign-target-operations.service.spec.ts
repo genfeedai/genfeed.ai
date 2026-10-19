@@ -31,7 +31,8 @@ describe('OutreachCampaignTargetOperationsService', () => {
   };
   const targetsService = {
     createManyForCampaign: vi.fn(),
-    findByCampaign: vi.fn(),
+    countByCampaignStatus: vi.fn(),
+    findPageByCampaign: vi.fn(),
     findById: vi.fn(),
     findExistingExternalIds: vi.fn(),
   };
@@ -87,7 +88,7 @@ describe('OutreachCampaignTargetOperationsService', () => {
       organizationId,
       user.brandId,
     );
-    expect(targetsService.findByCampaign).not.toHaveBeenCalled();
+    expect(targetsService.findPageByCampaign).not.toHaveBeenCalled();
   });
 
   describe('addTargets', () => {
@@ -230,14 +231,48 @@ describe('OutreachCampaignTargetOperationsService', () => {
   });
 
   describe('getTargets', () => {
-    it('uses the campaign tenant returned by the scoped lookup', async () => {
-      const targets = [{ id: 'target_1' }];
-      targetsService.findByCampaign.mockResolvedValue(targets);
+    it('pages the campaign tenant returned by the scoped lookup and adds the status breakdown', async () => {
+      const page = {
+        docs: [{ id: 'target_1' }],
+        hasNextPage: true,
+        hasPrevPage: false,
+        limit: 20,
+        nextPage: 2,
+        page: 1,
+        pagingCounter: 1,
+        prevPage: null,
+        totalDocs: 45,
+        totalPages: 3,
+      };
+      const statusCounts = { PENDING: 40, SENT: 5 };
+      targetsService.findPageByCampaign.mockResolvedValue(page);
+      targetsService.countByCampaignStatus.mockResolvedValue(statusCounts);
+      const query = { limit: 20, page: 1 };
 
-      await expect(service.getTargets('campaign_1', user)).resolves.toBe(
-        targets,
+      await expect(
+        service.getTargets('campaign_1', user, query as never),
+      ).resolves.toEqual({
+        data: page.docs,
+        links: {
+          pagination: {
+            hasNext: true,
+            hasPrev: false,
+            limit: 20,
+            next: 2,
+            page: 1,
+            pages: 3,
+            prev: null,
+            total: 45,
+          },
+        },
+        meta: { statusCounts },
+      });
+      expect(targetsService.findPageByCampaign).toHaveBeenCalledWith(
+        'campaign_1',
+        organizationId,
+        query,
       );
-      expect(targetsService.findByCampaign).toHaveBeenCalledWith(
+      expect(targetsService.countByCampaignStatus).toHaveBeenCalledWith(
         'campaign_1',
         organizationId,
       );

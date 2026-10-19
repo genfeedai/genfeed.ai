@@ -30,6 +30,7 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -953,8 +954,38 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       post,
       createPublishFailedActivity(post, errorMessage),
     );
+    this.captureTerminalPublishFailure(post, errorCode, errorMessage);
 
     return false;
+  }
+
+  /**
+   * A publish that ended FAILED is handled here and persisted on the post, so
+   * nothing rethrows it to Sentry's global handlers. Report it once, when the
+   * transition actually moved the target to FAILED. Content the owner must fix
+   * (validation) stays out; provider and credential failures are the signal.
+   */
+  private captureTerminalPublishFailure(
+    post: PostEntity,
+    errorCode: string,
+    errorMessage: string,
+  ): void {
+    if (errorCode === 'publish_validation_failed') {
+      return;
+    }
+    Sentry.captureException(new Error(errorMessage), {
+      extra: {
+        organizationId: readPostString(post, ['organizationId']),
+        postId: post.id.toString(),
+        retryCount: post.retryCount || 0,
+      },
+      fingerprint: ['scheduled-post-publish-failed', errorCode],
+      level: 'error',
+      tags: {
+        'publish.error_code': errorCode,
+        'publish.platform': readPostString(post, ['platform']) ?? 'unknown',
+      },
+    });
   }
 
   private async handlePublishFailure(

@@ -1,12 +1,14 @@
 import { createHash } from 'node:crypto';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { scopedWhere } from '@api/index';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   FileInputType,
   toPrismaCredentialPlatform,
@@ -46,12 +48,24 @@ export class SavedAdsService {
     private readonly filesClientService: FilesClientService,
   ) {}
 
-  async list(organizationId: string, brandId: string) {
+  async list(
+    organizationId: string,
+    brandId: string,
+    { limit, page }: { limit: number; page: number },
+  ): Promise<AggregatePaginateResult<SavedAd>> {
     await this.assertBrand(organizationId, brandId);
-    return this.prisma.savedAd.findMany({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      where: { brandId, isDeleted: false, organizationId },
-    });
+    const where = { brandId, isDeleted: false, organizationId };
+    const [docs, totalDocs] = await Promise.all([
+      this.prisma.savedAd.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.savedAd.count({ where }),
+    ]);
+
+    return buildPaginatedResult(docs, totalDocs, page, limit);
   }
 
   async saveMany(

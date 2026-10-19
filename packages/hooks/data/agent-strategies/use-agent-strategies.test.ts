@@ -57,6 +57,25 @@ describe('useAgentStrategies', () => {
     });
   });
 
+  it('requests a single server page when a page is given', async () => {
+    const { result } = renderHook(
+      () => useAgentStrategies({ brandId: 'brand-1', limit: 15, page: 2 }),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.strategies).toEqual([STRATEGY]);
+    });
+
+    expect(mockList).toHaveBeenCalledWith({
+      agentType: undefined,
+      brandId: 'brand-1',
+      isActive: undefined,
+      limit: 15,
+      page: 2,
+    });
+  });
+
   it('returns an empty list without an auth token', async () => {
     mockResolveAuthToken.mockResolvedValue(null);
 

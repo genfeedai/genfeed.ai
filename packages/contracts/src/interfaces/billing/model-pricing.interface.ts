@@ -235,6 +235,8 @@ export interface ModelPricingFixUnresolved extends ModelPricingFixEntry {
 export interface ModelPricingFixResult {
   /** Pending provider rates approved, so the model now bills at them. */
   approved: ModelPricingFixEntry[];
+  /** The reviewed rate sheet was re-applied, so the model prices again. */
+  repaired: ModelPricingFixEntry[];
   /** No rates loaded yet: the provider price import was queued for these. */
   syncQueued: Array<ModelPricingFixEntry & { provider: string }>;
   /** The model's rates changed while fixing; run it again. */

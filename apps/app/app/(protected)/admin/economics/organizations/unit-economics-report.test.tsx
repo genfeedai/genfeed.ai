@@ -1,7 +1,7 @@
 import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildEconomicsRange,
   formatMarginPercent,
@@ -68,11 +68,31 @@ vi.mock('next-intl', async () => {
 });
 
 const queryState = vi.hoisted(() => ({
+  lastQueryFn: undefined as
+    | undefined
+    | ((context: { signal: AbortSignal }) => Promise<unknown>),
+  getReport: vi.fn(),
   lastQueryKey: [] as unknown[],
+  replace: vi.fn(),
+  search: '',
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin/administration/unit-economics',
+  useRouter: () => ({ replace: queryState.replace }),
+  useSearchParams: () => new URLSearchParams(queryState.search),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: ({ totalLabel }: { totalLabel: string }) => (
+    <nav aria-label="pagination" data-total-label={totalLabel} />
+  ),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+  useAuthedService: vi.fn(() =>
+    vi.fn(async () => ({ getReport: queryState.getReport })),
+  ),
 }));
 
 vi.mock('@services/admin/unit-economics.service', () => ({
@@ -80,16 +100,25 @@ vi.mock('@services/admin/unit-economics.service', () => ({
 }));
 
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(({ queryKey }: { queryKey: unknown[] }) => {
-    queryState.lastQueryKey = queryKey;
-    return {
-      data: report,
-      error: null,
-      isFetching: false,
-      isLoading: false,
-      refetch: vi.fn(),
-    };
-  }),
+  useQuery: vi.fn(
+    ({
+      queryFn,
+      queryKey,
+    }: {
+      queryFn: typeof queryState.lastQueryFn;
+      queryKey: unknown[];
+    }) => {
+      queryState.lastQueryFn = queryFn;
+      queryState.lastQueryKey = queryKey;
+      return {
+        data: report,
+        error: null,
+        isFetching: false,
+        isLoading: false,
+        refetch: vi.fn(),
+      };
+    },
+  ),
 }));
 
 describe('unit economics report helpers', () => {
@@ -107,36 +136,31 @@ describe('unit economics report helpers', () => {
     ).toEqual({ from: '2026-09-01', to: '2026-09-30' });
   });
 
-  it('sorts rows and keeps the totals row last', () => {
-    const ascending = buildUnitEconomicsTableRows(
-      report,
-      'revenueUsd',
-      'asc',
-      'Total',
-    );
-    expect(ascending.map((row) => row.id)).toEqual([
-      'org-free',
-      'org-paid',
-      '__total__',
-    ]);
-    const byMargin = buildUnitEconomicsTableRows(
-      report,
-      'grossMarginPercent',
-      'desc',
-      'Total',
-    );
-    expect(byMargin.map((row) => row.id)).toEqual([
+  it('keeps the API order and pins the report-wide totals row last', () => {
+    const rows = buildUnitEconomicsTableRows(report, 'Total');
+
+    expect(rows.map((row) => row.id)).toEqual([
       'org-paid',
       'org-free',
       '__total__',
     ]);
-    expect(byMargin.at(-1)).toEqual(
+    expect(rows.at(-1)).toEqual(
       expect.objectContaining({ isTotal: true, label: 'Total' }),
     );
+    expect(buildUnitEconomicsTableRows(undefined, 'Total')).toEqual([]);
+    expect(
+      buildUnitEconomicsTableRows({ ...report, rows: [] }, 'Total'),
+    ).toEqual([]);
   });
 });
 
 describe('UnitEconomicsReport', () => {
+  beforeEach(() => {
+    queryState.search = '';
+    queryState.replace.mockClear();
+    queryState.getReport.mockReset();
+  });
+
   it('renders organizations with credits, costs, margins, and a totals row', () => {
     render(<UnitEconomicsReport />);
 
@@ -182,5 +206,55 @@ describe('UnitEconomicsReport', () => {
     expect(
       screen.getByRole('button', { name: /All organizations/ }),
     ).toBeInTheDocument();
+  });
+
+  it('asks the API for one page, sorted by the selected column', async () => {
+    queryState.search = 'page=3';
+    render(<UnitEconomicsReport />);
+
+    await queryState.lastQueryFn?.({ signal: new AbortController().signal });
+
+    expect(queryState.getReport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        limit: 15,
+        page: 3,
+        sortDirection: 'desc',
+        sortKey: 'llmProviderCostUsd',
+      }),
+      expect.any(AbortSignal),
+    );
+    expect(queryState.lastQueryKey).toContain(3);
+  });
+
+  it('renders pagination under the table and labels what is counted', () => {
+    render(<UnitEconomicsReport />);
+
+    expect(screen.getByLabelText('pagination')).toHaveAttribute(
+      'data-total-label',
+      'organizations',
+    );
+
+    fireEvent.click(screen.getByText('Paid Org'));
+
+    expect(screen.getByLabelText('pagination')).toHaveAttribute(
+      'data-total-label',
+      'users',
+    );
+  });
+
+  it('starts over at page 1 when the sort changes', () => {
+    queryState.search = 'page=4&foo=bar';
+    render(<UnitEconomicsReport />);
+
+    fireEvent.click(
+      within(screen.getByRole('columnheader', { name: /Revenue/ })).getByRole(
+        'button',
+      ),
+    );
+
+    expect(queryState.replace).toHaveBeenCalledWith(
+      '/admin/administration/unit-economics?foo=bar',
+      { scroll: false },
+    );
   });
 });

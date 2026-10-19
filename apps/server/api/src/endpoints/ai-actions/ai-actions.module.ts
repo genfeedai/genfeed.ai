@@ -7,6 +7,7 @@ import { BrandedTextActionsService } from '@api/endpoints/ai-actions/branded-tex
 import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
+import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
@@ -25,6 +26,7 @@ import { Module } from '@nestjs/common';
     PromptEnhancementModule,
     AgentChatModelRegistryModule,
     AgentContextAssemblyModule,
+    BrandedGenerationReceiptsModule,
     BrandedTextGenerationModule,
     ByokModule,
     ContentLearningCoreModule,

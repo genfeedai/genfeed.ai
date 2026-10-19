@@ -12,7 +12,8 @@ export type AdminRailCategoryId =
   | 'admin-automation'
   | 'admin-economics'
   | 'admin-configuration'
-  | 'admin-administration';
+  | 'admin-administration'
+  | 'admin-settings';
 
 export type AdminRailExitId = 'admin-back';
 

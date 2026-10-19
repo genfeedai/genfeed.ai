@@ -70,10 +70,26 @@ export interface PricingReportFilter {
   provider?: string;
 }
 
-export async function readOrganizationAppsReport(): Promise<IOrganizationAppsReport> {
+const ORGANIZATION_APPS_PAGE_SIZE = 100;
+
+async function readOrganizationAppsPage(page: number): Promise<IOrganizationAppsReport> {
   return flattenSingle<IOrganizationAppsReport>(
-    await adminGet<JsonApiDocument>('/admin/organization-apps')
+    await adminGet<JsonApiDocument>(
+      `/admin/organization-apps?page=${page}&limit=${ORGANIZATION_APPS_PAGE_SIZE}`
+    )
   );
+}
+
+/** Every organization: the API pages the report, so walk the pages. */
+export async function readOrganizationAppsReport(): Promise<IOrganizationAppsReport> {
+  const first = await readOrganizationAppsPage(1);
+  const organizations = [...first.organizations];
+
+  for (let page = 2; page <= first.pagination.pages; page += 1) {
+    organizations.push(...(await readOrganizationAppsPage(page)).organizations);
+  }
+
+  return { ...first, organizations };
 }
 
 export async function readPricingReport(): Promise<AdminModelPricingReport> {

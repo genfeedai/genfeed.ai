@@ -1,6 +1,7 @@
 'use client';
 
 import { BotStatus, formatEnumLabel } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot } from '@models/automation/bot.model';
 import { BotsService } from '@services/automation/bots.service';
@@ -11,8 +12,10 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Bot as BotIcon } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 const BOT_SKELETON_KEYS = [
@@ -48,12 +51,15 @@ export default function BotsPage() {
 
   const notificationsService = NotificationsService.getInstance();
 
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+
   const [bots, setBots] = useState<Bot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadBots = useCallback(
-    async (refresh: boolean = false) => {
+    async (refresh: boolean = false, signal?: AbortSignal) => {
       if (!refresh) {
         setIsLoading(true);
       }
@@ -61,25 +67,36 @@ export default function BotsPage() {
 
       try {
         const service = await getBotsService();
-        const fetchedBots = await service.findAllPages({
-          sort: 'createdAt: -1',
-        });
+        const fetchedBots = await service.findAll(
+          {
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+            sort: 'createdAt: -1',
+          },
+          signal,
+        );
+        if (signal?.aborted) return;
 
         setBots(fetchedBots);
         logger.info('Loaded bots', { count: fetchedBots.length });
       } catch (error) {
+        if (signal?.aborted) return;
         logger.error('Failed to load bots', error);
         notificationsService.error('Failed to load bots');
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (!signal?.aborted) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
-    [getBotsService, notificationsService],
+    [currentPage, getBotsService, notificationsService],
   );
 
   useEffect(() => {
-    loadBots();
+    const controller = new AbortController();
+    void loadBots(false, controller.signal);
+    return () => controller.abort();
   }, [loadBots]);
 
   return (
@@ -160,6 +177,9 @@ export default function BotsPage() {
               </Card>
             ))
           )}
+        </div>
+        <div className="mt-4">
+          <AutoPagination showTotal totalLabel="bots" />
         </div>
       </WorkspaceSurface>
     </AdminPageShell>

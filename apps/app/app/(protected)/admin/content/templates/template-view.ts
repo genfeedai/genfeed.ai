@@ -18,7 +18,8 @@ export function toTemplateView(template: IContentTemplate): TemplateView {
     category: template.category ?? undefined,
     description: template.description || undefined,
     id: template.id,
-    isActive: template.isActive,
+    // Rows imported without the flag carry null, which is unknown, not inactive.
+    isActive: template.isActive ?? undefined,
     isSystem: !template.organization && !template.organizationId,
     key: template.key,
     tags: template.tags ?? [],
@@ -27,15 +28,4 @@ export function toTemplateView(template: IContentTemplate): TemplateView {
       (variable) => variable.name ?? variable.id,
     ),
   };
-}
-
-export function matchesTemplateSearch(
-  view: TemplateView,
-  search: string,
-): boolean {
-  const query = search.trim().toLowerCase();
-  if (!query) return true;
-  return [view.title, view.key, view.description, view.category]
-    .filter((value): value is string => Boolean(value))
-    .some((value) => value.toLowerCase().includes(query));
 }

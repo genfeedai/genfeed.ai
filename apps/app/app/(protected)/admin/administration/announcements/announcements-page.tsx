@@ -1,5 +1,6 @@
 'use client';
 
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   AnnouncementComposeFormState,
@@ -11,7 +12,9 @@ import { AdminAnnouncementsService } from '@services/admin/announcements.service
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Megaphone } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
 
 import AnnouncementComposeForm from './announcement-compose-form';
@@ -77,6 +80,7 @@ export default function AnnouncementsPage({
 
   const { activeTab, form, isSubmitting, announcements, isLoadingHistory } =
     state;
+  const currentPage = Number(useSearchParams().get('page')) || 1;
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -88,7 +92,10 @@ export default function AnnouncementsPage({
     async (signal: AbortSignal) => {
       try {
         const service = await getAnnouncementsService();
-        const data = await service.getAnnouncements();
+        const data = await service.getAnnouncements(
+          { limit: ITEMS_PER_PAGE, page: currentPage },
+          signal,
+        );
 
         if (!signal.aborted) {
           dispatch({ type: 'SET_ANNOUNCEMENTS', announcements: data });
@@ -106,7 +113,7 @@ export default function AnnouncementsPage({
         }
       }
     },
-    [getAnnouncementsService, notificationsService],
+    [currentPage, getAnnouncementsService, notificationsService],
   );
 
   useEffect(() => {
@@ -208,10 +215,15 @@ export default function AnnouncementsPage({
       )}
 
       {activeTab === 'history' && (
-        <AnnouncementHistoryList
-          isLoadingHistory={isLoadingHistory}
-          announcements={announcements}
-        />
+        <>
+          <AnnouncementHistoryList
+            isLoadingHistory={isLoadingHistory}
+            announcements={announcements}
+          />
+          <div className="mt-4">
+            <AutoPagination showTotal totalLabel="announcements" />
+          </div>
+        </>
       )}
     </AdminPageShell>
   );

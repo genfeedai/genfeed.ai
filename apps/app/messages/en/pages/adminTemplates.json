@@ -11,6 +11,7 @@
   "details": "View details",
   "system": "System",
   "search": "Search templates",
+  "totalLabel": "templates",
   "detailTemplate": "Template",
   "detailLoadError": "Failed to load template",
   "detailPremium": "Premium",

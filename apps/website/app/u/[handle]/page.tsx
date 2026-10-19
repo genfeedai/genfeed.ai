@@ -8,6 +8,13 @@ import {
 import PublicProfileContent from '@u/[handle]/profile-page';
 import type { Metadata, ResolvingMetadata } from 'next';
 
+/**
+ * Profiles are edited from the app (logo, banner, links), so the cached page
+ * must expire on its own — without a window a first render is served until
+ * the next deploy.
+ */
+export const revalidate = 60;
+
 export async function generateMetadata(
   { params }: { params: Promise<{ handle: string }> },
   parent: ResolvingMetadata,

@@ -88,7 +88,9 @@ describe('PricingContent', () => {
     render(<PricingContent />);
     const agencies = within(screen.getByLabelText('Agencies'));
     expect(agencies.getByText('Brand model training')).toBeInTheDocument();
-    expect(agencies.getByText('API and BYOK')).toBeInTheDocument();
+    expect(
+      agencies.getByText('Higher API limits and BYOK'),
+    ).toBeInTheDocument();
   });
 
   it('uses the tokenized dark card surface for the featured plan', () => {
