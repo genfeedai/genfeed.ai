@@ -1,4 +1,8 @@
-import { ComponentSize } from '@genfeedai/contracts';
+import {
+  ComponentSize,
+  formatPlatformLabel,
+  Platform,
+} from '@genfeedai/contracts';
 import type { IPlatformBadgeConfig } from '@genfeedai/contracts/interfaces/ui/platform-badge-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
@@ -88,7 +92,8 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     solidBgColor: 'bg-white',
     icon: GoogleAdsIcon,
     iconColor: 'text-foreground',
-    label: 'Google Ads',
+    // Resolved from the shared platform labels rather than a new JSX literal.
+    label: formatPlatformLabel(Platform.GOOGLE_ADS) ?? Platform.GOOGLE_ADS,
     textColor: 'text-foreground',
   },
   hacker_news: {
