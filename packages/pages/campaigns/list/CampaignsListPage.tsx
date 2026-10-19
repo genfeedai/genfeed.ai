@@ -192,9 +192,6 @@ export default function CampaignsListPage({
           }}
         />
       ) : null}
-      <p className="py-4 text-sm text-muted-foreground">
-        {translate('setup.description')}
-      </p>
       <AppTable<Campaign>
         error={
           isError
