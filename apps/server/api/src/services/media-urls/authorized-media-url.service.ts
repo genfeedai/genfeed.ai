@@ -149,6 +149,45 @@ export class AuthorizedMediaUrlService {
   }
 
   /**
+   * Internal execution capability for ingredients a provider fetches for an
+   * organization's run: the organization's own media, plus the reference
+   * images of characters granted to the run's brand. Every id must resolve,
+   * so one foreign, deleted or revoked id fails the whole call and no URL
+   * for the others is returned either.
+   */
+  async issueExecutionUrls(
+    scope: MediaDeliveryScope,
+    ingredientIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    const unique = [...new Set(ingredientIds)];
+    const urls = new Map<string, string>();
+    if (unique.length === 0) return urls;
+    for (const source of await this.readSources(scope.organizationId, unique)) {
+      urls.set(
+        source.id,
+        this.grant(
+          source.id,
+          requireStoredMediaKey(source),
+          'original-download',
+        ).url as string,
+      );
+    }
+    const missing = unique.filter((id) => !urls.has(id));
+    if (missing.length > 0) {
+      for (const grant of await this.projectGrantedCharacterMedia(
+        scope,
+        missing,
+      )) {
+        if (grant.url) urls.set(grant.id, grant.url);
+      }
+    }
+    if (unique.some((id) => !urls.has(id))) {
+      throw new NotFoundException('Media is unavailable');
+    }
+    return urls;
+  }
+
+  /**
    * Internal execution capability for brand assets (references, logos,
    * banners) that a provider or renderer fetches. Like `issueServerPublish`
    * it has no HTTP route; assets are read inside the organization and an id

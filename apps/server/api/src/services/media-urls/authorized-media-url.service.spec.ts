@@ -271,6 +271,64 @@ describe('AuthorizedMediaUrlService', () => {
     );
   });
 
+  it('mints execution URLs for the organization own media from the exact stored key, regardless of tier', async () => {
+    const { service, prisma, urls } = await setup();
+    const result = await service.issueExecutionUrls(scope, [
+      ingredientId,
+      ingredientId,
+    ]);
+    expect([...result.keys()]).toEqual([ingredientId]);
+    expect(urls.buildUrl).toHaveBeenCalledWith(source.s3Key);
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: [ingredientId] }, isDeleted: false, organizationId },
+      }),
+    );
+    expect(prisma.personaGrant.findMany).not.toHaveBeenCalled();
+  });
+
+  it('falls back to an actively granted character image and fails the whole call for any other id', async () => {
+    const { service, prisma, urls } = await setup();
+    const grantedId = testId('ingredient', 7);
+    const foreign = {
+      ...source,
+      id: grantedId,
+      organizationId: testId('org', 9),
+    };
+    prisma.ingredient.findMany.mockImplementation((async (args: {
+      where: { organizationId: string };
+    }) =>
+      args.where.organizationId === organizationId
+        ? [source]
+        : [foreign]) as never);
+    prisma.personaGrant.findMany.mockResolvedValue([
+      {
+        availabilityMode: 'ALL_BRANDS',
+        availableBrandIds: [],
+        ownerOrganizationId: foreign.organizationId,
+        persona: { avatarIngredientId: grantedId, references: [] },
+      },
+    ] as never);
+    const brandScope = { ...scope, brandId: testId('brand', 3) };
+
+    const result = await service.issueExecutionUrls(brandScope, [
+      ingredientId,
+      grantedId,
+    ]);
+    expect([...result.keys()].sort()).toEqual([ingredientId, grantedId].sort());
+
+    // A revoked grant leaves the id unresolved: no URL for any id is returned.
+    prisma.personaGrant.findMany.mockResolvedValue([]);
+    urls.buildUrl.mockClear();
+    await expect(
+      service.issueExecutionUrls(brandScope, [ingredientId, grantedId]),
+    ).rejects.toThrow('Media is unavailable');
+    // Without a brand there is no grant fallback at all.
+    await expect(
+      service.issueExecutionUrls(scope, [ingredientId, grantedId]),
+    ).rejects.toThrow('Media is unavailable');
+  });
+
   it('preserves self-hosted unrestricted access and requires consent for public bytes', async () => {
     const { service } = await setup();
     vi.mocked(isCloudDeployment).mockReturnValue(false);
