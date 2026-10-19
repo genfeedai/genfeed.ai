@@ -203,7 +203,17 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   ],
   FleetAssetLabel: ['HERO', 'FILLER', 'BTS', 'PROMO', 'LIFESTYLE', 'EDITORIAL'],
   FleetReviewStatus: ['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_REVISION'],
-  FontFamily: ['MONTSERRAT_BLACK', 'MONTSERRAT_BOLD', 'MONTSERRAT_REGULAR'],
+  FontFamily: [
+    'MONTSERRAT_BLACK',
+    'MONTSERRAT_BOLD',
+    'MONTSERRAT_REGULAR',
+    'INTER_BOLD',
+    'POPPINS_BOLD',
+    'BEBAS_NEUE',
+    'ANTON',
+    'ARCHIVO_BLACK',
+    'BANGERS',
+  ],
   GenerationPriority: ['QUALITY', 'SPEED', 'COST', 'BALANCED'],
   IngredientCategory: [
     'IMAGE',

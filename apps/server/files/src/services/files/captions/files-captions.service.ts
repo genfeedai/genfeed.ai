@@ -2,6 +2,7 @@ import { execFile, spawn } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { ConfigService } from '@files/config/config.service';
+import { resolveFontFile } from '@files/helpers/utils/font/font-file.util';
 import { ffmpegEscapeString } from '@files/helpers/utils/string/string.util';
 import { FilesService } from '@files/services/files/files.service';
 import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
@@ -197,13 +198,8 @@ export class FilesCaptionsService extends FilesService {
     dimensions?: { width: number; height: number },
   ): string[] {
     // The font file is determined by the provided `fontFamily` parameter.
-    // If no value is given, fall back to the default font.
-    const fontfile = path.resolve(
-      'public',
-      'assets',
-      'fonts',
-      `${fontFamily || 'montserrat-black'}.ttf`,
-    );
+    // Unknown or empty values fall back to the default font.
+    const fontfile = resolveFontFile(fontFamily);
 
     const videoHeight = dimensions?.height || 1920;
     const fontsize = Math.round(videoHeight * 0.0625); // ~6.25% of height
@@ -240,12 +236,7 @@ export class FilesCaptionsService extends FilesService {
     slides: SlideText[],
     dimensions?: { width: number; height: number },
   ): string[] {
-    const fontfile = path.resolve(
-      'public',
-      'assets',
-      'fonts',
-      `${fontFamily || 'montserrat-black'}.ttf`,
-    );
+    const fontfile = resolveFontFile(fontFamily);
 
     const videoHeight = dimensions?.height || 1920;
     const fontsize = Math.round(videoHeight * 0.0625);

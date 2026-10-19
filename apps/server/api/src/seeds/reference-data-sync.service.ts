@@ -1,3 +1,4 @@
+import { FontFamilySeedService } from '@api/seeds/font-family-seed.service';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import {
@@ -18,6 +19,7 @@ export class ReferenceDataSyncService {
   private readonly context = 'ReferenceDataSyncService';
 
   constructor(
+    private readonly fontFamilies: FontFamilySeedService,
     private readonly logger: LoggerService,
     private readonly models: ModelCatalogSeedService,
     private readonly platformTemplates: PlatformTemplateSeedService,
@@ -91,6 +93,17 @@ export class ReferenceDataSyncService {
     domains.push(
       await this.runDomain('studio-elements', async () => {
         const result = await this.studioElements.reconcileCatalog();
+        return {
+          failed: [],
+          unchanged: result.unchanged,
+          written: result.written,
+        };
+      }),
+    );
+
+    domains.push(
+      await this.runDomain('font-families', async () => {
+        const result = await this.fontFamilies.reconcileCatalog();
         return {
           failed: [],
           unchanged: result.unchanged,
