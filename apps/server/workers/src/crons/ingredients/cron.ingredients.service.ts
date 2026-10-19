@@ -300,6 +300,22 @@ export class CronIngredientsService {
   }
 
   /**
+   * The stored object key is the identity; the ID-derived URL only resolves
+   * for media that predates stored keys.
+   */
+  private metadataSourceUrl(
+    ingredient: IngredientWithMetadataDoc,
+  ): Promise<string> {
+    if (ingredient.s3Key)
+      return this.filesClientService.getPresignedDownloadUrlForObjectKey(
+        ingredient.s3Key,
+      );
+    return Promise.resolve(
+      `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredient.id}`,
+    );
+  }
+
+  /**
    * Refresh metadata for completed videos and images with missing or zero width/height
    * Runs every 6 hours to ensure completed assets have proper metadata dimensions
    *
@@ -391,13 +407,7 @@ export class CronIngredientsService {
       for (const ingredient of docs) {
         try {
           const ingredientId = ingredient.id.toString();
-          // The stored object key is the identity; the ID-derived URL only
-          // resolves for media that predates stored keys.
-          const ingredientUrl = ingredient.s3Key
-            ? await this.filesClientService.getPresignedDownloadUrlForObjectKey(
-                ingredient.s3Key,
-              )
-            : `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredientId}`;
+          const ingredientUrl = await this.metadataSourceUrl(ingredient);
 
           // Extract metadata from the file URL
           const uploadMeta =
