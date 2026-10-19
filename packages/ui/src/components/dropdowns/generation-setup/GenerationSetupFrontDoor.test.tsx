@@ -24,11 +24,7 @@ const props: GenerationSetupFrontDoorProps = {
     hasSpeech: false,
     hasStyle: false,
   },
-  lookOptions: {},
-  models: [],
   onCustomize: vi.fn(),
-  onResetAll: vi.fn(),
-  onSetField: vi.fn(),
   presets: [],
   setup: {
     sources: {},
@@ -42,7 +38,6 @@ const props: GenerationSetupFrontDoorProps = {
       prioritize: RouterPriority.BALANCED,
     },
   },
-  typeOptions: [{ label: 'Image', value: 'image' }],
 };
 
 describe('GenerationSetupFrontDoor', () => {
@@ -55,8 +50,50 @@ describe('GenerationSetupFrontDoor', () => {
     expect(
       screen.queryByRole('button', { name: 'Configure Presets' }),
     ).toBeNull();
+  });
+
+  it('lists only what the toolbar does not already show', () => {
+    render(
+      <GenerationSetupFrontDoor
+        {...props}
+        capabilities={{
+          ...props.capabilities,
+          hasBrandEnrichment: true,
+          hasLook: true,
+          hasModelSelection: true,
+        }}
+        showEnhancementSettings
+      />,
+    );
     expect(
-      screen.getByRole('button', { name: 'Configure Output' }),
+      screen.getByRole('button', { name: 'Configure Brand' }),
+    ).toBeInTheDocument();
+    for (const name of [
+      'Type',
+      'Model',
+      'Output',
+      'Look',
+      'Prompt enhancement',
+    ])
+      expect(
+        screen.queryByRole('button', { name: `Configure ${name}` }),
+      ).toBeNull();
+  });
+
+  it('shows one Brand row for brand voice or prompt enhancement and nothing without either', () => {
+    const view = render(
+      <GenerationSetupFrontDoor {...props} showPresets={false} />,
+    );
+    expect(view.container).toBeEmptyDOMElement();
+    view.rerender(
+      <GenerationSetupFrontDoor
+        {...props}
+        showEnhancementSettings
+        showPresets={false}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Configure Brand' }),
     ).toBeInTheDocument();
   });
 });

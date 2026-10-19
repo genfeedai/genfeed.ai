@@ -4,18 +4,19 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { GenerationSetupType } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
-import type { GenerationSetupAutoTypePickerProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import type { GenerationSetupTypePickerProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
-/** Auto mode's whole setup: pick what to make; routing picks everything else. */
-export default function GenerationSetupAutoTypePicker({
+/** What to make. Auto mode's whole setup; Advanced mode shows the same tiles above its rows. */
+export default function GenerationSetupTypePicker({
+  hasHint = false,
   imageEditing,
   isDisabled = false,
   onTypeChange,
   setup,
   typeOptions,
-}: GenerationSetupAutoTypePickerProps) {
+}: GenerationSetupTypePickerProps) {
   const translate = useTranslations('agent.generationSetup');
   const isEditing = imageEditing?.isEnabled === true;
   const options: {
@@ -79,9 +80,11 @@ export default function GenerationSetupAutoTypePicker({
           );
         })}
       </div>
-      <p className="text-center text-xs text-muted-foreground">
-        {translate('autoHint')}
-      </p>
+      {hasHint ? (
+        <p className="text-center text-xs text-muted-foreground">
+          {translate('autoHint')}
+        </p>
+      ) : null}
     </div>
   );
 }

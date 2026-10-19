@@ -7,10 +7,10 @@ import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupPopoverProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import GenerationSetupAutoTypePicker from '@ui/dropdowns/generation-setup/GenerationSetupAutoTypePicker';
 import GenerationSetupCustomizePanel from '@ui/dropdowns/generation-setup/GenerationSetupCustomizePanel';
 import GenerationSetupFrontDoor from '@ui/dropdowns/generation-setup/GenerationSetupFrontDoor';
 import GenerationSetupTrigger from '@ui/dropdowns/generation-setup/GenerationSetupTrigger';
+import GenerationSetupTypePicker from '@ui/dropdowns/generation-setup/GenerationSetupTypePicker';
 import { Button } from '@ui/primitives/button';
 import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
 import {
@@ -18,9 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { Switch } from '@ui/primitives/switch';
 import { TooltipProvider } from '@ui/primitives/tooltip';
-import { Pin, X } from 'lucide-react';
+import { Pin, RotateCcw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useState, useSyncExternalStore } from 'react';
 
@@ -115,7 +114,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
       <GenerationSetupCustomizePanel
         outputControls={outputControls}
         typeOptions={typeOptions}
-        onTypeChange={onTypeChange}
+        showEnhancementSettings={showEnhancementSettings}
         inputControls={inputControls}
         referenceCount={referenceCount}
         capabilities={capabilities}
@@ -199,60 +198,15 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
               </div>
             ) : null}
 
-            {(!customizeSection || hasDesktopSubmenus) && advancedMode ? (
-              <div className="shrink-0 border-b border-border px-3 py-2">
-                <div
-                  aria-label={translate('advancedMode')}
-                  className="gen-shell-segmented flex gap-0.5 rounded-md p-0.5"
-                  role="group"
-                >
-                  {[false, true].map((isAdvanced) => (
-                    <Button
-                      key={String(isAdvanced)}
-                      aria-pressed={advancedMode.isEnabled === isAdvanced}
-                      className="h-8 flex-1 justify-center text-xs"
-                      isDisabled={isDisabled}
-                      onClick={() => advancedMode.onChange(isAdvanced)}
-                      size={ButtonSize.SM}
-                      textTransform="none"
-                      variant={
-                        advancedMode.isEnabled === isAdvanced
-                          ? ButtonVariant.SECONDARY
-                          : ButtonVariant.GHOST
-                      }
-                      withWrapper={false}
-                    >
-                      {translate(isAdvanced ? 'advancedMode' : 'auto')}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {isAutoMode ? (
-              <GenerationSetupAutoTypePicker
+            {!customizeSection || hasDesktopSubmenus ? (
+              <GenerationSetupTypePicker
+                hasHint={isAutoMode}
                 imageEditing={imageEditing}
                 isDisabled={isDisabled}
                 onTypeChange={onTypeChange}
                 setup={setup}
                 typeOptions={typeOptions}
               />
-            ) : null}
-
-            {!isAutoMode &&
-            (!customizeSection || hasDesktopSubmenus) &&
-            imageEditing &&
-            (setup.values.type === 'image' ||
-              setup.values.type === 'image-edit') ? (
-              <div className="shrink-0 border-b border-border px-3 py-2">
-                <Switch
-                  aria-label={imageEditing.label}
-                  isChecked={imageEditing.isEnabled}
-                  isDisabled={isDisabled}
-                  label={<span className="text-xs">{imageEditing.label}</span>}
-                  onCheckedChange={imageEditing.onChange}
-                />
-              </div>
             ) : null}
 
             {!isAutoMode && (!customizeSection || hasDesktopSubmenus) ? (
@@ -265,18 +219,62 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                 showPresets={showPresets}
                 showEnhancementSettings={showEnhancementSettings}
                 capabilities={capabilities}
-                inputControls={inputControls}
                 isDisabled={isDisabled}
-                lookOptions={lookOptions}
-                models={models}
                 onCustomize={handleCustomize}
-                onResetAll={onResetAll}
-                onSetField={onSetField}
-                onTypeChange={onTypeChange}
                 presets={presets}
                 setup={setup}
-                typeOptions={typeOptions}
               />
+            ) : null}
+
+            {/*
+              The menu opens upward, so its bottom edge stays put while the
+              content above changes height. The mode switch lives here so it
+              does not move under the pointer when it is pressed.
+            */}
+            {(!customizeSection || hasDesktopSubmenus) &&
+            (advancedMode || !isAutoMode) ? (
+              <div className="flex shrink-0 items-center gap-2 border-t border-border p-2">
+                {advancedMode ? (
+                  <div
+                    aria-label={translate('advancedMode')}
+                    className="gen-shell-segmented flex min-w-0 flex-1 gap-0.5 rounded-md p-0.5"
+                    role="group"
+                  >
+                    {[false, true].map((isAdvanced) => (
+                      <Button
+                        key={String(isAdvanced)}
+                        aria-pressed={advancedMode.isEnabled === isAdvanced}
+                        className="h-8 flex-1 justify-center text-xs"
+                        isDisabled={isDisabled}
+                        onClick={() => advancedMode.onChange(isAdvanced)}
+                        size={ButtonSize.SM}
+                        textTransform="none"
+                        variant={
+                          advancedMode.isEnabled === isAdvanced
+                            ? ButtonVariant.SECONDARY
+                            : ButtonVariant.GHOST
+                        }
+                        withWrapper={false}
+                      >
+                        {translate(isAdvanced ? 'advancedMode' : 'auto')}
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+                {!isAutoMode ? (
+                  <Button
+                    ariaLabel={translate('resetAllAria')}
+                    className="shrink-0 text-muted-foreground"
+                    icon={<RotateCcw className="size-3.5" />}
+                    isDisabled={isDisabled}
+                    label={translate('resetAll')}
+                    onClick={onResetAll}
+                    size={ButtonSize.XS}
+                    textTransform="none"
+                    variant={ButtonVariant.GHOST}
+                  />
+                ) : null}
+              </div>
             ) : null}
 
             {!isAutoMode && customizeSection && !hasDesktopSubmenus
