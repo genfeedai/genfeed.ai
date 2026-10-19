@@ -56,12 +56,23 @@ function templateConfig(value: Prisma.JsonValue): Prisma.JsonObject {
     : {};
 }
 
+/**
+ * Rows imported before the typed columns existed keep their category, active
+ * flag and the like only inside `config`. A null column is "never written",
+ * so it must not shadow the config value it would otherwise overwrite.
+ */
+function storedColumns<T extends object>(template: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(template).filter(([, value]) => value !== null),
+  ) as Partial<T>;
+}
+
 function toTemplateDocument(
   template: StoredTemplate & { metadata?: TemplateMetadata | null },
 ): TemplateDocument {
   return {
     ...templateConfig(template.config),
-    ...template,
+    ...storedColumns(template),
     ...(template.metadata
       ? {
           metadata: {
