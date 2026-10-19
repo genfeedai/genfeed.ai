@@ -27,8 +27,6 @@ import {
   discardKnowledgeCapture,
   enqueueKnowledgeCapture,
   getCaptureBrand,
-  importLegacyCaptures,
-  legacyCaptureCount,
   listCaptureSpaces,
   listKnowledgeCaptures,
   retryKnowledgeCapture,
@@ -378,8 +376,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   const captureHandlers: Record<string, () => Promise<unknown>> = {
     captureBrand: () => getCaptureBrand(),
     captureSetBrand: () => setCaptureBrand(request.brandId),
-    captureLegacyCount: () => legacyCaptureCount(),
-    captureImportLegacy: () => importLegacyCaptures(request.brandId),
     captureSave: () => enqueueKnowledgeCapture(request.payload),
     captureList: () => listKnowledgeCaptures(),
     captureRetry: () => retryKnowledgeCapture(request.id),

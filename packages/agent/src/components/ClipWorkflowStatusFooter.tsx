@@ -11,7 +11,7 @@ type SupervisedReviewStatus =
 interface ClipWorkflowStatusFooterProps {
   generatedVideoIds: string[];
   workflowExecutionId: string | null;
-  finalVideoId: string | undefined;
+  finalVideoUrl: string | undefined;
   draftReviewUrl: string | null;
   supervisedReviewStatus: SupervisedReviewStatus;
   workflowExecutionUrl: string;
@@ -21,7 +21,7 @@ interface ClipWorkflowStatusFooterProps {
 export function ClipWorkflowStatusFooter({
   generatedVideoIds,
   workflowExecutionId,
-  finalVideoId,
+  finalVideoUrl,
   draftReviewUrl,
   supervisedReviewStatus,
   workflowExecutionUrl,
@@ -39,10 +39,10 @@ export function ClipWorkflowStatusFooter({
             View workflow execution →
           </a>
         )}
-        {finalVideoId && (
+        {finalVideoUrl && (
           <a
             className="block text-primary underline-offset-2 hover:underline"
-            href={`/g/video/${finalVideoId}`}
+            href={finalVideoUrl}
           >
             Open final asset →
           </a>

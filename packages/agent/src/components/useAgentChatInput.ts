@@ -114,7 +114,7 @@ function contentReferenceToMention(
 /** Strip inline context already owned by shell scope or the attachment tray. */
 function stripRedundantContextMentionNodes(document: JSONContent): JSONContent {
   function walk(node: JSONContent): JSONContent | null {
-    if (node.type === 'brandMention' || node.type === 'contentMention') {
+    if (node.type === 'brandMention') {
       return null;
     }
 
@@ -130,29 +130,6 @@ function stripRedundantContextMentionNodes(document: JSONContent): JSONContent {
   }
 
   return walk(document) ?? { type: 'doc', content: [{ type: 'paragraph' }] };
-}
-
-function migrateLegacyContentMentions(
-  document: JSONContent | null,
-  existing: readonly PersistedConversationComposerContentReference[],
-): PersistedConversationComposerContentReference[] {
-  if (!document) {
-    return [...existing];
-  }
-
-  const byId = new Map(existing.map((item) => [item.id, item] as const));
-  for (const mention of extractMentions(document)) {
-    if (mention.type !== 'content' || byId.has(mention.id)) {
-      continue;
-    }
-    byId.set(mention.id, {
-      contentTitle: mention.contentTitle,
-      contentType: mention.contentType,
-      id: mention.id,
-    });
-  }
-
-  return [...byId.values()];
 }
 
 const EMPTY_SURFACE_ARTIFACT_REFERENCES: readonly (
@@ -367,14 +344,7 @@ export function useAgentChatInput({
     [],
   );
 
-  const initialContentReferences = useMemo(
-    () =>
-      migrateLegacyContentMentions(
-        restoredDraft.document,
-        restoredDraft.contentReferences,
-      ),
-    [restoredDraft.contentReferences, restoredDraft.document],
-  );
+  const initialContentReferences = restoredDraft.contentReferences;
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const lastEditorTextRef = useRef(restoredDraft.plainText);
@@ -654,21 +624,13 @@ export function useAgentChatInput({
     }
 
     const draft = readConversationComposerDraft(draftScopeKey);
-    const migratedContentReferences = migrateLegacyContentMentions(
-      draft.document,
-      draft.contentReferences,
-    );
     const cleanedDocument = draft.document
       ? stripRedundantContextMentionNodes(draft.document)
       : '';
     applyComposerDocument(editor, cleanedDocument);
     setIsEmpty(editor.isEmpty);
     setPromptText(editor.getText());
-    setContentReferences(migratedContentReferences);
-    writeConversationComposerContentReferences(
-      draftScopeKey,
-      migratedContentReferences,
-    );
+    setContentReferences(draft.contentReferences);
     const nextReferences = draft.document
       ? mapMentionsToReferences(extractMentions(draft.document))
       : [];
@@ -842,7 +804,7 @@ export function useAgentChatInput({
 
     const json = editor.getJSON();
     const mentionData = [
-      ...extractMentions(json).filter((mention) => mention.type !== 'content'),
+      ...extractMentions(json),
       ...contentReferences.map(contentReferenceToMention),
     ];
     const completed = getCompletedAttachments?.();

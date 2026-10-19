@@ -10,8 +10,8 @@ describe('YoutubeUploadCompletionService', () => {
   let redisService: { subscribe: ReturnType<typeof vi.fn> };
   let postsService: { patch: ReturnType<typeof vi.fn> };
   let publishEventWebhookService: {
-    emitLegacyPostFailed: ReturnType<typeof vi.fn>;
-    emitLegacyPostPublished: ReturnType<typeof vi.fn>;
+    emitPostFailed: ReturnType<typeof vi.fn>;
+    emitPostPublished: ReturnType<typeof vi.fn>;
   };
   let capturedHandler: (data: unknown) => void;
 
@@ -31,8 +31,8 @@ describe('YoutubeUploadCompletionService', () => {
       patch: vi.fn().mockResolvedValue(undefined),
     };
     publishEventWebhookService = {
-      emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
-      emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
+      emitPostFailed: vi.fn().mockResolvedValue(undefined),
+      emitPostPublished: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -92,9 +92,7 @@ describe('YoutubeUploadCompletionService', () => {
         }),
       );
     });
-    expect(
-      publishEventWebhookService.emitLegacyPostPublished,
-    ).toHaveBeenCalledWith(
+    expect(publishEventWebhookService.emitPostPublished).toHaveBeenCalledWith(
       expect.objectContaining({
         externalProviderId: 'yt-vid-1',
         platform: 'youtube',
@@ -210,9 +208,7 @@ describe('YoutubeUploadCompletionService', () => {
         }),
       );
     });
-    expect(
-      publishEventWebhookService.emitLegacyPostFailed,
-    ).toHaveBeenCalledWith(
+    expect(publishEventWebhookService.emitPostFailed).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'Upload quota exceeded',
         platform: 'youtube',
@@ -245,12 +241,8 @@ describe('YoutubeUploadCompletionService', () => {
         }),
       );
     });
-    expect(
-      publishEventWebhookService.emitLegacyPostPublished,
-    ).not.toHaveBeenCalled();
-    expect(
-      publishEventWebhookService.emitLegacyPostFailed,
-    ).not.toHaveBeenCalled();
+    expect(publishEventWebhookService.emitPostPublished).not.toHaveBeenCalled();
+    expect(publishEventWebhookService.emitPostFailed).not.toHaveBeenCalled();
   });
 
   it('should not set publicationDate for scheduled status', async () => {

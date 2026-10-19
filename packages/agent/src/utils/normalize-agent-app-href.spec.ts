@@ -15,74 +15,6 @@ describe('normalizeAgentAppHref', () => {
     expect(normalizeAgentAppHref('   ')).toBeUndefined();
   });
 
-  it('rewrites bare legacy publish paths and preserves query/hash', () => {
-    expect(normalizeAgentAppHref('/review?tab=failed')).toBe(
-      `${APP_ROUTES.PUBLISHING.REVIEW}&tab=failed`,
-    );
-    expect(normalizeAgentAppHref('/calendar#week')).toBe(
-      `${APP_ROUTES.PUBLISHING.CALENDAR}#week`,
-    );
-    expect(normalizeAgentAppHref('/calendar/posts')).toBe(
-      '/publishing/posts?view=calendar',
-    );
-    expect(normalizeAgentAppHref('/calendar?release=r-1')).toBe(
-      '/publishing/posts?view=calendar&release=r-1',
-    );
-    expect(normalizeAgentAppHref('/drafts')).toBe(
-      `${APP_ROUTES.PUBLISHING.POSTS}?publicationState=not-posted`,
-    );
-  });
-
-  it('rewrites brand-scoped and org-scoped review paths', () => {
-    expect(normalizeAgentAppHref('/acme/launch/review?q=1')).toBe(
-      `/acme/launch${APP_ROUTES.PUBLISHING.REVIEW}&q=1`,
-    );
-    expect(normalizeAgentAppHref('/acme/~/review')).toBe(
-      `/acme/~${APP_ROUTES.PUBLISHING.REVIEW}`,
-    );
-  });
-
-  it('rewrites retired gallery asset paths to canonical Library deep links', () => {
-    expect(normalizeAgentAppHref(`/g/image/${IMAGE_ID}`)).toBe(
-      `/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=${IMAGE_ID}`,
-    );
-    expect(normalizeAgentAppHref('/g/video/video-123#details')).toBe(
-      '/library/assets?categories=VIDEO&categories=VIDEO_EDIT&asset=video-123#details',
-    );
-    expect(normalizeAgentAppHref('/acme/launch/g/voice/voice-123')).toBe(
-      '/acme/launch/library/voices?asset=voice-123',
-    );
-  });
-
-  it.each([
-    ['/content/posts?filter=ready#top', '/publishing/posts?filter=ready#top'],
-    [
-      '/content/articles?search=launch#top',
-      '/publishing/posts?type=article&search=launch#top',
-    ],
-    ['/overview', '/workspace/overview'],
-    [
-      '/content/articles/article-1?view=edit#body',
-      '/publishing/posts/article-1?view=edit#body',
-    ],
-    [
-      '/acme/launch/content/articles/article-1',
-      '/acme/launch/publishing/posts/article-1',
-    ],
-    ['/acme/launch/content/posts#top', '/acme/launch/publishing/posts#top'],
-    ['/acme/~/content/articles', '/acme/~/publishing/posts?type=article'],
-    [
-      '/acme/launch/calendar?release=r1',
-      '/acme/launch/publishing/posts?view=calendar&release=r1',
-    ],
-    [
-      '/acme/launch/drafts',
-      '/acme/launch/publishing/posts?publicationState=not-posted',
-    ],
-  ])('repairs saved retired app path %s', (href, expected) => {
-    expect(normalizeAgentAppHref(href)).toBe(expected);
-  });
-
   it.each(['connected-accounts', 'agent', 'publishing', 'skills', 'knowledge'])(
     'repairs brand-only settings %s using actual route context',
     (page) => {
@@ -162,7 +94,7 @@ describe('normalizeAgentAppHref', () => {
 });
 
 describe('normalizeAgentAssetHref', () => {
-  it('repairs a persisted bare Library CTA with its exact asset id', () => {
+  it('points a bare Library CTA at its exact asset id', () => {
     expect(
       normalizeAgentAssetHref('/library/assets', 'generated image/1'),
     ).toBe('/library/assets?asset=generated+image%2F1');

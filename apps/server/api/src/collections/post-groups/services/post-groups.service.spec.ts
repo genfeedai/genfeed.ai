@@ -837,7 +837,7 @@ describe('PostGroupsService', () => {
     expect(prisma.post.create).not.toHaveBeenCalled();
   });
 
-  it('rejects a posts:create API key before scheduled writes', async () => {
+  it('rejects a posts:draft API key before scheduled writes', async () => {
     await expect(
       service.create(
         'org-1',
@@ -857,7 +857,7 @@ describe('PostGroupsService', () => {
         },
         undefined,
         undefined,
-        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_DRAFT] },
       ),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
@@ -869,7 +869,7 @@ describe('PostGroupsService', () => {
     expect(prisma.post.create).not.toHaveBeenCalled();
   });
 
-  it('rejects an inferred schedule with a posts:create API key before writes', async () => {
+  it('rejects an inferred schedule with a posts:draft API key before writes', async () => {
     await expect(
       service.create(
         'org-1',
@@ -889,7 +889,7 @@ describe('PostGroupsService', () => {
         },
         undefined,
         undefined,
-        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_DRAFT] },
       ),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
@@ -1006,7 +1006,7 @@ describe('PostGroupsService', () => {
         'user-1',
         'group-1',
         { title: 'Changed title' },
-        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_DRAFT] },
       ),
     ).rejects.toMatchObject({
       response: expect.objectContaining({

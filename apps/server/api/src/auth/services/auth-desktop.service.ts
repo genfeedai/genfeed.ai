@@ -51,7 +51,7 @@ const DESKTOP_STANDARD_SCOPES: string[] = [
   ApiKeyScope.ARTICLES_CREATE,
   ApiKeyScope.BRANDS_READ,
   ApiKeyScope.CREDITS_READ,
-  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.POSTS_DRAFT,
   ApiKeyScope.ANALYTICS_READ,
 ];
 

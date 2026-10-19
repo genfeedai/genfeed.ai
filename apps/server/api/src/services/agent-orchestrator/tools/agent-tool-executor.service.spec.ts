@@ -2918,7 +2918,7 @@ describe('AgentToolExecutorService', () => {
           ...scopedContext(testId('brandvideo')),
           apiKeyContext: {
             isApiKey: true,
-            scopes: [ApiKeyScope.POSTS_CREATE],
+            scopes: [ApiKeyScope.POSTS_DRAFT],
           },
         },
       ),

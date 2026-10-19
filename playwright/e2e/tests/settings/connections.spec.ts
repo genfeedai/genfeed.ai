@@ -14,11 +14,8 @@ import { assertRouteRenders } from '../../utils/route-assertions';
  * No real backend calls occur during tests.
  *
  * Every route is a live settings route with the explicit E2E org (or
- * org+brand) slug. The legacy `/settings/organization`, `/organization/policy`
- * and `/organization/api-keys` paths call notFound()
- * (LegacyOrganizationSettingsNotFound), and bare `/settings/brands/:id/*`
- * paths render the 404 page — so each test asserts the surface's real
- * content, never just the URL.
+ * org+brand) slug. Bare `/settings/brands/:id/*` paths render the 404 page —
+ * so each test asserts the surface's real content, never just the URL.
  */
 const API_KEYS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.API_KEYS);
 const GENERAL_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.GENERAL);
@@ -470,8 +467,7 @@ test.describe('Organization Settings', () => {
   }) => {
     const settingsPage = new SettingsPage(authenticatedPage);
 
-    // The former /settings/organization/policy content now lives at
-    // /settings/agents ((organization)/agents/page.tsx).
+    // Agent policy lives at /settings/agents ((organization)/agents/page.tsx).
     await settingsPage.open(AGENTS_ROUTE);
 
     await expect(

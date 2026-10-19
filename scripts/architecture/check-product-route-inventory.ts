@@ -99,18 +99,9 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([
   '/:orgSlug/:brandSlug/lab',
-  '/:orgSlug/~/settings/organization',
 ] as const);
 
-export const PROTECTED_HARD_CUT_PAGES = Object.freeze([
-  '/:orgSlug/~/settings/organization',
-  '/:orgSlug/~/settings/organization/api-keys',
-  // `billing` is a sidebar group, not a page. Credits, Subscription, and Usage
-  // are the real destinations, so the route and its redirects were deleted.
-  '/:orgSlug/~/settings/organization/credits',
-  '/:orgSlug/~/settings/organization/policy',
-  '/:orgSlug/~/settings/organization/webhooks',
-] as const);
+export const PROTECTED_HARD_CUT_PAGES = Object.freeze([] as const);
 
 function classifyPublicRoutes(
   application: PublicRouteApplication,

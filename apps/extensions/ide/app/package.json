@@ -110,11 +110,6 @@
           "description": "Genfeed.ai API endpoint",
           "type": "string"
         },
-        "genfeed.apiUrl": {
-          "default": "https://api.genfeed.ai",
-          "description": "Genfeed API base URL (alias for genfeed.apiEndpoint)",
-          "type": "string"
-        },
         "genfeed.authEndpoint": {
           "default": "https://accounts.genfeed.ai",
           "description": "Authentication endpoint used for the Better Auth device flow",

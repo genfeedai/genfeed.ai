@@ -38,14 +38,6 @@ export function extractMentions(json: JSONContent): ExtractedMention[] {
             type: 'credential',
           });
           break;
-        case 'contentMention':
-          result.push({
-            contentTitle: node.attrs.contentTitle as string,
-            contentType: node.attrs.contentType as string,
-            id: node.attrs.contentId as string,
-            type: 'content',
-          });
-          break;
         case 'characterMention':
           result.push({
             handle: node.attrs.handle as string,

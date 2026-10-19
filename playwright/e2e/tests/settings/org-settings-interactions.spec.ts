@@ -103,7 +103,7 @@ test.describe('Organization & Personal Settings — Interactions', () => {
   test('organization settings edits a field and saves', async ({
     authenticatedPage,
   }) => {
-    await goToSettings(authenticatedPage, `${SETTINGS}/organization`);
+    await goToSettings(authenticatedPage, `${SETTINGS}/general`);
 
     await fillFirstTextField(authenticatedPage, 'E2E Org Name');
     await clickSave(authenticatedPage);
@@ -114,7 +114,7 @@ test.describe('Organization & Personal Settings — Interactions', () => {
   test('organization policy toggles options and saves', async ({
     authenticatedPage,
   }) => {
-    await goToSettings(authenticatedPage, `${SETTINGS}/organization/policy`);
+    await goToSettings(authenticatedPage, `${SETTINGS}/agents`);
 
     await toggleFirstSwitch(authenticatedPage);
     await tryClick(
@@ -133,7 +133,7 @@ test.describe('Organization & Personal Settings — Interactions', () => {
   test('organization members opens and closes the invite modal', async ({
     authenticatedPage,
   }) => {
-    await goToSettings(authenticatedPage, `${SETTINGS}/organization/members`);
+    await goToSettings(authenticatedPage, `${SETTINGS}/members`);
 
     await tryClick(
       authenticatedPage,
@@ -150,7 +150,7 @@ test.describe('Organization & Personal Settings — Interactions', () => {
   test('organization api-keys expands a provider and enters a key', async ({
     authenticatedPage,
   }) => {
-    await goToSettings(authenticatedPage, `${SETTINGS}/organization/api-keys`);
+    await goToSettings(authenticatedPage, `${SETTINGS}/api-keys`);
 
     // Expand the first provider card / toggle, then enter a fake key.
     await tryClick(
@@ -166,7 +166,7 @@ test.describe('Organization & Personal Settings — Interactions', () => {
   test('organization billing renders and exercises actions', async ({
     authenticatedPage,
   }) => {
-    await goToSettings(authenticatedPage, `${SETTINGS}/organization/billing`);
+    await goToSettings(authenticatedPage, `${SETTINGS}/credits`);
 
     await tryClick(
       authenticatedPage,
@@ -244,11 +244,11 @@ test.describe('Organization & Personal Settings — Interactions', () => {
     const subPages = [
       SETTINGS,
       `${SETTINGS}/personal`,
-      `${SETTINGS}/organization`,
-      `${SETTINGS}/organization/policy`,
-      `${SETTINGS}/organization/members`,
-      `${SETTINGS}/organization/api-keys`,
-      `${SETTINGS}/organization/billing`,
+      `${SETTINGS}/general`,
+      `${SETTINGS}/agents`,
+      `${SETTINGS}/members`,
+      `${SETTINGS}/api-keys`,
+      `${SETTINGS}/credits`,
       `${SETTINGS}/brands`,
       `${SETTINGS}/models/image`,
       `${SETTINGS}/elements/scenes`,

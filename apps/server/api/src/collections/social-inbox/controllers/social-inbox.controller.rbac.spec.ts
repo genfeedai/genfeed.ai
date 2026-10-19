@@ -132,7 +132,7 @@ describe('SocialInboxController RBAC', () => {
         API_KEY_SCOPES_KEY,
         SocialInboxController.prototype.createDraft,
       ),
-    ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE]);
+    ).toEqual([ApiKeyScope.POSTS_DRAFT]);
     expect(
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,
