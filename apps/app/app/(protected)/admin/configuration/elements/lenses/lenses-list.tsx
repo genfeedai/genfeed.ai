@@ -17,6 +17,7 @@ import { LensesService } from '@services/elements/lenses.service';
 import { useQuery } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLens } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -188,6 +189,13 @@ function LensesListContent({
     }
   };
 
+  const rowSidebar = useElementRowSidebar<ElementLens>({
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) => openLensModal(ModalEnum.LENS, element)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementLens>
@@ -196,6 +204,7 @@ function LensesListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No lenses found"
       />
 

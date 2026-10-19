@@ -1,12 +1,17 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  ButtonVariant,
+  PageScope,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IAccountAnalyticsDetail,
   ITopContent,
 } from '@genfeedai/contracts/interfaces';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,6 +19,8 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
@@ -24,6 +31,7 @@ import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
@@ -31,6 +39,7 @@ import { useEffect, useMemo, useState } from 'react';
 export default function AnalyticsAccountDetail() {
   const translate = useTranslations('pages.analytics.accounts');
   const router = useRouter();
+  const { href } = useOrgUrl();
   const params = useParams<{ id: string }>();
   const credentialId = params.id;
   const scope = useCollectionScope();
@@ -43,6 +52,7 @@ export default function AnalyticsAccountDetail() {
   const [detail, setDetail] = useState<IAccountAnalyticsDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isFetchReady || !organizationId || refreshTrigger < 0) {
@@ -102,7 +112,14 @@ export default function AnalyticsAccountDetail() {
       {
         key: 'title',
         header: 'Post',
-        render: (row) => row.title || row.postId,
+        render: (row) => (
+          <Link
+            className="hover:underline"
+            href={href(getPublishingPostHref(row.postId))}
+          >
+            {row.title || row.postId}
+          </Link>
+        ),
       },
       {
         key: 'views',
@@ -119,7 +136,7 @@ export default function AnalyticsAccountDetail() {
         render: (row) => formatCompactNumberIntl(row.likes),
       },
     ],
-    [],
+    [href],
   );
 
   if (error) {
@@ -223,8 +240,14 @@ export default function AnalyticsAccountDetail() {
           getRowKey={(row) => row.postId}
           items={detail?.topPosts ?? []}
           label="Top posts"
+          onRowClick={(row) => setSelectedPostId(row.postId)}
         />
       </div>
+      <PostDetailPanel
+        postId={selectedPostId}
+        scope={PageScope.ANALYTICS}
+        onClose={() => setSelectedPostId(null)}
+      />
     </Container>
   );
 }

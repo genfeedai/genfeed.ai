@@ -1,5 +1,12 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import {
@@ -26,6 +33,22 @@ const mocks = vi.hoisted(() => ({
   getFleetEvaluationPolicy: vi.fn(),
   saveFleetEvaluationPolicy: vi.fn(),
   setToolbarNode: vi.fn(),
+}));
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { kind: string; title: string } | null;
+  }) =>
+    selection ? (
+      <aside data-kind={selection.kind} data-testid="context-sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
 }));
 
 vi.mock('next-intl', async () => {
@@ -255,6 +278,37 @@ describe('AnalyticsAccounts', () => {
     expect(screen.getByLabelText('Search accounts')).toBeInTheDocument();
     expect(screen.getByLabelText('Rank by metric')).toBeInTheDocument();
     expect(screen.getByLabelText('Evaluation weeks')).toBeInTheDocument();
+  });
+
+  it('opens an account summary in the sidebar from the row while the name links to its page', async () => {
+    requestState.accounts = [
+      {
+        evaluation: null,
+        identity: {
+          brandLabel: 'Acme',
+          credentialId: 'credential-1',
+          label: 'Acme Social',
+          platform: 'instagram',
+        },
+        metrics: [],
+        publishedPosts: 4,
+      },
+    ];
+
+    render(<AnalyticsAccounts />);
+
+    const link = await screen.findByRole('link', { name: 'Acme Social' });
+    expect(link).toHaveAttribute('href', '/analytics/accounts/credential-1');
+    fireEvent.click(link);
+    expect(screen.queryByTestId('context-sidebar')).not.toBeInTheDocument();
+
+    fireEvent.click(within(link.closest('tr') as HTMLElement).getByText('4'));
+
+    const sidebar = await screen.findByTestId('context-sidebar');
+    expect(sidebar).toHaveAttribute('data-kind', 'account');
+    expect(
+      within(sidebar).getByRole('link', { name: 'Open account analytics' }),
+    ).toHaveAttribute('href', '/analytics/accounts/credential-1');
   });
 
   it('renders an error and exits the loading state when requests fail', async () => {

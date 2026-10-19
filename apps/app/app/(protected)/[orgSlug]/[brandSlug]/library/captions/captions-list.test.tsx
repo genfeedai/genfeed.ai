@@ -9,6 +9,11 @@ const { loggerErrorMock } = vi.hoisted(() => ({
   loggerErrorMock: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() =>
     vi.fn(async () => ({

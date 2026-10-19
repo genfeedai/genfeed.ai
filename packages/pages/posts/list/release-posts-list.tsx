@@ -16,7 +16,10 @@ import {
   parsePublishingPostsViewMode,
 } from '@genfeedai/contracts/constants';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
-import { normalizePostsPlatform } from '@helpers/content/posts.helper';
+import {
+  getPublishingPostHref,
+  normalizePostsPlatform,
+} from '@helpers/content/posts.helper';
 import {
   formatDateInTimezone,
   getBrowserTimezone,
@@ -36,6 +39,7 @@ import {
   releaseDisplayTitle,
   releaseNextInstant,
   releaseOutcomeSummary,
+  visibleTargets,
 } from '@pages/posts/rail/release-rail-row.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
@@ -282,6 +286,18 @@ export default function ReleasePostsList({
         setPendingAction,
       }),
     [getReleaseGroupsService, notificationsService, queryClient, queryKey],
+  );
+
+  // The name opens the primary target's post page; a release without targets
+  // has no page of its own, so its row only opens the sidebar.
+  const getReleasePostHref = useCallback(
+    (release: IReleaseGroup): string | undefined => {
+      const primaryTargetId = visibleTargets(release.targets).visible[0]?.id;
+      return primaryTargetId
+        ? href(getPublishingPostHref(primaryTargetId))
+        : undefined;
+    },
+    [href],
   );
 
   const selectedReleaseId = searchParams?.get(
@@ -714,6 +730,7 @@ export default function ReleasePostsList({
                       releaseDisplayTitle(release) || translateRail('open')
                     }
                     summary={releaseContentPreview(release)}
+                    titleHref={getReleasePostHref(release)}
                   />
                 </div>
               ),

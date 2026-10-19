@@ -24,13 +24,14 @@ import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
-
 import { buildFoldersColumns } from './folders-list-columns';
 import FoldersListModals from './folders-list-modals';
 
@@ -71,6 +72,8 @@ function foldersListReducer(
 }
 
 function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { isSignedIn } = useAuthIdentity();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
@@ -271,6 +274,43 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     [openConfirm, openFoldersModal, handleDelete],
   );
 
+  const rowSidebar = useMemo(
+    () =>
+      createSummaryRowSidebar<Folder>({
+        getFacts: (folder) => [
+          {
+            id: 'description',
+            label: fieldsT('description'),
+            value: folder.description,
+          },
+          { id: 'brand', label: fieldsT('brand'), value: folder.brand?.label },
+          {
+            id: 'organization',
+            label: fieldsT('organization'),
+            value: folder.organization?.label,
+          },
+          {
+            id: 'tags',
+            label: fieldsT('tags'),
+            value: folder.tags?.join(', '),
+          },
+          {
+            id: 'active',
+            label: fieldsT('active'),
+            value:
+              folder.isActive === false
+                ? rowSidebarT('no')
+                : rowSidebarT('yes'),
+          },
+        ],
+        getId: (folder) => folder.id,
+        getTitle: (folder) => folder.label || '-',
+        kind: 'record',
+        onEdit: (folder) => openFoldersModal(ModalEnum.FOLDER, folder),
+      }),
+    [openFoldersModal, rowSidebarT, fieldsT],
+  );
+
   return (
     <Container
       label="Folders"
@@ -333,6 +373,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No folders found"
       />
 

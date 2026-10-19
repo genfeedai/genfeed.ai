@@ -108,6 +108,7 @@
       "columns": {
         "audience": "Audience",
         "content": "Content",
+        "platform": "Platform",
         "published": "Published",
         "source": "Source"
       },

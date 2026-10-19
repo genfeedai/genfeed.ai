@@ -3,6 +3,7 @@ import { ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { Task, TaskStatus } from '@services/management/tasks.service';
 import Badge from '@ui/display/badge/Badge';
+import Link from 'next/link';
 
 import {
   formatTaskStatus,
@@ -20,6 +21,7 @@ export function getWorkspaceInboxTableColumns(
   statusTranslate: WorkspaceTranslate,
   statusLabels: Record<TaskStatus, string>,
   isUnread: (task: Task) => boolean,
+  getTaskHref: (task: Task) => string,
 ) {
   return [
     {
@@ -34,9 +36,12 @@ export function getWorkspaceInboxTableColumns(
               </span>
             ) : null}
           </span>
-          <span className="truncate font-medium text-foreground">
+          <Link
+            className="truncate font-medium text-foreground hover:underline"
+            href={getTaskHref(task)}
+          >
             {task.title}
-          </span>
+          </Link>
         </span>
       ),
     },

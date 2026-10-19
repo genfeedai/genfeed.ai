@@ -1,15 +1,19 @@
 'use client';
 
 import { PostStatus } from '@genfeedai/contracts';
-import { getPublishingPostsHref } from '@helpers/content/posts.helper';
+import {
+  getPublishingPostHref,
+  getPublishingPostsHref,
+} from '@helpers/content/posts.helper';
 import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Post } from '@models/content/post.model';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import HtmlContent from '@ui/display/html-content/HtmlContent';
 import Table from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { ArrowRight, Video } from 'lucide-react';
@@ -36,6 +40,8 @@ export default function BrandTopPostsTable({
   onSelectPost,
   topPosts,
 }: BrandTopPostsTableProps) {
+  const { href } = useOrgUrl();
+
   return (
     <WorkspaceSurface
       actions={
@@ -82,16 +88,14 @@ export default function BrandTopPostsTable({
                     </div>
                   )}
                   <div className="max-w-xs">
-                    {post.description ? (
-                      <HtmlContent
-                        content={post.description}
-                        className="font-medium line-clamp-2 text-sm"
-                      />
-                    ) : (
-                      <div className="font-medium line-clamp-2 text-sm">
-                        {ingredient?.metadataLabel || 'Untitled'}
-                      </div>
-                    )}
+                    <Link
+                      className="block font-medium line-clamp-2 text-sm hover:underline"
+                      href={href(getPublishingPostHref(post.id))}
+                    >
+                      {stripHtmlToPlainText(post.description) ||
+                        ingredient?.metadataLabel ||
+                        'Untitled'}
+                    </Link>
                   </div>
                 </div>
               );

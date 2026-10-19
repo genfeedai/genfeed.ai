@@ -17,6 +17,7 @@ import { CamerasService } from '@services/elements/cameras.service';
 import { useQuery } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalCamera } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -191,6 +192,13 @@ function CamerasListContent({
     }
   };
 
+  const rowSidebar = useElementRowSidebar<ElementCamera>({
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) => openCameraModal(ModalEnum.CAMERA, element)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementCamera>
@@ -199,6 +207,7 @@ function CamerasListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No cameras found"
       />
 

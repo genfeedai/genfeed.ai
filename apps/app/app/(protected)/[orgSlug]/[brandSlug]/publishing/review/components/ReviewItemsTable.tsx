@@ -15,6 +15,7 @@ import AppTable from '@ui/display/table/Table';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ArrowUpRight, ExternalLink, PanelRightOpen } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -145,21 +146,32 @@ export default function ReviewItemsTable({
         key: 'caption',
         render: (item) => {
           const title = getReviewItemTitle(item);
-          return (
-            <ReviewPostHoverPreview
-              item={item}
-              onOpenDetail={() => {
-                onSelectItem(item.id);
-              }}
+          const isRewriting = Boolean(rewritingIds?.has(item.id));
+          const titleContent = isRewriting ? (
+            <span role="status">{translate('progress')}</span>
+          ) : item.postId ? (
+            <Link
+              className="hover:underline"
+              href={href(getPublishingPostHref(item.postId))}
             >
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="line-clamp-1 text-sm font-medium text-foreground">
-                  {rewritingIds?.has(item.id) ? (
-                    <span role="status">{translate('progress')}</span>
-                  ) : (
-                    title
-                  )}
-                </span>
+              {title}
+            </Link>
+          ) : (
+            title
+          );
+          // The title link sits beside the preview trigger, not inside it:
+          // the trigger is a button and a link may not nest in one.
+          return (
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="line-clamp-1 text-sm font-medium text-foreground">
+                {titleContent}
+              </span>
+              <ReviewPostHoverPreview
+                item={item}
+                onOpenDetail={() => {
+                  onSelectItem(item.id);
+                }}
+              >
                 <span className="line-clamp-1 text-xs text-muted-foreground">
                   {[
                     item.format ? String(item.format) : null,
@@ -168,8 +180,8 @@ export default function ReviewItemsTable({
                     .filter(Boolean)
                     .join(' · ') || 'Post draft'}
                 </span>
-              </span>
-            </ReviewPostHoverPreview>
+              </ReviewPostHoverPreview>
+            </span>
           );
         },
       },
@@ -236,6 +248,7 @@ export default function ReviewItemsTable({
     ],
     [
       browserTimezone,
+      href,
       onSelectItem,
       onToggleSelect,
       selectedIds,

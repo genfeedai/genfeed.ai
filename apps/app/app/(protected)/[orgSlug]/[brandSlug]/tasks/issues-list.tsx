@@ -2,9 +2,10 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   IssuesListAction,
   IssuesListState,
@@ -43,6 +44,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { CirclePlus, Columns2, List } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -174,6 +176,7 @@ export default function IssuesList() {
   const statusLabels = useTaskStatusLabels();
   const priorityLabels = useTaskPriorityLabels();
   const { brandId } = useBrand();
+  const { href } = useOrgUrl();
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
@@ -485,15 +488,11 @@ export default function IssuesList() {
               key: 'title',
               header: translate('taskColumn'),
               render: (issue) => (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  textTransform="none"
-                  className="w-full flex-col items-start gap-0 text-left text-sm font-medium"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleSelectIssue(issue);
-                  }}
+                <Link
+                  className="block w-full text-left text-sm font-medium hover:underline"
+                  href={href(
+                    `${APP_ROUTES.WORKSPACE.TASKS}/${issue.identifier}`,
+                  )}
                 >
                   <span className="block">{issue.title}</span>
                   {issue.description ? (
@@ -501,7 +500,7 @@ export default function IssuesList() {
                       {issue.description}
                     </span>
                   ) : null}
-                </Button>
+                </Link>
               ),
             },
             {

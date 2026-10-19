@@ -1,11 +1,16 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  formatPlatformLabel,
+} from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { Link2, Plus, RefreshCw, Settings, Unlink } from 'lucide-react';
@@ -120,6 +125,70 @@ export default function AccountsTable({
     ],
   );
 
+  const rowSidebar = useMemo(
+    () =>
+      createSummaryRowSidebar<BrandDetailSocialConnection>({
+        getBadges: (connection) => (
+          <AccountStatusBadge
+            connection={connection}
+            health={healthByCredentialId.get(connection.credentialId)}
+          />
+        ),
+        getFacts: (connection) => [
+          {
+            id: 'platform',
+            label: translate('accountsTablePlatform'),
+            value: formatPlatformLabel(connection.platform),
+          },
+        ],
+        getId: (connection) => connection.credentialId,
+        getSubtitle: (connection) =>
+          connection.handle
+            ? `@${connection.handle.replace(/^@/, '')}`
+            : undefined,
+        getTitle: getConnectionLabel,
+        kind: 'account',
+        renderExtra: (connection) => (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              icon={<RefreshCw aria-hidden="true" className="size-3.5" />}
+              isDisabled={
+                unavailablePlatforms.has(connection.platform) ||
+                reconnectingCredentialId === connection.credentialId
+              }
+              label={translate('reconnect')}
+              onClick={() => onReconnect(connection)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+            <Button
+              icon={<Settings aria-hidden="true" className="size-3.5" />}
+              label={translate('settings')}
+              onClick={() => onOpenSettings(connection)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+            <Button
+              icon={<Unlink aria-hidden="true" className="size-3.5" />}
+              label={translate('disconnect')}
+              onClick={() => onDisconnect(connection)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DESTRUCTIVE}
+            />
+          </div>
+        ),
+      }),
+    [
+      healthByCredentialId,
+      onDisconnect,
+      onOpenSettings,
+      onReconnect,
+      reconnectingCredentialId,
+      translate,
+      unavailablePlatforms,
+    ],
+  );
+
   return (
     <AppTable<BrandDetailSocialConnection>
       actions={actions}
@@ -143,6 +212,7 @@ export default function AccountsTable({
       }
       getRowKey={(connection) => connection.credentialId}
       items={sortedConnections}
+      rowSidebar={rowSidebar}
     />
   );
 }

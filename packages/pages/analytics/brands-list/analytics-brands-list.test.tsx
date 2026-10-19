@@ -2,7 +2,14 @@ import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import AnalyticsBrandsList from '@pages/analytics/brands-list/analytics-brands-list';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
@@ -51,6 +58,22 @@ const otherBrandFixture = {
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   isCollectionFetchReady: (scope: { isReady: boolean }) => scope.isReady,
   useCollectionScope: () => collectionScope,
+}));
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { kind: string; title: string } | null;
+  }) =>
+    selection ? (
+      <aside data-kind={selection.kind} data-testid="context-sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -167,6 +190,29 @@ describe('AnalyticsBrandsList', () => {
         expect.any(AbortSignal),
       );
     });
+  });
+
+  it('opens the brand summary in the sidebar from the row and keeps the name a link', async () => {
+    render(<AnalyticsBrandsList />);
+
+    const link = await screen.findByRole('link', {
+      name: 'Open Acme analytics',
+    });
+    expect(link).toHaveAttribute('href', '/analytics/brands/brand-1?range=30d');
+
+    fireEvent.click(link);
+    expect(screen.queryByTestId('context-sidebar')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(link.closest('tr') as HTMLElement).getByText('4.2K'),
+    );
+
+    const sidebar = await screen.findByTestId('context-sidebar');
+    expect(sidebar).toHaveAttribute('data-kind', 'brand');
+    expect(within(sidebar).getByText('Acme Inc')).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('link', { name: 'Open analytics' }),
+    ).toHaveAttribute('href', '/analytics/brands/brand-1?range=30d');
   });
 
   it('waits for the brand scope before fetching', async () => {
