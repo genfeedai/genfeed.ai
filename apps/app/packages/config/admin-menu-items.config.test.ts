@@ -40,7 +40,7 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(hrefs).toContain('/admin/overview/analytics/organizations');
     expect(hrefs).not.toContain('/admin/organization');
     expect(hrefs).toContain('/admin/administration/users');
-    expect(hrefs).toContain('/admin/administration/warmup-accounts');
+    expect(hrefs).toContain('/admin/administration/concierge-accounts');
     expect(hrefs).toContain('/admin/administration/subscriptions');
     expect(hrefs).toContain('/admin/administration/system-emails');
     expect(hrefs).toContain('/admin/overview/analytics/all');

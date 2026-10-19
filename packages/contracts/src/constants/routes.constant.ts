@@ -22,7 +22,7 @@ export const APP_ROUTES = {
       SYSTEM_EMAILS: '/admin/administration/system-emails',
       UNIT_ECONOMICS: '/admin/administration/unit-economics',
       USERS: '/admin/administration/users',
-      WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
+      CONCIERGE_ACCOUNTS: '/admin/administration/concierge-accounts',
     },
     AUTOMATION: {
       BOTS: '/admin/automation/bots',

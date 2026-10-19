@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('app/(protected)/admin/administration/warmup-accounts/page.tsx', () => {
-  it('keeps the warm-up accounts route exported', () => {
+describe('app/(protected)/admin/administration/concierge-accounts/page.tsx', () => {
+  it('keeps the concierge accounts route exported', () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        'app/(protected)/admin/administration/warmup-accounts/page.tsx',
+        'app/(protected)/admin/administration/concierge-accounts/page.tsx',
       ),
       'utf8',
     );

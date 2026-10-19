@@ -198,10 +198,10 @@ describe('WarmupAccountsPage', () => {
     mocks.getWarmupAccounts.mockRejectedValueOnce(new Error('forbidden'));
     render(<WarmupAccountsPage defaultTab="accounts" />);
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Unable to load warm-up accounts',
+      'Unable to load concierge accounts',
     );
-    expect(screen.queryByText('No warm-up accounts yet')).toBeNull();
-    expect(screen.queryByText('Select a warm-up account')).toBeNull();
+    expect(screen.queryByText('No concierge accounts yet')).toBeNull();
+    expect(screen.queryByText('Select a concierge account')).toBeNull();
     fireEvent.click(
       screen.getByRole('button', { name: 'Retry loading accounts' }),
     );
@@ -272,7 +272,7 @@ describe('WarmupAccountsPage', () => {
     });
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Provision warm-up account/i }),
+      screen.getByRole('button', { name: /Provision concierge account/i }),
     );
 
     await waitFor(() => {
@@ -288,7 +288,7 @@ describe('WarmupAccountsPage', () => {
     });
 
     expect(mocks.notifications.success).toHaveBeenCalledWith(
-      'Warm-up account provisioned',
+      'Concierge account provisioned',
     );
     expect(screen.getByText('invite_1')).toBeDefined();
   });

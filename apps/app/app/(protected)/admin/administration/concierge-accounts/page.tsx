@@ -1,8 +1,8 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import WarmupAccountsPage from '@protected/administration/warmup-accounts/warmup-accounts-page';
+import WarmupAccountsPage from '@protected/administration/concierge-accounts/warmup-accounts-page';
 import { Suspense } from 'react';
 
-export const generateMetadata = createPageMetadata('Warm-up accounts');
+export const generateMetadata = createPageMetadata('Concierge Accounts');
 
 export default function WarmupAccountsRoutePage() {
   return (

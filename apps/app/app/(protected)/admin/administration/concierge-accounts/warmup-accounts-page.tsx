@@ -496,6 +496,9 @@ export default function WarmupAccountsPage({
     >
       {activeTab === 'create' && (
         <Form spacing="section" className="max-w-3xl" onSubmit={handleSubmit}>
+          <p className="text-sm text-muted-foreground">
+            {translate('description')}
+          </p>
           <div className="grid gap-4 md:grid-cols-2">
             <Field
               label={translate('leadEmail')}

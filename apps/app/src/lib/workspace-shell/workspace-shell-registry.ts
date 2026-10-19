@@ -1198,7 +1198,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/library/voices',
   '/admin/organization',
   '/admin/administration/users',
-  '/admin/administration/warmup-accounts',
+  '/admin/administration/concierge-accounts',
   '/admin/administration/roles',
   '/admin/administration/subscriptions',
   '/admin/administration/credit-usage',
