@@ -5,6 +5,7 @@ import type { AnalyticsPostsGridProps } from '@props/analytics/analytics-posts-g
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
+import { useTranslations } from 'next-intl';
 
 const GRID_CLASS_NAME =
   'grid grid-cols-1 gap-4 @[32rem]:grid-cols-2 @[56rem]:grid-cols-3 @[80rem]:grid-cols-4';
@@ -25,6 +26,8 @@ export default function AnalyticsPostsGrid({
   hasAudience = false,
   onSelectPost,
 }: AnalyticsPostsGridProps) {
+  const translate = useTranslations('pages.analytics.postCard');
+
   if (isLoading) {
     return (
       <div className="@container" data-testid="analytics-posts-grid-loading">
@@ -32,7 +35,7 @@ export default function AnalyticsPostsGrid({
           {SKELETON_KEYS.map((key) => (
             <SkeletonCard
               key={key}
-              label="Loading post"
+              label={translate('loadingPost')}
               showActions={false}
               showDescription={false}
             />

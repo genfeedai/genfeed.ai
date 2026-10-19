@@ -5,6 +5,7 @@ import type {
   CreationHeatmapCell,
   CreationHeatmapProps,
 } from '@props/analytics/creation-heatmap.props';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 const HEATMAP_DAY_COUNT = 90;
@@ -57,6 +58,7 @@ export default function CreationHeatmap({
   calendar,
   isLoading = false,
 }: CreationHeatmapProps) {
+  const translate = useTranslations('ui.creationHeatmap');
   const cells = useMemo(buildHeatmapCells, []);
 
   return (
@@ -88,7 +90,7 @@ export default function CreationHeatmap({
                     ? 'animate-pulse bg-foreground/10'
                     : INTENSITY_CLASSES[getIntensityLevel(count)],
                 )}
-                title={`${cell.dayKey}: ${count} item${count === 1 ? '' : 's'}`}
+                title={translate('cellTitle', { count, day: cell.dayKey })}
               />
             );
           })}
@@ -96,14 +98,14 @@ export default function CreationHeatmap({
       </div>
 
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span>Less</span>
+        <span>{translate('less')}</span>
         {INTENSITY_CLASSES.map((intensityClass) => (
           <div
             key={intensityClass}
             className={cn('size-3.5 rounded-sm', intensityClass)}
           />
         ))}
-        <span>More</span>
+        <span>{translate('more')}</span>
       </div>
     </div>
   );

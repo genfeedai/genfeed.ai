@@ -82,6 +82,7 @@ function AnalyticsPostCard({
   hasAudience,
   onSelectPost,
 }: AnalyticsPostCardProps) {
+  const translate = useTranslations('pages.analytics.postCard');
   const { href } = useOrgUrl();
   const translateSource = useTranslations('pages.analytics.sourceFilter');
   const translateAudience = useTranslations('pages.posts.list.captured');
@@ -132,15 +133,15 @@ function AnalyticsPostCard({
 
         <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-left">
           <AnalyticsPostStat
-            label="Views"
+            label={translate('views')}
             value={formatCompactNumber(item.totalViews)}
           />
           <AnalyticsPostStat
-            label="Engagement"
+            label={translate('engagement')}
             value={formatCompactNumber(item.totalEngagement)}
           />
           <AnalyticsPostStat
-            label="Eng. rate"
+            label={translate('engagementRate')}
             value={`${item.engagementRate.toFixed(2)}%`}
           />
         </dl>

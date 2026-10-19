@@ -248,7 +248,12 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
     await expect(service.acceptInvitation(revokedToken)).rejects.toThrow(
       'Invitation has been revoked',
     );
-    expect(await service.listInvitations(organizationId, 'revoked')).toEqual([
+    const revokedPage = await service.listInvitations(
+      organizationId,
+      'revoked',
+      { limit: 20, page: 1 },
+    );
+    expect(revokedPage.docs).toEqual([
       expect.objectContaining({ id: revocable.id, status: 'revoked' }),
     ]);
     expect(await prisma.member.count({ where: { organizationId } })).toBe(0);
@@ -360,8 +365,19 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
     await expect(
       service.revokeInvitation(invitation.id, otherOrganizationId),
     ).rejects.toThrow('Invitation not found');
-    expect(await service.listInvitations(otherOrganizationId)).toEqual([]);
-    expect(await service.listInvitations(organizationId)).toEqual([
+    const paging = { limit: 20, page: 1 };
+    const otherOrganizationPage = await service.listInvitations(
+      otherOrganizationId,
+      undefined,
+      paging,
+    );
+    expect(otherOrganizationPage.docs).toEqual([]);
+    const organizationPage = await service.listInvitations(
+      organizationId,
+      undefined,
+      paging,
+    );
+    expect(organizationPage.docs).toEqual([
       expect.objectContaining({ id: invitation.id, status: 'delivered' }),
     ]);
   });

@@ -4,7 +4,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
 import type { CrunImageQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import {
   createPlaywrightMockApiRoutePattern,
   playwrightApiEndpoint,
@@ -328,21 +328,15 @@ async function installFixture(
   return { previews, consumes, ownedId, ownedUrl, composer, editor };
 }
 
-async function openGenerationSetup(page: Page, summary: string) {
+async function expectGenerationSetup(page: Page, summary: string) {
   const setup = page.getByRole('button', { name: /^Generation setup:/ });
   await expect(setup).toHaveAccessibleName(`Generation setup: ${summary}`);
-  await setup.click();
 }
-// Advanced mode also renders Model/Output/Look chips in the prompt-bar
-// toolbar with the same "Configure <section>" names, so scope to the setup
-// popover (the dialog holding the Auto/Advanced switch).
-function setupDialog(page: Page): Locator {
-  return page.getByRole('dialog').filter({
-    has: page.getByRole('button', { name: 'Auto', exact: true }),
-  });
-}
+// Advanced mode lists Model/Output/Look as chips in the prompt-bar toolbar;
+// each chip opens only its own section.
 async function openConfiguration(page: Page, section: string) {
-  await setupDialog(page)
+  await page
+    .getByTestId('generation-setup-section-chips')
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }
@@ -416,7 +410,7 @@ for (const key of [nanoKey, seedreamKey]) {
   }) => {
     test.setTimeout(120000);
     const fixture = await installFixture(page, key);
-    await openGenerationSetup(
+    await expectGenerationSetup(
       page,
       key === nanoKey
         ? 'Nano Banana Pro · 1:1 · 1K · x1'
