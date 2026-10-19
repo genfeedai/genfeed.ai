@@ -264,7 +264,7 @@
     "symbol": "CronIngredientsService.checkStuckProcessingIngredients"
   },
   {
-    "actual": 177,
+    "actual": 171,
     "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts",
     "metric": "method-lines",
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
