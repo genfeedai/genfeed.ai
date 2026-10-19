@@ -100,7 +100,6 @@
     "title": "Campaigns",
     "updated": "Campaign updated.",
     "setup": {
-      "description": "A campaign brings related posts together around one goal, such as a launch, announcement, or educational series.",
       "idea": "Campaign name or idea",
       "placeholder": "e.g. Launch our new video editor",
       "brandContext": "AI uses the voice, audience, and context of {brand}.",

@@ -17,7 +17,6 @@ import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
@@ -100,6 +99,7 @@ export default function CampaignCreateDialog({
       }}
     >
       <DialogContent
+        aria-describedby={undefined}
         showCloseButton={!isGenerating}
         className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
         onEscapeKeyDown={(event) => {
@@ -111,7 +111,6 @@ export default function CampaignCreateDialog({
       >
         <DialogHeader>
           <DialogTitle>{t('newCampaign')}</DialogTitle>
-          <DialogDescription>{t('setup.description')}</DialogDescription>
         </DialogHeader>
         <Form
           onSubmit={(event) => {
