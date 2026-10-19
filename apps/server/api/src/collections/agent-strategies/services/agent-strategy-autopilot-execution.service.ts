@@ -39,7 +39,10 @@ import {
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { recordPublishingInboxActivity } from '@api/collections/agent-strategies/services/agent-strategy-publishing-inbox-activity.util';
-import { publishAutopilotThread } from '@api/collections/agent-strategies/services/agent-strategy-thread-publish.util';
+import {
+  publishAutopilotThread,
+  readAutopilotThreadSegments,
+} from '@api/collections/agent-strategies/services/agent-strategy-thread-publish.util';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -132,7 +135,7 @@ export class AgentStrategyAutopilotExecutionService {
     draftGenerator?: CadenceDraftGenerator,
     creditBudget = 0,
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
-    const strategyOrganizationId = getStrategyOrganizationId(strategy);
+    const organizationId = getStrategyOrganizationId(strategy);
     const targetPlatform = resolveOpportunityPlatform(strategy, opportunity);
     const format = resolveOpportunityFormat(
       strategy,
@@ -144,7 +147,7 @@ export class AgentStrategyAutopilotExecutionService {
     // Only the cadence generator prices and dispatches video; the legacy
     // gateway path has no video quote.
     if (format === 'video' && !draftGenerator) {
-      return this.handleVideoHold(opportunity, strategyOrganizationId);
+      return this.handleVideoHold(opportunity, organizationId);
     }
 
     const generated = draftGenerator
@@ -163,23 +166,13 @@ export class AgentStrategyAutopilotExecutionService {
           defaultModel,
           format,
           opportunity,
-          organizationId: strategyOrganizationId,
+          organizationId,
           platform: targetPlatform,
           strategy,
           userId,
         });
-    if (!draft) {
-      await this.opportunitiesService.updateStatus(
-        getOpportunityId(opportunity),
-        strategyOrganizationId,
-        'held',
-        {
-          decisionReason:
-            generated?.heldReason ?? 'No content draft was produced.',
-        },
-      );
-      return { contentGenerated: 0, creditsUsed: generated?.creditsUsed ?? 0 };
-    }
+    if (!draft)
+      return this.holdWithoutDraft(opportunity, organizationId, generated);
     if (generated)
       opportunity = {
         ...opportunity,
@@ -188,7 +181,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     await this.opportunitiesService.updateStatus(
       getOpportunityId(opportunity),
-      strategyOrganizationId,
+      organizationId,
       'generating',
       { metadata: { ...opportunity.metadata, draftId: getDraftId(draft) } },
     );
@@ -202,27 +195,29 @@ export class AgentStrategyAutopilotExecutionService {
       return this.handoffVideoForReview({
         draft,
         opportunity,
-        organizationId: strategyOrganizationId,
+        organizationId,
         platform: targetPlatform,
         strategy,
         userId,
       });
     let draftContent = getDraftContent(draft);
-    const threadSegments =
-      format === 'thread'
-        ? await this.readThreadSegments(draft, strategyOrganizationId)
-        : undefined;
+    const threadSegments = await readAutopilotThreadSegments(
+      this.postsService,
+      format,
+      draft,
+      organizationId,
+    );
 
     const evaluateQuality = bindCadenceQualityEvaluator(
       this.opportunitiesService,
       opportunity,
-      strategyOrganizationId,
+      organizationId,
       generated?.evaluateQuality,
     );
     const evaluation = await evaluateQuality?.();
     let gate = await this.evaluateDraft(
       strategy,
-      strategyOrganizationId,
+      organizationId,
       format,
       draftContent,
       getDraftMediaUrls(draft)[0],
@@ -239,7 +234,7 @@ export class AgentStrategyAutopilotExecutionService {
         format,
         gate,
         opportunity,
-        organizationId: strategyOrganizationId,
+        organizationId,
         platform: targetPlatform,
         strategy,
         userId,
@@ -255,7 +250,7 @@ export class AgentStrategyAutopilotExecutionService {
         draft,
         gate,
         opportunity,
-        organizationId: strategyOrganizationId,
+        organizationId,
       });
     }
 
@@ -273,7 +268,7 @@ export class AgentStrategyAutopilotExecutionService {
       format,
       gate,
       opportunity,
-      organizationId: strategyOrganizationId,
+      organizationId,
       platform: targetPlatform,
       strategy,
       threadSegments,
@@ -281,19 +276,21 @@ export class AgentStrategyAutopilotExecutionService {
     });
   }
 
-  /** A thread's posts in order: the draft is its root, then its replies. */
-  private async readThreadSegments(
-    draft: PostDocument,
+  private async holdWithoutDraft(
+    opportunity: AgentStrategyOpportunityDocument,
     organizationId: string,
-  ): Promise<string[]> {
-    const replies = await this.postsService.getChildren(
-      getDraftId(draft),
+    generated: Awaited<ReturnType<CadenceDraftGenerator>> | null,
+  ): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    await this.opportunitiesService.updateStatus(
+      getOpportunityId(opportunity),
       organizationId,
+      'held',
+      {
+        decisionReason:
+          generated?.heldReason ?? 'No content draft was produced.',
+      },
     );
-    return [
-      getDraftContent(draft),
-      ...replies.map((reply) => reply.description ?? ''),
-    ];
+    return { contentGenerated: 0, creditsUsed: generated?.creditsUsed ?? 0 };
   }
 
   private async generateAutopilotDraft(input: {
@@ -982,16 +979,6 @@ export class AgentStrategyAutopilotExecutionService {
       reusedDraft = true;
     }
 
-    if (createdPostIds.length > 0) {
-      return {
-        postIds: createdPostIds,
-        scheduled: true,
-      };
-    }
-
-    return {
-      postIds: [],
-      scheduled: false,
-    };
+    return { postIds: createdPostIds, scheduled: createdPostIds.length > 0 };
   }
 }

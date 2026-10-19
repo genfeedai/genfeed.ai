@@ -2,10 +2,13 @@ import { randomUUID } from 'node:crypto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import {
   documentId,
+  draftContent,
+  draftId as getDraftId,
   strategyBrandId,
   strategyId,
   strategyOrganizationId,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.helpers';
+import type { PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
@@ -83,4 +86,22 @@ export async function publishAutopilotThread(
     userId: input.userId,
   });
   return { postIds: [documentId(post)], scheduled: true };
+}
+
+/** A thread's posts in order: the draft is its root, then its replies. */
+export async function readAutopilotThreadSegments(
+  postsService: Pick<PostsService, 'getChildren'>,
+  format: string,
+  draft: PostDocument,
+  organizationId: string,
+): Promise<string[] | undefined> {
+  if (format !== 'thread') return undefined;
+  const replies = await postsService.getChildren(
+    getDraftId(draft),
+    organizationId,
+  );
+  return [
+    draftContent(draft),
+    ...replies.map((reply) => reply.description ?? ''),
+  ];
 }
