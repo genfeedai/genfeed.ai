@@ -76,7 +76,7 @@ export class SocialReplyCampaignController {
   }
 
   @Post()
-  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE)
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({
     summary: 'Create a reply campaign and enroll its conversations',

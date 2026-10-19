@@ -937,7 +937,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
     it.each([
       ['a missing scope list', []],
-      ['the legacy draft scope', [ApiKeyScope.POSTS_CREATE]],
+      ['only the draft scope', [ApiKeyScope.POSTS_DRAFT]],
       ['a whitespace-prefixed scope', [` ${ApiKeyScope.POSTS_SCHEDULE}`]],
     ])(
       'rejects API-key batch scheduling with %s before reads or writes',
@@ -1144,7 +1144,7 @@ Tweet 3: Tech innovation is changing the world.`,
         'draft replies without a draft scope',
         TargetExecutionState.DRAFT,
         [],
-        [ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE],
+        [ApiKeyScope.POSTS_DRAFT],
       ],
       [
         'scheduled replies with only the draft scope',

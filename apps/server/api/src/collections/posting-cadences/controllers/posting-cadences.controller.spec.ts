@@ -5,11 +5,7 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
-const MUTATION_SCOPES = [
-  ApiKeyScope.POSTS_DRAFT,
-  ApiKeyScope.POSTS_CREATE,
-  ApiKeyScope.POSTS_SCHEDULE,
-];
+const MUTATION_SCOPES = [ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE];
 
 describe('PostingCadencesController', () => {
   it('declares fail-closed publishing scopes on mutation routes', async () => {

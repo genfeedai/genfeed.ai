@@ -16,7 +16,6 @@ export type ApiKeyPublishingContext = Pick<
 
 export const API_KEY_POSTING_CONFIGURATION_SCOPES = [
   ApiKeyScope.POSTS_DRAFT,
-  ApiKeyScope.POSTS_CREATE,
   ApiKeyScope.POSTS_SCHEDULE,
 ] as const;
 
@@ -27,7 +26,7 @@ export const API_KEY_POST_CREATION_SCOPES = [
 
 const PUBLISHING_CAPABILITY_SCOPES = {
   approve: [ApiKeyScope.POSTS_APPROVE],
-  draft: [ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE],
+  draft: [ApiKeyScope.POSTS_DRAFT],
   publish: [ApiKeyScope.POSTS_PUBLISH],
   schedule: [ApiKeyScope.POSTS_SCHEDULE],
 } as const satisfies Record<PublishingCapability, readonly ApiKeyScope[]>;

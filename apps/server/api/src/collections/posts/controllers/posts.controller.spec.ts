@@ -307,7 +307,7 @@ describe('PostsController.create account-health warmup gate', () => {
         request,
         makeUser({
           isApiKey: true,
-          scopes: [ApiKeyScope.POSTS_CREATE],
+          scopes: [ApiKeyScope.POSTS_DRAFT],
         }),
         {
           category: PostCategory.TEXT,
@@ -367,7 +367,6 @@ describe('PostsController.create account-health warmup gate', () => {
       Reflect.getMetadata(API_KEY_SCOPES_KEY, PostsController.prototype.create),
     ).toEqual([
       ApiKeyScope.POSTS_DRAFT,
-      ApiKeyScope.POSTS_CREATE,
       ApiKeyScope.POSTS_SCHEDULE,
       ApiKeyScope.POSTS_PUBLISH,
     ]);
@@ -414,14 +413,14 @@ describe('PostsController.patch publishing scopes', () => {
       'moving a draft to scheduled',
       TargetExecutionState.DRAFT,
       { targetExecutionState: TargetExecutionState.SCHEDULED },
-      [ApiKeyScope.POSTS_CREATE],
+      [ApiKeyScope.POSTS_DRAFT],
       ApiKeyScope.POSTS_SCHEDULE,
     ],
     [
       'editing an existing scheduled post',
       TargetExecutionState.SCHEDULED,
       { label: 'Changed label' },
-      [ApiKeyScope.POSTS_CREATE],
+      [ApiKeyScope.POSTS_DRAFT],
       ApiKeyScope.POSTS_SCHEDULE,
     ],
     [

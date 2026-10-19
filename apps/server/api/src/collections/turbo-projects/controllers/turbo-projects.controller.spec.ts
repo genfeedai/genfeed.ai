@@ -63,7 +63,7 @@ describe('TurboProjectsController publishing scopes', () => {
         API_KEY_SCOPES_KEY,
         TurboProjectsController.prototype[method],
       ),
-    ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE]);
+    ).toEqual([ApiKeyScope.POSTS_DRAFT]);
   });
 
   it('passes the superadmin exception into idea quote, start, and retry', async () => {

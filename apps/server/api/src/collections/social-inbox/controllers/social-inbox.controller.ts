@@ -301,7 +301,7 @@ export class SocialInboxController {
 
   @Post(':conversationId/suggested-reply')
   @HttpCode(200)
-  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE)
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @UseGuards(SuggestedReplyCreditsGuard)
   @ApiOperation({ summary: 'Suggest a reply without saving or sending it' })
@@ -318,7 +318,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/drafts')
-  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE)
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Create a local reply draft for review' })
   async createDraft(

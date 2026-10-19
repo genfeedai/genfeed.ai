@@ -1043,7 +1043,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     it('does not let an API key without the admin scope act as an org admin', async () => {
       mcpApprovals.findOwned.mockResolvedValue(queued());
       const result = await redeem({
-        apiKeyContext: { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+        apiKeyContext: { isApiKey: true, scopes: [ApiKeyScope.POSTS_DRAFT] },
       });
       expect(result.success).toBe(false);
       expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();

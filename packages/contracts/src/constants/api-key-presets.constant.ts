@@ -8,7 +8,6 @@ export const API_KEY_SCOPE_PRESETS = {
     'prompts:create',
     'articles:read',
     'articles:create',
-    'posts:create',
     'posts:draft',
   ],
   full: [
@@ -28,7 +27,6 @@ export const API_KEY_SCOPE_PRESETS = {
     'articles:create',
     'brands:read',
     'credits:read',
-    'posts:create',
     'posts:draft',
     'posts:schedule',
     'posts:approve',
@@ -46,7 +44,6 @@ export const API_KEY_SCOPE_PRESETS = {
     'articles:create',
     'brands:read',
     'credits:read',
-    'posts:create',
     'posts:draft',
     'posts:schedule',
     'posts:approve',

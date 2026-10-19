@@ -29,11 +29,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-const MUTATION_SCOPES = [
-  ApiKeyScope.POSTS_DRAFT,
-  ApiKeyScope.POSTS_CREATE,
-  ApiKeyScope.POSTS_SCHEDULE,
-];
+const MUTATION_SCOPES = [ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE];
 
 const CAMPAIGN_ID = 'ccampaign0001';
 const request = { originalUrl: '/campaigns' } as never;
