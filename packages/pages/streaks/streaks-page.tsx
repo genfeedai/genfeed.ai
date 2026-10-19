@@ -7,8 +7,8 @@ import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StreaksHeatmap from '@pages/streaks/streaks-heatmap';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
+import CreationHeatmap from '@ui/analytics/creation-heatmap/CreationHeatmap';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
@@ -126,7 +126,7 @@ export default function StreaksPage() {
           className="rounded-3xl bg-secondary p-5 shadow-border"
           role="group"
         >
-          <StreaksHeatmap calendar={calendar} isLoading={isLoading} />
+          <CreationHeatmap calendar={calendar} isLoading={isLoading} />
         </div>
 
         <div className="rounded-3xl bg-secondary p-5 shadow-border">

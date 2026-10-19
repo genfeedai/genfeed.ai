@@ -2,9 +2,9 @@
 
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
-  StreaksHeatmapCell,
-  StreaksHeatmapProps,
-} from '@props/pages/streaks-heatmap.props';
+  CreationHeatmapCell,
+  CreationHeatmapProps,
+} from '@props/analytics/creation-heatmap.props';
 import { useMemo } from 'react';
 
 const HEATMAP_DAY_COUNT = 90;
@@ -33,7 +33,7 @@ function getIntensityLevel(count: number): number {
  * Last 90 days (UTC, matching the calendar keys), padded at the start so the
  * first day lands on its weekday row. Cells fill column by column, 7 per week.
  */
-function buildHeatmapCells(): StreaksHeatmapCell[] {
+function buildHeatmapCells(): CreationHeatmapCell[] {
   const today = new Date();
   const todayUtc = Date.UTC(
     today.getUTCFullYear(),
@@ -53,10 +53,10 @@ function buildHeatmapCells(): StreaksHeatmapCell[] {
   ];
 }
 
-export default function StreaksHeatmap({
+export default function CreationHeatmap({
   calendar,
-  isLoading,
-}: StreaksHeatmapProps) {
+  isLoading = false,
+}: CreationHeatmapProps) {
   const cells = useMemo(buildHeatmapCells, []);
 
   return (
