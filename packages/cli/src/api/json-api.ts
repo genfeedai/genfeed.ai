@@ -7,10 +7,6 @@ import {
 // Re-export types used by other files
 export type { JsonApiDocument } from '@genfeedai/serializers';
 
-// Backward-compatible type aliases (CLI commands reference these)
-export type JsonApiCollectionResponse = JsonApiDocument;
-export type JsonApiSingleResponse = JsonApiDocument;
-
 // Top-level pagination block emitted by the API (`links.pagination`).
 // Mirrors the server serializer output in
 // apps/server/api/src/helpers/utils/response/response.util.ts (setTopLinks).

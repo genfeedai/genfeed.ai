@@ -10,6 +10,8 @@ type MockHttpClient = {
   post: ReturnType<typeof vi.fn>;
 };
 
+type TestableService = { instance: MockHttpClient };
+
 describe('SavedAdsService client', () => {
   beforeEach(() => vi.restoreAllMocks());
 
@@ -21,7 +23,7 @@ describe('SavedAdsService client', () => {
       patch: vi.fn().mockResolvedValue({ data: { data: [] } }),
       post: vi.fn().mockResolvedValue({ data: { data: [] } }),
     };
-    Object.assign(service, { instance: http });
+    (service as unknown as TestableService).instance = http;
 
     await service.save([
       { adId: 'ad-1', brandId: 'brand-1', source: 'public' },
@@ -56,7 +58,7 @@ describe('SavedAdsService client', () => {
       patch: vi.fn(),
       post: vi.fn(),
     };
-    Object.assign(service, { instance: http });
+    (service as unknown as TestableService).instance = http;
 
     const savedAds = await service.list('brand-1');
 

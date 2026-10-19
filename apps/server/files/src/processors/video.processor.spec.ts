@@ -19,6 +19,7 @@ vi.mock('fs', () => {
     statSync: vi.fn().mockReturnValue({ size: 4096 }),
     writeFileSync: vi.fn(),
   };
+  // `font-file.util` reads the default export (`import fs from 'node:fs'`).
   return { ...fsMock, default: fsMock };
 });
 

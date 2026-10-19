@@ -1,7 +1,7 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import type { CreateImageRequest } from '../../src/api/images';
-import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
+import type { JsonApiDocument } from '../../src/api/json-api';
 import { flattenCollection, flattenSingle } from '../../src/api/json-api';
 import { createTestClient, hasCredentials, testConfig } from './setup';
 
@@ -47,7 +47,7 @@ describe.skipIf(!hasCredentials)('integration/images', () => {
 
   it('GET /images/:id flattens correctly when image exists', async () => {
     // Fetch an image ingredient to get a real ID
-    const ingredientsResponse = await client<JsonApiCollectionResponse>(
+    const ingredientsResponse = await client<JsonApiDocument>(
       `/organizations/${orgId}/ingredients?limit=1&category=image`,
       { method: 'GET' }
     );
@@ -61,7 +61,7 @@ describe.skipIf(!hasCredentials)('integration/images', () => {
     const imageId = ingredients[0].id;
 
     try {
-      const response = await client<JsonApiSingleResponse>(`/images/${imageId}`, {
+      const response = await client<JsonApiDocument>(`/images/${imageId}`, {
         method: 'GET',
       });
 

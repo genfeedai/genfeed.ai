@@ -229,6 +229,8 @@ describe('analytics ingestion to dashboard smoke path', () => {
       return Promise.resolve([]);
     }),
     post: {
+      // The one smoke post is published inside the summary window.
+      count: vi.fn(() => Promise.resolve(1)),
       findMany: vi.fn(({ where }: { where: { id: { in: string[] } } }) =>
         Promise.resolve(where.id.in.includes(postId) ? [post] : []),
       ),

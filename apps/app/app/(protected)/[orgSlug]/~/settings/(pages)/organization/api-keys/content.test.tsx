@@ -806,6 +806,18 @@ describe('SettingsApiKeysPage', () => {
     ).toBeEnabled();
   });
 
+  it('lets free-tier organizations create API keys', async () => {
+    mocks.settingsSubscriptionTier = 'free';
+    render(<SettingsApiKeysPage />);
+
+    expect(
+      await screen.findByRole('button', { name: 'Create Key' }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByText('Unlock API keys with Agencies'),
+    ).not.toBeInTheDocument();
+  });
+
   it('rotates and revokes Genfeed API keys', async () => {
     render(<SettingsApiKeysPage />);
 

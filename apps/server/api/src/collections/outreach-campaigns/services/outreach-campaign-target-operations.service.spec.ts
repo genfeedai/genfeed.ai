@@ -250,7 +250,7 @@ describe('OutreachCampaignTargetOperationsService', () => {
       const query = { limit: 20, page: 1 };
 
       await expect(
-        service.getTargets('campaign_1', user, query as never),
+        service.getTargets('campaign_1', user, query),
       ).resolves.toEqual({
         data: page.docs,
         links: {

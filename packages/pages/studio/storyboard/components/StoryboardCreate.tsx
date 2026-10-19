@@ -14,6 +14,7 @@ import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/co
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { resolveAgentPromptAuthor } from '@pages/studio/shared/utils/agent-prompt-author';
 import StoryboardAgentBriefs from '@pages/studio/storyboard/components/StoryboardAgentBriefs';
 import StoryboardPresetCards from '@pages/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
@@ -53,6 +54,8 @@ export default function StoryboardCreate() {
   const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
   const [mode, setMode] = useState<'brief' | 'video'>('brief');
   const [brief, setBrief] = useState('');
+  // The agent brief the composer was last filled from, for provenance.
+  const [agentBrief, setAgentBrief] = useState<string | null>(null);
   const [format, setFormat] = useState<'9:16' | '16:9' | '1:1'>('9:16');
   const [budget, setBudget] = useState('30');
   const [seed, setSeed] = useState<{
@@ -132,11 +135,12 @@ export default function StoryboardCreate() {
   }
   function applyPreset(preset: StoryboardPreset) {
     setBrief(preset.brief);
+    setAgentBrief(null);
     setFormat(preset.format);
     setBudget(String(preset.runtimeBudgetSeconds));
   }
   function applyAgentBrief(proposal: StudioStoryboardProposal) {
-    const agentBrief = buildStoryboardAgentBrief(
+    const draft = buildStoryboardAgentBrief(
       proposal,
       {
         shotLine: (shot) => translateAgentBriefs('shotLine', shot),
@@ -144,11 +148,13 @@ export default function StoryboardCreate() {
       },
       MAX_BRIEF_LENGTH,
     );
-    setBrief(agentBrief.brief);
-    setBudget(String(agentBrief.runtimeBudgetSeconds));
+    setBrief(draft.brief);
+    setAgentBrief(draft.brief);
+    setBudget(String(draft.runtimeBudgetSeconds));
   }
   async function submit() {
     if (!valid || isCreating) return;
+    const author = resolveAgentPromptAuthor(agentBrief, brief);
     const input =
       mode === 'brief'
         ? {
@@ -156,6 +162,7 @@ export default function StoryboardCreate() {
               kind: 'brief' as const,
               brief: brief.trim(),
               ...(image ? { seedImageAssetId: image.id } : {}),
+              ...(author ? { author } : {}),
             },
             planSettings: {
               format,

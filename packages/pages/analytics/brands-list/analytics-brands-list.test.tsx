@@ -102,11 +102,7 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     setToolbarNode: setToolbarNodeMock,
     triggerRefresh: triggerRefreshMock,
   }),
-  useAnalyticsToolbar: (node: ReactNode) => {
-    useEffect(() => {
-      setToolbarNodeMock(node);
-    }, [node]);
-  },
+  useAnalyticsToolbar: (node: unknown) => setToolbarNodeMock(node),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({

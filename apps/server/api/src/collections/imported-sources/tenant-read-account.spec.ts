@@ -364,8 +364,8 @@ describe('account selected data and original authorization', () => {
       { id: testId('invitation', 2), organizationId: selectedOrg },
     ];
     const listInvitations = vi.fn(async (org: string) => {
-      const docs = invitations.filter((r) => r.organizationId === org);
-      return buildPaginatedResult(docs, docs.length, 1, 20);
+      const rows = invitations.filter((r) => r.organizationId === org);
+      return buildPaginatedResult(rows, rows.length, 1, 20);
     });
     const controller = instance(MembersController.prototype, {
       invitationService: { listInvitations },

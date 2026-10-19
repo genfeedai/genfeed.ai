@@ -21,6 +21,12 @@ const { mockCurrentUserState, mockMutateUser, mockPatchSettings } = vi.hoisted(
   }),
 );
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
     currentUser: mockCurrentUserState.currentUser,

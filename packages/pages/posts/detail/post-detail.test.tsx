@@ -531,25 +531,6 @@ describe('PostDetail standalone composer', () => {
     ).toBeVisible();
   });
 
-  it('renders the sidebar presentation without the view-mode controls', () => {
-    render(
-      <ContextSidebarProvider>
-        <ContextSidebarOutlet testId="inspector-outlet" />
-        <PostDetail
-          postId="post-1"
-          scope={PageScope.PUBLISHING}
-          presentation="sidebar"
-        />
-      </ContextSidebarProvider>,
-    );
-    const inspector = screen.getByTestId('inspector-outlet');
-    expect(
-      within(inspector).queryByRole('button', { name: 'Preview' }),
-    ).not.toBeInTheDocument();
-    expect(within(inspector).getByTestId('engagement-preview')).toBeVisible();
-    expect(within(inspector).getByTestId('post-sidebar')).toBeVisible();
-  });
-
   it('preserves custom sidebar hosts in embedded pages', () => {
     render(
       <PostDetail

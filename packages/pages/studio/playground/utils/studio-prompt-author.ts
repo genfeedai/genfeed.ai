@@ -1,5 +1,6 @@
 import type { GenerationPromptAuthor } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundType } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import { resolveAgentPromptAuthor } from '@pages/studio/shared/utils/agent-prompt-author';
 
 /** The agent proposal the composer was last seeded from. */
 export interface StudioAgentPromptSeed {
@@ -18,7 +19,5 @@ export function resolveStudioPromptAuthor(
   type: StudioPlaygroundType,
 ): GenerationPromptAuthor | undefined {
   if (!seed || seed.type !== type) return undefined;
-  const text = prompt.trim();
-  if (!text) return undefined;
-  return text === seed.text.trim() ? 'agent' : 'agent_edited';
+  return resolveAgentPromptAuthor(seed.text, prompt);
 }
