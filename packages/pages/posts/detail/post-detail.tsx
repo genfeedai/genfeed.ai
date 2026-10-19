@@ -463,6 +463,7 @@ export default function PostDetail({
             <PostDetailNeedsYou
               isPublished={isPublished}
               onPublishNow={publishNow}
+              onRetryPublish={handleRetryPublish}
               onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
               post={post}
             />

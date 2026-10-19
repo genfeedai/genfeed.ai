@@ -4,6 +4,7 @@ import type {
   IUpdateTurboProjectInput,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
 import {
   isServiceOperationError,
   normalizeOperationError,
@@ -78,8 +79,13 @@ export function useTurboProject(id: string, brandId: string) {
       }
     }
     void refresh();
-    const timer = setInterval(() => void refresh(), 2000);
+    // A hidden tab has no one watching the run; catch up on the way back.
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh();
+    }, 2000);
+    const disposeForeground = onForeground(() => void refresh());
     return () => {
+      disposeForeground();
       scope.alive = false;
       for (const pending of scope.pending) pending.complete(false);
       controller.abort();

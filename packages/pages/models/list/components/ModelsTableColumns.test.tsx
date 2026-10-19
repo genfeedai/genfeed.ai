@@ -706,7 +706,7 @@ describe('admin cost breakdown', () => {
         cost: 0,
         hasReviewedPricing: true,
         isFree: false,
-        pricingType: 'flat',
+        pricingType: PricingType.FLAT,
       }),
       true,
     );
@@ -722,7 +722,7 @@ describe('admin cost breakdown', () => {
         cost: 14,
         hasReviewedPricing: true,
         isFree: false,
-        pricingType: 'flat',
+        pricingType: PricingType.FLAT,
       }),
       true,
     );

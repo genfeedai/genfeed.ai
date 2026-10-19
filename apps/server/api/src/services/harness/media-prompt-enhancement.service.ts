@@ -4,6 +4,7 @@ import {
   type MediaPromptBrandEnhancementStage,
 } from '@api/helpers/exceptions/media-prompt-brand-enhancement/media-prompt-brand-enhancement.exception';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
+import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
 import { BrandedModeResolverService } from '@api/services/branded-text-generation/branded-mode-resolver.service';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
@@ -222,6 +223,14 @@ export class MediaPromptEnhancementService {
           .catch(() => 'unresolved'),
         stage,
         error: error instanceof Error ? error.message : String(error),
+        // Which integrity check failed (a reason code and a schema path, never
+        // brand content), so the next 502 of this kind is diagnosable.
+        ...(error instanceof BrandIdentityIntegrityError
+          ? {
+              integrityDetail: error.detail,
+              integrityReason: error.reason,
+            }
+          : {}),
       };
       const message =
         'Media prompt brand enhancement failed; generation stopped';

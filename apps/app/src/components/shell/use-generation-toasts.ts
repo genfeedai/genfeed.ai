@@ -7,7 +7,10 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@hooks/utils/on-foreground/on-foreground';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {
   getActivityDescription,
@@ -130,7 +133,9 @@ export function useGenerationToasts(): void {
     const interval = needsPolling
       ? setInterval(reconcileVisible, ACTIVITY_RECONCILE_MS)
       : undefined;
-    const disposeForeground = onForeground(refresh);
+    const disposeForeground = onForeground(refresh, {
+      minAwayMs: FOREGROUND_MIN_AWAY_MS,
+    });
     return () => {
       if (timer) clearTimeout(timer);
       if (interval) clearInterval(interval);

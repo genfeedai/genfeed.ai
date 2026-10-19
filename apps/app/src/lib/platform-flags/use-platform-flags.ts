@@ -2,6 +2,10 @@
 
 import { PLATFORM_FLAG_KEYS } from '@genfeedai/contracts/constants';
 import type { IPlatformFlags } from '@genfeedai/contracts/interfaces';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@hooks/utils/on-foreground/on-foreground';
 import { logger } from '@services/core/logger.service';
 import { PublicService } from '@services/external/public.service';
 import { useEffect, useState } from 'react';
@@ -93,13 +97,15 @@ export function usePlatformFlags(
       refreshWhenVisible,
       PLATFORM_FLAGS_REFRESH_INTERVAL_MS,
     );
-    document.addEventListener('visibilitychange', refreshWhenVisible);
+    const disposeForeground = onForeground(refresh, {
+      minAwayMs: FOREGROUND_MIN_AWAY_MS,
+    });
     const unsubscribe = subscribePlatformFlagsChanged(refresh);
 
     return () => {
       controller?.abort();
       window.clearInterval(interval);
-      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      disposeForeground();
       unsubscribe();
     };
   }, [initialFlags]);

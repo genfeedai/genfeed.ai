@@ -109,7 +109,9 @@ export default function AnalyticsOverviewLeaderboards({
         ),
         key: 'totalPosts',
         render: (item) => (
-          <span className="font-mono">{item.totalPosts.toLocaleString()}</span>
+          <span className="font-mono">
+            {item.totalPosts.toLocaleString('en-US')}
+          </span>
         ),
       },
       {
@@ -122,7 +124,7 @@ export default function AnalyticsOverviewLeaderboards({
         key: 'totalEngagement',
         render: (item) => (
           <span className="font-mono">
-            {item.totalEngagement.toLocaleString()}
+            {item.totalEngagement.toLocaleString('en-US')}
           </span>
         ),
       },
@@ -176,7 +178,9 @@ export default function AnalyticsOverviewLeaderboards({
         ),
         key: 'totalPosts',
         render: (item) => (
-          <span className="font-mono">{item.totalPosts.toLocaleString()}</span>
+          <span className="font-mono">
+            {item.totalPosts.toLocaleString('en-US')}
+          </span>
         ),
       },
       {
@@ -189,7 +193,7 @@ export default function AnalyticsOverviewLeaderboards({
         key: 'totalEngagement',
         render: (item) => (
           <span className="font-mono">
-            {item.totalEngagement.toLocaleString()}
+            {item.totalEngagement.toLocaleString('en-US')}
           </span>
         ),
       },
@@ -285,12 +289,12 @@ export default function AnalyticsOverviewLeaderboards({
                         {
                           id: 'posts',
                           label: fieldsT('posts'),
-                          value: item.totalPosts.toLocaleString(),
+                          value: item.totalPosts.toLocaleString('en-US'),
                         },
                         {
                           id: 'engagement',
                           label: fieldsT('engagement'),
-                          value: item.totalEngagement.toLocaleString(),
+                          value: item.totalEngagement.toLocaleString('en-US'),
                         },
                       ]}
                       openHref={`${scopedBasePath}/organizations/${item.organization.id}`}

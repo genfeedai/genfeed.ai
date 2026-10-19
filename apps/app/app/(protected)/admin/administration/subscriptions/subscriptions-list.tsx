@@ -182,7 +182,7 @@ export default function SubscriptionsList() {
       key: 'currentPeriodEnd',
       render: (row: IOrganizationBilling) =>
         row.currentPeriodEnd
-          ? new Date(row.currentPeriodEnd).toLocaleDateString()
+          ? new Date(row.currentPeriodEnd).toLocaleDateString('en-US')
           : EMPTY_CELL,
     },
   ];
@@ -250,7 +250,7 @@ export default function SubscriptionsList() {
         id: 'periodEnd',
         label: subscriptionT('periodEnd'),
         value: row.currentPeriodEnd
-          ? new Date(row.currentPeriodEnd).toLocaleDateString()
+          ? new Date(row.currentPeriodEnd).toLocaleDateString('en-US')
           : undefined,
       },
     ],

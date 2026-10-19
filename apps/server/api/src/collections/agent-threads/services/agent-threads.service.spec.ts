@@ -268,7 +268,14 @@ describe('AgentThreadsService Prisma row contract', () => {
     ]);
     snapshotDelegate.findMany.mockResolvedValue([]);
 
-    await service.getUserThreads('user-1', 'org-1');
+    await service.getUserThreads(
+      'user-1',
+      'org-1',
+      undefined,
+      undefined,
+      undefined,
+      FIRST_PAGE,
+    );
 
     const [strings, ...values] = queryRaw.mock.calls[0] as [
       TemplateStringsArray,

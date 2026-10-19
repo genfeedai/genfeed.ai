@@ -197,6 +197,26 @@ jobs:
           done
           echo "Default auth boundary ready — authenticated integration is verified by release E2E."
 
+      - name: Readiness — platform schedules registered (<=120s)
+        id: schedules
+        run: |
+          # Community runs autonomous agents and scheduled publishing (#7343).
+          # The workers register each platform schedule as a BullMQ job
+          # scheduler on the in-container Redis at boot; a missing one means
+          # hired agents or approved posts would never run on this image.
+          deadline=$((SECONDS + 120))
+          for scheduler in platform:proactive-agent-strategies platform:posts-publish; do
+            until [ -n "$(docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" \
+                exec -T genfeed redis-cli ZSCORE bull:system-sweeps:repeat "${scheduler}")" ]; do
+              if (( SECONDS >= deadline )); then
+                echo "::error::Platform schedule ${scheduler} was not registered within 120s — hired agents and scheduled posts would not run on Community"
+                exit 1
+              fi
+              sleep 3
+            done
+            echo "Registered: ${scheduler}"
+          done
+
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
@@ -217,6 +237,7 @@ jobs:
           BOOT_OUTCOME: ${{ steps.boot.outcome }}
           READY1_OUTCOME: ${{ steps.ready1.outcome }}
           READY2_OUTCOME: ${{ steps.ready2.outcome }}
+          SCHEDULES_OUTCOME: ${{ steps.schedules.outcome }}
           SPECS_OUTCOME: ${{ steps.specs.outcome }}
           BUNDLE_CLASS: ${{ steps.bundle.outputs.failure_class }}
         run: |
@@ -229,6 +250,8 @@ jobs:
             echo "failure_class=liveness-timeout" >> "${GITHUB_OUTPUT}"
           elif [ "${READY2_OUTCOME}" = "failure" ]; then
             echo "failure_class=bootstrap-seed-timeout" >> "${GITHUB_OUTPUT}"
+          elif [ "${SCHEDULES_OUTCOME}" = "failure" ]; then
+            echo "failure_class=platform-schedules-missing" >> "${GITHUB_OUTPUT}"
           elif [ "${SPECS_OUTCOME}" = "failure" ]; then
             echo "failure_class=playwright-specs" >> "${GITHUB_OUTPUT}"
           else
