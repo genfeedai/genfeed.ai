@@ -1,52 +1,67 @@
 /**
- * Serves the release list's Prisma reads from fixtures. Rows come back whole
- * (a superset of every `select`), narrowed only by the id/group predicates the
- * service sends, so a spec exercises the service's own filtering and paging.
+ * Serves the release list for a spec: `$queryRaw` answers the page statement
+ * with the ordered ids the SQL would return (the SQL itself runs in the
+ * Postgres spec), and the Prisma reads that hydrate the page return fixture
+ * rows narrowed only by the id/group predicates the service sends.
  */
-type FindManyMock = {
-  mockImplementation: (implementation: (args: never) => unknown) => unknown;
+type MockFn = {
+  mockImplementation: (
+    implementation: (...args: never[]) => unknown,
+  ) => unknown;
 };
 
 type ListGroup = { id: string };
 type ListTarget = { groupId: string | null; id: string };
 
-type GroupFindManyArgs = {
-  select: Record<string, unknown>;
-  where: { id?: { in: string[] } };
-};
+type GroupFindManyArgs = { where: { id?: { in: string[] } } };
 
 type TargetFindManyArgs = {
-  select: Record<string, unknown>;
   where: {
-    groupId?: null | { in?: string[]; not?: null };
+    groupId?: null | { in?: string[] };
     id?: { in: string[] };
   };
 };
 
-export function seedReleaseListReads<
+type RawSqlArg = { sql?: string; text?: string };
+
+export type SeededReleasePageRow = {
+  id: string;
+  isSynthetic?: boolean;
+};
+
+/** Marks the release-list statement among the other raw reads the service makes. */
+const RELEASE_LIST_STATEMENT = 'release_rows';
+
+export function seedReleaseListPage<
   TGroup extends ListGroup,
   TTarget extends ListTarget,
 >(
   prisma: {
-    post: { findMany: FindManyMock };
-    postGroup: { findMany: FindManyMock };
+    $queryRaw: MockFn;
+    post: { findMany: MockFn };
+    postGroup: { findMany: MockFn };
   },
   groups: TGroup[],
   targets: TTarget[],
+  pageRows: SeededReleasePageRow[],
+  totalDocs: number = pageRows.length,
 ): void {
+  prisma.$queryRaw.mockImplementation(async (statement: RawSqlArg) =>
+    (statement.sql ?? statement.text ?? '').includes(RELEASE_LIST_STATEMENT)
+      ? pageRows.map((row) => ({
+          id: row.id,
+          isSynthetic: row.isSynthetic ?? false,
+          totalDocs: BigInt(totalDocs),
+        }))
+      : [],
+  );
   prisma.postGroup.findMany.mockImplementation(
-    async ({ select, where }: GroupFindManyArgs) => {
-      const rows = groups.filter(
-        (group) => !where.id?.in || where.id.in.includes(group.id),
-      );
-      return Object.keys(select).join() === 'id'
-        ? rows.map((group) => ({ id: group.id }))
-        : rows;
-    },
+    async ({ where }: GroupFindManyArgs) =>
+      groups.filter((group) => !where.id?.in || where.id.in.includes(group.id)),
   );
   prisma.post.findMany.mockImplementation(
-    async ({ select, where }: TargetFindManyArgs) => {
-      const rows = targets.filter((target) => {
+    async ({ where }: TargetFindManyArgs) =>
+      targets.filter((target) => {
         if (where.id?.in && !where.id.in.includes(target.id)) {
           return false;
         }
@@ -58,11 +73,7 @@ export function seedReleaseListReads<
             target.groupId !== null && where.groupId.in.includes(target.groupId)
           );
         }
-        return where.groupId?.not === null ? target.groupId !== null : true;
-      });
-      return Object.keys(select).join() === 'groupId'
-        ? rows.map((target) => ({ groupId: target.groupId }))
-        : rows;
-    },
+        return true;
+      }),
   );
 }
