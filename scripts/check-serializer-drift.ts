@@ -109,6 +109,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'nextRunAt',
     'weeklyResetAt',
   ],
+  'agent-strategy-opportunity:AgentStrategyOpportunity': [],
   'article:Article': [
     'aiGeneration',
     'evaluation',
@@ -490,6 +491,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'vote:Vote': ['entity'],
   'watchlist:Watchlist': [],
   'ad-watched-advertiser:AdWatchedAdvertiser': [],
+  'creative-pattern:CreativePattern': [],
   'workflow:Workflow': ['cloudSync', 'key', 'nextRunAt', 'tasks'],
   'agent-thread:AgentThread': [
     'attentionState',
@@ -778,7 +780,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'ad-performance:AdPerformance': ANALYTICS_MODEL_REASON,
   'agent-goal:AgentGoal': INTERNAL_MODEL_REASON,
   'agent-message:AgentMessage': INTERNAL_MODEL_REASON,
-  'agent-strategy-opportunity:AgentStrategyOpportunity': ANALYTICS_MODEL_REASON,
   'agent-strategy-report:AgentStrategyReport': ANALYTICS_MODEL_REASON,
   'agent-thread-event:AgentThreadEvent': OPERATIONAL_MODEL_REASON,
   'agent-thread-snapshot:AgentThreadSnapshot': OPERATIONAL_MODEL_REASON,
@@ -788,7 +789,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'campaign-target:CampaignTarget': INTERNAL_MODEL_REASON,
   'content-pattern:ContentPattern': ANALYTICS_MODEL_REASON,
   'content-score:ContentScore': ANALYTICS_MODEL_REASON,
-  'creative-pattern:CreativePattern': ANALYTICS_MODEL_REASON,
   'creator-analysis:CreatorAnalysis': ANALYTICS_MODEL_REASON,
   'credit-balance:CreditBalance': OPERATIONAL_MODEL_REASON,
   'customer-instance:CustomerInstance': INTERNAL_MODEL_REASON,

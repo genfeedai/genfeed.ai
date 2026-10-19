@@ -4,8 +4,14 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+const mockSetToolbarNode = vi.hoisted(() => vi.fn());
+
 vi.mock('@hooks/data/streaks/use-streak/use-streak', () => ({
   useStreak: vi.fn(),
+}));
+
+vi.mock('@contexts/analytics/analytics-context', () => ({
+  useAnalyticsContext: () => ({ setToolbarNode: mockSetToolbarNode }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -35,6 +41,9 @@ describe('StreaksPage', () => {
 
     render(<StreaksPage />);
 
+    const toolbar = mockSetToolbarNode.mock.calls.at(-1)?.[0];
+    expect(toolbar).toBeTruthy();
+    render(toolbar);
     expect(
       screen.getByRole('link', { name: 'Create content now' }),
     ).toHaveAttribute('href', '/acme/brand-x/agent/new');
@@ -42,8 +51,8 @@ describe('StreaksPage', () => {
     expect(screen.getByText('Longest streak')).toBeInTheDocument();
     expect(screen.getByText('Freezes')).toBeInTheDocument();
     expect(screen.getByText('Next milestone')).toBeInTheDocument();
-    expect(screen.getByText('Creation heatmap')).toBeInTheDocument();
-    expect(screen.getByText('Earned streak rewards')).toBeInTheDocument();
+    expect(screen.queryByText('Creation heatmap')).not.toBeInTheDocument();
+    expect(screen.queryByText('Earned streak rewards')).not.toBeInTheDocument();
     expect(screen.getByTestId('streaks-heatmap-skeleton')).toBeInTheDocument();
     expect(
       screen.getByTestId('streaks-milestones-skeleton'),
@@ -82,5 +91,24 @@ describe('StreaksPage', () => {
     expect(
       screen.queryByTestId('streaks-milestones-skeleton'),
     ).not.toBeInTheDocument();
+  });
+
+  it('draws every one of the last 90 days, including empty ones, with a legend', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    mockStreak({
+      calendar: { [today]: { count: 5 } },
+      isLoading: false,
+    } as Partial<ReturnType<typeof useStreak>>);
+
+    const { container } = render(<StreaksPage />);
+
+    expect(
+      container.querySelectorAll('[title$=" items"], [title$=" item"]'),
+    ).toHaveLength(90);
+    expect(container.querySelector(`[title="${today}: 5 items"]`)).toHaveClass(
+      'bg-foreground/80',
+    );
+    expect(screen.getByText('Less')).toBeInTheDocument();
+    expect(screen.getByText('More')).toBeInTheDocument();
   });
 });

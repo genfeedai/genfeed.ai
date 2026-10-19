@@ -10,6 +10,10 @@ import {
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import {
   AnalyticsService,
@@ -17,6 +21,7 @@ import {
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -27,20 +32,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 export interface AnalyticsBrandsListProps {
   basePath?: string;
+  /**
+   * Narrow the list to the brand in the URL (`/:org/:brand/...`); the org
+   * route (`/:org/~/...`) still lists every brand. Platform admin pages have
+   * no brand of their own and turn this off.
+   */
+  isBrandScoped?: boolean;
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
 
 export default function AnalyticsBrandsList({
   basePath = '/analytics',
+  isBrandScoped = true,
 }: AnalyticsBrandsListProps) {
   const { isSignedIn } = useAuthIdentity();
+  const scope = useCollectionScope();
+  const scopedBrandId = isBrandScoped ? scope.brandId : undefined;
+  const isScopeReady = !isBrandScoped || isCollectionFetchReady(scope);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -58,7 +72,6 @@ export default function AnalyticsBrandsList({
   );
 
   const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
-  const [totalBrands, setTotalBrands] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const searchTerm = filters.query ?? '';
@@ -88,7 +101,7 @@ export default function AnalyticsBrandsList({
 
     const controller = new AbortController();
     const fetchBrandsData = async () => {
-      if (!isSignedIn) {
+      if (!isSignedIn || !isScopeReady) {
         return;
       }
       if (!dateRange.startDate || !dateRange.endDate) {
@@ -105,6 +118,7 @@ export default function AnalyticsBrandsList({
         );
         const response = await service.getBrandsWithStats(
           {
+            ...(scopedBrandId ? { brandId: scopedBrandId } : {}),
             endDate,
             limit: ITEMS_PER_PAGE,
             page: currentPage,
@@ -133,7 +147,6 @@ export default function AnalyticsBrandsList({
         }
 
         setBrandsData(response.data);
-        setTotalBrands(response.pagination?.total ?? response.data.length);
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Failed to fetch brand analytics list', error);
@@ -148,6 +161,8 @@ export default function AnalyticsBrandsList({
     return () => controller.abort();
   }, [
     isSignedIn,
+    isScopeReady,
+    scopedBrandId,
     dateRange,
     refreshTrigger,
     sortBy,
@@ -198,8 +213,7 @@ export default function AnalyticsBrandsList({
   return (
     <>
       <Table
-        label="All Brands"
-        description={`${totalBrands} brand${totalBrands !== 1 ? 's' : ''} found`}
+        ariaLabel="Brands"
         items={brandsData}
         isLoading={isLoading}
         error={
@@ -224,19 +238,7 @@ export default function AnalyticsBrandsList({
             key: 'name',
             render: (brand) => (
               <div className="flex items-center gap-3">
-                {brand.logo ? (
-                  <Image
-                    src={brand.logo}
-                    alt={brand.name}
-                    width={40}
-                    height={40}
-                    className="size-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-lg">
-                    {brand.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <BrandAvatar logoUrl={brand.logo} name={brand.name} size="lg" />
                 <div>
                   <div className="font-medium">{brand.name}</div>
                   <div className="text-xs text-foreground/60">

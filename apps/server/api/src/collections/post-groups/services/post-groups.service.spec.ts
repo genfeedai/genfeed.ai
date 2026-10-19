@@ -2,7 +2,7 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
-import { seedReleaseListReads } from '@api/collections/post-groups/services/post-group-release-list.testing';
+import { seedReleaseListPage } from '@api/collections/post-groups/services/post-group-release-list.testing';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -285,6 +285,17 @@ describe('PostGroupsService', () => {
     vi.clearAllMocks();
   });
 
+  /** The bound values of the release-list statement the service last sent. */
+  function releaseListStatement(): { sql: string; values: unknown[] } {
+    const call = prisma.$queryRaw.mock.calls
+      .map(([statement]) => statement as { sql: string; values: unknown[] })
+      .find((statement) => statement.sql.includes('release_rows'));
+    if (!call) {
+      throw new Error('The release list statement was not sent.');
+    }
+    return call;
+  }
+
   it('parses the validated calendar window before delegating to persistence', async () => {
     await expect(
       service.list('org-1', {
@@ -295,40 +306,34 @@ describe('PostGroupsService', () => {
       }),
     ).resolves.toEqual(expect.objectContaining({ docs: [], totalDocs: 0 }));
 
-    expect(prisma.post.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          brandId: 'brand-1',
-          organizationId: 'org-1',
-          isDeleted: false,
-          parentId: null,
-        }),
-      }),
+    const { values } = releaseListStatement();
+    expect(values).toEqual(
+      expect.arrayContaining([
+        'org-1',
+        'brand-1',
+        new Date('2026-07-20T00:00:00.000Z'),
+        new Date('2026-07-27T00:00:00.000Z'),
+        ReleaseStatus.SCHEDULED,
+      ]),
     );
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          brandId: 'brand-1',
-          organizationId: 'org-1',
-        }),
-      }),
-    );
-    expect(
-      prisma.postGroup.findMany.mock.calls[0]?.[0]?.where,
-    ).not.toHaveProperty('status');
+    // The list is one SQL statement; it never scans slim rows in the service.
+    expect(prisma.postGroup.findMany).not.toHaveBeenCalled();
+    expect(prisma.post.findMany).not.toHaveBeenCalled();
   });
 
-  it('applies target-scoped calendar filters to the canonical projection', async () => {
-    prisma.postGroup.findMany.mockResolvedValue([
-      makeGroup({ scheduledAt: new Date('2026-07-21T09:00:00.000Z') }),
-    ]);
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({
-        credentialId: 'credential-1',
-        platform: CredentialPlatform.INSTAGRAM,
-        targetExecutionState: TargetExecutionState.FAILED,
-      }),
-    ]);
+  it('sends the target-scoped calendar filters to the release statement', async () => {
+    seedReleaseListPage(
+      prisma,
+      [makeGroup({ scheduledAt: new Date('2026-07-21T09:00:00.000Z') })],
+      [
+        makeTarget({
+          credentialId: 'credential-1',
+          platform: CredentialPlatform.INSTAGRAM,
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      ],
+      [{ id: 'group-1' }],
+    );
 
     await expect(
       service.list('org-1', {
@@ -346,16 +351,23 @@ describe('PostGroupsService', () => {
         totalDocs: 1,
       }),
     );
+    expect(releaseListStatement().values).toEqual(
+      expect.arrayContaining([
+        PostCategory.POST,
+        'credential-1',
+        TargetExecutionState.FAILED,
+        CredentialPlatform.INSTAGRAM,
+        ReleaseTargetSource.WORKFLOW,
+      ]),
+    );
   });
 
-  it('projects legacy ungrouped targets without admitting orphaned grouped targets', async () => {
-    seedReleaseListReads(
+  it('hydrates a legacy ungrouped target as a one-target release', async () => {
+    seedReleaseListPage(
       prisma,
       [],
-      [
-        makeTarget({ groupId: null, id: 'legacy-target-1' }),
-        makeTarget({ groupId: 'deleted-group', id: 'orphan-target-1' }),
-      ],
+      [makeTarget({ groupId: null, id: 'legacy-target-1' })],
+      [{ id: 'legacy-target-1', isSynthetic: true }],
     );
 
     await expect(
@@ -453,70 +465,18 @@ describe('PostGroupsService', () => {
     );
   });
 
-  it('treats a partially published release as posted and not as not-posted', async () => {
-    seedReleaseListReads(
-      prisma,
-      [makeGroup()],
-      [
-        makeTarget({
-          id: 'target-published',
-          targetExecutionState: TargetExecutionState.PUBLISHED,
-        }),
-        makeTarget({
-          id: 'target-failed',
-          targetExecutionState: TargetExecutionState.FAILED,
-        }),
-      ],
-    );
+  it('sends the publication state and the requested page window to the release statement', async () => {
+    await service.list('org-1', {
+      limit: 1,
+      page: 3,
+      publicationState: 'not-posted',
+      sort: 'createdAt: -1',
+    });
 
-    await expect(
-      service.list('org-1', { publicationState: 'posted' }),
-    ).resolves.toEqual(expect.objectContaining({ totalDocs: 1 }));
-    await expect(
-      service.list('org-1', { publicationState: 'not-posted' }),
-    ).resolves.toEqual(expect.objectContaining({ totalDocs: 0 }));
-  });
-
-  it('paginates equal sort values with the release id as a stable tie-breaker', async () => {
-    const createdAt = new Date('2026-07-08T22:25:13.000Z');
-    seedReleaseListReads(
-      prisma,
-      [
-        makeGroup({ createdAt, id: 'group-b' }),
-        makeGroup({ createdAt, id: 'group-a' }),
-      ],
-      [
-        makeTarget({ groupId: 'group-b', id: 'target-b' }),
-        makeTarget({ groupId: 'group-a', id: 'target-a' }),
-      ],
-    );
-
-    await expect(
-      service.list('org-1', {
-        limit: 1,
-        page: 1,
-        sort: 'createdAt: -1',
-      }),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        docs: [expect.objectContaining({ id: 'group-a' })],
-        totalDocs: 2,
-        totalPages: 2,
-      }),
-    );
-    await expect(
-      service.list('org-1', {
-        limit: 1,
-        page: 2,
-        sort: 'createdAt: -1',
-      }),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        docs: [expect.objectContaining({ id: 'group-b' })],
-        totalDocs: 2,
-        totalPages: 2,
-      }),
-    );
+    const { sql, values } = releaseListStatement();
+    expect(sql).toContain('NOT "isPublished"');
+    expect(sql).toContain('ORDER BY "createdAt" DESC NULLS LAST');
+    expect(values.slice(-2)).toEqual([1, 2]);
   });
 
   it('returns a release with one batched exact-target analytics summary', async () => {

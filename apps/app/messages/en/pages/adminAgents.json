@@ -1,0 +1,22 @@
+{
+  "title": "Agents",
+  "empty": "No agents found",
+  "loadError": "Failed to load agents",
+  "columns": {
+    "agent": "Agent",
+    "brand": "Brand",
+    "platforms": "Platforms",
+    "status": "Status",
+    "publishing": "Publishing",
+    "lastRun": "Last run"
+  },
+  "status": {
+    "active": "Active",
+    "paused": "Paused"
+  },
+  "publishing": {
+    "autoPublish": "Auto-publish",
+    "reviewFirst": "Review first"
+  },
+  "never": "Never"
+}

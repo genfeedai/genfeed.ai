@@ -1,12 +1,9 @@
 'use client';
 
 import { AlertCategory } from '@genfeedai/contracts';
+import type { EconomicsReportErrorProps } from '@props/admin/economics.props';
 import Alert from '@ui/feedback/alert/Alert';
 import { useTranslations } from 'next-intl';
-
-interface EconomicsReportErrorProps {
-  error: unknown;
-}
 
 /** Shown in place of a report body when its request failed. */
 export default function EconomicsReportError({

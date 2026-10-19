@@ -274,9 +274,11 @@ describe('OrganizationsSettingsController', () => {
         organizationB,
       );
 
-      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organizationId: organizationB,
-      });
+      expect(organizationSettingsService.findOne).toHaveBeenCalledWith(
+        { organizationId: organizationB },
+        [],
+        { includePaidHint: true },
+      );
       expect(
         organizationSettingsService.ensureForOrganization,
       ).not.toHaveBeenCalled();
@@ -294,7 +296,7 @@ describe('OrganizationsSettingsController', () => {
 
       expect(
         organizationSettingsService.ensureForOrganization,
-      ).toHaveBeenCalledWith(organizationId);
+      ).toHaveBeenCalledWith(organizationId, { includePaidHint: true });
       expect(result).toEqual(mockOrganizationSettings);
     });
   });

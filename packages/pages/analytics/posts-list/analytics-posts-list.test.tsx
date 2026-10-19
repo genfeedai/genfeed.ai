@@ -5,7 +5,7 @@ import {
 import type { AnalyticsQueryFilters } from '@genfeedai/contracts/interfaces';
 import AnalyticsPostsList from '@pages/analytics/posts-list/analytics-posts-list';
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
@@ -96,9 +96,7 @@ describe('AnalyticsPostsList', () => {
     expect(
       screen.getByRole('combobox', { name: 'Filter post analytics by source' }),
     ).toHaveTextContent('All sources');
-    expect(
-      screen.queryByRole('columnheader', { name: 'Audience' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Audience')).not.toBeInTheDocument();
   });
 
   it('scopes top posts to extension captures and shows each observed audience', () => {
@@ -136,9 +134,7 @@ describe('AnalyticsPostsList', () => {
     expect(
       screen.getByRole('combobox', { name: 'Filter post analytics by source' }),
     ).toHaveTextContent('Extension');
-    expect(
-      screen.getByRole('columnheader', { name: 'Audience' }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText('Audience')).toHaveLength(2);
     expect(screen.getByText('Private')).toBeInTheDocument();
     expect(screen.getByText('Audience unavailable')).toBeInTheDocument();
   });
@@ -227,7 +223,7 @@ describe('AnalyticsPostsList', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens the shared post detail overlay from the analytics table row', () => {
+  it('opens the shared post detail overlay from a post card', () => {
     useTopPostsMock.mockReturnValue({
       isLoading: false,
       topPosts: [
@@ -250,37 +246,132 @@ describe('AnalyticsPostsList', () => {
       'post-3',
     );
   });
-  it('annotates views, interactions and percent engagement without opening content or changing filters', () => {
+  it('keeps the subbar to one compact row without the Open In Agent filler', () => {
+    renderPostsList();
+
+    expect(
+      screen.queryByRole('button', { name: 'Open In Agent' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search posts...')).toHaveClass('h-8');
+    for (const trigger of screen.getAllByRole('combobox')) {
+      expect(trigger.className).toMatch(/\bw-(32|36)\b/);
+      expect(trigger).not.toHaveClass('w-full');
+    }
+  });
+
+  it('does not add a filler sentence when a post is focused from the loop', () => {
     useTopPostsMock.mockReturnValue({
       isLoading: false,
       topPosts: [
         {
           brandName: 'Acme',
-          engagementRate: 0,
+          engagementRate: 4.2,
           platform: 'twitter',
           postId: 'post-3',
-          totalEngagement: 0,
-          totalViews: 0,
+          totalEngagement: 250,
+          totalViews: 1200,
         },
       ],
     });
     renderPostsList();
-    for (const name of [
-      'About Views',
-      'About Engagement',
-      'About Engagement rate',
-    ]) {
-      fireEvent.click(screen.getByRole('button', { name }));
-    }
-    expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
-      'closed',
-    );
-    expect(pushMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Untitled Post'));
+
     expect(
-      screen.getByRole('columnheader', { name: /Eng. Rate/ }),
-    ).toContainElement(
-      screen.getByRole('button', { name: 'About Engagement rate' }),
-    );
+      screen.queryByText(/Focused on a single post/),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear Focus' })).toBeVisible();
+  });
+
+  it('shows posts as ranked cards with their metrics and media', () => {
+    useTopPostsMock.mockReturnValue({
+      isLoading: false,
+      topPosts: [
+        {
+          brandName: 'Acme',
+          engagementRate: 4.256,
+          label: 'Launch reel',
+          platform: 'instagram',
+          postId: 'post-1',
+          thumbnailUrl: 'https://cdn.example.com/launch.jpg',
+          totalEngagement: 2500,
+          totalViews: 1_200_000,
+        },
+        {
+          brandName: 'Acme',
+          engagementRate: 1,
+          label: 'Text only',
+          platform: 'twitter',
+          postId: 'post-2',
+          totalEngagement: 3,
+          totalViews: 30,
+        },
+      ],
+    });
+
+    renderPostsList();
+
+    const cards = screen.getAllByTestId('analytics-post-card');
+    expect(cards).toHaveLength(2);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+
+    expect(within(cards[0]).getByText('#1')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Launch reel')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Acme · instagram')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Views')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('1.2M')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Engagement')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('2.5k')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Eng. rate')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('4.26%')).toBeInTheDocument();
+    expect(
+      within(cards[0]).queryByTestId('analytics-post-media-fallback'),
+    ).not.toBeInTheDocument();
+
+    // No media: the platform tile stands in for the thumbnail.
+    expect(within(cards[1]).getByText('#2')).toBeInTheDocument();
+    expect(
+      within(cards[1]).getByTestId('analytics-post-media-fallback'),
+    ).toBeInTheDocument();
+  });
+
+  it('paginates posts client-side and keeps the global rank on later pages', () => {
+    useTopPostsMock.mockReturnValue({
+      isLoading: false,
+      topPosts: Array.from({ length: 30 }, (_, index) => ({
+        brandName: 'Acme',
+        engagementRate: 1,
+        label: `Post ${index + 1}`,
+        platform: 'twitter',
+        postId: `post-${index + 1}`,
+        totalEngagement: 1,
+        totalViews: 100 - index,
+      })),
+    });
+
+    renderPostsList();
+
+    expect(screen.getAllByTestId('analytics-post-card')).toHaveLength(12);
+    expect(screen.getByText('30 posts')).toBeInTheDocument();
+    expect(screen.getByText('Post 1')).toBeInTheDocument();
+    expect(screen.queryByText('Post 13')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('link', { name: '3' }));
+
+    const lastPage = screen.getAllByTestId('analytics-post-card');
+    expect(lastPage).toHaveLength(6);
+    expect(screen.getByText('Post 25')).toBeInTheDocument();
+    expect(screen.getByText('#25')).toBeInTheDocument();
+    expect(screen.queryByText('Post 1')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state instead of an empty grid', () => {
+    renderPostsList();
+
+    expect(
+      screen.getByText('No posts found for this period'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('analytics-post-card')).not.toBeInTheDocument();
   });
 });
 

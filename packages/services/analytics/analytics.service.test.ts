@@ -79,6 +79,41 @@ describe('AnalyticsService', () => {
       },
     );
 
+    it('getAccountAnalytics sends the brand and feeds the paginator', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(
+          resourceDocument(
+            {
+              accounts: [],
+              limit: 15,
+              page: 2,
+              total: 31,
+              totalPages: 3,
+              unattributedPostCount: 0,
+            },
+            { id: 'accounts' },
+          ),
+        ),
+      );
+      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
+      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
+      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
+
+      const result = await service.getAccountAnalytics({
+        brandId: 'brand-1',
+        limit: 15,
+        page: 2,
+      });
+
+      expect(http.get).toHaveBeenCalledWith('accounts', {
+        params: { brandId: 'brand-1', limit: 15, page: 2 },
+      });
+      expect(result.total).toBe(31);
+      expect(setCurrentPage).toHaveBeenCalledWith(2);
+      expect(setTotalPages).toHaveBeenCalledWith(3);
+      expect(setTotalDocs).toHaveBeenCalledWith(31);
+    });
+
     it('scopes fleet evaluation policy updates to the selected organization', async () => {
       http.patch.mockResolvedValue(
         axiosResponse(resourceDocument({ windowWeeks: 4 }, { id: 'policy-1' })),

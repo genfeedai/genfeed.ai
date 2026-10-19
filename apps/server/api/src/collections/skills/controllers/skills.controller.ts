@@ -4,12 +4,15 @@ import {
   CustomizeSkillDto,
   UpdateSkillDto,
 } from '@api/collections/skills/dto/skill.dto';
+import { SkillsQueryDto } from '@api/collections/skills/dto/skills-query.dto';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { resolvePageWindow } from '@api/helpers/dto/pagination-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -45,7 +48,7 @@ export class SkillsController {
   async listSkills(
     @Req() req: Request,
     @CurrentUser() user: User,
-    @Query('surface') surface?: string,
+    @Query() query: SkillsQueryDto = new SkillsQueryDto(),
   ) {
     const originalOrganization = this.requireOrganizationId(user);
     const scope = resolveTenantReadScope({
@@ -58,18 +61,33 @@ export class SkillsController {
       organizationId: organization,
       brandId: scope.brandId,
     };
-    const docs = await this.skillLibrary.present(
+    const visible = await this.skillLibrary.present(
       actor,
       await this.skillsService.listAllForOrg(
         organization,
         {
-          surface: this.parseSurfaceFilter(surface),
+          isDefault: query.isDefault,
+          modality: query.modality,
+          search: query.q,
+          source: query.source,
+          stage: query.stage,
+          surface: this.parseSurfaceFilter(query.surface),
         },
         actor.userId,
       ),
     );
+    const { limit, page, skip } = resolvePageWindow(query);
 
-    return serializeCollection(req, SkillSerializer, { docs });
+    return serializeCollection(
+      req,
+      SkillSerializer,
+      buildPaginatedResult(
+        visible.slice(skip, skip + limit),
+        visible.length,
+        page,
+        limit,
+      ),
+    );
   }
 
   @TenantReadPolicy('selected')

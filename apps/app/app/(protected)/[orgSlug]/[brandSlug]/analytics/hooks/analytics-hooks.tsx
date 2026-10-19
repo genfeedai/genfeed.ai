@@ -138,9 +138,9 @@ export default function AnalyticsHooks({
 
   useAnalyticsToolbar(toolbar);
 
-  const { currentPage, pageItems, setPage, totalPages } = useClientPagination(
+  const { currentPage, goToPage, pageItems, totalPages } = useClientPagination(
     videos ?? EMPTY_VIDEOS,
-    PAGE_SIZE,
+    { pageSize: PAGE_SIZE, resetKey: minOutlierTier ?? '' },
   );
 
   return (
@@ -226,7 +226,7 @@ export default function AnalyticsHooks({
           />
           <Pagination
             currentPage={currentPage}
-            onPageChange={setPage}
+            onPageChange={goToPage}
             totalItems={videos?.length ?? 0}
             totalLabel="posts"
             totalPages={totalPages}

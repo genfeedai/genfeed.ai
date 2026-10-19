@@ -5,7 +5,7 @@ import {
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -69,6 +69,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const isReady = isCollectionFetchReady(collectionScope);
   const brandParams = toBrandListParams(collectionScope);
   const requestedOpportunityId = searchParams.get('opportunity');
+  const currentOpportunityPage = Number(searchParams.get('page')) || 1;
   const {
     executions,
     isLoading: areExecutionsLoading,
@@ -155,10 +156,15 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         collectionScope.brandId,
         agentId,
         requestedOpportunityId,
+        currentOpportunityPage,
       ],
-      queryFn: async () => {
+      queryFn: async ({ signal }) => {
         const service = await getService();
-        return service.listOpportunities(agentId);
+        return service.listOpportunities(
+          agentId,
+          { limit: ITEMS_PER_PAGE, page: currentOpportunityPage },
+          signal,
+        );
       },
       enabled: isReady && Boolean(strategy) && Boolean(requestedOpportunityId),
     });
@@ -517,6 +523,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         {requestedOpportunityId && (
           <AgentOpportunityPanel
             requestedOpportunityId={requestedOpportunityId}
+            opportunities={opportunities}
             selectedOpportunity={selectedOpportunity}
             isOpportunitiesLoading={isOpportunitiesLoading}
           />

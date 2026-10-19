@@ -40,6 +40,43 @@ function toDomainPlatform(value: unknown): string {
   return fromPrismaCredentialPlatform(label) ?? label;
 }
 
+interface TopContentMedia {
+  ingredientUrl?: string;
+  isVideo: boolean;
+  thumbnailUrl?: string;
+}
+
+/**
+ * Media for a top-content row, read from the post's attached ingredient.
+ * Videos play from the ingredient and preview from its generated thumbnail;
+ * images are their own preview. Posts without an ingredient (text posts)
+ * carry no media.
+ */
+function resolveTopContentMedia(
+  row: RawAnalyticsRow,
+  ingredientsEndpoint?: string,
+): TopContentMedia {
+  const ingredientId =
+    typeof row.ingredient_id === 'string' ? row.ingredient_id : '';
+  if (!ingredientsEndpoint || !ingredientId) {
+    return { isVideo: false };
+  }
+
+  const category = String(row.ingredient_category ?? '');
+  if (category === 'VIDEO') {
+    return {
+      ingredientUrl: `${ingredientsEndpoint}/videos/${ingredientId}`,
+      isVideo: true,
+      thumbnailUrl: `${ingredientsEndpoint}/thumbnails/${ingredientId}`,
+    };
+  }
+  if (category === 'IMAGE') {
+    const imageUrl = `${ingredientsEndpoint}/images/${ingredientId}`;
+    return { ingredientUrl: imageUrl, isVideo: false, thumbnailUrl: imageUrl };
+  }
+  return { isVideo: false };
+}
+
 /**
  * Pure response owner for endpoint analytics. Inputs are already-scoped query
  * rows; this class performs no transport, persistence, logging, or DI work.
@@ -134,29 +171,35 @@ export class AnalyticsResponseProjection {
     }));
   }
 
-  buildTopContent(rows: RawAnalyticsRow[]): Array<Record<string, unknown>> {
-    return rows.map((row) => ({
-      id: row.id as string,
-      brandLogo: row.brand_logo as unknown,
-      brandName: row.brand_name as string,
-      date: row.date as Date,
-      description: row.description as string,
-      engagementRate: Number(row.engagement_rate),
-      ingredientUrl: undefined,
-      isVideo: false,
-      label: row.label as string,
-      platform: toDomainPlatform(row.platform),
-      postId: row.post_id as string,
-      thumbnailUrl: undefined,
-      totalComments: Number(row.total_comments),
-      totalEngagement: Number(row.total_engagement),
-      totalLikes: Number(row.total_likes),
-      totalSaves: Number(row.total_saves),
-      totalShares: Number(row.total_shares),
-      totalViews: Number(row.total_views),
-      // Observed audience; null when the post never recorded one.
-      visibility: typeof row.visibility === 'string' ? row.visibility : null,
-    }));
+  buildTopContent(
+    rows: RawAnalyticsRow[],
+    ingredientsEndpoint?: string,
+  ): Array<Record<string, unknown>> {
+    return rows.map((row) => {
+      const media = resolveTopContentMedia(row, ingredientsEndpoint);
+      return {
+        id: row.id as string,
+        brandLogo: row.brand_logo as unknown,
+        brandName: row.brand_name as string,
+        date: row.date as Date,
+        description: row.description as string,
+        engagementRate: Number(row.engagement_rate),
+        ingredientUrl: media.ingredientUrl,
+        isVideo: media.isVideo,
+        label: row.label as string,
+        platform: toDomainPlatform(row.platform),
+        postId: row.post_id as string,
+        thumbnailUrl: media.thumbnailUrl,
+        totalComments: Number(row.total_comments),
+        totalEngagement: Number(row.total_engagement),
+        totalLikes: Number(row.total_likes),
+        totalSaves: Number(row.total_saves),
+        totalShares: Number(row.total_shares),
+        totalViews: Number(row.total_views),
+        // Observed audience; null when the post never recorded one.
+        visibility: typeof row.visibility === 'string' ? row.visibility : null,
+      };
+    });
   }
 
   buildPlatformComparison(rows: RawAnalyticsRow[]): IPlatformComparison[] {

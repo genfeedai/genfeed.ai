@@ -197,6 +197,7 @@ export class AnalyticsAdminController {
         req.query?.page || '1',
         req.query?.limit || '20',
         req.query?.sort || 'engagement',
+        req.query?.brandId || 'all',
         ...(req.query?.search ? [req.query.search] : []),
       ]),
     tags: ['analytics', 'brands'],
@@ -224,6 +225,7 @@ export class AnalyticsAdminController {
         query.sort,
         organizationId,
         query.search,
+        query.brandId,
       ),
     );
     return serializeSingle(req, AnalyticsBrandStatsSerializer, data);

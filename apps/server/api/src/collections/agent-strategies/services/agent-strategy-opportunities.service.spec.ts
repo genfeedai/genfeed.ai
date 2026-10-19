@@ -3,6 +3,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('AgentStrategyOpportunitiesService', () => {
+  const count = vi.fn();
   const create = vi.fn();
   const findFirst = vi.fn();
   const findMany = vi.fn();
@@ -14,7 +15,14 @@ describe('AgentStrategyOpportunitiesService', () => {
   };
   const service = new AgentStrategyOpportunitiesService(
     {
-      agentStrategyOpportunity: { create, findFirst, findMany, updateMany },
+      agentStrategyOpportunity: {
+        count,
+        create,
+        findFirst,
+        findMany,
+        updateMany,
+      },
+      $queryRaw: queryRaw,
       $transaction: vi.fn(
         async (callback: (client: typeof transaction) => Promise<unknown>) =>
           callback(transaction),
@@ -27,14 +35,93 @@ describe('AgentStrategyOpportunitiesService', () => {
     vi.clearAllMocks();
   });
 
-  it('caps the rows read when a limit is given', async () => {
+  it('lists every open row, newest first, when no page is asked for', async () => {
     findMany.mockResolvedValue([]);
 
-    await service.listOpenByStrategy('strategy-1', 'org-1', 100);
+    await service.listOpenByStrategy('strategy-1', 'org-1');
 
     expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { createdAt: 'desc' }, take: 100 }),
+      expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
     );
+    expect(findMany.mock.calls[0][0]).not.toHaveProperty('take');
+  });
+
+  describe('listOpenPageByStrategy', () => {
+    const row = (id: string, priorityScore: number) => ({
+      brandId: null,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      data: { priorityScore, status: 'queued', topic: id },
+      id,
+      isDeleted: false,
+      organizationId: 'org-1',
+      strategyId: 'strategy-1',
+      updatedAt: new Date('2026-01-01T00:00:00Z'),
+    });
+
+    it('ranks and windows ids in SQL, then hydrates only that page in rank order', async () => {
+      queryRaw.mockResolvedValueOnce([{ id: 'b' }, { id: 'a' }]);
+      count.mockResolvedValue(23);
+      findMany.mockResolvedValue([row('a', 10), row('b', 90)]);
+
+      const result = await service.listOpenPageByStrategy(
+        'strategy-1',
+        'org-1',
+        { limit: 2, page: 3 },
+      );
+
+      const [statement] = queryRaw.mock.calls[0] as [
+        { sql: string; values: unknown[] },
+      ];
+      expect(statement.sql).toContain('ORDER BY');
+      expect(statement.sql).toContain('LIMIT');
+      expect(statement.sql).toContain('OFFSET');
+      expect(statement.values).toEqual(
+        expect.arrayContaining(['org-1', 'strategy-1', 2, 4]),
+      );
+      expect(count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId: 'org-1',
+          strategyId: 'strategy-1',
+        }),
+      });
+      expect(findMany).toHaveBeenCalledWith({
+        take: 2,
+        where: {
+          id: { in: ['b', 'a'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+      expect(result.docs.map((doc) => doc.id)).toEqual(['b', 'a']);
+      expect(result.docs[0]).toMatchObject({
+        organization: 'org-1',
+        priorityScore: 90,
+        strategy: 'strategy-1',
+      });
+      expect(result).toMatchObject({
+        hasNextPage: true,
+        limit: 2,
+        page: 3,
+        totalDocs: 23,
+        totalPages: 12,
+      });
+    });
+
+    it('skips the hydrate read when the page is empty', async () => {
+      queryRaw.mockResolvedValueOnce([]);
+      count.mockResolvedValue(3);
+
+      const result = await service.listOpenPageByStrategy(
+        'strategy-1',
+        'org-1',
+        { limit: 20, page: 5 },
+      );
+
+      expect(findMany).not.toHaveBeenCalled();
+      expect(result.docs).toEqual([]);
+      expect(result.totalDocs).toBe(3);
+    });
   });
 
   it('filters requested statuses in the persistence query', async () => {

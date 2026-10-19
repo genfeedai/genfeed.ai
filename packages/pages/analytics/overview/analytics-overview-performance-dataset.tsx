@@ -1,10 +1,12 @@
 'use client';
 
+import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IPerformanceContentItem,
   IWeeklyPerformanceSummary,
 } from '@genfeedai/contracts/interfaces';
+import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -28,6 +30,11 @@ export default function AnalyticsOverviewPerformanceDataset() {
   const scope = useCollectionScope();
   const { brandId } = scope;
   const { brandSlug, href, orgHref } = useOrgUrl();
+  const { dateRange } = useAnalyticsContext();
+  const { startDate, endDate } = getDateRangeWithDefaults(
+    dateRange.startDate ?? undefined,
+    dateRange.endDate ?? undefined,
+  );
   const isFetchReady = isCollectionFetchReady(scope) && Boolean(brandId);
   const getService = useAuthedService((token: string) =>
     ContentPerformanceService.getInstance(token),
@@ -47,7 +54,11 @@ export default function AnalyticsOverviewPerformanceDataset() {
     void (async () => {
       try {
         const service = await getService();
-        const data = await service.getWeeklySummary({ brandId });
+        const data = await service.getWeeklySummary({
+          brandId,
+          endDate,
+          startDate,
+        });
         if (!controller.signal.aborted) {
           setSummary(data);
         }
@@ -63,7 +74,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
       }
     })();
     return () => controller.abort();
-  }, [brandId, getService, isFetchReady]);
+  }, [brandId, endDate, getService, isFetchReady, startDate]);
 
   // A malformed or partial response (e.g. an unhandled API error falling
   // through to a generic empty-collection shape) can resolve successfully
@@ -82,7 +93,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
       title={translate('title')}
       actions={<PerformanceDatasetBadge confidence={dataset.confidence} />}
     >
-      <div className="flex flex-col gap-3 px-4 pt-3 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
         <p className="text-sm text-foreground/70">
           {translate('summaryLine', {
             imported: dataset.importedPosts,
@@ -91,24 +102,21 @@ export default function AnalyticsOverviewPerformanceDataset() {
         </p>
 
         {isLowConfidence ? (
-          <p className="text-sm text-foreground/55">
-            {translate('coldStartHint')}{' '}
-            <Link
-              href={
-                brandSlug
-                  ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
-                  : orgHref(APP_ROUTES.SETTINGS.BRANDS)
-              }
-              className="font-medium text-foreground underline underline-offset-2"
-            >
-              {translate('coldStartHintLink')}
-            </Link>
-          </p>
+          <Link
+            href={
+              brandSlug
+                ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
+                : orgHref(APP_ROUTES.SETTINGS.BRANDS)
+            }
+            className="text-sm font-medium text-foreground underline underline-offset-2"
+          >
+            {translate('coldStartHintLink')}
+          </Link>
         ) : null}
       </div>
 
       {topPerformers.length > 0 ? (
-        <div>
+        <div className="border-t border-border">
           {topPerformers.map((item: IPerformanceContentItem) =>
             item.origin === 'imported' ? (
               <ListRow

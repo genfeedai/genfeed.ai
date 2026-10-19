@@ -102,7 +102,7 @@ export default function ReleaseCalendarFilters({
         ) : undefined,
       };
     }),
-    selection: multiple,
+    selection: 'multiple' as const,
     values: filters[key],
   }));
 

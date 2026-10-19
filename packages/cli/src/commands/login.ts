@@ -18,7 +18,7 @@ import {
 } from '@/config/store';
 import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme';
 import { openExternalUrl } from '@/utils/browser';
-import { GenfeedError, handleError } from '@/utils/errors';
+import { ApiError, AuthError, GenfeedError, handleError } from '@/utils/errors';
 
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
 
@@ -362,7 +362,13 @@ async function completeLogin(apiKey: string, endpoints: LoginEndpoints): Promise
       print(formatWarning('Could not fetch brands. Set one later with `gf brand use`'));
     }
   } catch (error) {
-    spinner.fail('Invalid API key');
+    spinner.fail(
+      error instanceof ApiError && error.statusCode === 429
+        ? 'API key is valid but the request was rate limited'
+        : error instanceof AuthError
+          ? 'Invalid API key'
+          : 'Could not validate API key'
+    );
     await setApiKey('');
     throw error;
   }

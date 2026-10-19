@@ -1,6 +1,7 @@
+import ora from 'ora';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildAuthorizeUrl, createLoginCommand, exchangeAuthCode } from '../../src/commands/login';
-import { GenfeedError } from '../../src/utils/errors';
+import { ApiError, AuthError, GenfeedError } from '../../src/utils/errors';
 
 const {
   mockGetLoginEndpoints,
@@ -277,6 +278,31 @@ describe('login command', () => {
       await createLoginCommand().parseAsync(['--key', 'gf_live_key'], { from: 'user' });
 
       expect(mockSetProfileField).not.toHaveBeenCalled();
+    });
+
+    it('reports a rate-limited key as a rate limit, not an invalid key', async () => {
+      const spinner = ora('') as unknown as { fail: ReturnType<typeof vi.fn> };
+      mockValidateApiKey.mockRejectedValue(new ApiError('Rate limited', 429));
+
+      await expect(
+        createLoginCommand().parseAsync(['--key', 'gf_live_key'], { from: 'user' })
+      ).rejects.toMatchObject({ statusCode: 429 });
+
+      expect(spinner.fail).toHaveBeenCalledWith(
+        'API key is valid but the request was rate limited'
+      );
+      expect(spinner.fail).not.toHaveBeenCalledWith('Invalid API key');
+    });
+
+    it('still reports a rejected key as invalid on 401', async () => {
+      const spinner = ora('') as unknown as { fail: ReturnType<typeof vi.fn> };
+      mockValidateApiKey.mockRejectedValue(new AuthError('Invalid or expired API key'));
+
+      await expect(
+        createLoginCommand().parseAsync(['--key', 'gf_live_key'], { from: 'user' })
+      ).rejects.toBeInstanceOf(AuthError);
+
+      expect(spinner.fail).toHaveBeenCalledWith('Invalid API key');
     });
 
     it('rejects a malformed API key before touching the profile', async () => {

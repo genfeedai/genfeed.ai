@@ -1,3 +1,4 @@
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -49,6 +50,7 @@ describe('usePatternContext', () => {
 
     expect(findAllMock).toHaveBeenCalledWith(
       expect.objectContaining({ brandId: 'brand-1' }),
+      { limit: ITEMS_PER_PAGE, page: 1 },
       expect.any(AbortSignal),
     );
     expect(result.current.patterns).toEqual([{ label: 'Hook' }]);
@@ -75,8 +77,34 @@ describe('usePatternContext', () => {
         platform: 'instagram',
         scope: 'public',
       },
+      { limit: ITEMS_PER_PAGE, page: 1 },
       expect.any(AbortSignal),
     );
+  });
+
+  it('requests the page it is given and reloads when the page changes', async () => {
+    const { rerender } = renderHook(
+      ({ page }: { page: number }) => usePatternContext(undefined, page),
+      { initialProps: { page: 2 } },
+    );
+
+    await waitFor(() => {
+      expect(findAllMock).toHaveBeenCalledWith(
+        expect.anything(),
+        { limit: ITEMS_PER_PAGE, page: 2 },
+        expect.any(AbortSignal),
+      );
+    });
+
+    rerender({ page: 3 });
+
+    await waitFor(() => {
+      expect(findAllMock).toHaveBeenCalledWith(
+        expect.anything(),
+        { limit: ITEMS_PER_PAGE, page: 3 },
+        expect.any(AbortSignal),
+      );
+    });
   });
 
   it('captures the error message when the fetch fails', async () => {

@@ -604,8 +604,8 @@ export default function PostDetail({
             <section
               aria-label={translate('composerLabel')}
               className="flex min-w-0 flex-1 flex-col"
-           >
-              <div className="min-w-0">
+            >
+              <div className="flex min-w-0 flex-1 flex-col">
                 {isStandalonePage && isPublished ? (
                   <PostDetailPublished
                     stats={analyticsStats}

@@ -6,13 +6,9 @@ import {
   useOptionalAnalyticsContext,
 } from '@genfeedai/contexts/analytics/analytics-context';
 import { AlertCategory } from '@genfeedai/contracts';
-import type {
-  ICreativePattern,
-  PatternType,
-} from '@genfeedai/contracts/interfaces';
+import type { PatternType } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { usePatternContext } from '@hooks/data/analytics/use-pattern-context/use-pattern-context';
-import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
 import type {
   PatternLabFilters,
   PatternLabPageProps,
@@ -20,8 +16,9 @@ import type {
 import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Alert from '@ui/feedback/alert/Alert';
-import Pagination from '@ui/navigation/pagination/Pagination';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { FlaskConical } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
 const PLATFORM_OPTIONS = [
@@ -44,8 +41,6 @@ const SCOPE_OPTIONS = [
   { label: 'Public', value: 'public' },
   { label: 'Private', value: 'private' },
 ] as const;
-const PAGE_SIZE = 12;
-const EMPTY_PATTERNS: ICreativePattern[] = [];
 
 const SKELETON_IDS = ['s1', 's2', 's3', 's4', 's5', 's6'];
 
@@ -72,6 +67,11 @@ function PatternCardSkeleton() {
 
 export default function PatternLabPage({ className }: PatternLabPageProps) {
   const analyticsContext = useOptionalAnalyticsContext();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const surfaceFilters = analyticsContext?.filters;
   const setSurfaceFilter = analyticsContext?.setFilter;
   const [localPlatform, setLocalPlatform] = useState<string>('');
@@ -91,34 +91,49 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
     scope: scope || undefined,
   };
 
-  const { patterns, isLoading, error } = usePatternContext(filters);
-  const { currentPage, pageItems, setPage, totalPages } = useClientPagination(
-    isLoading || error ? EMPTY_PATTERNS : patterns,
-    PAGE_SIZE,
+  const { patterns, isLoading, error } = usePatternContext(
+    filters,
+    currentPage,
   );
+
+  // A new filter changes what the pages hold, so start again from page 1.
+  const resetPage = useCallback(() => {
+    const params = new URLSearchParams(searchParamsString);
+    if (!params.has('page')) {
+      return;
+    }
+    params.delete('page');
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParamsString]);
 
   const handlePlatformChange = useCallback(
     (value: string) => {
       setLocalPlatform(value);
       setSurfaceFilter?.('platform', value || undefined);
+      resetPage();
     },
-    [setSurfaceFilter],
+    [resetPage, setSurfaceFilter],
   );
 
   const handlePatternTypeChange = useCallback(
     (value: PatternType | '') => {
       setLocalPatternType(value);
       setSurfaceFilter?.('patternType', value || undefined);
+      resetPage();
     },
-    [setSurfaceFilter],
+    [resetPage, setSurfaceFilter],
   );
 
   const handleScopeChange = useCallback(
     (value: string) => {
       setLocalScope(value);
       setSurfaceFilter?.('visibility', value || undefined);
+      resetPage();
     },
-    [setSurfaceFilter],
+    [resetPage, setSurfaceFilter],
   );
 
   const toolbar = useMemo(() => {
@@ -199,22 +214,19 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       )}
 
       {!isLoading && !error && patterns.length > 0 && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {pageItems.map((pattern) => (
-              <PatternCard
-                key={`${pattern.patternType}-${pattern.label}`}
-                pattern={pattern}
-              />
-            ))}
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            onPageChange={setPage}
-            totalItems={patterns.length}
-            totalLabel="patterns"
-            totalPages={totalPages}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {patterns.map((pattern) => (
+            <PatternCard
+              key={pattern.id ?? `${pattern.patternType}-${pattern.label}`}
+              pattern={pattern}
+            />
+          ))}
+        </div>
+      )}
+
+      {!isLoading && !error && (patterns.length > 0 || currentPage > 1) && (
+        <div className="mt-4">
+          <AutoPagination showTotal totalLabel="patterns" />
         </div>
       )}
     </div>

@@ -143,6 +143,7 @@ describe('AnalyticsAdminController', () => {
       'engagement',
       'org-2',
       undefined,
+      undefined,
     );
   });
 
@@ -185,11 +186,36 @@ describe('AnalyticsAdminController', () => {
       'engagement',
       'org-2',
       undefined,
+      undefined,
     );
     expect(serializeSingle).toHaveBeenCalledWith(
       request,
       AnalyticsBrandStatsSerializer,
       { data: [] },
+    );
+  });
+
+  it('passes the selected brand through to brand analytics', async () => {
+    const user = { id: 'user-2', organizationId: 'org-2' } as User;
+    const statsQuery = {
+      brandId: 'brand-9',
+      limit: 20,
+      page: 1,
+      sort: 'engagement',
+    } as AdminBrandsQueryDto;
+    leaderboardService.getBrandsWithStats.mockResolvedValue({ data: [] });
+
+    await controller.getBrandsWithStats(user, request, statsQuery);
+
+    expect(leaderboardService.getBrandsWithStats).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      1,
+      20,
+      'engagement',
+      'org-2',
+      undefined,
+      'brand-9',
     );
   });
 

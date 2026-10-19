@@ -414,6 +414,53 @@ describe('SkillsService', () => {
     expect(docs.map((doc) => doc.slug)).toEqual(['image-prompt-engineer']);
   });
 
+  it('filters by search, source, modality and stage and sorts by name', async () => {
+    const row = (slug: string, name: string, config: Record<string, unknown>) =>
+      makeSkillRow({
+        config: {
+          description: `${name} helper`,
+          isEnabled: true,
+          modalities: ['text'],
+          name,
+          slug,
+          source: 'custom',
+          status: 'published',
+          workflowStage: 'creation',
+          ...config,
+        },
+        id: `skill-${slug}`,
+      });
+    prisma.skill.findMany.mockResolvedValue([
+      row('zeta', 'Zeta Caption', {}),
+      row('alpha', 'Alpha Caption', {}),
+      row('video', 'Video Caption', { modalities: ['video'] }),
+      row('multi', 'Multi Caption', { modalities: ['multi'] }),
+      row('review', 'Review Caption', { workflowStage: 'review' }),
+      row('built', 'Built Caption', { source: 'built_in' }),
+    ]);
+
+    const slugs = async (
+      options: Parameters<typeof service.listAllForOrg>[1],
+    ) => (await service.listAllForOrg('org-1', options)).map((doc) => doc.slug);
+
+    expect(await slugs({ search: 'CAPTION', source: 'custom' })).toEqual([
+      'alpha',
+      'multi',
+      'review',
+      'video',
+      'zeta',
+    ]);
+    expect(await slugs({ modality: 'text', stage: 'creation' })).toEqual([
+      'alpha',
+      'built',
+      'multi',
+      'zeta',
+    ]);
+    expect(await slugs({ modality: 'video' })).toEqual(['multi', 'video']);
+    expect(await slugs({ stage: 'review' })).toEqual(['review']);
+    expect(await slugs({ search: 'nothing matches' })).toEqual([]);
+  });
+
   it('honours a surface persisted on the skill over the inferred one', async () => {
     prisma.skill.findMany.mockResolvedValue([
       makeSkillRow({

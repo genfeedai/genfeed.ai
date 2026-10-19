@@ -506,22 +506,25 @@ export class PerformanceSummaryService {
   // ─── Private helpers ───────────────────────────────────────────────
 
   /**
-   * Distinct Genfeed posts with analytics in the window — the Genfeed half of
-   * the dataset size reported alongside every summary.
+   * Distinct Genfeed posts in the window — the Genfeed half of the dataset
+   * size reported alongside every summary. A post counts once it was
+   * published in the window or has analytics there, so a channel whose
+   * metrics are not collected yet still reports the posts it published.
    */
   private async countGenfeedPosts(
     matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<number> {
     const organizationId = String(matchFilter.organizationId ?? '');
-    const rows = await this.prisma.postAnalytics.findMany({
-      distinct: ['postId'],
-      select: { postId: true },
+    const dateRange = (matchFilter.date ?? {}) as DateRangeFilter;
+    return this.prisma.post.count({
       where: scopedWhere(organizationId, {
-        ...matchFilter,
-        post: { is: scopedWhere(organizationId) },
+        brandId: String(matchFilter.brandId ?? ''),
+        OR: [
+          { publishedAt: dateRange },
+          { postAnalytics: { some: matchFilter } },
+        ],
       }),
     });
-    return rows.length;
   }
 
   /**

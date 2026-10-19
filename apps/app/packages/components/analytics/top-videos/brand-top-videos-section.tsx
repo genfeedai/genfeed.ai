@@ -40,6 +40,7 @@ export default function BrandTopVideosSection() {
     isLoading,
     isUsingCachedVideos,
     retryRead,
+    timeframe,
     videos,
   } = useBrandTopVideos();
   const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
@@ -49,9 +50,9 @@ export default function BrandTopVideosSection() {
     [videos],
   );
 
-  const { currentPage, pageItems, setPage, totalPages } = useClientPagination(
+  const { currentPage, goToPage, pageItems, totalPages } = useClientPagination(
     rankedVideos,
-    PAGE_SIZE,
+    { pageSize: PAGE_SIZE, resetKey: timeframe },
   );
 
   if (!isBrandReady) {
@@ -218,7 +219,7 @@ export default function BrandTopVideosSection() {
       />
       <Pagination
         currentPage={currentPage}
-        onPageChange={setPage}
+        onPageChange={goToPage}
         totalItems={rankedVideos.length}
         totalLabel={translateTopVideos('totalLabel')}
         totalPages={totalPages}

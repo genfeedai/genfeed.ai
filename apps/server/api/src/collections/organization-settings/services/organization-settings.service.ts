@@ -71,14 +71,22 @@ export class OrganizationSettingsService extends BaseService<
     };
   }
 
+  /**
+   * `hasPaidModuleSubscription` is a presentation hint for settings clients.
+   * Resolving it costs several sequential subscription and billing-account
+   * reads, so only the callers that serialize settings to a client ask for it
+   * with `includePaidHint`; server-side callers get `null`.
+   */
   override async findOne(
     params: PrismaFilter,
     populate: PopulateInput = [],
+    options: { includePaidHint?: boolean } = {},
   ): Promise<OrganizationSettingDocument | null> {
     const settings = await super.findOne(params, populate);
     if (!settings) return null;
     if (!settings.hasOrganizationBilling)
       return { ...settings, hasPaidModuleSubscription: true };
+    if (!options.includePaidHint) return settings;
     // Internal credential/onboarding reads can retain their caller-owned settings
     // while a selected superadmin GET has another active tenant. A runtime
     // entitlement hint must remain unavailable rather than query that other scope.
@@ -282,6 +290,7 @@ export class OrganizationSettingsService extends BaseService<
    */
   async ensureForOrganization(
     organizationId: string,
+    options: { includePaidHint?: boolean } = {},
   ): Promise<OrganizationSettingDocument> {
     const activeOrganization = await this.prisma.organization.findFirst({
       select: { id: true },
@@ -291,7 +300,7 @@ export class OrganizationSettingsService extends BaseService<
       throw new NotFoundException('Organization', organizationId);
     }
 
-    const existing = await this.findOne({ organizationId });
+    const existing = await this.findOne({ organizationId }, [], options);
     if (existing) {
       return this.ensureEnabledModelIds(existing);
     }
@@ -343,7 +352,7 @@ export class OrganizationSettingsService extends BaseService<
         throw error;
       }
 
-      const raced = await this.findOne({ organizationId });
+      const raced = await this.findOne({ organizationId }, [], options);
       if (!raced) {
         throw error;
       }

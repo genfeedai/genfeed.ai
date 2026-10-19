@@ -1,5 +1,6 @@
 'use client';
 
+import type { EconomicsPeriodSelectProps } from '@props/admin/economics.props';
 import {
   Select,
   SelectContent,
@@ -9,11 +10,6 @@ import {
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
 import { ECONOMICS_PERIOD_DAYS } from './economics-report.util';
-
-interface EconomicsPeriodSelectProps {
-  onChange: (days: string) => void;
-  value: string;
-}
 
 export default function EconomicsPeriodSelect({
   onChange,

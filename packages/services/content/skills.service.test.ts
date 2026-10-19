@@ -57,7 +57,35 @@ describe('SkillsService', () => {
     const result = await service.listSkills();
 
     expect(http.get).toHaveBeenCalledWith('', {
-      params: {},
+      params: { limit: 100, page: 1 },
+      signal: undefined,
+    });
+    expect(result[0]).toBeInstanceOf(Skill);
+  });
+
+  it('listSkillsPage requests one page with the catalog filters', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(collectionDocument([{ id: 'skill_1', name: 'Hook' }])),
+    );
+
+    const result = await service.listSkillsPage({
+      limit: 15,
+      modality: 'video',
+      page: 3,
+      search: '  cap ',
+      source: 'custom',
+      stage: 'creation',
+    });
+
+    expect(http.get).toHaveBeenCalledWith('', {
+      params: {
+        limit: 15,
+        modality: 'video',
+        page: 3,
+        q: 'cap',
+        source: 'custom',
+        stage: 'creation',
+      },
       signal: undefined,
     });
     expect(result[0]).toBeInstanceOf(Skill);

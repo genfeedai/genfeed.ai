@@ -1,17 +1,35 @@
 import { CreativePatternsController } from '@api/collections/creative-patterns/controllers/creative-patterns.controller';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 const currentUser = {
   organizationId: 'org-1',
 } as never;
 
+const request = {
+  originalUrl: '/v1/creative-patterns?page=2&limit=2',
+} as Request;
+
 describe('CreativePatternsController', () => {
   let controller: CreativePatternsController;
 
   const mockPatterns = [
-    { _id: 'pattern1', patternType: 'hook', platform: 'twitter' },
-    { _id: 'pattern2', patternType: 'cta', platform: 'instagram' },
+    {
+      avgPerformanceScore: 8,
+      id: 'pattern-1',
+      label: 'Curiosity hook',
+      patternType: 'hook_formula',
+      platform: 'twitter',
+    },
+    {
+      avgPerformanceScore: 5,
+      id: 'pattern-2',
+      label: 'Direct CTA',
+      patternType: 'cta_formula',
+      platform: 'instagram',
+    },
   ];
 
   const mockCreativePatternsService = {
@@ -45,106 +63,59 @@ describe('CreativePatternsController', () => {
   describe('findAll', () => {
     it('rejects a session without an organization', async () => {
       await expect(
-        controller.findAll({ organizationId: '' } as never),
+        controller.findAll(request, { organizationId: '' } as never, {
+          limit: 20,
+          page: 1,
+        }),
       ).rejects.toThrow('organizationId is required');
       expect(mockCreativePatternsService.findAll).not.toHaveBeenCalled();
     });
 
-    it('should return all patterns', async () => {
-      mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
+    it('pages the organization list and passes the filters through', async () => {
+      mockCreativePatternsService.findAll.mockResolvedValue(
+        buildPaginatedResult(mockPatterns, 5, 2, 2),
+      );
 
-      const result = await controller.findAll(currentUser);
-
-      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
-        brandId: undefined,
-        limit: undefined,
-        organizationId: 'org-1',
-        patternType: undefined,
-        platform: undefined,
-        scope: undefined,
-        top: false,
-      });
-      expect(result).toEqual({ count: 2, patterns: mockPatterns });
-    });
-
-    it('should filter by platform', async () => {
-      mockCreativePatternsService.findAll.mockResolvedValue([mockPatterns[0]]);
-
-      const result = await controller.findAll(currentUser, 'twitter');
-
-      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
-        brandId: undefined,
-        limit: undefined,
-        organizationId: 'org-1',
-        patternType: undefined,
+      await controller.findAll(request, currentUser, {
+        brandId: 'brand123',
+        limit: 2,
+        page: 2,
+        patternType: 'hook_formula',
         platform: 'twitter',
-        scope: undefined,
-        top: false,
+        scope: 'public',
       });
-      expect(result.count).toBe(1);
+
+      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith(
+        {
+          brandId: 'brand123',
+          organizationId: 'org-1',
+          patternType: 'hook_formula',
+          platform: 'twitter',
+          scope: 'public',
+        },
+        { limit: 2, page: 2 },
+      );
     });
 
-    it('should filter by patternType', async () => {
-      mockCreativePatternsService.findAll.mockResolvedValue([]);
-
-      await controller.findAll(currentUser, undefined, 'hook' as never);
-
-      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
-        brandId: undefined,
-        limit: undefined,
-        organizationId: 'org-1',
-        patternType: 'hook',
-        platform: undefined,
-        scope: undefined,
-        top: false,
-      });
-    });
-
-    it('should filter by brandId and top', async () => {
-      mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
-
-      const result = await controller.findAll(
-        currentUser,
-        undefined,
-        undefined,
-        undefined,
-        'brand123',
-        'true',
+    it('serializes the page as JSON:API with pagination links', async () => {
+      mockCreativePatternsService.findAll.mockResolvedValue(
+        buildPaginatedResult(mockPatterns, 5, 2, 2),
       );
 
-      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
-        brandId: 'brand123',
-        limit: undefined,
-        organizationId: 'org-1',
-        patternType: undefined,
-        platform: undefined,
-        scope: undefined,
-        top: true,
+      const result = await controller.findAll(request, currentUser, {
+        limit: 2,
+        page: 2,
       });
-      expect(result).toEqual({ count: 2, patterns: mockPatterns });
-    });
 
-    it('should pass limit when top is set', async () => {
-      mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
-
-      await controller.findAll(
-        currentUser,
-        undefined,
-        undefined,
-        undefined,
-        'brand123',
-        'true',
-        '5',
-      );
-
-      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
-        brandId: 'brand123',
-        limit: 5,
-        organizationId: 'org-1',
-        patternType: undefined,
-        platform: undefined,
-        scope: undefined,
-        top: true,
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0]).toMatchObject({
+        attributes: { label: 'Curiosity hook', patternType: 'hook_formula' },
+        id: 'pattern-1',
+        type: 'creative-pattern',
+      });
+      expect(result.links).toMatchObject({
+        pagination: { limit: 2, page: 2, pages: 3, total: 5 },
+        self: '/v1/creative-patterns?page=2&limit=2',
       });
     });
   });

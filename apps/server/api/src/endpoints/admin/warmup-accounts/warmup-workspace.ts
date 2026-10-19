@@ -584,7 +584,7 @@ export async function warmupReadinessBatch(
   const brandById = firstBy(brands, (row) => row.id);
   const settingsByOrg = firstBy(orgSettings, (row) => row.organizationId);
   const userSettingsByUser = firstBy(userSettings, (row) => row.userId);
-  const balanceByOrg = firstBy(balances, (row) => row.organizationId);
+  const balanceByOrg = firstBy(balances, (row) => row.organizationId ?? '');
   const assetById = firstBy(assets, (row) => row.id);
   const articleById = firstBy(articles, (row) => row.id);
   const billingById = firstBy(billings, (row) => row.id);

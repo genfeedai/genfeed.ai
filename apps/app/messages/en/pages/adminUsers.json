@@ -40,7 +40,6 @@
     "sourceMedium": "Medium"
   },
   "empty": "No users found",
-  "totalLabel": "users",
   "impersonate": "Impersonate",
   "impersonateFailed": "Failed to impersonate user",
   "notFound": "User not found",

@@ -238,7 +238,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     const result = await service.ensureForOrganization('org_1');
 
     expect(result).toBe(existing);
-    expect(findOne).toHaveBeenCalledWith({ organizationId: 'org_1' });
+    expect(findOne).toHaveBeenCalledWith({ organizationId: 'org_1' }, [], {});
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -263,7 +263,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
 
     const result = await service.ensureForOrganization('org_1');
 
-    expect(findOne).toHaveBeenCalledWith({ organizationId: 'org_1' });
+    expect(findOne).toHaveBeenCalledWith({ organizationId: 'org_1' }, [], {});
     expect(lowestCost).toHaveBeenCalledOnce();
     expect(latestMajor).not.toHaveBeenCalled();
     expect(create).toHaveBeenCalledWith({
@@ -375,8 +375,18 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ enabledModelIds: ['model_low_cost_1'] }),
     );
-    expect(findOne).toHaveBeenNthCalledWith(1, { organizationId: 'org_1' });
-    expect(findOne).toHaveBeenNthCalledWith(2, { organizationId: 'org_1' });
+    expect(findOne).toHaveBeenNthCalledWith(
+      1,
+      { organizationId: 'org_1' },
+      [],
+      {},
+    );
+    expect(findOne).toHaveBeenNthCalledWith(
+      2,
+      { organizationId: 'org_1' },
+      [],
+      {},
+    );
   });
 
   it('rethrows non-P2002 create failures without a race re-read', async () => {
@@ -436,7 +446,12 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     await expect(service.ensureForOrganization('org_1')).rejects.toBe(conflict);
 
     expect(findOne).toHaveBeenCalledTimes(2);
-    expect(findOne).toHaveBeenNthCalledWith(2, { organizationId: 'org_1' });
+    expect(findOne).toHaveBeenNthCalledWith(
+      2,
+      { organizationId: 'org_1' },
+      [],
+      {},
+    );
   });
 });
 
@@ -499,4 +514,48 @@ describe('OrganizationSettingsService module preference validation', () => {
       ).rejects.toThrow('Invalid organization module preferences');
     },
   );
+});
+
+describe('OrganizationSettingsService.findOne paid-access hint', () => {
+  function makeHintService(isGated: boolean) {
+    const paidAccess = {
+      isSubscriptionGatedFresh: vi.fn().mockResolvedValue(isGated),
+    };
+    const service = new OrganizationSettingsService(
+      {} as never,
+      { warn: () => undefined } as unknown as LoggerService,
+      { get: () => paidAccess } as unknown as ModuleRef,
+      { get: vi.fn() } as unknown as ConfigService,
+    );
+    vi.spyOn(BaseService.prototype, 'findOne').mockResolvedValue({
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: null,
+      organizationId: 'org_1',
+    } as never);
+    return { paidAccess, service };
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('skips the billing reads unless a caller asks for the hint', async () => {
+    const { paidAccess, service } = makeHintService(false);
+
+    const settings = await service.findOne({ organizationId: 'org_1' });
+
+    expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
+    expect(settings?.hasPaidModuleSubscription).toBeNull();
+  });
+
+  it('resolves the hint when includePaidHint is set', async () => {
+    const { paidAccess, service } = makeHintService(false);
+
+    const settings = await service.findOne({ organizationId: 'org_1' }, [], {
+      includePaidHint: true,
+    });
+
+    expect(paidAccess.isSubscriptionGatedFresh).toHaveBeenCalledWith('org_1');
+    expect(settings?.hasPaidModuleSubscription).toBe(true);
+  });
 });

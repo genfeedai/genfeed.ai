@@ -21,6 +21,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import { ChevronDown, Globe, LayoutGrid, Mail, Share2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const CHANNEL_ACCOUNT_PREFIX = 'account:';
 
@@ -82,6 +83,7 @@ export default function DropdownChannel({
   value,
   onChange,
 }: ChannelDropdownProps) {
+  const translate = useTranslations('ui.channelDropdown');
   const selectedAccount = value.startsWith(CHANNEL_ACCOUNT_PREFIX)
     ? accounts.find(
         (account) => `${CHANNEL_ACCOUNT_PREFIX}${account.id}` === value,
@@ -111,7 +113,9 @@ export default function DropdownChannel({
             <LayoutGrid aria-hidden="true" className="size-4" />
           )}
           <span className="max-w-32 truncate">
-            {selectedAccount?.label ?? selectedChannel?.label ?? 'All channels'}
+            {selectedAccount?.label ??
+              selectedChannel?.label ??
+              translate('allChannels')}
           </span>
           <ChevronDown aria-hidden="true" className="size-3.5 opacity-50" />
         </Button>
@@ -121,13 +125,15 @@ export default function DropdownChannel({
           <DropdownMenuRadioItem value="all">
             <span className="flex items-center gap-2">
               <LayoutGrid aria-hidden="true" className="size-4" />
-              All channels
+              {translate('allChannels')}
             </span>
           </DropdownMenuRadioItem>
           {accounts.length > 0 ? (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Connected accounts</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {translate('connectedAccounts')}
+              </DropdownMenuLabel>
               {accounts.map((account) => (
                 <DropdownMenuRadioItem
                   key={account.id}
@@ -147,7 +153,9 @@ export default function DropdownChannel({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>More</DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger>
+                {translate('more')}
+              </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="max-h-80 min-w-48 overflow-y-auto">
                 <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
                   {channels.map((channel) => (
