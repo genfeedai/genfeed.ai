@@ -211,7 +211,7 @@ export class EntityLeaderboardService {
     range: DateRange,
     sort: LeaderboardSort,
     window: { limit: number; offset: number },
-    filters: { organizationId?: string; search?: string },
+    filters: { brandId?: string; organizationId?: string; search?: string },
   ): Promise<string[]> {
     const isOrganization = entityType === 'organization';
     const entityTable = Prisma.raw(
@@ -231,6 +231,12 @@ export class EntityLeaderboardService {
     const searchFilter = filters.search
       ? Prisma.sql`AND e."label" ILIKE ${this.toContainsPattern(filters.search)}`
       : Prisma.empty;
+    // A selected brand narrows the ranking to that one brand. The organization
+    // filter above still applies, so a foreign brand id matches nothing.
+    const brandFilter =
+      !isOrganization && filters.brandId
+        ? Prisma.sql`AND e."id" = ${filters.brandId}`
+        : Prisma.empty;
 
     const rows = await this.prisma.$queryRaw<EntityRankRow[]>`
       SELECT e."id" AS entity_id
@@ -245,6 +251,7 @@ export class EntityLeaderboardService {
       ) m ON m.entity_id = e."id"
       WHERE e."isDeleted" = false
         ${entityOrganizationFilter}
+        ${brandFilter}
         ${searchFilter}
       ORDER BY COALESCE(m.metric, 0) DESC, e."createdAt" DESC, e."id" DESC
       LIMIT ${window.limit} OFFSET ${window.offset}
@@ -256,7 +263,7 @@ export class EntityLeaderboardService {
   /** Count live entities matching the same filters as `rankEntityIds`. */
   private async countEntities(
     entityType: EntityType,
-    filters: { organizationId?: string; search?: string },
+    filters: { brandId?: string; organizationId?: string; search?: string },
   ): Promise<number> {
     const label = filters.search
       ? { contains: filters.search, mode: 'insensitive' as const }
@@ -270,6 +277,7 @@ export class EntityLeaderboardService {
 
     return this.prisma.brand.count({
       where: {
+        id: filters.brandId,
         isDeleted: false,
         label,
         organizationId: filters.organizationId,
@@ -290,6 +298,7 @@ export class EntityLeaderboardService {
     sort: LeaderboardSort,
     window: { limit: number; offset: number },
     options: {
+      brandId?: string;
       organizationId?: string;
       includePlatforms?: boolean;
       search?: string;
@@ -300,6 +309,7 @@ export class EntityLeaderboardService {
       entityType === 'organization' ? 'organizationId' : 'brandId';
 
     const ids = await this.rankEntityIds(entityType, range, sort, window, {
+      brandId: options.brandId,
       organizationId: options.organizationId,
       search: options.search,
     });
@@ -661,6 +671,7 @@ export class EntityLeaderboardService {
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
     organizationId?: string,
     search?: string,
+    brandId?: string,
   ): Promise<PaginatedBrandsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     // The name search runs in the same query that ranks and pages, and in the
@@ -672,9 +683,9 @@ export class EntityLeaderboardService {
         range,
         sort,
         { limit, offset: (page - 1) * limit },
-        { includePlatforms: true, organizationId, search: needle },
+        { brandId, includePlatforms: true, organizationId, search: needle },
       ),
-      this.countEntities('brand', { organizationId, search: needle }),
+      this.countEntities('brand', { brandId, organizationId, search: needle }),
     ]);
 
     const displayByBrandId = await this.resolveBrandDisplay(

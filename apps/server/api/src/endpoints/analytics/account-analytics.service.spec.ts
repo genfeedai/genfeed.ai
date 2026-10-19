@@ -90,6 +90,29 @@ describe('AccountAnalyticsService', () => {
     );
   });
 
+  it('lists only the selected brand accounts when a brand is given', async () => {
+    await service.listAccounts('org-1', { brandId: 'brand-1' });
+
+    expect(prisma.credential.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+  });
+
+  it('lists accounts of every brand when no brand is given', async () => {
+    await service.listAccounts('org-1', {});
+
+    const [{ where }] = prisma.credential.findMany.mock.calls[0] as [
+      { where: Record<string, unknown> },
+    ];
+    expect(where).not.toHaveProperty('brandId');
+    expect(where.organizationId).toBe('org-1');
+  });
+
   it('always requires a connected account on drill-down', async () => {
     await service.getAccount('org-1', 'cred-1', { status: 'all' });
 

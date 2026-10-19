@@ -8,7 +8,10 @@ export const generateMetadata = createPageMetadata('Brands Analytics');
 export default function BrandsAnalyticsPage() {
   return (
     <Suspense fallback={null}>
-      <AnalyticsBrandsList basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS} />
+      <AnalyticsBrandsList
+        basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
+        isBrandScoped={false}
+      />
     </Suspense>
   );
 }

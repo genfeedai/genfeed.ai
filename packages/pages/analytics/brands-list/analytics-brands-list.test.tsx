@@ -3,7 +3,6 @@ import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import AnalyticsBrandsList from '@pages/analytics/brands-list/analytics-brands-list';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ImgHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
@@ -16,6 +15,18 @@ const replaceMock = vi.fn();
 let searchParamsString = 'range=30d';
 
 let contextFilters: { query?: string; sort?: string } = {};
+
+let collectionScope: {
+  brandId: string | undefined;
+  isReady: boolean;
+  organizationId: string;
+  pageScope: 'brand' | 'org';
+} = {
+  brandId: undefined,
+  isReady: true,
+  organizationId: 'org-1',
+  pageScope: 'org',
+};
 
 const brandFixture = {
   activePlatforms: ['twitter'],
@@ -37,10 +48,9 @@ const otherBrandFixture = {
   name: 'Zenith',
 } as unknown as IBrandWithStats;
 
-vi.mock('next/image', () => ({
-  default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-    <img {...props} alt={props.alt || ''} />
-  ),
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: (scope: { isReady: boolean }) => scope.isReady,
+  useCollectionScope: () => collectionScope,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -89,6 +99,12 @@ describe('AnalyticsBrandsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     contextFilters = {};
+    collectionScope = {
+      brandId: undefined,
+      isReady: true,
+      organizationId: 'org-1',
+      pageScope: 'org',
+    };
     searchParamsString = 'range=30d';
     getBrandsWithStatsMock.mockResolvedValue({
       data: [brandFixture, otherBrandFixture],
@@ -111,12 +127,80 @@ describe('AnalyticsBrandsList', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('summarises the brand count in the container description', async () => {
+  it('leaves the page title to the breadcrumb and the count to pagination', async () => {
     render(<AnalyticsBrandsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('2 brands found')).toBeInTheDocument();
+      expect(screen.getByText('Acme')).toBeInTheDocument();
     });
+    expect(screen.queryByText('All Brands')).not.toBeInTheDocument();
+    expect(screen.queryByText(/brands? found/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeInTheDocument();
+  });
+
+  it('lists every brand when no brand is selected', async () => {
+    render(<AnalyticsBrandsList />);
+
+    await waitFor(() => {
+      expect(getBrandsWithStatsMock).toHaveBeenCalled();
+    });
+    expect(getBrandsWithStatsMock.mock.calls[0][0]).not.toHaveProperty(
+      'brandId',
+    );
+  });
+
+  it('scopes the list to the selected brand', async () => {
+    collectionScope = {
+      brandId: 'brand-1',
+      isReady: true,
+      organizationId: 'org-1',
+      pageScope: 'brand',
+    };
+
+    render(<AnalyticsBrandsList />);
+
+    await waitFor(() => {
+      expect(getBrandsWithStatsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: 'brand-1' }),
+        expect.any(AbortSignal),
+      );
+    });
+  });
+
+  it('waits for the brand scope before fetching', async () => {
+    collectionScope = {
+      brandId: undefined,
+      isReady: false,
+      organizationId: '',
+      pageScope: 'brand',
+    };
+
+    render(<AnalyticsBrandsList />);
+
+    await waitFor(() => {
+      expect(setToolbarNodeMock).toHaveBeenCalled();
+    });
+    expect(getBrandsWithStatsMock).not.toHaveBeenCalled();
+  });
+
+  it('lists every brand on a platform page that opts out of brand scoping', async () => {
+    collectionScope = {
+      brandId: 'brand-1',
+      isReady: false,
+      organizationId: 'org-1',
+      pageScope: 'brand',
+    };
+
+    render(<AnalyticsBrandsList isBrandScoped={false} />);
+
+    await waitFor(() => {
+      expect(getBrandsWithStatsMock).toHaveBeenCalled();
+    });
+    expect(getBrandsWithStatsMock.mock.calls[0][0]).not.toHaveProperty(
+      'brandId',
+    );
   });
 
   it('pages server-side from the URL and sends the search to the API', async () => {
@@ -141,7 +225,6 @@ describe('AnalyticsBrandsList', () => {
       }),
       expect.any(AbortSignal),
     );
-    expect(screen.getByText('16 brands found')).toBeInTheDocument();
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
@@ -202,13 +285,13 @@ describe('AnalyticsBrandsList', () => {
     ).toHaveAttribute('href', '/org/analytics/brands/brand-1?range=30d');
   });
 
-  it('does not call the analytics service while signed out', async () => {
+  it('shows the empty state when the service returns no brands', async () => {
     getBrandsWithStatsMock.mockResolvedValue({ data: [] });
 
     render(<AnalyticsBrandsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('0 brands found')).toBeInTheDocument();
+      expect(screen.getByText('No brands found')).toBeInTheDocument();
     });
   });
 });
