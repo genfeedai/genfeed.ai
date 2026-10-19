@@ -316,6 +316,7 @@ export class WebhooksService {
     this.postProcessingOrchestrator.notifyBotGatewayIfNeeded(
       String(ingredient.id),
       input.categoryValue,
+      ingredient.organizationId,
     );
     this.schedulePostUploadNotifications(
       String(ingredient.id),
@@ -611,7 +612,11 @@ export class WebhooksService {
     }
 
     const ingredientCategory = categoryToMediaType(categoryValue);
-    const cdnUrl = `${this.configService.ingredientsEndpoint}/${ingredientCategory}s/${ingredientId}`;
+    const cdnUrl = await this.postProcessingOrchestrator.authorizeProcessingUrl(
+      ingredient.organizationId,
+      ingredientId,
+      `${this.configService.ingredientsEndpoint}/${ingredientCategory}s/${ingredientId}`,
+    );
     const metadata = ingredient.metadata as
       | {
           width?: number;

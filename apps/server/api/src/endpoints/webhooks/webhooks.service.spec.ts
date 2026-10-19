@@ -278,6 +278,10 @@ describe('WebhooksService', () => {
         {
           provide: PostProcessingOrchestratorService,
           useValue: {
+            authorizeProcessingUrl: vi.fn(
+              (_organizationId: string, _id: string, url: string) =>
+                Promise.resolve(url),
+            ),
             notifyBotGatewayFailureIfNeeded: vi.fn(),
             notifyBotGatewayIfNeeded: vi.fn(),
             triggerAutoEvaluationIfEnabled: vi.fn(),
@@ -715,6 +719,7 @@ describe('WebhooksService', () => {
       ).toHaveBeenCalledWith(
         mockIngredientId.toString(),
         IngredientCategory.IMAGE,
+        expect.anything(),
       );
       expect(
         postProcessingOrchestrator.triggerAutoEvaluationIfEnabled,

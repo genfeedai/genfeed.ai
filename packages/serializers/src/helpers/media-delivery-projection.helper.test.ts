@@ -107,6 +107,43 @@ describe('media delivery response projection', () => {
   });
 });
 
+it('projects rows that reference an ingredient (editor clips, analytics top content)', () => {
+  const rows = {
+    clips: [
+      {
+        id: 'clip-1',
+        ingredientId: id,
+        ingredientUrl: 'https://cdn.example/ingredients/videos/x',
+      },
+    ],
+    top: [
+      {
+        id: 'row-1',
+        ingredientId: id,
+        ingredientUrl: 'https://cdn.example/ingredients/videos/x',
+        isVideo: true,
+        thumbnailUrl: 'https://cdn.example/ingredients/thumbnails/x',
+      },
+      {
+        id: 'row-2',
+        ingredientId: id,
+        ingredientUrl: 'https://cdn.example/ingredients/images/x',
+        isVideo: false,
+        thumbnailUrl: 'https://cdn.example/ingredients/images/x',
+      },
+    ],
+  };
+  expect(ingredientResponseIds(rows)).toEqual([id]);
+  const projected = projectMediaResponse(rows, [preview], true) as typeof rows;
+  expect(projected.clips[0].ingredientUrl).toBe(preview.grant.url);
+  expect(projected.top[0].ingredientUrl).toBe(preview.grant.url);
+  expect(projected.top[0].thumbnailUrl).toBeNull();
+  expect(projected.top[1].thumbnailUrl).toBe(preview.grant.url);
+  expect(JSON.stringify(projected)).not.toContain('/ingredients/');
+  const unauthorized = projectMediaResponse(rows, [], true) as typeof rows;
+  expect(unauthorized.clips[0].ingredientUrl).toBeNull();
+});
+
 it('projects typed agent tool data and preview-card media arrays by canonical ingredient identity', () => {
   const response = {
     data: { id, status: 'GENERATED', url: 'https://provider.test/original' },
