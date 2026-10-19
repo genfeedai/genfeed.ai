@@ -7,6 +7,8 @@ interface SentryInitOptions {
   debug?: boolean;
   /** Override enabled state (default: disabled in development) */
   enabled?: boolean;
+  /** Share of requests traced for performance spans (default: 0, off) */
+  tracesSampleRate?: number;
 }
 
 /**
@@ -23,6 +25,7 @@ export function initSentry(options: SentryInitOptions = {}): void {
     additionalTags,
     debug = false,
     enabled = process.env.NODE_ENV !== 'development',
+    tracesSampleRate = 0,
   } = options;
 
   Sentry.init({
@@ -30,8 +33,8 @@ export function initSentry(options: SentryInitOptions = {}): void {
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     enabled,
     environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-    // Sentry is used for error reporting only; performance spans are disabled.
-    tracesSampleRate: 0,
+    // Off unless the app opts in; the website stays error-reporting only.
+    tracesSampleRate,
   });
 
   if (additionalTags) {

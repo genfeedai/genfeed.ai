@@ -14,11 +14,19 @@ describe('initSentry', () => {
     vi.clearAllMocks();
   });
 
-  it('initializes Next.js error reporting without performance tracing', () => {
+  it('initializes Next.js error reporting without performance tracing by default', () => {
     initSentry();
 
     expect(sentry.init).toHaveBeenCalledWith(
       expect.objectContaining({ tracesSampleRate: 0 }),
+    );
+  });
+
+  it('passes an opted-in trace sample rate through', () => {
+    initSentry({ tracesSampleRate: 0.05 });
+
+    expect(sentry.init).toHaveBeenCalledWith(
+      expect.objectContaining({ tracesSampleRate: 0.05 }),
     );
   });
 });
