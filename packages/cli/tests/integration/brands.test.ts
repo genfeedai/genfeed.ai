@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
+import type { JsonApiDocument } from '../../src/api/json-api';
 import { flattenCollection, flattenSingle } from '../../src/api/json-api';
 import { createTestClient, hasCredentials, testConfig } from './setup';
 
@@ -15,7 +15,7 @@ describe.skipIf(!hasCredentials)('integration/brands', () => {
   const orgId = testConfig?.organizationId ?? '';
 
   it('listBrands returns array with id and label', async () => {
-    const response = await client<JsonApiCollectionResponse>(`/brands?organization=${orgId}`, {
+    const response = await client<JsonApiDocument>(`/brands?organization=${orgId}`, {
       method: 'GET',
     });
 
@@ -36,7 +36,7 @@ describe.skipIf(!hasCredentials)('integration/brands', () => {
 
   it('getBrand returns single brand with id and label', async () => {
     // First get a brand ID from the list
-    const listResponse = await client<JsonApiCollectionResponse>(`/brands?organization=${orgId}`, {
+    const listResponse = await client<JsonApiDocument>(`/brands?organization=${orgId}`, {
       method: 'GET',
     });
     const brands = flattenCollection<Brand>(listResponse);
@@ -47,7 +47,7 @@ describe.skipIf(!hasCredentials)('integration/brands', () => {
     }
 
     const brandId = brands[0].id;
-    const response = await client<JsonApiSingleResponse>(`/brands/${brandId}`, {
+    const response = await client<JsonApiDocument>(`/brands/${brandId}`, {
       method: 'GET',
     });
 
@@ -57,7 +57,7 @@ describe.skipIf(!hasCredentials)('integration/brands', () => {
   }, 15_000);
 
   it('JSON:API response has correct resource type', async () => {
-    const response = await client<JsonApiCollectionResponse>(`/brands?organization=${orgId}`, {
+    const response = await client<JsonApiDocument>(`/brands?organization=${orgId}`, {
       method: 'GET',
     });
 

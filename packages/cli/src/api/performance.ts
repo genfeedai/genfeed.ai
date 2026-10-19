@@ -1,5 +1,5 @@
 import { get } from './client';
-import { flattenSingle, type JsonApiSingleResponse } from './json-api';
+import { flattenSingle, type JsonApiDocument } from './json-api';
 
 /**
  * Query parameter names mirror
@@ -102,7 +102,7 @@ export async function getWeeklySummary(params: WeeklySummaryParams): Promise<Wee
     topN: params.topN,
     worstN: params.worstN,
   });
-  const response = await get<JsonApiSingleResponse>(`/content-performance/summary/weekly?${qs}`);
+  const response = await get<JsonApiDocument>(`/content-performance/summary/weekly?${qs}`);
   return flattenSingle<WeeklySummary>(response);
 }
 
