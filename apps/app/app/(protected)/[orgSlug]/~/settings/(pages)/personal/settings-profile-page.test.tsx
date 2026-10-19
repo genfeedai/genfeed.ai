@@ -59,6 +59,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 
 // Covered by its own suite; it reads shell providers this page test does not mount.
 vi.mock('./settings-home-app-card', () => ({ default: () => null }));
+vi.mock('./settings-rail-card', () => ({ default: () => null }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => mocks.getUsersService),
