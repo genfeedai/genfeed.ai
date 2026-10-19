@@ -13,7 +13,7 @@ const getScoreColor = (score: number) => {
   if (score >= 50) {
     return 'bg-warning text-warning-foreground';
   }
-  return 'bg-error text-error-foreground';
+  return 'bg-destructive text-destructive-foreground';
 };
 
 const getScoreLabel = (score: number) => {

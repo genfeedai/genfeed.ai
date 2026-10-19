@@ -87,10 +87,6 @@
   --color-platform-wordpress: var(--platform-wordpress);
   --color-platform-youtube: var(--platform-youtube);
 
-  /* "error" aliases "destructive" — 92 usages across codebase kept for compatibility */
-  --color-error: hsl(var(--destructive));
-  --color-error-foreground: hsl(var(--destructive-foreground));
-
   /* Radius — references the canonical scale in packages/ui/web-tokens.css.
      Holds NO values; this block only registers the tokens so Tailwind emits
      the rounded-* utilities. Values live once in web-tokens.css. */

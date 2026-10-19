@@ -100,7 +100,7 @@ export default function YouTubePublishingSettings({
         <h3 className="text-sm font-semibold">{translate('title')}</h3>
       )}
       {error ? (
-        <p role="alert" className="text-sm text-error">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}

@@ -22,7 +22,7 @@ export function buildTrainingsTableActions({
       tooltip: 'Edit',
     },
     {
-      className: 'text-error hover:text-error',
+      className: 'text-destructive hover:text-destructive',
       icon: () => <Trash2 />,
       onClick: (training: ITraining) => {
         onDelete(training);

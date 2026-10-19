@@ -49,7 +49,7 @@ export default function ModalPostBatchResultsView({
                 case 'completed':
                   return 'bg-success/10 border border-success/20';
                 case 'failed':
-                  return 'bg-error/10 border border-error/20';
+                  return 'bg-destructive/10 border border-destructive/20';
                 case 'submitting':
                   return 'bg-info/10 border border-info/20';
                 default:
@@ -62,7 +62,7 @@ export default function ModalPostBatchResultsView({
                 case 'completed':
                   return 'text-success';
                 case 'failed':
-                  return 'text-error';
+                  return 'text-destructive';
                 case 'submitting':
                   return 'text-info';
                 default:
@@ -98,7 +98,9 @@ export default function ModalPostBatchResultsView({
                     </p>
                   )}
                   {status.error && (
-                    <p className="text-sm text-error mt-1">{status.error}</p>
+                    <p className="text-sm text-destructive mt-1">
+                      {status.error}
+                    </p>
                   )}
                 </div>
                 {getStatusBadge()}

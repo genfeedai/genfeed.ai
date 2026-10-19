@@ -42,7 +42,7 @@ export default function PostCharacterUsage({
               <span
                 className={cn(
                   'shrink-0 tabular-nums',
-                  isOverLimit ? 'text-error' : 'text-foreground/60',
+                  isOverLimit ? 'text-destructive' : 'text-foreground/60',
                 )}
               >
                 {formatNumberWithCommas(item.used)}/

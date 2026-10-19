@@ -195,7 +195,7 @@ export default function TikTokPublishingSettings({
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="text-sm text-error">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
@@ -222,7 +222,7 @@ export default function TikTokPublishingSettings({
           {!hasVideo ? (
             <p className="text-sm text-warning">{translate('addVideo')}</p>
           ) : !isDurationValid ? (
-            <p role="alert" className="text-sm text-error">
+            <p role="alert" className="text-sm text-destructive">
               {isDurationKnown
                 ? translate('durationExceeded')
                 : translate('durationUnavailable')}

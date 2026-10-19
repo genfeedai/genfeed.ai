@@ -196,7 +196,9 @@ export default function ModalPostPlatformCard({
         <p
           className={cn(
             'text-xs mt-1',
-            currentLength > charLimit ? 'text-error' : 'text-foreground/70',
+            currentLength > charLimit
+              ? 'text-destructive'
+              : 'text-foreground/70',
           )}
         >
           {formatNumberWithCommas(currentLength)}/

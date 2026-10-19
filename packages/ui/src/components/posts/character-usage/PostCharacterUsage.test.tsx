@@ -44,6 +44,6 @@ describe('PostCharacterUsage', () => {
       />,
     );
 
-    expect(screen.getByText('300/280').className).toContain('text-error');
+    expect(screen.getByText('300/280').className).toContain('text-destructive');
   });
 });

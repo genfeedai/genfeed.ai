@@ -28,7 +28,7 @@ function getBarColor(percentage: number): string {
     return 'bg-warning';
   }
   if (percentage >= 25) {
-    return 'bg-error';
+    return 'bg-destructive';
   }
   return 'bg-muted';
 }
@@ -136,7 +136,7 @@ export function VideoCompletionFunnel({
                 {/* Drop-off indicator */}
                 {index < stages.length - 1 && (
                   <div className="flex items-center gap-4 ml-32 pl-4">
-                    <div className="text-xs text-error flex items-center gap-2">
+                    <div className="text-xs text-destructive flex items-center gap-2">
                       <span>↓</span>
                       <span className="font-semibold tabular-nums">
                         {formatPercentageSimple(dropOffs[index].rate)} drop-off

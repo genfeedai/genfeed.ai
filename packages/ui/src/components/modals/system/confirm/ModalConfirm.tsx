@@ -93,8 +93,8 @@ export default function ModalConfirm({
     >
       <div className="text-center">
         {isError && (
-          <div className="mx-auto flex items-center justify-center size-12 mb-4 bg-error/10 rounded-full">
-            <TriangleAlert className="size-6 text-error" />
+          <div className="mx-auto flex items-center justify-center size-12 mb-4 bg-destructive/10 rounded-full">
+            <TriangleAlert className="size-6 text-destructive" />
           </div>
         )}
 

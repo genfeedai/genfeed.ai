@@ -27,7 +27,7 @@ function ComparisonCell({
     return value ? (
       <Check className="size-4 text-success mx-auto" />
     ) : (
-      <X className="size-4 text-error mx-auto" />
+      <X className="size-4 text-destructive mx-auto" />
     );
   }
   return (

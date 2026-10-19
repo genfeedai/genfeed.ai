@@ -164,7 +164,7 @@ export default function ModalPostSimpleFields({
                       : 'Description'}
                   </span>
                   <span
-                    className={`text-xs ${isOverLimit ? 'text-error' : 'text-foreground/60'}`}
+                    className={`text-xs ${isOverLimit ? 'text-destructive' : 'text-foreground/60'}`}
                   >
                     {currentLength} / {charLimit}
                   </span>

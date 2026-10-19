@@ -20,8 +20,8 @@ export default function ProductBenefits({ benefits }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div className="flex items-start gap-2 mb-2">
-                  <X className="size-6 text-error mt-1 flex-shrink-0" />
-                  <Text weight="bold" className="text-error">
+                  <X className="size-6 text-destructive mt-1 flex-shrink-0" />
+                  <Text weight="bold" className="text-destructive">
                     Problem
                   </Text>
                 </div>

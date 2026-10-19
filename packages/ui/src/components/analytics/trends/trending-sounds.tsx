@@ -181,7 +181,7 @@ export function TrendingSounds({
                           sound.growthRate > 0
                             ? 'text-success'
                             : sound.growthRate < 0
-                              ? 'text-error'
+                              ? 'text-destructive'
                               : ''
                         }`}
                       >

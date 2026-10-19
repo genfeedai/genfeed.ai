@@ -131,7 +131,7 @@ export default function TagsEditable({
                   withWrapper={false}
                   variant={ButtonVariant.UNSTYLED}
                   onClick={() => handleRemoveTag(tag)}
-                  className="hover:text-error"
+                  className="hover:text-destructive"
                   ariaLabel={`Remove ${tag}`}
                 >
                   <X className="size-3" />

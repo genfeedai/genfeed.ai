@@ -58,7 +58,7 @@ function ActionItem({
       className={cn(
         'text-xs font-medium',
         action.variant === 'error' &&
-          'text-error focus:bg-error focus:text-destructive-foreground',
+          'text-destructive focus:bg-destructive focus:text-destructive-foreground',
       )}
     >
       {action.isLoading ? (
