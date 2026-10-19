@@ -653,7 +653,7 @@ describe('WorkspacePageContent', () => {
     );
 
     expect(launchPlanningTaskButton).toBeDefined();
-    fireEvent.click(launchPlanningTaskButton);
+    fireEvent.click(launchPlanningTaskButton.closest('tr') as HTMLElement);
 
     await waitFor(() => {
       expect(
@@ -768,7 +768,11 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByText('Investigate launch comment thread'));
+    fireEvent.click(
+      screen
+        .getByText('Investigate launch comment thread')
+        .closest('tr') as HTMLElement,
+    );
 
     await waitFor(() => {
       expect(
@@ -781,6 +785,32 @@ describe('WorkspacePageContent', () => {
         'Investigate launch comment thread',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('links the inbox task name to its task page without opening the inspector', async () => {
+    listMock.mockResolvedValue([
+      buildTask({
+        id: 'task-link-1',
+        identifier: 'GEN-7',
+        title: 'Plan the launch week',
+      }),
+    ]);
+
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+
+    const link = await screen.findByRole('link', {
+      name: 'Plan the launch week',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      '/acme-org/acme-creator/workspace/tasks/GEN-7',
+    );
+
+    fireEvent.click(link);
+
+    expect(
+      screen.queryByTestId('workspace-task-inspector'),
+    ).not.toBeInTheDocument();
   });
 
   it('treats a task restored from the URL after a closed tap as automatic', async () => {
@@ -798,7 +828,11 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByText('Investigate launch comment thread'));
+    fireEvent.click(
+      screen
+        .getByText('Investigate launch comment thread')
+        .closest('tr') as HTMLElement,
+    );
     await waitFor(() => {
       expect(screen.getByTestId('task-rail')).toHaveAttribute(
         'data-selection-origin',
@@ -845,7 +879,9 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByText('TikTok trend report'));
+    fireEvent.click(
+      screen.getByText('TikTok trend report').closest('tr') as HTMLElement,
+    );
 
     await waitFor(() => {
       expect(
@@ -896,7 +932,9 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByText('Launch ingredient output'));
+    fireEvent.click(
+      screen.getByText('Launch ingredient output').closest('tr') as HTMLElement,
+    );
 
     await waitFor(() => {
       expect(
@@ -947,7 +985,9 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByText('Review linked issue'));
+    fireEvent.click(
+      screen.getByText('Review linked issue').closest('tr') as HTMLElement,
+    );
 
     await waitFor(() => {
       expect(

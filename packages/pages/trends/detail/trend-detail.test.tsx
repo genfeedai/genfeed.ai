@@ -1,8 +1,15 @@
 import '@testing-library/jest-dom/vitest';
 import TrendDetail from '@pages/trends/detail/trend-detail';
 import type { TrendDetailData } from '@props/trends/trends-page.props';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -36,6 +43,26 @@ const trendDetailFixture = {
     viralityScore: 88,
   },
 } as unknown as TrendDetailData;
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/moonrise${path}` }),
+}));
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { kind: string; title: string } | null;
+  }) =>
+    selection ? (
+      <aside data-kind={selection.kind} data-testid="context-sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
+}));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -123,6 +150,47 @@ describe('TrendDetail', () => {
         screen.getByText('Everyone is shipping agents this week.'),
       ).toBeInTheDocument();
     });
+  });
+
+  it('links a related trend to its page and summarises it in the sidebar from the row', async () => {
+    getTrendByIdMock.mockResolvedValue({
+      ...trendDetailFixture,
+      relatedTrends: [
+        {
+          growthRate: 4,
+          id: 'trend-2',
+          metadata: {
+            growthMeasured: true,
+            sampleContent: 'Cross platform sample',
+          },
+          mentions: 800,
+          platform: 'tiktok',
+          topic: 'Agent tooling',
+          viralityScore: 61,
+        },
+      ],
+    });
+
+    render(<TrendDetail trendId="trend-1" />);
+
+    const link = await screen.findByRole('link', {
+      name: 'Open Agent tooling',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      '/acme/moonrise/discovery/trends/detail/trend-2',
+    );
+    fireEvent.click(link);
+    expect(screen.queryByTestId('context-sidebar')).not.toBeInTheDocument();
+
+    fireEvent.click(within(link.closest('tr') as HTMLElement).getByText('800'));
+
+    const sidebar = await screen.findByTestId('context-sidebar');
+    expect(sidebar).toHaveAttribute('data-kind', 'trend');
+    expect(within(sidebar).getByText('Cross platform sample')).toBeVisible();
+    expect(
+      within(sidebar).getByRole('link', { name: 'Open Agent tooling' }),
+    ).toHaveAttribute('href', '/acme/moonrise/discovery/trends/detail/trend-2');
   });
 
   it('shows the shell chrome before the request resolves', () => {

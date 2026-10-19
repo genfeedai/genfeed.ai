@@ -5,14 +5,36 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
-import { render, screen, waitFor } from '@testing-library/react';
-import type { ImgHTMLAttributes } from 'react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import type { ImgHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { kind: string; title: string } | null;
+  }) =>
+    selection ? (
+      <aside data-kind={selection.kind} data-testid="context-sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
+}));
 
 const pushMock = vi.fn();
 const getBrandsWithStatsMock = vi.fn();
@@ -286,5 +308,26 @@ describe('AnalyticsOrganizationOverview', () => {
       screen.getByRole('button', { name: 'About Engagement rate' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'About Brands' })).toBeNull();
+  });
+
+  it('opens a brand summary in the sidebar from the row while the name stays a link', async () => {
+    render(<AnalyticsOrganizationOverview />);
+
+    const link = await screen.findByRole('link', {
+      name: 'Open Acme analytics',
+    });
+    expect(link).toHaveAttribute('href', '/analytics/brands/brand-1');
+    fireEvent.click(link);
+    expect(screen.queryByTestId('context-sidebar')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(link.closest('tr') as HTMLElement).getByText('4.2K'),
+    );
+
+    const sidebar = await screen.findByTestId('context-sidebar');
+    expect(sidebar).toHaveAttribute('data-kind', 'brand');
+    expect(
+      within(sidebar).getByRole('link', { name: 'Open analytics' }),
+    ).toHaveAttribute('href', '/analytics/brands/brand-1');
   });
 });

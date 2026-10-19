@@ -191,6 +191,31 @@ describe('ReleasePostsList selection from the release URL param', () => {
     expect(setRefresh).toHaveBeenCalled();
   });
 
+  it('links the release name to its primary target post and leaves a targetless release unlinked', () => {
+    queryReleases = [
+      release(),
+      release({ id: 'release-2', targets: [], title: 'Second release' }),
+    ];
+
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Open Campaign release' }),
+    ).toHaveAttribute(
+      'href',
+      '/genfeed-ai/paperclip/publishing/posts/target-1',
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Open Second release' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('swaps the releases for read-only captured posts under the Extension source', () => {
     searchParams = new URLSearchParams(
       'source=extension&account=a&platform=twitter',
@@ -436,7 +461,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
       />,
     );
 
-    screen.getByText('Second release').click();
+    screen.getByText('Second release').closest('tr')?.click();
 
     expect(replaceMock).toHaveBeenCalledWith(
       expect.stringContaining('release=release-2'),

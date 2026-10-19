@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsAccountDetail from './analytics-account-detail';
 
@@ -16,6 +16,19 @@ vi.mock('next-intl', async () => {
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'cred-1' }),
   useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/moonrise${path}`,
+  }),
+}));
+
+vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
+  __esModule: true,
+  default: ({ postId }: { postId: string | null }) => (
+    <div data-testid="post-detail-panel">{postId ?? 'closed'}</div>
+  ),
 }));
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
@@ -109,6 +122,22 @@ describe('AnalyticsAccountDetail', () => {
       'cred-1',
       expect.objectContaining({ organizationId: 'org-1' }),
     );
+  });
+
+  it('opens a top post in the sidebar from the row and links its name to the post page', async () => {
+    render(<AnalyticsAccountDetail />);
+
+    const link = await screen.findByRole('link', { name: 'Winner' });
+    expect(link).toHaveAttribute(
+      'href',
+      '/acme/moonrise/publishing/posts/post-1',
+    );
+
+    fireEvent.click(link);
+    expect(screen.getByTestId('post-detail-panel')).toHaveTextContent('closed');
+
+    fireEvent.click(screen.getByText('90'));
+    expect(screen.getByTestId('post-detail-panel')).toHaveTextContent('post-1');
   });
 
   it('renders an error instead of empty account metrics when loading fails', async () => {

@@ -1,5 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsOrganizationsList from './analytics-organizations-list';
 
@@ -7,6 +14,11 @@ const mocks = vi.hoisted(() => ({
   getOrganizationsWithStats: vi.fn(),
   setToolbarNode: vi.fn(),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: vi.fn(() => ({
@@ -17,6 +29,22 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     refreshTrigger: 0,
     setToolbarNode: mocks.setToolbarNode,
   })),
+}));
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { kind: string; title: string } | null;
+  }) =>
+    selection ? (
+      <aside data-kind={selection.kind} data-testid="context-sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -68,5 +96,44 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     expect(
       screen.queryByRole('heading', { name: /All Organizations/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it('opens an organization summary in the sidebar from the row while the name stays a link', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [
+        {
+          avgEngagementRate: 3.5,
+          growth: 4.2,
+          id: 'org-1',
+          name: 'Acme Inc',
+          totalBrands: 3,
+          totalEngagement: 900,
+          totalMembers: 7,
+          totalPosts: 31,
+          totalViews: 4200,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
+    });
+
+    render(<AnalyticsOrganizationsList />);
+
+    const link = await screen.findByRole('link', { name: /Acme Inc/ });
+    expect(link).toHaveAttribute(
+      'href',
+      '/admin/overview/analytics/organizations/org-1',
+    );
+    fireEvent.click(link);
+    expect(screen.queryByTestId('context-sidebar')).not.toBeInTheDocument();
+
+    fireEvent.click(within(link.closest('tr') as HTMLElement).getByText('31'));
+
+    const sidebar = screen.getByTestId('context-sidebar');
+    expect(sidebar).toHaveAttribute('data-kind', 'organization');
+    expect(
+      within(sidebar).getByRole('link', {
+        name: 'Open organization analytics',
+      }),
+    ).toHaveAttribute('href', '/admin/overview/analytics/organizations/org-1');
   });
 });

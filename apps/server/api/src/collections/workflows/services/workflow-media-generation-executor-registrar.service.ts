@@ -108,10 +108,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           output: prepared.output,
           resultUrl: (ingredientId) =>
             this.helper.buildImageIngredientUrl(ingredientId),
-          runProvider: (_ingredientId, continuationId) =>
+          runProvider: async (_ingredientId, continuationId) =>
             replicateService.runModel(
               model,
-              prepared.input,
+              await this.authorizeInput(
+                prepared.input,
+                context,
+                prepared.output.brandId,
+              ),
               byok?.apiKey,
               continuationId,
             ),
@@ -176,14 +180,24 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             output: prepared.output,
             resultUrl: (id) => this.helper.buildVideoIngredientUrl(id),
             runProvider: async () => {
+              // The plan's `input` is the dispatch input, so one grant set
+              // serves both fields.
+              const input = await this.authorizeInput(
+                prepared.input,
+                context,
+                prepared.output.brandId,
+              );
               const result = await falVideo.generate({
                 apiKeyOverride: funded.credential?.apiKey,
                 model: prepared.model,
                 modelProvider: 'fal',
                 organizationId: context.organizationId,
-                preparedFalDispatch: prepared.preparedFalDispatch,
+                preparedFalDispatch: {
+                  ...prepared.preparedFalDispatch,
+                  input,
+                },
                 prompt: prepared.output.generationPrompt ?? '',
-                promptParams: prepared.input,
+                promptParams: input,
                 width: 0,
                 height: 0,
               });
@@ -235,10 +249,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           output: prepared.output,
           resultUrl: (ingredientId) =>
             this.helper.buildVideoIngredientUrl(ingredientId),
-          runProvider: (_ingredientId, continuationId) =>
+          runProvider: async (_ingredientId, continuationId) =>
             replicateService.runModel(
               model,
-              prepared.input,
+              await this.authorizeInput(
+                prepared.input,
+                context,
+                prepared.output.brandId,
+              ),
               byok?.apiKey,
               continuationId,
             ),
@@ -620,6 +638,22 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     });
 
     return params.buildReturn(pendingOutput.ingredientId, outputCategory);
+  }
+
+  /**
+   * Provider input with its internal media URLs replaced by fresh grants,
+   * minted immediately before the call (see `authorizeProviderInput`).
+   */
+  private authorizeInput(
+    input: Record<string, unknown>,
+    context: ExecutionContext,
+    brandId?: string,
+  ): Promise<Record<string, unknown>> {
+    return this.providerPlan.authorizeProviderInput(input, {
+      brandId,
+      organizationId: context.organizationId,
+      userId: context.userId,
+    });
   }
 
   private authorizeMediaDispatch(

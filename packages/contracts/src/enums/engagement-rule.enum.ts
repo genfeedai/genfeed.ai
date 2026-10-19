@@ -1,5 +1,5 @@
 /**
- * Engagement-triggered automation vocabularies (Postiz "Plugs" parity).
+ * Engagement-triggered automation vocabularies.
  * Prisma-backed; labels are SCREAMING. Foundation for #1170.
  */
 

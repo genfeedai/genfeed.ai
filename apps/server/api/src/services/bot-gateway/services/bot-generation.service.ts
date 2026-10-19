@@ -4,12 +4,11 @@ import {
   BOT_MEDIA_GENERATION_DISPATCHER,
   type BotMediaGenerationDispatcher,
 } from '@api/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
-import { BotCommandType, IngredientCategory } from '@genfeedai/contracts';
+import { BotCommandType } from '@genfeedai/contracts';
 import type {
   IBotCallbackContext,
   IBotResolvedUser,
 } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
@@ -25,7 +24,6 @@ export class BotGenerationService {
 
   constructor(
     private readonly callbackContextService: BotCallbackContextService,
-    private readonly configService: ConfigService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly loggerService: LoggerService,
     @Inject(BOT_MEDIA_GENERATION_DISPATCHER)
@@ -96,13 +94,5 @@ export class BotGenerationService {
       ingredientId: result.ingredientId,
       message: `Generating your ${isImage ? 'image' : 'video'}...`,
     };
-  }
-
-  /**
-   * Get ingredient result URL for completed generation
-   */
-  getIngredientUrl(ingredientId: string, category: IngredientCategory): string {
-    const type = category === IngredientCategory.IMAGE ? 'images' : 'videos';
-    return `${this.configService.ingredientsEndpoint}/${type}/${ingredientId}`;
   }
 }

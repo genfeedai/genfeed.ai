@@ -1,6 +1,6 @@
 import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IQueryParams } from '@genfeedai/contracts/interfaces';
+import type { IQueryParams, ISound } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -15,6 +15,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SoundsService } from '@services/elements/sounds.service';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -64,6 +66,8 @@ function SoundsListContent({
   onRefresh,
 }: IElementContentProps) {
   const notificationsService = NotificationsService.getInstance();
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { openConfirm } = useConfirmModal();
 
   const getSoundsService = useAuthedService(
@@ -247,6 +251,42 @@ function SoundsListContent({
         ]
       : [];
 
+  const rowSidebar = createSummaryRowSidebar<Sound>({
+    getBadges: (sound) => (
+      <ElementScopeBadge
+        isActive={sound.isActive}
+        isPlatformDefault={sound.isPlatformDefault}
+      />
+    ),
+    getFacts: (sound) => [
+      { id: 'key', label: fieldsT('key'), value: (sound as ISound).key },
+      {
+        id: 'description',
+        label: fieldsT('description'),
+        value: sound.description,
+      },
+      { id: 'category', label: fieldsT('category'), value: sound.category },
+      {
+        id: 'sortOrder',
+        label: fieldsT('sortOrder'),
+        value: sound.sortOrder ?? 0,
+      },
+      {
+        id: 'default',
+        label: fieldsT('default'),
+        value: sound.isDefault ? rowSidebarT('yes') : rowSidebarT('no'),
+      },
+    ],
+    getId: (sound) => sound.id,
+    getSubtitle: (sound) => (sound as ISound).key,
+    getTitle: (sound) => sound.label ?? (sound as ISound).key ?? sound.id,
+    kind: 'record',
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (sound) => openSoundModal(ModalEnum.SOUND, sound)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<Sound>
@@ -255,6 +295,7 @@ function SoundsListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No sounds found"
       />
 

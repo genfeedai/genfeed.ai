@@ -6,7 +6,13 @@ import {
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CapturedPostsList from './captured-posts-list';
@@ -31,6 +37,22 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ activeHref: (path: string) => `/acme/~${path}` }),
+}));
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { kind: string; title: string } | null;
+  }) =>
+    selection ? (
+      <aside data-kind={selection.kind} data-testid="context-sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -152,6 +174,27 @@ describe('CapturedPostsList', () => {
         name: 'Open analytics for Shipping the extension',
       }),
     ).toHaveAttribute('href', '/acme/~/analytics/posts?postId=post-1');
+  });
+
+  it('opens a read-only summary in the sidebar from the row, not from the name link', async () => {
+    findAllPageMock.mockResolvedValue(page([capturedPost()]));
+
+    renderList();
+
+    const link = await screen.findByRole('link', {
+      name: 'Open analytics for Shipping the extension',
+    });
+    fireEvent.click(link);
+    expect(screen.queryByTestId('table-row-summary')).not.toBeInTheDocument();
+
+    const row = link.closest('tr') as HTMLElement;
+    fireEvent.click(within(row).getByText('Extension'));
+
+    const sidebar = await screen.findByTestId('context-sidebar');
+    expect(sidebar).toHaveAttribute('data-kind', 'post');
+    expect(within(sidebar).getByTestId('table-row-summary')).toHaveTextContent(
+      'Shipping the extension today',
+    );
   });
 
   it('does not ask the API for lifecycle filters no captured post can match', async () => {

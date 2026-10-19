@@ -247,6 +247,7 @@ export class ContentOrchestrationService implements OnModuleInit {
           organizationId: request.context.organizationId,
           previousResult,
           runReferences,
+          userId: request.context.userId,
         }),
     );
     const ingredientId = await this.persistGeneratedResult(

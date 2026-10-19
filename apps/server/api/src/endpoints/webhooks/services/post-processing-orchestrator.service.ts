@@ -2,6 +2,7 @@ import { EvaluationsService } from '@api/collections/evaluations/services/evalua
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -18,7 +19,30 @@ export class PostProcessingOrchestratorService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly loggerService: LoggerService,
     @Optional() private readonly evaluationsService?: EvaluationsService,
+    @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
   ) {}
+
+  /**
+   * URL a downstream consumer (bot follow-up, thumbnailer, operator card)
+   * fetches a freshly generated ingredient from: a short-lived grant when
+   * authorized delivery is on, the canonical URL otherwise. It never falls
+   * back to the canonical URL once delivery is authorized.
+   */
+  async authorizeProcessingUrl(
+    organizationId: string | null | undefined,
+    ingredientId: string,
+    canonicalUrl: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
+      return canonicalUrl;
+    if (!organizationId || !this.mediaIssuer)
+      throw new Error('Authorized media issuer is unavailable');
+    const url = (
+      await this.mediaIssuer.issueServerPublish(organizationId, [ingredientId])
+    ).get(ingredientId);
+    if (!url) throw new Error('The ingredient has no authorized media URL');
+    return url;
+  }
 
   /**
    * Notify bot gateway if this was a bot-triggered generation.
@@ -27,12 +51,17 @@ export class PostProcessingOrchestratorService {
   notifyBotGatewayIfNeeded(
     ingredientId: string,
     category: IngredientCategory,
+    organizationId?: string | null,
   ): void {
     (async () => {
       try {
         const mediaType =
           category === IngredientCategory.IMAGE ? 'image' : 'video';
-        const resultUrl = `${this.configService.ingredientsEndpoint}/${mediaType}s/${ingredientId}`;
+        const resultUrl = await this.authorizeProcessingUrl(
+          organizationId,
+          ingredientId,
+          `${this.configService.ingredientsEndpoint}/${mediaType}s/${ingredientId}`,
+        );
 
         await this.botCallbackResponder.sendCompletionResponse(
           ingredientId,

@@ -80,6 +80,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   return { useAuthedService: () => resolveService };
 });
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/moonrise${path}`,
+  }),
+}));
+
 vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (

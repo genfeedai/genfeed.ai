@@ -1,6 +1,6 @@
 import { ContentCampaignStatus } from '@genfeedai/contracts';
 import CampaignsListPage from '@pages/campaigns/list/CampaignsListPage';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -88,37 +88,51 @@ vi.mock('@ui/display/badge/Badge', () => ({
   default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
+type MockCampaign = (typeof mockCampaigns)[number];
+
+interface MockTableProps {
+  columns: Array<{
+    header: string;
+    key: string;
+    render?: (item: MockCampaign) => ReactNode;
+  }>;
+  emptyLabel?: string;
+  getRowLink?: (item: MockCampaign) => { href: string; label: string };
+  items: MockCampaign[];
+  rowSidebar?: {
+    getTitle: (item: MockCampaign) => string;
+    kind: string;
+    render: (item: MockCampaign) => ReactNode;
+  };
+}
+
+const tableProps = vi.hoisted(() => ({
+  current: undefined as MockTableProps | undefined,
+}));
+
 vi.mock('@ui/display/table/Table', () => ({
-  default: ({
-    columns,
-    emptyLabel,
-    items,
-  }: {
-    columns: Array<{
-      header: string;
-      key: string;
-      render?: (item: (typeof mockCampaigns)[number]) => ReactNode;
-    }>;
-    emptyLabel?: string;
-    items: typeof mockCampaigns;
-  }) => (
-    <div data-testid="campaigns-table">
-      {columns.map((column) => (
-        <span key={column.key}>{column.header}</span>
-      ))}
-      {items.length === 0 ? emptyLabel : null}
-      {items.map((item) => (
-        <div key={item.id}>
-          <span>{item.name}</span>
-          {columns.map((column) => (
-            <span key={`${item.id}-${column.key}`}>
-              {column.render ? column.render(item) : null}
-            </span>
-          ))}
-        </div>
-      ))}
-    </div>
-  ),
+  default: (props: MockTableProps) => {
+    tableProps.current = props;
+    const { columns, emptyLabel, items } = props;
+    return (
+      <div data-testid="campaigns-table">
+        {columns.map((column) => (
+          <span key={column.key}>{column.header}</span>
+        ))}
+        {items.length === 0 ? emptyLabel : null}
+        {items.map((item) => (
+          <div key={item.id}>
+            <span>{item.name}</span>
+            {columns.map((column) => (
+              <span key={`${item.id}-${column.key}`}>
+                {column.render ? column.render(item) : null}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@ui/navigation/pagination/Pagination', () => ({
@@ -186,6 +200,24 @@ describe('CampaignsListPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'newCampaign' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByText('columns.brand')).not.toBeInTheDocument();
+  });
+
+  it('links the name to the campaign page and summarises the row in the sidebar', () => {
+    render(<CampaignsListPage />);
+
+    const { getRowLink, rowSidebar } = tableProps.current ?? {};
+    expect(getRowLink?.(mockCampaigns[0]).href).toBe(
+      '/acme/demo/publishing/campaigns/cmp-1',
+    );
+    expect(rowSidebar?.kind).toBe('campaign');
+    expect(rowSidebar?.getTitle(mockCampaigns[0])).toBe('Autumn Reveal');
+
+    render(<>{rowSidebar?.render(mockCampaigns[0])}</>);
+    const summary = screen.getByTestId('table-row-summary');
+    expect(summary).toHaveTextContent('Launch the kit');
+    expect(
+      within(summary).getByRole('link', { name: 'openCampaign' }),
+    ).toHaveAttribute('href', '/acme/demo/publishing/campaigns/cmp-1');
   });
 
   it('identifies the brand on organization-scoped lists', () => {

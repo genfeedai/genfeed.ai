@@ -22,6 +22,7 @@ import { ConfigService } from '@workers/config/config.service';
 interface IngredientWithMetadataDoc {
   id: string;
   category: string;
+  s3Key?: string | null;
   metadata: {
     height?: number | null;
     id: string;
@@ -390,7 +391,13 @@ export class CronIngredientsService {
       for (const ingredient of docs) {
         try {
           const ingredientId = ingredient.id.toString();
-          const ingredientUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredientId}`;
+          // The stored object key is the identity; the ID-derived URL only
+          // resolves for media that predates stored keys.
+          const ingredientUrl = ingredient.s3Key
+            ? await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+                ingredient.s3Key,
+              )
+            : `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredientId}`;
 
           // Extract metadata from the file URL
           const uploadMeta =

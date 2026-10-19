@@ -209,6 +209,8 @@ export interface StudioPlaygroundStarterAttachedProduct {
 
 /** What a starter card applies: rich prompt plus the setup that idea is known for. */
 export interface StudioPlaygroundStarterSelection {
+  /** The agent proposal's prompt, so a generation from it is recorded as agent-authored. */
+  agentPrompt?: string;
   aspectRatio?: string;
   content: JSONContent;
   instrumental?: boolean;

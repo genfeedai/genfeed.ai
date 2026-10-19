@@ -516,6 +516,9 @@ export class ImageGenerationService {
       ...(createImageDto.brandMode
         ? { brandMode: createImageDto.brandMode }
         : {}),
+      ...(createImageDto.promptAuthor
+        ? { promptAuthor: createImageDto.promptAuthor }
+        : {}),
       ...(createImageDto.knowledge
         ? { knowledgeSelection: createImageDto.knowledge }
         : {}),

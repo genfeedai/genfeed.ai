@@ -25,4 +25,9 @@ describe('organization memory settings content', () => {
     expect(source).toContain('limit: ITEMS_PER_PAGE, page: currentPage');
     expect(source).toContain('<AutoPagination');
   });
+
+  it('opens a memory entry in the right sidebar on row click', () => {
+    expect(source).toContain('createSummaryRowSidebar');
+    expect(source).toContain('rowSidebar={rowSidebar}');
+  });
 });

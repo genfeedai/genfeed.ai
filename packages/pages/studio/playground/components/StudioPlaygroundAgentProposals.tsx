@@ -76,6 +76,7 @@ export default function StudioPlaygroundAgentProposals({
             key={`${proposal.title}:${proposal.prompt}`}
             onClick={() => {
               onSelect({
+                agentPrompt: proposal.prompt,
                 aspectRatio: proposal.aspectRatio,
                 content: buildStarterIdeaDocument(
                   proposal.prompt,

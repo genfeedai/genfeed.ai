@@ -408,6 +408,14 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
+    rowSidebar: {
+      edit: 'Edit',
+      open: 'Open',
+      fields: {
+        description: 'Description',
+        key: 'Key',
+      },
+    },
     youtubePublishing: {
       sectionLabel: 'YouTube publishing settings',
       title: 'Post to YouTube',

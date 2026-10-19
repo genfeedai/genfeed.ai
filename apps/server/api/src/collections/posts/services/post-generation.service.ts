@@ -23,6 +23,7 @@ import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
+import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/openrouter-model.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
@@ -228,9 +229,13 @@ export class PostGenerationService {
       identity.organizationId,
     );
 
+    // A short rewrite needs no reasoning. A reasoning default model would
+    // otherwise spend the token budget thinking and cut the post off mid-sentence.
     return this.replicateService.generateTextCompletionSync(
       DEFAULT_MINI_TEXT_MODEL,
-      input,
+      isOpenRouterTextModel(DEFAULT_MINI_TEXT_MODEL)
+        ? { ...input, reasoning: { enabled: false } }
+        : input,
       byokApiKeyOverride,
     );
   }

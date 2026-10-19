@@ -15,6 +15,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { BotCallbackModule } from '@api/services/bot-gateway/bot-callback.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -45,6 +46,7 @@ import { Module } from '@nestjs/common';
     FileQueueModule,
     FilesClientModule,
     IngredientsModule,
+    MediaUrlsModule,
     MediaVendorCostModule,
     MetadataModule,
     NotificationsModule,

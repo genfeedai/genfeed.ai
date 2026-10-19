@@ -19,6 +19,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CameraMovementsService } from '@services/elements/camera-movements.service';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalCameraMovement } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -228,6 +229,14 @@ function CameraMovementsListContent({
     }
   };
 
+  const rowSidebar = useElementRowSidebar<ElementCameraMovement>({
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) =>
+            openCameraMovementModal(ModalEnum.CAMERA_MOVEMENT, element)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementCameraMovement>
@@ -236,6 +245,7 @@ function CameraMovementsListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No camera movements found"
       />
 

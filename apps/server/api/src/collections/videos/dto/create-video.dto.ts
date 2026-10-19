@@ -8,6 +8,10 @@ import {
   RouterPriority,
   VideoTransition,
 } from '@genfeedai/contracts';
+import {
+  GENERATION_PROMPT_AUTHORS,
+  type GenerationPromptAuthor,
+} from '@genfeedai/contracts/interfaces';
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -172,6 +176,16 @@ export class CreateVideoDto extends CreateIngredientDto {
     required: false,
   })
   readonly brandMode?: 'raw';
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsIn(GENERATION_PROMPT_AUTHORS)
+  @ApiProperty({
+    description:
+      'Set when the prompt came from an agent proposal: `agent` unchanged, `agent_edited` changed by the member. Recorded in the generation receipt; omit for a prompt the member wrote.',
+    enum: GENERATION_PROMPT_AUTHORS,
+    required: false,
+  })
+  readonly promptAuthor?: GenerationPromptAuthor;
 
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @ValidateNested()

@@ -77,6 +77,27 @@ describe('ReviewGrid', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('selects the item from the row and links the title to the post page', () => {
+    render(
+      <ReviewGrid
+        activeItem={mockItems[0]}
+        isActioning={false}
+        items={mockItems}
+        selectedIds={new Set()}
+        {...baseHandlers}
+      />,
+    );
+
+    const link = screen.getByRole('link', { name: 'Draft caption' });
+    expect(link).toHaveAttribute('href', '/publishing/posts/post-1');
+
+    fireEvent.click(link);
+    expect(baseHandlers.onSelectItem).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Draft linked', { exact: false }));
+    expect(baseHandlers.onSelectItem).toHaveBeenCalledWith('item-1');
+  });
+
   it('renders the table-owned empty state once when filters hide every item', () => {
     const visibleItems = getVisibleReviewItems(mockItems, ['failed']);
 

@@ -28,6 +28,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -103,6 +104,8 @@ function MembersListContent() {
   >(new Set());
 
   const translate = useTranslations('common.settings.members');
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
 
   const columns: TableColumn<Member>[] = [
     {
@@ -151,6 +154,30 @@ function MembersListContent() {
         member.createdAt ? formatDate(member.createdAt) : '-',
     },
   ];
+
+  const memberSidebar = createSummaryRowSidebar<Member>({
+    getFacts: (member) => [
+      { id: 'email', label: fieldsT('email'), value: member.userEmail },
+      { id: 'role', label: fieldsT('role'), value: member.roleLabel },
+      {
+        id: 'brands',
+        label: translate('columnBrands'),
+        value: <MemberBrandAccess member={member} />,
+      },
+      {
+        id: 'joined',
+        label: fieldsT('joined'),
+        value: member.createdAt ? formatDate(member.createdAt) : undefined,
+      },
+    ],
+    getId: (member) => member.id,
+    getSubtitle: (member) => member.userEmail || undefined,
+    getTitle: (member) =>
+      member.userFullName && member.userFullName !== '-'
+        ? member.userFullName
+        : member.userEmail || rowSidebarT('unknown'),
+    kind: 'user',
+  });
 
   const invitationColumns: TableColumn<IMemberInvitation>[] = [
     {
@@ -325,6 +352,7 @@ function MembersListContent() {
             actions={[]}
             isLoading={members === null}
             getRowKey={(item) => item.id}
+            rowSidebar={memberSidebar}
             emptyLabel={EMPTY_STATES.MEMBERS_FOUND}
           />
 

@@ -20,6 +20,7 @@ import { BlacklistsService } from '@services/elements/blacklists.service';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import Badge from '@ui/display/badge/Badge';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalBlacklist } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -65,6 +66,8 @@ function BlacklistsListContent({
   onRefresh,
 }: IElementContentProps) {
   const notificationsService = NotificationsService.getInstance();
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { openConfirm } = useConfirmModal();
 
   const getBlacklistsService = useAuthedService(
@@ -271,6 +274,47 @@ function BlacklistsListContent({
     }
   };
 
+  const rowSidebar = createSummaryRowSidebar<ElementBlacklist>({
+    getBadges: (blacklist) => (
+      <>
+        {blacklist.category ? (
+          <Badge
+            variant="outline"
+            size={ComponentSize.SM}
+            className="uppercase"
+          >
+            {blacklist.category}
+          </Badge>
+        ) : null}
+        <ElementScopeBadge
+          isActive={blacklist.isActive}
+          isPlatformDefault={blacklist.isPlatformDefault}
+        />
+      </>
+    ),
+    getFacts: (blacklist) => [
+      { id: 'key', label: fieldsT('key'), value: blacklist.key },
+      {
+        id: 'description',
+        label: fieldsT('description'),
+        value: blacklist.description,
+      },
+      {
+        id: 'default',
+        label: fieldsT('default'),
+        value: blacklist.isDefault ? rowSidebarT('yes') : rowSidebarT('no'),
+      },
+    ],
+    getId: (blacklist) => blacklist.id,
+    getSubtitle: (blacklist) => blacklist.key,
+    getTitle: (blacklist) => blacklist.label,
+    kind: 'record',
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (blacklist) => openBlacklistModal(ModalEnum.BLACKLIST, blacklist)
+        : undefined,
+  });
+
   return (
     <>
       <AppTable<ElementBlacklist>
@@ -279,6 +323,7 @@ function BlacklistsListContent({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
         emptyLabel="No blacklists found"
       />
 

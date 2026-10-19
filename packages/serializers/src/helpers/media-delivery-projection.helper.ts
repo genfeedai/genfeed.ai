@@ -64,7 +64,7 @@ function ingredientIdentity(
     return record.id;
   if (
     typeof record.ingredientId === 'string' &&
-    ('url' in record || 'cdnUrl' in record)
+    ('url' in record || 'cdnUrl' in record || 'ingredientUrl' in record)
   )
     return record.ingredientId;
   return undefined;
@@ -232,6 +232,10 @@ function projectIngredient(
   }
   if (isPlainObjectRecord(fields.metadata))
     fields.metadata = { ...fields.metadata, result: fields.cdnUrl };
+  // Rows that reference an ingredient (analytics top content) have no
+  // generated video thumbnail to sign; images are their own preview.
+  if ('ingredientId' in fields && 'thumbnailUrl' in fields)
+    fields.thumbnailUrl = fields.isVideo === true ? null : fields.cdnUrl;
   if (!hasCleanAccess) {
     for (const field of [
       'generationHarness',

@@ -1,5 +1,6 @@
 'use client';
 
+import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OutlierPerformanceResponse } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
@@ -22,39 +23,25 @@ import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.s
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Heading } from '@ui/typography/heading';
-import { Text } from '@ui/typography/text';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { ScanSearch, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import OutlierBaselinePanel from './outlier-baseline-panel';
 
-const PLATFORM_VALUES = [
-  'all',
-  'instagram',
-  'tiktok',
-  'youtube',
-  'twitter',
-  'facebook',
-] as const;
-
-const TIER_VALUES = ['all', 'outlier', 'breakout'] as const;
+const PAGE_SIZE = 20;
 
 function formatOutlierRatio(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return '—';
+  if (value == null || !Number.isFinite(value)) return '-';
   return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)}x`;
 }
 
 export default function AnalyticsOutliers({
   brandId: propBrandId,
+  platform,
+  tier,
 }: AnalyticsOutliersProps) {
   const scope = useCollectionScope();
   const brandId = propBrandId || scope.brandId;
@@ -64,44 +51,62 @@ export default function AnalyticsOutliers({
   const getService = useAuthedService((token: string) =>
     OutlierBaselinesService.getInstance(token),
   );
-  const [platform, setPlatform] = useState('all');
-  const [tier, setTier] = useState('all');
+  const refreshTrigger = useOptionalAnalyticsContext()?.refreshTrigger ?? 0;
+  const filterKey = [brandId, platform, tier].join('|');
+  const [pageState, setPageState] = useState({ filterKey, page: 1 });
+  const page = pageState.filterKey === filterKey ? pageState.page : 1;
   const [posts, setPosts] = useState<OutlierPerformanceResponse[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [isError, setIsError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
-  const fetchPosts = useCallback(
-    async (signal: AbortSignal) => {
-      if (!isCollectionFetchReady({ ...scope, brandId })) {
-        return;
-      }
-      setPosts(null);
+  // Primitives only: the scope object is a new reference every render, so
+  // depending on it re-ran this effect on every render and never settled.
+  const isFetchReady = isCollectionFetchReady({ ...scope, brandId });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTrigger explicitly re-reads the page.
+  useEffect(() => {
+    if (!isFetchReady) {
+      return;
+    }
+    const controller = new AbortController();
+    setPosts(null);
+    setIsError(false);
+    void (async () => {
       try {
         const service = await getService();
         const result = await service.listPosts(
           {
             ...toBrandListParams({ brandId }),
-            ...(platform !== 'all' ? { platform } : {}),
-            ...(tier !== 'all' ? { tier: tier as 'outlier' | 'breakout' } : {}),
-            limit: 50,
+            ...(platform ? { platform } : {}),
+            ...(tier ? { tier } : {}),
+            limit: PAGE_SIZE,
+            page,
           },
-          signal,
+          controller.signal,
         );
-        if (!signal.aborted) {
-          setPosts(result.docs);
-        }
+        if (controller.signal.aborted) return;
+        setPosts(result.docs);
+        setTotal(result.total);
       } catch (error) {
-        if (signal.aborted) return;
+        if (controller.signal.aborted) return;
         logger.error('GET /outlier-baselines/posts failed', error);
         setPosts([]);
+        setTotal(0);
+        setIsError(true);
       }
-    },
-    [brandId, getService, platform, scope, tier],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchPosts(controller.signal);
+    })();
     return () => controller.abort();
-  }, [fetchPosts]);
+  }, [
+    brandId,
+    getService,
+    isFetchReady,
+    page,
+    platform,
+    refreshTrigger,
+    retryCount,
+    tier,
+  ]);
 
   const emptyLabel = translate('empty');
 
@@ -138,7 +143,7 @@ export default function AnalyticsOutliers({
         className: 'min-w-24',
         header: translate('platform'),
         key: 'platform',
-        render: (post) => post.platform,
+        render: (post) => <PlatformBadge platform={post.platform} />,
       },
       {
         className: 'min-w-24',
@@ -149,7 +154,7 @@ export default function AnalyticsOutliers({
         ),
         key: 'views',
         render: (post) =>
-          post.views == null ? '—' : formatCompactNumber(post.views),
+          post.views == null ? '-' : formatCompactNumber(post.views),
       },
       {
         className: 'min-w-28',
@@ -157,7 +162,7 @@ export default function AnalyticsOutliers({
         key: 'medianViews',
         render: (post) =>
           post.medianViews == null
-            ? '—'
+            ? '-'
             : `${formatCompactNumber(post.medianViews)} (${post.sampleSize ?? 0})`,
       },
       {
@@ -178,7 +183,7 @@ export default function AnalyticsOutliers({
           post.outlierTier ? (
             <Badge value={post.outlierTier} className="text-xs capitalize" />
           ) : (
-            '—'
+            '-'
           ),
       },
     ],
@@ -218,49 +223,22 @@ export default function AnalyticsOutliers({
   );
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col gap-2">
-        <Heading size="xl">{translate('heading')}</Heading>
-        <Text as="p" size="sm" color="subtle-60">
-          {translate('description')}
-        </Text>
-      </div>
-      <div className="flex flex-wrap gap-3">
-        <Select value={platform} onValueChange={setPlatform}>
-          <SelectTrigger className="w-44" aria-label={translate('platform')}>
-            <SelectValue placeholder={translate('platform')} />
-          </SelectTrigger>
-          <SelectContent>
-            {PLATFORM_VALUES.map((value) => (
-              <SelectItem key={value} value={value}>
-                {translate(value === 'all' ? 'allPlatforms' : value)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={tier} onValueChange={setTier}>
-          <SelectTrigger className="w-44" aria-label={translate('tier')}>
-            <SelectValue placeholder={translate('tier')} />
-          </SelectTrigger>
-          <SelectContent>
-            {TIER_VALUES.map((value) => (
-              <SelectItem key={value} value={value}>
-                {value === 'all'
-                  ? translate('allTiers')
-                  : value === 'outlier'
-                    ? translate('outlierTier')
-                    : translate('breakoutTier')}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="space-y-4 pb-12">
       <Table<OutlierPerformanceResponse>
+        label={translate('postsLabel')}
         items={posts ?? []}
         isLoading={posts === null}
         actions={actions}
         columns={columns}
         emptyLabel={emptyLabel}
+        error={
+          isError
+            ? {
+                onRetry: () => setRetryCount((count) => count + 1),
+                title: translate('loadError'),
+              }
+            : undefined
+        }
         getRowKey={(post) => post.id}
         getRowLink={(post) => {
           const postHref = getPostHref(post);
@@ -269,6 +247,13 @@ export default function AnalyticsOutliers({
             : undefined;
         }}
         rowSidebar={rowSidebar}
+      />
+      <Pagination
+        currentPage={page}
+        onPageChange={(nextPage) => setPageState({ filterKey, page: nextPage })}
+        totalItems={total}
+        totalLabel={translate('postsTotalLabel')}
+        totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
       />
     </div>
   );

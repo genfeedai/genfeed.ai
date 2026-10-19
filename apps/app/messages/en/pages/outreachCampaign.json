@@ -34,6 +34,18 @@
     "draft": "Draft",
     "paused": "Paused"
   },
+  "summary": {
+    "failed": "Failed",
+    "lastActivity": "Last activity",
+    "platform": "Platform",
+    "rateLimits": "Rate limits",
+    "rateLimitsValue": "{perHour}/hr, {perDay}/day",
+    "replied": "Replied",
+    "skipped": "Skipped",
+    "started": "Started",
+    "targets": "Targets",
+    "type": "Type"
+  },
   "timezone": "Timezone:",
   "tone": "Tone:",
   "totalSequences": "Total sequences",

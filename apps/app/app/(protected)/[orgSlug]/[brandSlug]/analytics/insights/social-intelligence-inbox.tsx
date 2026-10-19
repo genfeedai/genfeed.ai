@@ -23,7 +23,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
-import { ExternalLink, Inbox, RefreshCw } from 'lucide-react';
+import { ExternalLink, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -292,7 +292,8 @@ export default function SocialIntelligenceInbox({
       return <StateCard message="Loading social intelligence…" />;
     }
     if (inbox.state === 'empty') {
-      return <StateCard message="No listening themes yet" />;
+      // The page's own empty state speaks for an empty inbox.
+      return null;
     }
     if (inbox.state === 'forbidden') {
       return (
@@ -578,26 +579,7 @@ export default function SocialIntelligenceInbox({
   ]);
 
   return (
-    <section
-      aria-labelledby="social-intelligence-heading"
-      className="space-y-4"
-    >
-      <div className="flex items-center gap-3">
-        <div className="rounded-md bg-info/10 p-2 text-info">
-          <Inbox className="size-4" />
-        </div>
-        <div>
-          <h2
-            className="text-lg font-semibold"
-            id="social-intelligence-heading"
-          >
-            {translate('title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {translate('description')}
-          </p>
-        </div>
-      </div>
+    <section aria-label={translate('title')} className="space-y-4">
       {body}
     </section>
   );
