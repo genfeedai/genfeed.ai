@@ -285,6 +285,7 @@ describe('BrandedTextGenerationService', () => {
           messages: [{ role: 'user', content: 'COMPILED' }],
           max_tokens: 500,
           temperature: 0.8,
+          reasoning: { enabled: false },
         },
         'byok-key',
       );

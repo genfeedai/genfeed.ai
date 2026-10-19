@@ -337,6 +337,9 @@ export class BrandedTextGenerationService {
           messages: [{ role: 'user', content: compiledPrompt }],
           max_tokens: parameters.maxTokens,
           temperature: parameters.temperature,
+          // A short post must not spend its whole token budget on hidden
+          // reasoning and come back empty.
+          reasoning: { enabled: false },
         },
         apiKey,
       );
@@ -346,10 +349,18 @@ export class BrandedTextGenerationService {
         !learningContractIdSchema.safeParse(providerAttemptRef).success
       )
         return null;
-      return {
-        providerAttemptRef,
-        text: response.choices?.[0]?.message?.content ?? '',
-      };
+      const text = response.choices?.[0]?.message?.content ?? '';
+      if (!text.trim())
+        this.logger.warn('Branded text provider returned no content', {
+          completionTokens: response.usage?.completion_tokens,
+          finishReason: response.choices?.[0]?.finish_reason,
+          hasReasoning: Boolean(
+            response.choices?.[0]?.message?.reasoning_content,
+          ),
+          model: input.model,
+          providerAttemptRef,
+        });
+      return { providerAttemptRef, text };
     } catch {
       return null;
     }
