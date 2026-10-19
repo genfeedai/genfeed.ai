@@ -77,9 +77,11 @@ function toIdentityLabel(name: string, source: string) {
 function toCatalogVoiceOption(voice: Voice): StudioIdentityOption {
   return {
     ...toIdentityLabel(getVoiceName(voice), String(voice.provider)),
+    // A clone with no provider-side id is told apart by its own id, so
+    // deduping by value never folds two distinct clones into one.
     value: encodeCatalogVoiceValue(
       voice.provider as VoiceProvider,
-      String(voice.externalVoiceId),
+      voice.externalVoiceId ? String(voice.externalVoiceId) : voice.id,
     ),
     gender: normalizeIdentityGender(voice.gender),
     preview: voice.sampleAudioUrl || undefined,

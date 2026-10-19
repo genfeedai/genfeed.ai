@@ -110,6 +110,12 @@ export class VoiceLibraryService {
         options,
       );
 
+      // Catalogue entries are not the org's default voice, so a default filter
+      // applies to the org's own voices only.
+      if (query.isDefault !== undefined) {
+        return ingredientResult;
+      }
+
       return await this.appendCatalogVoices(ingredientResult, {
         isActive: query.isActive,
         limit: options.limit,

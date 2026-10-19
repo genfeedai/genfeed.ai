@@ -275,4 +275,19 @@ describe('VoiceLibraryService', () => {
       totalPages: 2,
     });
   });
+
+  it('leaves the catalogue out when filtering by the default voice', async () => {
+    voicesService.findAll.mockResolvedValue({
+      docs: [{ id: 'default-1', isDefault: true }],
+      totalDocs: 1,
+    });
+
+    const result = await service.findAll(
+      user,
+      tenantReadQuery(VoicesQueryDto, { isDefault: true }),
+    );
+
+    expect(catalogService.findRange).not.toHaveBeenCalled();
+    expect(result.docs).toEqual([{ id: 'default-1', isDefault: true }]);
+  });
 });
