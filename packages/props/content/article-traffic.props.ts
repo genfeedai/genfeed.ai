@@ -4,9 +4,11 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import type { Article } from '@models/content/article.model';
 
-export interface ArticleTrafficDialogProps {
+export interface ArticleTrafficPanelProps {
   article: Article;
-  onClose: () => void;
+  /** The article's editor page, linked from the panel header. */
+  openHref?: string;
+  openLabel?: string;
 }
 
 export interface ArticleTrafficChartProps {

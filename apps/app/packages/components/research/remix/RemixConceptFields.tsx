@@ -67,7 +67,7 @@ export default function RemixConceptFields({
           {translate('concept.help')}
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <Input
           label={translate('concept.angle')}
           maxLength={1_000}
@@ -156,7 +156,7 @@ export default function RemixConceptFields({
               }
               value={scene.visualIntent}
             />
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4">
               <Input
                 label={translate('concept.narration')}
                 maxLength={1_000}

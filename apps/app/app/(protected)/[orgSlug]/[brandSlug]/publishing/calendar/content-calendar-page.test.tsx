@@ -1,4 +1,8 @@
 import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
+import {
   ArticleStatus,
   CalendarSlotState,
   CredentialPlatform,
@@ -436,8 +440,17 @@ function latestCalendarProps() {
   return latest;
 }
 
+function renderCalendarPage(embedded = false) {
+  return render(
+    <ContextSidebarProvider>
+      <ContentCalendarPage embedded={embedded} />
+      <ContextSidebarOutlet />
+    </ContextSidebarProvider>,
+  );
+}
+
 async function renderLoaded() {
-  render(<ContentCalendarPage />);
+  renderCalendarPage();
 
   await waitFor(() => {
     expect(findReleasesMock).toHaveBeenCalled();
@@ -477,7 +490,7 @@ describe('ContentCalendarPage', () => {
   it('keeps the calendar available after loading an empty schedule', async () => {
     findReleasesMock.mockResolvedValue([]);
 
-    render(<ContentCalendarPage />);
+    renderCalendarPage();
 
     await waitFor(() => {
       expect(latestCalendarProps().isLoading).toBe(false);

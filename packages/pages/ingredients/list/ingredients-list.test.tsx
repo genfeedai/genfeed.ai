@@ -169,7 +169,6 @@ function buildIngredientsListReturn(overrides: Record<string, unknown> = {}) {
     handleReprompt: vi.fn(),
     handleReverse: vi.fn(),
     handleScopeChange: vi.fn(),
-    handleSeeDetails: vi.fn(),
     handleSelectFolder: vi.fn(),
     handleUpdateParent: vi.fn(),
     hasFilteredEmptyState: false,

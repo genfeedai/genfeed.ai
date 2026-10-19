@@ -1,9 +1,9 @@
 'use client';
 
-import { useIngredientOverlay } from '@contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePageScope } from '@hooks/navigation/use-page-scope/use-page-scope';
+import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -19,7 +19,7 @@ export default function AssetDeepLink() {
   // The organization Library spans every brand, so only a brand page pins the
   // linked asset to one.
   const isBrandScoped = usePageScope() !== 'org';
-  const { openIngredientOverlay } = useIngredientOverlay();
+  const { openIngredientSidebar } = useIngredientSidebar();
   const getService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
   );
@@ -69,7 +69,7 @@ export default function AssetDeepLink() {
           return;
         }
         openedKey.current = key;
-        openIngredientOverlay(ingredient);
+        openIngredientSidebar(ingredient);
         setState('opened');
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -88,7 +88,7 @@ export default function AssetDeepLink() {
     getService,
     isReady,
     isBrandScoped,
-    openIngredientOverlay,
+    openIngredientSidebar,
     organizationId,
   ]);
 

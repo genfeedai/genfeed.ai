@@ -99,14 +99,12 @@ export interface IngredientsListContentProps {
   onGenerateCaptions: (ingredient: IIngredient) => Promise<void> | void;
   onReverse?: (ingredient: IIngredient) => Promise<void> | void;
   onMirror?: (ingredient: IIngredient) => Promise<void> | void;
-  onSeeDetails: (ingredient: IIngredient) => void;
   onUpdateParent: (
     ingredient: IIngredient,
     parentId: string | null,
   ) => Promise<void> | void;
   onRefresh: () => void;
   onPublishIngredient: (ingredient: IIngredient) => void;
-  onOpenIngredientModal: (modalId: ModalEnum, ingredient?: IIngredient) => void;
   onOpenLightbox: (ingredient: IIngredient) => boolean;
   onClearFilters: () => void;
   onSetIngredients: Dispatch<SetStateAction<IIngredient[]>>;
@@ -175,7 +173,6 @@ export interface UseIngredientsListReturn {
   handleGenerateCaptions: (ingredient: IIngredient) => Promise<void>;
   handleReverse: (ingredient: IIngredient) => Promise<void>;
   handleMirror: (ingredient: IIngredient) => Promise<void>;
-  handleSeeDetails: (ingredient: IIngredient) => void;
   handleUpdateParent: (
     ingredient: IIngredient,
     parentId: string | null,

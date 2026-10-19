@@ -7,7 +7,10 @@ const mocks = vi.hoisted(() => {
   return {
     brandId: 'brand-1',
     ingredientActions: vi.fn<
-      (config: { onRefresh: () => Promise<void> }) => {
+      (config: {
+        onRefresh: () => Promise<void>;
+        onSeeDetails: (ingredient: { category: string; id: string }) => void;
+      }) => {
         handlers: Record<string, never>;
         loadingStates: Record<string, never>;
       }
@@ -20,6 +23,7 @@ const mocks = vi.hoisted(() => {
     getMetadataService: vi.fn(),
     logger: { error: vi.fn(), info: vi.fn() },
     notifications: { error: vi.fn(), success: vi.fn() },
+    openIngredientSidebar: vi.fn(),
     router: { push: vi.fn() },
     service,
   };
@@ -46,8 +50,16 @@ vi.mock(
     default: mocks.ingredientActions,
   }),
 );
+vi.mock(
+  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  () => ({
+    useIngredientSidebar: () => ({
+      closeIngredientSidebar: vi.fn(),
+      openIngredientSidebar: mocks.openIngredientSidebar,
+    }),
+  }),
+);
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useIngredientOverlay: () => ({ openIngredientOverlay: vi.fn() }),
   usePostModal: () => ({ openPostBatchModal: vi.fn() }),
 }));
 vi.mock('@services/content/ingredients.service', () => ({
@@ -197,6 +209,21 @@ describe('useIngredientDetail loading', () => {
     });
     expect(result.current.isLoading).toBe(false);
     expect(result.current.ingredient?.label).toBe('Refreshed');
+  });
+
+  it('opens a child with an admin page, and inspects any other child in the sidebar', async () => {
+    const { result } = renderDetail();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const onSeeDetails =
+      mocks.ingredientActions.mock.lastCall?.[0].onSeeDetails;
+
+    onSeeDetails?.({ category: 'IMAGE', id: 'child-1' });
+    expect(mocks.router.push).toHaveBeenCalledWith('/admin/images/child-1');
+    expect(mocks.openIngredientSidebar).not.toHaveBeenCalled();
+
+    const gif = { category: 'GIF', id: 'child-2' };
+    onSeeDetails?.(gif);
+    expect(mocks.openIngredientSidebar).toHaveBeenCalledWith(gif);
   });
 
   it('ignores an action refresh parent after the selected ID changes', async () => {
