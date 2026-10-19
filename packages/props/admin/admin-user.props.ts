@@ -14,9 +14,8 @@ export interface AdminUserDetailsProps {
   user: IUser;
 }
 
-export interface AdminUserDetailSheetProps {
-  user: IUser | null;
-  onClose: () => void;
+export interface AdminUserDetailPanelProps {
+  user: IUser;
   onImpersonate: (user: IUser) => void;
 }
 

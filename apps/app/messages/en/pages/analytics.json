@@ -458,7 +458,8 @@
     "all": "All sources",
     "audience": "Audience",
     "aria": "Filter post analytics by source",
-    "extension": "Extension"
+    "extension": "Extension",
+    "menuLabel": "Source"
   },
   "postCard": {
     "engagement": "Engagement",

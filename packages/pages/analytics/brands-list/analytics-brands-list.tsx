@@ -1,8 +1,12 @@
 'use client';
 
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import {
+  useAnalyticsContext,
+  useAnalyticsToolbar,
+} from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import {
   formatCompactNumberIntl,
   formatPercentageSimple,
@@ -21,18 +25,12 @@ import {
   type IBrandWithStats,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -48,6 +46,12 @@ export interface AnalyticsBrandsListProps {
 
 const SEARCH_DEBOUNCE_MS = 300;
 
+const SORT_OPTIONS = [
+  { label: 'Engagement', value: AnalyticsMetric.ENGAGEMENT },
+  { label: 'Views', value: AnalyticsMetric.VIEWS },
+  { label: 'Posts', value: AnalyticsMetric.POSTS },
+] as const;
+
 export default function AnalyticsBrandsList({
   basePath = '/analytics',
   isBrandScoped = true,
@@ -60,14 +64,8 @@ export default function AnalyticsBrandsList({
   const pathname = usePathname();
   const { replace } = useRouter();
   const currentPage = Number(searchParams.get('page')) || 1;
-  const {
-    dateRange,
-    filters,
-    refreshTrigger,
-    setFilter,
-    setToolbarNode,
-    triggerRefresh,
-  } = useAnalyticsContext();
+  const { dateRange, filters, refreshTrigger, setFilter, triggerRefresh } =
+    useAnalyticsContext();
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -172,44 +170,39 @@ export default function AnalyticsBrandsList({
     getAnalyticsService,
   ]);
 
-  const toolbar = useMemo(
-    () => (
+  const toolbar = useMemo(() => {
+    const facets: FilterMenuFacet[] = [
+      {
+        defaultValue: AnalyticsMetric.ENGAGEMENT,
+        // Sort orders the list, it does not narrow it.
+        isCounted: false,
+        key: 'sort',
+        label: 'Sort by',
+        onChange: (value) => setFilter('sort', value),
+        options: SORT_OPTIONS,
+        selection: 'single',
+        value: sortBy,
+      },
+    ];
+
+    return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <FormSearchbar
           ariaLabel="Search brands"
           placeholder="Search brands..."
           value={searchTerm}
           onChange={(e) => setFilter('query', e.target.value)}
-          className="w-full sm:w-64"
+          className="w-full sm:w-48"
         />
-
-        <Select
-          value={sortBy}
-          onValueChange={(value) => setFilter('sort', value)}
-        >
-          <SelectTrigger
-            aria-label="Sort brand analytics"
-            className="w-full sm:w-44"
-          >
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={AnalyticsMetric.ENGAGEMENT}>
-              Sort by Engagement
-            </SelectItem>
-            <SelectItem value={AnalyticsMetric.VIEWS}>Sort by Views</SelectItem>
-            <SelectItem value={AnalyticsMetric.POSTS}>Sort by Posts</SelectItem>
-          </SelectContent>
-        </Select>
+        <AnalyticsFilterMenu
+          facets={facets}
+          onClear={() => setFilter('sort', undefined)}
+        />
       </div>
-    ),
-    [searchTerm, sortBy, setFilter],
-  );
+    );
+  }, [searchTerm, sortBy, setFilter]);
 
-  useEffect(() => {
-    setToolbarNode(toolbar);
-    return () => setToolbarNode(null);
-  }, [setToolbarNode, toolbar]);
+  useAnalyticsToolbar(toolbar);
 
   return (
     <>

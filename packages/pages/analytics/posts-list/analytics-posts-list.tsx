@@ -1,6 +1,9 @@
 'use client';
 
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import {
+  useAnalyticsContext,
+  useAnalyticsToolbar,
+} from '@contexts/analytics/analytics-context';
 import {
   AnalyticsMetric,
   ButtonSize,
@@ -8,6 +11,7 @@ import {
   ComponentSize,
   PageScope,
 } from '@genfeedai/contracts';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
@@ -21,26 +25,14 @@ import {
   parsePostsSource,
 } from '@pages/posts/list/posts-list-query';
 import type { AnalyticsPostGridItem } from '@props/analytics/analytics-posts-grid.props';
+import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const METRIC_OPTIONS: Array<{
   label: string;
@@ -70,24 +62,6 @@ const SHOW_WINNERS = 'winners';
 const SOURCE_ALL = 'all';
 const POSTS_PAGE_SIZE = 12;
 
-const renderPlatformOption = (
-  option: (typeof PLATFORM_OPTIONS)[number],
-): ReactNode => {
-  const icon =
-    option.value === 'all' ? (
-      <LayoutGrid className="size-4 shrink-0 text-foreground/70" />
-    ) : (
-      getPlatformIcon(option.value, 'h-4 w-4 shrink-0')
-    );
-
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      {icon}
-      <span className="truncate">{option.label}</span>
-    </div>
-  );
-};
-
 export default function AnalyticsPostsList() {
   const { replace } = useRouter();
   const pathname = usePathname();
@@ -97,7 +71,7 @@ export default function AnalyticsPostsList() {
   const [localFocusedPostId, setLocalFocusedPostId] = useState<
     string | null | undefined
   >(undefined);
-  const { filters, setFilter, setToolbarNode } = useAnalyticsContext();
+  const { filters, setFilter } = useAnalyticsContext();
   const focusedPostId =
     (localFocusedPostId === undefined
       ? (filters.postId ?? urlFocusedPostId)
@@ -183,17 +157,81 @@ export default function AnalyticsPostsList() {
     resetKey: [search, metric, platform, source ?? SOURCE_ALL].join('|'),
   });
 
-  const selectedPlatformOption = useMemo(
-    () =>
-      PLATFORM_OPTIONS.find((option) => option.value === platform) ??
-      PLATFORM_OPTIONS[0],
-    [platform],
-  );
+  const toolbar = useMemo(() => {
+    const facets: FilterMenuFacet[] = [
+      {
+        defaultValue: SHOW_ALL,
+        key: 'show',
+        label: translateWinners('showLabel'),
+        onChange: (value) => {
+          setFilter('show', value === SHOW_WINNERS ? value : undefined);
+          if (value === SHOW_WINNERS) {
+            setFilter('source', undefined);
+          }
+        },
+        options: [
+          { label: translateWinners('allPosts'), value: SHOW_ALL },
+          { label: translateWinners('winners'), value: SHOW_WINNERS },
+        ],
+        selection: 'single',
+        value: isWinnersView ? SHOW_WINNERS : SHOW_ALL,
+      },
+      ...(isWinnersView
+        ? []
+        : ([
+            {
+              defaultValue: AnalyticsMetric.VIEWS,
+              // Rank by orders the posts, it does not narrow them.
+              isCounted: false,
+              key: 'metric',
+              label: 'Rank by',
+              onChange: (value) => setFilter('metric', value),
+              options: METRIC_OPTIONS,
+              selection: 'single',
+              value: metric,
+            },
+          ] satisfies FilterMenuFacet[])),
+      {
+        defaultValue: 'all',
+        key: 'platform',
+        label: 'Platform',
+        onChange: (value) =>
+          setFilter('platform', value === 'all' ? undefined : value),
+        options: PLATFORM_OPTIONS.map((option) => ({
+          icon:
+            option.value === 'all' ? (
+              <LayoutGrid className="size-4 shrink-0 text-foreground/70" />
+            ) : (
+              getPlatformIcon(option.value, 'size-4 shrink-0')
+            ),
+          label: option.label,
+          value: option.value,
+        })),
+        selection: 'single',
+        value: platform,
+      },
+      ...(isWinnersView
+        ? []
+        : ([
+            {
+              defaultValue: SOURCE_ALL,
+              key: 'source',
+              label: translateSource('menuLabel'),
+              onChange: (value) => setFilter('source', parsePostsSource(value)),
+              options: [
+                { label: translateSource('all'), value: SOURCE_ALL },
+                {
+                  label: translateSource('extension'),
+                  value: POSTS_SOURCE_EXTENSION,
+                },
+              ],
+              selection: 'single',
+              value: source ?? SOURCE_ALL,
+            },
+          ] satisfies FilterMenuFacet[])),
+    ];
 
-  // One dense row, like the other subbars: the shared layout puts Refresh and
-  // Export before these filters and the date range after them.
-  const toolbar = useMemo(
-    () => (
+    return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {focusedPostId ? (
           <Button
@@ -212,117 +250,30 @@ export default function AnalyticsPostsList() {
           className="w-48"
         />
 
-        <Select
-          value={isWinnersView ? SHOW_WINNERS : SHOW_ALL}
-          onValueChange={(value) => {
-            setFilter('show', value === SHOW_WINNERS ? value : undefined);
-            if (value === SHOW_WINNERS) {
-              setFilter('source', undefined);
-            }
+        <AnalyticsFilterMenu
+          facets={facets}
+          onClear={() => {
+            setFilter('show', undefined);
+            setFilter('platform', undefined);
+            setFilter('source', undefined);
           }}
-        >
-          <SelectTrigger
-            aria-label={translateWinners('showLabel')}
-            className="w-32"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={SHOW_ALL}>
-              {translateWinners('allPosts')}
-            </SelectItem>
-            <SelectItem value={SHOW_WINNERS}>
-              {translateWinners('winners')}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        {isWinnersView ? null : (
-          <Select
-            value={metric}
-            onValueChange={(value) => setFilter('metric', value)}
-          >
-            <SelectTrigger
-              aria-label="Sort post analytics by metric"
-              className="w-32"
-            >
-              <SelectValue placeholder="Metric" />
-            </SelectTrigger>
-            <SelectContent>
-              {METRIC_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        <Select
-          value={platform}
-          onValueChange={(value) =>
-            setFilter('platform', value === 'all' ? undefined : value)
-          }
-        >
-          <SelectTrigger
-            aria-label="Filter post analytics by platform"
-            className="w-32"
-          >
-            {renderPlatformOption(selectedPlatformOption)}
-          </SelectTrigger>
-          <SelectContent>
-            {PLATFORM_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {renderPlatformOption(option)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {isWinnersView ? null : (
-          <Select
-            value={source ?? SOURCE_ALL}
-            onValueChange={(value) =>
-              setFilter('source', parsePostsSource(value))
-            }
-          >
-            <SelectTrigger
-              aria-label={translateSource('aria')}
-              className="w-36"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SOURCE_ALL}>
-                {translateSource('all')}
-              </SelectItem>
-              <SelectItem value={POSTS_SOURCE_EXTENSION}>
-                {translateSource('extension')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        )}
+        />
       </div>
-    ),
-    [
-      focusedPostId,
-      isWinnersView,
-      search,
-      metric,
-      platform,
-      selectedPlatformOption,
-      setFocusedPost,
-      setFilter,
-      source,
-      translateSource,
-      translateWinners,
-    ],
-  );
+    );
+  }, [
+    focusedPostId,
+    isWinnersView,
+    search,
+    metric,
+    platform,
+    setFocusedPost,
+    setFilter,
+    source,
+    translateSource,
+    translateWinners,
+  ]);
 
-  useEffect(() => {
-    setToolbarNode(toolbar);
-    return () => setToolbarNode(null);
-  }, [setToolbarNode, toolbar]);
+  useAnalyticsToolbar(toolbar);
 
   return (
     <>

@@ -1,6 +1,9 @@
 'use client';
 
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import {
+  useAnalyticsContext,
+  useAnalyticsToolbar,
+} from '@contexts/analytics/analytics-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@contexts/user/brand-context/brand-context.helpers';
 import {
@@ -17,6 +20,7 @@ import type {
   IFleetEvaluationPolicy,
 } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -28,6 +32,7 @@ import AccountCell from '@pages/brands/components/integrations/AccountCell';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Badge from '@ui/display/badge/Badge';
 import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
@@ -37,13 +42,6 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -132,8 +130,7 @@ export default function AnalyticsAccounts() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
-  const { dateRange, setToolbarNode, refreshTrigger, triggerRefresh } =
-    useAnalyticsContext();
+  const { dateRange, refreshTrigger, triggerRefresh } = useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -244,8 +241,29 @@ export default function AnalyticsAccounts() {
     return () => controller.abort();
   }, [isFetchReady, load, refreshTrigger]);
 
-  const accountToolbar = useMemo(
-    () => (
+  const accountToolbar = useMemo(() => {
+    const facets: FilterMenuFacet[] = [
+      {
+        defaultValue: AnalyticsMetric.VIEWS,
+        // Rank by orders the accounts, it does not narrow them.
+        isCounted: false,
+        key: 'metric',
+        label: translate('rankByMetric'),
+        onChange: (value) => {
+          setMetric(value as AnalyticsMetric);
+          resetPage();
+        },
+        options: [
+          { label: translate('views'), value: AnalyticsMetric.VIEWS },
+          { label: translate('followers'), value: AnalyticsMetric.FOLLOWERS },
+          { label: translate('posts'), value: AnalyticsMetric.POSTS },
+        ],
+        selection: 'single',
+        value: metric,
+      },
+    ];
+
+    return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <FormSearchbar
           ariaLabel={translate('searchAccounts')}
@@ -257,31 +275,13 @@ export default function AnalyticsAccounts() {
           }}
           placeholder={translate('searchAccounts')}
         />
-        <Select
-          value={metric}
-          onValueChange={(value) => {
-            setMetric(value as AnalyticsMetric);
+        <AnalyticsFilterMenu
+          facets={facets}
+          onClear={() => {
+            setMetric(AnalyticsMetric.VIEWS);
             resetPage();
           }}
-        >
-          <SelectTrigger
-            aria-label={translate('rankByMetric')}
-            className="h-9 w-32"
-          >
-            <SelectValue placeholder={translate('metric')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={AnalyticsMetric.VIEWS}>
-              {translate('views')}
-            </SelectItem>
-            <SelectItem value={AnalyticsMetric.FOLLOWERS}>
-              {translate('followers')}
-            </SelectItem>
-            <SelectItem value={AnalyticsMetric.POSTS}>
-              {translate('posts')}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        />
         <Input
           aria-label={translate('evaluationWeeks')}
           className="h-9 w-20"
@@ -314,27 +314,23 @@ export default function AnalyticsAccounts() {
           }}
         />
       </div>
-    ),
-    [
-      brandId,
-      getService,
-      metric,
-      organizationId,
-      policy,
-      resetPage,
-      search,
-      translate,
-      windowWeeks,
-    ],
-  );
+    );
+  }, [
+    brandId,
+    getService,
+    metric,
+    organizationId,
+    policy,
+    resetPage,
+    search,
+    translate,
+    windowWeeks,
+  ]);
 
   const hasAccountToolbar =
     Boolean(list?.accounts.length) || search.trim().length > 0;
 
-  useEffect(() => {
-    setToolbarNode(hasAccountToolbar ? accountToolbar : null);
-    return () => setToolbarNode(null);
-  }, [accountToolbar, hasAccountToolbar, setToolbarNode]);
+  useAnalyticsToolbar(hasAccountToolbar ? accountToolbar : null);
 
   const columns: TableColumn<IAccountAnalytics>[] = useMemo(
     () => [

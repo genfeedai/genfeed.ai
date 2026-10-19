@@ -46,7 +46,7 @@ function DetailSection({ title, children }: AdminUserDetailSectionProps) {
 }
 
 /**
- * Every field the user record carries, shared by the row overlay and the user
+ * Every field the user record carries, shared by the row sidebar and the user
  * page. Fields the record lacks read "—" rather than a placeholder sentence.
  */
 export default function UserDetails({ user }: AdminUserDetailsProps) {
