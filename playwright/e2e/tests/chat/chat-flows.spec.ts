@@ -352,12 +352,14 @@ test.describe('Agent Chat', () => {
             uiActions: [
               {
                 ctas: [
-                  // A saved transcript's retired `/content/posts` link.
+                  // A canonical, unscoped Publishing link: the card scopes it
+                  // to the thread's org. The retired `/content/posts` path is
+                  // no longer rewritten client-side (#7642).
                   {
-                    href: '/content/posts',
+                    href: '/publishing/posts',
                     label: 'Open Posts',
                   },
-                  // A current canonical, unscoped Publishing deep link.
+                  // A canonical, unscoped Publishing deep link with a filter.
                   {
                     href: '/publishing/posts?publicationState=posted',
                     label: 'Open Published',
@@ -434,8 +436,8 @@ test.describe('Agent Chat', () => {
         'Publish confirmed. Your post is ready to review.',
       ),
     ).toBeVisible({ timeout: 20_000 });
-    // Agent CTAs resolve through the scoped route helpers (#6533): the retired
-    // path is rewritten to Publishing, and both stay in the thread's scope.
+    // Agent CTAs resolve through the scoped route helpers (#6533): canonical
+    // Publishing links are scoped to the thread's org.
     await expect(
       conversation.getByRole('link', { name: 'Open Posts' }),
     ).toHaveAttribute('href', '/test-org/~/publishing/posts');

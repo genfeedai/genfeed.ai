@@ -235,6 +235,35 @@ describe('ContentPreviewCard', () => {
     );
   });
 
+  it('scopes canonical Publishing CTAs to the active org and brand', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          ctas: [
+            { href: '/publishing/posts', label: 'Open Posts' },
+            {
+              href: '/publishing/posts?publicationState=posted',
+              label: 'Open Published',
+            },
+          ],
+          id: 'publishing-ctas',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Open Posts' })).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/publishing/posts',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Open Published' }),
+    ).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/publishing/posts?publicationState=posted',
+    );
+  });
+
   it('shows a terminal generation failure instead of an empty result card', async () => {
     const getGeneratedAsset = vi.fn().mockResolvedValue({
       id: 'image-failed',
