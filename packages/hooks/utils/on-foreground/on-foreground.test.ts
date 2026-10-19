@@ -24,7 +24,7 @@ describe('onForeground', () => {
 
   it('runs again once the coalesce window has passed', () => {
     const callback = vi.fn();
-    const dispose = onForeground(callback, 1_000);
+    const dispose = onForeground(callback, { coalesceMs: 1_000 });
 
     window.dispatchEvent(new Event('focus'));
     vi.advanceTimersByTime(1_001);
@@ -55,5 +55,32 @@ describe('onForeground', () => {
     window.dispatchEvent(new Event('focus'));
 
     expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('skips a return after a short glance away and runs after a long one', () => {
+    const callback = vi.fn();
+    const dispose = onForeground(callback, { minAwayMs: 30_000 });
+
+    window.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(5_000);
+    window.dispatchEvent(new Event('focus'));
+    expect(callback).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(31_000);
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(callback).toHaveBeenCalledTimes(1);
+    dispose();
+  });
+
+  it('runs on the first return when no departure was seen', () => {
+    const callback = vi.fn();
+    const dispose = onForeground(callback, { minAwayMs: 30_000 });
+
+    window.dispatchEvent(new Event('focus'));
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    dispose();
   });
 });

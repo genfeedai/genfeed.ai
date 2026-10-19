@@ -2,7 +2,10 @@ import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@hooks/utils/on-foreground/on-foreground';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {
   useInfiniteQuery,
@@ -60,7 +63,9 @@ export function useNotificationInbox(open: boolean) {
       connectionState === 'connected'
         ? undefined
         : setInterval(reconcileVisible, NOTIFICATION_INBOX_RECONCILE_MS);
-    const disposeForeground = onForeground(refresh);
+    const disposeForeground = onForeground(refresh, {
+      minAwayMs: FOREGROUND_MIN_AWAY_MS,
+    });
     return () => {
       dispose?.();
       if (interval) clearInterval(interval);

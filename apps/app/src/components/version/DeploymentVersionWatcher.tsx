@@ -1,7 +1,10 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@hooks/utils/on-foreground/on-foreground';
 
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
@@ -88,9 +91,12 @@ export default function DeploymentVersionWatcher() {
       void checkForUpdate();
     }, POLL_INTERVAL_MS);
     // One check per tab return: focus and visibilitychange fire together.
-    const disposeForeground = onForeground(() => {
-      void checkForUpdate();
-    });
+    const disposeForeground = onForeground(
+      () => {
+        void checkForUpdate();
+      },
+      { minAwayMs: FOREGROUND_MIN_AWAY_MS },
+    );
 
     // Check once shortly after mount instead of waiting a full interval.
     void checkForUpdate();
