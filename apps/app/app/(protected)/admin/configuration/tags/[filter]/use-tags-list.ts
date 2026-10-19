@@ -1,5 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { ModalEnum } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   ContentScope,
   IQueryParams,
@@ -14,6 +15,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const SUPERADMIN: ContentScope = 'superadmin';
@@ -41,6 +43,12 @@ export function useTagsList({
 
   const { openConfirm } = useConfirmModal();
 
+  const { replace } = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const currentPage = Number(searchParams.get('page')) || 1;
+
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -67,6 +75,7 @@ export function useTagsList({
       filters.type,
       adminOrg,
       adminBrand,
+      currentPage,
     ],
     [
       organizationId,
@@ -79,6 +88,7 @@ export function useTagsList({
       filters.type,
       adminOrg,
       adminBrand,
+      currentPage,
     ],
   );
 
@@ -99,7 +109,10 @@ export function useTagsList({
 
       const url = 'GET /tags';
 
-      const query: IQueryParams = {};
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+      };
       query.isActive = true;
 
       if (filters.search) {
@@ -139,6 +152,31 @@ export function useTagsList({
     enabled:
       scope === SUPERADMIN || (scope === ORGANIZATION && !!organizationId),
   });
+
+  // A different search, category, sort, tab or org/brand scope starts over at
+  // page 1; the first render keeps whatever page the URL already carries.
+  const filterSignature = [
+    filter,
+    filters.search,
+    filters.sort,
+    filters.type,
+    adminOrg,
+    adminBrand,
+  ].join('|');
+  const previousFilterSignatureRef = useRef(filterSignature);
+
+  useEffect(() => {
+    if (previousFilterSignatureRef.current === filterSignature) return;
+    previousFilterSignatureRef.current = filterSignature;
+
+    const params = new URLSearchParams(searchParamsString);
+    if (!params.has('page')) return;
+    params.delete('page');
+    const queryString = params.toString();
+    replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [filterSignature, pathname, replace, searchParamsString]);
 
   const wasFetchingRef = useRef(false);
   const isRefreshing = isFetching;

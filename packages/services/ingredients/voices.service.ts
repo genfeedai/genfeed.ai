@@ -3,6 +3,7 @@ import type { ElevenLabsAccountVoicePage } from '@genfeedai/contracts/interfaces
 import type { ExternalVoice } from '@genfeedai/models/elements/external-voice.model';
 import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
+import { PagesService } from '@services/content/pages.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
@@ -15,6 +16,8 @@ export interface CatalogSyncResult {
 }
 
 export interface CatalogFindParams {
+  limit?: number;
+  page?: number;
   provider?: VoiceProvider;
   search?: string;
 }
@@ -56,7 +59,14 @@ export class VoicesService extends IngredientsService<Voice> {
     return instance;
   }
 
-  async findCatalog(params: CatalogFindParams = {}): Promise<ExternalVoice[]> {
+  /**
+   * One page of the voice catalog. When `page` is sent, the page and totals
+   * are recorded in {@link PagesService} for `AutoPagination`.
+   */
+  async findCatalog(
+    params: CatalogFindParams = {},
+    signal?: AbortSignal,
+  ): Promise<ExternalVoice[]> {
     const query: Record<string, unknown> = {};
     if (params.provider) {
       query['provider'] = params.provider;
@@ -64,12 +74,27 @@ export class VoicesService extends IngredientsService<Voice> {
     if (params.search) {
       query['search'] = params.search;
     }
+    if (params.limit) {
+      query['limit'] = params.limit;
+    }
+    if (params.page) {
+      query['page'] = params.page;
+    }
 
     return this.executeWithErrorHandling(
       'GET /voices/catalog',
       this.instance
-        .get<JsonApiResponseDocument>('/catalog', { params: query })
-        .then((res) => this.extractCollection<ExternalVoice>(res.data)),
+        .get<JsonApiResponseDocument>('/catalog', { params: query, signal })
+        .then((res) => {
+          const pagination = res.data.links?.pagination;
+          if (params.page && pagination) {
+            PagesService.setCurrentPage(pagination.page);
+            PagesService.setTotalPages(pagination.pages);
+            PagesService.setTotalDocs(pagination.total ?? 0);
+          }
+
+          return this.extractCollection<ExternalVoice>(res.data);
+        }),
     );
   }
 

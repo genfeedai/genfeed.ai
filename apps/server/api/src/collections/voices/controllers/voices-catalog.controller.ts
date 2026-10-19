@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImportVoicesDto } from '@api/collections/voices/dto/import-voices.dto';
 import { UpdateVoiceCatalogDto } from '@api/collections/voices/dto/update-voice-catalog.dto';
+import { VoicesCatalogQueryDto } from '@api/collections/voices/dto/voices-catalog-query.dto';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import {
   parseVoiceCatalogProvider,
@@ -11,6 +12,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -54,27 +56,32 @@ export class VoicesCatalogController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findCatalog(
     @Req() request: Request,
-    @Query('provider') providerQuery?: string,
-    @Query('search') search?: string,
+    @Query() query: VoicesCatalogQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     try {
-      const voices = await this.externalVoiceCatalogService.findAll({
-        provider: parseVoiceCatalogProvider(providerQuery),
-        search,
-      });
+      const { limit, page } = QueryDefaultsUtil.getPaginationDefaults(query);
+      const offset = (page - 1) * limit;
+      const { docs: voices, totalDocs } =
+        await this.externalVoiceCatalogService.findRange({
+          provider: parseVoiceCatalogProvider(query.provider),
+          search: query.search,
+          skip: offset,
+          take: limit,
+        });
       const docs = voices.map(toVoiceCatalogWireFormat);
+      const totalPages = Math.max(1, Math.ceil(totalDocs / limit));
 
       return serializeCollection(request, VoiceCatalogEntrySerializer, {
         docs,
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: docs.length,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: docs.length,
-        totalPages: 1,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        limit,
+        nextPage: page < totalPages ? page + 1 : null,
+        page,
+        pagingCounter: docs.length === 0 ? 0 : offset + 1,
+        prevPage: page > 1 ? page - 1 : null,
+        totalDocs,
+        totalPages,
       });
     } catch (_error: unknown) {
       throw new HttpException(

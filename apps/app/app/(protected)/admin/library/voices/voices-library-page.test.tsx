@@ -1,4 +1,5 @@
 import { VoiceProvider } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -15,12 +16,22 @@ const mocks = vi.hoisted(() => {
   const translate = (key: string, values?: Record<string, unknown>) =>
     values?.name ? `${key} ${values.name}` : key;
   return {
+    replace: vi.fn(),
+    searchParams: new URLSearchParams(),
     service,
     notifications,
     translate,
     getService: vi.fn(async () => service),
   };
 });
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin/library/voices',
+  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => mocks.searchParams,
+}));
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
 vi.mock('next-intl', () => ({ useTranslations: () => mocks.translate }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -88,6 +99,7 @@ const voices = Array.from({ length: 55 }, (_, index) => ({
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  mocks.searchParams = new URLSearchParams();
   mocks.service.findCatalog.mockResolvedValue(voices);
   mocks.service.importCatalogVoices.mockResolvedValue({
     created: 0,
@@ -130,10 +142,15 @@ describe('admin voice collection', () => {
       target: { value: 'Ada' },
     });
     await waitFor(() =>
-      expect(mocks.service.findCatalog).toHaveBeenLastCalledWith({
-        provider: undefined,
-        search: 'Ada',
-      }),
+      expect(mocks.service.findCatalog).toHaveBeenLastCalledWith(
+        {
+          limit: ITEMS_PER_PAGE,
+          page: 1,
+          provider: undefined,
+          search: 'Ada',
+        },
+        expect.any(AbortSignal),
+      ),
     );
     await user.click(screen.getByRole('button', { name: /syncProvider/ }));
     await user.click(
@@ -149,6 +166,33 @@ describe('admin voice collection', () => {
     first.unmount();
     render(<VoicesLibraryPage />);
     expect(await screen.findByTestId('voices-grid')).toBeInTheDocument();
+  });
+  it('requests the URL page, renders pagination and resets the page on search', async () => {
+    mocks.searchParams = new URLSearchParams('page=3&foo=bar');
+    render(<VoicesLibraryPage />);
+    await screen.findByText('Voice 0');
+    expect(mocks.service.findCatalog).toHaveBeenCalledWith(
+      {
+        limit: ITEMS_PER_PAGE,
+        page: 3,
+        provider: undefined,
+        search: undefined,
+      },
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+
+    fireEvent.change(screen.getByPlaceholderText('searchPlaceholder'), {
+      target: { value: 'Ada' },
+    });
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/admin/library/voices?foo=bar',
+      {
+        scroll: false,
+      },
+    );
   });
   it('has distinct loading, error, retry and empty states', async () => {
     mocks.service.findCatalog

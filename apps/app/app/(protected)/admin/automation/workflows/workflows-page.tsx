@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   getSystemWorkflowMetadata,
   type IFeaturedWorkflowSummary,
@@ -21,6 +22,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import {
@@ -31,6 +33,7 @@ import {
   PinOff,
   Trash2,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -96,6 +99,8 @@ export default function WorkflowsPage() {
   );
   const notificationsService = NotificationsService.getInstance();
   const { openConfirmDelete } = useConfirmDeleteModal();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [pins, setPins] = useState<IFeaturedWorkflowSummary[]>([]);
@@ -136,10 +141,15 @@ export default function WorkflowsPage() {
       try {
         const service = await getWorkflowsService();
         const [fetchedWorkflows] = await Promise.all([
-          service.findAllPages({
-            includeSystem: true,
-            sort: 'createdAt: -1',
-          }),
+          service.findAll(
+            {
+              includeSystem: true,
+              limit: ITEMS_PER_PAGE,
+              page: currentPage,
+              sort: 'createdAt: -1',
+            },
+            signal,
+          ),
           loadPins(signal),
         ]);
         if (signal?.aborted) {
@@ -160,7 +170,13 @@ export default function WorkflowsPage() {
         }
       }
     },
-    [getWorkflowsService, loadPins, notificationsService, translate],
+    [
+      currentPage,
+      getWorkflowsService,
+      loadPins,
+      notificationsService,
+      translate,
+    ],
   );
 
   useEffect(() => {
@@ -426,6 +442,9 @@ export default function WorkflowsPage() {
                   </Card>
                 ))
               )}
+            </div>
+            <div className="mt-4">
+              <AutoPagination showTotal totalLabel={translate('totalLabel')} />
             </div>
           </WorkspaceSurface>
         </div>

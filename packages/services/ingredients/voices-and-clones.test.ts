@@ -6,6 +6,7 @@ import {
   type MockHttpInstance,
   resourceDocument,
 } from '@services/__mocks__/http.mock';
+import { PagesService } from '@services/content/pages.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,6 +39,30 @@ describe('VoicesService', () => {
         params: { search: 'ava' },
       });
       expect(result).toEqual([{ id: 'voice_1', name: 'Ava' }]);
+    });
+
+    it('sends the page, forwards the signal and records the totals', async () => {
+      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
+      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
+      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
+      http.get.mockResolvedValue(
+        axiosResponse(
+          collectionDocument([{ id: 'voice_1', name: 'Ava' }], {
+            pagination: { limit: 15, page: 2, pages: 3, total: 40 },
+          }),
+        ),
+      );
+      const signal = new AbortController().signal;
+
+      await service.findCatalog({ limit: 15, page: 2 }, signal);
+
+      expect(http.get).toHaveBeenCalledWith('/catalog', {
+        params: { limit: 15, page: 2 },
+        signal,
+      });
+      expect(setCurrentPage).toHaveBeenCalledWith(2);
+      expect(setTotalPages).toHaveBeenCalledWith(3);
+      expect(setTotalDocs).toHaveBeenCalledWith(40);
     });
 
     it('defaults to no filters', async () => {

@@ -21,5 +21,6 @@
   "syncElevenLabs": "Sync ElevenLabs",
   "syncHeyGen": "Sync HeyGen",
   "syncProvider": "Sync provider",
-  "syncAll": "Sync All"
+  "syncAll": "Sync All",
+  "totalLabel": "voices"
 }

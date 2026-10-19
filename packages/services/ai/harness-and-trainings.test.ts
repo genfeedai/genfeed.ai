@@ -90,6 +90,7 @@ describe('TrainingsService', () => {
   it('getTrainingImages GETs images and records pagination', async () => {
     const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
     const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
+    const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'img_1', label: 'I' }], {
@@ -105,6 +106,7 @@ describe('TrainingsService', () => {
     });
     expect(setCurrentPage).toHaveBeenCalledWith(2);
     expect(setTotalPages).toHaveBeenCalledWith(4);
+    expect(setTotalDocs).toHaveBeenCalledWith(33);
     expect(result[0]).toBeInstanceOf(Image);
   });
 
@@ -121,6 +123,7 @@ describe('TrainingsService', () => {
 
   it('getTrainingSources GETs sources and records pagination', async () => {
     const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
+    const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'src_1', label: 'S' }], {
@@ -129,10 +132,19 @@ describe('TrainingsService', () => {
       ),
     );
 
-    const result = await service.getTrainingSources(trainingId, { page: 1 });
+    const signal = new AbortController().signal;
+    const result = await service.getTrainingSources(
+      trainingId,
+      { limit: 10, page: 1 },
+      signal,
+    );
 
-    expect(http.get).toHaveBeenCalledWith(`/${trainingId}/sources`);
+    expect(http.get).toHaveBeenCalledWith(`/${trainingId}/sources`, {
+      params: { limit: 10, page: 1 },
+      signal,
+    });
     expect(setCurrentPage).toHaveBeenCalledWith(1);
+    expect(setTotalDocs).toHaveBeenCalledWith(11);
     expect(result[0]).toBeInstanceOf(Image);
   });
 });
