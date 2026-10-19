@@ -1,5 +1,6 @@
 import {
   type AgentFailureReason,
+  type AgentFailureResolution,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
@@ -77,14 +78,30 @@ class WorkflowExecutionsServiceClass {
     failureReason: AgentFailureReason | undefined,
     offset = 0,
     signal?: AbortSignal,
+    resolution: AgentFailureResolution = 'open',
   ): Promise<IWorkflowExecution[]> {
-    const query = new URLSearchParams({ limit: '20', offset: String(offset) });
+    const query = new URLSearchParams({
+      limit: '20',
+      offset: String(offset),
+      resolution,
+    });
     if (failureReason) query.set('failureReason', failureReason);
     const document = await this.request(
       `/workflow-executions/admin/failures?${query}`,
       { signal },
     );
     return deserializeCollection<IWorkflowExecution>(document);
+  }
+
+  async setAdminFailureResolved(
+    id: string,
+    isResolved: boolean,
+  ): Promise<IWorkflowExecution> {
+    const document = await this.request(
+      `/workflow-executions/admin/failures/${id}/resolution`,
+      { body: JSON.stringify({ isResolved }), method: 'PATCH' },
+    );
+    return deserializeResource<IWorkflowExecution>(document);
   }
 
   async getById(id: string): Promise<IWorkflowExecution> {

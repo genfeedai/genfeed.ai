@@ -5302,6 +5302,9 @@ model WorkflowExecution {
   failureReason     AgentFailureReason?
   failure           Json?
   error             String?
+  /// Set when a platform admin marks a failed run as handled (admin failure feed).
+  failureResolvedAt DateTime?
+  failureResolvedBy String?
   startedAt         DateTime?
   completedAt       DateTime?
   isDeleted         Boolean                 @default(false)
