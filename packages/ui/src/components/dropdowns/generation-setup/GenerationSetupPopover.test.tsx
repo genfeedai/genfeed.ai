@@ -729,6 +729,62 @@ describe('GenerationSetupPopover', () => {
     ).toBeInTheDocument();
   });
 
+  it('lists system presets with saved ones, applies them by id, and never offers deleting them', async () => {
+    const user = userEvent.setup();
+    const onApplySystemPreset = vi.fn();
+    const onDeletePreset = vi.fn();
+    renderPopover({
+      onApplySystemPreset,
+      onDeletePreset,
+      presets: [createPreset({ id: 'preset-1', label: 'Studio Look' })],
+      systemPresets: [
+        { id: 'cpresetbuiltinstudiobanner', label: 'Banner' },
+        { id: 'cpresetbuiltinstudiodance', label: 'Dance' },
+      ],
+    });
+    await openPopover(user);
+    expect(
+      screen.getByRole('button', { name: 'Configure Presets' }),
+    ).toHaveTextContent('3');
+    await user.click(screen.getByRole('button', { name: 'Configure Presets' }));
+    expect(screen.getByText('System')).toBeInTheDocument();
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Delete preset Banner' }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Apply preset Banner' }),
+    );
+    expect(onApplySystemPreset).toHaveBeenCalledWith(
+      'cpresetbuiltinstudiobanner',
+    );
+    expect(onDeletePreset).not.toHaveBeenCalled();
+  });
+
+  it('offers system presets when the organization has no saved presets', async () => {
+    const user = userEvent.setup();
+    renderPopover({
+      presets: [],
+      systemPresets: [{ id: 'cpresetbuiltinstudiodance', label: 'Dance' }],
+    });
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Presets' }));
+    expect(
+      screen.getByRole('button', { name: 'Apply preset Dance' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('System')).not.toBeInTheDocument();
+  });
+
+  it('names a pinned system preset in the banner', async () => {
+    const user = userEvent.setup();
+    renderPopover({
+      setup: createSetup({ presetId: 'cpresetbuiltinstudiodance' }),
+      systemPresets: [{ id: 'cpresetbuiltinstudiodance', label: 'Dance' }],
+    });
+    await openPopover(user);
+    expect(screen.getByText('Pinned: Dance')).toBeInTheDocument();
+  });
+
   it('disables preset deletion while presets are loading and deletes once they load', async () => {
     const user = userEvent.setup();
     const onApplyPreset = vi.fn();

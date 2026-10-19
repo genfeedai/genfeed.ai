@@ -64,6 +64,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   lookOptions,
   models,
   onApplyPreset,
+  onApplySystemPreset,
   onClearPreset,
   onDeletePreset,
   onFavoriteToggle,
@@ -74,6 +75,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   onTypeChange,
   outputControls,
   presets,
+  systemPresets = [],
   reasons,
   scopeKey: _scopeKey,
   setup,
@@ -110,6 +112,11 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
     setCustomizeSection(undefined);
   }
 
+  function handleApplySystemPreset(presetId: string): void {
+    onApplySystemPreset?.(presetId);
+    setCustomizeSection(undefined);
+  }
+
   function renderCustomizeSection(section: GenerationSetupCustomizeSectionId) {
     return (
       <GenerationSetupCustomizePanel
@@ -125,8 +132,10 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
         isDisabled={isDisabled}
         isPresetsLoading={isPresetsLoading}
         onApplyPreset={handleApplyPreset}
+        onApplySystemPreset={handleApplySystemPreset}
         onDeletePreset={onDeletePreset}
         presets={presets}
+        systemPresets={systemPresets}
         lookOptions={lookOptions}
         models={models}
         onBack={() => setCustomizeSection(undefined)}
@@ -141,7 +150,8 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   }
 
   const pinnedPreset = setup.presetId
-    ? presets.find((preset) => preset.id === setup.presetId)
+    ? (presets.find((preset) => preset.id === setup.presetId) ??
+      systemPresets.find((preset) => preset.id === setup.presetId))
     : undefined;
 
   return (
@@ -274,6 +284,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                 onSetField={onSetField}
                 onTypeChange={onTypeChange}
                 presets={presets}
+                systemPresets={systemPresets}
                 setup={setup}
                 typeOptions={typeOptions}
               />

@@ -55,6 +55,7 @@ export default function GenerationSetupFrontDoor({
   onCustomize,
   onResetAll,
   presets,
+  systemPresets = [],
   setup,
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
@@ -136,7 +137,10 @@ export default function GenerationSetupFrontDoor({
     sections.push({
       id: 'presets',
       label: translate('presets'),
-      value: presets.length ? String(presets.length) : undefined,
+      value:
+        presets.length + systemPresets.length
+          ? String(presets.length + systemPresets.length)
+          : undefined,
     });
   if (showEnhancementSettings)
     sections.push({ id: 'enhancement', label: translate('enhancement') });

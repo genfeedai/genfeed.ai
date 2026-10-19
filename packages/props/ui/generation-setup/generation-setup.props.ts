@@ -51,6 +51,13 @@ export interface GenerationSetupImageEditingMode {
   onChange: (next: boolean) => void;
 }
 
+/** A platform-owned preset offered to every organization; it can be applied, never deleted. */
+export interface GenerationSetupSystemPreset {
+  description?: string;
+  id: string;
+  label: string;
+}
+
 export interface GenerationSetupPopoverProps {
   showPresets?: boolean;
   /** One compact entry point for Studio's type and settings. */
@@ -72,6 +79,7 @@ export interface GenerationSetupPopoverProps {
   onFavoriteToggle: (modelKey: string) => void;
   lookOptions: GenerationSetupLookOptions;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   isPresetsLoading?: boolean;
   /** Forwarded to the trigger — see `GenerationSetupTriggerProps.isTypeCommitted`. */
   isTypeCommitted?: boolean;
@@ -79,6 +87,7 @@ export interface GenerationSetupPopoverProps {
   triggerLabel?: string;
   onSetField: GenerationSetupFieldSetter;
   onApplyPreset: (preset: IStudioLook) => void;
+  onApplySystemPreset?: (presetId: string) => void;
   onSavePreset: (label: string) => void;
   onDeletePreset?: (presetId: string) => void;
   onResetField: (key: GenerationSetupFieldKey) => void;
@@ -183,6 +192,7 @@ export interface GenerationSetupFrontDoorProps {
   onSetField: GenerationSetupFieldSetter;
   onTypeChange?: (type: GenerationSetupType) => void;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   setup: GenerationSetup;
   typeOptions: readonly GenerationSetupTypeOption[];
 }
@@ -191,9 +201,11 @@ export interface GenerationSetupPresetsSectionProps {
   isDisabled?: boolean;
   isPresetsLoading?: boolean;
   onApplyPreset: (preset: IStudioLook) => void;
+  onApplySystemPreset?: (presetId: string) => void;
   onDeletePreset?: (presetId: string) => void;
   onSavePreset: (label: string) => void;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   setup: GenerationSetup;
 }
 
@@ -233,8 +245,10 @@ export interface GenerationSetupCustomizePanelProps {
   initialSection: GenerationSetupCustomizeSectionId;
   isPresetsLoading?: boolean;
   onApplyPreset: (preset: IStudioLook) => void;
+  onApplySystemPreset?: (presetId: string) => void;
   onDeletePreset?: (presetId: string) => void;
   presets: readonly IStudioLook[];
+  systemPresets?: readonly GenerationSetupSystemPreset[];
   isDisabled?: boolean;
   lookOptions: GenerationSetupLookOptions;
   models: readonly IModel[];

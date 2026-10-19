@@ -24,8 +24,10 @@ export default function GenerationSetupCustomizePanel({
   initialSection,
   isPresetsLoading,
   onApplyPreset,
+  onApplySystemPreset,
   onDeletePreset,
   presets,
+  systemPresets,
   isDisabled = false,
   lookOptions,
   models,
@@ -180,9 +182,11 @@ export default function GenerationSetupCustomizePanel({
             isDisabled={isDisabled}
             isPresetsLoading={isPresetsLoading}
             onApplyPreset={onApplyPreset}
+            onApplySystemPreset={onApplySystemPreset}
             onDeletePreset={onDeletePreset}
             onSavePreset={onSavePreset}
             presets={presets}
+            systemPresets={systemPresets}
             setup={setup}
           />
         ) : null}
