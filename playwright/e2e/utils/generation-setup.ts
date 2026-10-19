@@ -15,8 +15,17 @@ export async function selectAdvancedModel(
   });
   await setupTrigger.click();
   await page.getByRole('button', { name: 'Advanced', exact: true }).click();
-  await page.keyboard.press('Escape');
-  await expect(setupTrigger).toHaveAttribute('aria-expanded', 'false');
+  // A resting pointer can open the Presets submenu next to Advanced, so the
+  // first Escape may only close that submenu. Keep pressing until the popover
+  // itself is closed.
+  await expect(async () => {
+    if ((await setupTrigger.getAttribute('aria-expanded')) !== 'false') {
+      await page.keyboard.press('Escape');
+    }
+    await expect(setupTrigger).toHaveAttribute('aria-expanded', 'false', {
+      timeout: 500,
+    });
+  }).toPass({ timeout: 10_000 });
 
   await page
     .getByTestId('generation-setup-section-chips')
