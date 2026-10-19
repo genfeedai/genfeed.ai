@@ -663,6 +663,31 @@ describe('TwitterPublisherService', () => {
         expect(logger.error).toHaveBeenCalled();
       });
 
+      it('keeps the reason X returned when the SDK message omits it', async () => {
+        const context = createPublishContext(mockTextPost);
+        const error = Object.assign(new Error('Request failed with code 403'), {
+          code: 403,
+          data: {
+            detail:
+              'You are not allowed to create a Tweet with duplicate content.',
+            title: 'Forbidden',
+          },
+        });
+
+        credentialsService.findOne.mockResolvedValue({
+          ...mockCredential,
+          accessToken: 'encrypted-token',
+        } as unknown as CredentialDocument);
+
+        mockTweet.mockRejectedValue(error);
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          code: 403,
+          message:
+            'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+        });
+      });
+
       it('should return failed result when externalId is null', async () => {
         const context = createPublishContext(mockImagePost);
 

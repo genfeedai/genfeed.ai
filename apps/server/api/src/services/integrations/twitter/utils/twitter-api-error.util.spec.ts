@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  describeTwitterPublishError,
   getTwitterRetryAfterMs,
   isTwitterAuthorizationError,
   isTwitterClientAuthError,
@@ -143,5 +144,47 @@ describe('mapTwitterApiError', () => {
         },
       }),
     ).toBe(false);
+  });
+});
+
+describe('describeTwitterPublishError', () => {
+  it('appends the detail X sent when the SDK message omits it', () => {
+    const error = Object.assign(new Error('Request failed with code 402'), {
+      data: {
+        detail: 'Your account does not have any credits.',
+        title: 'CreditsDepleted',
+      },
+    });
+
+    expect(describeTwitterPublishError(error)).toBe(
+      'Request failed with code 402 - Your account does not have any credits.',
+    );
+  });
+
+  it('falls back to the title when X sent no detail', () => {
+    const error = Object.assign(new Error('Request failed with code 403'), {
+      data: { title: 'Forbidden' },
+    });
+
+    expect(describeTwitterPublishError(error)).toBe(
+      'Request failed with code 403 - Forbidden',
+    );
+  });
+
+  it('leaves a message that already carries the reason untouched', () => {
+    const error = Object.assign(
+      new Error('Request failed with code 403 - Duplicate content'),
+      { data: { detail: 'Duplicate content' } },
+    );
+
+    expect(describeTwitterPublishError(error)).toBe(
+      'Request failed with code 403 - Duplicate content',
+    );
+  });
+
+  it('returns the plain message when there is no response body', () => {
+    expect(describeTwitterPublishError(new Error('socket hang up'))).toBe(
+      'socket hang up',
+    );
   });
 });

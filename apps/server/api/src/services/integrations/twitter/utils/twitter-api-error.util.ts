@@ -308,3 +308,33 @@ export function mapTwitterApiError(error: unknown): string {
 
   return message;
 }
+
+function readProviderDetail(error: unknown): string | undefined {
+  if (!isObjectLike(error)) {
+    return undefined;
+  }
+  const data = isObjectLike(error.data) ? error.data : undefined;
+  if (!data) {
+    return undefined;
+  }
+  const detail =
+    typeof data.detail === 'string' ? data.detail.trim() : undefined;
+  const title = typeof data.title === 'string' ? data.title.trim() : undefined;
+  return detail || title || undefined;
+}
+
+/**
+ * The reason X gave for rejecting a publish. twitter-api-v2 only appends X's
+ * explanation to the error message when the body has an `errors` array, so a
+ * duplicate-content 403, a 402 CreditsDepleted or an expired-token 401 reaches
+ * the post as a bare "Request failed with code 403". The text X sent in
+ * `data.detail` / `data.title` is added back so the owner can act on it.
+ */
+export function describeTwitterPublishError(error: unknown): string {
+  const message = readMessage(error);
+  const detail = readProviderDetail(error);
+  if (!detail || message.includes(detail)) {
+    return message;
+  }
+  return `${message} - ${detail}`;
+}

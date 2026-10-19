@@ -115,6 +115,32 @@ describe('PostDetailNeedsYou', () => {
     expect(onPublishNow).toHaveBeenCalledTimes(1);
   });
 
+  it('shows the reason X recorded for a failed post', () => {
+    render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onPublishNow={vi.fn()}
+        onReviewHref="/review"
+        post={buildPost({
+          status: PostStatus.FAILED,
+          targetError: {
+            code: '403',
+            isRetryable: false,
+            message:
+              'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+          },
+          targetExecutionState: TargetExecutionState.FAILED,
+        })}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId('post-needs-you-row-failed')).getByText(
+        'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('surfaces a post with review lineage and an unset decision, linking to the review queue', () => {
     render(
       <PostDetailNeedsYou

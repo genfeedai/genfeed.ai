@@ -26,6 +26,8 @@ export interface PostDetailNeedsYouProps {
 
 interface NeedsYouItem {
   id: string;
+  /** Why it needs the viewer, when the post recorded a reason. */
+  detail?: string;
   /** The specific condition, e.g. "This post failed to publish." */
   message: string;
   action: {
@@ -82,6 +84,7 @@ export default function PostDetailNeedsYou({
     if (post.status === PostStatus.FAILED && onPublishNow) {
       results.push({
         action: { label: translate('failedAction'), onClick: onPublishNow },
+        detail: post.targetError?.message?.trim() || undefined,
         id: 'failed',
         message: translate('failedDescription'),
       });
@@ -129,6 +132,7 @@ export default function PostDetailNeedsYou({
         {items.map((item) => (
           <ListRow
             data-testid={`post-needs-you-row-${item.id}`}
+            description={item.detail}
             key={item.id}
             title={item.message}
             trailing={
