@@ -78,6 +78,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { recordPageTotals } from '@services/core/page-totals';
 import type { AxiosRequestConfig } from 'axios';
 
 export interface CreateResearchBriefRunInput {
@@ -125,6 +126,10 @@ export interface ContentRunRecord {
 }
 
 export interface ListContentRunsFilters {
+  /** Page size; the API bounds it and defaults to one page when omitted. */
+  limit?: number;
+  /** 1-based server page. Totals are published for `<AutoPagination />`. */
+  page?: number;
   skillSlug?: string;
   status?: ContentRunStatus;
 }
@@ -387,16 +392,21 @@ export class ContentRunsService extends HTTPBaseService {
   async list(
     brandId: string,
     filters: ListContentRunsFilters = {},
+    signal?: AbortSignal,
   ): Promise<ContentRunRecord[]> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content-runs`,
       {
         params: {
+          ...(filters.limit ? { limit: filters.limit } : {}),
+          ...(filters.page ? { page: filters.page } : {}),
           ...(filters.skillSlug ? { skillSlug: filters.skillSlug } : {}),
           ...(filters.status ? { status: filters.status } : {}),
         },
+        signal,
       },
     );
+    recordPageTotals(response.data, filters);
 
     return deserializeCollection<ContentRunRecord>(response.data);
   }

@@ -6,6 +6,7 @@ import {
   resourceDocument,
 } from '@services/__mocks__/http.mock';
 import { AnalyticsService } from '@services/analytics/analytics.service';
+import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AnalyticsService', () => {
@@ -212,12 +213,21 @@ describe('AnalyticsService', () => {
         ),
       );
 
-      const result = await service.getBrandsWithStats({ page: 2 });
+      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
+      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
+      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
+      const signal = new AbortController().signal;
+
+      const result = await service.getBrandsWithStats({ page: 2 }, signal);
 
       expect(http.get).toHaveBeenCalledWith('brands', {
         params: { page: 2 },
+        signal,
       });
       expect(result.pagination.page).toBe(2);
+      expect(setCurrentPage).toHaveBeenCalledWith(2);
+      expect(setTotalPages).toHaveBeenCalledWith(1);
+      expect(setTotalDocs).toHaveBeenCalledWith(0);
     });
 
     it('getBusinessAnalytics GETs the business dashboard', async () => {

@@ -1,27 +1,26 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   getSystemWorkflowMetadata,
   type IFeaturedWorkflowSummary,
 } from '@genfeedai/contracts/interfaces';
-import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Workflow } from '@models/automation/workflow.model';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';
 import { AdminFeaturedWorkflowsService } from '@services/admin/featured-workflows.service';
 import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Badge from '@ui/display/badge/Badge';
-import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import {
   ChevronDown,
@@ -31,17 +30,13 @@ import {
   PinOff,
   Trash2,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-
-const WORKFLOW_SKELETON_KEYS = [
-  'workflow-skeleton-1',
-  'workflow-skeleton-2',
-  'workflow-skeleton-3',
-  'workflow-skeleton-4',
-] as const;
+import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
 
 function getWorkflowStatusVariant(
   status: string,
@@ -66,6 +61,19 @@ function getWorkflowStatusVariant(
 /** System workflows are installed per organization from the catalog; they are never featured. */
 function isPinnable(workflow: Workflow): boolean {
   return getSystemWorkflowMetadata(workflow.metadata) === null;
+}
+
+type CatalogStatus = 'installed' | 'available' | 'systemAction';
+
+function getCatalogStatus(entry: SystemWorkflowCatalogEntry): CatalogStatus {
+  if (entry.installed) {
+    return 'installed';
+  }
+  return entry.installable ? 'available' : 'systemAction';
+}
+
+function formatFamily(family: string): string {
+  return family.replaceAll('-', ' ');
 }
 
 /** Moves one id a step up or down, leaving every other position as it was. */
@@ -94,11 +102,16 @@ export default function WorkflowsPage() {
   const getFeaturedWorkflowsService = useAuthedService((token: string) =>
     AdminFeaturedWorkflowsService.getInstance(token),
   );
+  const getCatalogService = useAuthedService(createWorkflowApiService);
   const notificationsService = NotificationsService.getInstance();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const { openConfirmDelete } = useConfirmDeleteModal();
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [pins, setPins] = useState<IFeaturedWorkflowSummary[]>([]);
+  const [catalog, setCatalog] = useState<SystemWorkflowCatalogEntry[]>([]);
+  const [hasCatalogLoadFailed, setHasCatalogLoadFailed] = useState(false);
   const [hasPinsLoadFailed, setHasPinsLoadFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -126,6 +139,26 @@ export default function WorkflowsPage() {
     [getFeaturedWorkflowsService],
   );
 
+  const loadCatalog = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const service = await getCatalogService();
+        const loaded = await service.listSystemCatalog();
+        if (!signal?.aborted) {
+          setCatalog(loaded);
+          setHasCatalogLoadFailed(false);
+        }
+      } catch (error) {
+        if (signal?.aborted) {
+          return;
+        }
+        logger.error('Failed to load system workflow catalog', error);
+        setHasCatalogLoadFailed(true);
+      }
+    },
+    [getCatalogService],
+  );
+
   const loadWorkflows = useCallback(
     async (isRefresh: boolean, signal?: AbortSignal) => {
       if (!isRefresh) {
@@ -136,11 +169,17 @@ export default function WorkflowsPage() {
       try {
         const service = await getWorkflowsService();
         const [fetchedWorkflows] = await Promise.all([
-          service.findAllPages({
-            includeSystem: true,
-            sort: 'createdAt: -1',
-          }),
+          service.findAll(
+            {
+              includeSystem: true,
+              limit: ITEMS_PER_PAGE,
+              page: currentPage,
+              sort: 'createdAt: -1',
+            },
+            signal,
+          ),
           loadPins(signal),
+          loadCatalog(signal),
         ]);
         if (signal?.aborted) {
           return;
@@ -160,7 +199,14 @@ export default function WorkflowsPage() {
         }
       }
     },
-    [getWorkflowsService, loadPins, notificationsService, translate],
+    [
+      currentPage,
+      getWorkflowsService,
+      loadCatalog,
+      loadPins,
+      notificationsService,
+      translate,
+    ],
   );
 
   useEffect(() => {
@@ -222,42 +268,120 @@ export default function WorkflowsPage() {
     [openConfirmDelete, getWorkflowsService, notificationsService, translate],
   );
 
-  function workflowActions(workflow: Workflow): CollectionOverflowAction[] {
-    const actions: CollectionOverflowAction[] = [];
-    if (pinnedIds.has(workflow.id)) {
-      actions.push({
-        icon: <PinOff className="size-4" />,
-        id: 'unpin',
-        isDisabled: isSavingPins,
-        label: translate('actions.unpin'),
-        onSelect: () =>
-          void savePins(
-            (service) => service.unpin(workflow.id),
-            translate('featured.unpinned'),
-          ),
-      });
-    } else if (isPinnable(workflow)) {
-      actions.push({
-        icon: <Pin className="size-4" />,
-        id: 'pin',
-        isDisabled: isSavingPins,
-        label: translate('actions.pin'),
-        onSelect: () =>
-          void savePins(
-            (service) => service.pin(workflow.id),
-            translate('featured.pinned'),
-          ),
-      });
-    }
-    actions.push({
-      icon: <Trash2 className="size-4" />,
-      id: 'delete',
-      isDestructive: true,
-      label: translate('actions.delete'),
-      onSelect: () => handleDelete(workflow),
-    });
-    return actions;
-  }
+  const workflowActions: TableAction<Workflow>[] = [
+    {
+      icon: <PinOff />,
+      isDisabled: () => isSavingPins,
+      isVisible: (workflow) => pinnedIds.has(workflow.id),
+      onClick: (workflow) =>
+        void savePins(
+          (service) => service.unpin(workflow.id),
+          translate('featured.unpinned'),
+        ),
+      tooltip: translate('actions.unpin'),
+    },
+    {
+      icon: <Pin />,
+      isDisabled: () => isSavingPins,
+      isVisible: (workflow) =>
+        !pinnedIds.has(workflow.id) && isPinnable(workflow),
+      onClick: (workflow) =>
+        void savePins(
+          (service) => service.pin(workflow.id),
+          translate('featured.pinned'),
+        ),
+      tooltip: translate('actions.pin'),
+    },
+    {
+      icon: <Trash2 />,
+      onClick: handleDelete,
+      tooltip: translate('actions.delete'),
+      variant: ButtonVariant.DESTRUCTIVE,
+    },
+  ];
+
+  const workflowColumns: TableColumn<Workflow>[] = [
+    {
+      header: translate('columns.workflow'),
+      key: 'label',
+      render: (workflow) => (
+        <span className="font-medium">
+          {workflow.label || translate('untitled')}
+        </span>
+      ),
+      subtext: (workflow) => workflow.description || undefined,
+    },
+    {
+      header: translate('columns.status'),
+      key: 'status',
+      render: (workflow) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={getWorkflowStatusVariant(workflow.status)}>
+            {workflow.status}
+          </Badge>
+          {pinnedIds.has(workflow.id) ? (
+            <Badge variant="info">{translate('featured.badge')}</Badge>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: translate('columns.trigger'),
+      key: 'trigger',
+      render: (workflow) =>
+        workflow.trigger ? (
+          <Badge variant="outline" className="capitalize">
+            {workflow.trigger}
+          </Badge>
+        ) : null,
+    },
+    {
+      header: translate('columns.created'),
+      key: 'createdAt',
+      render: (workflow) =>
+        workflow.createdAt ? (
+          <ClientFormattedDate format="date" value={workflow.createdAt} />
+        ) : null,
+    },
+  ];
+
+  const catalogColumns: TableColumn<SystemWorkflowCatalogEntry>[] = [
+    {
+      header: translate('columns.workflow'),
+      key: 'label',
+      render: (entry) => <span className="font-medium">{entry.label}</span>,
+      subtext: (entry) => entry.description || undefined,
+    },
+    {
+      className: 'capitalize',
+      header: translate('columns.family'),
+      key: 'family',
+      render: (entry) => formatFamily(entry.family),
+    },
+    {
+      className: 'font-mono text-sm',
+      header: translate('columns.schedule'),
+      key: 'schedule',
+      render: (entry) => entry.schedule ?? '',
+    },
+    {
+      header: translate('columns.version'),
+      key: 'version',
+      render: (entry) => `v${entry.version}`,
+    },
+    {
+      header: translate('columns.status'),
+      key: 'installed',
+      render: (entry) => {
+        const status = getCatalogStatus(entry);
+        return (
+          <Badge variant={status === 'installed' ? 'success' : 'ghost'}>
+            {translate(`catalog.status.${status}`)}
+          </Badge>
+        );
+      },
+    },
+  ];
 
   function renderPinControls(pin: IFeaturedWorkflowSummary, index: number) {
     const label = pin.label ?? translate('untitled');
@@ -316,14 +440,8 @@ export default function WorkflowsPage() {
       onRefresh={() => void loadWorkflows(true)}
       isRefreshing={isRefreshing}
     >
-      {isLoading ? (
-        <div className="grid gap-4">
-          {WORKFLOW_SKELETON_KEYS.map((key) => (
-            <SkeletonCard key={key} showImage={false} />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-8">
+        {isLoading ? null : (
           <CollectionSection
             title={translate('featured.title')}
             description={translate('featured.description')}
@@ -361,75 +479,40 @@ export default function WorkflowsPage() {
               ))}
             </Card>
           </CollectionSection>
+        )}
 
-          <WorkspaceSurface
-            title={translate('listTitle')}
-            framed={false}
-            tone="muted"
-            data-testid="automation-workflows-surface"
-          >
-            <div className="grid gap-4">
-              {workflows.length === 0 ? (
-                <CardEmptyContent label={translate('empty')} />
-              ) : (
-                workflows.map((workflow: Workflow) => (
-                  <Card key={workflow.id} data-testid="admin-workflow-card">
-                    <div className="flex items-start justify-between gap-4 p-6">
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-2 flex flex-wrap items-center gap-3">
-                          <h3 className="card-label text-sm font-semibold">
-                            {workflow.label || translate('untitled')}
-                          </h3>
-                          <Badge
-                            variant={getWorkflowStatusVariant(workflow.status)}
-                          >
-                            {workflow.status}
-                          </Badge>
-                          {workflow.trigger ? (
-                            <Badge variant="outline" className="capitalize">
-                              {workflow.trigger}
-                            </Badge>
-                          ) : null}
-                          {pinnedIds.has(workflow.id) ? (
-                            <Badge variant="info">
-                              {translate('featured.badge')}
-                            </Badge>
-                          ) : null}
-                        </div>
+        <AppTable<SystemWorkflowCatalogEntry>
+          label={translate('catalog.title')}
+          ariaLabel={translate('catalog.title')}
+          description={translate('catalog.description')}
+          items={catalog}
+          columns={catalogColumns}
+          isLoading={isLoading}
+          error={
+            hasCatalogLoadFailed
+              ? {
+                  onRetry: () => void loadCatalog(),
+                  title: translate('catalog.loadError'),
+                }
+              : undefined
+          }
+          getRowKey={(entry) => entry.canonicalId}
+          emptyLabel={translate('catalog.empty')}
+        />
 
-                        {workflow.description ? (
-                          <p className="mb-3 text-foreground/70">
-                            {workflow.description}
-                          </p>
-                        ) : null}
-
-                        {workflow.createdAt ? (
-                          <div className="flex items-center gap-4 text-sm text-foreground/60">
-                            <span>
-                              {translate('created')}{' '}
-                              <ClientFormattedDate
-                                format="date"
-                                value={workflow.createdAt}
-                              />
-                            </span>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <CollectionItemActions
-                        overflow={workflowActions(workflow)}
-                        overflowLabel={translate('actions.more', {
-                          label: workflow.label || translate('untitled'),
-                        })}
-                      />
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </WorkspaceSurface>
-        </div>
-      )}
+        <AppTable<Workflow>
+          label={translate('listTitle')}
+          ariaLabel={translate('listTitle')}
+          description={translate('listDescription')}
+          items={workflows}
+          columns={workflowColumns}
+          actions={workflowActions}
+          isLoading={isLoading}
+          getRowKey={(workflow) => workflow.id}
+          emptyLabel={translate('empty')}
+        />
+        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
+      </div>
     </AdminPageShell>
   );
 }

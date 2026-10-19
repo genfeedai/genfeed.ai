@@ -14,6 +14,7 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { recordPageTotals } from '@services/core/page-totals';
 
 const DEFAULT_FPS = 30;
 
@@ -150,14 +151,25 @@ export class EditorProjectsService extends HTTPBaseService {
   }
 
   /**
-   * Find all projects for the current user
+   * Find one server page of the current user's projects, newest first.
+   * Pass `page` to publish the totals for `<AutoPagination />`; without a
+   * `limit` the API returns its default page size.
    */
-  async findAll(): Promise<IEditorProject[]> {
+  async findAll(
+    query: { limit?: number; page?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<IEditorProject[]> {
     const response = await this.instance
       .get<JsonApiResponseDocument>('', {
-        params: { sort: '-updatedAt' },
+        params: {
+          ...(query.limit ? { limit: query.limit } : {}),
+          ...(query.page ? { page: query.page } : {}),
+          sort: '-updatedAt',
+        },
+        signal,
       })
       .then((res) => res.data);
+    recordPageTotals(response, query);
 
     return this.mapMany(response);
   }

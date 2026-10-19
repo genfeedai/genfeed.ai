@@ -2,6 +2,7 @@
 
 import { LazyModalRole } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IRole } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -11,12 +12,15 @@ import { logger } from '@services/core/logger.service';
 import { RolesService } from '@services/organization/roles.service';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 export default function RolesList() {
   const { openConfirm } = useConfirmModal();
+  const currentPage = Number(useSearchParams().get('page')) || 1;
   const getRolesService = useAuthedService((token: string) =>
     RolesService.getInstance(token),
   );
@@ -82,7 +86,10 @@ export default function RolesList() {
 
       try {
         const service = await getRolesService();
-        const data = await service.findAll();
+        const data = await service.findAll({
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+        });
         setRoles(data);
       } catch (error) {
         logger.error('GET /roles failed', error);
@@ -91,7 +98,7 @@ export default function RolesList() {
         setIsRefreshing(false);
       }
     },
-    [getRolesService],
+    [currentPage, getRolesService],
   );
 
   useEffect(() => {
@@ -140,6 +147,9 @@ export default function RolesList() {
         getRowKey={(item: IRole) => item.id}
         emptyLabel="No roles found"
       />
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="roles" />
+      </div>
 
       <LazyModalRole role={selectedRole} onConfirm={() => loadRoles(true)} />
     </AdminPageShell>

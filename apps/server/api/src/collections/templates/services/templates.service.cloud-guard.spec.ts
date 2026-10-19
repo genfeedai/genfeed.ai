@@ -101,7 +101,7 @@ describe('templates under the CLOUD tenant guard', () => {
   it('lists platform templates for a caller without an organization', async () => {
     const { inTenant, service } = setup();
 
-    const templates = await inTenant(() => service.findAll());
+    const { docs: templates } = await inTenant(() => service.findAll());
 
     expect(templates.map((template) => template.id).sort()).toEqual([
       'platform-farewell',
@@ -126,7 +126,7 @@ describe('templates under the CLOUD tenant guard', () => {
   it('lists platform plus own templates, never another organization, when system templates are included', async () => {
     const { inTenant, service } = setup();
 
-    const templates = await inTenant(() =>
+    const { docs: templates } = await inTenant(() =>
       service.findAll(ORG, { includeSystem: true }),
     );
 
@@ -140,9 +140,29 @@ describe('templates under the CLOUD tenant guard', () => {
   it('lists only the organization templates by default', async () => {
     const { inTenant, service } = setup();
 
-    const templates = await inTenant(() => service.findAll(ORG));
+    const { docs: templates } = await inTenant(() => service.findAll(ORG));
 
     expect(templates.map((template) => template.id)).toEqual(['mine-greeting']);
+  });
+
+  it('pages the list in the database and reports the total across pages', async () => {
+    const { inTenant, prisma, service } = setup();
+
+    const page = await inTenant(() =>
+      service.findAll(ORG, { includeSystem: true, limit: 2, page: 2 }),
+    );
+
+    expect(prisma.template.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 2, take: 2 }),
+    );
+    expect(page).toMatchObject({
+      hasNextPage: false,
+      hasPrevPage: true,
+      limit: 2,
+      page: 2,
+      totalDocs: 3,
+      totalPages: 2,
+    });
   });
 
   it("opens a platform template by id but never another organization's", async () => {

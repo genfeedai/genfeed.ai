@@ -30,6 +30,10 @@ export default function ProfileSignupCta({
       variant={ButtonVariant.DEFAULT}
       size={ButtonSize.PUBLIC}
       className="w-full"
+      // The default wrapper is an inline-flex box that shrink-wraps the
+      // button, so `w-full` resolved against it and the CTA sat left of the
+      // profile column instead of spanning it.
+      withWrapper={false}
       trackingName="signup_cta_click"
       trackingData={{
         action: 'profile_signup_cta',

@@ -28,8 +28,9 @@ export function hasReviewedModelPricing(
   document: ModelWithPricingContracts,
   now = new Date(),
 ): boolean {
+  // Any approved rate sheet prices the model, whatever the registry row's own
+  // `pricingType` says; a seeded row keeps its default and has no stored credits.
   if (
-    document.pricingType !== 'conditional' ||
     document.isDeleted ||
     document.reviewStatus !== 'approved' ||
     document.providerSyncStatus !== 'fresh'

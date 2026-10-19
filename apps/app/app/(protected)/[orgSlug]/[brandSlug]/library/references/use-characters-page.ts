@@ -7,6 +7,7 @@ import {
   PersonaAvailabilityMode,
   QualityTier,
 } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   BrandCharacterCandidate,
   BrandCharacterListItem,
@@ -29,6 +30,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { createMediaHandler } from '@services/core/socket-manager.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { resolvePendingIds } from '@utils/network/generation.util';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -53,6 +55,8 @@ function parseOptionalSeed(value: string): number | undefined {
 export function useCharactersPage(): CharactersPageState {
   const translate = useTranslations('common.settings.characters');
   const { brandId, brands } = useBrand();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
   const role = useUserRole();
   const canManageSharing =
     role === MemberRole.OWNER || role === MemberRole.ADMIN;
@@ -112,12 +116,15 @@ export function useCharactersPage(): CharactersPageState {
         return;
       }
       const service = await getPersonasService();
-      const rows = await service.listCharacters();
+      const rows = await service.listCharacters(
+        { limit: ITEMS_PER_PAGE, page: currentPage },
+        signal,
+      );
       if (!signal.aborted) {
         setCharacters(rows);
       }
     },
-    [brandId, getPersonasService],
+    [brandId, currentPage, getPersonasService],
   );
 
   useEffect(() => {

@@ -37,6 +37,8 @@ export interface ReleaseCalendarFilters {
 
 export interface ReleaseCalendarFilterOption {
   label: string;
+  /** Platform whose icon leads the option, when the option is a platform or an account. */
+  platform?: string;
   value: string;
 }
 

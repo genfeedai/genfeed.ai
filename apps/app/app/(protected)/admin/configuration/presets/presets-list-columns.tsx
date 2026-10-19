@@ -10,23 +10,35 @@ export function PresetLabelCell({ preset }: { preset: Preset }) {
   );
 }
 
+/**
+ * A preset with no organization is a platform preset every organization loads.
+ * The list does not populate the organization, so ownership reads off the
+ * scalar `organizationId`.
+ */
 export function PresetOrganizationCell({ preset }: { preset: Preset }) {
   const organization = preset.organization as IOrganization | undefined;
-  const orgLabel = organization?.label || 'Genfeed.ai';
-  const isOrgPreset = Boolean(organization?.label);
+  const isSystemPreset = !preset.organizationId;
 
   return (
     <Badge
       className={`text-xs border border-border bg-transparent uppercase ${
-        isOrgPreset ? 'text-primary' : 'text-muted-foreground'
+        isSystemPreset ? 'text-muted-foreground' : 'text-primary'
       }`}
     >
-      {orgLabel}
+      {isSystemPreset ? 'System' : organization?.label || 'Organization'}
     </Badge>
   );
 }
 
+export function PresetKeyCell({ preset }: { preset: Preset }) {
+  return <span className="font-mono text-sm">{preset.key || '-'}</span>;
+}
+
 export function PresetCategoryCell({ preset }: { preset: Preset }) {
+  if (!preset.category) {
+    return '-';
+  }
+
   return (
     <Badge className="text-xs border border-border bg-transparent uppercase">
       {preset.category}

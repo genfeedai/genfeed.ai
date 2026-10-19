@@ -122,6 +122,41 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
       type: false,
     },
   },
+  ingredients: {
+    filterOptions: {
+      format: [
+        { label: 'All Formats', value: '' },
+        { label: '16:9', value: IngredientFormat.LANDSCAPE },
+        { label: '9:16', value: IngredientFormat.PORTRAIT },
+        { label: '1:1', value: IngredientFormat.SQUARE },
+      ],
+      sort: [
+        { label: 'Default', value: '' },
+        { label: 'Newest First', value: 'createdAt: -1' },
+        { label: 'Oldest First', value: 'createdAt: 1' },
+      ],
+      status: [
+        { label: 'All Status', value: '' },
+        { label: 'Archived', value: IngredientStatus.ARCHIVED },
+        { label: 'Uploaded', value: IngredientStatus.UPLOADED },
+        { label: 'Completed', value: IngredientStatus.GENERATED },
+        { label: 'Processing', value: IngredientStatus.PROCESSING },
+        { label: 'Validated', value: IngredientStatus.VALIDATED },
+        { label: 'Failed', value: IngredientStatus.FAILED },
+      ],
+    },
+    showGenerateLink: true,
+    showUpload: true,
+    showViewToggle: false,
+    visibleFilters: {
+      format: true,
+      provider: false,
+      search: true,
+      sort: true,
+      status: true,
+      type: false,
+    },
+  },
   musics: {
     filterOptions: {
       sort: [
@@ -242,6 +277,10 @@ export const INGREDIENT_LABELS: Record<
   images: {
     description: 'Organize and enhance your image assets for content creation',
     label: 'Images',
+  },
+  ingredients: {
+    description: 'Every asset across images, videos, GIFs and music',
+    label: 'Assets',
   },
   musics: {
     description: 'Browse and manage your audio tracks and background music',

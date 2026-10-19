@@ -177,8 +177,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           request.initiatingPrincipal,
           context,
         );
-        return runWithGenerationEntry(request.generationEntry, () =>
-          this.resumeInput({
+        const threadId = requiredString(request.threadId, 'request.threadId');
+        return runWithGenerationEntry(request.generationEntry, async () => ({
+          resumed: await this.resumeInput({
             answer: requiredString(request.answer, 'request.answer'),
             executionId: provenance.executionId,
             ...(optionalString(request.fieldId)
@@ -187,10 +188,11 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
             ...(initiatingPrincipal ? { initiatingPrincipal } : {}),
             organizationId: context.organizationId,
             scope: readRecord(request.scope) as unknown as ValidatedAgentScope,
-            threadId: requiredString(request.threadId, 'request.threadId'),
+            threadId,
             userId: context.userId,
           }),
-        );
+          threadId,
+        }));
       },
     );
   }

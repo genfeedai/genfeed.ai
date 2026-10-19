@@ -18,6 +18,10 @@ import {
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
+import {
+  buildPaginatedResult,
+  type PaginatedResult,
+} from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -233,14 +237,28 @@ export class McpApprovalsService extends BaseService<
 
   async findByOrganization(
     organizationId: string,
-    status?: McpApprovalStatus,
-  ): Promise<McpApprovalDocument[]> {
-    const docs = await this.delegate.findMany({
-      where: scopedWhere(organizationId, { ...(status ? { status } : {}) }),
-      orderBy: { createdAt: 'desc' },
+    options: { limit: number; page: number; status?: McpApprovalStatus },
+  ): Promise<PaginatedResult<McpApprovalDocument>> {
+    const { limit, page, status } = options;
+    const where = scopedWhere(organizationId, {
+      ...(status ? { status } : {}),
     });
+    const [docs, totalDocs] = await Promise.all([
+      this.delegate.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.delegate.count({ where }),
+    ]);
 
-    return docs as McpApprovalDocument[];
+    return buildPaginatedResult(
+      docs as McpApprovalDocument[],
+      totalDocs,
+      page,
+      limit,
+    );
   }
 
   async findStatusForActor(

@@ -114,29 +114,40 @@ describe('ContextsController', () => {
   });
 
   describe('findAll', () => {
-    it('should return all contexts for organization', async () => {
-      const contexts = [mockContext];
-      mockContextsService.findAll.mockResolvedValue(contexts);
+    it('should return a page of contexts for the organization', async () => {
+      mockContextsService.findAll.mockResolvedValue({
+        docs: [mockContext],
+        limit: 20,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      });
 
       await controller.findAll(mockReq, mockUser);
 
-      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
-        category: undefined,
-        isActive: undefined,
-        search: undefined,
-      });
+      expect(service.findAll).toHaveBeenCalledWith(
+        mockUser.organizationId,
+        { category: undefined, isActive: undefined, search: undefined },
+        { limit: 20, page: 1 },
+      );
     });
 
-    it('should filter by category', async () => {
-      mockContextsService.findAll.mockResolvedValue([mockContext]);
+    it('should pass filters and the requested page through', async () => {
+      mockContextsService.findAll.mockResolvedValue({ docs: [] });
 
-      await controller.findAll(mockReq, mockUser, 'general');
-
-      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
+      await controller.findAll(mockReq, mockUser, {
         category: 'general',
-        isActive: undefined,
-        search: undefined,
+        isActive: 'false',
+        limit: 50,
+        page: 3,
+        search: 'voice',
       });
+
+      expect(service.findAll).toHaveBeenCalledWith(
+        mockUser.organizationId,
+        { category: 'general', isActive: false, search: 'voice' },
+        { limit: 50, page: 3 },
+      );
     });
   });
 

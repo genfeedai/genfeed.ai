@@ -18,6 +18,10 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => null,
+}));
+
 vi.mock('@pages/agents/campaigns/useOutreachCampaignDetail', () => ({
   useOutreachCampaignDetail: vi.fn(),
 }));

@@ -1,4 +1,5 @@
 import type {
+  AdminModelPricingRow,
   ModelBillablePricingProfile,
   ModelPricingAttention,
   ProviderQuoteDimensions,
@@ -237,4 +238,15 @@ export function isModelPricingRed(
   attention: readonly ModelPricingAttention[],
 ): boolean {
   return attention.some((item) => item.level === 'red');
+}
+
+/**
+ * A report row an operator can act on: missing or changed provider pricing.
+ * The attention alert, "Fix pricing" and the models table's pinned rows share
+ * this, so what the alert counts is exactly what the buttons fix.
+ */
+export function needsModelPricingFix(
+  row: Pick<AdminModelPricingRow, 'attentionLevel' | 'isRateApprovalAvailable'>,
+): boolean {
+  return row.isRateApprovalAvailable || row.attentionLevel !== null;
 }

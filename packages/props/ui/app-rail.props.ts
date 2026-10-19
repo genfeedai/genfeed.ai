@@ -11,7 +11,7 @@ import type {
   AppRailReorderEvent,
   AppRailSurface,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 export interface AppRailNavigationTarget {
   announcement?: string;
@@ -101,6 +101,11 @@ export interface AppRailProps {
   onTogglePin?: (appId: string) => void;
   /** Clears the member's order and hidden apps. Without it the More menu has no reset. */
   onResetRail?: () => void;
+  /**
+   * Opens the Admin app somewhere else, e.g. the system browser, instead of
+   * navigating inside this shell. Receives the Admin path.
+   */
+  onOpenAdminExternally?: (href: string) => void;
 }
 
 export interface AppRailMoreProps {
@@ -149,7 +154,7 @@ export interface AppRailItemProps {
   label: string;
   description: string;
   shortcut?: string[];
-  onNavigateStart: () => void;
+  onNavigateStart: (event: MouseEvent<HTMLElement>) => void;
 }
 
 export interface UseAppRailNavigationOptions {

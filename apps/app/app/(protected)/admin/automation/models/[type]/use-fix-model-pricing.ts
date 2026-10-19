@@ -4,6 +4,7 @@ import type {
   AdminModelPricingRow,
   ModelPricingFixResult,
 } from '@genfeedai/contracts/interfaces';
+import { needsModelPricingFix } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminModelPricingService } from '@services/admin/model-pricing.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -17,11 +18,9 @@ const MODELS_QUERY_KEY = ['studio-models'] as const;
 const FOLLOW_UP_DELAY_MS = 15_000;
 const MAX_FOLLOW_UPS = 8;
 
-/** A model whose price is missing or whose provider rates await approval. */
+/** A model whose price is missing, changed or awaiting approval. */
 export function canFixPricing(row: AdminModelPricingRow | undefined): boolean {
-  return Boolean(
-    row && (row.attentionLevel === 'red' || row.isRateApprovalAvailable),
-  );
+  return row !== undefined && needsModelPricingFix(row);
 }
 
 function waitFor(ms: number, signal: AbortSignal): Promise<void> {
@@ -72,6 +71,9 @@ export function useFixModelPricing() {
       const parts = [
         result.approved.length
           ? t('fixSummaryApproved', { count: result.approved.length })
+          : null,
+        result.repaired.length
+          ? t('fixSummaryRepaired', { count: result.repaired.length })
           : null,
         result.syncQueued.length
           ? t('fixSummarySyncQueued', { count: result.syncQueued.length })

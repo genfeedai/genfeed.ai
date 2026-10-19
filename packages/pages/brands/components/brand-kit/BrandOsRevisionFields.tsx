@@ -1,6 +1,6 @@
 'use client';
 
-import { FontFamily } from '@genfeedai/contracts';
+import { FONT_FAMILY_METADATA, FontFamily } from '@genfeedai/contracts';
 import type { IBrandKitAssetCandidate } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -159,10 +159,7 @@ function ValueEditor({
             )}
           {Object.values(FontFamily).map((font) => (
             <SelectItem key={font} value={font}>
-              {font
-                .replace('MONTSERRAT_', 'Montserrat ')
-                .toLowerCase()
-                .replace(/^m/u, 'M')}
+              {FONT_FAMILY_METADATA[font].label}
             </SelectItem>
           ))}
         </SelectContent>

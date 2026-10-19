@@ -19,7 +19,8 @@
     "failedAt": "Failed at",
     "reason": "Reason",
     "error": "Error",
-    "recovery": "Recovery"
+    "status": "Status",
+    "actions": "Actions"
   },
   "reasons": {
     "PROVIDER_CONFIGURATION": "Provider configuration",
@@ -37,5 +38,27 @@
     "PROVIDER_ACCESS_DENIED": "Provider access denied",
     "PROVIDER_UNAVAILABLE": "Provider unavailable",
     "UNKNOWN": "Unknown"
-  }
+  },
+  "resolutionFilter": "Status",
+  "resolutions": {
+    "open": "Open",
+    "resolved": "Resolved",
+    "all": "All statuses"
+  },
+  "statuses": {
+    "open": "Open",
+    "resolved": "Resolved"
+  },
+  "actions": {
+    "markResolved": "Mark resolved",
+    "reopen": "Reopen",
+    "createIssue": "Create GitHub issue",
+    "copy": "Copy details",
+    "copied": "Copied",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details"
+  },
+  "actionError": "Could not update this failure.",
+  "fullError": "Full error",
+  "recovery": "Recovery"
 }

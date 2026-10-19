@@ -34,6 +34,18 @@ describe('PromptBarContainer', () => {
     expect(rootElement.className).toContain('w-full');
   });
 
+  it('should pin to the bottom of the scroll container in sticky-bottom mode', () => {
+    const { container } = render(
+      <PromptBarContainer layoutMode="sticky-bottom">
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+    const rootElement = container.firstChild as HTMLElement;
+    expect(rootElement.className).toContain('sticky');
+    expect(rootElement.className).toContain('bottom-0');
+    expect(rootElement.className).toContain('mt-auto');
+  });
+
   it('should support inflow desktop mode', () => {
     const { container } = render(
       <PromptBarContainer layoutMode="inflow-desktop">

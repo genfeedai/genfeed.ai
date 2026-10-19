@@ -18,6 +18,20 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
+const defaultWindow = { limit: 50, page: 1, skip: 0 };
+const emptyPage = {
+  docs: [],
+  hasNextPage: false,
+  hasPrevPage: false,
+  limit: 50,
+  nextPage: null,
+  page: 1,
+  pagingCounter: 1,
+  prevPage: null,
+  totalDocs: 0,
+  totalPages: 0,
+};
+
 describe('AgentThreadsController', () => {
   let controller: AgentThreadsController;
   let service: {
@@ -144,7 +158,7 @@ describe('AgentThreadsController', () => {
 
   describe('listThreads', () => {
     it('should return threads as JSON:API collection', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
       const result = await controller.listThreads(
         { originalUrl: '/v1/agent/threads' } as never,
         mockUser,
@@ -160,8 +174,63 @@ describe('AgentThreadsController', () => {
       );
     });
 
+    it('forwards the requested page window and defaults to 50 per page', async () => {
+      service.getUserThreads.mockResolvedValue(emptyPage);
+
+      await controller.listThreads(
+        {} as never,
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        { limit: 20, page: 3 },
+      );
+      await controller.listThreads(
+        {} as never,
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        { limit: 500 },
+      );
+
+      expect(service.getUserThreads.mock.calls[0]?.[5]).toEqual({
+        limit: 20,
+        page: 3,
+        skip: 40,
+      });
+      expect(service.getUserThreads.mock.calls[1]?.[5]).toEqual({
+        limit: 100,
+        page: 1,
+        skip: 0,
+      });
+    });
+
+    it('serializes the paged result so the totals reach the client', async () => {
+      service.getUserThreads.mockResolvedValue({
+        ...emptyPage,
+        hasNextPage: true,
+        nextPage: 2,
+        totalDocs: 120,
+        totalPages: 3,
+      });
+
+      const result = await controller.listThreads(
+        { originalUrl: '/v1/agent/threads' } as never,
+        mockUser,
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          links: expect.objectContaining({
+            pagination: expect.objectContaining({ pages: 3, total: 120 }),
+          }),
+        }),
+      );
+    });
+
     it('should pass undefined status when query is omitted', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads({} as never, mockUser);
 
@@ -173,7 +242,7 @@ describe('AgentThreadsController', () => {
     });
 
     it('should pass explicit status when provided', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads({} as never, mockUser, 'active');
 
@@ -185,7 +254,7 @@ describe('AgentThreadsController', () => {
     });
 
     it('should trust identity.userId directly with no DB re-lookup (no 401 for authenticated user)', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads({} as never, mockUser);
 
@@ -196,13 +265,14 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         undefined,
+        defaultWindow,
       );
     });
 
     it('should resolve user id from users collection when metadata id is missing', async () => {
       const resolvedUserId = 'user_resolved';
       usersService.findOne.mockResolvedValueOnce({ id: resolvedUserId });
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads(
         {} as never,
@@ -221,13 +291,14 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         undefined,
+        defaultWindow,
       );
     });
 
     it('should not throw 401 when metadata user id is resolved from the canonical row id', async () => {
       const resolvedUserId = 'resolved_user_id';
       usersService.findOne.mockResolvedValueOnce({ id: resolvedUserId });
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads(
         {} as never,
@@ -244,11 +315,12 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         undefined,
+        defaultWindow,
       );
     });
 
     it('should hard-filter threads by brand when brand query is set', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads({} as never, mockUser, 'active', 'brand-1');
 
@@ -258,11 +330,12 @@ describe('AgentThreadsController', () => {
         'active',
         'brand-1',
         undefined,
+        defaultWindow,
       );
     });
 
     it('should hard-filter threads by source when source query is set', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads(
         {} as never,
@@ -278,11 +351,12 @@ describe('AgentThreadsController', () => {
         'active',
         undefined,
         'onboarding',
+        defaultWindow,
       );
     });
 
     it('should ignore a blank source query', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
 
       await controller.listThreads(
         {} as never,
@@ -298,6 +372,7 @@ describe('AgentThreadsController', () => {
         'active',
         undefined,
         undefined,
+        defaultWindow,
       );
     });
   });
@@ -545,7 +620,7 @@ describe('AgentThreadsController', () => {
 
   describe('original thread identity resolution', () => {
     it('keeps the original actor and organization for owner listing in a selected data scope', async () => {
-      service.getUserThreads.mockResolvedValue([]);
+      service.getUserThreads.mockResolvedValue(emptyPage);
       const originalIdentity = { ...mockUser };
       await runWithTenantReadScope(
         { organizationId: testId('org', 2), isOrganizationOverride: true },
@@ -557,6 +632,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         undefined,
+        defaultWindow,
       );
       expect(mockUser).toEqual(originalIdentity);
       expect(usersService.findOne).not.toHaveBeenCalled();

@@ -1,9 +1,11 @@
 import type {
   CampaignPlatform,
   CampaignStatus,
+  CampaignTargetStatus,
   CampaignType,
 } from '@genfeedai/contracts';
 import { CampaignTargetType } from '@genfeedai/contracts';
+import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -161,6 +163,30 @@ export interface CampaignTarget {
   updatedAt: string;
 }
 
+export interface CampaignTargetsQuery {
+  limit?: number;
+  page?: number;
+  status?: CampaignTargetStatus;
+}
+
+/** One page of a campaign's targets plus the campaign-wide status counts. */
+export interface CampaignTargetsPage {
+  page: number;
+  pageSize: number;
+  statusCounts: Partial<Record<CampaignTargetStatus, number>>;
+  targets: CampaignTarget[];
+  total: number;
+  totalPages: number;
+}
+
+interface CampaignTargetsResponse {
+  data: CampaignTarget[];
+  links: {
+    pagination: { limit: number; page: number; pages: number; total: number };
+  };
+  meta: { statusCounts: Partial<Record<CampaignTargetStatus, number>> };
+}
+
 export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
   constructor(token: string) {
     super('/outreach-campaigns', token, OutreachCampaign);
@@ -176,11 +202,35 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
   async findAllByOrganization(
     organizationId: string,
     brandId?: string,
+    signal?: AbortSignal,
   ): Promise<OutreachCampaign[]> {
-    return this.findAllPages({
-      ...(brandId ? { brandId } : {}),
-      organizationId,
-    });
+    return this.findAllPages(
+      {
+        ...(brandId ? { brandId } : {}),
+        organizationId,
+      },
+      signal,
+    );
+  }
+
+  /**
+   * One server page of an organization's campaigns. Publishes the totals for
+   * `<AutoPagination />`.
+   */
+  async findPageByOrganization(
+    organizationId: string,
+    query: { brandId?: string; limit: number; page: number },
+    signal?: AbortSignal,
+  ): Promise<OutreachCampaign[]> {
+    return this.findAll(
+      {
+        ...(query.brandId ? { brandId: query.brandId } : {}),
+        limit: query.limit,
+        organizationId,
+        page: query.page,
+      },
+      signal,
+    );
   }
 
   /**
@@ -319,13 +369,33 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
   }
 
   /**
-   * Get targets for a campaign
+   * One page of a campaign's targets. Publishes the paging totals to
+   * `PagesService` for `AutoPagination`, like `BaseService.findAll`.
    */
-  async getTargets(id: string): Promise<CampaignTarget[]> {
-    const response = await this.instance.get<CampaignTarget[]>(
+  async getTargets(
+    id: string,
+    query: CampaignTargetsQuery = {},
+    signal?: AbortSignal,
+  ): Promise<CampaignTargetsPage> {
+    const response = await this.instance.get<CampaignTargetsResponse>(
       `/${id}/targets`,
+      { params: query, signal },
     );
-    return response.data;
+    const { data, links, meta } = response.data;
+    const pagination = links.pagination;
+
+    PagesService.setCurrentPage(pagination.page);
+    PagesService.setTotalPages(pagination.pages);
+    PagesService.setTotalDocs(pagination.total);
+
+    return {
+      page: pagination.page,
+      pageSize: pagination.limit,
+      statusCounts: meta.statusCounts,
+      targets: data,
+      total: pagination.total,
+      totalPages: pagination.pages,
+    };
   }
 
   /**

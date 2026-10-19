@@ -294,6 +294,30 @@ describe('BaseService', () => {
       expect(delegate.count).not.toHaveBeenCalled();
     });
 
+    it('caps an unpaginated read at an explicit numeric limit', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }, { id: '2' }]);
+
+      const result = await service.findAll(
+        { where: {} },
+        { limit: 2, pagination: false },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 2 }),
+      );
+      expect(delegate.findMany.mock.calls[0][0]).not.toHaveProperty('skip');
+      expect(delegate.count).not.toHaveBeenCalled();
+      expect(result.docs).toHaveLength(2);
+    });
+
+    it('leaves an unpaginated read unbounded when no limit is given', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+
+      await service.findAll({ where: {} }, { pagination: false });
+
+      expect(delegate.findMany.mock.calls[0][0]).not.toHaveProperty('take');
+    });
+
     it('omits soft-delete filters for models without isDeleted', async () => {
       getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
       delegate.findMany.mockResolvedValue([{ id: '1' }]);

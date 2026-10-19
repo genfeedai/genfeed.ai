@@ -153,6 +153,22 @@ describe('PostDraftGenerator', () => {
     );
     expect(screen.getByText(/provisional style/)).toBeInTheDocument();
   });
+  it('tells the user to re-approve the brand kit when its identity cannot be read', async () => {
+    mocks.generateDraftText.mockRejectedValueOnce({
+      errors: [{ code: 'brand_identity_integrity_failed', status: '409' }],
+    });
+    const user = userEvent.setup();
+    render(
+      <PostDraftGenerator platform={Platform.TWITTER} onGenerate={vi.fn()} />,
+    );
+    await user.type(screen.getByRole('textbox'), 'Launch');
+    await user.click(screen.getByRole('button', { name: 'Generate draft' }));
+    await waitFor(() =>
+      expect(mocks.error).toHaveBeenCalledWith(
+        expect.stringContaining('approve it again'),
+      ),
+    );
+  });
   it('retries a failed request with the same key and rotates it after success', async () => {
     mocks.generateDraftText.mockRejectedValueOnce(new Error('down'));
     const user = userEvent.setup();

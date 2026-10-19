@@ -242,8 +242,33 @@ describe('AdminFlagsPage (#5468)', () => {
         'false',
       ),
     );
-    expect(mocks.success).toHaveBeenCalledWith('Studio switched Off');
+    expect(mocks.success).not.toHaveBeenCalled();
     expect(notifyPlatformFlagsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('locks every switch while one save is in flight', async () => {
+    let finishSave: (value: { flags: Record<string, boolean> }) => void = () =>
+      undefined;
+    mocks.updateSettings.mockReturnValue(
+      new Promise((resolve) => {
+        finishSave = resolve;
+      }),
+    );
+    render(<AdminFlagsPage />);
+
+    fireEvent.click(await screen.findByRole('switch', { name: 'Studio' }));
+
+    await waitFor(() => {
+      for (const toggle of screen.getAllByRole('switch')) {
+        expect(toggle).toBeDisabled();
+      }
+    });
+
+    finishSave({ flags: { studio: false } });
+
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: 'Agent' })).toBeEnabled(),
+    );
   });
 
   it('reverts the switch when the save fails', async () => {

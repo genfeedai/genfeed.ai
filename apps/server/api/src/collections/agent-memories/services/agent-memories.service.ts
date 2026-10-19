@@ -9,10 +9,13 @@ import {
   type AgentMemoryScope,
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
   ContentSkillCategory,
@@ -197,36 +200,43 @@ export class AgentMemoriesService extends BaseService<
 
   async listForOrganization(
     organizationId: string,
-    options: { limit?: number } = {},
-  ): Promise<AgentMemoryDocument[]> {
+    window: PageWindow,
+  ): Promise<AggregatePaginateResult<AgentMemoryDocument>> {
     if (!hasOrganizationBilling()) {
       throw new ForbiddenException(
         'Organization-wide memory listing requires organization billing.',
       );
     }
 
-    const { limit = 100 } = options;
-    return this.delegate.findMany({
-      include: {
-        user: {
-          select: {
-            email: true,
-            handle: true,
-            id: true,
-            name: true,
+    const where = {
+      isDeleted: false,
+      organizationId,
+      scope: {
+        in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
+      },
+    };
+    const [docs, totalDocs] = await Promise.all([
+      this.delegate.findMany({
+        include: {
+          user: {
+            select: {
+              email: true,
+              handle: true,
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-      where: {
-        isDeleted: false,
-        organizationId,
-        scope: {
-          in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    }) as Promise<AgentMemoryDocument[]>;
+        // `id` breaks createdAt ties so rows never repeat across pages.
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: window.skip,
+        take: window.limit,
+        where,
+      }) as Promise<AgentMemoryDocument[]>,
+      this.delegate.count({ where }),
+    ]);
+
+    return buildPaginatedResult(docs, totalDocs, window.page, window.limit);
   }
 
   async createMemory(

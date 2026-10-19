@@ -13,6 +13,10 @@ import {
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  PaginationQueryDto,
+  resolvePageWindow,
+} from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
@@ -46,6 +50,9 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+/** Thread-list page size when the client does not ask for one. */
+const DEFAULT_THREADS_PAGE_SIZE = 50;
+
 @ApiTags('Agent Threads')
 @FeatureFlag('agent')
 @Controller('agent/threads')
@@ -70,6 +77,7 @@ export class AgentThreadsController {
     @Query('status') status?: string,
     @Query('brand') brand?: string,
     @Query('source') source?: string,
+    @Query() pagination: PaginationQueryDto = {},
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
@@ -85,16 +93,15 @@ export class AgentThreadsController {
       // the newest onboarding thread is found regardless of how many newer
       // standard threads exist.
       const threadSource = source?.trim() ? source.trim() : undefined;
-      const docs = await this.agentThreadsService.getUserThreads(
+      const threads = await this.agentThreadsService.getUserThreads(
         dbUserId,
         organizationId,
         parsedStatus,
         brandId,
         threadSource,
+        resolvePageWindow(pagination, DEFAULT_THREADS_PAGE_SIZE),
       );
-      return serializeCollection(req, AgentThreadSerializer, {
-        docs,
-      });
+      return serializeCollection(req, AgentThreadSerializer, threads);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
     }

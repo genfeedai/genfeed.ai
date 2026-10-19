@@ -63,6 +63,7 @@ export const TemplateFilterUtil = {
       search?: string;
       sort?: 'popular';
       limit?: number;
+      page?: number;
     } = {},
   ): Record<string, unknown> {
     const filters: Record<string, unknown> = {};
@@ -138,9 +139,12 @@ export const TemplateFilterUtil = {
       filters.sort = query.sort;
     }
 
-    // Limit filter
+    // Pagination
     if (query.limit !== undefined) {
       filters.limit = query.limit;
+    }
+    if (query.page !== undefined) {
+      filters.page = query.page;
     }
 
     return filters;

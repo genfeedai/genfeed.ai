@@ -4,10 +4,13 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
+import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { resolveLastGeneratedAsset } from '@genfeedai/agent/server';
 import {
   AGENT_RUNTIME_ACTIVE_STATES,
@@ -91,6 +94,8 @@ const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
  * under the bound; only very old executions of very chatty threads fall out.
  */
 const THREAD_EXECUTION_SCAN_LIMIT = 500;
+/** Threads evaluated per round trip while collecting agent runs. */
+const AGENT_RUN_SCAN_BATCH_SIZE = 50;
 
 type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
 
@@ -181,30 +186,59 @@ export class AgentThreadsService extends BaseService<
     });
   }
 
+  /**
+   * One page of the user's threads (newest first) with the total, so the list
+   * never loads every thread and snapshot the user has ever created.
+   */
   async getUserThreads(
     userId: string,
     organizationId: string,
-    status?: AgentThreadStatus,
+    status: AgentThreadStatus | undefined,
     /**
      * When set, list is single-brand only. When omitted, list is full org
      * (every brand + org-scoped threads) for the user.
      */
-    brandId?: string | null,
+    brandId: string | null | undefined,
     /**
      * When set, list is narrowed to threads created from that entry point
      * (`onboarding`, `agent`, `proactive`). Onboarding resume relies on this
      * so the newest onboarding thread is never hidden behind newer standard
      * threads.
      */
+    source: string | null | undefined,
+    window: PageWindow,
+  ): Promise<AggregatePaginateResult<AgentThreadWithSummary>> {
+    const where = this.buildUserThreadWhere(
+      userId,
+      organizationId,
+      status,
+      brandId,
+      source,
+    );
+    const [threads, totalDocs] = await Promise.all([
+      this.findThreadDocuments(organizationId, where, window),
+      this.countThreadDocuments(organizationId, where),
+    ]);
+    const docs = await this.attachThreadSummaries(organizationId, threads, {
+      includeBrandLabels: true,
+      includeGeneratedAssets: true,
+    });
+
+    return buildPaginatedResult(docs, totalDocs, window.page, window.limit);
+  }
+
+  private buildUserThreadWhere(
+    userId: string,
+    organizationId: string,
+    status?: AgentThreadStatus,
+    brandId?: string | null,
     source?: string | null,
-  ): Promise<AgentThreadWithSummary[]> {
+  ): Record<string, unknown> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       userId,
     });
 
-    if (status === AgentThreadStatus.ACTIVE) {
-      where.status = AgentThreadStatus.ACTIVE;
-    } else if (status) {
+    if (status) {
       where.status = status;
     }
 
@@ -216,7 +250,7 @@ export class AgentThreadsService extends BaseService<
       where.source = source;
     }
 
-    return this.findThreadsWithSnapshots(organizationId, where);
+    return where;
   }
 
   archiveThread(
@@ -457,6 +491,7 @@ export class AgentThreadsService extends BaseService<
   private async findThreadDocuments(
     organizationId: string,
     filters?: Record<string, unknown>,
+    window?: Pick<PageWindow, 'limit' | 'skip'>,
   ): Promise<AgentRoomDocument[]> {
     const where: Record<string, unknown> = {
       isDeleted: false,
@@ -465,17 +500,32 @@ export class AgentThreadsService extends BaseService<
     };
 
     return this.delegate.findMany({
+      // `id` keeps threads with equal timestamps from repeating across pages.
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      ...(window ? { skip: window.skip, take: window.limit } : {}),
       where,
-      orderBy: { updatedAt: 'desc' },
     }) as Promise<AgentRoomDocument[]>;
   }
 
-  private async findThreadsWithSnapshots(
+  private countThreadDocuments(
     organizationId: string,
     filters?: Record<string, unknown>,
-  ): Promise<AgentThreadWithSummary[]> {
-    const threads = await this.findThreadDocuments(organizationId, filters);
+  ): Promise<number> {
+    return this.delegate.count({
+      where: { isDeleted: false, organizationId, ...filters },
+    });
+  }
 
+  /**
+   * Joins a page of threads with their snapshots and latest executions. Every
+   * lookup is keyed by the page's thread ids, so cost follows the page size.
+   * Callers that do not render thumbnails or brand names skip those lookups.
+   */
+  private async attachThreadSummaries(
+    organizationId: string,
+    threads: AgentRoomDocument[],
+    options: { includeBrandLabels: boolean; includeGeneratedAssets: boolean },
+  ): Promise<AgentThreadWithSummary[]> {
     if (threads.length === 0) {
       return [];
     }
@@ -513,17 +563,20 @@ export class AgentThreadsService extends BaseService<
         )
         .reverse(),
     );
-    const latestAssetsByThreadId =
-      await this.findLatestGeneratedAssetsByThreadIds(
-        organizationId,
-        new Map(executionRows.map((row) => [row.id, row.threadId])),
-      );
-    const brandLabelsById = await this.findBrandLabelsByIds(
-      organizationId,
-      threads
-        .map((thread) => thread.brandId)
-        .filter((brandId): brandId is string => Boolean(brandId)),
-    );
+    const latestAssetsByThreadId = options.includeGeneratedAssets
+      ? await this.findLatestGeneratedAssetsByThreadIds(
+          organizationId,
+          new Map(executionRows.map((row) => [row.id, row.threadId])),
+        )
+      : new Map<string, ThreadGeneratedAsset>();
+    const brandLabelsById = options.includeBrandLabels
+      ? await this.findBrandLabelsByIds(
+          organizationId,
+          threads
+            .map((thread) => thread.brandId)
+            .filter((brandId): brandId is string => Boolean(brandId)),
+        )
+      : new Map<string, string>();
 
     return threads.map((thread) => {
       const snapshot = snapshotsByThreadId.get(String(thread.id));
@@ -544,12 +597,23 @@ export class AgentThreadsService extends BaseService<
     }) as AgentThreadWithSummary[];
   }
 
+  /**
+   * The latest agent runs across the user's active threads (newest thread
+   * first), at most `limit` of them.
+   *
+   * Run state is derived from each thread's snapshot and latest execution, so
+   * the threads are evaluated in small batches until `limit` runs are found
+   * rather than loading and summarising every thread. Thumbnails and brand
+   * names are not part of a run row, so only the returned runs get a brand
+   * label.
+   */
   async listAgentRuns(
     userId: string,
     organizationId: string,
-    brandId?: string | null,
+    brandId: string | null | undefined,
+    limit: number,
   ): Promise<IAgentRunProjection[]> {
-    const threads = await this.getUserThreads(
+    const where = this.buildUserThreadWhere(
       userId,
       organizationId,
       AgentThreadStatus.ACTIVE,
@@ -557,22 +621,38 @@ export class AgentThreadsService extends BaseService<
     );
     const projectedAt = new Date().toISOString();
     const recentCutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const runs: IAgentRunProjection[] = [];
 
-    return threads.flatMap((thread) => {
-      const runtimeState = thread.runtimeState ?? AgentRuntimeState.READY;
-      const isRecentFailure =
-        (runtimeState === AgentRuntimeState.FAILED ||
-          runtimeState === AgentRuntimeState.INTERRUPTED ||
-          runtimeState === AgentRuntimeState.CANCELLED) &&
-        this.isRecentActivity(thread.lastActivityAt, recentCutoff);
-      if (!AGENT_RUNTIME_ACTIVE_STATES.has(runtimeState) && !isRecentFailure) {
-        return [];
+    for (let skip = 0; runs.length < limit; skip += AGENT_RUN_SCAN_BATCH_SIZE) {
+      const batch = await this.findThreadDocuments(organizationId, where, {
+        limit: AGENT_RUN_SCAN_BATCH_SIZE,
+        skip,
+      });
+      if (batch.length === 0) {
+        break;
       }
 
-      return [
-        {
+      const threads = await this.attachThreadSummaries(organizationId, batch, {
+        includeBrandLabels: false,
+        includeGeneratedAssets: false,
+      });
+      for (const thread of threads) {
+        const runtimeState = thread.runtimeState ?? AgentRuntimeState.READY;
+        const isRecentFailure =
+          (runtimeState === AgentRuntimeState.FAILED ||
+            runtimeState === AgentRuntimeState.INTERRUPTED ||
+            runtimeState === AgentRuntimeState.CANCELLED) &&
+          this.isRecentActivity(thread.lastActivityAt, recentCutoff);
+        if (
+          !AGENT_RUNTIME_ACTIVE_STATES.has(runtimeState) &&
+          !isRecentFailure
+        ) {
+          continue;
+        }
+
+        runs.push({
           brandId: thread.brandId ?? null,
-          brandLabel: thread.brandLabel ?? null,
+          brandLabel: null,
           decisionHref: thread.decisionHref ?? `/agent/${thread.id}`,
           id: thread.runId ?? `thread-run:${thread.id}`,
           inputRequestId: this.readInputRequestIdFromHref(thread.decisionHref),
@@ -582,9 +662,26 @@ export class AgentThreadsService extends BaseService<
           startedAt: thread.lastActivityAt ?? null,
           threadId: thread.id,
           threadTitle: thread.title ?? null,
-        } satisfies IAgentRunProjection,
-      ];
-    });
+        });
+      }
+
+      if (batch.length < AGENT_RUN_SCAN_BATCH_SIZE) {
+        break;
+      }
+    }
+
+    const page = runs.slice(0, limit);
+    const brandLabelsById = await this.findBrandLabelsByIds(
+      organizationId,
+      page.map((run) => run.brandId).filter((id): id is string => Boolean(id)),
+    );
+
+    return page.map((run) => ({
+      ...run,
+      brandLabel: run.brandId
+        ? (brandLabelsById.get(run.brandId) ?? null)
+        : null,
+    }));
   }
 
   private buildThreadSummary(
@@ -800,6 +897,10 @@ export class AgentThreadsService extends BaseService<
       return [];
     }
 
+    // The thread predicate must be the jsonb path `#>` expression that
+    // `workflow_executions_agent_thread_lookup_idx` indexes. A `->>` text
+    // comparison cannot use it and walks every execution of the organization,
+    // detoasting each `result` blob.
     return this.prisma.$queryRaw<ThreadExecutionRow[]>`
       SELECT
         execution.id AS "id",
@@ -809,8 +910,8 @@ export class AgentThreadsService extends BaseService<
       FROM workflow_executions AS execution
       WHERE execution."organizationId" = ${organizationId}
         AND execution."isDeleted" = false
-        AND execution.result -> 'metadata' ->> 'threadId' IN (${Prisma.join(
-          threadIds,
+        AND (execution.result #> '{metadata,threadId}'::text[]) IN (${Prisma.join(
+          threadIds.map((threadId) => Prisma.sql`to_jsonb(${threadId}::text)`),
         )})
       ORDER BY execution."createdAt" DESC
       LIMIT ${limit}

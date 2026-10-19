@@ -11,7 +11,10 @@ import { logger } from '@services/core/logger.service';
 import { PublicService } from '@services/external/public.service';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
-import { resolveServerSuperAdmin } from './admin-ip-access.server';
+import {
+  resolveServerSuperAdmin,
+  resolveServerSuperAdminFromToken,
+} from './admin-ip-access.server';
 import { isDesktopServerRequest } from './desktop-request.server';
 
 export { isDesktopServerRequest } from './desktop-request.server';
@@ -127,3 +130,22 @@ export const loadProtectedBootstrap = cache(
     };
   },
 );
+
+/**
+ * The admin-subtree gate. Reads the `isSuperAdmin` claim off the server token
+ * instead of loading the whole bootstrap payload, so entering `/admin` costs
+ * one token exchange rather than a token exchange, the bootstrap and the
+ * platform flags in sequence.
+ */
+export const loadServerSuperAdmin = cache(async (): Promise<boolean> => {
+  const token = await getServerAuthToken();
+
+  if (
+    shouldSkipCloudBootstrap(token, await isDesktopServerRequest()) ||
+    !hasUsableServerAuthToken(token)
+  ) {
+    return false;
+  }
+
+  return resolveServerSuperAdminFromToken(token);
+});

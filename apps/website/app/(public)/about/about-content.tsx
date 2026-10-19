@@ -73,7 +73,7 @@ const SERVICES = [
   },
   {
     description:
-      'Every paid plan includes API access at the same credit price. The MCP server lets AI agents such as Claude and ChatGPT run Genfeed directly.',
+      'Every plan includes API access at the same credit price. The MCP server lets AI agents such as Claude and ChatGPT run Genfeed directly.',
     title: 'Build on it',
   },
 ] as const;

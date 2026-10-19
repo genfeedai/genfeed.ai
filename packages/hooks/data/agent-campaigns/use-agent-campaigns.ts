@@ -14,6 +14,10 @@ import {
 import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentCampaignsOptions {
+  /** Page size; only meaningful together with `page`. */
+  limit?: number;
+  /** When set, fetch only this server page. Omit to load every campaign. */
+  page?: number;
   status?: string;
 }
 
@@ -44,7 +48,14 @@ export function useAgentCampaigns(
     refetch,
   } = useQuery({
     enabled: isEnabled,
-    queryKey: ['agent-campaigns', brandId ?? null, pageScope, options.status],
+    queryKey: [
+      'agent-campaigns',
+      brandId ?? null,
+      pageScope,
+      options.status,
+      options.page,
+      options.limit,
+    ],
     queryFn: async () => {
       const token = await resolveAuthToken(getToken);
       if (!token) return [];
@@ -53,6 +64,7 @@ export function useAgentCampaigns(
       return service.list({
         ...toBrandListParams({ brandId }),
         status: options.status,
+        ...(options.page ? { limit: options.limit, page: options.page } : {}),
       });
     },
   });

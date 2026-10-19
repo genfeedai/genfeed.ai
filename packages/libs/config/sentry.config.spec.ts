@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getSentryConfig } from './sentry.config';
+import {
+  getSentryConfig,
+  PRODUCTION_TRACES_SAMPLE_RATE,
+} from './sentry.config';
 
 describe('getSentryConfig', () => {
   afterEach(() => {
@@ -43,7 +46,7 @@ describe('getSentryConfig', () => {
       environment: 'production',
       release: '3.2.1',
       sendDefaultPii: false,
-      tracesSampleRate: 0,
+      tracesSampleRate: PRODUCTION_TRACES_SAMPLE_RATE,
     });
   });
 
@@ -92,23 +95,24 @@ describe('getSentryConfig', () => {
     }
   });
 
-  it('keeps tracing disabled in every environment', () => {
+  it('samples traces in production only', () => {
     vi.stubEnv('SENTRY_ENABLED', 'true');
     vi.stubEnv('SENTRY_DEV', 'true');
     vi.stubEnv('SENTRY_DSN', 'https://shared@sentry.io/1');
     vi.stubEnv('SENTRY_DSN_API', '');
 
-    for (const nodeEnv of [
-      'development',
-      'test',
-      'staging',
-      'production',
-    ] as const) {
+    for (const nodeEnv of ['development', 'test', 'staging'] as const) {
       vi.stubEnv('NODE_ENV', nodeEnv);
 
       expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
         tracesSampleRate: 0,
       });
     }
+
+    vi.stubEnv('NODE_ENV', 'production');
+
+    expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
+      tracesSampleRate: PRODUCTION_TRACES_SAMPLE_RATE,
+    });
   });
 });

@@ -2,7 +2,6 @@ import { createHmac } from 'node:crypto';
 import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { isCloudDeployment } from '@genfeedai/config';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
@@ -18,11 +17,6 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-
-vi.mock('@genfeedai/config', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@genfeedai/config')>()),
-  isCloudDeployment: vi.fn(() => false),
-}));
 
 type MockFn = ReturnType<typeof vi.fn>;
 
@@ -787,68 +781,5 @@ describe('MCP organization switching', () => {
       expect(prisma.organization.findFirst).not.toHaveBeenCalled();
       expect(delegate.update).not.toHaveBeenCalled();
     });
-  });
-});
-
-describe('resolveEffectiveRateLimit on a tier without API access', () => {
-  function createHarness(subscriptionTier: string | null) {
-    const service = Object.create(ApiKeysService.prototype) as ApiKeysService;
-    Object.defineProperty(service, 'prisma', {
-      value: {
-        organizationSetting: {
-          findUnique: vi
-            .fn()
-            .mockResolvedValue(subscriptionTier ? { subscriptionTier } : null),
-        },
-      },
-    });
-    return service;
-  }
-  const key = (metadata: Record<string, unknown>, rateLimit?: number) =>
-    ({
-      id: 'key-1',
-      metadata,
-      organizationId: 'org-1',
-      rateLimit,
-      userId: 'user-1',
-    }) as unknown as ApiKeyDocument;
-
-  beforeEach(() => {
-    vi.mocked(isCloudDeployment).mockReturnValue(true);
-  });
-
-  it('keeps denying a plain API key on the free tier', async () => {
-    const service = createHarness('free');
-    await expect(service.resolveEffectiveRateLimit(key({}, 120))).resolves.toBe(
-      0,
-    );
-  });
-
-  it('keeps denying a plain API key when the org has no tier row', async () => {
-    const service = createHarness(null);
-    await expect(service.resolveEffectiveRateLimit(key({}, 120))).resolves.toBe(
-      0,
-    );
-  });
-
-  it('lets an MCP OAuth session on the free tier use its own limit', async () => {
-    const service = createHarness('free');
-    await expect(
-      service.resolveEffectiveRateLimit(key({ kind: 'mcp-oauth-session' }, 90)),
-    ).resolves.toBe(90);
-  });
-
-  it('falls back to the default limit for a session key without one', async () => {
-    const service = createHarness(null);
-    await expect(
-      service.resolveEffectiveRateLimit(key({ kind: 'mcp-oauth-session' })),
-    ).resolves.toBe(120);
-  });
-
-  it('still applies the paid tier ceiling to an MCP OAuth session', async () => {
-    const service = createHarness('scale');
-    await expect(
-      service.resolveEffectiveRateLimit(key({ kind: 'mcp-oauth-session' }, 90)),
-    ).resolves.toBe(600);
   });
 });

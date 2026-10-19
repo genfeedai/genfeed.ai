@@ -96,7 +96,7 @@ function createDatabase() {
     $queryRaw: vi.fn().mockResolvedValue([]),
     $transaction: async <T>(run: (tx: typeof client) => Promise<T>) =>
       run(client),
-    agentThread: { findMany: vi.fn() },
+    agentThread: { count: vi.fn().mockResolvedValue(1), findMany: vi.fn() },
     brand: { findMany: vi.fn().mockResolvedValue([]) },
     ingredient: { findMany: vi.fn().mockResolvedValue([]) },
     snapshots,
@@ -278,10 +278,15 @@ describe('AgentThreadStatusPublisherService', () => {
       (
         database.agentThread.findMany as ReturnType<typeof vi.fn>
       ).mockResolvedValue([thread]);
-      const [listed] = await threadsService.getUserThreads(
+      const {
+        docs: [listed],
+      } = await threadsService.getUserThreads(
         userId,
         orgId,
         AgentThreadStatus.ACTIVE,
+        undefined,
+        undefined,
+        { limit: 50, page: 1, skip: 0 },
       );
       return {
         pendingInputCount: listed.pendingInputCount,

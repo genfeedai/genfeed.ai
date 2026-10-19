@@ -16,6 +16,14 @@ const mocks = vi.hoisted(() => ({
   useQuery: vi.fn(),
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams('page=2'),
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../tests/next-intl.stub'
@@ -204,6 +212,19 @@ describe('UsersList', () => {
       value: originalLocation,
       writable: true,
     });
+  });
+
+  it('asks the API for the page in the URL and shows the pager', async () => {
+    mocks.findAll.mockResolvedValue([regularUser]);
+    render(<UsersList />);
+
+    const options = mocks.useQuery.mock.calls[0]?.[0];
+    expect(options.queryKey).toEqual(['admin-users', 2]);
+    await options.queryFn();
+    expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 2 });
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
   });
 
   it('offers Impersonate only for non-superadmin users', () => {

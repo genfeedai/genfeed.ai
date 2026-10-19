@@ -372,8 +372,6 @@ export interface ModalPostSimpleFieldsProps {
   isOverLimit: boolean;
   isTitleRequired: boolean;
   isTitleError: boolean;
-  hasIngredients: boolean;
-  browserTimezone: string;
   /** Called with the saved draft when a generated draft fills the editor. */
   onDraftGenerated?: (draft: { platform: Platform; postId: string }) => void;
 }
@@ -389,6 +387,16 @@ export interface ModalPostSimpleActionsProps {
   isHandoff?: boolean;
   /** The composer will create an X thread instead of one post per account. */
   isThread?: boolean;
+  /** A new post: it is saved as a draft, published now or scheduled for later. */
+  hasPublishChoices?: boolean;
+  /** At least one account is selected, so publishing and scheduling are possible. */
+  hasAccount?: boolean;
+  browserTimezone?: string;
+  scheduledDate?: string;
+  onScheduledDateChange?: (scheduledDate: string) => void;
+  onSaveDraft?: () => void;
+  onPublishNow?: () => void;
+  onSchedule?: () => void;
   onContinue?: () => void;
   showViewDetailsButton: boolean;
   onViewDetails?: () => void;

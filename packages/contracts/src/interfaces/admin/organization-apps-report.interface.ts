@@ -1,4 +1,5 @@
 import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
+import type { IPaginationParams } from '../core/common.interface';
 
 /**
  * Platform-admin report of which apps each organization currently sees.
@@ -23,6 +24,8 @@ export interface IOrganizationAppsReportOrganization {
 export interface IOrganizationAppsReport {
   generatedAt: string;
   organizations: IOrganizationAppsReportOrganization[];
+  /** Which page of organizations this report carries, with the total. */
+  pagination: IPaginationParams;
   /** `release_<id>` platform flags; a missing flag counts as not released. */
   releaseFlags: Record<string, boolean>;
 }

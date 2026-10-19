@@ -21,6 +21,7 @@ import ReleaseAnalyticsTable from '@pages/posts/release/release-analytics-table'
 import ReleaseEngagementRules from '@pages/posts/release/release-engagement-rules';
 import ReleaseRescheduleField from '@pages/posts/release/release-reschedule-field';
 import { isCredentialAtRisk } from '@pages/posts/release/release-target-actions.helpers';
+import ReleaseTargetPreview from '@pages/posts/release/release-target-preview';
 import {
   badgeVariantForTone,
   isReleaseReschedulable,
@@ -36,7 +37,6 @@ import type { ReleaseDetailDrawerProps } from '@props/publisher/release-calendar
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Tabs from '@ui/navigation/tabs/Tabs';
-import TargetPreview from '@ui/previews/TargetPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink, Repeat2 } from 'lucide-react';
@@ -343,7 +343,7 @@ export default function ReleaseDetailDrawer({
                   return (
                     <article
                       key={target.id}
-                      className="space-y-3 border border-border bg-card p-4"
+                      className="space-y-3 border-b border-border pb-4 last:border-b-0 last:pb-0"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-foreground">
@@ -358,14 +358,7 @@ export default function ReleaseDetailDrawer({
                         <Badge variant="secondary">{target.source}</Badge>
                       </div>
 
-                      <TargetPreview
-                        className="max-w-sm"
-                        credential={
-                          target.credential ?? { platform: target.platform }
-                        }
-                        release={release}
-                        target={target}
-                      />
+                      <ReleaseTargetPreview release={release} target={target} />
 
                       {target.validationIssues.length > 0 ? (
                         <ol className="space-y-1 text-xs text-muted-foreground">

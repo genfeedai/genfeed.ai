@@ -49,6 +49,7 @@ export default function PostDetailSidebar({
   analyticsStats,
   reviewSummary,
   preview,
+  isPerformanceShown = true,
   onScheduleChange,
   onScheduleSave,
   onPublishNow,
@@ -202,7 +203,7 @@ export default function PostDetailSidebar({
           </InspectorSection>
         ) : null}
 
-        {isPublished && firstStat ? (
+        {isPublished && isPerformanceShown && firstStat ? (
           <InspectorSection
             title={translate('performance')}
             summary={`${firstStat.value} ${firstStat.label}`}

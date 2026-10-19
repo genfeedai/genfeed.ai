@@ -98,6 +98,53 @@ describe('ReleaseGroupsService', () => {
     });
   });
 
+  it('walks every server page for a window read', async () => {
+    mockGet
+      .mockResolvedValueOnce({
+        data: {
+          links: { pagination: { limit: 100, page: 1, pages: 3, total: 250 } },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          links: { pagination: { limit: 100, page: 2, pages: 3, total: 250 } },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          links: { pagination: { limit: 100, page: 3, pages: 3, total: 250 } },
+        },
+      });
+    mockExtractCollection
+      .mockReturnValueOnce([{ id: 'release-1' }])
+      .mockReturnValueOnce([{ id: 'release-2' }])
+      .mockReturnValueOnce([{ id: 'release-3' }]);
+    const query = {
+      brandId: 'brand-1',
+      endDate: '2026-07-31T23:59:59.000Z',
+      startDate: '2026-07-27T00:00:00.000Z',
+    };
+
+    const releases = await new ReleaseGroupsService('token').findAllPages(
+      query,
+    );
+
+    expect(releases.map((release) => release.id)).toEqual([
+      'release-1',
+      'release-2',
+      'release-3',
+    ]);
+    expect(mockGet).toHaveBeenCalledTimes(3);
+    expect(mockGet).toHaveBeenNthCalledWith(1, '', {
+      params: { ...query, limit: 100, page: 1 },
+      signal: undefined,
+    });
+    expect(mockGet).toHaveBeenNthCalledWith(3, '', {
+      params: { ...query, limit: 100, page: 3 },
+      signal: undefined,
+    });
+  });
+
   it('preserves canonical Publish list pagination metadata', async () => {
     const document = {
       data: [],

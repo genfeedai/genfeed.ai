@@ -623,6 +623,38 @@ describe('SubscriptionsController', () => {
       expect(result.data[0]?.remainingPercent).toBeCloseTo(50, 5);
     });
 
+    it('pages in the database and returns the real totals', async () => {
+      mockSubscriptionsService.findAll.mockResolvedValue({
+        docs: [buildSubscription()],
+        limit: 15,
+        page: 3,
+        totalDocs: 31,
+        totalPages: 3,
+      });
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
+        30_000,
+      );
+
+      const result = await controller.getCreditUsage({
+        ...defaultQuery,
+        limit: 15,
+        page: 3,
+      });
+
+      expect(mockSubscriptionsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isDeleted: false } }),
+        expect.objectContaining({ limit: 15, page: 3, pagination: true }),
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          limit: 15,
+          page: 3,
+          totalDocs: 31,
+          totalPages: 3,
+        }),
+      );
+    });
+
     it('reads subscriptions and wallets outside the superadmin request tenant', async () => {
       const observed: Record<string, boolean> = {};
       mockSubscriptionsService.findAll.mockImplementation(async () => {

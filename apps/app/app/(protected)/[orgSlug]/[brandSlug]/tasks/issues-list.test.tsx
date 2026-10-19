@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,8 +48,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => mocks.searchParams,
 }));
 
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
+
 describe('IssuesList view controls', () => {
   beforeEach(() => {
+    mocks.searchParams = new URLSearchParams();
+    mocks.replace.mockReset();
     mocks.getService.mockReset();
     mocks.list.mockReset();
     mocks.list.mockResolvedValue([]);
@@ -294,5 +301,74 @@ describe('IssuesList URL view state', () => {
     expect(mocks.list).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'todo' }),
     );
+  });
+});
+
+describe('IssuesList pagination', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    mocks.searchParams = new URLSearchParams();
+    mocks.list.mockResolvedValue([]);
+    mocks.getService.mockResolvedValue({ list: mocks.list });
+  });
+
+  it('requests the server page from the URL with the page size', async () => {
+    mocks.searchParams = new URLSearchParams('page=3');
+    render(<IssuesList />);
+
+    await waitFor(() =>
+      expect(mocks.list).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 3 }),
+      ),
+    );
+  });
+
+  it('defaults to the first page and renders pagination once tasks exist', async () => {
+    mocks.list.mockResolvedValue([
+      {
+        id: 'task-1',
+        identifier: 'TASK-1',
+        priority: 'medium',
+        status: 'todo',
+        title: 'Paginated task',
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    render(<IssuesList />);
+
+    expect(await screen.findByText('Paginated task')).toBeVisible();
+    expect(mocks.list).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 1 }),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
+  it('drops the page param when the status filter changes', async () => {
+    mocks.searchParams = new URLSearchParams('page=2&status=todo');
+    mocks.list.mockResolvedValue([
+      {
+        id: 'task-1',
+        identifier: 'TASK-1',
+        priority: 'medium',
+        status: 'todo',
+        title: 'Filtered task',
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    const user = userEvent.setup();
+    render(<IssuesList />);
+    await screen.findByText('Filtered task');
+
+    await user.click(screen.getAllByRole('combobox')[0]);
+    await user.click(
+      await screen.findByRole('option', { name: 'All Statuses' }),
+    );
+
+    expect(mocks.replace).toHaveBeenCalledWith('/', { scroll: false });
   });
 });

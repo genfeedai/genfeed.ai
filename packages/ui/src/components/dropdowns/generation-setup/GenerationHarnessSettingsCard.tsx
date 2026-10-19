@@ -65,10 +65,10 @@ export default function GenerationHarnessSettingsCard({
             </Button>
           ) : null}
           {brandId ? (
-            <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-medium">{translate('brand')}</p>
               <div
-                className="flex gap-1"
+                className="flex shrink-0 gap-1"
                 role="group"
                 aria-label={translate('brandLabel')}
               >

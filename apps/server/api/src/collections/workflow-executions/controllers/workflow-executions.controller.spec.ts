@@ -35,6 +35,10 @@ describe('WorkflowExecutionsController', () => {
   } as never;
 
   const mockService = {
+    buildCustomerListWhere: vi.fn(
+      async (organizationId: string, query: never) =>
+        buildCustomerExecutionWhere(organizationId, query),
+    ),
     cancelExecution: vi.fn(),
     createExecution: vi.fn(),
     findAll: vi.fn(),
@@ -42,6 +46,7 @@ describe('WorkflowExecutionsController', () => {
     findOne: vi.fn(),
     getExecutionStats: vi.fn(),
     getCustomerSummary: vi.fn(),
+    patchOneWhere: vi.fn(),
   };
   const mockWorkflowExecutorService = {
     executeManualWorkflow: vi.fn(),
@@ -410,6 +415,7 @@ describe('WorkflowExecutionsController', () => {
         controller.findAdminFailures(mockRequest, mockUser, {
           limit: 20,
           offset: 0,
+          resolution: 'open',
         }),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(mockService.findAll).not.toHaveBeenCalled();
@@ -423,6 +429,7 @@ describe('WorkflowExecutionsController', () => {
           {
             limit: 20,
             offset: 10,
+            resolution: 'open',
           },
         ),
       ).rejects.toThrow('Offset must be a multiple of limit');
@@ -438,6 +445,7 @@ describe('WorkflowExecutionsController', () => {
           failureReason: AgentFailureReason.UNKNOWN,
           limit: 20,
           offset: 0,
+          resolution: 'open',
         },
       );
       const where = mockService.findAll.mock.calls[0][0].where;
@@ -458,6 +466,7 @@ describe('WorkflowExecutionsController', () => {
           failureReason: AgentFailureReason.RATE_LIMITED,
           limit: 20,
           offset: 40,
+          resolution: 'open',
         },
       );
       expect(mockService.findAll).toHaveBeenCalledWith(
@@ -481,6 +490,102 @@ describe('WorkflowExecutionsController', () => {
       expect(where).not.toHaveProperty('organizationId');
       expect(JSON.stringify(where.workflow)).toContain('agent.turn.execute');
       expect(JSON.stringify(where.workflow)).not.toContain('voice.generate');
+    });
+
+    it('lists open failures by default and resolved ones on request', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [] });
+      const superAdmin = { isSuperAdmin: true } as never;
+      await controller.findAdminFailures(mockRequest, superAdmin, {
+        limit: 20,
+        offset: 0,
+        resolution: 'open',
+      });
+      await controller.findAdminFailures(mockRequest, superAdmin, {
+        limit: 20,
+        offset: 0,
+        resolution: 'resolved',
+      });
+      await controller.findAdminFailures(mockRequest, superAdmin, {
+        limit: 20,
+        offset: 0,
+        resolution: 'all',
+      });
+      const wheres = mockService.findAll.mock.calls.map(
+        (call) => call[0].where,
+      );
+      expect(wheres[0].failureResolvedAt).toBeNull();
+      expect(wheres[1].failureResolvedAt).toEqual({ not: null });
+      expect(wheres[2]).not.toHaveProperty('failureResolvedAt');
+      expect(mockService.findAll.mock.calls[0][0].include.organization).toEqual(
+        {
+          select: { id: true, label: true },
+        },
+      );
+    });
+
+    it('rejects resolving a failure for non-superadmins', async () => {
+      await expect(
+        controller.resolveAdminFailure(mockRequest, mockUser, 'run-1', {
+          isResolved: true,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockService.patchOneWhere).not.toHaveBeenCalled();
+    });
+
+    it("marks a failed run resolved within the run's own tenant", async () => {
+      mockService.findOne.mockResolvedValue({
+        id: 'run-1',
+        organizationId: 'org-other',
+      });
+      mockService.patchOneWhere.mockResolvedValue({
+        id: 'run-1',
+        organizationId: 'org-other',
+      });
+      await controller.resolveAdminFailure(
+        mockRequest,
+        { isSuperAdmin: true, userId: 'admin-1' } as never,
+        'run-1',
+        { isResolved: true },
+      );
+      expect(mockService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'run-1',
+          isDeleted: false,
+          status: WorkflowExecutionStatus.FAILED,
+        }),
+      );
+      expect(mockService.patchOneWhere).toHaveBeenCalledWith(
+        { id: 'run-1', isDeleted: false, organizationId: 'org-other' },
+        { failureResolvedAt: expect.any(Date), failureResolvedBy: 'admin-1' },
+        ['organization', 'workflow'],
+      );
+    });
+
+    it('reopens a resolved failure and 404s on unknown runs', async () => {
+      mockService.findOne.mockResolvedValueOnce({
+        id: 'run-1',
+        organizationId: 'org-1',
+      });
+      mockService.patchOneWhere.mockResolvedValue({ id: 'run-1' });
+      await controller.resolveAdminFailure(
+        mockRequest,
+        { isSuperAdmin: true, userId: 'admin-1' } as never,
+        'run-1',
+        { isResolved: false },
+      );
+      expect(mockService.patchOneWhere.mock.calls.at(-1)?.[1]).toEqual({
+        failureResolvedAt: null,
+        failureResolvedBy: null,
+      });
+      mockService.findOne.mockResolvedValueOnce(null);
+      await expect(
+        controller.resolveAdminFailure(
+          mockRequest,
+          { isSuperAdmin: true, userId: 'admin-1' } as never,
+          'missing',
+          { isResolved: true },
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('declares platform-admin authorization on the cross-tenant route', () => {

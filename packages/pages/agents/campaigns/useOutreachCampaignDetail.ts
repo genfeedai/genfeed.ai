@@ -1,6 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { CampaignTargetStatus } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -10,7 +10,7 @@ import {
 } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -26,6 +26,10 @@ export function useOutreachCampaignDetail() {
 
   const [campaign, setCampaign] = useState<OutreachCampaign | null>(null);
   const [targets, setTargets] = useState<CampaignTarget[]>([]);
+  const [statusCounts, setStatusCounts] = useState<
+    Partial<Record<CampaignTargetStatus, number>>
+  >({});
+  const currentPage = Number(useSearchParams().get('page')) || 1;
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [urlInput, setUrlInput] = useState('');
@@ -54,15 +58,19 @@ export function useOutreachCampaignDetail() {
 
       try {
         const service = await getService();
-        const [fetchedCampaign, fetchedTargets] = await Promise.all([
+        const [fetchedCampaign, targetsPage] = await Promise.all([
           service.findOne(campaignId),
-          service.getTargets(campaignId),
+          service.getTargets(campaignId, {
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+          }),
         ]);
         setCampaign(fetchedCampaign);
-        setTargets(fetchedTargets);
+        setTargets(targetsPage.targets);
+        setStatusCounts(targetsPage.statusCounts);
         logger.info('Loaded campaign details', {
           campaignId,
-          targetCount: fetchedTargets.length,
+          targetCount: targetsPage.total,
         });
       } catch (error) {
         logger.error('Failed to load campaign', error);
@@ -72,7 +80,14 @@ export function useOutreachCampaignDetail() {
         setIsRefreshing(false);
       }
     },
-    [organizationId, campaignId, getService, notificationsService, translate],
+    [
+      organizationId,
+      campaignId,
+      currentPage,
+      getService,
+      notificationsService,
+      translate,
+    ],
   );
 
   useEffect(() => {
@@ -211,18 +226,20 @@ export function useOutreachCampaignDetail() {
       scheduled: 0,
       sent: 0,
       skipped: 0,
-      total: targets.length,
+      total: 0,
     };
 
-    for (const target of targets) {
-      const key = statusKeyMap[target.status as CampaignTargetStatus];
+    // Counted across the whole campaign by the API, not from the loaded page.
+    for (const [status, count = 0] of Object.entries(statusCounts)) {
+      stats.total += count;
+      const key = statusKeyMap[status as CampaignTargetStatus];
       if (key) {
-        stats[key]++;
+        stats[key] += count;
       }
     }
 
     return stats;
-  }, [targets]);
+  }, [statusCounts]);
 
   const handleBack = useCallback(() => {
     router.push(href(APP_ROUTES.MESSAGES.OUTREACH));

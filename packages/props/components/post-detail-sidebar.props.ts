@@ -44,6 +44,11 @@ export interface PostDetailSidebarProps {
    * tabs; without it there are no tabs.
    */
   preview?: ReactNode;
+  /**
+   * Whether a published post's performance numbers show in the inspector.
+   * Turn off when the page body already shows them.
+   */
+  isPerformanceShown?: boolean;
   className?: string;
 }
 

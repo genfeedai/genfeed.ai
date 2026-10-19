@@ -26,11 +26,13 @@ vi.mock('@pages/ingredients/list/ingredients-list', () => ({
 }));
 describe('FilteredListRoute', () => {
   it.each([
-    ['', 'videos'],
+    ['', 'ingredients'],
+    ['assetType=ingredients', 'ingredients'],
+    ['assetType=videos', 'videos'],
     ['assetType=images', 'images'],
     ['assetType=gifs', 'gifs'],
-    ['assetType=invalid', 'videos'],
-    ['assetType=images&assetType=gifs', 'videos'],
+    ['assetType=invalid', 'ingredients'],
+    ['assetType=images&assetType=gifs', 'ingredients'],
   ])('preserves the parsing of %s', (query, expected) => {
     navigation.query = new URLSearchParams(query);
     render(<FilteredListRoute />);

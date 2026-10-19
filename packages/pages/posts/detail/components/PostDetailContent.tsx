@@ -254,7 +254,7 @@ export default function PostDetailContent({
   const isComposing = isEditable && !isPublished;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col gap-4">
       <PostDetailPostList
         post={post}
         sortedChildren={threadChildren}

@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
@@ -7,6 +8,7 @@ import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import type {
   TableColumn,
   TableProps,
+  TableRowLink,
 } from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
@@ -17,7 +19,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Fragment, useCallback, useRef } from 'react';
+import { Fragment, useCallback, useRef, useState } from 'react';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -68,13 +70,27 @@ function TableSectionWrapper({
 function TableCellContent<T>({
   column,
   item,
+  nameLink,
 }: {
   column: TableColumn<T>;
   item: T;
+  /** Turns the primary content into the link to the row's detail page. */
+  nameLink?: TableRowLink;
 }) {
-  const primary = column.render
+  const content = column.render
     ? column.render(item)
     : String(item[column.key as keyof T]);
+  const primary = nameLink ? (
+    <Link
+      aria-label={nameLink.label}
+      className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      href={nameLink.href}
+    >
+      {content}
+    </Link>
+  ) : (
+    content
+  );
   const subtext = column.subtext?.(item);
   const hasSubtext =
     subtext !== null &&
@@ -122,6 +138,7 @@ export default function AppTable<T>({
   onSelectionChange,
   getItemId,
   getRowLink,
+  rowSidebar,
   onRowClick,
   renderExpandedRow,
   hideHeader = false,
@@ -139,6 +156,14 @@ export default function AppTable<T>({
   const dragStartX = useRef(0);
   const dragStartScrollLeft = useRef(0);
   const didDrag = useRef(false);
+  const [sidebarRowId, setSidebarRowId] = useState<string | null>(null);
+  const sidebarItem =
+    rowSidebar && sidebarRowId !== null
+      ? (items.find((item) => rowSidebar.getId(item) === sidebarRowId) ?? null)
+      : null;
+  const onActivateRow = rowSidebar
+    ? (item: T) => setSidebarRowId(rowSidebar.getId(item))
+    : onRowClick;
 
   const handleScrollPointerDown = (
     event: React.PointerEvent<HTMLDivElement>,
@@ -242,18 +267,18 @@ export default function AppTable<T>({
 
   const handleRowClick = useCallback(
     (item: T, event: React.MouseEvent<HTMLTableRowElement>) => {
-      if (!onRowClick || isInteractiveTarget(event.target)) {
+      if (!onActivateRow || isInteractiveTarget(event.target)) {
         return;
       }
 
-      onRowClick(item);
+      onActivateRow(item);
     },
-    [isInteractiveTarget, onRowClick],
+    [isInteractiveTarget, onActivateRow],
   );
 
   const handleRowKeyDown = useCallback(
     (item: T, event: React.KeyboardEvent<HTMLTableRowElement>) => {
-      if (!onRowClick) {
+      if (!onActivateRow) {
         return;
       }
       if (event.key !== 'Enter' && event.key !== ' ') {
@@ -264,9 +289,9 @@ export default function AppTable<T>({
       }
 
       event.preventDefault();
-      onRowClick(item);
+      onActivateRow(item);
     },
-    [isInteractiveTarget, onRowClick],
+    [isInteractiveTarget, onActivateRow],
   );
 
   const handleActionClick = useCallback(
@@ -529,6 +554,13 @@ export default function AppTable<T>({
                 const itemId = getItemId ? getItemId(item) : '';
                 const isSelected = selectedIds.includes(itemId);
                 const rowLink = getRowLink?.(item);
+                // With a sidebar the link moves onto the name; the row opens
+                // the sidebar. Without one the whole row is the link.
+                const coverLink = rowSidebar ? undefined : rowLink;
+                const nameLink = rowSidebar ? rowLink : undefined;
+                const isSidebarRow =
+                  rowSidebar !== undefined &&
+                  sidebarRowId === rowSidebar.getId(item);
                 const rowKey = getRowKey ? getRowKey(item, index) : index;
                 const expandedContent = renderExpandedRow?.(item);
                 const groupHeading = getGroupHeading?.(item) ?? null;
@@ -556,26 +588,26 @@ export default function AppTable<T>({
                     <tr
                       className={cn(
                         'group transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
-                        isSelected && 'bg-accent',
+                        (isSelected || isSidebarRow) && 'bg-accent',
                         // A linked row positions the overlay anchor below; the
                         // click affordance comes from the anchor, not the row.
-                        rowLink && 'relative cursor-pointer',
-                        !rowLink &&
-                          onRowClick &&
+                        coverLink && 'relative cursor-pointer',
+                        !coverLink &&
+                          onActivateRow &&
                           'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                         getRowClassName?.(item),
                       )}
                       onClick={
-                        rowLink
+                        coverLink
                           ? undefined
                           : (event) => handleRowClick(item, event)
                       }
                       onKeyDown={
-                        !rowLink && onRowClick
+                        !coverLink && onActivateRow
                           ? (event) => handleRowKeyDown(item, event)
                           : undefined
                       }
-                      tabIndex={!rowLink && onRowClick ? 0 : undefined}
+                      tabIndex={!coverLink && onActivateRow ? 0 : undefined}
                     >
                       {selectable && (
                         <td
@@ -604,7 +636,7 @@ export default function AppTable<T>({
                             column.className,
                           )}
                         >
-                          {rowLink && columnIndex === 0 ? (
+                          {coverLink && columnIndex === 0 ? (
                             <>
                               {/* The anchor covers the whole row (the `tr` is the
                               positioned ancestor), so ordinary cells must stay
@@ -613,14 +645,20 @@ export default function AppTable<T>({
                               fallback. Only the checkbox and action cells are
                               raised, and they are positioned on their own `td`. */}
                               <Link
-                                aria-label={rowLink.label}
+                                aria-label={coverLink.label}
                                 className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                                href={rowLink.href}
+                                href={coverLink.href}
                               />
                               <TableCellContent column={column} item={item} />
                             </>
                           ) : (
-                            <TableCellContent column={column} item={item} />
+                            <TableCellContent
+                              column={column}
+                              item={item}
+                              nameLink={
+                                columnIndex === 0 ? nameLink : undefined
+                              }
+                            />
                           )}
                         </td>
                       ))}
@@ -773,6 +811,24 @@ export default function AppTable<T>({
           </table>
         </div>
       </div>
+      {rowSidebar ? (
+        <ContextSidebarPanel
+          onClose={() => setSidebarRowId(null)}
+          selection={
+            sidebarItem
+              ? {
+                  id: rowSidebar.getId(sidebarItem),
+                  kind: rowSidebar.kind,
+                  origin: 'user',
+                  subtitle: rowSidebar.getSubtitle?.(sidebarItem),
+                  title: rowSidebar.getTitle(sidebarItem),
+                }
+              : null
+          }
+        >
+          {sidebarItem ? rowSidebar.render(sidebarItem) : null}
+        </ContextSidebarPanel>
+      ) : null}
     </TableSectionWrapper>
   );
 }

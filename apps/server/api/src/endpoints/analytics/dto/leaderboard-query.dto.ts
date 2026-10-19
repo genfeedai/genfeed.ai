@@ -161,6 +161,16 @@ export class AdminBrandsQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEnum(LeaderboardSort)
   sort?: LeaderboardSort = LeaderboardSort.ENGAGEMENT;
+
+  @ApiProperty({
+    description: 'Case-insensitive brand name search, applied before paging',
+    maxLength: 200,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
 }
 
 export class AnalyticsFilterQueryDto extends AnalyticsDateRangeDto {

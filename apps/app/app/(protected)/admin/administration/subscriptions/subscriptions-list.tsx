@@ -2,6 +2,7 @@
 
 import { LazyModalSubscription } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,8 +15,10 @@ import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Copy, CreditCard, ExternalLink, Pencil } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function SubscriptionsList() {
@@ -24,6 +27,7 @@ export default function SubscriptionsList() {
   );
 
   const clipboardService = ClipboardService.getInstance();
+  const currentPage = Number(useSearchParams().get('page')) || 1;
 
   const [selectedOrgId, setSelectedOrg] = useState<string | null>(null);
 
@@ -34,10 +38,10 @@ export default function SubscriptionsList() {
     error: subscriptionsError,
     refetch,
   } = useQuery<Subscription[]>({
-    queryKey: ['admin-subscriptions'],
+    queryKey: ['admin-subscriptions', currentPage],
     queryFn: async () => {
       const service = await getSubscriptionsService();
-      return service.findAll();
+      return service.findAll({ limit: ITEMS_PER_PAGE, page: currentPage });
     },
   });
 
@@ -165,6 +169,10 @@ export default function SubscriptionsList() {
           },
         ]}
       />
+
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="subscriptions" />
+      </div>
 
       <LazyModalSubscription
         organizationId={selectedOrgId}
