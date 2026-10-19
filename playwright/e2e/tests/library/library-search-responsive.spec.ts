@@ -91,7 +91,11 @@ for (const viewport of [
         }),
       )
       .toBe(true);
-    await image.click();
+    // The hit test above proves the row is reachable. Commit it from the
+    // keyboard: a mouse move from the Type row to the submenu crosses the
+    // parent menu at 390px, where Radix closes the submenu mid-click.
+    await image.focus();
+    await page.keyboard.press('Enter');
     // The open menu hides the rest of the page from role queries.
     await page.keyboard.press('Escape');
     const chip = canvas.getByRole('button', {
