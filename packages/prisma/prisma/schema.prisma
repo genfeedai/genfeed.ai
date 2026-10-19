@@ -2993,6 +2993,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([isDeleted, parentId, targetExecutionState, scheduledDate], map: "posts_thread_child_due_idx")
   @@index([isDeleted, organizationId, status])
   @@index([brandId, isDeleted, status])
+  @@index([brandId, isDeleted, scheduledDate], map: "posts_brand_deleted_scheduled_date_idx")
   @@index([isDeleted, nextScheduledDate, status])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([brandId, isDeleted, createdAt(sort: Desc)])
