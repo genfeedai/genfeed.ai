@@ -411,6 +411,7 @@ describe('WorkflowExecutionsController', () => {
         controller.findAdminFailures(mockRequest, mockUser, {
           limit: 20,
           offset: 0,
+          resolution: 'open',
         }),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(mockService.findAll).not.toHaveBeenCalled();
@@ -424,6 +425,7 @@ describe('WorkflowExecutionsController', () => {
           {
             limit: 20,
             offset: 10,
+            resolution: 'open',
           },
         ),
       ).rejects.toThrow('Offset must be a multiple of limit');
@@ -439,6 +441,7 @@ describe('WorkflowExecutionsController', () => {
           failureReason: AgentFailureReason.UNKNOWN,
           limit: 20,
           offset: 0,
+          resolution: 'open',
         },
       );
       const where = mockService.findAll.mock.calls[0][0].where;
@@ -459,6 +462,7 @@ describe('WorkflowExecutionsController', () => {
           failureReason: AgentFailureReason.RATE_LIMITED,
           limit: 20,
           offset: 40,
+          resolution: 'open',
         },
       );
       expect(mockService.findAll).toHaveBeenCalledWith(
