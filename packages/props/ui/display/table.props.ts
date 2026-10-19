@@ -1,4 +1,5 @@
 import type { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ContextSidebarSelectionKind } from '@props/ui/context-sidebar.props';
 import type { Key, ReactNode } from 'react';
 
 export interface TableGroupHeading {
@@ -29,6 +30,20 @@ export type TableSortDirection = 'asc' | 'desc';
 export interface TableRowLink {
   href: string;
   label: string;
+}
+
+/**
+ * Detail a row opens in the shell's right context sidebar. The table owns the
+ * selection, highlights the selected row and clears it when the sidebar closes.
+ */
+export interface TableRowSidebar<T> {
+  /** Drives the sidebar chrome; use the kind that best names the entity. */
+  kind: ContextSidebarSelectionKind;
+  getId: (item: T) => string;
+  getTitle: (item: T) => string;
+  getSubtitle?: (item: T) => string | undefined;
+  /** The record's detail, rendered inside the sidebar. */
+  render: (item: T) => ReactNode;
 }
 
 export interface TableErrorState {
@@ -70,17 +85,24 @@ interface TableBaseProps<T> {
   getItemId?: (item: T) => string;
 
   /**
-   * Destination for rows that navigate. Rows that return a link render a real
-   * anchor, so the router prefetches the destination before the click, and
-   * middle-click and cmd-click open it in a new tab. Return `undefined` for a
-   * row with nowhere to go.
+   * Detail page of a row. Rows that return a link render a real anchor, so the
+   * router prefetches the destination before the click, and middle-click and
+   * cmd-click open it in a new tab. Return `undefined` for a row with nowhere
+   * to go.
    *
-   * Prefer this over `onRowClick` for navigation. `onRowClick` stays for rows
-   * that open a modal, select an item, or otherwise act in place.
+   * With `rowSidebar` the link sits on the name (first column) and a click on
+   * the rest of the row opens the sidebar. Without it the whole row is the
+   * link.
    */
   getRowLink?: (item: T) => TableRowLink | undefined;
 
-  // Row click handler
+  /**
+   * The standard row contract: click a row to open its detail in the right
+   * context sidebar, click the name (see `getRowLink`) to open the page.
+   */
+  rowSidebar?: TableRowSidebar<T>;
+
+  /** Row click for in-place actions that are not a detail view. */
   onRowClick?: (item: T) => void;
 
   /**

@@ -30,7 +30,7 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
-import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import PublishingContentIdentity from '@pages/posts/library/publishing-content-identity';
 import {
   createPublishingContentLibraryItems,
@@ -920,7 +920,7 @@ export default function PublishingContentLibrary({
             );
         }}
       />
-      <PostDetailOverlay
+      <PostDetailPanel
         postId={parsedSearchParams.get('post')}
         scope={PageScope.PUBLISHING}
         onClose={() => replaceQueryParam('post', '')}

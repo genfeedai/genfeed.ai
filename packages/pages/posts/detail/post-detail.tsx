@@ -5,6 +5,8 @@ import {
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import {
+  ButtonSize,
+  ButtonVariant,
   CredentialPlatform,
   normalizeReviewDecision,
   type PageScope,
@@ -29,11 +31,14 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import TargetPreview from '@ui/previews/TargetPreview';
+import { Button } from '@ui/primitives/button';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
+import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
@@ -41,7 +46,13 @@ import { type ReactNode, useCallback, useMemo, useState } from 'react';
 export interface PostDetailProps {
   postId: string;
   scope: PageScope;
-  presentation?: 'page' | 'overlay';
+  /**
+   * `page` is the full editor. `sidebar` is the compact detail shown in the
+   * shell's right context sidebar when a row is selected in a list.
+   */
+  presentation?: 'page' | 'sidebar';
+  /** Sidebar presentation only: called when the sidebar is closed. */
+  onClose?: () => void;
   /**
    * When set, sidebar meta (schedule, quality, SEO, …) is handed to the host
    * (e.g. workspace Context rail) instead of rendering inline beside content.
@@ -56,6 +67,7 @@ export default function PostDetail({
   postId,
   scope,
   presentation = 'page',
+  onClose,
   renderContextSidebar,
 }: PostDetailProps) {
   const router = useRouter();
@@ -398,6 +410,64 @@ export default function PostDetail({
   const usesContextSidebar = Boolean(renderContextSidebar) || usesShellSidebar;
   const contextLabel =
     labelDraft?.trim() || post?.label?.trim() || 'Untitled post';
+
+  if (presentation === 'sidebar') {
+    const editorHref = href(getPublishingPostHref(postId));
+    let panelBody: ReactNode;
+    if (error) {
+      panelBody = <p className="p-4 text-sm text-error">{error}</p>;
+    } else if (!post && !isLoading) {
+      panelBody = (
+        <p className="p-4 text-sm text-error">{translate('notFound')}</p>
+      );
+    } else if (!post) {
+      panelBody = (
+        <div className="p-4" data-testid="post-detail-skeleton">
+          <SkeletonCard showImage={false} />
+        </div>
+      );
+    } else {
+      panelBody = (
+        <>
+          <div className="flex justify-end border-b border-border px-4 py-3">
+            <Button
+              asChild
+              icon={<ExternalLink className="size-3.5" />}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link href={editorHref}>{translate('openEditor')}</Link>
+            </Button>
+          </div>
+          <div className="space-y-4 p-4">
+            <PostDetailNeedsYou
+              isPublished={isPublished}
+              onPublishNow={publishNow}
+              onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
+              post={post}
+            />
+            {sidebar}
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <ContextSidebarPanel
+        onClose={onClose}
+        selection={{
+          id: postId,
+          kind: 'post',
+          origin: 'user',
+          title: post ? contextLabel : translate('title'),
+        }}
+      >
+        <div className="flex flex-col" data-testid="post-detail-panel">
+          {panelBody}
+        </div>
+      </ContextSidebarPanel>
+    );
+  }
 
   // Error state
   if (error) {

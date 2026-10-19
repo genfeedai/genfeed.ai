@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import Module from './PostDetailOverlay.tsx';
+import Module from './PostDetailPanel.tsx';
 
-describe('PostDetailOverlay.tsx', () => {
+describe('PostDetailPanel.tsx', () => {
   it('exports a component', () => {
     expect(Module).toBeDefined();
   });
