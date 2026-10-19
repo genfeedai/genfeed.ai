@@ -297,7 +297,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organizations.
     {
       file: 'apps/server/api/src/collections/referrals/services/referrals.service.ts',
-      line: 272,
+      line: 270,
     },
     // #6120: short codes are globally unique; public redirects resolve without
     // an organization.
