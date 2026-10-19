@@ -14,7 +14,6 @@ export const APP_ROUTES = {
     FLAGS: '/admin/flags',
     ADMINISTRATION: {
       ANNOUNCEMENTS: '/admin/administration/announcements',
-      CREDIT_USAGE: '/admin/administration/credit-usage',
       REFERRALS: '/admin/administration/referrals',
       PLATFORM_SETTINGS: '/admin/administration/platform-settings',
       ROLES: '/admin/administration/roles',

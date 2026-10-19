@@ -16,6 +16,7 @@ import {
   toSubscriptionPreviewException,
 } from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
+import { buildOrganizationBillingRow } from '@api/collections/subscriptions/utils/organization-billing.util';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -31,11 +32,15 @@ import {
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  BillingAccountOrganizationStatus,
   SubscriptionPlan,
   SubscriptionStatus,
   toPrismaSubscriptionStatus,
 } from '@genfeedai/contracts';
-import type { SubscriptionChangePreview } from '@genfeedai/contracts/interfaces';
+import type {
+  IOrganizationBilling,
+  SubscriptionChangePreview,
+} from '@genfeedai/contracts/interfaces';
 import {
   type ISubscriptionFindAllOptions,
   type ISubscriptionFindAllResult,
@@ -58,6 +63,14 @@ import {
 
 type SubscriptionsFindAllResult =
   AggregatePaginateResult<SubscriptionDocument> & ISubscriptionFindAllResult;
+
+interface AdminBillingPage {
+  docs: IOrganizationBilling[];
+  limit: number;
+  page: number;
+  totalDocs: number;
+  totalPages: number;
+}
 
 /** Mirrors the DTO/StripeService shape check; a malformed persisted id is local state, not a Stripe fault. */
 const STRIPE_PRICE_ID_PATTERN = /^price_[A-Za-z0-9]+$/;
@@ -165,6 +178,179 @@ export class SubscriptionsService
       ...result,
       total: result.totalDocs,
       totalDocs: result.totalDocs,
+    };
+  }
+
+  /**
+   * One page of every organization with its subscription and wallet, for the
+   * superadmin Subscriptions list. Reads the rows directly instead of going
+   * through the per-organization wallet resolver, which refuses any
+   * organization other than the caller's own tenant (and creates a wallet on
+   * read): a platform-wide list must never do either. The caller runs this
+   * inside `crossOrgUnsafe`.
+   */
+  async findAdminBilling(options: {
+    limit: number;
+    page: number;
+  }): Promise<AdminBillingPage> {
+    const where = { isDeleted: false };
+    const [organizations, totalDocs] = await Promise.all([
+      this.prisma.organization.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        select: {
+          billingAccountId: true,
+          id: true,
+          label: true,
+          user: { select: { email: true } },
+        },
+        skip: (options.page - 1) * options.limit,
+        take: options.limit,
+        where,
+      }),
+      this.prisma.organization.count({ where }),
+    ]);
+
+    const organizationIds = organizations.map(({ id }) => id);
+    const [subscriptions, settings, links] = organizationIds.length
+      ? await Promise.all([
+          this.prisma.subscription.findMany({
+            include: { customer: { select: { stripeCustomerId: true } } },
+            orderBy: { createdAt: 'desc' },
+            where: {
+              isDeleted: false,
+              organizationId: { in: organizationIds },
+            },
+          }),
+          this.prisma.organizationSetting.findMany({
+            select: { organizationId: true, subscriptionTier: true },
+            where: { organizationId: { in: organizationIds } },
+          }),
+          this.prisma.billingAccountOrganization.findMany({
+            select: { billingAccountId: true, organizationId: true },
+            where: {
+              isDeleted: false,
+              organizationId: { in: organizationIds },
+              status: BillingAccountOrganizationStatus.LINKED,
+            },
+          }),
+        ])
+      : [[], [], []];
+
+    const billingAccountIdByOrganization = new Map<string, string>();
+    for (const link of links) {
+      billingAccountIdByOrganization.set(
+        link.organizationId,
+        link.billingAccountId,
+      );
+    }
+    for (const organization of organizations) {
+      if (organization.billingAccountId) {
+        billingAccountIdByOrganization.set(
+          organization.id,
+          organization.billingAccountId,
+        );
+      }
+    }
+
+    const billingAccountIds = [
+      ...new Set(billingAccountIdByOrganization.values()),
+    ];
+    const wallets = organizationIds.length
+      ? await this.prisma.creditBalance.findMany({
+          select: {
+            balance: true,
+            billingAccountId: true,
+            heldAmount: true,
+            organizationId: true,
+          },
+          where: {
+            isDeleted: false,
+            OR: [
+              { organizationId: { in: organizationIds } },
+              ...(billingAccountIds.length
+                ? [{ billingAccountId: { in: billingAccountIds } }]
+                : []),
+            ],
+          },
+        })
+      : [];
+
+    // Newest first, so the first row per organization is its current one.
+    const subscriptionByOrganization = new Map<
+      string,
+      (typeof subscriptions)[number]
+    >();
+    for (const subscription of subscriptions) {
+      if (!subscriptionByOrganization.has(subscription.organizationId)) {
+        subscriptionByOrganization.set(
+          subscription.organizationId,
+          subscription,
+        );
+      }
+    }
+    const tierByOrganization = new Map(
+      settings.map(({ organizationId, subscriptionTier }) => [
+        organizationId,
+        subscriptionTier,
+      ]),
+    );
+
+    const docs = await Promise.all(
+      organizations.map(async (organization) => {
+        const subscription = subscriptionByOrganization.get(organization.id);
+        const billingAccountId = billingAccountIdByOrganization.get(
+          organization.id,
+        );
+        // Mirrors the wallet lookup order: the organization's own wallet,
+        // then the billing account's shared one.
+        const wallet =
+          wallets.find(
+            ({ organizationId }) => organizationId === organization.id,
+          ) ??
+          (billingAccountId
+            ? wallets.find((row) => row.billingAccountId === billingAccountId)
+            : undefined);
+        const planLimit = subscription
+          ? ((await this.creditGrantService.resolveMonthlyCredits(
+              subscription.stripePriceId,
+            )) ?? 0)
+          : 0;
+
+        return buildOrganizationBillingRow({
+          balance: wallet ? wallet.balance - wallet.heldAmount : 0,
+          organization: {
+            id: organization.id,
+            label: organization.label,
+            ownerEmail: organization.user?.email ?? null,
+          },
+          planLimit,
+          subscription: subscription
+            ? {
+                currentPeriodEnd: subscription.currentPeriodEnd,
+                plan: subscription.plan,
+                status: subscription.status,
+                stripeCustomerId:
+                  subscription.customer?.stripeCustomerId ?? null,
+                stripePriceId: subscription.stripePriceId,
+                stripeSubscriptionId: subscription.stripeSubscriptionId,
+              }
+            : null,
+          tier:
+            this.creditGrantService.resolveTierFromPriceId(
+              subscription?.stripePriceId,
+            ) ??
+            tierByOrganization.get(organization.id) ??
+            null,
+        });
+      }),
+    );
+
+    return {
+      docs,
+      limit: options.limit,
+      page: options.page,
+      totalDocs,
+      totalPages: Math.max(1, Math.ceil(totalDocs / options.limit)),
     };
   }
 

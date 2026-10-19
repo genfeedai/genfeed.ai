@@ -43,7 +43,7 @@ export default function CreditHoldsPanel({
       setReason('');
       await Promise.all([
         report.refetch(),
-        queryClient.invalidateQueries({ queryKey: ['admin-credit-usage'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] }),
       ]);
     },
   });

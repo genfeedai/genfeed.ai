@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SubscriptionChangeException } from '@api/collections/subscriptions/errors/subscription-change.exception';
 import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
@@ -58,6 +57,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
   let controller: SubscriptionsController;
   let subscriptionsService: {
     changeSubscriptionPlan: MockFn;
+    findAdminBilling: MockFn;
     findAll: MockFn;
     findByOrganizationId: MockFn;
     previewSubscriptionChange: MockFn;
@@ -67,7 +67,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
     getOrganizationCreditsBalance: MockFn;
     getOrganizationCreditsWithExpiration: MockFn;
   };
-  let organizationsService: { find: MockFn };
   let loggerService: {
     debug: MockFn;
     error: MockFn;
@@ -84,6 +83,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
   beforeEach(async () => {
     subscriptionsService = {
       changeSubscriptionPlan: vi.fn(),
+      findAdminBilling: vi.fn(),
       findAll: vi.fn(),
       findByOrganizationId: vi.fn().mockResolvedValue(null),
       previewSubscriptionChange: vi.fn(),
@@ -97,7 +97,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         .fn()
         .mockResolvedValue({ credits: [], total: 0 }),
     };
-    organizationsService = { find: vi.fn().mockResolvedValue([]) };
     loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -118,7 +117,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       providers: [
         { provide: SubscriptionsService, useValue: subscriptionsService },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
-        { provide: OrganizationsService, useValue: organizationsService },
         {
           provide: SubscriptionCreditGrantService,
           useValue: creditGrantService,
@@ -343,16 +341,16 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       ).not.toHaveBeenCalled();
     });
 
-    it('wraps an admin credit-usage failure in a 500 that keeps the cause out of the body', async () => {
+    it('wraps an admin billing failure in a 500 that keeps the cause out of the body', async () => {
       const cause = new Error('timeout');
-      subscriptionsService.findAll.mockRejectedValue(cause);
+      subscriptionsService.findAdminBilling.mockRejectedValue(cause);
 
       const error = await controller
-        .getCreditUsage(defaultQuery)
+        .getAdminBilling(defaultQuery)
         .catch((caught: unknown) => caught);
 
       expect(payloadOf(error)).toEqual({
-        message: 'Failed to retrieve organization credit usage',
+        message: 'Failed to retrieve organization billing',
         success: false,
       });
       expect((error as HttpException).cause).toBe(cause);
@@ -441,83 +439,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       expect(result.data.cycleEndAt).toBeUndefined();
       expect(result.data.cycleTotal).toBe(250);
       expect(result.data.remainingPercent).toBe(100);
-    });
-  });
-
-  describe('admin credit usage', () => {
-    it('reports a null tier and no plan limit for a subscription with no Stripe price', async () => {
-      subscriptionsService.findAll.mockResolvedValue({
-        docs: [
-          {
-            currentPeriodEnd: null,
-            id: 'sub_1',
-            organizationId: ORGANIZATION_ID,
-            status: SubscriptionStatus.ACTIVE,
-            stripePriceId: null,
-          },
-        ],
-        limit: 20,
-        page: 1,
-        totalDocs: 1,
-        totalPages: 1,
-      });
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        35_000,
-      );
-      organizationsService.find.mockResolvedValue([
-        { id: ORGANIZATION_ID, label: 'Acme Inc' },
-      ]);
-
-      const result = await controller.getCreditUsage(defaultQuery);
-
-      expect(result.data[0]).toEqual(
-        expect.objectContaining({
-          isUnderUsing: false,
-          organizationName: 'Acme Inc',
-          planLimit: 0,
-          status: SubscriptionStatus.ACTIVE,
-          tier: null,
-          usedCredits: 0,
-          usedPercent: 0,
-        }),
-      );
-    });
-
-    it('skips the organization lookup when no rows carry an organization', async () => {
-      subscriptionsService.findAll.mockResolvedValue({
-        docs: [
-          {
-            id: 'sub_orphan',
-            organizationId: '',
-            status: null,
-            stripePriceId: null,
-          },
-        ],
-        limit: 20,
-        page: 1,
-        totalDocs: 1,
-        totalPages: 1,
-      });
-
-      const result = await controller.getCreditUsage(defaultQuery);
-
-      expect(organizationsService.find).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.getOrganizationCreditsBalance,
-      ).not.toHaveBeenCalled();
-      expect(result.data[0]).toEqual(
-        expect.objectContaining({
-          balance: 0,
-          currentPeriodEnd: null,
-          isMaxedOut: false,
-          isUnderUsing: false,
-          organizationName: 'N/A',
-          remainingPercent: 100,
-          status: null,
-          usedCredits: 0,
-          usedPercent: 0,
-        }),
-      );
     });
   });
 });

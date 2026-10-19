@@ -1,5 +1,4 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SubscriptionsController } from '@api/collections/subscriptions/controllers/subscriptions.controller';
 import { SubscriptionChangeException } from '@api/collections/subscriptions/errors/subscription-change.exception';
 import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
@@ -53,7 +52,6 @@ describe('Subscription billing HTTP composition', () => {
           useValue: { changeSubscriptionPlan, previewSubscriptionChange },
         },
         { provide: CreditsUtilsService, useValue: {} },
-        { provide: OrganizationsService, useValue: {} },
         { provide: SubscriptionCreditGrantService, useValue: {} },
         { provide: LoggerService, useValue: logger },
         { provide: ConfigService, useValue: configService },
