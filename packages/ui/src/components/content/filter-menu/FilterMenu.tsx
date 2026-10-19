@@ -92,7 +92,7 @@ function FilterMenuFacetItem({
           <div className="p-1.5">
             <Input
               aria-label={facet.searchPlaceholder}
-              className="h-7 text-xs"
+              className="h-control-sm text-xs"
               // Menu typeahead would otherwise swallow every keystroke.
               onKeyDown={(event) => event.stopPropagation()}
               onChange={(event) => setSearchTerm(event.target.value)}
